@@ -22,7 +22,7 @@ const MOCK_PROJECTS: Project[] = [
     studio_id: 'studio-1',
     name: 'Jungle Product Demo',
     status: 'completed',
-    script_content: 'Welcome to our revolutionary product...',
+    script_content: 'Welcome to our revolutionary product that will change the way you think about AI-powered video creation. In this demonstration, we will showcase the incredible capabilities of Apex Studio...',
     environment_prompt: 'jungle_studio',
     voice_id: 'EXAVITQu4vr4xnSDxMaL',
     character_id: 'avatar_001',
@@ -210,16 +210,36 @@ export function DirectorDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Ambient Background Effects */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Main gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] animate-float" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px]" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-warning/5 rounded-full blur-[80px]" />
+        
+        {/* Grid overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px'
+          }}
+        />
+      </div>
+
       <Header
         projectName={activeProject?.name || 'Untitled Project'}
         status={activeProject?.status || 'idle'}
         onExport={handleExport}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Left Sidebar - Projects */}
-        <aside className="hidden lg:flex w-72 border-r border-border/50 flex-col">
+        <aside className="hidden lg:flex w-72 border-r border-border/30 flex-col bg-sidebar/50 backdrop-blur-sm">
           <div className="flex-1 overflow-hidden">
             <ProjectList
               projects={projects}
@@ -229,7 +249,7 @@ export function DirectorDashboard() {
               onDeleteProject={handleDeleteProject}
             />
           </div>
-          <div className="p-4 border-t border-border/50">
+          <div className="p-4 border-t border-border/30">
             <CreditsDisplay credits={credits} onBuyCredits={handleBuyCredits} />
           </div>
         </aside>
@@ -245,7 +265,7 @@ export function DirectorDashboard() {
           </div>
 
           {/* Script Panel */}
-          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-border/50">
+          <div className="w-full lg:w-[400px] border-t lg:border-t-0 lg:border-l border-border/30 bg-card/30 backdrop-blur-sm">
             <ScriptPanel
               script={script}
               voiceId={voiceId}
@@ -260,7 +280,7 @@ export function DirectorDashboard() {
         </main>
 
         {/* Right Sidebar - Settings */}
-        <aside className="hidden xl:block w-80 border-l border-border/50">
+        <aside className="hidden xl:block w-80 border-l border-border/30 bg-sidebar/50 backdrop-blur-sm">
           <SettingsSidebar settings={settings} onSettingsChange={handleSettingsChange} />
         </aside>
       </div>

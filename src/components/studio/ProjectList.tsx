@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Plus, Folder, Clock, MoreVertical, Trash2, Copy, Edit2 } from 'lucide-react';
+import { Plus, Folder, Clock, MoreVertical, Trash2, Copy, Edit2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Project, ProjectStatus } from '@/types/studio';
+import { Project } from '@/types/studio';
 import { cn } from '@/lib/utils';
 
 interface ProjectListProps {
@@ -43,65 +42,81 @@ export function ProjectList({
   };
 
   return (
-    <div className="glass-panel h-full flex flex-col">
-      <div className="p-4 border-b border-border/50">
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-border/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Folder className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-foreground">Projects</h3>
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Folder className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Projects</h3>
+              <p className="text-xs text-muted-foreground">{projects.length} total</p>
+            </div>
           </div>
-          <Button variant="glow" size="sm" onClick={onCreateProject}>
+          <Button variant="glow" size="sm" onClick={onCreateProject} className="gap-1.5">
             <Plus className="w-4 h-4" />
             New
           </Button>
         </div>
       </div>
 
+      {/* Project List */}
       <div className="flex-1 overflow-y-auto">
         {projects.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
-              <Folder className="w-6 h-6 text-muted-foreground" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center">
+              <Film className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground mb-2">No projects yet</p>
+            <p className="text-sm font-medium text-foreground mb-1">No projects yet</p>
+            <p className="text-xs text-muted-foreground mb-4">Create your first AI video</p>
             <Button variant="outline" size="sm" onClick={onCreateProject}>
-              Create your first project
+              Create Project
             </Button>
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
+          <div className="p-2 space-y-1">
             {projects.map((project) => (
               <button
                 key={project.id}
                 onClick={() => onSelectProject(project.id)}
                 className={cn(
-                  "w-full p-4 text-left transition-all hover:bg-muted/20",
-                  activeProjectId === project.id && "bg-primary/10 border-l-2 border-primary"
+                  "w-full p-3 rounded-xl text-left transition-all",
+                  activeProjectId === project.id 
+                    ? "bg-primary/10 border border-primary/30" 
+                    : "hover:bg-muted/30 border border-transparent"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground truncate">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={cn(
+                        "font-medium truncate text-sm",
+                        activeProjectId === project.id ? "text-primary" : "text-foreground"
+                      )}>
                         {project.name}
                       </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
                       <Badge
                         variant={project.status as 'idle' | 'generating' | 'rendering' | 'completed'}
-                        className="text-[10px] px-1.5"
+                        className="text-[10px] px-2 py-0"
                       >
                         {project.status}
                       </Badge>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(project.updated_at)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatDate(project.updated_at)}</span>
-                      {project.duration_seconds && (
-                        <>
-                          <span>•</span>
-                          <span>{Math.floor(project.duration_seconds / 60)}:{String(project.duration_seconds % 60).padStart(2, '0')}</span>
-                        </>
-                      )}
-                    </div>
+
+                    {project.duration_seconds && (
+                      <div className="mt-1.5 text-xs text-muted-foreground font-mono">
+                        Duration: {Math.floor(project.duration_seconds / 60)}:{String(project.duration_seconds % 60).padStart(2, '0')}
+                      </div>
+                    )}
                   </div>
 
                   <DropdownMenu>
@@ -109,7 +124,7 @@ export function ProjectList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0"
+                        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreVertical className="w-4 h-4" />

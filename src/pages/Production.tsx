@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStudio } from '@/contexts/StudioContext';
 import { SettingsSidebar } from '@/components/studio/SettingsSidebar';
 import { AssetLayersPanel } from '@/components/studio/AssetLayersPanel';
-import { ApiTestPanel } from '@/components/studio/ApiTestPanel';
+import { VideoGenerationPanel } from '@/components/studio/VideoGenerationPanel';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -286,9 +286,9 @@ export default function Production() {
               </div>
             </div>
 
-            {/* API Test Panel */}
+            {/* Video Generation Panel */}
             <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-              <ApiTestPanel />
+              <VideoGenerationPanel />
             </div>
 
             {/* Layers Panel */}

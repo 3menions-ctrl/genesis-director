@@ -6,10 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { StudioLayout } from "@/components/layout/StudioLayout";
 import Projects from "./pages/Projects";
+import Create from "./pages/Create";
 import Script from "./pages/Script";
 import Production from "./pages/Production";
 import Export from "./pages/Export";
-import CreateMovie from "./pages/CreateMovie";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,9 +25,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Navigate to="/projects" replace />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/create" element={<Create />} />
               <Route path="/script" element={<Script />} />
               <Route path="/production" element={<Production />} />
-              <Route path="/create-movie" element={<CreateMovie />} />
               <Route path="/export" element={<Export />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

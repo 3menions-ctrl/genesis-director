@@ -42,7 +42,7 @@ export default function Projects() {
 
   const handleCreateProject = () => {
     createProject();
-    navigate('/script');
+    navigate('/create');
   };
 
   return (

@@ -101,13 +101,18 @@ export function VideoGenerationPanel() {
       setProgress(50);
       toast.success('Voice narration generated!');
 
-      // Step 3: Generate Video
+      // Step 3: Generate Video - use script content for better visual prompts
       setStep('video');
       toast.info('Starting AI video generation...');
       
+      // Extract visual descriptions from script for video prompt
+      const videoPrompt = `Cinematic video visualizing: ${scriptData.script.slice(0, 500)}. 
+        Create professional, engaging visuals that match this narration. 
+        High quality, modern cinematography, smooth transitions.`;
+      
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: { 
-          prompt: `Cinematic visuals for: ${topic}. Professional, engaging, modern style.`,
+          prompt: videoPrompt,
           duration: 8
         },
       });

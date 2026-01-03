@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, duration = 5 } = await req.json();
+    const { prompt, duration = 8 } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
@@ -33,10 +33,10 @@ serve(async (req) => {
         "X-Runway-Version": "2024-11-06",
       },
       body: JSON.stringify({
-        model: "gen3a_turbo",
+        model: "veo3.1_fast",
         promptText: prompt,
         duration: duration,
-        ratio: "16:9",
+        ratio: "1920:1080",
       }),
     });
 

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, Upload, Trash2, Mic, Volume2, ArrowRight, ArrowLeft, 
-  AlertCircle, Wand2, User, Sparkles, Zap
+  AlertCircle, Wand2, User, Sparkles, Zap, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 import { useState, useCallback } from 'react';
 
 const AVATAR_GRADIENTS = [
-  'from-cyan-400 to-blue-500',
-  'from-violet-400 to-purple-500',
-  'from-amber-400 to-orange-500',
-  'from-emerald-400 to-teal-500',
+  'from-primary via-[hsl(280,85%,60%)] to-primary',
+  'from-accent via-[hsl(350,85%,55%)] to-accent',
+  'from-warning via-amber-400 to-warning',
+  'from-success via-emerald-400 to-success',
 ];
 
 export default function Script() {
@@ -81,19 +81,19 @@ export default function Script() {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] orb-1" />
+          <div className="absolute top-1/3 left-1/3 w-[600px] h-[600px] bg-primary/[0.06] rounded-full blur-[150px] orb-float-1" />
         </div>
         
-        <div className="relative z-10 text-center space-y-6 animate-fade-in">
-          <div className="w-20 h-20 mx-auto icon-container">
-            <AlertCircle className="w-8 h-8 text-primary" />
+        <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
+          <div className="w-24 h-24 mx-auto icon-box p-6">
+            <AlertCircle className="w-10 h-10 text-primary" />
           </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-display text-foreground">No Project Selected</h2>
-            <p className="text-muted-foreground">Select or create a project to start writing</p>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-display text-foreground">No Project Selected</h2>
+            <p className="text-lg text-muted-foreground">Select or create a project to start writing</p>
           </div>
-          <Button variant="glow" size="lg" onClick={() => navigate('/projects')} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="glow" size="xl" onClick={() => navigate('/projects')} className="gap-3">
+            <ArrowLeft className="w-5 h-5" />
             Go to Projects
           </Button>
         </div>
@@ -102,36 +102,37 @@ export default function Script() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-10 animate-fade-in">
-        <div className="flex items-start justify-between gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="icon-container p-2.5">
-                <Wand2 className="w-5 h-5 text-primary" />
+      <div className="mb-10 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-8">
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="icon-box-info p-3">
+                <Wand2 className="w-6 h-6 text-info" />
               </div>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="info" className="text-xs">
                 Step 2 of 4
               </Badge>
             </div>
             <div>
-              <h1 className="text-3xl lg:text-4xl font-display text-foreground mb-2">
-                Write Your Script
+              <h1 className="text-4xl lg:text-5xl font-display text-foreground mb-3 tracking-tight">
+                Write Your <span className="text-gradient-primary">Script</span>
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-lg text-muted-foreground">
                 Craft your message and choose the perfect AI voice
               </p>
             </div>
           </div>
           
           <div className="flex items-center gap-3 shrink-0">
-            <Button variant="outline" onClick={() => navigate('/projects')} className="gap-2">
+            <Button variant="outline" size="lg" onClick={() => navigate('/projects')} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
             <Button 
               variant="glow" 
+              size="lg"
               onClick={() => navigate('/production')}
               disabled={!script.trim()}
               className="gap-2"
@@ -145,51 +146,52 @@ export default function Script() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Script Editor */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           {/* Drop Zone */}
           <div
             className={cn(
-              "relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 animate-fade-in",
+              "relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-400 animate-fade-in-up",
               isDragging
-                ? "border-primary/50 bg-primary/5 scale-[1.01]"
-                : "border-border/30 hover:border-primary/30 hover:bg-card/30"
+                ? "border-primary/60 bg-primary/5 scale-[1.02] shadow-lg shadow-primary/10"
+                : "border-border/40 hover:border-primary/40 hover:bg-card/30"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            style={{ animationDelay: '100ms' }}
           >
             <div className={cn(
-              "w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center transition-all duration-300",
-              isDragging ? "icon-container scale-110" : "bg-muted/30"
+              "w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center transition-all duration-400",
+              isDragging ? "icon-box scale-110" : "bg-muted/40"
             )}>
               <Upload className={cn(
-                "w-6 h-6 transition-colors",
+                "w-7 h-7 transition-colors",
                 isDragging ? "text-primary" : "text-muted-foreground"
               )} />
             </div>
-            <p className="text-base font-medium text-foreground mb-1">
+            <p className="text-lg font-medium text-foreground mb-2">
               Drop your script file here
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground">
               Supports .txt and .pdf files
             </p>
           </div>
 
           {/* Script Textarea */}
-          <div className="space-y-4 animate-fade-in delay-1">
+          <div className="space-y-5 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <div className="flex items-center justify-between">
-              <Label htmlFor="script" className="text-base font-medium">Script Content</Label>
+              <Label htmlFor="script" className="text-lg font-semibold text-foreground">Script Content</Label>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-subtle text-sm">
-                  <span className="font-mono text-foreground">{wordCount}</span>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass-subtle text-sm">
+                  <span className="font-mono font-semibold text-foreground">{wordCount}</span>
                   <span className="text-muted-foreground">words</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-subtle text-sm">
-                  <span className="font-mono text-foreground">~{estimatedDuration}</span>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass-subtle text-sm">
+                  <span className="font-mono font-semibold text-foreground">~{estimatedDuration}</span>
                   <span className="text-muted-foreground">min</span>
                 </div>
                 {script && (
-                  <Button variant="ghost" size="sm" onClick={() => handleScriptChange('')} className="gap-1.5">
+                  <Button variant="ghost" size="sm" onClick={() => handleScriptChange('')} className="gap-2 text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                     Clear
                   </Button>
@@ -203,7 +205,7 @@ export default function Script() {
 Example: Welcome to our product demonstration. Today, I'll walk you through the amazing features that make our solution stand out..."
               value={script}
               onChange={(e) => handleScriptChange(e.target.value)}
-              className="min-h-[380px] resize-none glass border-border/20 focus:border-primary/30 text-base leading-relaxed p-6 rounded-xl placeholder:text-muted-foreground/40"
+              className="min-h-[420px] resize-none glass border-border/30 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 text-base leading-relaxed p-6 rounded-2xl placeholder:text-muted-foreground/40"
             />
           </div>
         </div>
@@ -211,26 +213,26 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Voice Selection */}
-          <div className="glass p-6 space-y-5 hover-lift animate-fade-in delay-2">
+          <div className="card-premium p-6 space-y-5 hover-lift animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="flex items-center gap-3">
-              <div className="icon-container p-2.5">
+              <div className="icon-box p-3">
                 <Mic className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">AI Voice</h3>
+                <h3 className="font-semibold text-foreground text-lg">AI Voice</h3>
                 <p className="text-xs text-muted-foreground">Powered by ElevenLabs</p>
               </div>
             </div>
 
             <Select value={voiceId} onValueChange={handleVoiceChange}>
-              <SelectTrigger className="glass-subtle border-border/20 h-14 rounded-xl">
+              <SelectTrigger className="glass-subtle border-border/30 h-14 rounded-xl text-left">
                 <SelectValue placeholder="Select a voice" />
               </SelectTrigger>
-              <SelectContent className="glass border-border/20">
+              <SelectContent className="glass border-border/30 p-2">
                 {VOICE_OPTIONS.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id} className="py-3">
+                  <SelectItem key={voice.id} value={voice.id} className="py-3 rounded-lg cursor-pointer">
                     <div className="flex items-center gap-3">
-                      <div className="icon-container p-2">
+                      <div className="icon-box p-2">
                         <Volume2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
@@ -244,7 +246,7 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
             </Select>
 
             {selectedVoice && (
-              <div className="p-3 rounded-xl glass-subtle">
+              <div className="p-4 rounded-xl glass-subtle">
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">{selectedVoice.name}</span> • {selectedVoice.description}
                 </p>
@@ -253,13 +255,13 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
           </div>
 
           {/* Character Selection */}
-          <div className="glass p-6 space-y-5 hover-lift animate-fade-in delay-3">
+          <div className="card-premium p-6 space-y-5 hover-lift animate-fade-in-up" style={{ animationDelay: '250ms' }}>
             <div className="flex items-center gap-3">
-              <div className="icon-container-accent p-2.5">
+              <div className="icon-box-accent p-3">
                 <User className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">AI Presenter</h3>
+                <h3 className="font-semibold text-foreground text-lg">AI Presenter</h3>
                 <p className="text-xs text-muted-foreground">Powered by HeyGen</p>
               </div>
             </div>
@@ -270,10 +272,10 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
                   key={char.id}
                   onClick={() => handleCharacterChange(char.id)}
                   className={cn(
-                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 group",
+                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-400 group",
                     characterId === char.id
-                      ? "border-primary/50 ring-2 ring-primary/20 scale-[1.02]"
-                      : "border-border/20 hover:border-primary/30"
+                      ? "border-primary/60 ring-4 ring-primary/20 scale-[1.02]"
+                      : "border-border/30 hover:border-primary/40"
                   )}
                 >
                   <div className={cn(
@@ -281,20 +283,18 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
                     AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length]
                   )}>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full">
-                      <div className="w-12 h-12 mx-auto rounded-full bg-white/30 mt-4" />
-                      <div className="w-20 h-14 mx-auto rounded-t-full bg-white/30 -mt-1" />
+                      <div className="w-14 h-14 mx-auto rounded-full bg-white/30 mt-3" />
+                      <div className="w-24 h-16 mx-auto rounded-t-full bg-white/30 -mt-1" />
                     </div>
                   </div>
                   
-                  <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                    <span className="text-sm font-medium text-white">{char.name}</span>
+                  <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/70 via-black/40 to-transparent">
+                    <span className="text-sm font-semibold text-white">{char.name}</span>
                   </div>
 
                   {characterId === char.id && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                      <svg className="w-3.5 h-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+                    <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40">
+                      <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />
                     </div>
                   )}
                 </button>
@@ -303,19 +303,25 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
           </div>
 
           {/* Estimated Credits */}
-          <div className="glass p-6 hover-lift animate-fade-in delay-4" style={{ background: 'linear-gradient(135deg, hsl(42 90% 55% / 0.08), hsl(42 90% 55% / 0.02))' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="icon-container-warning p-2">
-                  <Zap className="w-4 h-4 text-warning" />
+          <div 
+            className="card-premium p-6 hover-lift animate-fade-in-up" 
+            style={{ 
+              animationDelay: '300ms',
+              background: 'linear-gradient(135deg, hsl(var(--warning) / 0.1), hsl(var(--warning) / 0.03))'
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="icon-box-warning p-3">
+                  <Zap className="w-5 h-5 text-warning" />
                 </div>
-                <span className="text-sm font-medium text-foreground">Estimated Cost</span>
+                <span className="font-semibold text-foreground">Estimated Cost</span>
               </div>
-              <span className="text-3xl font-display text-gradient-warm">
+              <span className="text-4xl font-display text-gradient-warm">
                 {estimatedDuration * 10 || 10}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Based on {wordCount} words (~{estimatedDuration} min video)
             </p>
           </div>

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Download, Share2, ArrowLeft, Check, Copy, ExternalLink, 
   AlertCircle, Film, FileVideo, Music, Subtitles, Sparkles,
-  Globe, Shield
+  Globe, Shield, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,19 +42,19 @@ export default function Export() {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] orb-2" />
+          <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-[hsl(280,85%,60%)]/[0.06] rounded-full blur-[150px] orb-float-2" />
         </div>
         
-        <div className="relative z-10 text-center space-y-6 animate-fade-in">
-          <div className="w-20 h-20 mx-auto icon-container">
-            <AlertCircle className="w-8 h-8 text-primary" />
+        <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
+          <div className="w-24 h-24 mx-auto icon-box p-6">
+            <AlertCircle className="w-10 h-10 text-primary" />
           </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-display text-foreground">No Project Selected</h2>
-            <p className="text-muted-foreground">Select a project to export</p>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-display text-foreground">No Project Selected</h2>
+            <p className="text-lg text-muted-foreground">Select a project to export</p>
           </div>
-          <Button variant="glow" size="lg" onClick={() => navigate('/projects')} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="glow" size="xl" onClick={() => navigate('/projects')} className="gap-3">
+            <ArrowLeft className="w-5 h-5" />
             Go to Projects
           </Button>
         </div>
@@ -66,19 +66,19 @@ export default function Export() {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-warning/5 rounded-full blur-[120px] orb-1" />
+          <div className="absolute bottom-1/4 left-1/4 w-[600px] h-[600px] bg-warning/[0.06] rounded-full blur-[150px] orb-float-1" />
         </div>
         
-        <div className="relative z-10 text-center space-y-6 animate-fade-in">
-          <div className="w-20 h-20 mx-auto icon-container-warning">
-            <Film className="w-8 h-8 text-warning" />
+        <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
+          <div className="w-24 h-24 mx-auto icon-box-warning p-6">
+            <Film className="w-10 h-10 text-warning" />
           </div>
-          <div className="space-y-2">
-            <h2 className="text-2xl font-display text-foreground">Video Not Ready</h2>
-            <p className="text-muted-foreground">Generate your video first</p>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-display text-foreground">Video Not Ready</h2>
+            <p className="text-lg text-muted-foreground">Generate your video first</p>
           </div>
-          <Button variant="glow" size="lg" onClick={() => navigate('/production')} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
+          <Button variant="glow" size="xl" onClick={() => navigate('/production')} className="gap-3">
+            <ArrowLeft className="w-5 h-5" />
             Go to Production
           </Button>
         </div>
@@ -87,30 +87,31 @@ export default function Export() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="p-6 lg:p-10 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-10 animate-fade-in">
-        <div className="flex items-start justify-between gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="icon-container-success p-2.5">
-                <Check className="w-5 h-5 text-success" />
+      <div className="mb-10 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-8">
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="icon-box-success p-3">
+                <Check className="w-6 h-6 text-success" />
               </div>
-              <Badge variant="completed" className="text-xs">
+              <Badge variant="success" className="text-xs gap-1.5">
+                <Star className="w-3 h-3" />
                 Ready to Export
               </Badge>
             </div>
             <div>
-              <h1 className="text-3xl lg:text-4xl font-display text-foreground mb-2">
-                Export Your Video
+              <h1 className="text-4xl lg:text-5xl font-display text-foreground mb-3 tracking-tight">
+                Export Your <span className="text-gradient-aurora">Video</span>
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-lg text-muted-foreground">
                 Download or share your finished creation
               </p>
             </div>
           </div>
           
-          <Button variant="outline" onClick={() => navigate('/production')} className="gap-2 shrink-0">
+          <Button variant="outline" size="lg" onClick={() => navigate('/production')} className="gap-2 shrink-0">
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
@@ -119,33 +120,33 @@ export default function Export() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           {/* Preview */}
-          <div className="glass overflow-hidden hover-lift animate-fade-in">
+          <div className="card-premium overflow-hidden hover-lift animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             <div className="aspect-video relative">
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
-                  backgroundImage: `linear-gradient(to bottom, transparent 50%, hsl(var(--card))),
+                  backgroundImage: `linear-gradient(to bottom, transparent 40%, hsl(var(--card))),
                     url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=60')`,
                 }}
               />
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                <Badge variant="completed">Ready</Badge>
-                <Badge variant="outline" className="font-mono text-xs">02:04</Badge>
+                <Badge variant="success">Ready</Badge>
+                <Badge variant="outline" className="font-mono text-xs backdrop-blur-xl bg-background/60">02:04</Badge>
               </div>
             </div>
-            <div className="p-5 border-t border-border/10">
+            <div className="p-6 border-t border-border/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-foreground text-lg">{activeProject.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    {activeProject.credits_used?.toLocaleString()} credits
+                  <h3 className="font-semibold text-foreground text-xl">{activeProject.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1.5 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    {activeProject.credits_used?.toLocaleString()} credits used
                   </p>
                 </div>
-                <Button variant="glow" onClick={() => handleExport('MP4 4K')} className="gap-2">
-                  <Download className="w-4 h-4" />
+                <Button variant="aurora" size="lg" onClick={() => handleExport('MP4 4K')} className="gap-2">
+                  <Download className="w-5 h-5" />
                   Download 4K
                 </Button>
               </div>
@@ -153,38 +154,38 @@ export default function Export() {
           </div>
 
           {/* Formats */}
-          <div className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Video Formats</h3>
+          <div className="space-y-5">
+            <h3 className="text-lg font-semibold text-foreground">Video Formats</h3>
             <div className="space-y-3">
               {EXPORT_FORMATS.map((format, index) => (
                 <button
                   key={format.id}
                   onClick={() => handleExport(format.name)}
                   className={cn(
-                    "w-full p-4 rounded-xl transition-all duration-200 flex items-center gap-4 text-left group shine animate-scale-up",
+                    "w-full p-5 rounded-2xl transition-all duration-400 flex items-center gap-5 text-left group shine-effect animate-scale-in",
                     format.recommended
-                      ? "glass border-primary/20 hover:border-primary/40"
-                      : "glass-subtle hover:bg-foreground/[0.02]"
+                      ? "card-aurora"
+                      : "card-premium hover:border-primary/30"
                   )}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  style={{ animationDelay: `${(index + 2) * 60}ms` }}
                 >
                   <div className={cn(
-                    "p-3 rounded-xl shrink-0",
-                    format.recommended ? "icon-container" : "bg-muted/30"
+                    "p-3.5 rounded-xl shrink-0",
+                    format.recommended ? "icon-box" : "bg-muted/40 group-hover:bg-primary/10"
                   )}>
                     <format.icon className={cn(
-                      "w-5 h-5",
-                      format.recommended ? "text-primary" : "text-muted-foreground"
+                      "w-6 h-6 transition-colors",
+                      format.recommended ? "text-primary" : "text-muted-foreground group-hover:text-primary"
                     )} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">{format.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-foreground text-lg">{format.name}</span>
                       {format.recommended && (
-                        <Badge className="text-[10px]">Best</Badge>
+                        <Badge variant="aurora" className="text-[10px]">Recommended</Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground">
                       {format.resolution} • {format.size}
                     </p>
                   </div>
@@ -195,22 +196,22 @@ export default function Export() {
           </div>
 
           {/* Additional */}
-          <div className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Additional</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-5">
+            <h3 className="text-lg font-semibold text-foreground">Additional Assets</h3>
+            <div className="grid grid-cols-2 gap-4">
               {ADDITIONAL_EXPORTS.map((item, index) => (
                 <button
                   key={item.id}
                   onClick={() => toast.success(`Exporting ${item.name}...`)}
-                  className="p-4 rounded-xl glass-subtle hover:bg-foreground/[0.02] transition-all flex items-center gap-3 text-left group animate-scale-up"
-                  style={{ animationDelay: `${(index + 3) * 50}ms` }}
+                  className="p-5 rounded-xl card-premium hover:border-primary/30 transition-all duration-300 flex items-center gap-4 text-left group animate-scale-in"
+                  style={{ animationDelay: `${(index + 5) * 60}ms` }}
                 >
-                  <div className="p-2.5 rounded-lg bg-muted/30 group-hover:bg-primary/10 transition-colors">
+                  <div className="p-3 rounded-xl bg-muted/40 group-hover:bg-primary/10 transition-colors">
                     <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div>
-                    <span className="font-medium text-foreground block">{item.name}</span>
-                    <span className="text-xs text-muted-foreground">{item.format}</span>
+                    <span className="font-semibold text-foreground block">{item.name}</span>
+                    <span className="text-sm text-muted-foreground">{item.format}</span>
                   </div>
                 </button>
               ))}
@@ -221,49 +222,55 @@ export default function Export() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Share */}
-          <div className="glass p-6 space-y-5 hover-lift animate-fade-in delay-2">
+          <div className="card-premium p-6 space-y-5 hover-lift animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <div className="flex items-center gap-3">
-              <div className="icon-container p-2.5">
+              <div className="icon-box p-3">
                 <Share2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Share</h3>
-                <p className="text-xs text-muted-foreground">Get a link</p>
+                <h3 className="font-semibold text-foreground text-lg">Share</h3>
+                <p className="text-xs text-muted-foreground">Get a shareable link</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 rounded-xl glass-subtle">
+            <div className="flex items-center gap-2 p-4 rounded-xl glass-subtle">
               <span className="text-sm text-muted-foreground truncate flex-1 font-mono">
                 apex.studio/share/abc123
               </span>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleShare}>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 control-btn-primary" onClick={handleShare}>
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
 
             <Button variant="outline" className="w-full gap-2" onClick={handleShare}>
               <ExternalLink className="w-4 h-4" />
-              Copy Link
+              Copy Share Link
             </Button>
           </div>
 
           {/* License */}
-          <div className="glass p-6 space-y-4 hover-lift animate-fade-in delay-3" style={{ background: 'linear-gradient(135deg, hsl(160 65% 45% / 0.06), hsl(160 65% 45% / 0.02))' }}>
+          <div 
+            className="card-premium p-6 space-y-5 hover-lift animate-fade-in-up" 
+            style={{ 
+              animationDelay: '250ms',
+              background: 'linear-gradient(135deg, hsl(var(--success) / 0.08), hsl(var(--success) / 0.02))'
+            }}
+          >
             <div className="flex items-center gap-3">
-              <div className="icon-container-success p-2.5">
+              <div className="icon-box-success p-3">
                 <Shield className="w-5 h-5 text-success" />
               </div>
-              <span className="font-semibold text-foreground">Commercial License</span>
+              <span className="font-semibold text-foreground text-lg">Commercial License</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Full commercial rights included
+            <p className="text-muted-foreground">
+              Full commercial rights included with your export
             </p>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="success" className="text-xs gap-1">
+              <Badge variant="success" className="text-xs gap-1.5">
                 <Check className="w-3 h-3" />
                 Royalty Free
               </Badge>
-              <Badge variant="success" className="text-xs gap-1">
+              <Badge variant="success" className="text-xs gap-1.5">
                 <Globe className="w-3 h-3" />
                 Worldwide
               </Badge>
@@ -271,21 +278,21 @@ export default function Export() {
           </div>
 
           {/* Details */}
-          <div className="glass p-6 space-y-4 hover-lift animate-fade-in delay-4">
-            <h4 className="font-semibold text-foreground flex items-center gap-2">
-              <FileVideo className="w-4 h-4 text-muted-foreground" />
-              Details
+          <div className="card-premium p-6 space-y-5 hover-lift animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <h4 className="font-semibold text-foreground text-lg flex items-center gap-2">
+              <FileVideo className="w-5 h-5 text-muted-foreground" />
+              Video Details
             </h4>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4">
               {[
                 { label: 'Duration', value: '02:04' },
                 { label: 'Resolution', value: '4K UHD' },
                 { label: 'Frame Rate', value: '30 fps' },
-                { label: 'Credits', value: activeProject.credits_used?.toLocaleString() || '0' },
+                { label: 'Credits Used', value: activeProject.credits_used?.toLocaleString() || '0' },
               ].map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-1.5 border-b border-border/10 last:border-0">
+                <div key={index} className="flex justify-between items-center py-2 border-b border-border/10 last:border-0">
                   <span className="text-muted-foreground">{item.label}</span>
-                  <span className="font-mono text-foreground">{item.value}</span>
+                  <span className="font-mono font-semibold text-foreground">{item.value}</span>
                 </div>
               ))}
             </div>

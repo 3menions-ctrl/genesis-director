@@ -81,6 +81,45 @@
   }
 }
 
+/* Enhanced orb animations for ambient effects */
+@keyframes orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.1); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+  75% { transform: translate(40px, 20px) scale(1.05); }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-40px, 30px) scale(1.15); }
+  66% { transform: translate(50px, -40px) scale(0.9); }
+}
+
+@keyframes orb-float-3 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(25px, -25px) rotate(180deg); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.orb-1 { animation: orb-float-1 20s ease-in-out infinite; }
+.orb-2 { animation: orb-float-2 25s ease-in-out infinite; }
+.orb-3 { animation: orb-float-3 30s ease-in-out infinite; }
+.pulse-ring { animation: pulse-ring 3s ease-in-out infinite; }
+.gradient-shift { 
+  animation: gradient-shift 8s ease infinite;
+  background-size: 200% 200%;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -192,9 +231,42 @@
     @apply bg-success;
   }
 
+  /* Enhanced hover card effect */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -10px hsl(0 0% 0% / 0.4);
+  }
+
   /* Mono font for code/technical */
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Cinematic video container */
+  .video-container {
+    @apply relative rounded-2xl overflow-hidden;
+    box-shadow: 
+      0 0 0 1px hsl(var(--border) / 0.3),
+      0 20px 50px -15px hsl(0 0% 0% / 0.5),
+      0 0 80px -20px hsl(var(--primary) / 0.15);
+  }
+
+  /* Progress bar with glow */
+  .progress-glow {
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  /* Control button styles */
+  .control-btn {
+    @apply transition-all duration-200;
+  }
+  
+  .control-btn:hover {
+    @apply bg-primary/20 text-primary;
   }
 }
 

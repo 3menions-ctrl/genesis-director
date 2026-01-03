@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Play, Pause, Maximize2, Volume2, VolumeX, RotateCcw, 
   ArrowLeft, ArrowRight, AlertCircle, Sparkles, Zap,
-  SkipBack, SkipForward, Settings2, Download, Layers
+  SkipBack, SkipForward, Settings2, Download, Layers,
+  Film, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -46,16 +47,43 @@ export default function Production() {
         
         <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
           <div className="w-24 h-24 mx-auto icon-box-accent p-6">
-            <AlertCircle className="w-10 h-10 text-accent" />
+            <Film className="w-10 h-10 text-accent" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-3xl font-display text-foreground">No Project Selected</h2>
-            <p className="text-lg text-muted-foreground">Select a project to begin production</p>
+            <h2 className="text-3xl font-display text-foreground">Create Your Movie</h2>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Build cinematic stories with AI-powered script generation, voice narration, and video creation
+            </p>
           </div>
-          <Button variant="glow" size="xl" onClick={() => navigate('/projects')} className="gap-3">
-            <ArrowLeft className="w-5 h-5" />
-            Go to Projects
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button variant="glow" size="xl" onClick={() => navigate('/create-movie')} className="gap-3">
+              <Plus className="w-5 h-5" />
+              Create New Movie
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => navigate('/projects')} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Browse Projects
+            </Button>
+          </div>
+          
+          {/* Feature highlights */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto pt-8">
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+              <div className="text-2xl mb-2">📝</div>
+              <h3 className="font-medium text-sm">Story Wizard</h3>
+              <p className="text-xs text-muted-foreground">Define characters, genre, and plot</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+              <div className="text-2xl mb-2">🎬</div>
+              <h3 className="font-medium text-sm">AI Script</h3>
+              <p className="text-xs text-muted-foreground">Generate professional screenplays</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+              <div className="text-2xl mb-2">🎥</div>
+              <h3 className="font-medium text-sm">Video Export</h3>
+              <p className="text-xs text-muted-foreground">Up to 10-minute movies</p>
+            </div>
+          </div>
         </div>
       </div>
     );

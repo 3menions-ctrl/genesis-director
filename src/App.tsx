@@ -9,6 +9,7 @@ import Projects from "./pages/Projects";
 import Script from "./pages/Script";
 import Production from "./pages/Production";
 import Export from "./pages/Export";
+import CreateMovie from "./pages/CreateMovie";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/projects" element={<Projects />} />
               <Route path="/script" element={<Script />} />
               <Route path="/production" element={<Production />} />
+              <Route path="/create-movie" element={<CreateMovie />} />
               <Route path="/export" element={<Export />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

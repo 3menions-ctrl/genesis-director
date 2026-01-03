@@ -14,7 +14,255 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      characters: {
+        Row: {
+          appearance: string | null
+          backstory: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          personality: string | null
+          universe_id: string | null
+          user_id: string | null
+          voice_id: string | null
+        }
+        Insert: {
+          appearance?: string | null
+          backstory?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          personality?: string | null
+          universe_id?: string | null
+          user_id?: string | null
+          voice_id?: string | null
+        }
+        Update: {
+          appearance?: string | null
+          backstory?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          personality?: string | null
+          universe_id?: string | null
+          user_id?: string | null
+          voice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movie_projects: {
+        Row: {
+          created_at: string
+          generated_script: string | null
+          genre: Database["public"]["Enums"]["movie_genre"]
+          id: string
+          is_template: boolean | null
+          mood: string | null
+          movie_intro_style: string | null
+          parent_project_id: string | null
+          script_content: string | null
+          setting: string | null
+          status: string
+          story_structure: Database["public"]["Enums"]["story_structure"]
+          synopsis: string | null
+          target_duration_minutes: number
+          thumbnail_url: string | null
+          time_period: string | null
+          title: string
+          universe_id: string | null
+          updated_at: string
+          user_id: string | null
+          video_url: string | null
+          voice_audio_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          generated_script?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"]
+          id?: string
+          is_template?: boolean | null
+          mood?: string | null
+          movie_intro_style?: string | null
+          parent_project_id?: string | null
+          script_content?: string | null
+          setting?: string | null
+          status?: string
+          story_structure?: Database["public"]["Enums"]["story_structure"]
+          synopsis?: string | null
+          target_duration_minutes?: number
+          thumbnail_url?: string | null
+          time_period?: string | null
+          title: string
+          universe_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+          voice_audio_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          generated_script?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"]
+          id?: string
+          is_template?: boolean | null
+          mood?: string | null
+          movie_intro_style?: string | null
+          parent_project_id?: string | null
+          script_content?: string | null
+          setting?: string | null
+          status?: string
+          story_structure?: Database["public"]["Enums"]["story_structure"]
+          synopsis?: string | null
+          target_duration_minutes?: number
+          thumbnail_url?: string | null
+          time_period?: string | null
+          title?: string
+          universe_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+          voice_audio_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movie_projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movie_projects_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_characters: {
+        Row: {
+          character_id: string
+          created_at: string
+          id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_characters_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_characters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      script_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          genre: Database["public"]["Enums"]["movie_genre"] | null
+          id: string
+          name: string
+          sample_script: string | null
+          story_structure: Database["public"]["Enums"]["story_structure"] | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"] | null
+          id?: string
+          name: string
+          sample_script?: string | null
+          story_structure?:
+            | Database["public"]["Enums"]["story_structure"]
+            | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"] | null
+          id?: string
+          name?: string
+          sample_script?: string | null
+          story_structure?:
+            | Database["public"]["Enums"]["story_structure"]
+            | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      universes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          rules: string | null
+          setting: string | null
+          time_period: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          rules?: string | null
+          setting?: string | null
+          time_period?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          rules?: string | null
+          setting?: string | null
+          time_period?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +271,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      movie_genre:
+        | "action"
+        | "drama"
+        | "comedy"
+        | "thriller"
+        | "scifi"
+        | "fantasy"
+        | "romance"
+        | "horror"
+        | "documentary"
+        | "adventure"
+      story_structure:
+        | "three_act"
+        | "hero_journey"
+        | "circular"
+        | "in_medias_res"
+        | "episodic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +414,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      movie_genre: [
+        "action",
+        "drama",
+        "comedy",
+        "thriller",
+        "scifi",
+        "fantasy",
+        "romance",
+        "horror",
+        "documentary",
+        "adventure",
+      ],
+      story_structure: [
+        "three_act",
+        "hero_journey",
+        "circular",
+        "in_medias_res",
+        "episodic",
+      ],
+    },
   },
 } as const

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, Upload, Trash2, Mic, Volume2, ArrowRight, ArrowLeft, 
-  AlertCircle, Wand2, User, Sparkles
+  AlertCircle, Wand2, User, Sparkles, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 import { useState, useCallback } from 'react';
 
 const AVATAR_GRADIENTS = [
-  'from-cyan-500 to-blue-600',
-  'from-violet-500 to-purple-600',
-  'from-amber-500 to-orange-600',
-  'from-emerald-500 to-teal-600',
+  'from-cyan-400 to-blue-500',
+  'from-violet-400 to-purple-500',
+  'from-amber-400 to-orange-500',
+  'from-emerald-400 to-teal-500',
 ];
 
 export default function Script() {
@@ -81,18 +81,18 @@ export default function Script() {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl orb-1" />
+          <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] orb-1" />
         </div>
         
-        <div className="relative z-10 text-center space-y-6">
-          <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50 flex items-center justify-center">
-            <AlertCircle className="w-10 h-10 text-muted-foreground" />
+        <div className="relative z-10 text-center space-y-6 animate-fade-in">
+          <div className="w-20 h-20 mx-auto icon-container">
+            <AlertCircle className="w-8 h-8 text-primary" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-display font-bold text-foreground">No Project Selected</h2>
-            <p className="text-muted-foreground max-w-md">Select or create a project to start writing</p>
+            <h2 className="text-2xl font-display text-foreground">No Project Selected</h2>
+            <p className="text-muted-foreground">Select or create a project to start writing</p>
           </div>
-          <Button variant="glow" size="lg" onClick={() => navigate('/projects')}>
+          <Button variant="glow" size="lg" onClick={() => navigate('/projects')} className="gap-2">
             <ArrowLeft className="w-4 h-4" />
             Go to Projects
           </Button>
@@ -106,27 +106,29 @@ export default function Script() {
       {/* Header */}
       <div className="mb-10 animate-fade-in">
         <div className="flex items-start justify-between gap-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="icon-container p-2.5">
                 <Wand2 className="w-5 h-5 text-primary" />
               </div>
-              <Badge variant="outline" className="text-xs font-medium">
+              <Badge variant="outline" className="text-xs">
                 Step 2 of 4
               </Badge>
             </div>
-            <h1 className="text-4xl font-display font-bold text-foreground tracking-tight">
-              Write Your Script
-            </h1>
-            <p className="text-muted-foreground max-w-lg">
-              Craft your message and choose the perfect AI voice and presenter
-            </p>
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-display text-foreground mb-2">
+                Write Your Script
+              </h1>
+              <p className="text-muted-foreground">
+                Craft your message and choose the perfect AI voice
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-3 shrink-0">
             <Button variant="outline" onClick={() => navigate('/projects')} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Projects
+              Back
             </Button>
             <Button 
               variant="glow" 
@@ -142,30 +144,30 @@ export default function Script() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Script Editor - Main Column */}
-        <div className="lg:col-span-2 space-y-6 animate-slide-in-up">
-          {/* Drag & Drop Zone */}
+        {/* Script Editor */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Drop Zone */}
           <div
             className={cn(
-              "relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300",
+              "relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 animate-fade-in",
               isDragging
-                ? "border-primary bg-primary/5 scale-[1.01]"
-                : "border-border/40 hover:border-primary/40 hover:bg-muted/5"
+                ? "border-primary/50 bg-primary/5 scale-[1.01]"
+                : "border-border/30 hover:border-primary/30 hover:bg-card/30"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
             <div className={cn(
-              "w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all duration-300",
-              isDragging ? "bg-primary/20 scale-110" : "bg-muted/40"
+              "w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center transition-all duration-300",
+              isDragging ? "icon-container scale-110" : "bg-muted/30"
             )}>
               <Upload className={cn(
-                "w-7 h-7 transition-colors",
+                "w-6 h-6 transition-colors",
                 isDragging ? "text-primary" : "text-muted-foreground"
               )} />
             </div>
-            <p className="text-lg font-medium text-foreground mb-1">
+            <p className="text-base font-medium text-foreground mb-1">
               Drop your script file here
             </p>
             <p className="text-sm text-muted-foreground">
@@ -174,20 +176,20 @@ export default function Script() {
           </div>
 
           {/* Script Textarea */}
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-in delay-1">
             <div className="flex items-center justify-between">
-              <Label htmlFor="script" className="text-base font-semibold">Script Content</Label>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30">
+              <Label htmlFor="script" className="text-base font-medium">Script Content</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-subtle text-sm">
                   <span className="font-mono text-foreground">{wordCount}</span>
-                  <span>words</span>
+                  <span className="text-muted-foreground">words</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg glass-subtle text-sm">
                   <span className="font-mono text-foreground">~{estimatedDuration}</span>
-                  <span>min</span>
+                  <span className="text-muted-foreground">min</span>
                 </div>
                 {script && (
-                  <Button variant="ghost" size="sm" onClick={() => handleScriptChange('')} className="gap-1.5 text-muted-foreground hover:text-destructive">
+                  <Button variant="ghost" size="sm" onClick={() => handleScriptChange('')} className="gap-1.5">
                     <Trash2 className="w-4 h-4" />
                     Clear
                   </Button>
@@ -198,20 +200,20 @@ export default function Script() {
               id="script"
               placeholder="Start writing your script here...
 
-Example: Welcome to our product demonstration. Today, I'll walk you through the amazing features that make our solution stand out. Let's explore what makes Apex Studio the ultimate AI video creation platform..."
+Example: Welcome to our product demonstration. Today, I'll walk you through the amazing features that make our solution stand out..."
               value={script}
               onChange={(e) => handleScriptChange(e.target.value)}
-              className="min-h-[420px] resize-none bg-card/50 border-border/40 focus:border-primary/50 text-base leading-relaxed p-6 rounded-xl placeholder:text-muted-foreground/50"
+              className="min-h-[380px] resize-none glass border-border/20 focus:border-primary/30 text-base leading-relaxed p-6 rounded-xl placeholder:text-muted-foreground/40"
             />
           </div>
         </div>
 
-        {/* Sidebar - Voice & Character */}
-        <div className="space-y-6 animate-slide-in-up stagger-2">
+        {/* Sidebar */}
+        <div className="space-y-6">
           {/* Voice Selection */}
-          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-6 space-y-5 hover-lift">
+          <div className="glass p-6 space-y-5 hover-lift animate-fade-in delay-2">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+              <div className="icon-container p-2.5">
                 <Mic className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -221,14 +223,14 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
             </div>
 
             <Select value={voiceId} onValueChange={handleVoiceChange}>
-              <SelectTrigger className="bg-muted/20 border-border/40 h-14 rounded-xl">
+              <SelectTrigger className="glass-subtle border-border/20 h-14 rounded-xl">
                 <SelectValue placeholder="Select a voice" />
               </SelectTrigger>
-              <SelectContent className="bg-popover/95 backdrop-blur-xl border-border/50">
+              <SelectContent className="glass border-border/20">
                 {VOICE_OPTIONS.map((voice) => (
                   <SelectItem key={voice.id} value={voice.id} className="py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                      <div className="icon-container p-2">
                         <Volume2 className="w-4 h-4 text-primary" />
                       </div>
                       <div>
@@ -242,7 +244,7 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
             </Select>
 
             {selectedVoice && (
-              <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
+              <div className="p-3 rounded-xl glass-subtle">
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">{selectedVoice.name}</span> • {selectedVoice.description}
                 </p>
@@ -251,10 +253,10 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
           </div>
 
           {/* Character Selection */}
-          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-6 space-y-5 hover-lift">
+          <div className="glass p-6 space-y-5 hover-lift animate-fade-in delay-3">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-500/5 border border-violet-500/10">
-                <User className="w-5 h-5 text-violet-400" />
+              <div className="icon-container-accent p-2.5">
+                <User className="w-5 h-5 text-accent" />
               </div>
               <div>
                 <h3 className="font-semibold text-foreground">AI Presenter</h3>
@@ -268,29 +270,28 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
                   key={char.id}
                   onClick={() => handleCharacterChange(char.id)}
                   className={cn(
-                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 group",
+                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 group",
                     characterId === char.id
-                      ? "border-primary ring-2 ring-primary/30 scale-[1.02]"
-                      : "border-border/40 hover:border-primary/40"
+                      ? "border-primary/50 ring-2 ring-primary/20 scale-[1.02]"
+                      : "border-border/20 hover:border-primary/30"
                   )}
                 >
                   <div className={cn(
-                    "absolute inset-0 bg-gradient-to-br",
-                    AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length],
-                    "opacity-90"
+                    "absolute inset-0 bg-gradient-to-br opacity-90",
+                    AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length]
                   )}>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full">
-                      <div className="w-12 h-12 mx-auto rounded-full bg-white/25 mt-3" />
-                      <div className="w-20 h-12 mx-auto rounded-t-full bg-white/25 -mt-1" />
+                      <div className="w-12 h-12 mx-auto rounded-full bg-white/30 mt-4" />
+                      <div className="w-20 h-14 mx-auto rounded-t-full bg-white/30 -mt-1" />
                     </div>
                   </div>
                   
-                  <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black/70 to-transparent">
+                  <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
                     <span className="text-sm font-medium text-white">{char.name}</span>
                   </div>
 
                   {characterId === char.id && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
                       <svg className="w-3.5 h-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
@@ -302,13 +303,15 @@ Example: Welcome to our product demonstration. Today, I'll walk you through the 
           </div>
 
           {/* Estimated Credits */}
-          <div className="rounded-2xl border border-warning/30 bg-gradient-to-br from-warning/10 to-amber-500/5 p-6 hover-lift">
+          <div className="glass p-6 hover-lift animate-fade-in delay-4" style={{ background: 'linear-gradient(135deg, hsl(42 90% 55% / 0.08), hsl(42 90% 55% / 0.02))' }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-warning" />
-                <span className="text-sm font-semibold text-foreground">Estimated Cost</span>
+                <div className="icon-container-warning p-2">
+                  <Zap className="w-4 h-4 text-warning" />
+                </div>
+                <span className="text-sm font-medium text-foreground">Estimated Cost</span>
               </div>
-              <span className="text-3xl font-bold text-gradient-warm">
+              <span className="text-3xl font-display text-gradient-warm">
                 {estimatedDuration * 10 || 10}
               </span>
             </div>

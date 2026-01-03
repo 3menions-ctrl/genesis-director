@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Clock, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  ArrowRight, Sparkles, TrendingUp, Zap, Star
+  ArrowRight, Sparkles, TrendingUp, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,37 +46,35 @@ export default function Projects() {
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
-      {/* Hero Header */}
-      <div className="mb-12 animate-fade-in-up">
-        <div className="flex items-start justify-between gap-8">
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="icon-box p-3">
-                <Sparkles className="w-6 h-6 text-primary" />
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-10 animate-fade-in-up">
+        <div className="flex items-start justify-between gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="icon-box p-2.5">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <Badge variant="aurora" className="text-xs gap-1.5 px-3 py-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-violet-600 bg-violet-50 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <TrendingUp className="w-3 h-3" />
                 3 videos this week
-              </Badge>
+              </span>
             </div>
             <div>
-              <h1 className="text-4xl lg:text-5xl font-display text-foreground mb-3 tracking-tight">
-                Your <span className="text-gradient-aurora">Projects</span>
+              <h1 className="text-3xl lg:text-4xl font-display font-bold text-gray-900">
+                Your <span className="text-gradient">Projects</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-xl">
+              <p className="text-gray-500 mt-1 max-w-xl">
                 Create stunning AI-powered videos in minutes with our next-gen studio
               </p>
             </div>
           </div>
           
           <Button 
-            variant="aurora" 
-            size="xl" 
             onClick={handleCreateProject} 
-            className="gap-3 shrink-0 group"
+            className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25 shrink-0"
           >
-            <Plus className="w-5 h-5 transition-transform duration-500 group-hover:rotate-180" />
+            <Plus className="w-4 h-4" />
             New Project
           </Button>
         </div>
@@ -85,90 +82,91 @@ export default function Projects() {
 
       {/* Projects Grid */}
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-center animate-fade-in-up">
-          <div className="relative mb-10">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary/20 via-[hsl(280,85%,60%)]/15 to-accent/20 blur-3xl" />
-            <div className="relative w-28 h-28 glass rounded-3xl flex items-center justify-center">
-              <Film className="w-12 h-12 text-muted-foreground" />
-            </div>
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in-up">
+          <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mb-6">
+            <Film className="w-10 h-10 text-gray-400" />
           </div>
-          <h2 className="text-3xl font-display text-foreground mb-4">No projects yet</h2>
-          <p className="text-muted-foreground mb-10 max-w-md text-lg">
+          <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">No projects yet</h2>
+          <p className="text-gray-500 mb-8 max-w-md">
             Create your first AI video project and bring your ideas to life
           </p>
-          <Button variant="aurora" size="xl" onClick={handleCreateProject} className="gap-3">
-            <Zap className="w-5 h-5" />
+          <Button 
+            onClick={handleCreateProject} 
+            className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25"
+          >
+            <Zap className="w-4 h-4" />
             Create Your First Project
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {projects.map((project, index) => (
             <div
               key={project.id}
               onClick={() => handleSelectProject(project.id)}
               className={cn(
-                "group relative card-premium cursor-pointer transition-all duration-500 animate-scale-in hover-lift",
-                activeProjectId === project.id && "ring-2 ring-primary/40 border-primary/30"
+                "group relative card-clean cursor-pointer animate-fade-in-up",
+                activeProjectId === project.id && "ring-2 ring-violet-500/40 border-violet-200"
               )}
-              style={{ animationDelay: `${index * 80}ms` }}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               {/* Thumbnail */}
-              <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-muted/30 via-background to-muted/20">
-                {/* Decorative grid */}
-                <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:24px_24px]" />
-                
+              <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 rounded-t-2xl">
                 {project.status === 'completed' ? (
                   <div 
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                     style={{
-                      backgroundImage: `linear-gradient(to bottom, transparent 30%, hsl(var(--card))),
+                      backgroundImage: `linear-gradient(to bottom, transparent 50%, white),
                         url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=60')`,
                     }}
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
+                      "w-14 h-14 rounded-xl flex items-center justify-center transition-all",
                       project.status === 'generating' || project.status === 'rendering'
-                        ? "icon-box"
-                        : "bg-muted/40 group-hover:bg-primary/10"
+                        ? "bg-violet-100"
+                        : "bg-gray-200/80 group-hover:bg-violet-100"
                     )}>
                       {project.status === 'generating' || project.status === 'rendering' ? (
-                        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <div className="w-6 h-6 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
                       ) : (
-                        <Play className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <Play className="w-6 h-6 text-gray-400 group-hover:text-violet-600 transition-colors" />
                       )}
                     </div>
                   </div>
                 )}
 
                 {/* Status Badge */}
-                <div className="absolute top-4 left-4 z-10">
-                  <Badge variant={project.status as 'idle' | 'generating' | 'rendering' | 'completed'}>
+                <div className="absolute top-3 left-3 z-10">
+                  <span className={cn(
+                    "text-xs font-medium px-2.5 py-1 rounded-full capitalize",
+                    project.status === 'idle' && "bg-gray-100 text-gray-600",
+                    project.status === 'generating' && "bg-violet-100 text-violet-700",
+                    project.status === 'rendering' && "bg-amber-100 text-amber-700",
+                    project.status === 'completed' && "bg-emerald-100 text-emerald-700"
+                  )}>
                     {project.status}
-                  </Badge>
+                  </span>
                 </div>
 
                 {/* Duration */}
                 {project.duration_seconds && (
-                  <div className="absolute bottom-4 right-4 z-10">
-                    <Badge variant="outline" className="font-mono text-xs backdrop-blur-xl bg-background/60">
+                  <div className="absolute bottom-3 right-3 z-10">
+                    <span className="text-xs font-mono bg-black/60 text-white px-2 py-1 rounded-md backdrop-blur-sm">
                       {Math.floor(project.duration_seconds / 60)}:{String(project.duration_seconds % 60).padStart(2, '0')}
-                    </Badge>
+                    </span>
                   </div>
                 )}
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-background/95 backdrop-blur-xl opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                   <Button 
-                    variant="glow" 
-                    size="lg"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenProject(project.id);
                     }}
-                    className="gap-2 shadow-2xl"
+                    className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg"
                   >
                     Open Project
                     <ArrowRight className="w-4 h-4" />
@@ -177,13 +175,13 @@ export default function Projects() {
               </div>
 
               {/* Content */}
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-lg truncate mb-2 group-hover:text-gradient-aurora transition-all">
+                    <h3 className="font-semibold text-gray-900 truncate mb-1.5 group-hover:text-violet-700 transition-colors">
                       {project.name}
                     </h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{formatDate(project.updated_at)}</span>
@@ -202,24 +200,27 @@ export default function Projects() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="glass border-border/30 p-2">
-                      <DropdownMenuItem onClick={() => handleOpenProject(project.id)} className="gap-2.5 py-2.5 rounded-lg cursor-pointer">
-                        <Edit2 className="w-4 h-4 text-muted-foreground" />
+                    <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-xl p-1.5 z-50">
+                      <DropdownMenuItem 
+                        onClick={() => handleOpenProject(project.id)} 
+                        className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                      >
+                        <Edit2 className="w-4 h-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2.5 py-2.5 rounded-lg cursor-pointer">
-                        <Copy className="w-4 h-4 text-muted-foreground" />
+                      <DropdownMenuItem className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                        <Copy className="w-4 h-4" />
                         Duplicate
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-border/20 my-1" />
+                      <DropdownMenuSeparator className="bg-gray-100" />
                       <DropdownMenuItem
-                        className="gap-2.5 py-2.5 rounded-lg cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                        className="gap-2 py-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteProject(project.id);
@@ -233,9 +234,9 @@ export default function Projects() {
                 </div>
               </div>
 
-              {/* Active indicator gradient */}
+              {/* Active indicator */}
               {activeProjectId === project.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500 rounded-b-2xl" />
               )}
             </div>
           ))}
@@ -244,24 +245,21 @@ export default function Projects() {
           <button
             onClick={handleCreateProject}
             className={cn(
-              "group rounded-2xl border-2 border-dashed transition-all duration-500",
-              "border-border/40 hover:border-primary/50",
-              "bg-transparent hover:bg-gradient-to-br hover:from-primary/5 hover:to-accent/5",
-              "flex flex-col items-center justify-center p-12 min-h-[340px]",
-              "animate-scale-in"
+              "group rounded-2xl border-2 border-dashed transition-all duration-300",
+              "border-gray-200 hover:border-violet-300",
+              "bg-transparent hover:bg-violet-50/50",
+              "flex flex-col items-center justify-center p-10 min-h-[280px]",
+              "animate-fade-in-up"
             )}
-            style={{ animationDelay: `${projects.length * 80}ms` }}
+            style={{ animationDelay: `${projects.length * 50}ms` }}
           >
-            <div className="relative mb-6">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/30 to-accent/30 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative w-16 h-16 rounded-2xl bg-muted/40 group-hover:bg-primary/15 flex items-center justify-center transition-all duration-500 group-hover:scale-110">
-                <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-all duration-500 group-hover:rotate-180" />
-              </div>
+            <div className="w-14 h-14 rounded-xl bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center transition-all mb-4 group-hover:scale-110">
+              <Plus className="w-7 h-7 text-gray-400 group-hover:text-violet-600 transition-all" />
             </div>
-            <p className="font-semibold text-lg text-muted-foreground group-hover:text-foreground transition-colors">
+            <p className="font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">
               Create New Project
             </p>
-            <p className="text-sm text-muted-foreground/60 mt-2">
+            <p className="text-sm text-gray-400 mt-1">
               Start from scratch
             </p>
           </button>

@@ -4,22 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-300",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-200",
   {
     variants: {
       variant: {
-        default: "border-primary/30 bg-primary/15 text-primary shadow-sm shadow-primary/10",
-        secondary: "border-border/40 bg-secondary/60 text-secondary-foreground",
-        destructive: "border-destructive/30 bg-destructive/15 text-destructive",
-        outline: "border-border/40 bg-card/50 text-foreground backdrop-blur-xl",
-        success: "border-success/30 bg-success/15 text-success shadow-sm shadow-success/10",
-        warning: "border-warning/30 bg-warning/15 text-warning shadow-sm shadow-warning/10",
-        info: "border-info/30 bg-info/15 text-info shadow-sm shadow-info/10",
-        idle: "border-border/40 bg-muted/50 text-muted-foreground",
-        generating: "border-primary/30 bg-primary/15 text-primary animate-pulse",
-        rendering: "border-warning/30 bg-warning/15 text-warning animate-pulse",
-        completed: "border-success/30 bg-success/15 text-success",
-        aurora: "border-primary/40 bg-gradient-to-r from-primary/20 via-[hsl(280,85%,60%)]/15 to-accent/20 text-foreground",
+        default: "border-violet-200 bg-violet-50 text-violet-700",
+        secondary: "border-gray-200 bg-gray-100 text-gray-600",
+        destructive: "border-red-200 bg-red-50 text-red-600",
+        outline: "border-gray-200 bg-white text-gray-700",
+        success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        warning: "border-amber-200 bg-amber-50 text-amber-700",
+        info: "border-violet-200 bg-violet-50 text-violet-700",
+        idle: "border-gray-200 bg-gray-100 text-gray-500",
+        generating: "border-violet-200 bg-violet-50 text-violet-700 animate-pulse",
+        rendering: "border-amber-200 bg-amber-50 text-amber-700 animate-pulse",
+        completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        aurora: "border-violet-200 bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700",
       },
     },
     defaultVariants: {

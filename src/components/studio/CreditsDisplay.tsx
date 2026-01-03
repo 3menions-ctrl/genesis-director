@@ -15,31 +15,31 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
   const minutesRemaining = Math.floor(credits.remaining / 10);
 
   return (
-    <div className="glass p-4">
+    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className={cn(
-          "p-2 rounded-xl transition-colors",
-          isLow ? "icon-container" : "icon-container-warning"
+          "w-8 h-8 rounded-lg flex items-center justify-center",
+          isLow ? "bg-red-500/20" : "bg-amber-500/20"
         )}>
           <Coins className={cn(
             "w-4 h-4",
-            isLow ? "text-destructive" : "text-warning"
+            isLow ? "text-red-400" : "text-amber-400"
           )} />
         </div>
         <div>
-          <p className="text-xs font-medium text-foreground">Credits</p>
-          <p className="text-[10px] text-muted-foreground">Remaining</p>
+          <p className="text-xs font-medium text-white">Credits</p>
+          <p className="text-[10px] text-violet-300/60">Remaining</p>
         </div>
       </div>
 
       {/* Credits count */}
       <div className="mb-3">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-display text-gradient-warm">
+          <span className="text-2xl font-display font-bold text-white">
             {credits.remaining.toLocaleString()}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-violet-300/60">
             / {credits.total.toLocaleString()}
           </span>
         </div>
@@ -47,15 +47,17 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
 
       {/* Progress bar */}
       <div className="space-y-2 mb-4">
-        <Progress 
-          value={100 - usagePercentage} 
-          className={cn(
-            "h-1.5 bg-muted/30",
-            isLow && "[&>div]:bg-destructive"
-          )}
-        />
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div 
+            className={cn(
+              "h-full rounded-full transition-all",
+              isLow ? "bg-red-500" : "bg-gradient-to-r from-violet-500 to-purple-500"
+            )}
+            style={{ width: `${100 - usagePercentage}%` }}
+          />
+        </div>
         
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-[10px] text-violet-300/60">
           <Zap className="w-3 h-3" />
           <span>~{minutesRemaining} min of 4K content</span>
         </div>
@@ -63,10 +65,8 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
 
       {/* Buy button */}
       <Button
-        variant="premium"
-        size="sm"
         onClick={onBuyCredits}
-        className="w-full gap-1.5 h-9 text-xs"
+        className="w-full gap-1.5 h-9 text-xs bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white border-0"
       >
         <Sparkles className="w-3.5 h-3.5" />
         Get More

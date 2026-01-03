@@ -33,7 +33,7 @@ serve(async (req) => {
         "X-Runway-Version": "2024-11-06",
       },
       body: JSON.stringify({
-        model: "gen4_turbo",
+        model: "gen3a_turbo",
         promptText: prompt,
         duration: duration,
         ratio: "16:9",

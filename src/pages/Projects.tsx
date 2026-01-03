@@ -48,25 +48,27 @@ export default function Projects() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Hero Header */}
+      {/* Header */}
       <div className="mb-10 animate-fade-in">
         <div className="flex items-start justify-between gap-6">
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="icon-container p-2.5">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
-              <Badge variant="outline" className="text-xs font-medium border-success/30 text-success bg-success/5">
-                <TrendingUp className="w-3 h-3 mr-1" />
+              <Badge variant="success" className="text-xs gap-1">
+                <TrendingUp className="w-3 h-3" />
                 3 videos this week
               </Badge>
             </div>
-            <h1 className="text-4xl font-display font-bold text-foreground tracking-tight">
-              Your Projects
-            </h1>
-            <p className="text-muted-foreground max-w-lg">
-              Create stunning AI-powered videos in minutes. Start a new project or continue where you left off.
-            </p>
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-display text-foreground mb-2">
+                Your Projects
+              </h1>
+              <p className="text-muted-foreground max-w-lg">
+                Create stunning AI-powered videos in minutes
+              </p>
+            </div>
           </div>
           
           <Button 
@@ -75,7 +77,7 @@ export default function Projects() {
             onClick={handleCreateProject} 
             className="gap-2 shrink-0 group"
           >
-            <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
+            <Plus className="w-5 h-5 transition-transform duration-300 group-hover:rotate-90" />
             New Project
           </Button>
         </div>
@@ -85,12 +87,12 @@ export default function Projects() {
       {projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
           <div className="relative mb-8">
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl" />
-            <div className="relative w-28 h-28 rounded-3xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/50 flex items-center justify-center">
-              <Film className="w-12 h-12 text-muted-foreground" />
+            <div className="absolute inset-0 rounded-3xl bg-primary/10 blur-2xl" />
+            <div className="relative w-24 h-24 glass rounded-3xl flex items-center justify-center">
+              <Film className="w-10 h-10 text-muted-foreground" />
             </div>
           </div>
-          <h2 className="text-2xl font-display font-bold text-foreground mb-3">No projects yet</h2>
+          <h2 className="text-2xl font-display text-foreground mb-3">No projects yet</h2>
           <p className="text-muted-foreground mb-8 max-w-md">
             Create your first AI video project and bring your ideas to life
           </p>
@@ -106,39 +108,36 @@ export default function Projects() {
               key={project.id}
               onClick={() => handleSelectProject(project.id)}
               className={cn(
-                "group relative rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer animate-scale-in",
-                "bg-gradient-to-b from-card to-card/80 border",
-                activeProjectId === project.id
-                  ? "border-primary/50 ring-2 ring-primary/20 shadow-lg shadow-primary/10"
-                  : "border-border/30 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5",
+                "group relative card-elegant overflow-hidden cursor-pointer transition-all duration-300 animate-scale-up hover-lift",
+                activeProjectId === project.id && "ring-2 ring-primary/30 border-primary/40"
               )}
-              style={{ animationDelay: `${index * 50}ms` }}
+              style={{ animationDelay: `${index * 60}ms` }}
             >
-              {/* Thumbnail / Preview */}
-              <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-muted/30 via-background to-muted/50">
+              {/* Thumbnail */}
+              <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-muted/20 to-background">
                 {/* Grid pattern */}
-                <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.05)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.05)_1px,transparent_1px)] bg-[size:24px_24px]" />
+                <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.04)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.04)_1px,transparent_1px)] bg-[size:20px_20px]" />
                 
                 {project.status === 'completed' ? (
                   <div 
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                     style={{
-                      backgroundImage: `linear-gradient(to bottom, transparent 40%, hsl(var(--card))),
+                      backgroundImage: `linear-gradient(to bottom, transparent 40%, hsl(var(--card) / 0.95)),
                         url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=60')`,
                     }}
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
+                      "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
                       project.status === 'generating' || project.status === 'rendering'
-                        ? "bg-primary/20"
-                        : "bg-muted/40 group-hover:bg-muted/60"
+                        ? "icon-container"
+                        : "bg-muted/30 group-hover:bg-muted/50"
                     )}>
                       {project.status === 'generating' || project.status === 'rendering' ? (
-                        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <div className="w-7 h-7 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                       ) : (
-                        <Play className="w-7 h-7 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <Play className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors" />
                       )}
                     </div>
                   </div>
@@ -146,18 +145,15 @@ export default function Projects() {
 
                 {/* Status Badge */}
                 <div className="absolute top-3 left-3 z-10">
-                  <Badge 
-                    variant={project.status as 'idle' | 'generating' | 'rendering' | 'completed'} 
-                    className="backdrop-blur-sm shadow-sm"
-                  >
+                  <Badge variant={project.status as 'idle' | 'generating' | 'rendering' | 'completed'}>
                     {project.status}
                   </Badge>
                 </div>
 
-                {/* Duration Badge */}
+                {/* Duration */}
                 {project.duration_seconds && (
                   <div className="absolute bottom-3 right-3 z-10">
-                    <Badge variant="outline" className="font-mono text-xs bg-background/80 backdrop-blur-sm border-border/50">
+                    <Badge variant="outline" className="font-mono text-xs">
                       {Math.floor(project.duration_seconds / 60)}:{String(project.duration_seconds % 60).padStart(2, '0')}
                     </Badge>
                   </div>
@@ -187,12 +183,12 @@ export default function Projects() {
                       {project.name}
                     </h3>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(project.updated_at)}</span>
                       </div>
                       {project.credits_used && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <Sparkles className="w-3 h-3" />
                           <span>{project.credits_used.toLocaleString()}</span>
                         </div>
@@ -211,18 +207,18 @@ export default function Projects() {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-popover/95 backdrop-blur-xl border-border/50">
-                      <DropdownMenuItem onClick={() => handleOpenProject(project.id)} className="gap-2">
-                        <Edit2 className="w-4 h-4" />
+                    <DropdownMenuContent align="end" className="glass border-border/20">
+                      <DropdownMenuItem onClick={() => handleOpenProject(project.id)} className="gap-2.5 py-2">
+                        <Edit2 className="w-4 h-4 text-muted-foreground" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2">
-                        <Copy className="w-4 h-4" />
+                      <DropdownMenuItem className="gap-2.5 py-2">
+                        <Copy className="w-4 h-4 text-muted-foreground" />
                         Duplicate
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-border/50" />
+                      <DropdownMenuSeparator className="bg-border/20" />
                       <DropdownMenuItem
-                        className="gap-2 text-destructive focus:text-destructive"
+                        className="gap-2.5 py-2 text-destructive focus:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteProject(project.id);
@@ -238,7 +234,7 @@ export default function Projects() {
 
               {/* Active indicator */}
               {activeProjectId === project.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary to-primary/50" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary to-transparent" />
               )}
             </div>
           ))}
@@ -248,22 +244,22 @@ export default function Projects() {
             onClick={handleCreateProject}
             className={cn(
               "group rounded-2xl border-2 border-dashed transition-all duration-300",
-              "border-border/40 hover:border-primary/50 bg-transparent",
+              "border-border/30 hover:border-primary/40 bg-transparent",
               "flex flex-col items-center justify-center p-10 min-h-[280px]",
-              "hover:bg-primary/5 animate-scale-in"
+              "hover:bg-card/20 animate-scale-up"
             )}
-            style={{ animationDelay: `${projects.length * 50}ms` }}
+            style={{ animationDelay: `${projects.length * 60}ms` }}
           >
             <div className="relative mb-5">
-              <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative w-16 h-16 rounded-2xl bg-muted/40 group-hover:bg-primary/20 flex items-center justify-center transition-all duration-300">
-                <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:rotate-90" />
+              <div className="absolute inset-0 rounded-xl bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-14 h-14 rounded-xl bg-muted/30 group-hover:bg-primary/10 flex items-center justify-center transition-all duration-300">
+                <Plus className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:rotate-90" />
               </div>
             </div>
             <p className="font-medium text-muted-foreground group-hover:text-foreground transition-colors">
               Create New Project
             </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
+            <p className="text-xs text-muted-foreground/60 mt-1">
               Start from scratch
             </p>
           </button>

@@ -26,10 +26,10 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
   const selectedEnvironment = ENVIRONMENT_PRESETS.find(e => e.id === settings.environment);
 
   return (
-    <div className="h-full flex flex-col bg-transparent w-full">
-      <div className="p-5 border-b border-border/20">
+    <div className="h-full flex flex-col w-full">
+      <div className="p-5 border-b border-border/10">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+          <div className="icon-container p-2.5">
             <Settings className="w-5 h-5 text-primary" />
           </div>
           <div>
@@ -40,16 +40,13 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Environment Section */}
-        <Collapsible
-          open={openSections.includes('environment')}
-          onOpenChange={() => toggleSection('environment')}
-        >
+        {/* Environment */}
+        <Collapsible open={openSections.includes('environment')} onOpenChange={() => toggleSection('environment')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
+            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10">
-                  <Image className="w-4 h-4 text-emerald-400" />
+                <div className="icon-container-success p-2">
+                  <Image className="w-4 h-4 text-success" />
                 </div>
                 <span className="font-medium text-sm">Environment</span>
               </div>
@@ -61,14 +58,11 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-5 pb-4 space-y-3">
-              <Select
-                value={settings.environment}
-                onValueChange={(value) => onSettingsChange({ environment: value })}
-              >
-                <SelectTrigger className="bg-muted/20 border-border/30 h-11">
+              <Select value={settings.environment} onValueChange={(value) => onSettingsChange({ environment: value })}>
+                <SelectTrigger className="glass-subtle border-border/20 h-12 rounded-xl">
                   <SelectValue placeholder="Select environment" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="glass border-border/20">
                   {ENVIRONMENT_PRESETS.map((env) => (
                     <SelectItem key={env.id} value={env.id}>
                       {env.name}
@@ -78,7 +72,7 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
               </Select>
 
               {selectedEnvironment && (
-                <div className="p-3 rounded-xl bg-muted/20 border border-border/20">
+                <div className="p-3 rounded-xl glass-subtle">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {selectedEnvironment.prompt}
                   </p>
@@ -88,15 +82,12 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Lighting Section */}
-        <Collapsible
-          open={openSections.includes('lighting')}
-          onOpenChange={() => toggleSection('lighting')}
-        >
+        {/* Lighting */}
+        <Collapsible open={openSections.includes('lighting')} onOpenChange={() => toggleSection('lighting')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors border-t border-border/10">
+            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors border-t border-border/10">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-warning/10">
+                <div className="icon-container-warning p-2">
                   <Sun className="w-4 h-4 text-warning" />
                 </div>
                 <span className="font-medium text-sm">Lighting</span>
@@ -115,10 +106,10 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
                     key={type}
                     onClick={() => onSettingsChange({ lighting: type })}
                     className={cn(
-                      "px-3 py-2.5 rounded-xl text-sm font-medium capitalize transition-all",
+                      "px-3 py-2.5 rounded-xl text-sm font-medium capitalize transition-all duration-200",
                       settings.lighting === type
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-border/20"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                        : "glass-subtle text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {type}
@@ -142,18 +133,15 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Wildlife Section */}
-        <Collapsible
-          open={openSections.includes('wildlife')}
-          onOpenChange={() => toggleSection('wildlife')}
-        >
+        {/* Wildlife */}
+        <Collapsible open={openSections.includes('wildlife')} onOpenChange={() => toggleSection('wildlife')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors border-t border-border/10">
+            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors border-t border-border/10">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-success/10">
+                <div className="icon-container-success p-2">
                   <TreePine className="w-4 h-4 text-success" />
                 </div>
-                <span className="font-medium text-sm">Wildlife Density</span>
+                <span className="font-medium text-sm">Wildlife</span>
               </div>
               <ChevronDown className={cn(
                 "w-4 h-4 text-muted-foreground transition-transform duration-200",
@@ -164,7 +152,7 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
           <CollapsibleContent>
             <div className="px-5 pb-4 space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Amount</Label>
+                <Label className="text-xs text-muted-foreground">Density</Label>
                 <span className="text-xs font-mono text-success bg-success/10 px-2 py-0.5 rounded-md">{settings.wildlifeDensity}%</span>
               </div>
               <Slider
@@ -173,25 +161,19 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
                 max={100}
                 step={10}
               />
-              <p className="text-xs text-muted-foreground/70">
-                Adds ambient wildlife to jungle/nature environments
-              </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Bookshelf Section */}
-        <Collapsible
-          open={openSections.includes('bookshelf')}
-          onOpenChange={() => toggleSection('bookshelf')}
-        >
+        {/* Bookshelf */}
+        <Collapsible open={openSections.includes('bookshelf')} onOpenChange={() => toggleSection('bookshelf')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors border-t border-border/10">
+            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors border-t border-border/10">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-amber-500/10">
-                  <BookOpen className="w-4 h-4 text-amber-400" />
+                <div className="icon-container-warning p-2">
+                  <BookOpen className="w-4 h-4 text-warning" />
                 </div>
-                <span className="font-medium text-sm">Bookshelf Items</span>
+                <span className="font-medium text-sm">Bookshelf</span>
               </div>
               <ChevronDown className={cn(
                 "w-4 h-4 text-muted-foreground transition-transform duration-200",
@@ -200,7 +182,7 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="px-5 pb-4 space-y-2">
+            <div className="px-5 pb-4">
               <div className="flex flex-wrap gap-2">
                 {['Books', 'Plants', 'Awards', 'Photos', 'Art'].map((item) => (
                   <button
@@ -214,8 +196,8 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                       settings.bookshelfItems.includes(item)
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-border/20"
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "glass-subtle text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {item}
@@ -226,18 +208,15 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Resolution Section */}
-        <Collapsible
-          open={openSections.includes('resolution')}
-          onOpenChange={() => toggleSection('resolution')}
-        >
+        {/* Quality */}
+        <Collapsible open={openSections.includes('resolution')} onOpenChange={() => toggleSection('resolution')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors border-t border-border/10">
+            <button className="w-full px-5 py-4 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors border-t border-border/10">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-violet-500/10">
-                  <Layers className="w-4 h-4 text-violet-400" />
+                <div className="icon-container-accent p-2">
+                  <Layers className="w-4 h-4 text-accent" />
                 </div>
-                <span className="font-medium text-sm">Output Quality</span>
+                <span className="font-medium text-sm">Quality</span>
               </div>
               <ChevronDown className={cn(
                 "w-4 h-4 text-muted-foreground transition-transform duration-200",
@@ -246,17 +225,17 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="px-5 pb-4 space-y-2">
+            <div className="px-5 pb-4">
               <div className="grid grid-cols-2 gap-2">
                 {(['1080p', '4K'] as const).map((res) => (
                   <button
                     key={res}
                     onClick={() => onSettingsChange({ resolution: res })}
                     className={cn(
-                      "px-3 py-2.5 rounded-xl text-sm font-mono transition-all flex items-center justify-center gap-1",
+                      "px-3 py-2.5 rounded-xl text-sm font-mono transition-all duration-200 flex items-center justify-center gap-1.5",
                       settings.resolution === res
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-border/20"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                        : "glass-subtle text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {res}

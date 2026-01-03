@@ -1,4 +1,4 @@
-import { Coins, Zap, Plus, Sparkles } from 'lucide-react';
+import { Coins, Zap, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { UserCredits } from '@/types/studio';
@@ -15,14 +15,12 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
   const minutesRemaining = Math.floor(credits.remaining / 10);
 
   return (
-    <div className="rounded-2xl border border-border/30 bg-gradient-to-br from-card/80 to-card/40 p-4 backdrop-blur-sm">
+    <div className="glass p-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className={cn(
           "p-2 rounded-xl transition-colors",
-          isLow 
-            ? "bg-gradient-to-br from-destructive/20 to-destructive/10" 
-            : "bg-gradient-to-br from-warning/20 to-amber-500/10"
+          isLow ? "icon-container" : "icon-container-warning"
         )}>
           <Coins className={cn(
             "w-4 h-4",
@@ -30,15 +28,15 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
           )} />
         </div>
         <div>
-          <p className="text-xs font-semibold text-foreground">Credits</p>
-          <p className="text-[10px] text-muted-foreground">Remaining balance</p>
+          <p className="text-xs font-medium text-foreground">Credits</p>
+          <p className="text-[10px] text-muted-foreground">Remaining</p>
         </div>
       </div>
 
       {/* Credits count */}
       <div className="mb-3">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold text-gradient-warm">
+          <span className="text-2xl font-display text-gradient-warm">
             {credits.remaining.toLocaleString()}
           </span>
           <span className="text-xs text-muted-foreground">
@@ -52,7 +50,7 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
         <Progress 
           value={100 - usagePercentage} 
           className={cn(
-            "h-1.5",
+            "h-1.5 bg-muted/30",
             isLow && "[&>div]:bg-destructive"
           )}
         />

@@ -4,20 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground shadow-sm shadow-primary/20",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        destructive: "border-transparent bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20",
-        outline: "text-foreground border-border/50 bg-background/50 backdrop-blur-sm",
-        success: "border-transparent bg-success text-success-foreground shadow-sm shadow-success/20",
-        warning: "border-transparent bg-warning text-warning-foreground shadow-sm shadow-warning/20",
-        idle: "border-border/50 bg-muted/50 text-muted-foreground",
-        generating: "border-primary/30 bg-primary/15 text-primary shadow-sm shadow-primary/10",
-        rendering: "border-warning/30 bg-warning/15 text-warning shadow-sm shadow-warning/10",
-        completed: "border-success/30 bg-success/15 text-success shadow-sm shadow-success/10",
+        default: "border-primary/20 bg-primary/10 text-primary shadow-sm",
+        secondary: "border-border/30 bg-secondary/50 text-secondary-foreground",
+        destructive: "border-destructive/20 bg-destructive/10 text-destructive",
+        outline: "border-border/30 bg-card/30 text-foreground backdrop-blur-sm",
+        success: "border-success/20 bg-success/10 text-success",
+        warning: "border-warning/20 bg-warning/10 text-warning",
+        idle: "border-border/30 bg-muted/40 text-muted-foreground",
+        generating: "border-primary/25 bg-primary/10 text-primary",
+        rendering: "border-warning/25 bg-warning/10 text-warning",
+        completed: "border-success/25 bg-success/10 text-success",
       },
     },
     defaultVariants: {

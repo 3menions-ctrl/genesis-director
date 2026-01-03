@@ -108,7 +108,7 @@ export function VideoGenerationPanel() {
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: { 
           prompt: `Cinematic visuals for: ${topic}. Professional, engaging, modern style.`,
-          duration: 5
+          duration: 8
         },
       });
 

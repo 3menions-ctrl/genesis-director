@@ -12,6 +12,8 @@ serve(async (req) => {
 
   try {
     const { prompt, duration = 8 } = await req.json();
+    // Duration must be exactly 4, 6, or 8
+    const validDuration = [4, 6, 8].includes(Number(duration)) ? Number(duration) : 8;
 
     if (!prompt) {
       throw new Error("Prompt is required");
@@ -35,7 +37,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "veo3.1_fast",
         promptText: prompt,
-        duration: duration,
+        duration: validDuration,
         ratio: "1920:1080",
       }),
     });

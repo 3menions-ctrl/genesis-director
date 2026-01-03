@@ -178,32 +178,41 @@ export default function Production() {
                 {/* Completed State */}
                 {status === 'completed' && (
                   <div className="absolute inset-0">
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center"
-                      style={{
-                        backgroundImage: `linear-gradient(to bottom, transparent 40%, hsl(var(--background))),
-                          url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80')`,
-                      }}
-                    />
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="absolute inset-0 flex items-center justify-center group cursor-pointer"
-                    >
-                      <div className={cn(
-                        "relative flex items-center justify-center",
-                        "w-24 h-24 rounded-3xl",
-                        "bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent",
-                        "group-hover:scale-110 transition-all duration-400",
-                        "shadow-2xl"
-                      )}>
-                        <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent blur-2xl opacity-50 group-hover:opacity-80 transition-opacity" />
-                        {isPlaying ? (
-                          <Pause className="relative w-10 h-10 text-white" />
-                        ) : (
+                    {activeProject.video_url ? (
+                      <video
+                        src={activeProject.video_url}
+                        className="w-full h-full object-cover"
+                        controls={isPlaying}
+                        autoPlay={isPlaying}
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                      />
+                    ) : (
+                      <div 
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{
+                          backgroundImage: `linear-gradient(to bottom, transparent 40%, hsl(var(--background))),
+                            url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80')`,
+                        }}
+                      />
+                    )}
+                    {!isPlaying && (
+                      <button
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className="absolute inset-0 flex items-center justify-center group cursor-pointer"
+                      >
+                        <div className={cn(
+                          "relative flex items-center justify-center",
+                          "w-24 h-24 rounded-3xl",
+                          "bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent",
+                          "group-hover:scale-110 transition-all duration-400",
+                          "shadow-2xl"
+                        )}>
+                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent blur-2xl opacity-50 group-hover:opacity-80 transition-opacity" />
                           <Play className="relative w-10 h-10 text-white ml-1" />
-                        )}
-                      </div>
-                    </button>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 )}
 

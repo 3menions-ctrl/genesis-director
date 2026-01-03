@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from '@/types/studio';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data for demonstration
 const MOCK_PROJECTS: Project[] = [
@@ -125,6 +126,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
+  const pollingRef = useRef<number | null>(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
   const generatePreview = async () => {
     if (!activeProject?.script_content?.trim()) {
       toast.error('Please add a script first');
@@ -132,30 +142,103 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
 
     setIsGenerating(true);
+    const script = activeProject.script_content;
+    const projectId = activeProjectId;
 
-    updateProject(activeProjectId, { status: 'generating' as ProjectStatus });
-    toast.info('Generating AI narration with ElevenLabs...');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Step 1: Generate Voice Narration
+      updateProject(projectId, { status: 'generating' as ProjectStatus });
+      toast.info('Generating AI narration with ElevenLabs...');
+      
+      const voiceResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text: script }),
+        }
+      );
 
-    toast.info('Creating AI presenter with HeyGen...');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (!voiceResponse.ok) {
+        const errData = await voiceResponse.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to generate voice');
+      }
 
-    toast.info('Generating living background with Runway...');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      const audioBlob = await voiceResponse.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      updateProject(projectId, { voice_audio_url: audioUrl });
+      toast.success('Voice narration generated!');
 
-    updateProject(activeProjectId, { status: 'rendering' as ProjectStatus });
-    toast.info('Compositing layers in 4K...');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Step 2: Generate Video
+      toast.info('Starting AI video generation with Runway...');
+      
+      const videoPrompt = `Cinematic video visualizing: ${script.slice(0, 500)}. 
+        Create professional, engaging visuals that match this narration. 
+        High quality, modern cinematography, smooth transitions.`;
+      
+      const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+        body: { 
+          prompt: videoPrompt,
+          duration: 8
+        },
+      });
 
-    const script = activeProject.script_content || '';
-    updateProject(activeProjectId, {
-      status: 'completed' as ProjectStatus,
-      duration_seconds: Math.ceil(script.split(/\s+/).length / 2.5),
-      credits_used: Math.ceil(script.split(/\s+/).length / 2.5) * 10,
-    });
+      if (videoError || !videoData?.success) {
+        throw new Error(videoData?.error || videoError?.message || 'Failed to start video generation');
+      }
 
-    setIsGenerating(false);
-    toast.success('Video generated successfully!');
+      toast.success('Video generation started! This may take a few minutes...');
+      updateProject(projectId, { status: 'rendering' as ProjectStatus });
+
+      // Step 3: Poll for video completion
+      const taskId = videoData.taskId;
+      
+      pollingRef.current = window.setInterval(async () => {
+        try {
+          const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+            body: { taskId },
+          });
+
+          if (statusError) {
+            console.error('Status check error:', statusError);
+            return;
+          }
+
+          if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            
+            updateProject(projectId, {
+              status: 'completed' as ProjectStatus,
+              video_url: statusData.videoUrl,
+              duration_seconds: Math.ceil(script.split(/\s+/).length / 2.5),
+              credits_used: Math.ceil(script.split(/\s+/).length / 2.5) * 10,
+            });
+            
+            setIsGenerating(false);
+            toast.success('Video generation complete!');
+          } else if (statusData?.status === 'FAILED') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            setIsGenerating(false);
+            updateProject(projectId, { status: 'idle' as ProjectStatus });
+            toast.error(statusData.error || 'Video generation failed');
+          }
+        } catch (pollErr) {
+          console.error('Polling error:', pollErr);
+        }
+      }, 5000);
+
+    } catch (error) {
+      console.error('Generation error:', error);
+      const message = error instanceof Error ? error.message : 'Generation failed';
+      toast.error(message);
+      updateProject(projectId, { status: 'idle' as ProjectStatus });
+      setIsGenerating(false);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    }
   };
 
   const exportVideo = () => {

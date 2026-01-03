@@ -22,6 +22,8 @@ export interface Project {
   updated_at: string;
   duration_seconds?: number;
   credits_used?: number;
+  voice_audio_url?: string;
+  video_url?: string;
 }
 
 export interface AssetLayer {

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useStudio } from '@/contexts/StudioContext';
 import { SettingsSidebar } from '@/components/studio/SettingsSidebar';
 import { AssetLayersPanel } from '@/components/studio/AssetLayersPanel';
+import { ApiTestPanel } from '@/components/studio/ApiTestPanel';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -285,8 +286,13 @@ export default function Production() {
               </div>
             </div>
 
-            {/* Layers Panel */}
+            {/* API Test Panel */}
             <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <ApiTestPanel />
+            </div>
+
+            {/* Layers Panel */}
+            <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <AssetLayersPanel layers={activeProject.id === '1' ? layers : []} />
             </div>
           </div>

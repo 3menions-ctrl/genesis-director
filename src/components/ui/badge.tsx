@@ -4,20 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground border-border",
-        success: "border-transparent bg-success text-success-foreground",
-        warning: "border-transparent bg-warning text-warning-foreground",
-        idle: "border-transparent bg-muted text-muted-foreground",
-        generating: "border-transparent bg-primary/20 text-primary animate-pulse",
-        rendering: "border-transparent bg-warning/20 text-warning animate-pulse",
-        completed: "border-transparent bg-success/20 text-success",
+        default: "border-transparent bg-primary text-primary-foreground shadow-sm shadow-primary/20",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20",
+        outline: "text-foreground border-border/50 bg-background/50 backdrop-blur-sm",
+        success: "border-transparent bg-success text-success-foreground shadow-sm shadow-success/20",
+        warning: "border-transparent bg-warning text-warning-foreground shadow-sm shadow-warning/20",
+        idle: "border-border/50 bg-muted/50 text-muted-foreground",
+        generating: "border-primary/30 bg-primary/15 text-primary shadow-sm shadow-primary/10",
+        rendering: "border-warning/30 bg-warning/15 text-warning shadow-sm shadow-warning/10",
+        completed: "border-success/30 bg-success/15 text-success shadow-sm shadow-success/10",
       },
     },
     defaultVariants: {

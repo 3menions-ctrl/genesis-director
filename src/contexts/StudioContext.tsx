@@ -56,6 +56,12 @@ const MOCK_LAYERS: AssetLayer[] = [
   { id: 'layer-4', project_id: '1', layer_type: 'overlay_metadata', status: 'idle', z_index: 3, created_at: new Date().toISOString() },
 ];
 
+interface GenerationProgress {
+  step: 'idle' | 'voice' | 'video' | 'polling';
+  percent: number;
+  estimatedSecondsRemaining: number | null;
+}
+
 interface StudioContextType {
   projects: Project[];
   activeProjectId: string | null;
@@ -64,6 +70,7 @@ interface StudioContextType {
   layers: AssetLayer[];
   settings: StudioSettings;
   isGenerating: boolean;
+  generationProgress: GenerationProgress;
   setActiveProjectId: (id: string) => void;
   createProject: () => void;
   deleteProject: (id: string) => void;
@@ -82,6 +89,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [credits] = useState<UserCredits>(MOCK_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({
+    step: 'idle',
+    percent: 0,
+    estimatedSecondsRemaining: null,
+  });
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -142,6 +154,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
 
     setIsGenerating(true);
+    setGenerationProgress({ step: 'voice', percent: 10, estimatedSecondsRemaining: 120 });
     const script = activeProject.script_content;
     const projectId = activeProjectId;
 
@@ -171,10 +184,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const audioBlob = await voiceResponse.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       updateProject(projectId, { voice_audio_url: audioUrl });
+      setGenerationProgress({ step: 'video', percent: 30, estimatedSecondsRemaining: 90 });
       toast.success('Voice narration generated!');
 
       // Step 2: Generate Video
       toast.info('Starting AI video generation with Runway...');
+      setGenerationProgress({ step: 'video', percent: 35, estimatedSecondsRemaining: 85 });
       
       const videoPrompt = `Cinematic video visualizing: ${script.slice(0, 500)}. 
         Create professional, engaging visuals that match this narration. 
@@ -193,11 +208,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       toast.success('Video generation started! This may take a few minutes...');
       updateProject(projectId, { status: 'rendering' as ProjectStatus });
+      setGenerationProgress({ step: 'polling', percent: 50, estimatedSecondsRemaining: 60 });
 
       // Step 3: Poll for video completion
       const taskId = videoData.taskId;
+      let pollCount = 0;
       
       pollingRef.current = window.setInterval(async () => {
+        pollCount++;
+        // Estimate remaining time based on poll count (assuming ~2 min total for video)
+        const estimatedRemaining = Math.max(5, 60 - pollCount * 5);
+        const progressPercent = Math.min(95, 50 + pollCount * 4);
+        setGenerationProgress({ step: 'polling', percent: progressPercent, estimatedSecondsRemaining: estimatedRemaining });
         try {
           const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
             body: { taskId },
@@ -218,10 +240,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               credits_used: Math.ceil(script.split(/\s+/).length / 2.5) * 10,
             });
             
+            setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
             setIsGenerating(false);
             toast.success('Video generation complete!');
           } else if (statusData?.status === 'FAILED') {
             if (pollingRef.current) clearInterval(pollingRef.current);
+            setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
             setIsGenerating(false);
             updateProject(projectId, { status: 'idle' as ProjectStatus });
             toast.error(statusData.error || 'Video generation failed');
@@ -236,6 +260,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const message = error instanceof Error ? error.message : 'Generation failed';
       toast.error(message);
       updateProject(projectId, { status: 'idle' as ProjectStatus });
+      setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
       setIsGenerating(false);
       if (pollingRef.current) clearInterval(pollingRef.current);
     }
@@ -259,6 +284,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         layers,
         settings,
         isGenerating,
+        generationProgress,
         setActiveProjectId,
         createProject,
         deleteProject,

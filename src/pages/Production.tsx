@@ -17,7 +17,7 @@ import { useState } from 'react';
 
 export default function Production() {
   const navigate = useNavigate();
-  const { activeProject, layers, settings, updateSettings, generatePreview, isGenerating } = useStudio();
+  const { activeProject, layers, settings, updateSettings, generatePreview, isGenerating, generationProgress } = useStudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(35);
@@ -235,9 +235,11 @@ export default function Production() {
                       <div className="space-y-3">
                         <p className="text-2xl font-display text-foreground">{statusInfo.label}</p>
                         <p className="text-muted-foreground max-w-xs mx-auto">
-                          {status === 'generating' 
-                            ? 'Creating voice, presenter & background...'
-                            : 'Compositing layers in 4K quality...'}
+                          {generationProgress.step === 'voice' && 'Generating AI voice narration...'}
+                          {generationProgress.step === 'video' && 'Starting video generation...'}
+                          {generationProgress.step === 'polling' && 'Rendering video (this may take a few minutes)...'}
+                          {generationProgress.step === 'idle' && status === 'generating' && 'Creating AI assets...'}
+                          {generationProgress.step === 'idle' && status === 'rendering' && 'Compositing layers in 4K quality...'}
                         </p>
                       </div>
                       
@@ -245,12 +247,16 @@ export default function Production() {
                         <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent rounded-full transition-all duration-700"
-                            style={{ width: status === 'generating' ? '45%' : '78%' }}
+                            style={{ width: `${generationProgress.percent}%` }}
                           />
                         </div>
                         <div className="flex justify-between text-xs font-mono text-muted-foreground">
-                          <span>{status === 'generating' ? 'Step 3/4' : '78%'}</span>
-                          <span>~2 min remaining</span>
+                          <span>{generationProgress.percent}%</span>
+                          <span>
+                            {generationProgress.estimatedSecondsRemaining !== null 
+                              ? `~${Math.ceil(generationProgress.estimatedSecondsRemaining / 60)} min remaining`
+                              : 'Calculating...'}
+                          </span>
                         </div>
                       </div>
                     </div>

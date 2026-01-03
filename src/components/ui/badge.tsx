@@ -4,20 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-300",
   {
     variants: {
       variant: {
-        default: "border-primary/20 bg-primary/10 text-primary shadow-sm",
-        secondary: "border-border/30 bg-secondary/50 text-secondary-foreground",
-        destructive: "border-destructive/20 bg-destructive/10 text-destructive",
-        outline: "border-border/30 bg-card/30 text-foreground backdrop-blur-sm",
-        success: "border-success/20 bg-success/10 text-success",
-        warning: "border-warning/20 bg-warning/10 text-warning",
-        idle: "border-border/30 bg-muted/40 text-muted-foreground",
-        generating: "border-primary/25 bg-primary/10 text-primary",
-        rendering: "border-warning/25 bg-warning/10 text-warning",
-        completed: "border-success/25 bg-success/10 text-success",
+        default: "border-primary/30 bg-primary/15 text-primary shadow-sm shadow-primary/10",
+        secondary: "border-border/40 bg-secondary/60 text-secondary-foreground",
+        destructive: "border-destructive/30 bg-destructive/15 text-destructive",
+        outline: "border-border/40 bg-card/50 text-foreground backdrop-blur-xl",
+        success: "border-success/30 bg-success/15 text-success shadow-sm shadow-success/10",
+        warning: "border-warning/30 bg-warning/15 text-warning shadow-sm shadow-warning/10",
+        info: "border-info/30 bg-info/15 text-info shadow-sm shadow-info/10",
+        idle: "border-border/40 bg-muted/50 text-muted-foreground",
+        generating: "border-primary/30 bg-primary/15 text-primary animate-pulse",
+        rendering: "border-warning/30 bg-warning/15 text-warning animate-pulse",
+        completed: "border-success/30 bg-success/15 text-success",
+        aurora: "border-primary/40 bg-gradient-to-r from-primary/20 via-[hsl(280,85%,60%)]/15 to-accent/20 text-foreground",
       },
     },
     defaultVariants: {

@@ -1,4 +1,4 @@
-import { Coins, Zap, Plus, TrendingUp } from 'lucide-react';
+import { Coins, Zap, Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { UserCredits } from '@/types/studio';
@@ -15,59 +15,51 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
   const minutesRemaining = Math.floor(credits.remaining / 10);
 
   return (
-    <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-4 backdrop-blur-sm">
+    <div className="rounded-2xl border border-border/30 bg-gradient-to-br from-card/80 to-card/40 p-4 backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "p-2.5 rounded-xl transition-colors",
-            isLow 
-              ? "bg-gradient-to-br from-destructive/20 to-destructive/10" 
-              : "bg-gradient-to-br from-warning/20 to-amber-500/10"
-          )}>
-            <Coins className={cn(
-              "w-5 h-5",
-              isLow ? "text-destructive" : "text-warning"
-            )} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Credits</p>
-            <p className="text-xs text-muted-foreground">Per second of 4K video</p>
-          </div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className={cn(
+          "p-2 rounded-xl transition-colors",
+          isLow 
+            ? "bg-gradient-to-br from-destructive/20 to-destructive/10" 
+            : "bg-gradient-to-br from-warning/20 to-amber-500/10"
+        )}>
+          <Coins className={cn(
+            "w-4 h-4",
+            isLow ? "text-destructive" : "text-warning"
+          )} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-foreground">Credits</p>
+          <p className="text-[10px] text-muted-foreground">Remaining balance</p>
         </div>
       </div>
 
       {/* Credits count */}
-      <div className="mb-4">
-        <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-gradient-warm">
+      <div className="mb-3">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-bold text-gradient-warm">
             {credits.remaining.toLocaleString()}
           </span>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             / {credits.total.toLocaleString()}
           </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="space-y-3 mb-4">
+      <div className="space-y-2 mb-4">
         <Progress 
           value={100 - usagePercentage} 
           className={cn(
-            "h-2",
+            "h-1.5",
             isLow && "[&>div]:bg-destructive"
           )}
         />
         
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Zap className="w-3 h-3" />
-            <span>~{minutesRemaining} min of 4K content</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-success">
-            <TrendingUp className="w-3 h-3" />
-            <span>{Math.round(100 - usagePercentage)}% remaining</span>
-          </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Zap className="w-3 h-3" />
+          <span>~{minutesRemaining} min of 4K content</span>
         </div>
       </div>
 
@@ -76,10 +68,10 @@ export function CreditsDisplay({ credits, onBuyCredits }: CreditsDisplayProps) {
         variant="premium"
         size="sm"
         onClick={onBuyCredits}
-        className="w-full gap-2"
+        className="w-full gap-1.5 h-9 text-xs"
       >
-        <Plus className="w-4 h-4" />
-        Buy More Credits
+        <Sparkles className="w-3.5 h-3.5" />
+        Get More
       </Button>
     </div>
   );

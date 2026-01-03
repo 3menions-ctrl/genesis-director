@@ -6,100 +6,100 @@
 
 @layer base {
   :root {
-    /* LUXE AURORA THEME - A stunning blend of deep space & luminous accents */
-    --background: 240 15% 3%;
-    --foreground: 0 0% 98%;
+    /* RADIANT VIOLET NOIR THEME - Elegant black, grey, white & violet */
+    --background: 270 10% 4%;
+    --foreground: 0 0% 96%;
 
-    --card: 240 12% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 270 8% 7%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 240 12% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 270 8% 9%;
+    --popover-foreground: 0 0% 96%;
 
-    /* Electric violet-blue primary - mesmerizing & modern */
-    --primary: 250 91% 65%;
+    /* Radiant Violet - Electric & mesmerizing */
+    --primary: 270 100% 70%;
     --primary-foreground: 0 0% 100%;
 
-    /* Deep surface tones */
-    --secondary: 240 10% 10%;
-    --secondary-foreground: 0 0% 90%;
+    /* Elegant grey surfaces */
+    --secondary: 270 5% 12%;
+    --secondary-foreground: 0 0% 88%;
 
-    --muted: 240 8% 12%;
-    --muted-foreground: 240 5% 50%;
+    --muted: 270 4% 15%;
+    --muted-foreground: 270 3% 55%;
 
-    /* Coral pink accent - playful & warm */
-    --accent: 350 85% 65%;
+    /* Deep violet accent */
+    --accent: 280 85% 65%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Golden amber */
-    --warning: 38 95% 60%;
-    --warning-foreground: 0 0% 8%;
+    /* Violet-tinted warning */
+    --warning: 45 90% 55%;
+    --warning-foreground: 270 10% 8%;
 
-    /* Emerald glow */
-    --success: 160 84% 45%;
-    --success-foreground: 0 0% 8%;
+    /* Violet-tinted success */
+    --success: 160 75% 50%;
+    --success-foreground: 270 10% 8%;
 
-    /* Cyan spark */
-    --info: 185 80% 55%;
-    --info-foreground: 0 0% 8%;
+    /* Light violet info */
+    --info: 260 70% 70%;
+    --info-foreground: 270 10% 8%;
 
-    --border: 240 8% 15%;
-    --input: 240 10% 12%;
-    --ring: 250 91% 65%;
+    --border: 270 6% 18%;
+    --input: 270 6% 14%;
+    --ring: 270 100% 70%;
 
     --radius: 1rem;
 
-    /* PREMIUM GLASSMORPHISM */
-    --glass-bg: 240 15% 8% / 0.6;
-    --glass-border: 0 0% 100% / 0.08;
-    --glass-shine: 0 0% 100% / 0.05;
+    /* RADIANT GLASSMORPHISM */
+    --glass-bg: 270 10% 8% / 0.6;
+    --glass-border: 0 0% 100% / 0.06;
+    --glass-shine: 0 0% 100% / 0.04;
     --glass-blur: 24px;
 
-    /* AURORA GRADIENTS */
+    /* VIOLET RADIANCE GRADIENTS */
     --gradient-aurora: linear-gradient(135deg, 
-      hsl(250 91% 65%) 0%, 
-      hsl(280 85% 60%) 50%, 
-      hsl(350 85% 65%) 100%);
+      hsl(270 100% 70%) 0%, 
+      hsl(290 80% 60%) 50%, 
+      hsl(260 90% 75%) 100%);
     --gradient-aurora-soft: linear-gradient(135deg, 
-      hsl(250 91% 65% / 0.15) 0%, 
-      hsl(280 85% 60% / 0.1) 50%, 
-      hsl(350 85% 65% / 0.08) 100%);
+      hsl(270 100% 70% / 0.12) 0%, 
+      hsl(290 80% 60% / 0.08) 50%, 
+      hsl(260 90% 75% / 0.06) 100%);
     --gradient-radial-glow: radial-gradient(ellipse at 50% 0%, 
-      hsl(250 91% 65% / 0.15) 0%, 
+      hsl(270 100% 70% / 0.2) 0%, 
       transparent 60%);
     --gradient-mesh: 
-      radial-gradient(at 20% 30%, hsl(250 91% 65% / 0.12) 0px, transparent 50%),
-      radial-gradient(at 80% 20%, hsl(350 85% 65% / 0.08) 0px, transparent 50%),
-      radial-gradient(at 40% 80%, hsl(185 80% 55% / 0.06) 0px, transparent 50%),
-      radial-gradient(at 90% 70%, hsl(280 85% 60% / 0.08) 0px, transparent 50%);
+      radial-gradient(at 20% 30%, hsl(270 100% 70% / 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 20%, hsl(290 80% 60% / 0.08) 0px, transparent 50%),
+      radial-gradient(at 40% 80%, hsl(260 90% 75% / 0.06) 0px, transparent 50%),
+      radial-gradient(at 90% 70%, hsl(280 85% 65% / 0.08) 0px, transparent 50%);
 
-    /* DYNAMIC SHADOWS */
-    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.5);
-    --shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.6);
-    --shadow-md: 0 8px 24px -6px hsl(0 0% 0% / 0.5);
-    --shadow-lg: 0 16px 48px -8px hsl(0 0% 0% / 0.6);
-    --shadow-xl: 0 24px 64px -12px hsl(0 0% 0% / 0.7);
-    --shadow-glow-primary: 0 0 40px hsl(250 91% 65% / 0.2);
-    --shadow-glow-accent: 0 0 40px hsl(350 85% 65% / 0.2);
-    --shadow-glow-success: 0 0 30px hsl(160 84% 45% / 0.2);
+    /* RADIANT SHADOWS */
+    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.6);
+    --shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.7);
+    --shadow-md: 0 8px 24px -6px hsl(0 0% 0% / 0.6);
+    --shadow-lg: 0 16px 48px -8px hsl(0 0% 0% / 0.7);
+    --shadow-xl: 0 24px 64px -12px hsl(0 0% 0% / 0.8);
+    --shadow-glow-primary: 0 0 50px hsl(270 100% 70% / 0.25);
+    --shadow-glow-accent: 0 0 40px hsl(280 85% 65% / 0.2);
+    --shadow-glow-success: 0 0 30px hsl(160 75% 50% / 0.2);
 
     /* SIDEBAR */
-    --sidebar-background: 240 15% 4%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 250 91% 65%;
+    --sidebar-background: 270 10% 5%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: 270 100% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 12%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 240 8% 12%;
-    --sidebar-ring: 250 91% 65%;
+    --sidebar-accent: 270 6% 14%;
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 270 6% 14%;
+    --sidebar-ring: 270 100% 70%;
   }
 
   .dark {
-    --background: 240 15% 3%;
-    --foreground: 0 0% 98%;
+    --background: 270 10% 4%;
+    --foreground: 0 0% 96%;
   }
 }
 

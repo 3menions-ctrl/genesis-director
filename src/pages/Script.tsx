@@ -87,13 +87,23 @@ export default function Script() {
             <h2 className="text-2xl font-display font-bold text-gray-900">No Project Selected</h2>
             <p className="text-gray-500">Select or create a project to start writing</p>
           </div>
-          <Button 
-            onClick={() => navigate('/projects')} 
-            className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go to Projects
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => navigate('/create')} 
+              className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+            >
+              <Sparkles className="w-4 h-4" />
+              Create with Wizard
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/projects')} 
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Go to Projects
+            </Button>
+          </div>
         </div>
       </div>
     );

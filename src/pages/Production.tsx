@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { 
   Play, Pause, Maximize2, Volume2, VolumeX, RotateCcw, 
-  ArrowLeft, ArrowRight, AlertCircle, Sparkles, Zap,
-  SkipBack, SkipForward, Settings2, Download, Layers,
+  ArrowLeft, ArrowRight, Sparkles, Zap,
+  SkipBack, SkipForward, Settings2, Download,
   Film, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,11 +38,12 @@ export default function Production() {
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
 
+  // No project selected - prompt to create or select
   if (!activeProject) {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent/[0.06] rounded-full blur-[150px] orb-float-2" />
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent/[0.06] rounded-full blur-[150px]" />
         </div>
         
         <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
@@ -50,13 +51,13 @@ export default function Production() {
             <Film className="w-10 h-10 text-accent" />
           </div>
           <div className="space-y-3">
-            <h2 className="text-3xl font-display text-foreground">Create Your Movie</h2>
+            <h2 className="text-3xl font-display text-foreground">No Project Selected</h2>
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Build cinematic stories with AI-powered script generation, voice narration, and video creation
+              Create a new movie or select an existing project to continue
             </p>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="glow" size="xl" onClick={() => navigate('/create-movie')} className="gap-3">
+            <Button variant="glow" size="xl" onClick={() => navigate('/create')} className="gap-3">
               <Plus className="w-5 h-5" />
               Create New Movie
             </Button>
@@ -65,24 +66,38 @@ export default function Production() {
               Browse Projects
             </Button>
           </div>
-          
-          {/* Feature highlights */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto pt-8">
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-              <div className="text-2xl mb-2">📝</div>
-              <h3 className="font-medium text-sm">Story Wizard</h3>
-              <p className="text-xs text-muted-foreground">Define characters, genre, and plot</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-              <div className="text-2xl mb-2">🎬</div>
-              <h3 className="font-medium text-sm">AI Script</h3>
-              <p className="text-xs text-muted-foreground">Generate professional screenplays</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-              <div className="text-2xl mb-2">🎥</div>
-              <h3 className="font-medium text-sm">Video Export</h3>
-              <p className="text-xs text-muted-foreground">Up to 10-minute movies</p>
-            </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Project has no script - prompt to write one
+  if (!activeProject.script_content?.trim()) {
+    return (
+      <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/[0.06] rounded-full blur-[150px]" />
+        </div>
+        
+        <div className="relative z-10 text-center space-y-8 animate-fade-in-up">
+          <div className="w-24 h-24 mx-auto icon-box p-6">
+            <Film className="w-10 h-10 text-primary" />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-display text-foreground">Script Required</h2>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Write or generate a script before entering production
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button variant="glow" size="xl" onClick={() => navigate('/script')} className="gap-3">
+              <Sparkles className="w-5 h-5" />
+              Go to Script
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => navigate('/create')} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Start with Wizard
+            </Button>
           </div>
         </div>
       </div>
@@ -158,7 +173,6 @@ export default function Production() {
             {/* Video Container */}
             <div className="video-container">
               <div className="relative aspect-video bg-gradient-to-br from-muted/10 via-background to-muted/20">
-                {/* Subtle grid */}
                 <div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.02)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
                 
                 {/* Completed State */}
@@ -197,7 +211,6 @@ export default function Production() {
                 {(status === 'generating' || status === 'rendering') && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-2xl">
                     <div className="text-center space-y-10">
-                      {/* Animated spinner */}
                       <div className="relative w-32 h-32 mx-auto">
                         <div className="absolute inset-0 rounded-full border-2 border-border/20" />
                         <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
@@ -219,7 +232,6 @@ export default function Production() {
                         </p>
                       </div>
                       
-                      {/* Progress bar */}
                       <div className="w-72 mx-auto space-y-4">
                         <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
                           <div 
@@ -251,7 +263,6 @@ export default function Production() {
                   </div>
                 )}
 
-                {/* Corner Badges */}
                 <div className="absolute top-4 left-4 z-20">
                   <Badge variant="outline" className="font-mono text-[10px] backdrop-blur-xl bg-background/60">16:9</Badge>
                 </div>

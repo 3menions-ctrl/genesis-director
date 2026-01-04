@@ -11,10 +11,26 @@ import {
   Film, Clock, Crown, Zap, TrendingUp, 
   ChevronRight, Settings, Camera, Mail, Calendar,
   Video, Target, BarChart3, Timer, Flame,
-  FolderOpen, CheckCircle2, Edit3, Play, Layers
+  FolderOpen, CheckCircle2, Edit3, Play, Layers,
+  PieChart as PieChartIcon, Activity
 } from 'lucide-react';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { cn } from '@/lib/utils';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 
 interface Transaction {
   id: string;
@@ -41,12 +57,39 @@ interface UserMetrics {
   videosThisWeek: number;
 }
 
+interface DailyUsage {
+  date: string;
+  credits: number;
+  videos: number;
+}
+
+interface GenreData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+const GENRE_COLORS: Record<string, string> = {
+  action: '#ef4444',
+  drama: '#8b5cf6',
+  comedy: '#eab308',
+  thriller: '#6b7280',
+  scifi: '#0ea5e9',
+  fantasy: '#d946ef',
+  romance: '#ec4899',
+  horror: '#1f2937',
+  documentary: '#22c55e',
+  adventure: '#f97316',
+};
+
 export default function Profile() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
+  const [genreData, setGenreData] = useState<GenreData[]>([]);
   const [metrics, setMetrics] = useState<UserMetrics>({
     totalProjects: 0,
     completedProjects: 0,
@@ -74,8 +117,79 @@ export default function Profile() {
     if (user) {
       fetchTransactions();
       fetchMetrics();
+      fetchDailyUsage();
+      fetchGenreData();
     }
   }, [user]);
+
+  const fetchDailyUsage = async () => {
+    if (!user) return;
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data } = await supabase
+      .from('credit_transactions')
+      .select('amount, created_at, clip_duration_seconds, transaction_type')
+      .eq('user_id', user.id)
+      .eq('transaction_type', 'usage')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    // Group by date
+    const dailyMap: Record<string, { credits: number; videos: number }> = {};
+    
+    // Initialize last 14 days
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const key = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dailyMap[key] = { credits: 0, videos: 0 };
+    }
+
+    (data || []).forEach(t => {
+      const date = new Date(t.created_at);
+      const key = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (dailyMap[key]) {
+        dailyMap[key].credits += Math.abs(t.amount);
+        if (t.clip_duration_seconds) {
+          dailyMap[key].videos += 1;
+        }
+      }
+    });
+
+    setDailyUsage(
+      Object.entries(dailyMap).map(([date, data]) => ({
+        date,
+        credits: data.credits,
+        videos: data.videos
+      }))
+    );
+  };
+
+  const fetchGenreData = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('movie_projects')
+      .select('genre')
+      .eq('user_id', user.id);
+
+    const genreCounts: Record<string, number> = {};
+    (data || []).forEach(p => {
+      if (p.genre) {
+        genreCounts[p.genre] = (genreCounts[p.genre] || 0) + 1;
+      }
+    });
+
+    setGenreData(
+      Object.entries(genreCounts).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+        color: GENRE_COLORS[name] || '#8b5cf6'
+      }))
+    );
+  };
 
   const fetchMetrics = async () => {
     if (!user) return;
@@ -444,6 +558,257 @@ export default function Profile() {
             </p>
             <p className="text-xs text-slate-400 mt-1">Per generated clip</p>
           </div>
+        </div>
+      </div>
+
+      {/* Interactive Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Credit Usage Trend Chart - 2 columns */}
+        <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200/80 shadow-lg shadow-slate-200/50 p-6 animate-fade-in delay-5">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-display font-semibold text-slate-900">Credit Usage Trend</h3>
+                <p className="text-sm text-slate-500">Last 14 days activity</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-violet-500" />
+                <span className="text-slate-500">Credits</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-slate-500">Videos</span>
+              </div>
+            </div>
+          </div>
+          
+          {loadingMetrics ? (
+            <Skeleton className="h-64 w-full rounded-xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={dailyUsage} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="creditGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="videoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  yAxisId="left"
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  yAxisId="right"
+                  orientation="right"
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                  labelStyle={{ color: '#1e293b', fontWeight: 600 }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="credits" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={2}
+                  fill="url(#creditGradient)" 
+                  name="Credits Used"
+                  yAxisId="left"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="videos" 
+                  stroke="#22c55e" 
+                  strokeWidth={2}
+                  fill="url(#videoGradient)" 
+                  name="Videos"
+                  yAxisId="right"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Genre Distribution Pie Chart */}
+        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-lg shadow-slate-200/50 p-6 animate-fade-in delay-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
+              <PieChartIcon className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-slate-900">Genre Mix</h3>
+              <p className="text-sm text-slate-500">Project distribution</p>
+            </div>
+          </div>
+          
+          {loadingMetrics ? (
+            <Skeleton className="h-52 w-full rounded-xl" />
+          ) : genreData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={genreData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {genreData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px'
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '12px' }}
+                  formatter={(value) => <span style={{ color: '#475569' }}>{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-52 flex flex-col items-center justify-center text-slate-400">
+              <Film className="w-10 h-10 mb-2 opacity-50" />
+              <p className="text-sm">No projects yet</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Video Generation Bar Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-lg shadow-slate-200/50 p-6 animate-fade-in delay-7">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
+              <Video className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-slate-900">Videos Generated</h3>
+              <p className="text-sm text-slate-500">Daily production rate</p>
+            </div>
+          </div>
+          
+          {loadingMetrics ? (
+            <Skeleton className="h-48 w-full rounded-xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={dailyUsage} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#94a3b8" 
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px'
+                  }}
+                />
+                <Bar 
+                  dataKey="videos" 
+                  fill="#22c55e" 
+                  radius={[4, 4, 0, 0]}
+                  name="Videos"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Credits Consumption Rate */}
+        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-lg shadow-slate-200/50 p-6 animate-fade-in delay-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center">
+              <Coins className="w-5 h-5 text-rose-600" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-slate-900">Credit Consumption</h3>
+              <p className="text-sm text-slate-500">Daily spending pattern</p>
+            </div>
+          </div>
+          
+          {loadingMetrics ? (
+            <Skeleton className="h-48 w-full rounded-xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={dailyUsage} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#94a3b8" 
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px'
+                  }}
+                />
+                <Bar 
+                  dataKey="credits" 
+                  fill="#f43f5e" 
+                  radius={[4, 4, 0, 0]}
+                  name="Credits"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

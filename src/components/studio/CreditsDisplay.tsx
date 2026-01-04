@@ -40,22 +40,22 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
     return (
       <div className="p-4 rounded-xl bg-white/5 border border-white/10">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-            <Coins className="w-4 h-4 text-violet-400" />
+          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+            <Coins className="w-4 h-4 text-white/70" />
           </div>
           <div>
             <p className="text-xs font-medium text-white">Credits</p>
-            <p className="text-[10px] text-violet-300/60">Sign in to track</p>
+            <p className="text-[10px] text-white/40">Sign in to track</p>
           </div>
         </div>
 
-        <p className="text-xs text-violet-300/70 mb-4">
-          Sign in to get <span className="text-emerald-400 font-semibold">50 free credits</span> and start creating videos.
+        <p className="text-xs text-white/50 mb-4">
+          Sign in to get <span className="text-white font-semibold">50 free credits</span> and start creating videos.
         </p>
 
         <Button
           onClick={() => navigate('/auth')}
-          className="w-full gap-1.5 h-9 text-xs bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white border-0"
+          className="w-full gap-1.5 h-9 text-xs bg-white hover:bg-white/90 text-black border-0"
         >
           <LogIn className="w-3.5 h-3.5" />
           Sign In
@@ -70,16 +70,13 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
       <div className="flex items-center gap-3 mb-4">
         <div className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center",
-          isLow ? "bg-red-500/20" : "bg-amber-500/20"
+          isLow ? "bg-white/20" : "bg-white/10"
         )}>
-          <Coins className={cn(
-            "w-4 h-4",
-            isLow ? "text-red-400" : "text-amber-400"
-          )} />
+          <Coins className="w-4 h-4 text-white/70" />
         </div>
         <div>
           <p className="text-xs font-medium text-white">Credits</p>
-          <p className="text-[10px] text-violet-300/60">Available Balance</p>
+          <p className="text-[10px] text-white/40">Available Balance</p>
         </div>
       </div>
 
@@ -89,7 +86,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
           <span className="text-2xl font-display font-bold text-white">
             {credits.remaining.toLocaleString()}
           </span>
-          <span className="text-xs text-violet-300/60">
+          <span className="text-xs text-white/40">
             / {credits.total.toLocaleString()}
           </span>
         </div>
@@ -100,8 +97,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div 
             className={cn(
-              "h-full rounded-full transition-all",
-              isLow ? "bg-red-500" : "bg-gradient-to-r from-violet-500 to-purple-500"
+              "h-full rounded-full transition-all bg-white"
             )}
             style={{ width: `${Math.max(0, 100 - usagePercentage)}%` }}
           />
@@ -110,7 +106,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
 
       {/* Affordability breakdown */}
       <div className="space-y-2 mb-4">
-        <p className="text-[10px] uppercase tracking-wider text-violet-300/50 font-semibold">
+        <p className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
           Duration Costs
         </p>
         {DURATION_CREDIT_OPTIONS.map((option) => {
@@ -121,26 +117,26 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
               key={option.seconds}
               className={cn(
                 "flex items-center justify-between p-2 rounded-lg transition-all",
-                isSelected && "bg-violet-500/20 border border-violet-500/30",
+                isSelected && "bg-white/10 border border-white/20",
                 !isSelected && "bg-white/5"
               )}
             >
               <div className="flex items-center gap-2">
                 {affordable ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <Check className="w-3.5 h-3.5 text-white" />
                 ) : (
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-white/50" />
                 )}
                 <span className={cn(
                   "text-xs font-medium",
-                  affordable ? "text-white" : "text-red-300"
+                  affordable ? "text-white" : "text-white/50"
                 )}>
                   {option.label}
                 </span>
               </div>
               <span className={cn(
                 "text-xs font-bold",
-                affordable ? "text-violet-300" : "text-red-400"
+                affordable ? "text-white/70" : "text-white/40"
               )}>
                 {option.credits.toLocaleString()}
               </span>
@@ -154,25 +150,24 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
         <div className={cn(
           "p-3 rounded-lg mb-4 border",
           canAfford 
-            ? "bg-emerald-500/10 border-emerald-500/30" 
-            : "bg-red-500/10 border-red-500/30"
+            ? "bg-white/5 border-white/20" 
+            : "bg-white/5 border-white/10"
         )}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase tracking-wider text-violet-300/50">After Generation</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/40">After Generation</span>
             {canAfford ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-white" />
             ) : (
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+              <AlertTriangle className="w-3.5 h-3.5 text-white/50" />
             )}
           </div>
           <div className="flex items-baseline gap-1">
             <span className={cn(
-              "text-lg font-bold",
-              canAfford ? "text-emerald-400" : "text-red-400"
+              "text-lg font-bold text-white"
             )}>
               {canAfford ? creditsAfter.toLocaleString() : `Need ${(requiredCredits - credits.remaining).toLocaleString()} more`}
             </span>
-            {canAfford && <span className="text-xs text-violet-300/60">credits left</span>}
+            {canAfford && <span className="text-xs text-white/40">credits left</span>}
           </div>
         </div>
       )}
@@ -180,12 +175,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
       {/* Buy button */}
       <Button
         onClick={() => navigate('/profile')}
-        className={cn(
-          "w-full gap-1.5 h-9 text-xs border-0",
-          !canAfford && requiredCredits > 0
-            ? "bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white animate-pulse"
-            : "bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white"
-        )}
+        className="w-full gap-1.5 h-9 text-xs bg-white hover:bg-white/90 text-black border-0"
       >
         <Sparkles className="w-3.5 h-3.5" />
         {!canAfford && requiredCredits > 0 ? 'Get More Credits' : 'Get More'}

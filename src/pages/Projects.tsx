@@ -138,57 +138,55 @@ export default function Projects() {
           </div>
 
           {/* Stats Cards */}
-          {projects.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-              <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-primary/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Layers className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{projects.length}</p>
-                    <p className="text-xs text-muted-foreground">Total Projects</p>
-                  </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-primary/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Layers className="w-5 h-5 text-primary" />
                 </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-success/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                    <p className="text-xs text-muted-foreground">Videos Ready</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-warning/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{inProgressCount}</p>
-                    <p className="text-xs text-muted-foreground">Processing</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-accent/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Video className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{totalClips}</p>
-                    <p className="text-xs text-muted-foreground">Total Clips</p>
-                  </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{projects.length}</p>
+                  <p className="text-xs text-muted-foreground">Total Projects</p>
                 </div>
               </div>
             </div>
-          )}
+
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-success/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{completedCount}</p>
+                  <p className="text-xs text-muted-foreground">Videos Ready</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-warning/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{inProgressCount}</p>
+                  <p className="text-xs text-muted-foreground">Processing</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-5 transition-all hover:shadow-lg hover:border-accent/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <Video className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{totalClips}</p>
+                  <p className="text-xs text-muted-foreground">Total Clips</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

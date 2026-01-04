@@ -130,9 +130,16 @@ export default function Create() {
 
   const saveProjectToDb = async (data: StoryWizardData, script: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user');
+        return;
+      }
+
       const { data: project, error } = await supabase
         .from('movie_projects')
         .insert({
+          user_id: user.id,
           title: data.title,
           genre: data.genre,
           story_structure: data.storyStructure,
@@ -155,6 +162,7 @@ export default function Create() {
             const { data: charData } = await supabase
               .from('characters')
               .insert({
+                user_id: user.id,
                 name: char.name,
                 description: char.description,
                 personality: char.personality,

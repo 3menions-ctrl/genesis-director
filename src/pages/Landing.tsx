@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   Play, Sparkles, Film, ArrowRight, 
   Video, Mic, Image, Star,
   Check, MousePointer2, Layers, Wand2,
-  Zap, ChevronRight, ArrowUpRight
+  Zap, ChevronRight, ArrowUpRight, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -95,6 +97,7 @@ export default function Landing() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeCapability, setActiveCapability] = useState(0);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -108,6 +111,26 @@ export default function Landing() {
     }, 2500);
     return () => clearInterval(interval);
   }, []);
+
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: 'demo@aifilmstudio.com',
+        password: 'demo123456'
+      });
+      if (error) {
+        toast.error('Demo login failed. Please try again.');
+        console.error('Demo login error:', error);
+      } else {
+        toast.success('Welcome to the demo!');
+      }
+    } catch (err) {
+      toast.error('Something went wrong');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 overflow-hidden">
@@ -169,6 +192,21 @@ export default function Landing() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleDemoLogin}
+                disabled={demoLoading}
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50/50 h-10 px-5 text-sm font-medium rounded-xl border border-emerald-200"
+              >
+                {demoLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    Demo Login
+                  </>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}

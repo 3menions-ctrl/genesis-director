@@ -391,7 +391,7 @@ function mapDbProject(dbProject: any): Project {
     voice_audio_url: dbProject.voice_audio_url,
     video_url: dbProject.video_url,
     video_clips: dbProject.video_clips || [],
-    include_narration: true,
+    include_narration: dbProject.include_narration ?? true,
     target_duration_minutes: dbProject.target_duration_minutes,
     thumbnail_url: dbProject.thumbnail_url,
   };
@@ -604,6 +604,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (updates.video_clips !== undefined) dbUpdates.video_clips = updates.video_clips;
     if (updates.voice_audio_url !== undefined) dbUpdates.voice_audio_url = updates.voice_audio_url;
     if (updates.target_duration_minutes !== undefined) dbUpdates.target_duration_minutes = updates.target_duration_minutes;
+    if (updates.include_narration !== undefined) dbUpdates.include_narration = updates.include_narration;
 
     try {
       const { error } = await supabase

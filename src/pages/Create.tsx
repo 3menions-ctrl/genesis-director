@@ -9,8 +9,7 @@ import {
   Loader2,
   Wand2,
   Star,
-  Clapperboard,
-  Rocket
+  Clapperboard
 } from 'lucide-react';
 import { StoryWizardData, MovieProject, GENRE_OPTIONS } from '@/types/movie';
 import { cn } from '@/lib/utils';
@@ -314,32 +313,23 @@ export default function Create() {
   }
 
   return (
-    <div className="min-h-[85vh] flex flex-col relative">
-      {/* Background decoration */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent/5 blur-3xl" />
-      </div>
-
-      {/* Hero Header */}
-      <div className="text-center pt-8 pb-6 px-6">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-6 animate-fade-in">
-          <Rocket className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-primary">Create Something Amazing</span>
+    <div className="min-h-[85vh] flex flex-col">
+      {/* Header */}
+      <div className="px-6 lg:px-8 py-6 border-b border-border/50">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-2xl font-semibold text-foreground">
+            New Clip
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure your video settings and generate a script
+          </p>
         </div>
-        
-        <h1 className="text-4xl lg:text-5xl font-bold font-display text-foreground mb-4 animate-fade-in delay-1">
-          Your Story <span className="text-gradient">Starts Here</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto animate-fade-in delay-2">
-          Define your vision, build unforgettable characters, and let AI craft your cinematic masterpiece
-        </p>
       </div>
 
       {/* Wizard Container */}
-      <div className="flex-1 px-4 pb-10">
+      <div className="flex-1 px-4 lg:px-8 py-6">
         <div className="max-w-5xl mx-auto">
-          <div className="card-clean overflow-hidden animate-fade-in-up delay-3">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
             <StoryWizard
               onComplete={handleWizardComplete}
               onCancel={() => navigate('/projects')}

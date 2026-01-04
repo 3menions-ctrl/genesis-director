@@ -12,6 +12,7 @@ import { useStudio } from '@/contexts/StudioContext';
 import { SettingsSidebar } from '@/components/studio/SettingsSidebar';
 import { AssetLayersPanel } from '@/components/studio/AssetLayersPanel';
 import { VideoGenerationPanel } from '@/components/studio/VideoGenerationPanel';
+import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -178,15 +179,39 @@ export default function Production() {
                 {/* Completed State */}
                 {status === 'completed' && (
                   <div className="absolute inset-0">
-                    {activeProject.video_url ? (
-                      <video
-                        src={activeProject.video_url}
-                        className="w-full h-full object-cover"
-                        controls={isPlaying}
-                        autoPlay={isPlaying}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
+                    {activeProject.video_clips && activeProject.video_clips.length > 0 ? (
+                      <VideoPlaylist 
+                        clips={activeProject.video_clips} 
+                        onPlayStateChange={setIsPlaying}
                       />
+                    ) : activeProject.video_url ? (
+                      <>
+                        <video
+                          src={activeProject.video_url}
+                          className="w-full h-full object-cover"
+                          controls={isPlaying}
+                          autoPlay={isPlaying}
+                          onPlay={() => setIsPlaying(true)}
+                          onPause={() => setIsPlaying(false)}
+                        />
+                        {!isPlaying && (
+                          <button
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            className="absolute inset-0 flex items-center justify-center group cursor-pointer"
+                          >
+                            <div className={cn(
+                              "relative flex items-center justify-center",
+                              "w-24 h-24 rounded-3xl",
+                              "bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent",
+                              "group-hover:scale-110 transition-all duration-400",
+                              "shadow-2xl"
+                            )}>
+                              <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent blur-2xl opacity-50 group-hover:opacity-80 transition-opacity" />
+                              <Play className="relative w-10 h-10 text-white ml-1" />
+                            </div>
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <div 
                         className="absolute inset-0 bg-cover bg-center"
@@ -195,23 +220,6 @@ export default function Production() {
                             url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80')`,
                         }}
                       />
-                    )}
-                    {!isPlaying && (
-                      <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="absolute inset-0 flex items-center justify-center group cursor-pointer"
-                      >
-                        <div className={cn(
-                          "relative flex items-center justify-center",
-                          "w-24 h-24 rounded-3xl",
-                          "bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent",
-                          "group-hover:scale-110 transition-all duration-400",
-                          "shadow-2xl"
-                        )}>
-                          <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary via-[hsl(280,85%,60%)] to-accent blur-2xl opacity-50 group-hover:opacity-80 transition-opacity" />
-                          <Play className="relative w-10 h-10 text-white ml-1" />
-                        </div>
-                      </button>
                     )}
                   </div>
                 )}
@@ -236,8 +244,14 @@ export default function Production() {
                         <p className="text-2xl font-display text-foreground">{statusInfo.label}</p>
                         <p className="text-muted-foreground max-w-xs mx-auto">
                           {generationProgress.step === 'voice' && 'Generating AI voice narration...'}
-                          {generationProgress.step === 'video' && 'Starting video generation...'}
-                          {generationProgress.step === 'polling' && 'Rendering video (this may take a few minutes)...'}
+                          {generationProgress.step === 'video' && generationProgress.currentClip && (
+                            <>Starting clip {generationProgress.currentClip}/{generationProgress.totalClips}...</>
+                          )}
+                          {generationProgress.step === 'video' && !generationProgress.currentClip && 'Starting video generation...'}
+                          {generationProgress.step === 'polling' && generationProgress.currentClip && (
+                            <>Rendering clip {generationProgress.currentClip}/{generationProgress.totalClips}...</>
+                          )}
+                          {generationProgress.step === 'polling' && !generationProgress.currentClip && 'Rendering video...'}
                           {generationProgress.step === 'idle' && status === 'generating' && 'Creating AI assets...'}
                           {generationProgress.step === 'idle' && status === 'rendering' && 'Compositing layers in 4K quality...'}
                         </p>

@@ -60,6 +60,8 @@ interface GenerationProgress {
   step: 'idle' | 'voice' | 'video' | 'polling';
   percent: number;
   estimatedSecondsRemaining: number | null;
+  currentClip?: number;
+  totalClips?: number;
 }
 
 interface StudioContextType {
@@ -156,19 +158,24 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setIsGenerating(true);
     const script = activeProject.script_content;
     const projectId = activeProjectId;
-    const includeNarration = activeProject.include_narration !== false; // default true
+    const includeNarration = activeProject.include_narration !== false;
     const targetDuration = activeProject.target_duration_minutes || 1;
     
-    // Runway supports 4, 6, or 8 second clips - map minutes to reasonable clip duration
-    // For longer videos, we'd need to generate multiple clips (future feature)
-    const videoDuration = targetDuration <= 1 ? 4 : targetDuration <= 2 ? 6 : 8;
+    // Calculate number of 8-second clips needed (target is in minutes)
+    const targetSeconds = targetDuration * 60;
+    const clipDuration = 8;
+    const numClips = Math.max(1, Math.ceil(targetSeconds / clipDuration));
+    
+    // Split script into segments for each clip
+    const words = script.split(/\s+/);
+    const wordsPerClip = Math.ceil(words.length / numClips);
 
     try {
-      updateProject(projectId, { status: 'generating' as ProjectStatus });
+      updateProject(projectId, { status: 'generating' as ProjectStatus, video_clips: [] });
       
       // Step 1: Generate Voice Narration (if enabled)
       if (includeNarration) {
-        setGenerationProgress({ step: 'voice', percent: 10, estimatedSecondsRemaining: 120 });
+        setGenerationProgress({ step: 'voice', percent: 5, estimatedSecondsRemaining: 120 + numClips * 60 });
         toast.info('Generating AI narration with ElevenLabs...');
         
         const voiceResponse = await fetch(
@@ -195,75 +202,97 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         toast.success('Voice narration generated!');
       }
       
-      setGenerationProgress({ step: 'video', percent: 30, estimatedSecondsRemaining: 90 });
-
-      // Step 2: Generate Video
-      toast.info(`Starting AI video generation (${videoDuration}s clip)...`);
-      setGenerationProgress({ step: 'video', percent: 35, estimatedSecondsRemaining: 85 });
+      // Step 2: Generate video clips sequentially
+      const completedClips: string[] = [];
+      const baseProgress = includeNarration ? 15 : 5;
+      const progressPerClip = (85 - baseProgress) / numClips;
       
-      const videoPrompt = `Cinematic video visualizing: ${script.slice(0, 500)}. 
-        Create professional, engaging visuals that match this narration. 
-        High quality, modern cinematography, smooth transitions.`;
-      
-      const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-        body: { 
-          prompt: videoPrompt,
-          duration: videoDuration
-        },
-      });
-
-      if (videoError || !videoData?.success) {
-        throw new Error(videoData?.error || videoError?.message || 'Failed to start video generation');
-      }
-
-      toast.success('Video generation started! This may take a few minutes...');
+      toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)...`);
       updateProject(projectId, { status: 'rendering' as ProjectStatus });
-      setGenerationProgress({ step: 'polling', percent: 50, estimatedSecondsRemaining: 60 });
 
-      // Step 3: Poll for video completion
-      const taskId = videoData.taskId;
-      let pollCount = 0;
-      
-      pollingRef.current = window.setInterval(async () => {
-        pollCount++;
-        // Estimate remaining time based on poll count (assuming ~2 min total for video)
-        const estimatedRemaining = Math.max(5, 60 - pollCount * 5);
-        const progressPercent = Math.min(95, 50 + pollCount * 4);
-        setGenerationProgress({ step: 'polling', percent: progressPercent, estimatedSecondsRemaining: estimatedRemaining });
-        try {
+      for (let i = 0; i < numClips; i++) {
+        const clipStartWord = i * wordsPerClip;
+        const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
+        const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
+        
+        setGenerationProgress({ 
+          step: 'video', 
+          percent: Math.round(baseProgress + i * progressPerClip), 
+          estimatedSecondsRemaining: (numClips - i) * 60,
+          currentClip: i + 1,
+          totalClips: numClips
+        });
+
+        const videoPrompt = `Cinematic video visualizing: ${clipText.slice(0, 400)}. 
+          Create professional, engaging visuals. High quality cinematography.
+          ${i > 0 ? 'Continue the visual style from previous scene.' : ''}`;
+        
+        // Start video generation
+        const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+          body: { prompt: videoPrompt, duration: clipDuration },
+        });
+
+        if (videoError || !videoData?.success) {
+          throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${i + 1}`);
+        }
+
+        toast.info(`Clip ${i + 1}/${numClips} generating...`);
+        
+        // Poll for this clip's completion
+        const taskId = videoData.taskId;
+        let clipUrl: string | null = null;
+        let pollAttempts = 0;
+        const maxPolls = 60; // 5 minutes max per clip
+
+        while (!clipUrl && pollAttempts < maxPolls) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          pollAttempts++;
+          
+          const pollProgress = baseProgress + i * progressPerClip + (progressPerClip * 0.8 * pollAttempts / maxPolls);
+          setGenerationProgress({ 
+            step: 'polling', 
+            percent: Math.round(pollProgress), 
+            estimatedSecondsRemaining: Math.max(10, (numClips - i) * 60 - pollAttempts * 5),
+            currentClip: i + 1,
+            totalClips: numClips
+          });
+
           const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
             body: { taskId },
           });
 
           if (statusError) {
             console.error('Status check error:', statusError);
-            return;
+            continue;
           }
 
           if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            
-            updateProject(projectId, {
-              status: 'completed' as ProjectStatus,
-              video_url: statusData.videoUrl,
-              duration_seconds: Math.ceil(script.split(/\s+/).length / 2.5),
-              credits_used: Math.ceil(script.split(/\s+/).length / 2.5) * 10,
-            });
-            
-            setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
-            setIsGenerating(false);
-            toast.success('Video generation complete!');
+            clipUrl = statusData.videoUrl;
+            completedClips.push(clipUrl);
+            updateProject(projectId, { video_clips: [...completedClips] });
+            toast.success(`Clip ${i + 1}/${numClips} complete!`);
           } else if (statusData?.status === 'FAILED') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
-            setIsGenerating(false);
-            updateProject(projectId, { status: 'idle' as ProjectStatus });
-            toast.error(statusData.error || 'Video generation failed');
+            throw new Error(statusData.error || `Clip ${i + 1} generation failed`);
           }
-        } catch (pollErr) {
-          console.error('Polling error:', pollErr);
         }
-      }, 5000);
+
+        if (!clipUrl) {
+          throw new Error(`Clip ${i + 1} timed out`);
+        }
+      }
+
+      // All clips complete
+      updateProject(projectId, {
+        status: 'completed' as ProjectStatus,
+        video_url: completedClips[0], // First clip as primary
+        video_clips: completedClips,
+        duration_seconds: numClips * clipDuration,
+        credits_used: numClips * clipDuration * 10,
+      });
+      
+      setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
+      setIsGenerating(false);
+      toast.success(`All ${numClips} clips generated! Total: ${numClips * clipDuration}s`);
 
     } catch (error) {
       console.error('Generation error:', error);

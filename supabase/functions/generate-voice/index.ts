@@ -49,6 +49,24 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error("ElevenLabs error:", response.status, errorText);
       
+      // Parse error to check for quota exceeded
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.detail?.status === "quota_exceeded") {
+          return new Response(
+            JSON.stringify({ 
+              error: "ElevenLabs quota exceeded. Please use 'Skip Narration' option or upgrade your ElevenLabs plan.",
+              quota_exceeded: true,
+              credits_remaining: errorData.detail.message?.match(/(\d+) credits remaining/)?.[1],
+              credits_required: errorData.detail.message?.match(/(\d+) credits are required/)?.[1],
+            }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } catch (e) {
+        // Not JSON, continue with generic error
+      }
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),

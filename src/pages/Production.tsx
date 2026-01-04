@@ -1,14 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { 
-  Play, Pause, Maximize2, Volume2, VolumeX, RotateCcw, 
-  ArrowLeft, ArrowRight, Sparkles, Zap,
-  SkipBack, SkipForward, Settings2, Download,
-  Film, Plus, Wand2, Clock, Layers, Music,
-  Video, Mic, Image, CheckCircle2, Circle,
-  ChevronRight, Eye, Rocket, Star
+  Play, RotateCcw, ArrowLeft, ArrowRight, Sparkles, 
+  Download, Film, Clock, Layers, Wand2, ChevronRight, Star,
+  Video, Mic, CheckCircle2, Rocket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useStudio } from '@/contexts/StudioContext';
@@ -37,11 +33,8 @@ export default function Production() {
   const navigate = useNavigate();
   const { activeProject, generatePreview, isGenerating, generationProgress, credits } = useStudio();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(75);
   const [factIndex, setFactIndex] = useState(0);
-  const [showControls, setShowControls] = useState(true);
 
   const status = activeProject?.status || 'idle';
 
@@ -301,248 +294,163 @@ export default function Production() {
           </div>
         </div>
 
-        {/* Main Video Preview */}
+        {/* Main Video Preview - Larger and more prominent */}
         <div 
-          className="relative rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/50 animate-fade-in group"
+          className="relative rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/60 animate-fade-in"
           style={{ animationDelay: '200ms' }}
-          onMouseEnter={() => setShowControls(true)}
-          onMouseLeave={() => status === 'completed' && isPlaying && setShowControls(false)}
         >
-          <div className="aspect-video relative">
-            
-            {/* Completed State - Video Player */}
-            {status === 'completed' && (
-              <div className="absolute inset-0">
-                {activeProject.video_clips && activeProject.video_clips.length > 0 ? (
-                  <VideoPlaylist 
-                    clips={activeProject.video_clips} 
-                    onPlayStateChange={setIsPlaying}
-                  />
-                ) : activeProject.video_url ? (
-                  <>
-                    <video
-                      src={activeProject.video_url}
-                      className="w-full h-full object-cover"
-                      controls={false}
-                      autoPlay={isPlaying}
-                      muted={isMuted}
-                      onPlay={() => setIsPlaying(true)}
-                      onPause={() => setIsPlaying(false)}
-                      onTimeUpdate={(e) => {
-                        const video = e.target as HTMLVideoElement;
-                        setProgress((video.currentTime / video.duration) * 100);
+          {/* 16:9 Aspect Ratio Container - Made larger */}
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div className="absolute inset-0">
+              
+              {/* Completed State - Video Player */}
+              {status === 'completed' && (
+                <div className="absolute inset-0">
+                  {activeProject.video_clips && activeProject.video_clips.length > 0 ? (
+                    <VideoPlaylist 
+                      clips={activeProject.video_clips} 
+                      onPlayStateChange={setIsPlaying}
+                      onProgressChange={(current, total) => {
+                        setProgress((current / total) * 100);
                       }}
+                      showControls={true}
                     />
-                    {!isPlaying && (
-                      <button
-                        onClick={() => setIsPlaying(true)}
-                        className="absolute inset-0 flex items-center justify-center bg-black/30 group/play"
-                      >
-                        <div className="relative">
-                          <div className="absolute inset-0 rounded-full bg-white/20 blur-xl scale-150 group-hover/play:scale-175 transition-transform" />
-                          <div className="relative w-24 h-24 rounded-full bg-white/90 flex items-center justify-center group-hover/play:scale-110 transition-transform shadow-2xl">
-                            <Play className="w-10 h-10 text-black ml-1" fill="currentColor" />
-                          </div>
-                        </div>
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
-                      <p className="text-xl font-semibold text-white">Video Ready!</p>
+                  ) : activeProject.video_url ? (
+                    <VideoPlaylist 
+                      clips={[activeProject.video_url]} 
+                      onPlayStateChange={setIsPlaying}
+                      onProgressChange={(current, total) => {
+                        setProgress((current / total) * 100);
+                      }}
+                      showControls={true}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                      <div className="text-center space-y-4">
+                        <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
+                        <p className="text-xl font-semibold text-white">Video Ready!</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Generating State - Animated Loading */}
-            {(status === 'generating' || status === 'rendering' || isGenerating) && (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-                {/* Animated background particles */}
-                <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(20)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-1 h-1 rounded-full bg-primary/30 animate-pulse"
-                      style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        animationDelay: `${Math.random() * 2}s`,
-                        animationDuration: `${2 + Math.random() * 2}s`,
-                      }}
-                    />
-                  ))}
+                  )}
                 </div>
-                
-                <div className="relative z-10 text-center space-y-8 px-8">
-                  {/* Animated rings */}
-                  <div className="relative w-40 h-40 mx-auto">
-                    <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
-                    <div className="absolute inset-4 rounded-full border-2 border-accent/30 animate-spin" style={{ animationDuration: '8s' }} />
-                    <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
-                        <Sparkles className="w-10 h-10 text-white animate-pulse" />
+              )}
+
+              {/* Generating State - Animated Loading */}
+              {(status === 'generating' || status === 'rendering' || isGenerating) && (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+                  {/* Animated background particles */}
+                  <div className="absolute inset-0 overflow-hidden">
+                    {[...Array(20)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-1 rounded-full bg-primary/30 animate-pulse"
+                        style={{
+                          left: `${Math.random() * 100}%`,
+                          top: `${Math.random() * 100}%`,
+                          animationDelay: `${Math.random() * 2}s`,
+                          animationDuration: `${2 + Math.random() * 2}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  
+                  <div className="relative z-10 text-center space-y-8 px-8">
+                    {/* Animated rings */}
+                    <div className="relative w-32 h-32 md:w-40 md:h-40 mx-auto">
+                      <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
+                      <div className="absolute inset-4 rounded-full border-2 border-accent/30 animate-spin" style={{ animationDuration: '8s' }} />
+                      <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }} />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
+                          <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-white animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Progress info */}
+                    <div className="space-y-2">
+                      <h3 className="text-xl md:text-2xl font-display font-bold text-white">
+                        {generationProgress.step === 'voice' && 'Generating Voice...'}
+                        {generationProgress.step === 'video' && 'Creating Visuals...'}
+                        {generationProgress.step === 'polling' && 'Rendering Video...'}
+                        {generationProgress.step === 'idle' && 'Preparing...'}
+                      </h3>
+                      {generationProgress.currentClip && generationProgress.totalClips && (
+                        <p className="text-white/60">
+                          Clip {generationProgress.currentClip} of {generationProgress.totalClips}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className="w-64 md:w-80 mx-auto">
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-primary via-accent to-primary rounded-full transition-all duration-700 bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite]"
+                          style={{ width: `${generationProgress.percent}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-2 text-sm text-white/50 font-mono">
+                        <span>{generationProgress.percent}%</span>
+                        <span>
+                          {generationProgress.estimatedSecondsRemaining !== null 
+                            ? `~${Math.ceil(generationProgress.estimatedSecondsRemaining / 60)} min`
+                            : 'Calculating...'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Fun fact */}
+                    <div className="max-w-md mx-auto p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">{PRODUCTION_FACTS[factIndex].icon}</span>
+                        <p className="text-sm text-white/70 text-left">
+                          {PRODUCTION_FACTS[factIndex].text}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Progress info */}
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-display font-bold text-white">
-                      {generationProgress.step === 'voice' && 'Generating Voice...'}
-                      {generationProgress.step === 'video' && 'Creating Visuals...'}
-                      {generationProgress.step === 'polling' && 'Rendering Video...'}
-                      {generationProgress.step === 'idle' && 'Preparing...'}
-                    </h3>
-                    {generationProgress.currentClip && generationProgress.totalClips && (
-                      <p className="text-white/60">
-                        Clip {generationProgress.currentClip} of {generationProgress.totalClips}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Progress bar */}
-                  <div className="w-80 mx-auto">
-                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary via-accent to-primary rounded-full transition-all duration-700 bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite]"
-                        style={{ width: `${generationProgress.percent}%` }}
-                      />
+                </div>
+              )}
+
+              {/* Idle State - Ready to Generate */}
+              {status === 'idle' && !isGenerating && (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+                  <div className="text-center space-y-6 md:space-y-8 px-8">
+                    <div className="relative">
+                      <div className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-3xl bg-gradient-to-br from-muted/30 to-muted/10 border border-white/10 flex items-center justify-center">
+                        <Play className="w-10 h-10 md:w-14 md:h-14 text-white/40" />
+                      </div>
+                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-primary text-primary-foreground shadow-lg">
+                          Ready to create
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex justify-between mt-2 text-sm text-white/50 font-mono">
-                      <span>{generationProgress.percent}%</span>
-                      <span>
-                        {generationProgress.estimatedSecondsRemaining !== null 
-                          ? `~${Math.ceil(generationProgress.estimatedSecondsRemaining / 60)} min`
-                          : 'Calculating...'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Fun fact */}
-                  <div className="max-w-md mx-auto p-4 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{PRODUCTION_FACTS[factIndex].icon}</span>
-                      <p className="text-sm text-white/70 text-left">
-                        {PRODUCTION_FACTS[factIndex].text}
+                    
+                    <div className="space-y-3">
+                      <h3 className="text-xl md:text-2xl font-display font-bold text-white">
+                        Lights, Camera, AI!
+                      </h3>
+                      <p className="text-white/60 max-w-md mx-auto text-sm md:text-base">
+                        Your script is ready. Click "Generate Video" to bring your story to life.
                       </p>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Idle State - Ready to Generate */}
-            {status === 'idle' && !isGenerating && (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-                <div className="text-center space-y-8 px-8">
-                  <div className="relative">
-                    <div className="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-br from-muted/30 to-muted/10 border border-white/10 flex items-center justify-center">
-                      <Play className="w-14 h-14 text-white/40" />
-                    </div>
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground shadow-lg">
-                        Ready to create
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h3 className="text-2xl font-display font-bold text-white">
-                      Lights, Camera, AI! 🎬
-                    </h3>
-                    <p className="text-white/60 max-w-md mx-auto">
-                      Your script is ready. Click "Generate Video" to bring your story to life with cutting-edge AI.
-                    </p>
-                  </div>
-                  
-                  <Button
-                    variant="aurora"
-                    size="xl"
-                    onClick={generatePreview}
-                    className="gap-3"
-                  >
-                    <Sparkles className="w-5 h-5" />
-                    Generate Video
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Video Controls Overlay */}
-          {status === 'completed' && (
-            <div className={cn(
-              "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-6 transition-opacity duration-300",
-              showControls ? "opacity-100" : "opacity-0"
-            )}>
-              {/* Progress bar */}
-              <div className="mb-4">
-                <Slider
-                  value={[progress]}
-                  onValueChange={(val) => setProgress(val[0])}
-                  max={100}
-                  step={0.1}
-                  className="w-full cursor-pointer"
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-10 w-10 text-white hover:bg-white/20"
-                    onClick={() => setIsPlaying(!isPlaying)}
-                  >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/20">
-                    <SkipBack className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/20">
-                    <SkipForward className="w-4 h-4" />
-                  </Button>
-                  
-                  <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/20"
-                      onClick={() => setIsMuted(!isMuted)}
+                    
+                    <Button
+                      variant="aurora"
+                      size="xl"
+                      onClick={generatePreview}
+                      className="gap-3"
                     >
-                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                      <Sparkles className="w-5 h-5" />
+                      Generate Video
                     </Button>
-                    <Slider 
-                      value={[isMuted ? 0 : volume]} 
-                      onValueChange={(val) => setVolume(val[0])} 
-                      max={100} 
-                      className="w-24" 
-                    />
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2 text-sm font-mono text-white/70">
-                  <span>00:{String(Math.floor(progress * 0.6)).padStart(2, '0')}</span>
-                  <span className="text-white/40">/</span>
-                  <span>01:00</span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/20">
-                    <Settings2 className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/20">
-                    <Maximize2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Script Preview & Stats Grid */}

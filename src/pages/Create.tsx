@@ -16,7 +16,7 @@ const CREATIVE_QUOTES = [
 
 export default function Create() {
   const navigate = useNavigate();
-  const { activeProject, updateProject, deductCredits, canAffordDuration } = useStudio();
+  const { activeProject, updateProject, deductCredits, canAffordDuration, setActiveProjectId, refreshProjects } = useStudio();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('Initializing...');
@@ -103,22 +103,19 @@ export default function Create() {
 
       setProgress(100);
 
-      // Update project with generated script
-      if (activeProject) {
-        updateProject(activeProject.id, {
-          name: data.title,
-          script_content: scriptData.script,
-          status: 'idle',
-          include_narration: data.includeNarration,
-          target_duration_minutes: data.targetDurationMinutes,
-        });
+      // Save to database and get the project ID
+      const projectId = await saveProjectToDb(data, scriptData.script);
+
+      if (projectId) {
+        // Refresh projects and set the new one as active
+        await refreshProjects();
+        setActiveProjectId(projectId);
+        
+        toast.success(`Script generated! ${scriptData.wordCount} words`);
+        navigate('/script');
+      } else {
+        toast.error('Failed to save project');
       }
-
-      // Save to database
-      await saveProjectToDb(data, scriptData.script);
-
-      toast.success(`Script generated! ${scriptData.wordCount} words, ~${scriptData.estimatedDuration} min`);
-      navigate('/script');
 
     } catch (err) {
       console.error('Script generation error:', err);
@@ -128,12 +125,12 @@ export default function Create() {
     }
   };
 
-  const saveProjectToDb = async (data: StoryWizardData, script: string) => {
+  const saveProjectToDb = async (data: StoryWizardData, script: string): Promise<string | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('No authenticated user');
-        return;
+        return null;
       }
 
       const { data: project, error } = await supabase
@@ -155,7 +152,12 @@ export default function Create() {
         .select()
         .single();
 
-      if (project && !error) {
+      if (error) {
+        console.error('Failed to save project:', error);
+        return null;
+      }
+
+      if (project) {
         // Save characters
         for (const char of data.characters) {
           if (char.name) {
@@ -181,9 +183,12 @@ export default function Create() {
             }
           }
         }
+        return project.id;
       }
+      return null;
     } catch (err) {
       console.error('Failed to save project:', err);
+      return null;
     }
   };
 

@@ -3,10 +3,11 @@ import {
   Play, RotateCcw, ArrowLeft, Sparkles, 
   Download, Film, Clock, Wand2, ChevronRight,
   Video, CheckCircle2, Rocket, Zap,
-  FileText, Share2, ExternalLink, Eye, Layers, Image
+  FileText, Share2, ExternalLink, Eye, Layers, Image, Volume2, VolumeX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useStudio } from '@/contexts/StudioContext';
 import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { GenerationProgressModal } from '@/components/studio/GenerationProgressModal';
@@ -32,8 +33,18 @@ export default function Production() {
     regenerateSceneImage,
     approveAllSceneImages,
     credits, 
-    isLoading 
+    isLoading,
+    updateProject
   } = useStudio();
+  
+  const includeNarration = activeProject?.include_narration !== false;
+  
+  const handleToggleNarration = () => {
+    if (activeProject) {
+      updateProject(activeProject.id, { include_narration: !includeNarration });
+      toast.success(includeNarration ? 'Narration disabled' : 'Narration enabled');
+    }
+  };
   
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -435,9 +446,25 @@ export default function Production() {
                   <span className="text-sm font-medium text-foreground">~{renderTimeMinutes} min</span>
                 </div>
                 
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between py-3 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Clips</span>
                   <span className="text-sm font-medium text-foreground">{estimatedClips}</span>
+                </div>
+                
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-2">
+                    {includeNarration ? (
+                      <Volume2 className="w-4 h-4 text-primary" />
+                    ) : (
+                      <VolumeX className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="text-sm text-muted-foreground">AI Narration</span>
+                  </div>
+                  <Switch
+                    checked={includeNarration}
+                    onCheckedChange={handleToggleNarration}
+                    aria-label="Toggle AI narration"
+                  />
                 </div>
               </div>
             </div>

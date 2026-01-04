@@ -21,7 +21,9 @@ import {
   Clock,
   Star,
   Zap,
-  Crown
+  Crown,
+  Coins,
+  AlertTriangle
 } from 'lucide-react';
 import {
   StoryWizardData,
@@ -33,6 +35,14 @@ import {
   MOOD_OPTIONS,
 } from '@/types/movie';
 import { cn } from '@/lib/utils';
+import { useStudio } from '@/contexts/StudioContext';
+
+// Duration options with credit costs
+const DURATION_OPTIONS = [
+  { seconds: 8, label: '8 sec', credits: 1000 },
+  { seconds: 30, label: '30 sec', credits: 3500 },
+  { seconds: 60, label: '1 min', credits: 7000 },
+] as const;
 
 interface StoryWizardProps {
   onComplete: (data: StoryWizardData) => void;
@@ -57,13 +67,14 @@ const DEFAULT_CHARACTER: CharacterInput = {
 };
 
 export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardProps) {
+  const { credits, setSelectedDurationSeconds } = useStudio();
   const [currentStep, setCurrentStep] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [data, setData] = useState<StoryWizardData>({
     title: initialData?.title || '',
     genre: initialData?.genre || 'drama',
     storyStructure: initialData?.storyStructure || 'three_act',
-    targetDurationMinutes: initialData?.targetDurationMinutes || 5,
+    targetDurationMinutes: initialData?.targetDurationMinutes || 8 / 60, // Default to 8 seconds
     setting: initialData?.setting || '',
     timePeriod: initialData?.timePeriod || 'Present Day',
     mood: initialData?.mood || 'Epic & Grand',
@@ -75,8 +86,18 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
     includeNarration: initialData?.includeNarration ?? true,
   });
 
+  // Sync selected duration to context for sidebar display
+  const currentDurationSeconds = Math.round(data.targetDurationMinutes * 60);
+  
   const updateData = <K extends keyof StoryWizardData>(key: K, value: StoryWizardData[K]) => {
-    setData(prev => ({ ...prev, [key]: value }));
+    setData(prev => {
+      const newData = { ...prev, [key]: value };
+      // If duration changed, update the context
+      if (key === 'targetDurationMinutes') {
+        setSelectedDurationSeconds(Math.round((value as number) * 60));
+      }
+      return newData;
+    });
   };
 
   const addCharacter = () => {
@@ -209,14 +230,16 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   <Clock className="w-4 h-4 text-primary" />
                   Duration
                 </label>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
+                  <Coins className="w-4 h-4 text-warning" />
+                  <span className="text-sm font-bold text-foreground">{credits.remaining.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">available</span>
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                {[
-                  { seconds: 8, label: '8 sec', credits: 1000 },
-                  { seconds: 30, label: '30 sec', credits: 3500 },
-                  { seconds: 60, label: '1 min', credits: 7000 },
-                ].map((option) => {
+                {DURATION_OPTIONS.map((option) => {
                   const isSelected = data.targetDurationMinutes === option.seconds / 60;
+                  const canAfford = credits.remaining >= option.credits;
                   return (
                     <button
                       key={option.seconds}
@@ -225,7 +248,8 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                         "relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02] group",
                         isSelected
                           ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg shadow-primary/20"
-                          : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+                          : "border-border bg-card hover:border-primary/50 hover:shadow-md",
+                        !canAfford && "opacity-60"
                       )}
                     >
                       <div className={cn(
@@ -236,13 +260,19 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                       </div>
                       <div className={cn(
                         "flex items-center justify-center gap-1.5 text-sm font-medium",
-                        isSelected ? "text-accent" : "text-muted-foreground"
+                        isSelected ? "text-accent" : "text-muted-foreground",
+                        !canAfford && "text-destructive"
                       )}>
-                        <Zap className={cn("w-4 h-4", isSelected ? "text-warning" : "")} />
+                        <Zap className={cn("w-4 h-4", isSelected ? "text-warning" : "", !canAfford && "text-destructive")} />
                         <span className="font-bold">{option.credits.toLocaleString()}</span>
                         <span>credits</span>
                       </div>
-                      {isSelected && (
+                      {!canAfford && (
+                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-destructive rounded-full flex items-center justify-center shadow-lg">
+                          <AlertTriangle className="w-3.5 h-3.5 text-destructive-foreground" />
+                        </div>
+                      )}
+                      {isSelected && canAfford && (
                         <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
                           <Check className="w-3.5 h-3.5 text-primary-foreground" />
                         </div>
@@ -251,20 +281,51 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   );
                 })}
               </div>
-              <div className="flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10">
-                <div className="flex items-center gap-2 text-sm">
-                  <Zap className="w-4 h-4 text-warning" />
-                  <span className="text-muted-foreground">Estimated cost:</span>
-                  <span className="font-bold text-foreground">
-                    {(() => {
-                      const durationSeconds = data.targetDurationMinutes * 60;
-                      if (durationSeconds <= 8) return '1,000';
-                      if (durationSeconds <= 30) return '3,500';
-                      return '7,000';
-                    })()} credits
-                  </span>
-                </div>
-              </div>
+              
+              {/* Affordability Summary */}
+              {(() => {
+                const selectedOption = DURATION_OPTIONS.find(o => o.seconds / 60 === data.targetDurationMinutes);
+                const requiredCredits = selectedOption?.credits || 0;
+                const canAfford = credits.remaining >= requiredCredits;
+                const creditsAfter = credits.remaining - requiredCredits;
+                
+                return (
+                  <div className={cn(
+                    "p-4 rounded-xl border transition-all",
+                    canAfford 
+                      ? "bg-gradient-to-r from-emerald-500/10 to-green-500/10 border-emerald-500/30" 
+                      : "bg-gradient-to-r from-destructive/10 to-red-500/10 border-destructive/30"
+                  )}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {canAfford ? (
+                          <Check className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                        )}
+                        <span className={cn(
+                          "font-medium",
+                          canAfford ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                        )}>
+                          {canAfford ? 'You can afford this!' : 'Insufficient credits'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">After generation</div>
+                        <div className={cn(
+                          "font-bold",
+                          canAfford ? "text-foreground" : "text-destructive"
+                        )}>
+                          {canAfford 
+                            ? `${creditsAfter.toLocaleString()} credits left`
+                            : `Need ${(requiredCredits - credits.remaining).toLocaleString()} more`
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

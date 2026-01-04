@@ -588,7 +588,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const wordsPerClip = Math.ceil(words.length / numClips);
     
     // Faster estimates with parallel generation: ~60-90 seconds per batch
-    const parallelBatchSize = 3; // Generate 3 clips at a time
+    // Use batch size of 2 to avoid Runway API throttling
+    const parallelBatchSize = 2;
     const estimatedSecondsPerClip = settings.turboMode ? 60 : 90;
     const numBatches = Math.ceil(numClips / parallelBatchSize);
     const voiceGenerationTime = includeNarration ? 30 : 0;
@@ -714,6 +715,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             await new Promise(resolve => setTimeout(resolve, 5000));
             pollAttempts++;
             
+            // Update progress during polling so it doesn't appear stuck
+            const pollProgress = Math.round(baseProgress + (batchNumber - 1) / totalBatches * (85 - baseProgress) + (pollAttempts / maxPolls) * ((85 - baseProgress) / totalBatches * 0.8));
+            setGenerationProgress({ 
+              step: 'polling', 
+              percent: Math.min(pollProgress, 85), 
+              estimatedSecondsRemaining: Math.max(10, (maxPolls - pollAttempts) * 5),
+              currentClip: batchStart + 1,
+              totalClips: numClips
+            });
+            
             const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
               body: { taskId },
             });
@@ -744,7 +755,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               toast.success(`Clip ${index + 1}/${numClips}${sceneTitle ? ` "${sceneTitle}"` : ''} complete!`);
             } else if (statusData?.status === 'FAILED') {
               throw new Error(statusData.error || `Clip ${index + 1} generation failed`);
+            } else if (statusData?.status === 'THROTTLED') {
+              // API is rate limited - continue polling but with longer wait
+              console.log(`Clip ${index + 1} throttled, waiting longer...`);
+              await new Promise(resolve => setTimeout(resolve, 5000)); // Extra wait
             }
+            // RUNNING or PENDING status - continue polling
           }
           
           if (!clipUrl) {

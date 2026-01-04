@@ -793,12 +793,61 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       // Build comprehensive scene consistency description from script
       const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
       
-      // Prepare all clip prompts upfront
-      const clipPrompts: { index: number; prompt: string; sceneTitle?: string }[] = [];
+      // Extract global consistency elements for all clips
+      const globalEnvironment = extractSceneElements(script);
+      const globalCharacters = settings.characters ? buildCharacterPrompt(settings.characters) : undefined;
+      
+      // Get color grade based on visual style
+      const getColorPalette = (): string => {
+        switch (settings.visualStyle) {
+          case 'vintage': return 'warm faded film colors, sepia undertones, nostalgic palette';
+          case 'anime': return 'vibrant saturated anime colors, bold contrast';
+          case 'documentary': return 'natural authentic colors, realistic tones';
+          default: return 'teal and orange color grade, cinematic palette';
+        }
+      };
+      
+      const getLightingStyle = (): string => {
+        const contentType = detectContentType(script);
+        if (settings.visualStyle === 'documentary') return 'realistic natural lighting, authentic exposure';
+        if (contentType === 'epic') return 'dramatic god rays, sweeping light beams, majestic illumination';
+        if (contentType === 'intimate') return 'atmospheric blue hour tones, diffused backlighting';
+        return 'high contrast chiaroscuro lighting, volumetric light rays';
+      };
+      
+      // Prepare all clip prompts upfront with scene context
+      interface ClipPromptData {
+        index: number;
+        prompt: string;
+        sceneTitle?: string;
+        sceneContext: {
+          clipIndex: number;
+          totalClips: number;
+          sceneTitle?: string;
+          globalEnvironment?: string;
+          globalCharacters?: string;
+          previousClipSummary?: string;
+          colorPalette: string;
+          lightingStyle: string;
+        };
+      }
+      
+      const clipPrompts: ClipPromptData[] = [];
       
       for (let i = 0; i < numClips; i++) {
         let videoPrompt: string;
         let sceneTitle: string | undefined;
+        let previousClipSummary: string | undefined;
+        
+        // Get previous clip summary for continuity
+        if (i > 0 && hasScenes && settings.scenes[i - 1]) {
+          const prevScene = settings.scenes[i - 1];
+          previousClipSummary = `${prevScene.title}: ${prevScene.visualDescription?.slice(0, 100) || prevScene.scriptText?.slice(0, 100)}`;
+        } else if (i > 0) {
+          const prevClipStartWord = (i - 1) * wordsPerClip;
+          const prevClipEndWord = Math.min(i * wordsPerClip, words.length);
+          previousClipSummary = words.slice(prevClipStartWord, prevClipEndWord).slice(0, 15).join(' ');
+        }
         
         if (hasScenes && settings.scenes[i]) {
           const scene = settings.scenes[i];
@@ -817,7 +866,21 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
         }
         
-        clipPrompts.push({ index: i, prompt: videoPrompt, sceneTitle });
+        clipPrompts.push({ 
+          index: i, 
+          prompt: videoPrompt, 
+          sceneTitle,
+          sceneContext: {
+            clipIndex: i,
+            totalClips: numClips,
+            sceneTitle,
+            globalEnvironment,
+            globalCharacters,
+            previousClipSummary,
+            colorPalette: getColorPalette(),
+            lightingStyle: getLightingStyle(),
+          }
+        });
       }
       
       // Generate clips in parallel batches for speed
@@ -838,7 +901,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         toast.info(`Starting batch ${batchNumber}/${totalBatches} (clips ${batchStart + 1}-${batchEnd})`);
         
         // Helper function to generate a single clip with retry logic
-        const generateClipWithRetry = async (clip: { index: number; prompt: string; sceneTitle?: string }, maxRetries = 3): Promise<{ index: number; clipUrl: string }> => {
+        const generateClipWithRetry = async (clip: ClipPromptData, maxRetries = 3): Promise<{ index: number; clipUrl: string }> => {
           let lastError: Error | null = null;
           
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -853,9 +916,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
               }
               
-              // Start video generation
+              // Start video generation with scene context for consistency
               const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-                body: { prompt: clip.prompt, duration: clipDuration },
+                body: { 
+                  prompt: clip.prompt, 
+                  duration: clipDuration,
+                  sceneContext: clip.sceneContext, // Pass scene context for API-side consistency enhancement
+                },
               });
               
               if (videoError || !videoData?.success) {

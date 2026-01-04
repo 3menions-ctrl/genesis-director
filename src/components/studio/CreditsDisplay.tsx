@@ -1,7 +1,9 @@
-import { Coins, Zap, Sparkles, Check, AlertTriangle } from 'lucide-react';
+import { Coins, Zap, Sparkles, Check, AlertTriangle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserCredits } from '@/types/studio';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Duration options with credit costs - shared with StoryWizard
 export const DURATION_CREDIT_OPTIONS = [
@@ -17,7 +19,10 @@ interface CreditsDisplayProps {
 }
 
 export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds }: CreditsDisplayProps) {
-  const usagePercentage = (credits.used / credits.total) * 100;
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const usagePercentage = (credits.used / Math.max(credits.total, 1)) * 100;
   const isLow = credits.remaining < credits.total * 0.2;
   
   // Calculate what the user can afford
@@ -29,6 +34,35 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
   const requiredCredits = selectedDurationSeconds ? getRequiredCredits(selectedDurationSeconds) : 0;
   const canAfford = credits.remaining >= requiredCredits;
   const creditsAfter = credits.remaining - requiredCredits;
+
+  // Not logged in - show sign in prompt
+  if (!user) {
+    return (
+      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+            <Coins className="w-4 h-4 text-violet-400" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-white">Credits</p>
+            <p className="text-[10px] text-violet-300/60">Sign in to track</p>
+          </div>
+        </div>
+
+        <p className="text-xs text-violet-300/70 mb-4">
+          Sign in to get <span className="text-emerald-400 font-semibold">50 free credits</span> and start creating videos.
+        </p>
+
+        <Button
+          onClick={() => navigate('/auth')}
+          className="w-full gap-1.5 h-9 text-xs bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white border-0"
+        >
+          <LogIn className="w-3.5 h-3.5" />
+          Sign In
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 rounded-xl bg-white/5 border border-white/10">
@@ -69,7 +103,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
               "h-full rounded-full transition-all",
               isLow ? "bg-red-500" : "bg-gradient-to-r from-violet-500 to-purple-500"
             )}
-            style={{ width: `${100 - usagePercentage}%` }}
+            style={{ width: `${Math.max(0, 100 - usagePercentage)}%` }}
           />
         </div>
       </div>
@@ -145,7 +179,7 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
 
       {/* Buy button */}
       <Button
-        onClick={onBuyCredits}
+        onClick={() => navigate('/profile')}
         className={cn(
           "w-full gap-1.5 h-9 text-xs border-0",
           !canAfford && requiredCredits > 0

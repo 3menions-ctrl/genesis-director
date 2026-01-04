@@ -209,30 +209,61 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   <Clock className="w-4 h-4 text-primary" />
                   Duration
                 </label>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-gradient">{data.targetDurationMinutes}</span>
-                  <span className="text-muted-foreground font-medium">min</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { seconds: 8, label: '8 sec', credits: 1000 },
+                  { seconds: 30, label: '30 sec', credits: 3500 },
+                  { seconds: 60, label: '1 min', credits: 7000 },
+                ].map((option) => {
+                  const isSelected = data.targetDurationMinutes === option.seconds / 60;
+                  return (
+                    <button
+                      key={option.seconds}
+                      onClick={() => updateData('targetDurationMinutes', option.seconds / 60)}
+                      className={cn(
+                        "relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02] group",
+                        isSelected
+                          ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg shadow-primary/20"
+                          : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+                      )}
+                    >
+                      <div className={cn(
+                        "text-2xl font-bold mb-1 transition-colors",
+                        isSelected ? "text-primary" : "text-foreground"
+                      )}>
+                        {option.label}
+                      </div>
+                      <div className={cn(
+                        "flex items-center justify-center gap-1.5 text-sm font-medium",
+                        isSelected ? "text-accent" : "text-muted-foreground"
+                      )}>
+                        <Zap className={cn("w-4 h-4", isSelected ? "text-warning" : "")} />
+                        <span className="font-bold">{option.credits.toLocaleString()}</span>
+                        <span>credits</span>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+                          <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-center p-3 rounded-xl bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10">
+                <div className="flex items-center gap-2 text-sm">
+                  <Zap className="w-4 h-4 text-warning" />
+                  <span className="text-muted-foreground">Estimated cost:</span>
+                  <span className="font-bold text-foreground">
+                    {(() => {
+                      const durationSeconds = data.targetDurationMinutes * 60;
+                      if (durationSeconds <= 8) return '1,000';
+                      if (durationSeconds <= 30) return '3,500';
+                      return '7,000';
+                    })()} credits
+                  </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 5, 8, 10].map((min) => (
-                  <button
-                    key={min}
-                    onClick={() => updateData('targetDurationMinutes', min)}
-                    className={cn(
-                      "flex-1 py-3.5 rounded-xl font-bold transition-all duration-200",
-                      data.targetDurationMinutes === min
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 scale-105"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    )}
-                  >
-                    {min}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span>📝 ~{data.targetDurationMinutes * 150} words</span>
-                <span>🎬 ~{Math.ceil(data.targetDurationMinutes * 7)} scenes</span>
               </div>
             </div>
           </div>

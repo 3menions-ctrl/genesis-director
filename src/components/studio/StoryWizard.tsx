@@ -281,51 +281,6 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   );
                 })}
               </div>
-              
-              {/* Affordability Summary */}
-              {(() => {
-                const selectedOption = DURATION_OPTIONS.find(o => o.seconds / 60 === data.targetDurationMinutes);
-                const requiredCredits = selectedOption?.credits || 0;
-                const canAfford = credits.remaining >= requiredCredits;
-                const creditsAfter = credits.remaining - requiredCredits;
-                
-                return (
-                  <div className={cn(
-                    "p-4 rounded-xl border transition-all",
-                    canAfford 
-                      ? "bg-muted border-border" 
-                      : "bg-destructive/10 border-destructive/30"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {canAfford ? (
-                          <Check className="w-5 h-5 text-foreground" />
-                        ) : (
-                          <AlertTriangle className="w-5 h-5 text-destructive" />
-                        )}
-                        <span className={cn(
-                          "font-medium",
-                          canAfford ? "text-foreground" : "text-destructive"
-                        )}>
-                          {canAfford ? 'You can afford this!' : 'Insufficient credits'}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-muted-foreground">After generation</div>
-                        <div className={cn(
-                          "font-bold",
-                          canAfford ? "text-foreground" : "text-destructive"
-                        )}>
-                          {canAfford 
-                            ? `${creditsAfter.toLocaleString()} credits left`
-                            : `Need ${(requiredCredits - credits.remaining).toLocaleString()} more`
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           </div>
         );

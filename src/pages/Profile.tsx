@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { 
   User, Coins, History, LogOut, Sparkles, 
   ArrowUpRight, ArrowDownRight, Gift, ShoppingCart,
-  Film, Clock, Crown, Zap, TrendingUp, 
+  Film, Clock, Zap, TrendingUp, 
   ChevronRight, Settings, Camera, Mail, Calendar,
   Video, Target, BarChart3, Timer, Flame,
   FolderOpen, CheckCircle2, Edit3, Play, Layers,
@@ -367,8 +367,10 @@ export default function Profile() {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : 'Recently';
 
-  const usagePercentage = profile?.total_credits_purchased 
-    ? Math.round((profile.total_credits_used / (profile.total_credits_purchased + 50)) * 100)
+  // Calculate usage percentage based on total available credits (purchased + bonus 50)
+  const totalAvailableCredits = (profile?.total_credits_purchased || 0) + 50; // 50 is welcome bonus
+  const usagePercentage = profile?.total_credits_used && totalAvailableCredits > 0
+    ? Math.min(100, Math.round((profile.total_credits_used / totalAvailableCredits) * 100))
     : 0;
 
   return (
@@ -418,10 +420,11 @@ export default function Profile() {
                   <h1 className="text-2xl lg:text-3xl font-display font-bold text-white">
                     {profile?.display_name || profile?.full_name || 'Creator'}
                   </h1>
-                  <div className="px-2.5 py-1 rounded-lg bg-amber-400/20 border border-amber-400/30 flex items-center gap-1.5">
-                    <Crown className="w-3.5 h-3.5 text-amber-300" />
-                    <span className="text-xs font-semibold text-amber-200">Pro</span>
-                  </div>
+                  {profile?.role && (
+                    <div className="px-2.5 py-1 rounded-lg bg-white/20 border border-white/30 flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-white/90">{profile.role}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-white/70 text-sm">
                   <span className="flex items-center gap-1.5">

@@ -65,7 +65,7 @@ function StudioSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { credits, buyCredits, activeProject, createProject } = useStudio();
+  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds } = useStudio();
   const isCollapsed = state === 'collapsed';
 
   // Check if we're in a project workflow
@@ -282,7 +282,11 @@ function StudioSidebar() {
       <SidebarFooter className="p-4">
         {!isCollapsed && (
           <div className="animate-fade-in-up delay-3">
-            <CreditsDisplay credits={credits} onBuyCredits={buyCredits} />
+            <CreditsDisplay 
+              credits={credits} 
+              onBuyCredits={buyCredits} 
+              selectedDurationSeconds={selectedDurationSeconds}
+            />
           </div>
         )}
       </SidebarFooter>

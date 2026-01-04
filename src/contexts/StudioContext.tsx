@@ -73,7 +73,9 @@ interface StudioContextType {
   settings: StudioSettings;
   isGenerating: boolean;
   generationProgress: GenerationProgress;
+  selectedDurationSeconds: number;
   setActiveProjectId: (id: string) => void;
+  setSelectedDurationSeconds: (seconds: number) => void;
   createProject: () => void;
   deleteProject: (id: string) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
@@ -91,6 +93,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [credits] = useState<UserCredits>(MOCK_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8); // Default to 8 seconds
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({
     step: 'idle',
     percent: 0,
@@ -324,7 +327,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         settings,
         isGenerating,
         generationProgress,
+        selectedDurationSeconds,
         setActiveProjectId,
+        setSelectedDurationSeconds,
         createProject,
         deleteProject,
         updateProject,

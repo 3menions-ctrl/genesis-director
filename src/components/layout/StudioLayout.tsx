@@ -55,10 +55,10 @@ const WORKFLOW_STEPS = [
 
 // Quick actions for header
 const QUICK_ACTIONS = [
-  { id: 'generate-video', label: 'Generate Video', icon: Video, shortcut: '⌘G', color: 'from-violet-500 to-purple-500' },
-  { id: 'generate-voice', label: 'AI Voice', icon: Mic, shortcut: '⌘V', color: 'from-blue-500 to-cyan-500' },
-  { id: 'generate-music', label: 'AI Music', icon: Music, shortcut: '⌘M', color: 'from-pink-500 to-rose-500' },
-  { id: 'generate-image', label: 'AI Image', icon: Image, shortcut: '⌘I', color: 'from-amber-500 to-orange-500' },
+  { id: 'generate-video', label: 'Generate Video', icon: Video, shortcut: '⌘G' },
+  { id: 'generate-voice', label: 'AI Voice', icon: Mic, shortcut: '⌘V' },
+  { id: 'generate-music', label: 'AI Music', icon: Music, shortcut: '⌘M' },
+  { id: 'generate-image', label: 'AI Image', icon: Sparkles, shortcut: '⌘I' },
 ];
 
 function StudioSidebar() {
@@ -84,22 +84,22 @@ function StudioSidebar() {
       collapsible="icon" 
       className="border-r border-white/10"
       style={{ 
-        background: 'linear-gradient(180deg, #0f0f0f 0%, #080808 50%, #0a0a0a 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 4px 0 24px rgba(0,0,0,0.3)'
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #050505 50%, #080808 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), inset 0 -1px 0 rgba(0,0,0,0.5), 4px 0 24px rgba(0,0,0,0.3)'
       }}
     >
       <SidebarHeader className="p-4 pb-6">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0 group">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
-            <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
-              <Film className="w-5 h-5 text-white" />
+            <div className="absolute inset-0 bg-white/20 rounded-xl blur-lg opacity-0 group-hover:opacity-60 transition-opacity" />
+            <div className="relative w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg">
+              <Film className="w-5 h-5 text-black" />
             </div>
           </div>
           {!isCollapsed && (
             <div className="animate-fade-in">
               <h1 className="text-lg font-display font-bold tracking-tight text-white">
-                Apex<span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent"> Studio</span>
+                Apex<span className="text-white/60"> Studio</span>
               </h1>
             </div>
           )}
@@ -124,16 +124,16 @@ function StudioSidebar() {
                     activeClassName=""
                   >
                     {isOnProjects && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/10 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
                     )}
                     <div className={cn(
                       "relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                      isOnProjects && "bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/30",
+                      isOnProjects && "bg-white shadow-lg shadow-white/20",
                       !isOnProjects && "bg-white/5 group-hover:bg-white/10 group-hover:scale-105"
                     )}>
                       <Folder className={cn(
                         "w-5 h-5 transition-all",
-                        isOnProjects ? "text-white" : "text-white/50 group-hover:text-white/80"
+                        isOnProjects ? "text-black" : "text-white/50 group-hover:text-white/80"
                       )} />
                     </div>
                     {!isCollapsed && (
@@ -153,7 +153,7 @@ function StudioSidebar() {
                 <SidebarMenuItem>
                   <Button
                     onClick={handleNewProject}
-                    className="w-full justify-center gap-2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded-xl transition-all"
+                    className="w-full justify-center gap-2 h-10 bg-white hover:bg-white/90 text-black border-0 rounded-xl transition-all"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="font-medium text-sm">New Clip</span>
@@ -200,21 +200,21 @@ function StudioSidebar() {
                             activeClassName=""
                           >
                             {isActive && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-cyan-500/10 to-transparent rounded-xl" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/5 to-transparent rounded-xl" />
                             )}
                             
                             <div className={cn(
                               "relative z-10 flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                              isActive && "bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-lg shadow-emerald-500/30",
-                              isPast && "bg-emerald-500/20 ring-2 ring-emerald-500/50",
+                              isActive && "bg-white shadow-lg shadow-white/20",
+                              isPast && "bg-white/20 ring-2 ring-white/30",
                               !isActive && !isPast && "bg-white/5 group-hover:bg-white/10"
                             )}>
                               {isPast ? (
-                                <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
                               ) : (
                                 <item.icon className={cn(
                                   "w-4 h-4 transition-all",
-                                  isActive && "text-white",
+                                  isActive && "text-black",
                                   !isActive && !isPast && "text-white/40 group-hover:text-white/70"
                                 )} />
                               )}
@@ -225,7 +225,7 @@ function StudioSidebar() {
                                 <span className={cn(
                                   "font-medium text-sm block",
                                   isActive && "text-white",
-                                  isPast && "text-emerald-400",
+                                  isPast && "text-white/70",
                                   !isActive && !isPast && "text-white/40 group-hover:text-white/70"
                                 )}>
                                   {item.title}
@@ -234,7 +234,7 @@ function StudioSidebar() {
                             )}
                             
                             {!isCollapsed && isActive && (
-                              <div className="relative z-10 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <div className="relative z-10 w-2 h-2 rounded-full bg-white animate-pulse" />
                             )}
                           </NavLink>
                         </SidebarMenuButton>
@@ -254,9 +254,9 @@ function StudioSidebar() {
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
-                  activeProject.status === 'completed' && "bg-emerald-400 shadow-lg shadow-emerald-500/50",
-                  activeProject.status === 'generating' && "bg-amber-400 animate-pulse shadow-lg shadow-amber-500/50",
-                  activeProject.status === 'rendering' && "bg-blue-400 animate-pulse shadow-lg shadow-blue-500/50",
+                  activeProject.status === 'completed' && "bg-white shadow-lg shadow-white/50",
+                  activeProject.status === 'generating' && "bg-white/70 animate-pulse shadow-lg shadow-white/30",
+                  activeProject.status === 'rendering' && "bg-white/60 animate-pulse shadow-lg shadow-white/20",
                   activeProject.status === 'idle' && "bg-white/30"
                 )} />
                 <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">
@@ -318,7 +318,7 @@ function UserMenu() {
       <Button 
         onClick={() => navigate('/auth')} 
         size="sm"
-        className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+        className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg bg-foreground hover:bg-foreground/90 text-background"
       >
         <User className="w-3.5 h-3.5" />
         Sign In
@@ -329,40 +329,40 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <Avatar className="h-7 w-7 ring-2 ring-gray-200">
+        <button className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-muted transition-colors">
+          <Avatar className="h-7 w-7 ring-2 ring-border">
             <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">
+            <AvatarFallback className="bg-foreground text-[10px] font-bold text-background">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
-          <ChevronRight className="w-3 h-3 rotate-90 text-gray-400 hidden sm:block" />
+          <ChevronRight className="w-3 h-3 rotate-90 text-muted-foreground hidden sm:block" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200 shadow-2xl p-1.5">
-        <div className="px-2 py-2 flex items-center gap-2.5 border-b border-gray-100 mb-1">
-          <Avatar className="h-9 w-9 ring-2 ring-gray-100">
+      <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-2xl p-1.5">
+        <div className="px-2 py-2 flex items-center gap-2.5 border-b border-border mb-1">
+          <Avatar className="h-9 w-9 ring-2 ring-border">
             <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-bold text-white">
+            <AvatarFallback className="bg-foreground text-xs font-bold text-background">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+            <p className="text-sm font-semibold text-foreground truncate">
               {profile?.display_name || 'Creator'}
             </p>
-            <p className="text-[11px] text-gray-500 truncate">{profile?.email}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{profile?.email}</p>
           </div>
         </div>
 
         {/* Credits display in menu */}
-        <div className="px-2 py-2 mb-1 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/50">
+        <div className="px-2 py-2 mb-1 rounded-lg bg-muted border border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700">Credits</span>
+              <Coins className="w-4 h-4 text-foreground" />
+              <span className="text-sm font-medium text-foreground">Credits</span>
             </div>
-            <span className="text-sm font-bold text-amber-700">
+            <span className="text-sm font-bold text-foreground">
               {profile?.credits_balance?.toLocaleString() || 0}
             </span>
           </div>
@@ -370,33 +370,33 @@ function UserMenu() {
         
         <DropdownMenuItem 
           onClick={handleProfile}
-          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted"
         >
-          <User className="w-4 h-4 text-gray-400" />
+          <User className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm">Profile & Credits</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-          <Settings className="w-4 h-4 text-gray-400" />
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted">
+          <Settings className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm">Settings</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-          <Keyboard className="w-4 h-4 text-gray-400" />
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted">
+          <Keyboard className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm">Shortcuts</span>
-          <kbd className="ml-auto text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">?</kbd>
+          <kbd className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">?</kbd>
         </DropdownMenuItem>
         
-        <DropdownMenuSeparator className="bg-gray-100 my-1" />
+        <DropdownMenuSeparator className="bg-border my-1" />
         
-        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-          <HelpCircle className="w-4 h-4 text-gray-400" />
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted">
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm">Help & Support</span>
         </DropdownMenuItem>
         
-        <DropdownMenuSeparator className="bg-gray-100 my-1" />
+        <DropdownMenuSeparator className="bg-border my-1" />
         
         <DropdownMenuItem 
           onClick={handleSignOut}
-          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-destructive hover:bg-destructive/10"
         >
           <LogOut className="w-4 h-4" />
           <span className="text-sm">Sign out</span>
@@ -453,7 +453,7 @@ function StudioHeader() {
                 disabled={!isClickable}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
-                  isActive && "bg-primary text-primary-foreground shadow-sm",
+                  isActive && "bg-foreground text-background shadow-sm",
                   !isActive && isPast && "text-foreground/70 hover:bg-muted",
                   !isActive && !isPast && "text-muted-foreground",
                   isClickable && !isActive && "hover:text-foreground cursor-pointer",
@@ -461,7 +461,7 @@ function StudioHeader() {
                 )}
               >
                 {isPast && !isActive ? (
-                  <Check className="w-3 h-3 text-success" />
+                  <Check className="w-3 h-3 text-foreground" />
                 ) : (
                   <step.icon className="w-3 h-3" />
                 )}
@@ -476,19 +476,19 @@ function StudioHeader() {
       <div className="flex items-center gap-2 flex-shrink-0">
         {/* Generation Progress */}
         {isGenerating && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-xs font-medium text-primary">{generationProgress.percent}%</span>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground/10 border border-foreground/20">
+            <div className="w-2 h-2 rounded-full bg-foreground animate-pulse" />
+            <span className="text-xs font-medium text-foreground">{generationProgress.percent}%</span>
           </div>
         )}
 
         {/* Credits */}
         <button 
           onClick={() => navigate('/profile')}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-warning/10 border border-warning/20 hover:bg-warning/15 transition-colors"
+          className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-muted border border-border hover:bg-muted/80 transition-colors"
         >
-          <Coins className="w-3.5 h-3.5 text-warning" />
-          <span className="text-xs font-bold text-warning">
+          <Coins className="w-3.5 h-3.5 text-foreground" />
+          <span className="text-xs font-bold text-foreground">
             {credits.remaining.toLocaleString()}
           </span>
         </button>
@@ -506,9 +506,9 @@ export function StudioLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full">
         {/* Background gradients - fixed position */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 via-transparent to-purple-50/30" />
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-violet-100/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-purple-100/30 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
+          <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-foreground/[0.02]" />
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-foreground/[0.03] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-foreground/[0.02] to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
         </div>
 
         {/* Sidebar - uses SidebarInset pattern for proper spacing */}

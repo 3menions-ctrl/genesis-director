@@ -82,8 +82,40 @@ function buildSceneConsistencyPrompt(script: string, project: Project): string {
   return `${environment}, ${lighting}, shot on ARRI Alexa, anamorphic lens, 2.39:1 aspect ratio feel`;
 }
 
-// Helper function to build cinematic clip prompts with seamless transitions
-function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: number, totalClips: number): string {
+// Extract key visual elements for scene consistency
+function extractSceneElements(fullScript: string): string {
+  const lower = fullScript.toLowerCase();
+  const elements: string[] = [];
+  
+  // Extract setting/location
+  const locationPatterns = ['forest', 'city', 'beach', 'mountain', 'office', 'house', 'street', 'room', 'space', 'desert'];
+  locationPatterns.forEach(loc => {
+    if (lower.includes(loc)) elements.push(loc);
+  });
+  
+  // Extract time of day
+  if (lower.includes('night')) elements.push('nighttime');
+  else if (lower.includes('dawn') || lower.includes('sunrise')) elements.push('dawn lighting');
+  else if (lower.includes('dusk') || lower.includes('sunset')) elements.push('golden hour');
+  else if (lower.includes('day') || lower.includes('morning')) elements.push('daylight');
+  
+  // Extract weather/atmosphere
+  const weatherPatterns = ['rain', 'snow', 'fog', 'storm', 'sunny', 'cloudy'];
+  weatherPatterns.forEach(w => {
+    if (lower.includes(w)) elements.push(w);
+  });
+  
+  return elements.length > 0 ? elements.slice(0, 4).join(', ') : 'consistent environment';
+}
+
+// Helper function to build cinematic clip prompts with seamless transitions and scene consistency
+function buildClipPrompt(
+  clipText: string, 
+  sceneDescription: string, 
+  clipIndex: number, 
+  totalClips: number,
+  fullScript?: string
+): string {
   const contentType = detectContentType(clipText);
   
   // Select camera movement for this clip - creates visual variety while maintaining consistency
@@ -92,18 +124,31 @@ function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: 
   // Select color grade - same throughout for consistency
   const colorGrade = COLOR_GRADES[Math.floor(totalClips / 2) % COLOR_GRADES.length];
   
+  // Extract consistent scene elements from full script
+  const sceneConsistency = fullScript ? extractSceneElements(fullScript) : 'maintain visual continuity';
+  
   // Build transition hints for seamless flow
   let transitionHint = '';
   if (clipIndex === 0) {
-    transitionHint = 'fade in from black, establishing shot';
+    transitionHint = 'fade in from black, establishing shot, set the visual tone';
   } else if (clipIndex === totalClips - 1) {
-    transitionHint = 'conclusive framing, lingering final moment';
+    transitionHint = 'seamless continuation from previous, conclusive framing, lingering final moment';
   } else {
-    transitionHint = 'continuous flow from previous scene';
+    transitionHint = 'seamless continuation, match previous scene lighting and color, continuous motion flow';
   }
   
-  // Extract key visual elements from clip text (max 300 chars to leave room)
-  const visualContent = clipText.slice(0, 300);
+  // Scene continuity instructions
+  const continuityInstructions = [
+    'maintain exact same visual style throughout',
+    'consistent lighting direction and intensity',
+    'same color temperature and grading',
+    'matching environment and atmosphere',
+    'smooth motion that flows naturally',
+    sceneConsistency
+  ].join(', ');
+  
+  // Extract key visual elements from clip text (reduced to 250 chars to fit more instructions)
+  const visualContent = clipText.slice(0, 250);
   
   // Detect if sci-fi to allow physics-bending
   const isSciFi = detectContentType(clipText) === 'scifi';
@@ -113,15 +158,16 @@ function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: 
     ? 'stylized sci-fi physics allowed, futuristic technology' 
     : 'strict real-world physics, natural gravity and motion, realistic weight and momentum, authentic material behavior, no impossible movements, believable human anatomy and motion';
   
-  // Build the cinematic prompt
+  // Build the cinematic prompt with strong continuity emphasis
   const prompt = [
     `Cinematic ${cameraMove}`,
     visualContent,
     sceneDescription,
     colorGrade,
     transitionHint,
+    continuityInstructions,
     physicsConstraints,
-    'photorealistic, 8K quality, film grain, shallow depth of field, professional cinematography',
+    'photorealistic, 8K quality, film grain, shallow depth of field, professional cinematography, seamless scene matching'
   ].join('. ');
   
   // Runway has 1000 char limit
@@ -490,8 +536,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           totalClips: numClips
         });
 
-        // Create extensive prompt with scene/character consistency
-        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips);
+        // Create extensive prompt with scene/character consistency and full script context
+        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script);
         
         // Start video generation
         const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {

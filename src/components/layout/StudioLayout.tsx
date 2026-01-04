@@ -583,18 +583,21 @@ function StudioHeader() {
 export function StudioLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full relative">
-        <div className="fixed inset-0 pointer-events-none z-0">
+      <div className="min-h-screen flex w-full">
+        {/* Background gradients - fixed position */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 via-transparent to-purple-50/30" />
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-radial from-violet-100/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-radial from-purple-100/30 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
         </div>
 
+        {/* Sidebar - uses SidebarInset pattern for proper spacing */}
         <StudioSidebar />
 
-        <div className="flex-1 flex flex-col min-h-screen relative z-10">
+        {/* Main content area - flex-1 ensures it takes remaining space */}
+        <div className="flex-1 flex flex-col min-h-screen min-w-0 relative z-10">
           <StudioHeader />
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto relative">
             {children}
           </main>
         </div>

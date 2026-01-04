@@ -129,11 +129,10 @@ export default function Projects() {
             {/* Create Button */}
             <Button 
               onClick={handleCreateProject}
-              size="lg"
-              className="gap-2.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5"
+              size="icon"
+              className="h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
             >
               <Plus className="w-5 h-5" />
-              New Project
             </Button>
           </div>
 
@@ -209,16 +208,13 @@ export default function Projects() {
               Transform your ideas into stunning AI-powered videos in just a few clicks
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                onClick={handleCreateProject}
-                size="lg"
-                className="gap-2.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
-              >
-                <Wand2 className="w-5 h-5" />
-                Create Your First Video
-              </Button>
-            </div>
+            <Button 
+              onClick={handleCreateProject}
+              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-xl"
+            >
+              <Plus className="w-4 h-4" />
+              Create
+            </Button>
 
             {/* Feature highlights */}
             <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
@@ -451,20 +447,14 @@ export default function Projects() {
                 "group rounded-2xl border-2 border-dashed transition-all duration-300",
                 "border-border hover:border-primary/50",
                 "bg-transparent hover:bg-primary/5",
-                "flex flex-col items-center justify-center p-8 min-h-[280px]",
+                "flex flex-col items-center justify-center min-h-[280px]",
                 "animate-fade-in"
               )}
               style={{ animationDelay: `${projects.length * 60}ms` }}
             >
-              <div className="w-14 h-14 rounded-2xl bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-all duration-300 mb-4 group-hover:scale-110">
-                <Plus className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="w-12 h-12 rounded-xl bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
-              <p className="font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                Create New Project
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Start from scratch
-              </p>
             </button>
           </div>
         )}

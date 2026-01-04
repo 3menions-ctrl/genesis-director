@@ -191,13 +191,13 @@ export default function Create() {
         {/* Animated background elements */}
         <div className="absolute inset-0 -z-10">
           {/* Main glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-r from-primary/20 via-accent/15 to-primary/20 blur-3xl animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-foreground/5 blur-3xl animate-pulse" />
           
           {/* Floating orbs */}
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-4 h-4 rounded-full bg-primary/30 animate-float"
+              className="absolute w-4 h-4 rounded-full bg-foreground/10 animate-float"
               style={{
                 left: `${15 + i * 15}%`,
                 top: `${20 + (i % 3) * 25}%`,
@@ -211,7 +211,7 @@ export default function Create() {
           {[...Array(8)].map((_, i) => (
             <Star
               key={`star-${i}`}
-              className="absolute w-3 h-3 text-warning/40 animate-pulse"
+              className="absolute w-3 h-3 text-foreground/20 animate-pulse"
               style={{
                 left: `${10 + i * 12}%`,
                 top: `${15 + (i % 4) * 20}%`,
@@ -227,23 +227,23 @@ export default function Create() {
             {/* Animated icon stack */}
             <div className="relative w-28 h-28 mx-auto mb-8">
               {/* Outer ring */}
-              <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-spin-slow" />
-              <div className="absolute inset-2 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }} />
+              <div className="absolute inset-0 rounded-full border-4 border-foreground/10 animate-spin-slow" />
+              <div className="absolute inset-2 rounded-full border-2 border-dashed border-foreground/20 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }} />
               
               {/* Center icon */}
-              <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
-                <Wand2 className="w-10 h-10 text-primary-foreground animate-pulse" />
+              <div className="absolute inset-4 rounded-full bg-foreground flex items-center justify-center shadow-lg shadow-foreground/20">
+                <Wand2 className="w-10 h-10 text-background animate-pulse" />
               </div>
               
               {/* Orbiting icons */}
               <div className="absolute inset-0 animate-spin" style={{ animationDuration: '6s' }}>
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
-                  <Sparkles className="w-4 h-4 text-warning" />
+                  <Sparkles className="w-4 h-4 text-foreground" />
                 </div>
               </div>
               <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}>
                 <div className="absolute top-1/2 -right-2 -translate-y-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
-                  <Clapperboard className="w-4 h-4 text-primary" />
+                  <Clapperboard className="w-4 h-4 text-foreground" />
                 </div>
               </div>
             </div>
@@ -264,11 +264,8 @@ export default function Create() {
             <div className="space-y-4 mb-8">
               <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
                 <div 
-                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
-                  style={{ 
-                    width: `${progress}%`,
-                    background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))',
-                  }}
+                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out bg-foreground"
+                  style={{ width: `${progress}%` }}
                 />
                 {/* Shimmer effect */}
                 <div 
@@ -283,10 +280,10 @@ export default function Create() {
               
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <Loader2 className="w-4 h-4 animate-spin text-foreground" />
                   <span className="text-muted-foreground">{progressMessage}</span>
                 </div>
-                <span className="font-mono font-bold text-primary">{Math.round(progress)}%</span>
+                <span className="font-mono font-bold text-foreground">{Math.round(progress)}%</span>
               </div>
             </div>
 
@@ -297,10 +294,10 @@ export default function Create() {
                   <div className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium">
                     {GENRE_OPTIONS.find(g => g.value === storyData.genre)?.emoji} {storyData.title}
                   </div>
-                  <div className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                  <div className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium">
                     {storyData.targetDurationMinutes} min
                   </div>
-                  <div className="px-3 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-medium">
+                  <div className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium">
                     {storyData.characters.filter(c => c.name).length} characters
                   </div>
                 </>

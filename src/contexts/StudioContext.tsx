@@ -302,23 +302,36 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const script = activeProject.script_content;
     const projectId = activeProjectId!;
     const includeNarration = activeProject.include_narration !== false;
-    const targetDuration = activeProject.target_duration_minutes || 1;
     
-    // Calculate number of 8-second clips needed (target is in minutes)
-    const targetSeconds = targetDuration * 60;
+    // Calculate clips based on script word count (avg speaking rate: 150 words/min)
+    const words = script.split(/\s+/).filter(w => w.trim());
+    const wordCount = words.length;
+    const estimatedNarrationSeconds = Math.ceil((wordCount / 150) * 60);
+    
+    // Use the longer of: estimated narration time or target duration
+    const targetDuration = activeProject.target_duration_minutes || 1;
+    const targetSeconds = Math.max(estimatedNarrationSeconds, targetDuration * 60);
+    
     const clipDuration = 8;
     const numClips = Math.max(1, Math.ceil(targetSeconds / clipDuration));
+    const wordsPerClip = Math.ceil(wordCount / numClips);
     
-    // Split script into segments for each clip
-    const words = script.split(/\s+/);
-    const wordsPerClip = Math.ceil(words.length / numClips);
+    // More accurate time estimates: ~90-180 seconds per clip for Runway
+    const estimatedSecondsPerClip = 120; // 2 minutes avg per clip
+    const voiceGenerationTime = includeNarration ? 30 : 0;
+    const totalEstimatedSeconds = voiceGenerationTime + (numClips * estimatedSecondsPerClip);
+    let generationStartTime = Date.now();
 
     try {
       await updateProject(projectId, { status: 'generating' as ProjectStatus, video_clips: [] });
       
       // Step 1: Generate Voice Narration (if enabled)
       if (includeNarration) {
-        setGenerationProgress({ step: 'voice', percent: 5, estimatedSecondsRemaining: 120 + numClips * 60 });
+        setGenerationProgress({ 
+          step: 'voice', 
+          percent: 5, 
+          estimatedSecondsRemaining: totalEstimatedSeconds 
+        });
         toast.info('Generating AI narration with ElevenLabs...');
         
         const voiceResponse = await fetch(
@@ -350,11 +363,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const baseProgress = includeNarration ? 15 : 5;
       const progressPerClip = (85 - baseProgress) / numClips;
       
-      toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)...`);
+      toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each) - Est. ${Math.ceil(numClips * estimatedSecondsPerClip / 60)} min`);
       await updateProject(projectId, { status: 'rendering' as ProjectStatus });
 
       // Build comprehensive scene consistency description from script
       const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
+      
+      // Track actual generation times for better estimates
+      let clipTimesMs: number[] = [];
 
       for (let i = 0; i < numClips; i++) {
         // Check for cancellation
@@ -362,14 +378,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           throw new Error('Generation cancelled');
         }
         
+        const clipStartTime = Date.now();
         const clipStartWord = i * wordsPerClip;
         const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
         const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
         
+        // Calculate remaining time based on actual clip times or estimates
+        const avgClipTime = clipTimesMs.length > 0 
+          ? clipTimesMs.reduce((a, b) => a + b, 0) / clipTimesMs.length / 1000
+          : estimatedSecondsPerClip;
+        const remainingClips = numClips - i;
+        const estimatedRemaining = Math.round(remainingClips * avgClipTime);
+        
         setGenerationProgress({ 
           step: 'video', 
           percent: Math.round(baseProgress + i * progressPerClip), 
-          estimatedSecondsRemaining: (numClips - i) * 60,
+          estimatedSecondsRemaining: estimatedRemaining,
           currentClip: i + 1,
           totalClips: numClips
         });
@@ -403,11 +427,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           await new Promise(resolve => setTimeout(resolve, 5000));
           pollAttempts++;
           
+          // Calculate time estimates based on actual elapsed time and averages
+          const elapsedClipTime = (Date.now() - clipStartTime) / 1000;
+          const avgClipTime = clipTimesMs.length > 0 
+            ? clipTimesMs.reduce((a, b) => a + b, 0) / clipTimesMs.length / 1000
+            : estimatedSecondsPerClip;
+          const remainingClips = numClips - i - 1;
+          const estimatedRemainingForCurrentClip = Math.max(0, avgClipTime - elapsedClipTime);
+          const estimatedRemaining = Math.round(estimatedRemainingForCurrentClip + remainingClips * avgClipTime);
+          
           const pollProgress = baseProgress + i * progressPerClip + (progressPerClip * 0.8 * pollAttempts / maxPolls);
           setGenerationProgress({ 
             step: 'polling', 
             percent: Math.round(pollProgress), 
-            estimatedSecondsRemaining: Math.max(10, (numClips - i) * 60 - pollAttempts * 5),
+            estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
             currentClip: i + 1,
             totalClips: numClips
           });
@@ -424,6 +457,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
             clipUrl = statusData.videoUrl;
             completedClips.push(clipUrl);
+            // Track actual clip generation time
+            clipTimesMs.push(Date.now() - clipStartTime);
             // Save to database after each clip completes
             await updateProject(projectId, { video_clips: [...completedClips] });
             toast.success(`Clip ${i + 1}/${numClips} complete!`);

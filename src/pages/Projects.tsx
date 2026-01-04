@@ -168,7 +168,14 @@ export default function Projects() {
               >
                 {/* Thumbnail */}
                 <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 rounded-t-2xl">
-                  {hasVideo && videoClips[0] ? (
+                  {/* Priority: thumbnail_url > video preview > placeholder */}
+                  {project.thumbnail_url ? (
+                    <img
+                      src={project.thumbnail_url}
+                      alt={project.name}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : hasVideo && videoClips[0] ? (
                     // Video preview thumbnail
                     <video
                       src={videoClips[0]}
@@ -183,19 +190,25 @@ export default function Projects() {
                       }}
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className={cn(
-                        "w-14 h-14 rounded-xl flex items-center justify-center transition-all",
-                        project.status === 'generating' || project.status === 'rendering'
-                          ? "bg-violet-100"
-                          : "bg-gray-200/80 group-hover:bg-violet-100"
-                      )}>
-                        {project.status === 'generating' || project.status === 'rendering' ? (
-                          <div className="w-6 h-6 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
-                        ) : (
-                          <Film className="w-6 h-6 text-gray-400 group-hover:text-violet-600 transition-colors" />
-                        )}
+                    // Placeholder with gradient background
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className={cn(
+                          "w-14 h-14 rounded-xl flex items-center justify-center transition-all backdrop-blur-sm",
+                          project.status === 'generating' || project.status === 'rendering'
+                            ? "bg-white/80"
+                            : "bg-white/60 group-hover:bg-white/80"
+                        )}>
+                          {project.status === 'generating' || project.status === 'rendering' ? (
+                            <div className="w-6 h-6 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+                          ) : (
+                            <Film className="w-6 h-6 text-violet-400 group-hover:text-violet-600 transition-colors" />
+                          )}
+                        </div>
                       </div>
+                      {/* Decorative elements */}
+                      <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-violet-200/30 blur-xl" />
+                      <div className="absolute bottom-4 right-4 w-20 h-20 rounded-full bg-purple-200/30 blur-xl" />
                     </div>
                   )}
 

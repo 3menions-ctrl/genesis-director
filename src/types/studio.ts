@@ -27,6 +27,7 @@ export interface Project {
   video_clips?: string[];
   include_narration?: boolean;
   target_duration_minutes?: number;
+  thumbnail_url?: string;
 }
 
 export interface AssetLayer {

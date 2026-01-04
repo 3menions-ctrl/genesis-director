@@ -419,7 +419,7 @@ function StudioHeader() {
   return (
     <header className="h-12 px-4 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
       {/* Left Section - Sidebar trigger + Breadcrumb */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-shrink-0">
         <SidebarTrigger className="hover:bg-muted rounded-lg h-8 w-8 text-muted-foreground hover:text-foreground transition-colors" />
         
         {/* Breadcrumb navigation */}
@@ -442,7 +442,7 @@ function StudioHeader() {
       </div>
 
       {/* Center Section - Workflow Steps */}
-      <div className="absolute left-1/2 -translate-x-1/2">
+      <div className="flex-1 flex justify-center min-w-0 px-4">
         <div className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50">
           {WORKFLOW_STEPS.map((step, index) => {
             const isActive = location.pathname === step.url;
@@ -476,7 +476,7 @@ function StudioHeader() {
       </div>
 
       {/* Right Section - Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Generation Progress */}
         {isGenerating && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">

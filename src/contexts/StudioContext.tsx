@@ -325,6 +325,7 @@ interface StudioContextType {
   projects: Project[];
   activeProjectId: string | null;
   activeProject: Project | null;
+  activeGenerationProjectId: string | null; // Track which project is currently generating
   credits: UserCredits;
   layers: AssetLayer[];
   settings: StudioSettings;
@@ -383,6 +384,49 @@ function mapDbProject(dbProject: any): Project {
   };
 }
 
+// Generation state key for localStorage
+const GENERATION_STATE_KEY = 'aifilmstudio_active_generation';
+
+interface ActiveGenerationState {
+  projectId: string;
+  projectName: string;
+  startedAt: number;
+  step: 'voice' | 'video' | 'polling';
+  totalClips: number;
+  completedClips: number;
+  clipDuration: number;
+  creditsDeducted: number;
+}
+
+// Save generation state to localStorage
+function saveGenerationState(state: ActiveGenerationState | null) {
+  if (state) {
+    localStorage.setItem(GENERATION_STATE_KEY, JSON.stringify(state));
+  } else {
+    localStorage.removeItem(GENERATION_STATE_KEY);
+  }
+}
+
+// Load generation state from localStorage
+function loadGenerationState(): ActiveGenerationState | null {
+  try {
+    const saved = localStorage.getItem(GENERATION_STATE_KEY);
+    if (saved) {
+      const state = JSON.parse(saved) as ActiveGenerationState;
+      // Check if generation is stale (more than 30 minutes old)
+      const staleThreshold = 30 * 60 * 1000; // 30 minutes
+      if (Date.now() - state.startedAt > staleThreshold) {
+        localStorage.removeItem(GENERATION_STATE_KEY);
+        return null;
+      }
+      return state;
+    }
+  } catch {
+    localStorage.removeItem(GENERATION_STATE_KEY);
+  }
+  return null;
+}
+
 export function StudioProvider({ children }: { children: ReactNode }) {
   const { user, profile, refreshProfile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -392,6 +436,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8);
+  const [activeGenerationProjectId, setActiveGenerationProjectId] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({
     step: 'idle',
     percent: 0,
@@ -414,6 +459,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
+  
+  // Check for active generation on mount and restore state
+  useEffect(() => {
+    const savedState = loadGenerationState();
+    if (savedState) {
+      setActiveGenerationProjectId(savedState.projectId);
+      setIsGenerating(true);
+      setGenerationProgress({
+        step: savedState.step,
+        percent: Math.round((savedState.completedClips / savedState.totalClips) * 85),
+        estimatedSecondsRemaining: (savedState.totalClips - savedState.completedClips) * 90,
+        currentClip: savedState.completedClips,
+        totalClips: savedState.totalClips,
+      });
+      toast.info(`Generation in progress for "${savedState.projectName}"`, {
+        description: `${savedState.completedClips}/${savedState.totalClips} clips completed`,
+        duration: 5000,
+      });
+    }
+  }, []);
 
   // Load projects from database on mount
   const refreshProjects = async () => {
@@ -543,17 +608,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
-  // Cancel generation
+  // Cancel generation - credits are NOT refunded
   const cancelGeneration = async () => {
     cancelRef.current = true;
     setIsGenerating(false);
+    setActiveGenerationProjectId(null);
+    saveGenerationState(null); // Clear persisted state
     setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
     
     if (activeProjectId) {
       await updateProject(activeProjectId, { status: 'idle' as ProjectStatus });
     }
     
-    toast.info('Video generation cancelled');
+    toast.info('Video generation cancelled. Credits were already deducted and cannot be refunded.');
   };
 
   const pollingRef = useRef<number | null>(null);
@@ -571,10 +638,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Check if another project is already generating
+    if (activeGenerationProjectId && activeGenerationProjectId !== activeProjectId) {
+      const generatingProject = projects.find(p => p.id === activeGenerationProjectId);
+      toast.error(`Another project is currently generating`, {
+        description: `"${generatingProject?.name || 'Unknown'}" is in progress. Wait for it to complete or cancel it first.`,
+        duration: 5000,
+      });
+      return;
+    }
+
+    // Check if this project is already generating
+    if (isGenerating && activeGenerationProjectId === activeProjectId) {
+      toast.info('Generation already in progress for this project');
+      return;
+    }
+
     cancelRef.current = false; // Reset cancel flag
-    setIsGenerating(true);
     const script = activeProject.script_content;
     const projectId = activeProjectId!;
+    const projectName = activeProject.name;
     const includeNarration = activeProject.include_narration !== false;
     
     // Check if we have extracted scenes to use for generation
@@ -588,7 +671,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (hasScenes) {
       // Use scenes for generation - each scene becomes a clip
       numClips = settings.scenes.length;
-      toast.info(`Using ${numClips} extracted scenes for video generation`);
     } else {
       // Fall back to word-based splitting
       const words = script.split(/\s+/).filter(w => w.trim());
@@ -597,6 +679,60 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const targetDuration = activeProject.target_duration_minutes || 1;
       const targetSeconds = Math.max(estimatedNarrationSeconds, targetDuration * 60);
       numClips = Math.max(1, Math.ceil(targetSeconds / clipDuration));
+    }
+
+    // Calculate credits cost upfront
+    const creditsCost = numClips * clipDuration * 10; // 10 credits per second
+    
+    // Check if user can afford this generation
+    if (credits.remaining < creditsCost) {
+      toast.error('Insufficient credits', {
+        description: `This generation requires ${creditsCost} credits, but you only have ${credits.remaining}.`,
+        duration: 5000,
+      });
+      return;
+    }
+
+    // Deduct credits UPFRONT - no refunds on cancel
+    if (user) {
+      const { error: deductError } = await supabase.rpc('deduct_credits', {
+        p_user_id: user.id,
+        p_amount: creditsCost,
+        p_description: `Video generation: ${numClips} clips × ${clipDuration}s`,
+        p_project_id: projectId,
+        p_clip_duration: clipDuration,
+      });
+
+      if (deductError) {
+        console.error('Failed to deduct credits:', deductError);
+        toast.error('Failed to deduct credits. Please try again.');
+        return;
+      }
+
+      // Refresh credits to update UI
+      await refreshProfile();
+      toast.info(`${creditsCost} credits deducted for this generation`);
+    }
+
+    // Now start generation
+    setIsGenerating(true);
+    setActiveGenerationProjectId(projectId);
+    
+    // Save generation state for persistence
+    const generationState: ActiveGenerationState = {
+      projectId,
+      projectName,
+      startedAt: Date.now(),
+      step: 'voice',
+      totalClips: numClips,
+      completedClips: 0,
+      clipDuration,
+      creditsDeducted: creditsCost,
+    };
+    saveGenerationState(generationState);
+    
+    if (hasScenes) {
+      toast.info(`Using ${numClips} extracted scenes for video generation`);
     }
     
     const words = script.split(/\s+/).filter(w => w.trim());
@@ -785,6 +921,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
                     totalClips: numClips
                   });
                   
+                  // Update persisted generation state
+                  saveGenerationState({
+                    projectId,
+                    projectName,
+                    startedAt: generationStartTime,
+                    step: 'polling',
+                    totalClips: numClips,
+                    completedClips: completedCount,
+                    clipDuration,
+                    creditsDeducted: creditsCost,
+                  });
+                  
                   toast.success(`Clip ${clip.index + 1}/${numClips}${clip.sceneTitle ? ` "${clip.sceneTitle}"` : ''} complete!`);
                   return { index: clip.index, clipUrl };
                 } else if (statusData?.status === 'FAILED') {
@@ -856,6 +1004,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         credits_used: numClips * clipDuration * 10,
       });
       
+      // Clear persisted generation state on success
+      saveGenerationState(null);
+      setActiveGenerationProjectId(null);
       setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
       setIsGenerating(false);
       toast.success(`All ${numClips} clips generated! Total: ${numClips * clipDuration}s`);
@@ -889,7 +1040,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Generation error:', error);
       const message = error instanceof Error ? error.message : 'Generation failed';
-      toast.error(message);
+      
+      // Clear generation state on error (but credits are already deducted)
+      saveGenerationState(null);
+      setActiveGenerationProjectId(null);
+      
+      toast.error(message, {
+        description: 'Credits were already deducted and cannot be refunded.',
+      });
       await updateProject(projectId, { status: 'idle' as ProjectStatus });
       setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
       setIsGenerating(false);
@@ -972,6 +1130,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         projects,
         activeProjectId,
         activeProject,
+        activeGenerationProjectId,
         credits,
         layers,
         settings,

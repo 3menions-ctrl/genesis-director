@@ -98,7 +98,7 @@ export default function Projects() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto pt-4">
       {/* Header */}
       <div className="mb-10 animate-fade-in-up">
         <div className="flex items-start justify-between gap-6">

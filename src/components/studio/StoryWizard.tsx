@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,13 +17,12 @@ import {
   Check,
   Mic,
   Video,
-  Wand2,
   Clock,
-  Star,
   Zap,
   Crown,
   Coins,
-  AlertTriangle
+  Settings2,
+  ChevronRight
 } from 'lucide-react';
 import {
   StoryWizardData,
@@ -37,11 +36,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useStudio } from '@/contexts/StudioContext';
 
-// Duration options with credit costs
 const DURATION_OPTIONS = [
-  { seconds: 8, label: '8 sec', credits: 1000 },
-  { seconds: 30, label: '30 sec', credits: 3500 },
-  { seconds: 60, label: '1 min', credits: 7000 },
+  { seconds: 8, label: '8s', credits: 1000 },
+  { seconds: 30, label: '30s', credits: 3500 },
+  { seconds: 60, label: '1m', credits: 7000 },
 ] as const;
 
 interface StoryWizardProps {
@@ -50,13 +48,13 @@ interface StoryWizardProps {
   initialData?: Partial<StoryWizardData>;
 }
 
-const WIZARD_STEPS = [
-  { id: 'basics', title: 'Story Basics', subtitle: 'Title, genre & duration', icon: Film, color: 'from-violet-500 to-purple-500' },
-  { id: 'setting', title: 'World Building', subtitle: 'Setting & time period', icon: MapPin, color: 'from-blue-500 to-cyan-500' },
-  { id: 'characters', title: 'Characters', subtitle: 'Build your cast', icon: Users, color: 'from-amber-500 to-orange-500' },
-  { id: 'structure', title: 'Structure', subtitle: 'Narrative format', icon: BookOpen, color: 'from-emerald-500 to-teal-500' },
-  { id: 'style', title: 'Style', subtitle: 'Mood & presentation', icon: Palette, color: 'from-pink-500 to-rose-500' },
-  { id: 'review', title: 'Review', subtitle: 'Launch!', icon: Sparkles, color: 'from-primary to-accent' },
+const STEPS = [
+  { id: 'basics', label: 'Basics', icon: Film },
+  { id: 'world', label: 'World', icon: MapPin },
+  { id: 'cast', label: 'Cast', icon: Users },
+  { id: 'structure', label: 'Structure', icon: BookOpen },
+  { id: 'style', label: 'Style', icon: Palette },
+  { id: 'review', label: 'Review', icon: Sparkles },
 ];
 
 const DEFAULT_CHARACTER: CharacterInput = {
@@ -69,12 +67,11 @@ const DEFAULT_CHARACTER: CharacterInput = {
 export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardProps) {
   const { credits, setSelectedDurationSeconds } = useStudio();
   const [currentStep, setCurrentStep] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [data, setData] = useState<StoryWizardData>({
     title: initialData?.title || '',
     genre: initialData?.genre || 'drama',
     storyStructure: initialData?.storyStructure || 'three_act',
-    targetDurationMinutes: initialData?.targetDurationMinutes || 8 / 60, // Default to 8 seconds
+    targetDurationMinutes: initialData?.targetDurationMinutes || 8 / 60,
     setting: initialData?.setting || '',
     timePeriod: initialData?.timePeriod || 'Present Day',
     mood: initialData?.mood || 'Epic & Grand',
@@ -86,13 +83,9 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
     includeNarration: initialData?.includeNarration ?? true,
   });
 
-  // Sync selected duration to context for sidebar display
-  const currentDurationSeconds = Math.round(data.targetDurationMinutes * 60);
-  
   const updateData = <K extends keyof StoryWizardData>(key: K, value: StoryWizardData[K]) => {
     setData(prev => {
       const newData = { ...prev, [key]: value };
-      // If duration changed, update the context
       if (key === 'targetDurationMinutes') {
         setSelectedDurationSeconds(Math.round((value as number) * 60));
       }
@@ -128,20 +121,13 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
       case 0: return data.title.trim().length > 0;
       case 1: return data.setting.trim().length > 0;
       case 2: return data.characters.length > 0 && data.characters[0].name.trim().length > 0;
-      case 3: return true;
-      case 4: return true;
-      case 5: return true;
       default: return true;
     }
   };
 
   const handleNext = () => {
-    if (currentStep < WIZARD_STEPS.length - 1) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-        setIsTransitioning(false);
-      }, 150);
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
     } else {
       onComplete(data);
     }
@@ -149,705 +135,463 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
 
   const handleBack = () => {
     if (currentStep > 0) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentStep(prev => prev - 1);
-        setIsTransitioning(false);
-      }, 150);
+      setCurrentStep(prev => prev - 1);
     } else {
       onCancel();
     }
   };
 
   const goToStep = (index: number) => {
-    if (index < currentStep) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentStep(index);
-        setIsTransitioning(false);
-      }, 150);
-    }
+    if (index <= currentStep) setCurrentStep(index);
   };
 
-  const renderStepContent = () => {
-    const contentClass = cn(
-      "transition-all duration-200",
-      isTransitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
-    );
+  const selectedDuration = DURATION_OPTIONS.find(o => o.seconds / 60 === data.targetDurationMinutes);
+  const canAfford = credits.remaining >= (selectedDuration?.credits || 0);
 
-    switch (currentStep) {
-      case 0:
-        return (
-          <div className={cn("space-y-8", contentClass)}>
-            {/* Title */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Star className="w-4 h-4 text-warning" />
-                Movie Title
-              </label>
-              <Input
-                value={data.title}
-                onChange={(e) => updateData('title', e.target.value)}
-                placeholder="Give your masterpiece a name..."
-                className="h-14 text-lg rounded-xl border-border bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-            </div>
-
-            {/* Genre */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">Choose Your Genre</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {GENRE_OPTIONS.map((genre) => (
-                  <button
-                    key={genre.value}
-                    onClick={() => updateData('genre', genre.value)}
-                    className={cn(
-                      "group relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02]",
-                      data.genre === genre.value
-                        ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                        : "border-border bg-card hover:border-primary/50 hover:shadow-md"
-                    )}
-                  >
-                    <span className="text-3xl block mb-2 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{genre.emoji}</span>
-                    <span className={cn(
-                      "text-sm font-medium transition-colors",
-                      data.genre === genre.value ? "text-primary" : "text-foreground"
-                    )}>{genre.label}</span>
-                    {data.genre === genre.value && (
-                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                        <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Duration */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Clock className="w-4 h-4 text-primary" />
-                  Duration
-                </label>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
-                  <Coins className="w-4 h-4 text-warning" />
-                  <span className="text-sm font-bold text-foreground">{credits.remaining.toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground">available</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {DURATION_OPTIONS.map((option) => {
-                  const isSelected = data.targetDurationMinutes === option.seconds / 60;
-                  const canAfford = credits.remaining >= option.credits;
-                  return (
-                    <button
-                      key={option.seconds}
-                      onClick={() => updateData('targetDurationMinutes', option.seconds / 60)}
-                      className={cn(
-                        "relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02] group",
-                        isSelected
-                          ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg shadow-primary/20"
-                          : "border-border bg-card hover:border-primary/50 hover:shadow-md",
-                        !canAfford && "opacity-60"
-                      )}
-                    >
-                      <div className={cn(
-                        "text-2xl font-bold mb-1 transition-colors",
-                        isSelected ? "text-primary" : "text-foreground"
-                      )}>
-                        {option.label}
-                      </div>
-                      <div className={cn(
-                        "flex items-center justify-center gap-1.5 text-sm font-medium",
-                        isSelected ? "text-accent" : "text-muted-foreground",
-                        !canAfford && "text-destructive"
-                      )}>
-                        <Zap className={cn("w-4 h-4", isSelected ? "text-warning" : "", !canAfford && "text-destructive")} />
-                        <span className="font-bold">{option.credits.toLocaleString()}</span>
-                        <span>credits</span>
-                      </div>
-                      {!canAfford && (
-                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-destructive rounded-full flex items-center justify-center shadow-lg">
-                          <AlertTriangle className="w-3.5 h-3.5 text-destructive-foreground" />
-                        </div>
-                      )}
-                      {isSelected && canAfford && (
-                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                          <Check className="w-3.5 h-3.5 text-primary-foreground" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              
-              {/* Affordability Summary */}
-              {(() => {
-                const selectedOption = DURATION_OPTIONS.find(o => o.seconds / 60 === data.targetDurationMinutes);
-                const requiredCredits = selectedOption?.credits || 0;
-                const canAfford = credits.remaining >= requiredCredits;
-                const creditsAfter = credits.remaining - requiredCredits;
-                
-                return (
-                  <div className={cn(
-                    "p-4 rounded-xl border transition-all",
-                    canAfford 
-                      ? "bg-gradient-to-r from-emerald-500/10 to-green-500/10 border-emerald-500/30" 
-                      : "bg-gradient-to-r from-destructive/10 to-red-500/10 border-destructive/30"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {canAfford ? (
-                          <Check className="w-5 h-5 text-emerald-500" />
-                        ) : (
-                          <AlertTriangle className="w-5 h-5 text-destructive" />
-                        )}
-                        <span className={cn(
-                          "font-medium",
-                          canAfford ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
-                        )}>
-                          {canAfford ? 'You can afford this!' : 'Insufficient credits'}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-muted-foreground">After generation</div>
-                        <div className={cn(
-                          "font-bold",
-                          canAfford ? "text-foreground" : "text-destructive"
-                        )}>
-                          {canAfford 
-                            ? `${creditsAfter.toLocaleString()} credits left`
-                            : `Need ${(requiredCredits - credits.remaining).toLocaleString()} more`
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        );
-
-      case 1:
-        return (
-          <div className={cn("space-y-8", contentClass)}>
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <MapPin className="w-4 h-4 text-blue-500" />
-                Where does your story take place?
-              </label>
-              <Textarea
-                value={data.setting}
-                onChange={(e) => updateData('setting', e.target.value)}
-                placeholder="Describe your world in vivid detail...&#10;&#10;e.g., A sprawling cyberpunk megacity where neon lights never sleep, towering skyscrapers pierce the smog-filled sky, and underground hackers fight against corporate overlords."
-                rows={5}
-                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">When does it happen?</label>
-              <div className="flex flex-wrap gap-2">
-                {TIME_PERIOD_OPTIONS.map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => updateData('timePeriod', period)}
-                    className={cn(
-                      "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
-                      data.timePeriod === period
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    )}
-                  >
-                    {period}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <BookOpen className="w-4 h-4 text-emerald-500" />
-                Synopsis <span className="text-muted-foreground font-normal">(Optional but helpful)</span>
-              </label>
-              <Textarea
-                value={data.synopsis}
-                onChange={(e) => updateData('synopsis', e.target.value)}
-                placeholder="What's the core story? The AI will expand on this to create your full script..."
-                rows={3}
-                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              />
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className={cn("space-y-6", contentClass)}>
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Users className="w-4 h-4 text-amber-500" />
-                  Your Cast
-                </label>
-                <p className="text-xs text-muted-foreground mt-0.5">Great characters make great stories</p>
-              </div>
-              <Button 
-                size="sm" 
-                onClick={addCharacter}
-                className="gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 shadow-none"
-              >
-                <Plus className="w-4 h-4" />
-                Add Character
-              </Button>
-            </div>
-
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 -mr-1">
-              {data.characters.map((char, index) => (
-                <div 
-                  key={index} 
-                  className={cn(
-                    "p-5 rounded-2xl border-2 transition-all animate-fade-in",
-                    index === 0 
-                      ? "border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5" 
-                      : "border-border bg-card hover:border-primary/20"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge className={cn(
-                      "gap-1.5",
-                      index === 0 
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground" 
-                        : "bg-secondary text-secondary-foreground"
-                    )}>
-                      {index === 0 ? <Crown className="w-3 h-3" /> : null}
-                      {index === 0 ? 'Lead Character' : `Character ${index + 1}`}
-                    </Badge>
-                    {index > 0 && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => removeCharacter(index)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        value={char.name}
-                        onChange={(e) => updateCharacter(index, 'name', e.target.value)}
-                        placeholder="Character name"
-                        className="rounded-xl border-border bg-background"
-                      />
-                      <select
-                        value={char.role}
-                        onChange={(e) => updateCharacter(index, 'role', e.target.value as CharacterInput['role'])}
-                        className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                      >
-                        <option value="protagonist">🦸 Hero</option>
-                        <option value="antagonist">🦹 Villain</option>
-                        <option value="supporting">👥 Supporting</option>
-                        <option value="narrator">🎙️ Narrator</option>
-                      </select>
-                    </div>
-
-                    <Input
-                      value={char.description}
-                      onChange={(e) => updateCharacter(index, 'description', e.target.value)}
-                      placeholder="Appearance, age, occupation..."
-                      className="rounded-xl border-border bg-background"
-                    />
-
-                    <Input
-                      value={char.personality}
-                      onChange={(e) => updateCharacter(index, 'personality', e.target.value)}
-                      placeholder="Personality traits (brave, cunning, compassionate...)"
-                      className="rounded-xl border-border bg-background"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className={cn("space-y-4", contentClass)}>
-            <div className="mb-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <BookOpen className="w-4 h-4 text-emerald-500" />
-                Narrative Structure
-              </label>
-              <p className="text-xs text-muted-foreground mt-0.5">How your story unfolds</p>
-            </div>
+  return (
+    <div className="flex h-full">
+      {/* Sidebar Navigation */}
+      <div className="w-48 border-r border-border bg-muted/30 p-4 shrink-0">
+        <div className="space-y-1">
+          {STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const isActive = index === currentStep;
+            const isComplete = index < currentStep;
+            const isAccessible = index <= currentStep;
             
-            <div className="space-y-3">
-              {STRUCTURE_OPTIONS.map((structure, idx) => (
-                <button
-                  key={structure.value}
-                  onClick={() => updateData('storyStructure', structure.value)}
-                  className={cn(
-                    "w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 group hover:scale-[1.01]",
-                    data.storyStructure === structure.value
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                      : "border-border bg-card hover:border-primary/50"
+            return (
+              <button
+                key={step.id}
+                onClick={() => goToStep(index)}
+                disabled={!isAccessible}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
+                  isActive && "bg-primary text-primary-foreground font-medium",
+                  isComplete && "text-foreground hover:bg-muted",
+                  !isActive && !isComplete && "text-muted-foreground",
+                  !isAccessible && "opacity-40 cursor-not-allowed"
+                )}
+              >
+                <div className={cn(
+                  "w-5 h-5 rounded flex items-center justify-center shrink-0",
+                  isActive && "bg-primary-foreground/20",
+                  isComplete && "bg-success/20",
+                  !isActive && !isComplete && "bg-muted"
+                )}>
+                  {isComplete ? (
+                    <Check className="w-3 h-3 text-success" />
+                  ) : (
+                    <Icon className="w-3 h-3" />
                   )}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                      data.storyStructure === structure.value
-                        ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg"
-                        : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
-                    )}>
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className={cn(
-                        "font-semibold mb-1 transition-colors",
-                        data.storyStructure === structure.value ? "text-primary" : "text-foreground"
-                      )}>
-                        {structure.label}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{structure.description}</div>
-                    </div>
-                    {data.storyStructure === structure.value && (
-                      <Check className="w-5 h-5 text-primary shrink-0 animate-scale-in" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
+                </div>
+                <span>{step.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-      case 4:
-        return (
-          <div className={cn("space-y-8", contentClass)}>
-            {/* Intro Style */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Film className="w-4 h-4 text-pink-500" />
-                Opening Style
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {INTRO_STYLE_OPTIONS.map((style) => (
+        {/* Credits Display */}
+        <div className="mt-6 p-3 rounded-lg bg-card border border-border">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <Coins className="w-3.5 h-3.5 text-warning" />
+            <span>Available Credits</span>
+          </div>
+          <div className="text-lg font-bold text-foreground">{credits.remaining.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Step 0: Basics */}
+            {currentStep === 0 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</label>
+                  <Input
+                    value={data.title}
+                    onChange={(e) => updateData('title', e.target.value)}
+                    placeholder="Enter clip title..."
+                    className="mt-2 h-11 text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Genre</label>
+                  <div className="grid grid-cols-5 gap-2 mt-2">
+                    {GENRE_OPTIONS.map((genre) => (
+                      <button
+                        key={genre.value}
+                        onClick={() => updateData('genre', genre.value)}
+                        className={cn(
+                          "p-3 rounded-lg border text-center transition-all hover:scale-[1.02]",
+                          data.genre === genre.value
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border bg-card hover:border-primary/50"
+                        )}
+                      >
+                        <span className="text-xl block mb-1">{genre.emoji}</span>
+                        <span className="text-xs font-medium">{genre.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</label>
+                    <span className={cn(
+                      "text-xs font-medium",
+                      canAfford ? "text-success" : "text-destructive"
+                    )}>
+                      {canAfford ? `${(credits.remaining - (selectedDuration?.credits || 0)).toLocaleString()} left after` : 'Insufficient credits'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DURATION_OPTIONS.map((option) => {
+                      const isSelected = data.targetDurationMinutes === option.seconds / 60;
+                      const affordable = credits.remaining >= option.credits;
+                      return (
+                        <button
+                          key={option.seconds}
+                          onClick={() => updateData('targetDurationMinutes', option.seconds / 60)}
+                          className={cn(
+                            "p-3 rounded-lg border text-center transition-all",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border bg-card hover:border-primary/50",
+                            !affordable && "opacity-50"
+                          )}
+                        >
+                          <div className="text-lg font-bold">{option.label}</div>
+                          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                            <Zap className="w-3 h-3" />
+                            <span>{option.credits.toLocaleString()}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: World */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Setting</label>
+                  <Textarea
+                    value={data.setting}
+                    onChange={(e) => updateData('setting', e.target.value)}
+                    placeholder="Describe the world... (e.g., A cyberpunk megacity with neon lights and towering skyscrapers)"
+                    rows={4}
+                    className="mt-2 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Time Period</label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {TIME_PERIOD_OPTIONS.map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => updateData('timePeriod', period)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-sm transition-all",
+                          data.timePeriod === period
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        )}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Synopsis <span className="text-muted-foreground/60">(Optional)</span>
+                  </label>
+                  <Textarea
+                    value={data.synopsis}
+                    onChange={(e) => updateData('synopsis', e.target.value)}
+                    placeholder="Brief story outline..."
+                    rows={3}
+                    className="mt-2 resize-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Cast */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Characters</label>
+                  <Button size="sm" variant="outline" onClick={addCharacter} className="h-7 text-xs">
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {data.characters.map((char, index) => (
+                    <div key={index} className={cn(
+                      "p-4 rounded-lg border transition-all",
+                      index === 0 ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+                    )}>
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge variant={index === 0 ? "default" : "secondary"} className="text-xs">
+                          {index === 0 && <Crown className="w-3 h-3 mr-1" />}
+                          {index === 0 ? 'Lead' : `#${index + 1}`}
+                        </Badge>
+                        {index > 0 && (
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeCharacter(index)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <Input
+                          value={char.name}
+                          onChange={(e) => updateCharacter(index, 'name', e.target.value)}
+                          placeholder="Name"
+                          className="h-9 text-sm"
+                        />
+                        <select
+                          value={char.role}
+                          onChange={(e) => updateCharacter(index, 'role', e.target.value as CharacterInput['role'])}
+                          className="h-9 px-3 rounded-md border border-border bg-background text-sm"
+                        >
+                          <option value="protagonist">Hero</option>
+                          <option value="antagonist">Villain</option>
+                          <option value="supporting">Supporting</option>
+                          <option value="narrator">Narrator</option>
+                        </select>
+                      </div>
+                      <Input
+                        value={char.description}
+                        onChange={(e) => updateCharacter(index, 'description', e.target.value)}
+                        placeholder="Description (appearance, age...)"
+                        className="h-9 text-sm mb-2"
+                      />
+                      <Input
+                        value={char.personality}
+                        onChange={(e) => updateCharacter(index, 'personality', e.target.value)}
+                        placeholder="Personality traits"
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Structure */}
+            {currentStep === 3 && (
+              <div className="space-y-3">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Narrative Structure</label>
+                {STRUCTURE_OPTIONS.map((structure) => (
                   <button
-                    key={style.value}
-                    onClick={() => updateData('movieIntroStyle', style.value)}
+                    key={structure.value}
+                    onClick={() => updateData('storyStructure', structure.value)}
                     className={cn(
-                      "p-5 rounded-2xl border-2 text-left transition-all hover:scale-[1.02]",
-                      data.movieIntroStyle === style.value
-                        ? "border-primary bg-primary/5 shadow-lg"
+                      "w-full p-4 rounded-lg border text-left transition-all flex items-center gap-4",
+                      data.storyStructure === structure.value
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
                         : "border-border bg-card hover:border-primary/50"
                     )}
                   >
                     <div className={cn(
-                      "font-semibold text-sm mb-1 transition-colors",
-                      data.movieIntroStyle === style.value ? "text-primary" : "text-foreground"
+                      "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                      data.storyStructure === structure.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
                     )}>
-                      {style.label}
+                      <BookOpen className="w-5 h-5" />
                     </div>
-                    <div className="text-xs text-muted-foreground">{style.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Mood */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Palette className="w-4 h-4 text-rose-500" />
-                Mood & Atmosphere
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {MOOD_OPTIONS.map((mood) => (
-                  <button
-                    key={mood}
-                    onClick={() => updateData('mood', mood)}
-                    className={cn(
-                      "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
-                      data.mood === mood
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md scale-105"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{structure.label}</div>
+                      <div className="text-xs text-muted-foreground truncate">{structure.description}</div>
+                    </div>
+                    {data.storyStructure === structure.value && (
+                      <Check className="w-4 h-4 text-primary shrink-0" />
                     )}
-                  >
-                    {mood}
                   </button>
                 ))}
               </div>
-            </div>
+            )}
 
-            {/* Narration Toggle */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Mic className="w-4 h-4 text-violet-500" />
-                Voice Narration
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => updateData('includeNarration', true)}
-                  className={cn(
-                    "relative p-6 rounded-2xl border-2 text-center transition-all group hover:scale-[1.02]",
-                    data.includeNarration
-                      ? "border-primary bg-primary/5 shadow-lg"
-                      : "border-border bg-card hover:border-primary/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-all",
-                    data.includeNarration 
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg" 
-                      : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
-                  )}>
-                    <Mic className="w-7 h-7" />
+            {/* Step 4: Style */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Opening Style</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {INTRO_STYLE_OPTIONS.map((style) => (
+                      <button
+                        key={style.value}
+                        onClick={() => updateData('movieIntroStyle', style.value)}
+                        className={cn(
+                          "p-3 rounded-lg border text-left transition-all",
+                          data.movieIntroStyle === style.value
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border bg-card hover:border-primary/50"
+                        )}
+                      >
+                        <div className="font-medium text-sm">{style.label}</div>
+                        <div className="text-xs text-muted-foreground">{style.description}</div>
+                      </button>
+                    ))}
                   </div>
-                  <div className={cn("font-semibold mb-1", data.includeNarration ? "text-primary" : "text-foreground")}>
-                    With Narrator
-                  </div>
-                  <div className="text-xs text-muted-foreground">AI voice brings your story to life</div>
-                  {data.includeNarration && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                      <Check className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  )}
-                </button>
-                <button
-                  onClick={() => updateData('includeNarration', false)}
-                  className={cn(
-                    "relative p-6 rounded-2xl border-2 text-center transition-all group hover:scale-[1.02]",
-                    !data.includeNarration
-                      ? "border-primary bg-primary/5 shadow-lg"
-                      : "border-border bg-card hover:border-primary/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-all",
-                    !data.includeNarration 
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg" 
-                      : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
-                  )}>
-                    <Video className="w-7 h-7" />
-                  </div>
-                  <div className={cn("font-semibold mb-1", !data.includeNarration ? "text-primary" : "text-foreground")}>
-                    Visual Only
-                  </div>
-                  <div className="text-xs text-muted-foreground">Silent film aesthetic</div>
-                  {!data.includeNarration && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                      <Check className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
+                </div>
 
-      case 5:
-        return (
-          <div className={cn("space-y-6", contentClass)}>
-            {/* Summary Card */}
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 border border-primary/20">
-              <div className="flex items-start gap-4 mb-6">
-                <span className="text-5xl">{GENRE_OPTIONS.find(g => g.value === data.genre)?.emoji}</span>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold font-display text-foreground">{data.title || 'Untitled Movie'}</h3>
-                  <p className="text-muted-foreground">
-                    {data.targetDurationMinutes} min • {GENRE_OPTIONS.find(g => g.value === data.genre)?.label} • {data.mood}
-                  </p>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Mood</label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {MOOD_OPTIONS.map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => updateData('mood', mood)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-sm transition-all",
+                          data.mood === mood
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        )}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                <div className="p-3 rounded-xl bg-card/50 border border-border/50">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Setting</span>
-                  <p className="text-foreground line-clamp-2">{data.setting || 'Not specified'}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-card/50 border border-border/50">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Time Period</span>
-                  <p className="text-foreground">{data.timePeriod}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-card/50 border border-border/50">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Structure</span>
-                  <p className="text-foreground">{STRUCTURE_OPTIONS.find(s => s.value === data.storyStructure)?.label}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-card/50 border border-border/50">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Narration</span>
-                  <p className="text-foreground">{data.includeNarration ? '🎙️ With Voice' : '🎬 Visual Only'}</p>
-                </div>
-              </div>
 
-              <div className="pt-4 border-t border-primary/10">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-2">Cast ({data.characters.filter(c => c.name).length})</span>
-                <div className="flex flex-wrap gap-2">
-                  {data.characters.filter(c => c.name).map((char, i) => (
-                    <Badge 
-                      key={i} 
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <button
+                      onClick={() => updateData('includeNarration', true)}
                       className={cn(
-                        "text-sm py-1.5",
-                        i === 0 
-                          ? "bg-gradient-to-r from-primary to-accent text-primary-foreground" 
-                          : "bg-secondary text-secondary-foreground"
+                        "p-4 rounded-lg border text-center transition-all",
+                        data.includeNarration
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-primary/50"
                       )}
                     >
-                      {char.name}
-                    </Badge>
-                  ))}
+                      <Mic className={cn("w-6 h-6 mx-auto mb-2", data.includeNarration ? "text-primary" : "text-muted-foreground")} />
+                      <div className="font-medium text-sm">With Narration</div>
+                      <div className="text-xs text-muted-foreground">AI voice</div>
+                    </button>
+                    <button
+                      onClick={() => updateData('includeNarration', false)}
+                      className={cn(
+                        "p-4 rounded-lg border text-center transition-all",
+                        !data.includeNarration
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-primary/50"
+                      )}
+                    >
+                      <Video className={cn("w-6 h-6 mx-auto mb-2", !data.includeNarration ? "text-primary" : "text-muted-foreground")} />
+                      <div className="font-medium text-sm">Visual Only</div>
+                      <div className="text-xs text-muted-foreground">Silent</div>
+                    </button>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {data.synopsis && (
-                <div className="mt-4 pt-4 border-t border-primary/10">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Synopsis</span>
-                  <p className="text-sm text-foreground">{data.synopsis}</p>
+            {/* Step 5: Review */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                  <div className="flex items-start gap-3 mb-4">
+                    <span className="text-3xl">{GENRE_OPTIONS.find(g => g.value === data.genre)?.emoji}</span>
+                    <div>
+                      <h3 className="text-lg font-semibold">{data.title || 'Untitled'}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedDuration?.label} • {GENRE_OPTIONS.find(g => g.value === data.genre)?.label} • {data.mood}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="p-2.5 rounded bg-card border border-border">
+                      <div className="text-xs text-muted-foreground mb-0.5">Setting</div>
+                      <div className="truncate">{data.setting || '—'}</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-card border border-border">
+                      <div className="text-xs text-muted-foreground mb-0.5">Time</div>
+                      <div>{data.timePeriod}</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-card border border-border">
+                      <div className="text-xs text-muted-foreground mb-0.5">Structure</div>
+                      <div>{STRUCTURE_OPTIONS.find(s => s.value === data.storyStructure)?.label}</div>
+                    </div>
+                    <div className="p-2.5 rounded bg-card border border-border">
+                      <div className="text-xs text-muted-foreground mb-0.5">Voice</div>
+                      <div>{data.includeNarration ? 'With Narration' : 'Visual Only'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="text-xs text-muted-foreground mb-2">Cast ({data.characters.filter(c => c.name).length})</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.characters.filter(c => c.name).map((char, i) => (
+                        <Badge key={i} variant={i === 0 ? "default" : "secondary"} className="text-xs">
+                          {char.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Ready Banner */}
-            <div className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground">
-              <div className="p-3 rounded-xl bg-primary-foreground/20">
-                <Zap className="w-7 h-7" />
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-primary text-primary-foreground">
+                  <div className="p-2 rounded-lg bg-primary-foreground/20">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold">Ready to Generate</div>
+                    <div className="text-sm text-primary-foreground/80">
+                      {selectedDuration?.credits.toLocaleString()} credits will be used
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-lg">Ready for Magic! ✨</p>
-                <p className="text-sm text-primary-foreground/80">
-                  ~{data.targetDurationMinutes * 150} words • {data.characters.filter(c => c.name).length} characters
-                </p>
-              </div>
-            </div>
+            )}
           </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="w-full">
-      {/* Progress Steps - Horizontal */}
-      <div className="px-4 py-5 border-b border-border bg-secondary/30">
-        <div className="flex items-center justify-center gap-1 max-w-3xl mx-auto overflow-x-auto">
-          {WIZARD_STEPS.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = index === currentStep;
-            const isComplete = index < currentStep;
-            
-            return (
-              <div key={step.id} className="flex items-center">
-                <button
-                  onClick={() => goToStep(index)}
-                  disabled={index > currentStep}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 whitespace-nowrap",
-                    isActive && "bg-card shadow-md border border-border",
-                    isComplete && "cursor-pointer hover:bg-card/50",
-                    index > currentStep && "opacity-40 cursor-not-allowed"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0",
-                    isActive && `bg-gradient-to-br ${step.color} text-primary-foreground shadow-lg`,
-                    isComplete && "bg-success/20 text-success",
-                    !isActive && !isComplete && "bg-secondary text-muted-foreground"
-                  )}>
-                    {isComplete ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
-                  </div>
-                  <div className="hidden lg:block text-left">
-                    <p className={cn(
-                      "text-sm font-medium leading-tight",
-                      isActive ? "text-foreground" : "text-muted-foreground"
-                    )}>{step.title}</p>
-                  </div>
-                </button>
-                
-                {index < WIZARD_STEPS.length - 1 && (
-                  <div className={cn(
-                    "w-6 h-0.5 mx-1 rounded-full transition-colors",
-                    index < currentStep ? "bg-success" : "bg-border"
-                  )} />
-                )}
-              </div>
-            );
-          })}
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="p-6 lg:p-10">
-        <div className="max-w-2xl mx-auto">
-          {/* Step Title */}
-          <div className="mb-8 text-center">
-            <div className={cn(
-              "inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 bg-gradient-to-br shadow-lg",
-              WIZARD_STEPS[currentStep].color
-            )}>
-              {(() => {
-                const Icon = WIZARD_STEPS[currentStep].icon;
-                return <Icon className="w-7 h-7 text-primary-foreground" />;
-              })()}
-            </div>
-            <h2 className="text-2xl font-bold font-display text-foreground">
-              {WIZARD_STEPS[currentStep].title}
-            </h2>
-            <p className="text-muted-foreground mt-1">{WIZARD_STEPS[currentStep].subtitle}</p>
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card/50">
+          <Button variant="ghost" onClick={handleBack} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            {currentStep === 0 ? 'Cancel' : 'Back'}
+          </Button>
+          
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{currentStep + 1}</span>
+            <span>/</span>
+            <span>{STEPS.length}</span>
           </div>
 
-          {/* Step Content */}
-          <div className="mb-10">
-            {renderStepContent()}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between pt-6 border-t border-border">
-            <Button 
-              variant="ghost" 
-              onClick={handleBack}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {currentStep === 0 ? 'Cancel' : 'Back'}
-            </Button>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{currentStep + 1}</span>
-              <span>/</span>
-              <span>{WIZARD_STEPS.length}</span>
-            </div>
-
-            <Button 
-              onClick={handleNext} 
-              disabled={!canProceed()}
-              className={cn(
-                "gap-2 px-6 transition-all duration-200",
-                currentStep === WIZARD_STEPS.length - 1
-                  ? "bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 hover:scale-105"
-                  : ""
-              )}
-            >
-              {currentStep === WIZARD_STEPS.length - 1 ? (
-                <>
-                  <Wand2 className="w-4 h-4" />
-                  Generate Script
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-          </div>
+          <Button onClick={handleNext} disabled={!canProceed()} className="gap-2">
+            {currentStep === STEPS.length - 1 ? (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Generate
+              </>
+            ) : (
+              <>
+                Continue
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>

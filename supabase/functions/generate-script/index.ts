@@ -57,27 +57,31 @@ serve(async (req) => {
     const isFullMovieMode = requestData.title && requestData.characters && requestData.characters.length > 0;
     
     if (isFullMovieMode) {
-      // Full movie script generation with characters
-      systemPrompt = `You are an award-winning screenwriter and storyteller. You write compelling, emotionally engaging movie scripts with memorable characters, sharp dialogue, and cinematic visual descriptions.
+      // Full movie script generation with characters - CINEMATIC & DESCRIPTIVE
+      systemPrompt = `You are an elite cinematographer-screenwriter hybrid. You write scripts that are VISUAL MASTERPIECES - every scene reads like a painting, every moment is described with such vivid detail that an AI video generator can recreate it perfectly.
 
-Your scripts follow proper screenplay format:
-- Scene headings in brackets: [SCENE: INT/EXT. LOCATION - TIME]
-- Character names in CAPS when speaking
-- Dialogue in quotes: "Like this"
-- Action and descriptions in *asterisks*: *The hero steps forward*
-- Parentheticals for emotion/direction: (whispering)
-- Transitions: --- CUT TO: --- or --- FADE TO: ---
+Your scripts are famous for:
+1. RICH ENVIRONMENTAL DESCRIPTIONS - You paint every setting in exquisite detail: lighting conditions, weather, atmosphere, textures, colors, depth, scale. Example: "The amber glow of late afternoon sun filters through ancient oak trees, casting long shadows across the moss-covered stone path. Mist rises from the distant valley below."
 
-Create scripts that are:
-1. Emotionally compelling with clear character arcs
-2. Visually descriptive for AI video generation
-3. Paced appropriately for the target duration
-4. True to the specified genre and mood
-5. Feature the named characters prominently with distinct voices`;
+2. PRECISE CHARACTER VISUALS - Every character is described cinematically: their appearance, clothing, movements, expressions, posture. Example: "MAYA, 30s, sharp green eyes beneath rain-soaked dark hair, her weathered leather jacket glistening as she steps into the doorway, jaw clenched with determination."
 
-      // Build character descriptions
+3. CAMERA-AWARE WRITING - You write with an invisible camera in mind: "We push slowly through the crowd... The camera lingers on his trembling hands... A sweeping aerial reveals the vast desert below..."
+
+4. ATMOSPHERIC IMMERSION - Sound design, weather, time of day, emotional tone. Example: "Thunder rumbles in the distance. The crackling fire casts dancing shadows on the cave walls. Outside, rain hammers the leaves."
+
+5. TRANSITION MASTERY - Seamless visual bridges between scenes: "MATCH CUT from the spinning coin to the spinning Earth from orbit..."
+
+FORMAT:
+- Scene headings: [SCENE: INT/EXT. LOCATION - TIME OF DAY - WEATHER/ATMOSPHERE]
+- Visual descriptions in *asterisks with rich detail*
+- Character introductions with full physical description on first appearance
+- Dialogue in quotes with (emotional direction)
+- Camera directions in [CAMERA: movement/angle]
+- Transitions: --- CUT TO: --- or --- FADE TO: --- or --- DISSOLVE TO: ---`;
+
+      // Build character descriptions with visual details
       const characterDescriptions = requestData.characters!.map(char => 
-        `- ${char.name.toUpperCase()} (${char.role}): ${char.description}. Personality: ${char.personality}`
+        `- ${char.name.toUpperCase()} (${char.role}): ${char.description}. Personality: ${char.personality}. IMPORTANT: Describe their exact appearance, clothing, and distinctive visual traits in their first scene.`
       ).join('\n');
 
       // Build the story structure guidance
@@ -89,18 +93,18 @@ Create scripts that are:
         'episodic': 'Create connected vignettes or scenes that build a cohesive story.',
       }[requestData.storyStructure || 'three_act'];
 
-      // Build intro style guidance
+      // Build intro style guidance with visual emphasis
       const introGuide = {
-        'cinematic': 'Open with an epic, sweeping introduction. Set the scene grandly with atmospheric description.',
-        'documentary': 'Begin with a factual, grounded introduction that establishes context and stakes.',
-        'dramatic': 'Start with a powerful character monologue or voiceover that draws the audience in.',
-        'mystery': 'Open with an intriguing hook, question, or mysterious scene that creates immediate curiosity.',
-        'none': 'Jump directly into the story without preamble.',
+        'cinematic': 'Open with an EPIC establishing shot - describe the landscape from above, slowly descending into the scene. Set atmosphere with weather, lighting, and environmental details.',
+        'documentary': 'Begin with authentic, grounded visuals. Real locations, natural lighting, candid character moments.',
+        'dramatic': 'Start with an intense close-up or powerful visual metaphor that sets the emotional tone.',
+        'mystery': 'Open with partial reveals - shadows, silhouettes, fragments of the scene that create intrigue.',
+        'none': 'Jump directly into action but still describe the visual environment clearly.',
       }[requestData.movieIntroStyle || 'cinematic'];
 
       const wordTarget = (requestData.targetDurationMinutes || 5) * 150;
 
-      userPrompt = `Write a complete ${requestData.targetDurationMinutes || 5}-minute movie script.
+      userPrompt = `Write a VISUALLY STUNNING ${requestData.targetDurationMinutes || 5}-minute movie script that an AI video generator can bring to life perfectly.
 
 TITLE: "${requestData.title}"
 GENRE: ${requestData.genre || 'Drama'}
@@ -108,7 +112,7 @@ MOOD: ${requestData.mood || 'Epic & Grand'}
 SETTING: ${requestData.setting || 'Modern day'}
 TIME PERIOD: ${requestData.timePeriod || 'Present Day'}
 
-CHARACTERS:
+CHARACTERS (describe EXACTLY how each looks in their first appearance):
 ${characterDescriptions}
 
 STORY STRUCTURE: ${structureGuide}
@@ -121,38 +125,50 @@ ${requestData.previousScript ? `
 PREVIOUS STORY (Continue from this):
 ${requestData.previousScript.slice(0, 1000)}...
 
-Write a ${requestData.continuationType || 'sequel'} that continues this story.
+Write a ${requestData.continuationType || 'sequel'} that continues this story with VISUAL CONSISTENCY - same character appearances, similar visual style.
 ` : ''}
 
-REQUIREMENTS:
+CRITICAL REQUIREMENTS FOR AI VIDEO GENERATION:
 - Write approximately ${wordTarget} words
-- Feature ALL named characters with distinct dialogue and personality
-- Include vivid visual descriptions suitable for AI video generation
-- Create emotional beats and character development
-- Use proper screenplay formatting
-- Make the dialogue natural and memorable
-- Include scene transitions and pacing for ${requestData.targetDurationMinutes} minutes
-- Ensure the ${requestData.characters![0]?.name || 'protagonist'} has a clear arc
+- EVERY SCENE must have: lighting description, environment details, atmosphere, weather if outdoors
+- EVERY CHARACTER must be described visually: age, build, hair, eyes, clothing, distinctive features
+- Include CAMERA DIRECTIONS: [CAMERA: slow push-in], [CAMERA: sweeping aerial], [CAMERA: close-up on hands]
+- Describe COLORS, TEXTURES, MATERIALS: "polished mahogany desk", "weathered stone walls", "shimmering silk gown"
+- Include MOVEMENT descriptions: how characters walk, gesture, express emotion physically
+- Use SENSORY details: sounds, smells, tactile sensations that create atmosphere
+- Create VISUAL TRANSITIONS between scenes that flow cinematically
+- Maintain VISUAL CONSISTENCY: same character looks, same color palette, same lighting style throughout
+
+REMEMBER: The AI video generator can ONLY see what you describe. If you don't describe it, it won't appear. Be extraordinarily specific and visual.
 
 Begin the script now:`;
 
     } else {
-      // Legacy simple mode for backwards compatibility
-      systemPrompt = `You are a professional video script writer for Apex Studio, an AI video production platform. 
-Create engaging, natural-sounding scripts that work well with AI voice narration.
-The script should be clear, conversational, and optimized for video presentation.
+      // Legacy simple mode - enhanced for visual description
+      systemPrompt = `You are a visual storyteller for Apex Studio, an AI video production platform. 
+You write scripts that are VISUALLY RICH - describing scenes, environments, and imagery with cinematic precision.
+Every sentence should paint a picture. Include specific visual details: colors, lighting, textures, movements.
+The script should work as both narration AND visual direction for AI video generation.
 Include natural pauses indicated by "..." and emphasis with *asterisks*.
-Keep sentences short and punchy for better AI voice rendering.`;
+After each key point, add a [VISUAL: description] tag describing what should appear on screen.`;
 
-      userPrompt = `Write a ${requestData.duration || '60 second'} video script about: ${requestData.topic}
+      userPrompt = `Write a VISUALLY DESCRIPTIVE ${requestData.duration || '60 second'} video script about: ${requestData.topic}
 Style: ${requestData.style || 'Professional and engaging'}
 
 Requirements:
-- Start with an attention-grabbing hook
-- Use conversational language
-- Include 2-3 key points
-- End with a clear call-to-action
-- Optimize for AI voice narration`;
+- Start with an attention-grabbing hook AND describe the opening visual
+- For each key point, describe what the viewer should SEE
+- Include [VISUAL: ...] tags describing specific imagery: environments, objects, lighting, colors
+- Use descriptive language: "golden sunlight streaming through windows" not just "bright room"
+- Describe any people/characters: their appearance, clothing, expressions
+- End with a memorable final image
+- Make it easy for AI video to visualize every moment
+
+Example format:
+"Welcome to the future of technology..."
+[VISUAL: Sleek glass skyscraper reflecting sunset colors, camera slowly rising upward]
+
+Write the script now:`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

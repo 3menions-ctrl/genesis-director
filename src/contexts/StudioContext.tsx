@@ -37,46 +37,6 @@ function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: 
   return `${position} scene: ${truncatedText}. Style: ${sceneDescription}`.trim().slice(0, 990);
 }
 
-// Mock data for demonstration
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    studio_id: 'studio-1',
-    name: 'Jungle Product Demo',
-    status: 'completed',
-    script_content: 'Welcome to our revolutionary product that will change the way you think about AI-powered video creation. In this demonstration, we will showcase the incredible capabilities of Apex Studio...',
-    environment_prompt: 'jungle_studio',
-    voice_id: 'EXAVITQu4vr4xnSDxMaL',
-    character_id: 'avatar_001',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 3600000).toISOString(),
-    duration_seconds: 124,
-    credits_used: 1240,
-  },
-  {
-    id: '2',
-    studio_id: 'studio-1',
-    name: 'Tech Tutorial Series',
-    status: 'rendering',
-    script_content: 'In this tutorial, we will explore the fundamentals of modern web development...',
-    environment_prompt: 'modern_office',
-    voice_id: 'JBFqnCBsd6RMkjVDRZzb',
-    character_id: 'avatar_002',
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    updated_at: new Date().toISOString(),
-    duration_seconds: 0,
-    credits_used: 0,
-  },
-  {
-    id: '3',
-    studio_id: 'studio-1',
-    name: 'Meditation Guide',
-    status: 'idle',
-    created_at: new Date(Date.now() - 604800000).toISOString(),
-    updated_at: new Date(Date.now() - 604800000).toISOString(),
-  },
-];
-
 const MOCK_CREDITS: UserCredits = {
   total: 50000,
   used: 12400,
@@ -115,28 +75,64 @@ interface StudioContextType {
   isGenerating: boolean;
   generationProgress: GenerationProgress;
   selectedDurationSeconds: number;
+  isLoading: boolean;
   setActiveProjectId: (id: string) => void;
   setSelectedDurationSeconds: (seconds: number) => void;
-  createProject: () => void;
-  deleteProject: (id: string) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
+  createProject: () => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   updateSettings: (settings: Partial<StudioSettings>) => void;
   generatePreview: () => Promise<void>;
   exportVideo: () => void;
   buyCredits: () => void;
   deductCredits: (durationSeconds: number) => boolean;
   canAffordDuration: (durationSeconds: number) => boolean;
+  refreshProjects: () => Promise<void>;
 }
 
 const StudioContext = createContext<StudioContextType | null>(null);
 
+// Map database status to app status
+function mapDbStatus(dbStatus: string): ProjectStatus {
+  switch (dbStatus) {
+    case 'completed': return 'completed';
+    case 'generating': return 'generating';
+    case 'rendering': return 'rendering';
+    default: return 'idle';
+  }
+}
+
+// Map database project to app Project type
+function mapDbProject(dbProject: any): Project {
+  return {
+    id: dbProject.id,
+    studio_id: 'studio-1',
+    name: dbProject.title,
+    status: mapDbStatus(dbProject.status),
+    script_content: dbProject.script_content || dbProject.generated_script,
+    environment_prompt: dbProject.setting,
+    voice_id: undefined,
+    character_id: undefined,
+    created_at: dbProject.created_at,
+    updated_at: dbProject.updated_at,
+    duration_seconds: dbProject.target_duration_minutes * 60,
+    credits_used: 0,
+    voice_audio_url: dbProject.voice_audio_url,
+    video_url: dbProject.video_url,
+    video_clips: dbProject.video_clips || [],
+    include_narration: true,
+    target_duration_minutes: dbProject.target_duration_minutes,
+  };
+}
+
 export function StudioProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
-  const [activeProjectId, setActiveProjectId] = useState<string>(MOCK_PROJECTS[0].id);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(MOCK_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8); // Default to 8 seconds
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({
     step: 'idle',
     percent: 0,
@@ -154,32 +150,115 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
 
-  const createProject = () => {
-    const newProject: Project = {
-      id: `project-${Date.now()}`,
-      studio_id: 'studio-1',
-      name: `Untitled Project ${projects.length + 1}`,
-      status: 'idle',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setProjects((prev) => [newProject, ...prev]);
-    setActiveProjectId(newProject.id);
-    toast.success('New project created');
-  };
+  // Load projects from database on mount
+  const refreshProjects = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('movie_projects')
+        .select('*')
+        .order('updated_at', { ascending: false });
 
-  const deleteProject = (projectId: string) => {
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    if (activeProjectId === projectId && projects.length > 1) {
-      setActiveProjectId(projects[0].id === projectId ? projects[1].id : projects[0].id);
+      if (error) {
+        console.error('Error loading projects:', error);
+        toast.error('Failed to load projects');
+        return;
+      }
+
+      const mappedProjects = (data || []).map(mapDbProject);
+      setProjects(mappedProjects);
+      
+      // Set active project to first one if not set
+      if (mappedProjects.length > 0 && !activeProjectId) {
+        setActiveProjectId(mappedProjects[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading projects:', err);
+    } finally {
+      setIsLoading(false);
     }
-    toast.success('Project deleted');
   };
 
-  const updateProject = (id: string, updates: Partial<Project>) => {
+  useEffect(() => {
+    refreshProjects();
+  }, []);
+
+  const createProject = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('movie_projects')
+        .insert({
+          title: `Untitled Project ${projects.length + 1}`,
+          status: 'draft',
+          target_duration_minutes: 1,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newProject = mapDbProject(data);
+      setProjects((prev) => [newProject, ...prev]);
+      setActiveProjectId(newProject.id);
+      toast.success('New project created');
+    } catch (err) {
+      console.error('Error creating project:', err);
+      toast.error('Failed to create project');
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('movie_projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      if (activeProjectId === projectId && projects.length > 1) {
+        const remaining = projects.filter(p => p.id !== projectId);
+        setActiveProjectId(remaining[0]?.id || null);
+      }
+      toast.success('Project deleted');
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      toast.error('Failed to delete project');
+    }
+  };
+
+  const updateProject = async (id: string, updates: Partial<Project>) => {
+    // Update local state immediately
     setProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
     );
+
+    // Prepare database update
+    const dbUpdates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (updates.name !== undefined) dbUpdates.title = updates.name;
+    if (updates.script_content !== undefined) dbUpdates.script_content = updates.script_content;
+    if (updates.status !== undefined) dbUpdates.status = updates.status === 'idle' ? 'draft' : updates.status;
+    if (updates.video_url !== undefined) dbUpdates.video_url = updates.video_url;
+    if (updates.video_clips !== undefined) dbUpdates.video_clips = updates.video_clips;
+    if (updates.voice_audio_url !== undefined) dbUpdates.voice_audio_url = updates.voice_audio_url;
+    if (updates.target_duration_minutes !== undefined) dbUpdates.target_duration_minutes = updates.target_duration_minutes;
+
+    try {
+      const { error } = await supabase
+        .from('movie_projects')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating project:', error);
+      }
+    } catch (err) {
+      console.error('Error updating project:', err);
+    }
   };
 
   const updateSettings = (newSettings: Partial<StudioSettings>) => {
@@ -203,7 +282,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
     setIsGenerating(true);
     const script = activeProject.script_content;
-    const projectId = activeProjectId;
+    const projectId = activeProjectId!;
     const includeNarration = activeProject.include_narration !== false;
     const targetDuration = activeProject.target_duration_minutes || 1;
     
@@ -217,7 +296,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const wordsPerClip = Math.ceil(words.length / numClips);
 
     try {
-      updateProject(projectId, { status: 'generating' as ProjectStatus, video_clips: [] });
+      await updateProject(projectId, { status: 'generating' as ProjectStatus, video_clips: [] });
       
       // Step 1: Generate Voice Narration (if enabled)
       if (includeNarration) {
@@ -244,7 +323,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
         const audioBlob = await voiceResponse.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
-        updateProject(projectId, { voice_audio_url: audioUrl });
+        await updateProject(projectId, { voice_audio_url: audioUrl });
         toast.success('Voice narration generated!');
       }
       
@@ -254,7 +333,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const progressPerClip = (85 - baseProgress) / numClips;
       
       toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)...`);
-      updateProject(projectId, { status: 'rendering' as ProjectStatus });
+      await updateProject(projectId, { status: 'rendering' as ProjectStatus });
 
       // Build comprehensive scene consistency description from script
       const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
@@ -317,7 +396,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
             clipUrl = statusData.videoUrl;
             completedClips.push(clipUrl);
-            updateProject(projectId, { video_clips: [...completedClips] });
+            // Save to database after each clip completes
+            await updateProject(projectId, { video_clips: [...completedClips] });
             toast.success(`Clip ${i + 1}/${numClips} complete!`);
           } else if (statusData?.status === 'FAILED') {
             throw new Error(statusData.error || `Clip ${i + 1} generation failed`);
@@ -329,8 +409,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // All clips complete
-      updateProject(projectId, {
+      // All clips complete - save final state to database
+      await updateProject(projectId, {
         status: 'completed' as ProjectStatus,
         video_url: completedClips[0], // First clip as primary
         video_clips: completedClips,
@@ -346,7 +426,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       console.error('Generation error:', error);
       const message = error instanceof Error ? error.message : 'Generation failed';
       toast.error(message);
-      updateProject(projectId, { status: 'idle' as ProjectStatus });
+      await updateProject(projectId, { status: 'idle' as ProjectStatus });
       setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
       setIsGenerating(false);
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -402,6 +482,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         isGenerating,
         generationProgress,
         selectedDurationSeconds,
+        isLoading,
         setActiveProjectId,
         setSelectedDurationSeconds,
         createProject,
@@ -413,6 +494,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         buyCredits,
         deductCredits,
         canAffordDuration,
+        refreshProjects,
       }}
     >
       {children}

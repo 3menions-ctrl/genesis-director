@@ -31,12 +31,24 @@ const PRODUCTION_FACTS = [
 
 export default function Production() {
   const navigate = useNavigate();
-  const { activeProject, generatePreview, isGenerating, generationProgress, credits } = useStudio();
+  const { activeProject, generatePreview, isGenerating, generationProgress, credits, isLoading } = useStudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [factIndex, setFactIndex] = useState(0);
 
   const status = activeProject?.status || 'idle';
+
+  // Show loading state while fetching projects
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Cycle through fun facts during generation
   useEffect(() => {

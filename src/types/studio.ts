@@ -24,7 +24,7 @@ export interface Project {
   credits_used?: number;
   voice_audio_url?: string;
   video_url?: string;
-  video_clips?: string[]; // Array of video URLs for multi-clip playback
+  video_clips?: string[];
   include_narration?: boolean;
   target_duration_minutes?: number;
 }

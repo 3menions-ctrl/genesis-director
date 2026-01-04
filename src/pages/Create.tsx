@@ -143,7 +143,7 @@ export default function Create() {
           title: data.title,
           genre: data.genre,
           story_structure: data.storyStructure,
-          target_duration_minutes: data.targetDurationMinutes,
+          target_duration_minutes: Math.round(data.targetDurationMinutes * 60), // Store as seconds (integer)
           setting: data.setting,
           time_period: data.timePeriod,
           mood: data.mood,

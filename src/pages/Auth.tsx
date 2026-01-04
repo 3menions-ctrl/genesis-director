@@ -12,20 +12,37 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { user, signIn, signUp } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate('/projects');
+    if (user && profile) {
+      // If onboarding not completed, go to onboarding
+      if (!profile.onboarding_completed) {
+        navigate('/onboarding');
+      } else {
+        navigate('/projects');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const { signIn, signUp } = await import('@/contexts/AuthContext').then(m => {
+      // We need to get signIn and signUp from context
+      return { signIn: null, signUp: null };
+    });
+    
     if (!email || !password) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
@@ -37,8 +54,10 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Invalid email or password');
@@ -47,10 +66,17 @@ export default function Auth() {
           }
         } else {
           toast.success('Welcome back!');
-          navigate('/projects');
+          // Navigation will happen via useEffect when user/profile loads
         }
       } else {
-        const { error } = await signUp(email, password);
+        const redirectUrl = `${window.location.origin}/onboarding`;
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl
+          }
+        });
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('This email is already registered. Try logging in instead.');
@@ -58,8 +84,8 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created! You now have 50 free credits.');
-          navigate('/projects');
+          toast.success('Account created! Let\'s set up your profile.');
+          // Will redirect to onboarding via useEffect
         }
       }
     } catch (err) {

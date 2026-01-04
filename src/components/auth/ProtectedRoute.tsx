@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -8,14 +8,25 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Redirect to onboarding if not completed (but not if already on a route we want to allow)
+  useEffect(() => {
+    if (!loading && user && profile && !profile.onboarding_completed) {
+      // Only redirect if not already on onboarding
+      if (location.pathname !== '/onboarding') {
+        navigate('/onboarding');
+      }
+    }
+  }, [user, profile, loading, navigate, location.pathname]);
 
   if (loading) {
     return (
@@ -33,6 +44,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
+    return null;
+  }
+
+  // If onboarding not completed, don't render children (will redirect)
+  if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return null;
   }
 

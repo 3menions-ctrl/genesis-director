@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Cinematic camera movements for professional movie feel
 const CAMERA_MOVEMENTS = [
@@ -292,10 +293,10 @@ function buildClipPrompt(
   return prompt.slice(0, 990);
 }
 
-const MOCK_CREDITS: UserCredits = {
-  total: 50000,
-  used: 12400,
-  remaining: 37600,
+const DEFAULT_CREDITS: UserCredits = {
+  total: 50,
+  used: 0,
+  remaining: 50,
 };
 
 const MOCK_LAYERS: AssetLayer[] = [
@@ -341,7 +342,7 @@ interface StudioContextType {
   cancelGeneration: () => void;
   exportVideo: () => void;
   buyCredits: () => void;
-  deductCredits: (durationSeconds: number) => boolean;
+  deductCredits: (durationSeconds: number) => Promise<boolean>;
   canAffordDuration: (durationSeconds: number) => boolean;
   refreshProjects: () => Promise<void>;
 }
@@ -383,9 +384,10 @@ function mapDbProject(dbProject: any): Project {
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
+  const { user, profile, refreshProfile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [credits, setCredits] = useState<UserCredits>(MOCK_CREDITS);
+  const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -445,6 +447,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshProjects();
   }, []);
+
+  // Sync credits from auth profile
+  useEffect(() => {
+    if (profile) {
+      setCredits({
+        total: profile.total_credits_purchased + 50, // Include welcome bonus
+        used: profile.total_credits_used,
+        remaining: profile.credits_balance,
+      });
+    } else {
+      setCredits(DEFAULT_CREDITS);
+    }
+  }, [profile]);
 
   const createProject = async () => {
     try {
@@ -887,7 +902,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   const buyCredits = () => {
-    toast.info('Opening Stripe checkout...');
+    // This will be handled by the BuyCreditsModal in the Profile page
+    toast.info('Visit your profile to purchase more credits');
   };
 
   const getCreditsForDuration = (durationSeconds: number): number => {
@@ -901,7 +917,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     return credits.remaining >= required;
   };
 
-  const deductCredits = (durationSeconds: number): boolean => {
+  const deductCredits = async (durationSeconds: number): Promise<boolean> => {
+    if (!user) {
+      toast.error('Please sign in to generate videos');
+      return false;
+    }
+
     const required = getCreditsForDuration(durationSeconds);
     
     if (credits.remaining < required) {
@@ -909,14 +930,40 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return false;
     }
     
-    setCredits(prev => ({
-      ...prev,
-      used: prev.used + required,
-      remaining: prev.remaining - required,
-    }));
-    
-    toast.success(`${required.toLocaleString()} credits deducted for ${durationSeconds}s video`);
-    return true;
+    try {
+      // Call the database function to deduct credits
+      const { data, error } = await supabase.rpc('deduct_credits', {
+        p_user_id: user.id,
+        p_amount: required,
+        p_description: `Video generation (${durationSeconds}s)`,
+        p_project_id: activeProjectId || undefined,
+        p_clip_duration: durationSeconds,
+      });
+
+      if (error) throw error;
+
+      if (!data) {
+        toast.error('Insufficient credits');
+        return false;
+      }
+
+      // Update local state
+      setCredits(prev => ({
+        ...prev,
+        used: prev.used + required,
+        remaining: prev.remaining - required,
+      }));
+
+      // Refresh profile to get updated credits
+      refreshProfile();
+      
+      toast.success(`${required.toLocaleString()} credits deducted for ${durationSeconds}s video`);
+      return true;
+    } catch (err) {
+      console.error('Error deducting credits:', err);
+      toast.error('Failed to deduct credits');
+      return false;
+    }
   };
 
   return (

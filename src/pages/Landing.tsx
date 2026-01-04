@@ -75,43 +75,43 @@ export default function Landing() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white overflow-hidden">
+    <div className="min-h-screen bg-white text-slate-900 overflow-hidden">
       {/* Animated background */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-slate-950 to-slate-950" />
-        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-violet-500/10 rounded-full blur-[120px] animate-pulse-soft" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[100px] animate-pulse-soft delay-2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-conic from-violet-500/5 via-transparent to-violet-500/5 rounded-full animate-spin-slow" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-100/50 via-white to-white" />
+        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-violet-200/30 rounded-full blur-[120px] animate-pulse-soft" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-[100px] animate-pulse-soft delay-2" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-conic from-violet-200/20 via-transparent to-violet-200/20 rounded-full animate-spin-slow" />
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-50 flex items-center justify-between px-6 lg:px-12 py-5 border-b border-white/5">
+      <nav className="relative z-50 flex items-center justify-between px-6 lg:px-12 py-5 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
             <Film className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-display font-bold">
-            Apex<span className="text-violet-400"> Studio</span>
+            Apex<span className="text-violet-600"> Studio</span>
           </span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-slate-400 hover:text-white transition-colors">Features</a>
-          <a href="#pricing" className="text-sm text-slate-400 hover:text-white transition-colors">Pricing</a>
-          <a href="#testimonials" className="text-sm text-slate-400 hover:text-white transition-colors">Testimonials</a>
+          <a href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Features</a>
+          <a href="#pricing" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
+          <a href="#testimonials" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Testimonials</a>
         </div>
 
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             onClick={() => navigate('/auth')}
-            className="text-slate-300 hover:text-white hover:bg-white/5"
+            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
           >
             Sign In
           </Button>
           <Button
             onClick={() => navigate('/auth')}
-            className="bg-white text-slate-900 hover:bg-slate-100 font-medium px-5"
+            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium px-5"
           >
             Get Started
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -123,21 +123,21 @@ export default function Landing() {
       <section className="relative z-10 px-6 lg:px-12 pt-20 lg:pt-32 pb-20">
         <div className="max-w-6xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 mb-8 animate-fade-in">
-            <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm text-violet-300">Powered by next-gen AI</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 border border-violet-200 mb-8 animate-fade-in">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            <span className="text-sm text-violet-700">Powered by next-gen AI</span>
           </div>
 
           {/* Headline */}
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-bold tracking-tight mb-6 animate-fade-in-up">
-            <span className="block">Create cinematic</span>
-            <span className="block bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="block text-slate-900">Create cinematic</span>
+            <span className="block bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               videos with AI
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto mb-10 animate-fade-in-up delay-2">
+          <p className="text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto mb-10 animate-fade-in-up delay-2">
             Transform your ideas into stunning videos in minutes. No camera, no crew, 
             no experience needed. Just pure creative freedom.
           </p>
@@ -147,7 +147,7 @@ export default function Landing() {
             <Button
               onClick={() => navigate('/auth')}
               size="lg"
-              className="h-14 px-8 text-base bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-xl shadow-violet-500/25 border-0"
+              className="h-14 px-8 text-base bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 border-0"
             >
               <Sparkles className="w-5 h-5 mr-2" />
               Start Creating — It's Free
@@ -155,7 +155,7 @@ export default function Landing() {
             <Button
               variant="outline"
               size="lg"
-              className="h-14 px-8 text-base border-slate-700 text-slate-300 hover:bg-white/5 hover:text-white"
+              className="h-14 px-8 text-base border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
             >
               <Play className="w-5 h-5 mr-2" />
               Watch Demo
@@ -211,12 +211,12 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="relative z-10 px-6 lg:px-12 py-16 border-y border-white/5">
+      <section className="relative z-10 px-6 lg:px-12 py-16 border-y border-slate-200 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {STATS.map((stat, index) => (
               <div key={index} className="text-center">
-                <p className="text-4xl lg:text-5xl font-display font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+                <p className="text-4xl lg:text-5xl font-display font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                   {stat.value}
                 </p>
                 <p className="text-slate-500 mt-1">{stat.label}</p>
@@ -230,11 +230,11 @@ export default function Landing() {
       <section id="features" className="relative z-10 px-6 lg:px-12 py-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-4">Features</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6">
+            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Features</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
               Everything you need to create
             </h2>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Our AI-powered toolkit gives you complete creative control from script to screen.
             </p>
           </div>
@@ -243,7 +243,7 @@ export default function Landing() {
             {FEATURES.map((feature, index) => (
               <div
                 key={index}
-                className="group p-8 rounded-2xl bg-slate-900/50 border border-white/5 hover:border-violet-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/5"
+                className="group p-8 rounded-2xl bg-white border border-slate-200 hover:border-violet-300 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10"
               >
                 <div className={cn(
                   "w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform",
@@ -251,8 +251,8 @@ export default function Landing() {
                 )}>
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-display font-bold mb-3">{feature.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{feature.description}</p>
+                <h3 className="text-xl font-display font-bold mb-3 text-slate-900">{feature.title}</h3>
+                <p className="text-slate-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -260,31 +260,31 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="relative z-10 px-6 lg:px-12 py-24 bg-gradient-to-b from-transparent via-violet-950/20 to-transparent">
+      <section id="pricing" className="relative z-10 px-6 lg:px-12 py-24 bg-gradient-to-b from-slate-50 via-violet-50/50 to-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-4">Pricing</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6">
+            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Pricing</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
               Simple, credit-based pricing
             </h2>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Pay only for what you use. No subscriptions, no hidden fees. Start with 50 free credits.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {/* Free Tier */}
-            <div className="p-8 rounded-2xl bg-slate-900/50 border border-white/10">
-              <h3 className="text-xl font-display font-bold mb-2">Starter</h3>
-              <p className="text-slate-400 text-sm mb-6">Perfect to try things out</p>
-              <p className="text-4xl font-display font-bold mb-6">
+            <div className="p-8 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <h3 className="text-xl font-display font-bold mb-2 text-slate-900">Starter</h3>
+              <p className="text-slate-500 text-sm mb-6">Perfect to try things out</p>
+              <p className="text-4xl font-display font-bold mb-6 text-slate-900">
                 Free
                 <span className="text-sm font-normal text-slate-500 ml-2">forever</span>
               </p>
               <ul className="space-y-3 mb-8">
                 {['50 free credits', '8-second clips', 'HD quality', 'Basic support'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                    <Check className="w-4 h-4 text-emerald-400" />
+                  <li key={i} className="flex items-center gap-3 text-sm text-slate-700">
+                    <Check className="w-4 h-4 text-emerald-500" />
                     {item}
                   </li>
                 ))}
@@ -292,51 +292,51 @@ export default function Landing() {
               <Button 
                 onClick={() => navigate('/auth')}
                 variant="outline" 
-                className="w-full border-slate-700 text-slate-300 hover:bg-white/5"
+                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
               >
                 Get Started
               </Button>
             </div>
 
             {/* Pro Tier */}
-            <div className="relative p-8 rounded-2xl bg-gradient-to-b from-violet-900/50 to-slate-900/50 border border-violet-500/30 shadow-xl shadow-violet-500/10">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-xs font-medium">
+            <div className="relative p-8 rounded-2xl bg-gradient-to-b from-violet-600 to-purple-700 border border-violet-500 shadow-xl shadow-violet-500/20">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-violet-600 text-xs font-medium shadow-md">
                 Most Popular
               </div>
-              <h3 className="text-xl font-display font-bold mb-2">Creator</h3>
-              <p className="text-slate-400 text-sm mb-6">For serious creators</p>
-              <p className="text-4xl font-display font-bold mb-6">
+              <h3 className="text-xl font-display font-bold mb-2 text-white">Creator</h3>
+              <p className="text-violet-200 text-sm mb-6">For serious creators</p>
+              <p className="text-4xl font-display font-bold mb-6 text-white">
                 $12.99
-                <span className="text-sm font-normal text-slate-500 ml-2">150 credits</span>
+                <span className="text-sm font-normal text-violet-200 ml-2">150 credits</span>
               </p>
               <ul className="space-y-3 mb-8">
                 {['150 credits', 'Up to 1-min clips', '4K quality', 'Priority support', 'Commercial license'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                    <Check className="w-4 h-4 text-emerald-400" />
+                  <li key={i} className="flex items-center gap-3 text-sm text-white">
+                    <Check className="w-4 h-4 text-emerald-300" />
                     {item}
                   </li>
                 ))}
               </ul>
               <Button 
                 onClick={() => navigate('/auth')}
-                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 border-0"
+                className="w-full bg-white text-violet-700 hover:bg-slate-100 border-0"
               >
                 Get Started
               </Button>
             </div>
 
             {/* Studio Tier */}
-            <div className="p-8 rounded-2xl bg-slate-900/50 border border-white/10">
-              <h3 className="text-xl font-display font-bold mb-2">Studio</h3>
-              <p className="text-slate-400 text-sm mb-6">For teams & agencies</p>
-              <p className="text-4xl font-display font-bold mb-6">
+            <div className="p-8 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <h3 className="text-xl font-display font-bold mb-2 text-slate-900">Studio</h3>
+              <p className="text-slate-500 text-sm mb-6">For teams & agencies</p>
+              <p className="text-4xl font-display font-bold mb-6 text-slate-900">
                 $49.99
                 <span className="text-sm font-normal text-slate-500 ml-2">750 credits</span>
               </p>
               <ul className="space-y-3 mb-8">
                 {['750 credits', 'Unlimited duration', '4K + HDR', 'Dedicated support', 'API access'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                    <Check className="w-4 h-4 text-emerald-400" />
+                  <li key={i} className="flex items-center gap-3 text-sm text-slate-700">
+                    <Check className="w-4 h-4 text-emerald-500" />
                     {item}
                   </li>
                 ))}
@@ -344,7 +344,7 @@ export default function Landing() {
               <Button 
                 onClick={() => navigate('/auth')}
                 variant="outline" 
-                className="w-full border-slate-700 text-slate-300 hover:bg-white/5"
+                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
               >
                 Get Started
               </Button>
@@ -357,8 +357,8 @@ export default function Landing() {
       <section id="testimonials" className="relative z-10 px-6 lg:px-12 py-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-400 uppercase tracking-wider mb-4">Testimonials</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6">
+            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Testimonials</p>
+            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
               Loved by creators worldwide
             </h2>
           </div>
@@ -367,20 +367,20 @@ export default function Landing() {
             {TESTIMONIALS.map((testimonial, index) => (
               <div
                 key={index}
-                className="p-6 rounded-2xl bg-slate-900/50 border border-white/5"
+                className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm"
               >
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-slate-300 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+                <p className="text-slate-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <p className="font-medium text-white">{testimonial.author}</p>
+                    <p className="font-medium text-slate-900">{testimonial.author}</p>
                     <p className="text-sm text-slate-500">{testimonial.role}</p>
                   </div>
                 </div>
@@ -393,20 +393,20 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="relative z-10 px-6 lg:px-12 py-24">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="relative p-12 rounded-3xl bg-gradient-to-br from-violet-900/50 via-slate-900 to-purple-900/50 border border-violet-500/20 overflow-hidden">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+          <div className="relative p-12 rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 border border-violet-500 overflow-hidden shadow-2xl shadow-violet-500/25">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
             <div className="relative">
-              <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6">
+              <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-white">
                 Ready to create?
               </h2>
-              <p className="text-lg text-slate-400 mb-8 max-w-lg mx-auto">
+              <p className="text-lg text-violet-100 mb-8 max-w-lg mx-auto">
                 Join thousands of creators using AI to bring their visions to life. 
                 Start with 50 free credits today.
               </p>
               <Button
                 onClick={() => navigate('/auth')}
                 size="lg"
-                className="h-14 px-10 text-base bg-white text-slate-900 hover:bg-slate-100 font-medium"
+                className="h-14 px-10 text-base bg-white text-violet-700 hover:bg-slate-100 font-medium"
               >
                 Start Creating for Free
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -417,20 +417,20 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 px-6 lg:px-12 py-12 border-t border-white/5">
+      <footer className="relative z-10 px-6 lg:px-12 py-12 border-t border-slate-200 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
                 <Film className="w-4 h-4 text-white" />
               </div>
-              <span className="font-display font-bold">Apex Studio</span>
+              <span className="font-display font-bold text-slate-900">Apex Studio</span>
             </div>
             
             <div className="flex items-center gap-8 text-sm text-slate-500">
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
+              <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
+              <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
+              <a href="#" className="hover:text-slate-900 transition-colors">Contact</a>
             </div>
 
             <p className="text-sm text-slate-500">

@@ -567,7 +567,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     
     // Calculate clips based on scenes (if available) or script word count
     let numClips: number;
-    let clipDuration = 8;
+    // Use shorter 4s clips for faster generation (can be 4, 6, or 8)
+    let clipDuration = settings.turboMode ? 4 : 6;
     
     if (hasScenes) {
       // Use scenes for generation - each scene becomes a clip
@@ -586,10 +587,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const words = script.split(/\s+/).filter(w => w.trim());
     const wordsPerClip = Math.ceil(words.length / numClips);
     
-    // More accurate time estimates: ~90-180 seconds per clip for Runway
-    const estimatedSecondsPerClip = 120; // 2 minutes avg per clip
+    // Faster estimates with parallel generation: ~60-90 seconds per batch
+    const parallelBatchSize = 3; // Generate 3 clips at a time
+    const estimatedSecondsPerClip = settings.turboMode ? 60 : 90;
+    const numBatches = Math.ceil(numClips / parallelBatchSize);
     const voiceGenerationTime = includeNarration ? 30 : 0;
-    const totalEstimatedSeconds = voiceGenerationTime + (numClips * estimatedSecondsPerClip);
+    const totalEstimatedSeconds = voiceGenerationTime + (numBatches * estimatedSecondsPerClip);
     let generationStartTime = Date.now();
 
     try {
@@ -628,49 +631,26 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         toast.success('Voice narration generated!');
       }
       
-      // Step 2: Generate video clips sequentially
-      const completedClips: string[] = [];
+      // Step 2: Generate video clips in parallel batches
       const baseProgress = includeNarration ? 15 : 5;
-      const progressPerClip = (85 - baseProgress) / numClips;
       
-      toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each) - Est. ${Math.ceil(numClips * estimatedSecondsPerClip / 60)} min`);
+      const parallelMode = numClips > 1;
+      toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)${parallelMode ? ' in parallel' : ''} - Est. ${Math.ceil(totalEstimatedSeconds / 60)} min`);
       await updateProject(projectId, { status: 'rendering' as ProjectStatus });
 
       // Build comprehensive scene consistency description from script
       const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
       
-      // Track actual generation times for better estimates
-      let clipTimesMs: number[] = [];
-
+      // Prepare all clip prompts upfront
+      const clipPrompts: { index: number; prompt: string; sceneTitle?: string }[] = [];
+      
       for (let i = 0; i < numClips; i++) {
-        // Check for cancellation
-        if (cancelRef.current) {
-          throw new Error('Generation cancelled');
-        }
-        
-        const clipStartTime = Date.now();
-        
-        // Calculate remaining time based on actual clip times or estimates
-        const avgClipTime = clipTimesMs.length > 0 
-          ? clipTimesMs.reduce((a, b) => a + b, 0) / clipTimesMs.length / 1000
-          : estimatedSecondsPerClip;
-        const remainingClips = numClips - i;
-        const estimatedRemaining = Math.round(remainingClips * avgClipTime);
-        
-        setGenerationProgress({ 
-          step: 'video', 
-          percent: Math.round(baseProgress + i * progressPerClip), 
-          estimatedSecondsRemaining: estimatedRemaining,
-          currentClip: i + 1,
-          totalClips: numClips
-        });
-
-        // Build video prompt - use scene-based if scenes are available
         let videoPrompt: string;
+        let sceneTitle: string | undefined;
         
         if (hasScenes && settings.scenes[i]) {
-          // Use scene breakdown for precise visual descriptions
           const scene = settings.scenes[i];
+          sceneTitle = scene.title;
           videoPrompt = buildSceneBasedPrompt(
             scene, 
             i, 
@@ -678,91 +658,121 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             settings.visualStyle, 
             settings.characters
           );
-          toast.info(`Scene ${i + 1}: "${scene.title}" generating...`);
         } else {
-          // Fall back to word-based prompt building
           const clipStartWord = i * wordsPerClip;
           const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
           const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
           videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
         }
         
-        // Start video generation
-        const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-          body: { prompt: videoPrompt, duration: clipDuration },
-        });
-
-        if (videoError || !videoData?.success) {
-          throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${i + 1}`);
+        clipPrompts.push({ index: i, prompt: videoPrompt, sceneTitle });
+      }
+      
+      // Generate clips in parallel batches for speed
+      const completedClips: (string | null)[] = new Array(numClips).fill(null);
+      let completedCount = 0;
+      
+      // Process in batches of parallelBatchSize
+      for (let batchStart = 0; batchStart < numClips; batchStart += parallelBatchSize) {
+        if (cancelRef.current) {
+          throw new Error('Generation cancelled');
         }
-
-        toast.info(`Clip ${i + 1}/${numClips} generating...`);
         
-        // Poll for this clip's completion
-        const taskId = videoData.taskId;
-        let clipUrl: string | null = null;
-        let pollAttempts = 0;
-        const maxPolls = 60; // 5 minutes max per clip
-
-        while (!clipUrl && pollAttempts < maxPolls) {
-          // Check for cancellation
-          if (cancelRef.current) {
-            throw new Error('Generation cancelled');
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          pollAttempts++;
-          
-          // Calculate time estimates based on actual elapsed time and averages
-          const elapsedClipTime = (Date.now() - clipStartTime) / 1000;
-          const avgClipTime = clipTimesMs.length > 0 
-            ? clipTimesMs.reduce((a, b) => a + b, 0) / clipTimesMs.length / 1000
-            : estimatedSecondsPerClip;
-          const remainingClips = numClips - i - 1;
-          const estimatedRemainingForCurrentClip = Math.max(0, avgClipTime - elapsedClipTime);
-          const estimatedRemaining = Math.round(estimatedRemainingForCurrentClip + remainingClips * avgClipTime);
-          
-          const pollProgress = baseProgress + i * progressPerClip + (progressPerClip * 0.8 * pollAttempts / maxPolls);
-          setGenerationProgress({ 
-            step: 'polling', 
-            percent: Math.round(pollProgress), 
-            estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
-            currentClip: i + 1,
-            totalClips: numClips
+        const batchEnd = Math.min(batchStart + parallelBatchSize, numClips);
+        const batchClips = clipPrompts.slice(batchStart, batchEnd);
+        const batchNumber = Math.floor(batchStart / parallelBatchSize) + 1;
+        const totalBatches = Math.ceil(numClips / parallelBatchSize);
+        
+        toast.info(`Starting batch ${batchNumber}/${totalBatches} (clips ${batchStart + 1}-${batchEnd})`);
+        
+        // Start all clips in this batch simultaneously
+        const batchPromises = batchClips.map(async (clip) => {
+          const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+            body: { prompt: clip.prompt, duration: clipDuration },
           });
-
-          const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
-            body: { taskId },
-          });
-
-          if (statusError) {
-            console.error('Status check error:', statusError);
-            continue;
+          
+          if (videoError || !videoData?.success) {
+            throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`);
           }
-
-          if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
-            clipUrl = statusData.videoUrl;
-            completedClips.push(clipUrl);
-            // Track actual clip generation time
-            clipTimesMs.push(Date.now() - clipStartTime);
-            // Save to database after each clip completes
-            await updateProject(projectId, { video_clips: [...completedClips] });
-            toast.success(`Clip ${i + 1}/${numClips} complete!`);
-          } else if (statusData?.status === 'FAILED') {
-            throw new Error(statusData.error || `Clip ${i + 1} generation failed`);
+          
+          return { index: clip.index, taskId: videoData.taskId, sceneTitle: clip.sceneTitle };
+        });
+        
+        const startedClips = await Promise.all(batchPromises);
+        
+        // Poll all clips in this batch in parallel
+        const pollPromises = startedClips.map(async ({ index, taskId, sceneTitle }) => {
+          let clipUrl: string | null = null;
+          let pollAttempts = 0;
+          const maxPolls = 60; // 5 minutes max per clip
+          
+          while (!clipUrl && pollAttempts < maxPolls) {
+            if (cancelRef.current) {
+              throw new Error('Generation cancelled');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            pollAttempts++;
+            
+            const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+              body: { taskId },
+            });
+            
+            if (statusError) {
+              console.error('Status check error:', statusError);
+              continue;
+            }
+            
+            if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
+              clipUrl = statusData.videoUrl;
+              completedClips[index] = clipUrl;
+              completedCount++;
+              
+              // Update progress
+              const percent = Math.round(baseProgress + (completedCount / numClips) * (85 - baseProgress));
+              const remainingBatches = totalBatches - batchNumber;
+              const estimatedRemaining = Math.round(remainingBatches * estimatedSecondsPerClip);
+              
+              setGenerationProgress({ 
+                step: 'polling', 
+                percent, 
+                estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
+                currentClip: completedCount,
+                totalClips: numClips
+              });
+              
+              toast.success(`Clip ${index + 1}/${numClips}${sceneTitle ? ` "${sceneTitle}"` : ''} complete!`);
+            } else if (statusData?.status === 'FAILED') {
+              throw new Error(statusData.error || `Clip ${index + 1} generation failed`);
+            }
           }
-        }
-
-        if (!clipUrl) {
-          throw new Error(`Clip ${i + 1} timed out`);
-        }
+          
+          if (!clipUrl) {
+            throw new Error(`Clip ${index + 1} timed out`);
+          }
+          
+          return { index, clipUrl };
+        });
+        
+        // Wait for all clips in this batch to complete
+        await Promise.all(pollPromises);
+        
+        // Save progress after each batch
+        const validClips = completedClips.filter((c): c is string => c !== null);
+        await updateProject(projectId, { video_clips: validClips });
+      }
+      
+      // Verify all clips completed
+      const finalClips = completedClips.filter((c): c is string => c !== null);
+      if (finalClips.length !== numClips) {
+        throw new Error(`Only ${finalClips.length}/${numClips} clips completed`);
       }
 
       // All clips complete - save final state to database
       await updateProject(projectId, {
         status: 'completed' as ProjectStatus,
-        video_url: completedClips[0], // First clip as primary
-        video_clips: completedClips,
+        video_url: finalClips[0], // First clip as primary
+        video_clips: finalClips,
         duration_seconds: numClips * clipDuration,
         credits_used: numClips * clipDuration * 10,
       });

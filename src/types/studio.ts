@@ -74,6 +74,7 @@ export interface StudioSettings {
   visualStyle: VisualStylePreset;
   characters: CharacterProfile[];
   scenes: SceneBreakdown[];
+  turboMode?: boolean; // Faster generation with shorter clips
 }
 
 export const VISUAL_STYLE_PRESETS = [

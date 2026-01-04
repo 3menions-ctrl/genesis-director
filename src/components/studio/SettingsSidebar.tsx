@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { 
   Sparkles, Sun, TreePine, BookOpen, Layers, ChevronRight,
-  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users, Clapperboard
+  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users, Clapperboard, Rocket
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -378,6 +379,32 @@ export function SettingsSidebar({ settings, onSettingsChange, script }: Settings
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Turbo Mode Section */}
+        <div className="px-6 py-4 border-t border-border/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/10">
+                <Rocket className="w-4 h-4 text-orange-400" />
+              </div>
+              <div className="text-left">
+                <span className="font-medium text-sm text-foreground" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Turbo Mode</span>
+                <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  {settings.turboMode ? '4s clips, faster' : '6s clips, standard'}
+                </p>
+              </div>
+            </div>
+            <Switch 
+              checked={settings.turboMode || false}
+              onCheckedChange={(checked) => onSettingsChange({ turboMode: checked })}
+            />
+          </div>
+          {settings.turboMode && (
+            <p className="text-[10px] text-orange-400/80 mt-2 pl-12">
+              ⚡ Parallel generation enabled - up to 3x faster
+            </p>
+          )}
+        </div>
 
         {/* Wildlife Section */}
         <Collapsible open={openSections.includes('wildlife')} onOpenChange={() => toggleSection('wildlife')}>

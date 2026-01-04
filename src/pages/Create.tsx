@@ -81,6 +81,8 @@ export default function Create() {
           name: data.title,
           script_content: scriptData.script,
           status: 'idle',
+          include_narration: data.includeNarration,
+          target_duration_minutes: data.targetDurationMinutes,
         });
       }
 
@@ -162,6 +164,7 @@ export default function Create() {
       characters: [],
       synopsis: `Continuation of "${project.title}"`,
       parentProjectId: project.id,
+      includeNarration: true,
     });
     setShowHistory(false);
   };

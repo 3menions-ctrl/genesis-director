@@ -455,16 +455,16 @@ export type Database = {
     }
     Enums: {
       movie_genre:
-        | "action"
-        | "drama"
-        | "comedy"
-        | "thriller"
-        | "scifi"
-        | "fantasy"
-        | "romance"
-        | "horror"
+        | "ad"
+        | "educational"
         | "documentary"
-        | "adventure"
+        | "cinematic"
+        | "funny"
+        | "religious"
+        | "motivational"
+        | "storytelling"
+        | "explainer"
+        | "vlog"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -599,16 +599,16 @@ export const Constants = {
   public: {
     Enums: {
       movie_genre: [
-        "action",
-        "drama",
-        "comedy",
-        "thriller",
-        "scifi",
-        "fantasy",
-        "romance",
-        "horror",
+        "ad",
+        "educational",
         "documentary",
-        "adventure",
+        "cinematic",
+        "funny",
+        "religious",
+        "motivational",
+        "storytelling",
+        "explainer",
+        "vlog",
       ],
       story_structure: [
         "three_act",

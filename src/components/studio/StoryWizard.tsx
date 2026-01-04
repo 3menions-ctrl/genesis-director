@@ -72,7 +72,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [data, setData] = useState<StoryWizardData>({
     title: initialData?.title || '',
-    genre: initialData?.genre || 'drama',
+    genre: initialData?.genre || 'cinematic',
     storyStructure: initialData?.storyStructure || 'three_act',
     targetDurationMinutes: initialData?.targetDurationMinutes || 8 / 60, // Default to 8 seconds
     setting: initialData?.setting || '',
@@ -193,9 +193,9 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
               />
             </div>
 
-            {/* Genre */}
+            {/* Video Type */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">Choose Your Genre</label>
+              <label className="text-sm font-semibold text-foreground">Video Type</label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {GENRE_OPTIONS.map((genre) => (
                   <button

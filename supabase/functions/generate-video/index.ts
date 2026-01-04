@@ -10,11 +10,11 @@ interface SceneContext {
   clipIndex: number;
   totalClips: number;
   sceneTitle?: string;
-  globalEnvironment?: string; // Consistent environment description across all clips
-  globalCharacters?: string; // Character descriptions to maintain across clips
-  previousClipSummary?: string; // Brief description of previous clip for continuity
-  colorPalette?: string; // Consistent color grading
-  lightingStyle?: string; // Consistent lighting
+  globalEnvironment?: string;
+  globalCharacters?: string;
+  previousClipSummary?: string;
+  colorPalette?: string;
+  lightingStyle?: string;
 }
 
 // Build enhanced prompt with scene consistency
@@ -26,22 +26,18 @@ function buildConsistentPrompt(
 
   const consistencyParts: string[] = [];
   
-  // Add global environment context for continuity
   if (context.globalEnvironment) {
     consistencyParts.push(`[ENVIRONMENT: ${context.globalEnvironment}]`);
   }
   
-  // Add character consistency requirements
   if (context.globalCharacters) {
     consistencyParts.push(`[CHARACTERS - MUST MATCH EXACTLY: ${context.globalCharacters}]`);
   }
   
-  // Add previous clip context for seamless transitions
   if (context.previousClipSummary && context.clipIndex > 0) {
     consistencyParts.push(`[CONTINUATION FROM: ${context.previousClipSummary}]`);
   }
   
-  // Add color and lighting consistency
   if (context.colorPalette) {
     consistencyParts.push(`[COLOR PALETTE: ${context.colorPalette}]`);
   }
@@ -49,27 +45,22 @@ function buildConsistentPrompt(
     consistencyParts.push(`[LIGHTING: ${context.lightingStyle}]`);
   }
   
-  // Add clip position context for proper pacing
   let positionHint = '';
   if (context.clipIndex === 0) {
-    positionHint = '[OPENING SHOT: Establish setting and tone, fade in from black]';
+    positionHint = '[OPENING SHOT: Establish setting and tone]';
   } else if (context.clipIndex === context.totalClips - 1) {
     positionHint = '[FINAL SHOT: Conclusive framing, sense of resolution]';
   } else {
-    positionHint = `[CLIP ${context.clipIndex + 1}/${context.totalClips}: Seamless continuation, match previous lighting/color]`;
+    positionHint = `[CLIP ${context.clipIndex + 1}/${context.totalClips}: Seamless continuation]`;
   }
   consistencyParts.push(positionHint);
   
-  // Add universal consistency instructions
-  consistencyParts.push('[CRITICAL: Maintain exact visual consistency - same characters, same environment, same lighting direction, same color temperature]');
+  consistencyParts.push('[CRITICAL: Maintain exact visual consistency]');
   
-  // Combine context with base prompt
   const consistencyPrefix = consistencyParts.join(' ');
   const combinedPrompt = `${consistencyPrefix} ${basePrompt}`;
   
-  // Runway has 1000 char limit - prioritize consistency context over long descriptions
   if (combinedPrompt.length > 1000) {
-    // Truncate base prompt to fit, keeping consistency context intact
     const maxBaseLength = 1000 - consistencyPrefix.length - 10;
     return `${consistencyPrefix} ${basePrompt.slice(0, maxBaseLength)}...`;
   }
@@ -83,39 +74,61 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, duration = 8, sceneContext } = await req.json();
-    // Duration must be exactly 4, 6, or 8
+    const { prompt, duration = 8, sceneContext, referenceImageUrl } = await req.json();
     const validDuration = [4, 6, 8].includes(Number(duration)) ? Number(duration) : 8;
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
 
-    // Build enhanced prompt with scene consistency
     const enhancedPrompt = buildConsistentPrompt(prompt, sceneContext);
+    const isImageToVideo = !!referenceImageUrl;
 
-    console.log("Generating video for prompt:", enhancedPrompt);
-    console.log("Scene context:", sceneContext ? JSON.stringify(sceneContext) : "none");
+    console.log("Generating video:", {
+      mode: isImageToVideo ? "image-to-video" : "text-to-video",
+      promptLength: enhancedPrompt.length,
+      duration: validDuration,
+      hasReferenceImage: isImageToVideo,
+    });
 
     const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
     if (!RUNWAY_API_KEY) {
       throw new Error("RUNWAY_API_KEY is not configured");
     }
 
-    // Start video generation task
-    const createResponse = await fetch("https://api.dev.runwayml.com/v1/text_to_video", {
+    let requestBody: Record<string, unknown>;
+    let endpoint: string;
+
+    if (isImageToVideo) {
+      // Image-to-video mode: use reference image as first frame
+      endpoint = "https://api.dev.runwayml.com/v1/image_to_video";
+      requestBody = {
+        model: "gen4_turbo",
+        promptImage: referenceImageUrl,
+        promptText: enhancedPrompt.slice(0, 512), // Shorter prompt for image-to-video
+        duration: validDuration,
+        ratio: "1920:1080",
+      };
+      console.log("Using image-to-video with reference:", referenceImageUrl.slice(0, 100) + "...");
+    } else {
+      // Text-to-video mode
+      endpoint = "https://api.dev.runwayml.com/v1/text_to_video";
+      requestBody = {
+        model: "veo3.1_fast",
+        promptText: enhancedPrompt,
+        duration: validDuration,
+        ratio: "1920:1080",
+      };
+    }
+
+    const createResponse = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
         "Content-Type": "application/json",
         "X-Runway-Version": "2024-11-06",
       },
-      body: JSON.stringify({
-        model: "veo3.1_fast",
-        promptText: enhancedPrompt,
-        duration: validDuration,
-        ratio: "1920:1080",
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!createResponse.ok) {
@@ -141,13 +154,14 @@ serve(async (req) => {
     const taskData = await createResponse.json();
     const taskId = taskData.id;
     
-    console.log("Video task created:", taskId);
+    console.log("Video task created:", taskId, "mode:", isImageToVideo ? "image-to-video" : "text-to-video");
 
     return new Response(
       JSON.stringify({ 
         success: true,
         taskId,
         status: "PENDING",
+        mode: isImageToVideo ? "image-to-video" : "text-to-video",
         message: "Video generation started. Poll the status endpoint for updates.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

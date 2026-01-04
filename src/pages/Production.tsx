@@ -3,7 +3,7 @@ import {
   Play, RotateCcw, ArrowLeft, Sparkles, 
   Download, Film, Clock, Wand2, ChevronRight,
   Video, CheckCircle2, Rocket, Zap,
-  FileText, Share2, ExternalLink, Eye, Layers
+  FileText, Share2, ExternalLink, Eye, Layers, Image
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { useStudio } from '@/contexts/StudioContext';
 import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { GenerationProgressModal } from '@/components/studio/GenerationProgressModal';
 import { SceneBreakdown } from '@/components/studio/SceneBreakdown';
+import { SceneImagePreview } from '@/components/studio/SceneImagePreview';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
@@ -22,7 +23,14 @@ export default function Production() {
     generatePreview, 
     cancelGeneration, 
     isGenerating, 
-    generationProgress, 
+    generationProgress,
+    imageGenerationProgress,
+    settings,
+    generateSceneImages,
+    approveSceneImage,
+    rejectSceneImage,
+    regenerateSceneImage,
+    approveAllSceneImages,
     credits, 
     isLoading 
   } = useStudio();
@@ -450,6 +458,24 @@ export default function Production() {
                 />
               </div>
             </div>
+
+            {/* Scene Reference Images - Image-First Workflow */}
+            {settings.scenes.length > 0 && (
+              <div className="animate-fade-in" style={{ animationDelay: '110ms' }}>
+                <SceneImagePreview
+                  scenes={settings.scenes}
+                  sceneImages={settings.sceneImages}
+                  isGenerating={imageGenerationProgress.isGenerating}
+                  generationProgress={imageGenerationProgress.progress}
+                  onApprove={approveSceneImage}
+                  onReject={rejectSceneImage}
+                  onRegenerate={regenerateSceneImage}
+                  onApproveAll={approveAllSceneImages}
+                  onGenerateImages={generateSceneImages}
+                  onProceedToVideo={handleGenerate}
+                />
+              </div>
+            )}
 
             {/* Script Preview Card */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '125ms' }}>

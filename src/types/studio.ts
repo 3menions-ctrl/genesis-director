@@ -64,6 +64,14 @@ export interface SceneBreakdown {
   mood: string;
 }
 
+export interface SceneImage {
+  sceneNumber: number;
+  imageUrl: string;
+  prompt: string;
+  approved?: boolean;
+  regenerating?: boolean;
+}
+
 export interface StudioSettings {
   lighting: 'natural' | 'studio' | 'dramatic' | 'soft';
   lightingIntensity: number;
@@ -74,7 +82,9 @@ export interface StudioSettings {
   visualStyle: VisualStylePreset;
   characters: CharacterProfile[];
   scenes: SceneBreakdown[];
+  sceneImages: SceneImage[]; // Reference images for each scene
   turboMode?: boolean; // Faster generation with shorter clips
+  useImageToVideo?: boolean; // Use reference images for video generation
 }
 
 export const VISUAL_STYLE_PRESETS = [

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown, SceneImage } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -321,16 +321,24 @@ export const DURATION_CREDIT_COSTS = {
   60: 7000,
 } as const;
 
+interface ImageGenerationProgress {
+  isGenerating: boolean;
+  progress: number;
+  currentScene: number;
+  totalScenes: number;
+}
+
 interface StudioContextType {
   projects: Project[];
   activeProjectId: string | null;
   activeProject: Project | null;
-  activeGenerationProjectId: string | null; // Track which project is currently generating
+  activeGenerationProjectId: string | null;
   credits: UserCredits;
   layers: AssetLayer[];
   settings: StudioSettings;
   isGenerating: boolean;
   generationProgress: GenerationProgress;
+  imageGenerationProgress: ImageGenerationProgress;
   selectedDurationSeconds: number;
   isLoading: boolean;
   setActiveProjectId: (id: string) => void;
@@ -340,6 +348,11 @@ interface StudioContextType {
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   updateSettings: (settings: Partial<StudioSettings>) => void;
   generatePreview: () => Promise<void>;
+  generateSceneImages: () => Promise<void>;
+  approveSceneImage: (sceneNumber: number) => void;
+  rejectSceneImage: (sceneNumber: number) => void;
+  regenerateSceneImage: (sceneNumber: number) => Promise<void>;
+  approveAllSceneImages: () => void;
   cancelGeneration: () => void;
   exportVideo: () => void;
   buyCredits: () => void;
@@ -456,6 +469,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     visualStyle: 'cinematic',
     characters: [],
     scenes: [],
+    sceneImages: [],
+    useImageToVideo: true,
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
@@ -820,6 +835,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         index: number;
         prompt: string;
         sceneTitle?: string;
+        referenceImageUrl?: string; // Reference image for image-to-video
         sceneContext: {
           clipIndex: number;
           totalClips: number;
@@ -834,10 +850,30 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       
       const clipPrompts: ClipPromptData[] = [];
       
+      // Check if we have approved scene images for image-to-video mode
+      const hasApprovedImages = settings.useImageToVideo && 
+        settings.sceneImages.length > 0 && 
+        settings.sceneImages.every(img => img.approved);
+      
+      if (hasApprovedImages) {
+        toast.info('Using reference images for video generation (image-to-video mode)');
+      }
+      
       for (let i = 0; i < numClips; i++) {
         let videoPrompt: string;
         let sceneTitle: string | undefined;
         let previousClipSummary: string | undefined;
+        let referenceImageUrl: string | undefined;
+        
+        // Get reference image for this scene if available and approved
+        if (hasApprovedImages && hasScenes && settings.scenes[i]) {
+          const sceneImage = settings.sceneImages.find(
+            img => img.sceneNumber === settings.scenes[i].sceneNumber && img.approved
+          );
+          if (sceneImage) {
+            referenceImageUrl = sceneImage.imageUrl;
+          }
+        }
         
         // Get previous clip summary for continuity
         if (i > 0 && hasScenes && settings.scenes[i - 1]) {
@@ -870,6 +906,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           index: i, 
           prompt: videoPrompt, 
           sceneTitle,
+          referenceImageUrl,
           sceneContext: {
             clipIndex: i,
             totalClips: numClips,
@@ -916,12 +953,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
               }
               
-              // Start video generation with scene context for consistency
+              // Start video generation with scene context and optional reference image
               const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
                 body: { 
                   prompt: clip.prompt, 
                   duration: clipDuration,
-                  sceneContext: clip.sceneContext, // Pass scene context for API-side consistency enhancement
+                  sceneContext: clip.sceneContext,
+                  referenceImageUrl: clip.referenceImageUrl, // For image-to-video mode
                 },
               });
               
@@ -1122,12 +1160,165 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Image generation state
+  const [imageGenerationProgress, setImageGenerationProgress] = useState<ImageGenerationProgress>({
+    isGenerating: false,
+    progress: 0,
+    currentScene: 0,
+    totalScenes: 0,
+  });
+
+  // Generate reference images for all scenes
+  const generateSceneImages = async () => {
+    if (!activeProject?.script_content || settings.scenes.length === 0) {
+      toast.error('Please extract scenes first before generating images');
+      return;
+    }
+
+    setImageGenerationProgress({
+      isGenerating: true,
+      progress: 0,
+      currentScene: 0,
+      totalScenes: settings.scenes.length,
+    });
+
+    try {
+      const stylePreset = VISUAL_STYLE_PRESETS.find(s => s.id === settings.visualStyle);
+      const globalStyle = stylePreset?.prompt || '';
+      const globalCharacters = settings.characters?.map(c => `${c.name}: ${c.appearance}`).join('; ') || '';
+      const globalEnvironment = extractSceneElements(activeProject.script_content || '');
+
+      toast.info(`Generating ${settings.scenes.length} scene reference images...`);
+
+      const { data, error } = await supabase.functions.invoke('generate-scene-images', {
+        body: {
+          scenes: settings.scenes.map(s => ({
+            sceneNumber: s.sceneNumber,
+            title: s.title,
+            visualDescription: s.visualDescription,
+            characters: s.characters,
+            mood: s.mood,
+          })),
+          projectId: activeProject.id,
+          globalStyle,
+          globalCharacters,
+          globalEnvironment,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.images) {
+        const newSceneImages: SceneImage[] = data.images.map((img: any) => ({
+          sceneNumber: img.sceneNumber,
+          imageUrl: img.imageUrl,
+          prompt: img.prompt,
+          approved: false,
+          regenerating: false,
+        }));
+
+        updateSettings({ sceneImages: newSceneImages });
+        toast.success(`Generated ${newSceneImages.length} reference images!`);
+      } else {
+        throw new Error(data?.error || 'Failed to generate images');
+      }
+    } catch (err) {
+      console.error('Image generation error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to generate scene images');
+    } finally {
+      setImageGenerationProgress({
+        isGenerating: false,
+        progress: 100,
+        currentScene: settings.scenes.length,
+        totalScenes: settings.scenes.length,
+      });
+    }
+  };
+
+  // Approve a single scene image
+  const approveSceneImage = (sceneNumber: number) => {
+    updateSettings({
+      sceneImages: settings.sceneImages.map(img =>
+        img.sceneNumber === sceneNumber ? { ...img, approved: true } : img
+      ),
+    });
+  };
+
+  // Reject (unapprove) a scene image
+  const rejectSceneImage = (sceneNumber: number) => {
+    updateSettings({
+      sceneImages: settings.sceneImages.map(img =>
+        img.sceneNumber === sceneNumber ? { ...img, approved: false } : img
+      ),
+    });
+  };
+
+  // Regenerate a single scene image
+  const regenerateSceneImage = async (sceneNumber: number) => {
+    const scene = settings.scenes.find(s => s.sceneNumber === sceneNumber);
+    if (!scene || !activeProject) return;
+
+    updateSettings({
+      sceneImages: settings.sceneImages.map(img =>
+        img.sceneNumber === sceneNumber ? { ...img, regenerating: true } : img
+      ),
+    });
+
+    try {
+      const stylePreset = VISUAL_STYLE_PRESETS.find(s => s.id === settings.visualStyle);
+      const globalStyle = stylePreset?.prompt || '';
+
+      const { data, error } = await supabase.functions.invoke('generate-scene-images', {
+        body: {
+          scenes: [{
+            sceneNumber: scene.sceneNumber,
+            title: scene.title,
+            visualDescription: scene.visualDescription,
+            characters: scene.characters,
+            mood: scene.mood,
+          }],
+          projectId: activeProject.id,
+          globalStyle,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.images?.[0]) {
+        const newImage = data.images[0];
+        updateSettings({
+          sceneImages: settings.sceneImages.map(img =>
+            img.sceneNumber === sceneNumber
+              ? { ...img, imageUrl: newImage.imageUrl, prompt: newImage.prompt, approved: false, regenerating: false }
+              : img
+          ),
+        });
+        toast.success(`Scene ${sceneNumber} image regenerated!`);
+      }
+    } catch (err) {
+      console.error('Regenerate error:', err);
+      toast.error('Failed to regenerate image');
+      updateSettings({
+        sceneImages: settings.sceneImages.map(img =>
+          img.sceneNumber === sceneNumber ? { ...img, regenerating: false } : img
+        ),
+      });
+    }
+  };
+
+  // Approve all scene images
+  const approveAllSceneImages = () => {
+    updateSettings({
+      sceneImages: settings.sceneImages.map(img => ({ ...img, approved: true })),
+    });
+    toast.success('All scene images approved!');
+  };
+
   const exportVideo = () => {
     toast.success('Exporting 4K MP4 with commercial license metadata...');
   };
 
   const buyCredits = () => {
-    // This will be handled by the BuyCreditsModal in the Profile page
     toast.info('Visit your profile to purchase more credits');
   };
 
@@ -1156,7 +1347,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // Call the database function to deduct credits
       const { data, error } = await supabase.rpc('deduct_credits', {
         p_user_id: user.id,
         p_amount: required,
@@ -1172,14 +1362,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      // Update local state
       setCredits(prev => ({
         ...prev,
         used: prev.used + required,
         remaining: prev.remaining - required,
       }));
 
-      // Refresh profile to get updated credits
       refreshProfile();
       
       toast.success(`${required.toLocaleString()} credits deducted for ${durationSeconds}s video`);
@@ -1203,6 +1391,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         settings,
         isGenerating,
         generationProgress,
+        imageGenerationProgress,
         selectedDurationSeconds,
         isLoading,
         setActiveProjectId,
@@ -1212,6 +1401,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         updateProject,
         updateSettings,
         generatePreview,
+        generateSceneImages,
+        approveSceneImage,
+        rejectSceneImage,
+        regenerateSceneImage,
+        approveAllSceneImages,
         cancelGeneration,
         exportVideo,
         buyCredits,

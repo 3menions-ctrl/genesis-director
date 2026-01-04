@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   Plus, Clock, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  ArrowRight, Sparkles, TrendingUp, Zap, X, Download, ExternalLink,
-  Pause, Volume2, VolumeX, Maximize2
+  ArrowRight, Sparkles, Zap, X, Download, ExternalLink,
+  Layers, Video, Wand2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +16,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { useStudio } from '@/contexts/StudioContext';
 import { cn } from '@/lib/utils';
@@ -97,315 +95,352 @@ export default function Projects() {
     return [];
   };
 
+  const completedCount = projects.filter(p => p.status === 'completed').length;
+  const inProgressCount = projects.filter(p => p.status === 'generating' || p.status === 'rendering').length;
+
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto pt-4">
-      {/* Header */}
-      <div className="mb-10 animate-fade-in-up">
-        <div className="flex items-start justify-between gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="icon-box p-2.5">
-                <Sparkles className="w-5 h-5 text-white" />
+    <div className="min-h-full">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        
+        <div className="relative px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            {/* Title Section */}
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <Video className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">AI Video Studio</span>
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-violet-600 bg-violet-50 px-3 py-1 rounded-full flex items-center gap-1.5">
-                <TrendingUp className="w-3 h-3" />
-                {projects.filter(p => p.status === 'completed').length} videos ready
-              </span>
+              
+              <div>
+                <h1 className="text-4xl lg:text-5xl font-display font-bold text-foreground tracking-tight">
+                  Your Projects
+                </h1>
+                <p className="text-muted-foreground mt-2 text-lg max-w-lg">
+                  Create, manage, and export stunning AI-generated videos
+                </p>
+              </div>
+
+              {/* Stats Pills */}
+              <div className="flex items-center gap-3 pt-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background border border-border">
+                  <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">{projects.length} projects</span>
+                </div>
+                {completedCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+                    <Sparkles className="w-3.5 h-3.5 text-success" />
+                    <span className="text-sm font-medium text-success">{completedCount} ready</span>
+                  </div>
+                )}
+                {inProgressCount > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/10 border border-warning/20">
+                    <Zap className="w-3.5 h-3.5 text-warning animate-pulse" />
+                    <span className="text-sm font-medium text-warning">{inProgressCount} processing</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl lg:text-4xl font-display font-bold text-gray-900">
-                Your <span className="text-gradient">Projects</span>
-              </h1>
-              <p className="text-gray-500 mt-1 max-w-xl">
-                Create stunning AI-powered videos in minutes with our next-gen studio
-              </p>
-            </div>
+            
+            {/* Create Button */}
+            <Button 
+              onClick={handleCreateProject}
+              size="lg"
+              className="gap-2.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              New Project
+            </Button>
           </div>
-          
-          <Button 
-            onClick={handleCreateProject} 
-            className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            New Project
-          </Button>
         </div>
       </div>
 
-      {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in-up">
-          <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mb-6">
-            <Film className="w-10 h-10 text-gray-400" />
-          </div>
-          <h2 className="text-2xl font-display font-bold text-gray-900 mb-2">No projects yet</h2>
-          <p className="text-gray-500 mb-8 max-w-md">
-            Create your first AI video project and bring your ideas to life
-          </p>
-          <Button 
-            onClick={handleCreateProject} 
-            className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25"
-          >
-            <Zap className="w-4 h-4" />
-            Create Your First Project
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {projects.map((project, index) => {
-            const hasVideo = project.status === 'completed' && (project.video_clips?.length || project.video_url);
-            const videoClips = getVideoClips(project);
-            
-            return (
-              <div
-                key={project.id}
-                onClick={() => handleSelectProject(project.id)}
-                className={cn(
-                  "group relative card-clean cursor-pointer animate-fade-in-up overflow-hidden",
-                  activeProjectId === project.id && "ring-2 ring-violet-500/40 border-violet-200"
-                )}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                {/* Thumbnail */}
-                <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50 rounded-t-2xl">
-                  {/* Priority: thumbnail_url > video preview > placeholder */}
-                  {project.thumbnail_url ? (
-                    <img
-                      src={project.thumbnail_url}
-                      alt={project.name}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : hasVideo && videoClips[0] ? (
-                    // Video preview thumbnail
-                    <video
-                      src={videoClips[0]}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      muted
-                      playsInline
-                      preload="metadata"
-                      onMouseEnter={(e) => e.currentTarget.play()}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.pause();
-                        e.currentTarget.currentTime = 0;
-                      }}
-                    />
-                  ) : (
-                    // Placeholder with gradient background
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className={cn(
-                          "w-14 h-14 rounded-xl flex items-center justify-center transition-all backdrop-blur-sm",
-                          project.status === 'generating' || project.status === 'rendering'
-                            ? "bg-white/80"
-                            : "bg-white/60 group-hover:bg-white/80"
-                        )}>
-                          {project.status === 'generating' || project.status === 'rendering' ? (
-                            <div className="w-6 h-6 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
-                          ) : (
-                            <Film className="w-6 h-6 text-violet-400 group-hover:text-violet-600 transition-colors" />
-                          )}
-                        </div>
-                      </div>
-                      {/* Decorative elements */}
-                      <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-violet-200/30 blur-xl" />
-                      <div className="absolute bottom-4 right-4 w-20 h-20 rounded-full bg-purple-200/30 blur-xl" />
-                    </div>
-                  )}
-
-                  {/* Status Badge */}
-                  <div className="absolute top-3 left-3 z-10">
-                    <span className={cn(
-                      "text-xs font-medium px-2.5 py-1 rounded-full capitalize",
-                      project.status === 'idle' && "bg-gray-100 text-gray-600",
-                      project.status === 'generating' && "bg-violet-100 text-violet-700",
-                      project.status === 'rendering' && "bg-amber-100 text-amber-700",
-                      project.status === 'completed' && "bg-emerald-100 text-emerald-700"
-                    )}>
-                      {project.status === 'completed' ? 'Ready' : project.status}
-                    </span>
-                  </div>
-
-                  {/* Clip count */}
-                  {hasVideo && videoClips.length > 1 && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="text-xs font-medium bg-black/60 text-white px-2 py-1 rounded-md backdrop-blur-sm">
-                        {videoClips.length} clips
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Duration */}
-                  {project.duration_seconds && (
-                    <div className="absolute bottom-3 right-3 z-10">
-                      <span className="text-xs font-mono bg-black/60 text-white px-2 py-1 rounded-md backdrop-blur-sm">
-                        {Math.floor(project.duration_seconds / 60)}:{String(project.duration_seconds % 60).padStart(2, '0')}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-3">
-                    {hasVideo ? (
-                      <>
-                        <Button 
-                          onClick={(e) => handlePlayVideo(project, e)}
-                          size="lg"
-                          className="gap-2 bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
-                        >
-                          <Play className="w-5 h-5" fill="currentColor" />
-                          Watch
-                        </Button>
-                        <Button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenProject(project.id);
-                          }}
-                          variant="outline"
-                          size="lg"
-                          className="gap-2 bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Edit
-                        </Button>
-                      </>
-                    ) : (
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenProject(project.id);
-                        }}
-                        className="gap-2 bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
-                      >
-                        Open Project
-                        <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate mb-1.5 group-hover:text-violet-700 transition-colors">
-                        {project.name}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{formatDate(project.updated_at)}</span>
-                        </div>
-                        {project.credits_used && (
-                          <div className="flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>{project.credits_used.toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-xl p-1.5 z-50">
-                        {hasVideo && (
-                          <>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlayVideo(project, e as any);
-                              }}
-                              className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                            >
-                              <Play className="w-4 h-4" />
-                              Watch Video
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadAll(project);
-                              }}
-                              className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                            >
-                              <Download className="w-4 h-4" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-gray-100" />
-                          </>
-                        )}
-                        <DropdownMenuItem 
-                          onClick={() => handleOpenProject(project.id)} 
-                          className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 py-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                          <Copy className="w-4 h-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-gray-100" />
-                        <DropdownMenuItem
-                          className="gap-2 py-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteProject(project.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-
-                {/* Active indicator */}
-                {activeProjectId === project.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500 rounded-b-2xl" />
-                )}
+      {/* Content */}
+      <div className="px-6 lg:px-8 pb-12 max-w-7xl mx-auto">
+        {projects.length === 0 ? (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-primary/20 rounded-3xl blur-2xl scale-150" />
+              <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Film className="w-12 h-12 text-white" />
               </div>
-            );
-          })}
-
-          {/* New Project Card */}
-          <button
-            onClick={handleCreateProject}
-            className={cn(
-              "group rounded-2xl border-2 border-dashed transition-all duration-300",
-              "border-gray-200 hover:border-violet-300",
-              "bg-transparent hover:bg-violet-50/50",
-              "flex flex-col items-center justify-center p-10 min-h-[280px]",
-              "animate-fade-in-up"
-            )}
-            style={{ animationDelay: `${projects.length * 50}ms` }}
-          >
-            <div className="w-14 h-14 rounded-xl bg-gray-100 group-hover:bg-violet-100 flex items-center justify-center transition-all mb-4 group-hover:scale-110">
-              <Plus className="w-7 h-7 text-gray-400 group-hover:text-violet-600 transition-all" />
             </div>
-            <p className="font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">
-              Create New Project
+            
+            <h2 className="text-3xl font-display font-bold text-foreground mb-3">
+              Start Creating
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-md text-lg">
+              Transform your ideas into stunning AI-powered videos in just a few clicks
             </p>
-            <p className="text-sm text-gray-400 mt-1">
-              Start from scratch
-            </p>
-          </button>
-        </div>
-      )}
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={handleCreateProject}
+                size="lg"
+                className="gap-2.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+              >
+                <Wand2 className="w-5 h-5" />
+                Create Your First Video
+              </Button>
+            </div>
+
+            {/* Feature highlights */}
+            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
+              {[
+                { icon: Wand2, title: 'AI Script Writing', desc: 'Generate scripts instantly' },
+                { icon: Video, title: 'Video Generation', desc: 'Create stunning visuals' },
+                { icon: Sparkles, title: 'One-Click Export', desc: 'Download in 4K quality' },
+              ].map((feature, i) => (
+                <div key={i} className="text-center p-4">
+                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3">
+                    <feature.icon className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-sm">{feature.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Projects Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-2">
+            {projects.map((project, index) => {
+              const hasVideo = project.status === 'completed' && (project.video_clips?.length || project.video_url);
+              const videoClips = getVideoClips(project);
+              const isActive = activeProjectId === project.id;
+              
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => handleSelectProject(project.id)}
+                  className={cn(
+                    "group relative rounded-2xl bg-card border border-border overflow-hidden cursor-pointer transition-all duration-300",
+                    "hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1",
+                    isActive && "ring-2 ring-primary border-primary/50",
+                    "animate-fade-in"
+                  )}
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  {/* Thumbnail */}
+                  <div className="aspect-[16/10] relative overflow-hidden bg-muted">
+                    {project.thumbnail_url ? (
+                      <img
+                        src={project.thumbnail_url}
+                        alt={project.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    ) : hasVideo && videoClips[0] ? (
+                      <video
+                        src={videoClips[0]}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.pause();
+                          e.currentTarget.currentTime = 0;
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-muted to-accent/20">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className={cn(
+                            "w-16 h-16 rounded-2xl flex items-center justify-center backdrop-blur-sm transition-all",
+                            project.status === 'generating' || project.status === 'rendering'
+                              ? "bg-background/90"
+                              : "bg-background/70 group-hover:bg-background/90 group-hover:scale-110"
+                          )}>
+                            {project.status === 'generating' || project.status === 'rendering' ? (
+                              <div className="w-7 h-7 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                              <Film className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status Badge */}
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className={cn(
+                        "text-xs font-semibold px-2.5 py-1 rounded-full capitalize backdrop-blur-sm",
+                        project.status === 'idle' && "bg-muted/90 text-muted-foreground",
+                        project.status === 'generating' && "bg-primary/90 text-primary-foreground",
+                        project.status === 'rendering' && "bg-warning/90 text-warning-foreground",
+                        project.status === 'completed' && "bg-success/90 text-success-foreground"
+                      )}>
+                        {project.status === 'completed' ? '✓ Ready' : project.status}
+                      </span>
+                    </div>
+
+                    {/* Clip count */}
+                    {hasVideo && videoClips.length > 1 && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="text-xs font-medium bg-foreground/80 text-background px-2 py-1 rounded-md backdrop-blur-sm">
+                          {videoClips.length} clips
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-6">
+                      <div className="flex items-center gap-2">
+                        {hasVideo ? (
+                          <>
+                            <Button 
+                              onClick={(e) => handlePlayVideo(project, e)}
+                              size="sm"
+                              className="gap-1.5 bg-white text-foreground hover:bg-white/90 shadow-lg"
+                            >
+                              <Play className="w-4 h-4" fill="currentColor" />
+                              Watch
+                            </Button>
+                            <Button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenProject(project.id);
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              Edit
+                            </Button>
+                          </>
+                        ) : (
+                          <Button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenProject(project.id);
+                            }}
+                            size="sm"
+                            className="gap-1.5 bg-white text-foreground hover:bg-white/90 shadow-lg"
+                          >
+                            Continue
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {project.name}
+                        </h3>
+                        <div className="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{formatDate(project.updated_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {hasVideo && (
+                            <>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayVideo(project, e as any);
+                                }}
+                                className="gap-2"
+                              >
+                                <Play className="w-4 h-4" />
+                                Watch Video
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadAll(project);
+                                }}
+                                className="gap-2"
+                              >
+                                <Download className="w-4 h-4" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenProject(project.id)} 
+                            className="gap-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2">
+                            <Copy className="w-4 h-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="gap-2 text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteProject(project.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* New Project Card */}
+            <button
+              onClick={handleCreateProject}
+              className={cn(
+                "group rounded-2xl border-2 border-dashed transition-all duration-300",
+                "border-border hover:border-primary/50",
+                "bg-transparent hover:bg-primary/5",
+                "flex flex-col items-center justify-center p-8 min-h-[280px]",
+                "animate-fade-in"
+              )}
+              style={{ animationDelay: `${projects.length * 60}ms` }}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-all duration-300 mb-4 group-hover:scale-110">
+                <Plus className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <p className="font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                Create New Project
+              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                Start from scratch
+              </p>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
         <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-black border-0">
           <div className="relative">
-            {/* Close button */}
             <Button
               variant="ghost"
               size="icon"
@@ -415,7 +450,6 @@ export default function Projects() {
               <X className="w-5 h-5" />
             </Button>
 
-            {/* Project title */}
             <div className="absolute top-4 left-4 z-50">
               <h3 className="text-white font-semibold text-lg">{selectedProject?.name}</h3>
               <p className="text-white/60 text-sm">
@@ -423,7 +457,6 @@ export default function Projects() {
               </p>
             </div>
 
-            {/* Video Player */}
             <div className="aspect-video">
               {selectedProject && (
                 <VideoPlaylist
@@ -433,7 +466,6 @@ export default function Projects() {
               )}
             </div>
 
-            {/* Bottom actions */}
             <div className="absolute bottom-20 left-0 right-0 flex items-center justify-center gap-3 z-50">
               <Button
                 variant="outline"
@@ -462,7 +494,7 @@ export default function Projects() {
               </Button>
               <Button
                 size="sm"
-                className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
+                className="gap-2 bg-white text-foreground hover:bg-white/90"
                 onClick={() => {
                   setVideoModalOpen(false);
                   if (selectedProject) {

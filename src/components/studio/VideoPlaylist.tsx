@@ -84,7 +84,7 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
       <video
         ref={videoRef}
         src={currentClip}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain bg-black"
         onEnded={handleVideoEnded}
         onPlay={() => {
           setIsPlaying(true);

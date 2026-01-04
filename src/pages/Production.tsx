@@ -3,13 +3,14 @@ import {
   Play, RotateCcw, ArrowLeft, Sparkles, 
   Download, Film, Clock, Wand2, ChevronRight,
   Video, CheckCircle2, Rocket, Zap,
-  FileText, Share2, ExternalLink, Eye, Trash2
+  FileText, Share2, ExternalLink, Eye, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useStudio } from '@/contexts/StudioContext';
 import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { GenerationProgressModal } from '@/components/studio/GenerationProgressModal';
+import { SceneBreakdown } from '@/components/studio/SceneBreakdown';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
@@ -433,8 +434,25 @@ export default function Production() {
               </div>
             </div>
 
-            {/* Script Preview Card */}
+            {/* Scene Breakdown Card */}
             <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  Scene Breakdown
+                </h3>
+              </div>
+              
+              <div className="max-h-[300px] overflow-y-auto">
+                <SceneBreakdown 
+                  script={activeProject.script_content || ''} 
+                  clipDuration={CLIP_DURATION}
+                />
+              </div>
+            </div>
+
+            {/* Script Preview Card */}
+            <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '125ms' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
@@ -446,10 +464,10 @@ export default function Production() {
                 </Button>
               </div>
               
-              <div className="bg-muted/50 rounded-xl p-4 max-h-[200px] overflow-y-auto">
+              <div className="bg-muted/50 rounded-xl p-4 max-h-[150px] overflow-y-auto">
                 <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                  {activeProject.script_content?.slice(0, 400)}
-                  {(activeProject.script_content?.length || 0) > 400 && '...'}
+                  {activeProject.script_content?.slice(0, 300)}
+                  {(activeProject.script_content?.length || 0) > 300 && '...'}
                 </p>
               </div>
             </div>

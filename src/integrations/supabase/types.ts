@@ -61,6 +61,90 @@ export type Database = {
           },
         ]
       }
+      credit_packages: {
+        Row: {
+          created_at: string
+          credits: number
+          id: string
+          is_active: boolean | null
+          is_popular: boolean | null
+          name: string
+          price_cents: number
+          stripe_price_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name: string
+          price_cents: number
+          stripe_price_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          id?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name?: string
+          price_cents?: number
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          clip_duration_seconds: number | null
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          stripe_payment_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          clip_duration_seconds?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          stripe_payment_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          clip_duration_seconds?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          stripe_payment_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movie_projects: {
         Row: {
           created_at: string
@@ -153,6 +237,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_config: {
+        Row: {
+          clip_duration_seconds: number
+          credits_cost: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          clip_duration_seconds: number
+          credits_cost: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          clip_duration_seconds?: number
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          credits_balance: number
+          display_name: string | null
+          email: string | null
+          id: string
+          total_credits_purchased: number
+          total_credits_used: number
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          credits_balance?: number
+          display_name?: string | null
+          email?: string | null
+          id: string
+          total_credits_purchased?: number
+          total_credits_used?: number
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          credits_balance?: number
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          total_credits_purchased?: number
+          total_credits_used?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_characters: {
         Row: {
@@ -271,7 +418,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_stripe_payment_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_clip_duration?: number
+          p_description: string
+          p_project_id?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       movie_genre:

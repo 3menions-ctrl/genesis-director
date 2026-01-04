@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, SkipBack, SkipForward, Download, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface VideoPlaylistProps {
   clips: string[];
@@ -448,6 +449,50 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
                     ))}
                   </div>
                 )}
+
+                {/* Open in new tab */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 text-white hover:bg-white/20"
+                  onClick={() => {
+                    window.open(currentClip, '_blank');
+                  }}
+                  title="Open video in new tab"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                </Button>
+
+                {/* Download current clip */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 text-white hover:bg-white/20"
+                  onClick={async () => {
+                    try {
+                      toast.info('Starting download...');
+                      const response = await fetch(currentClip);
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `video-clip-${currentClipIndex + 1}.mp4`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                      toast.success('Download started!');
+                    } catch (error) {
+                      console.error('Download error:', error);
+                      // Fallback: open in new tab
+                      window.open(currentClip, '_blank');
+                      toast.info('Opening video in new tab for download');
+                    }
+                  }}
+                  title="Download current clip"
+                >
+                  <Download className="w-5 h-5" />
+                </Button>
 
                 <Button 
                   variant="ghost" 

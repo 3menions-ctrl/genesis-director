@@ -5,7 +5,8 @@ import {
   Video, Mic, CheckCircle2, Rocket, Zap, Settings2,
   MonitorPlay, Volume2, Pause, FileText, Timer, Share2,
   Maximize2, SkipBack, SkipForward, VolumeX, Repeat,
-  Scissors, Image, Music, Subtitles, Palette, Clapperboard
+  Scissors, Image, Music, Subtitles, Palette, Clapperboard,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -518,6 +519,106 @@ export default function Production() {
             </div>
           )}
         </div>
+
+        {/* Video Clips Gallery - shown when completed */}
+        {status === 'completed' && activeProject.video_clips && activeProject.video_clips.length > 0 && (
+          <div className="card-clean p-5 animate-fade-in" style={{ animationDelay: '120ms' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="icon-box w-8 h-8">
+                  <Film className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Video Clips ({activeProject.video_clips.length})</h3>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={async () => {
+                  toast.info('Downloading all clips...');
+                  for (let i = 0; i < activeProject.video_clips!.length; i++) {
+                    try {
+                      const response = await fetch(activeProject.video_clips![i]);
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${activeProject.name}-clip-${i + 1}.mp4`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                      await new Promise(r => setTimeout(r, 500));
+                    } catch (error) {
+                      window.open(activeProject.video_clips![i], '_blank');
+                    }
+                  }
+                  toast.success('Downloads complete!');
+                }}
+              >
+                <Download className="w-4 h-4" />
+                Download All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {activeProject.video_clips.map((clipUrl, index) => (
+                <div key={index} className="group relative rounded-xl overflow-hidden bg-slate-900 aspect-video">
+                  <video 
+                    src={clipUrl} 
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.pause();
+                      e.currentTarget.currentTime = 0;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-8 h-8 text-white hover:bg-white/20"
+                      onClick={() => window.open(clipUrl, '_blank')}
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-8 h-8 text-white hover:bg-white/20"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(clipUrl);
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${activeProject.name}-clip-${index + 1}.mp4`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                          toast.success(`Clip ${index + 1} downloading!`);
+                        } catch (error) {
+                          window.open(clipUrl, '_blank');
+                        }
+                      }}
+                      title="Download clip"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/70 text-[10px] text-white font-medium">
+                    Clip {index + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Bottom Section: Tools & Script */}
         <div className="grid lg:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '150ms' }}>

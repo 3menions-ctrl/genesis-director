@@ -51,12 +51,12 @@ interface StoryWizardProps {
 }
 
 const WIZARD_STEPS = [
-  { id: 'basics', title: 'Story Basics', subtitle: 'Title, genre & duration', icon: Film, color: 'from-violet-500 to-purple-500' },
-  { id: 'setting', title: 'World Building', subtitle: 'Setting & time period', icon: MapPin, color: 'from-blue-500 to-cyan-500' },
-  { id: 'characters', title: 'Characters', subtitle: 'Build your cast', icon: Users, color: 'from-amber-500 to-orange-500' },
-  { id: 'structure', title: 'Structure', subtitle: 'Narrative format', icon: BookOpen, color: 'from-emerald-500 to-teal-500' },
-  { id: 'style', title: 'Style', subtitle: 'Mood & presentation', icon: Palette, color: 'from-pink-500 to-rose-500' },
-  { id: 'review', title: 'Review', subtitle: 'Launch!', icon: Sparkles, color: 'from-primary to-accent' },
+  { id: 'basics', title: 'Story Basics', subtitle: 'Title, genre & duration', icon: Film },
+  { id: 'setting', title: 'World Building', subtitle: 'Setting & time period', icon: MapPin },
+  { id: 'characters', title: 'Characters', subtitle: 'Build your cast', icon: Users },
+  { id: 'structure', title: 'Structure', subtitle: 'Narrative format', icon: BookOpen },
+  { id: 'style', title: 'Style', subtitle: 'Mood & presentation', icon: Palette },
+  { id: 'review', title: 'Review', subtitle: 'Launch!', icon: Sparkles },
 ];
 
 const DEFAULT_CHARACTER: CharacterInput = {
@@ -182,14 +182,14 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             {/* Title */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Star className="w-4 h-4 text-warning" />
+                <Star className="w-4 h-4 text-foreground" />
                 Movie Title
               </label>
               <Input
                 value={data.title}
                 onChange={(e) => updateData('title', e.target.value)}
                 placeholder="Give your masterpiece a name..."
-                className="h-14 text-lg rounded-xl border-border bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="h-14 text-lg rounded-xl border-border bg-card focus:ring-2 focus:ring-foreground/20 focus:border-foreground"
               />
             </div>
 
@@ -204,18 +204,18 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     className={cn(
                       "group relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02]",
                       data.genre === genre.value
-                        ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                        : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+                        ? "border-foreground bg-foreground/5 shadow-lg shadow-foreground/5"
+                        : "border-border bg-card hover:border-foreground/30 hover:shadow-md"
                     )}
                   >
-                    <span className="text-3xl block mb-2 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{genre.emoji}</span>
+                    <span className="text-3xl block mb-2 transition-transform duration-300 group-hover:scale-110 grayscale">{genre.emoji}</span>
                     <span className={cn(
                       "text-sm font-medium transition-colors",
-                      data.genre === genre.value ? "text-primary" : "text-foreground"
+                      data.genre === genre.value ? "text-foreground" : "text-muted-foreground"
                     )}>{genre.label}</span>
                     {data.genre === genre.value && (
-                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                        <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-foreground rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+                        <Check className="w-3.5 h-3.5 text-background" />
                       </div>
                     )}
                   </button>
@@ -227,11 +227,11 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Clock className="w-4 h-4 text-primary" />
+                  <Clock className="w-4 h-4 text-foreground" />
                   Duration
                 </label>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
-                  <Coins className="w-4 h-4 text-warning" />
+                  <Coins className="w-4 h-4 text-foreground" />
                   <span className="text-sm font-bold text-foreground">{credits.remaining.toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground">available</span>
                 </div>
@@ -247,23 +247,23 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                       className={cn(
                         "relative p-4 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-[1.02] group",
                         isSelected
-                          ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg shadow-primary/20"
-                          : "border-border bg-card hover:border-primary/50 hover:shadow-md",
+                          ? "border-foreground bg-foreground/5 shadow-lg shadow-foreground/10"
+                          : "border-border bg-card hover:border-foreground/30 hover:shadow-md",
                         !canAfford && "opacity-60"
                       )}
                     >
                       <div className={cn(
                         "text-2xl font-bold mb-1 transition-colors",
-                        isSelected ? "text-primary" : "text-foreground"
+                        isSelected ? "text-foreground" : "text-foreground"
                       )}>
                         {option.label}
                       </div>
                       <div className={cn(
                         "flex items-center justify-center gap-1.5 text-sm font-medium",
-                        isSelected ? "text-accent" : "text-muted-foreground",
+                        isSelected ? "text-muted-foreground" : "text-muted-foreground",
                         !canAfford && "text-destructive"
                       )}>
-                        <Zap className={cn("w-4 h-4", isSelected ? "text-warning" : "", !canAfford && "text-destructive")} />
+                        <Zap className="w-4 h-4" />
                         <span className="font-bold">{option.credits.toLocaleString()}</span>
                         <span>credits</span>
                       </div>
@@ -273,8 +273,8 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                         </div>
                       )}
                       {isSelected && canAfford && (
-                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                          <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                        <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-foreground rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+                          <Check className="w-3.5 h-3.5 text-background" />
                         </div>
                       )}
                     </button>
@@ -293,19 +293,19 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   <div className={cn(
                     "p-4 rounded-xl border transition-all",
                     canAfford 
-                      ? "bg-gradient-to-r from-emerald-500/10 to-green-500/10 border-emerald-500/30" 
-                      : "bg-gradient-to-r from-destructive/10 to-red-500/10 border-destructive/30"
+                      ? "bg-muted border-border" 
+                      : "bg-destructive/10 border-destructive/30"
                   )}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {canAfford ? (
-                          <Check className="w-5 h-5 text-emerald-500" />
+                          <Check className="w-5 h-5 text-foreground" />
                         ) : (
                           <AlertTriangle className="w-5 h-5 text-destructive" />
                         )}
                         <span className={cn(
                           "font-medium",
-                          canAfford ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                          canAfford ? "text-foreground" : "text-destructive"
                         )}>
                           {canAfford ? 'You can afford this!' : 'Insufficient credits'}
                         </span>
@@ -335,7 +335,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
           <div className={cn("space-y-8", contentClass)}>
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <MapPin className="w-4 h-4 text-blue-500" />
+                <MapPin className="w-4 h-4 text-foreground" />
                 Where does your story take place?
               </label>
               <Textarea
@@ -343,7 +343,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                 onChange={(e) => updateData('setting', e.target.value)}
                 placeholder="Describe your world in vivid detail...&#10;&#10;e.g., A sprawling cyberpunk megacity where neon lights never sleep, towering skyscrapers pierce the smog-filled sky, and underground hackers fight against corporate overlords."
                 rows={5}
-                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground"
               />
             </div>
 
@@ -357,7 +357,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     className={cn(
                       "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
                       data.timePeriod === period
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md"
+                        ? "bg-foreground text-background shadow-md"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     )}
                   >
@@ -369,7 +369,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
 
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <BookOpen className="w-4 h-4 text-emerald-500" />
+                <BookOpen className="w-4 h-4 text-foreground" />
                 Synopsis <span className="text-muted-foreground font-normal">(Optional but helpful)</span>
               </label>
               <Textarea
@@ -377,7 +377,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                 onChange={(e) => updateData('synopsis', e.target.value)}
                 placeholder="What's the core story? The AI will expand on this to create your full script..."
                 rows={3}
-                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="rounded-xl border-border bg-card resize-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground"
               />
             </div>
           </div>
@@ -389,7 +389,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             <div className="flex items-center justify-between">
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Users className="w-4 h-4 text-amber-500" />
+                  <Users className="w-4 h-4 text-foreground" />
                   Your Cast
                 </label>
                 <p className="text-xs text-muted-foreground mt-0.5">Great characters make great stories</p>
@@ -397,7 +397,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
               <Button 
                 size="sm" 
                 onClick={addCharacter}
-                className="gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 shadow-none"
+                className="gap-1.5 bg-foreground/10 text-foreground hover:bg-foreground/20 shadow-none"
               >
                 <Plus className="w-4 h-4" />
                 Add Character
@@ -411,15 +411,15 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   className={cn(
                     "p-5 rounded-2xl border-2 transition-all animate-fade-in",
                     index === 0 
-                      ? "border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5" 
-                      : "border-border bg-card hover:border-primary/20"
+                      ? "border-foreground/30 bg-foreground/5" 
+                      : "border-border bg-card hover:border-foreground/20"
                   )}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <Badge className={cn(
                       "gap-1.5",
                       index === 0 
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground" 
+                        ? "bg-foreground text-background" 
                         : "bg-secondary text-secondary-foreground"
                     )}>
                       {index === 0 ? <Crown className="w-3 h-3" /> : null}
@@ -448,12 +448,12 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                       <select
                         value={char.role}
                         onChange={(e) => updateCharacter(index, 'role', e.target.value as CharacterInput['role'])}
-                        className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        className="px-3 py-2 rounded-xl border border-border bg-background text-sm focus:ring-2 focus:ring-foreground/20 focus:border-foreground"
                       >
-                        <option value="protagonist">🦸 Hero</option>
-                        <option value="antagonist">🦹 Villain</option>
-                        <option value="supporting">👥 Supporting</option>
-                        <option value="narrator">🎙️ Narrator</option>
+                        <option value="protagonist">Hero</option>
+                        <option value="antagonist">Villain</option>
+                        <option value="supporting">Supporting</option>
+                        <option value="narrator">Narrator</option>
                       </select>
                     </div>
 
@@ -482,7 +482,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
           <div className={cn("space-y-4", contentClass)}>
             <div className="mb-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <BookOpen className="w-4 h-4 text-emerald-500" />
+                <BookOpen className="w-4 h-4 text-foreground" />
                 Narrative Structure
               </label>
               <p className="text-xs text-muted-foreground mt-0.5">How your story unfolds</p>
@@ -496,8 +496,8 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   className={cn(
                     "w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 group hover:scale-[1.01]",
                     data.storyStructure === structure.value
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                      : "border-border bg-card hover:border-primary/50"
+                      ? "border-foreground bg-foreground/5 shadow-lg shadow-foreground/5"
+                      : "border-border bg-card hover:border-foreground/30"
                   )}
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
@@ -505,22 +505,22 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all",
                       data.storyStructure === structure.value
-                        ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg"
-                        : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
+                        ? "bg-foreground text-background shadow-lg"
+                        : "bg-secondary text-secondary-foreground group-hover:bg-foreground/10"
                     )}>
                       <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
                       <div className={cn(
                         "font-semibold mb-1 transition-colors",
-                        data.storyStructure === structure.value ? "text-primary" : "text-foreground"
+                        data.storyStructure === structure.value ? "text-foreground" : "text-foreground"
                       )}>
                         {structure.label}
                       </div>
                       <div className="text-sm text-muted-foreground">{structure.description}</div>
                     </div>
                     {data.storyStructure === structure.value && (
-                      <Check className="w-5 h-5 text-primary shrink-0 animate-scale-in" />
+                      <Check className="w-5 h-5 text-foreground shrink-0 animate-scale-in" />
                     )}
                   </div>
                 </button>
@@ -535,7 +535,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             {/* Intro Style */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Film className="w-4 h-4 text-pink-500" />
+                <Film className="w-4 h-4 text-foreground" />
                 Opening Style
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -546,13 +546,13 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     className={cn(
                       "p-5 rounded-2xl border-2 text-left transition-all hover:scale-[1.02]",
                       data.movieIntroStyle === style.value
-                        ? "border-primary bg-primary/5 shadow-lg"
-                        : "border-border bg-card hover:border-primary/50"
+                        ? "border-foreground bg-foreground/5 shadow-lg"
+                        : "border-border bg-card hover:border-foreground/30"
                     )}
                   >
                     <div className={cn(
                       "font-semibold text-sm mb-1 transition-colors",
-                      data.movieIntroStyle === style.value ? "text-primary" : "text-foreground"
+                      data.movieIntroStyle === style.value ? "text-foreground" : "text-foreground"
                     )}>
                       {style.label}
                     </div>
@@ -565,7 +565,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             {/* Mood */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Palette className="w-4 h-4 text-rose-500" />
+                <Palette className="w-4 h-4 text-foreground" />
                 Mood & Atmosphere
               </label>
               <div className="flex flex-wrap gap-2">
@@ -576,7 +576,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     className={cn(
                       "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
                       data.mood === mood
-                        ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md scale-105"
+                        ? "bg-foreground text-background shadow-md scale-105"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     )}
                   >
@@ -589,7 +589,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             {/* Narration Toggle */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Mic className="w-4 h-4 text-violet-500" />
+                <Mic className="w-4 h-4 text-foreground" />
                 Voice Narration
               </label>
               <div className="grid grid-cols-2 gap-4">
@@ -598,25 +598,25 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   className={cn(
                     "relative p-6 rounded-2xl border-2 text-center transition-all group hover:scale-[1.02]",
                     data.includeNarration
-                      ? "border-primary bg-primary/5 shadow-lg"
-                      : "border-border bg-card hover:border-primary/50"
+                      ? "border-foreground bg-foreground/5 shadow-lg"
+                      : "border-border bg-card hover:border-foreground/30"
                   )}
                 >
                   <div className={cn(
                     "w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-all",
                     data.includeNarration 
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg" 
-                      : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
+                      ? "bg-foreground text-background shadow-lg" 
+                      : "bg-secondary text-secondary-foreground group-hover:bg-foreground/10"
                   )}>
                     <Mic className="w-7 h-7" />
                   </div>
-                  <div className={cn("font-semibold mb-1", data.includeNarration ? "text-primary" : "text-foreground")}>
+                  <div className={cn("font-semibold mb-1", data.includeNarration ? "text-foreground" : "text-foreground")}>
                     With Narrator
                   </div>
                   <div className="text-xs text-muted-foreground">AI voice brings your story to life</div>
                   {data.includeNarration && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                      <Check className="w-4 h-4 text-primary-foreground" />
+                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-foreground rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+                      <Check className="w-4 h-4 text-background" />
                     </div>
                   )}
                 </button>
@@ -625,25 +625,25 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                   className={cn(
                     "relative p-6 rounded-2xl border-2 text-center transition-all group hover:scale-[1.02]",
                     !data.includeNarration
-                      ? "border-primary bg-primary/5 shadow-lg"
-                      : "border-border bg-card hover:border-primary/50"
+                      ? "border-foreground bg-foreground/5 shadow-lg"
+                      : "border-border bg-card hover:border-foreground/30"
                   )}
                 >
                   <div className={cn(
                     "w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-all",
                     !data.includeNarration 
-                      ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg" 
-                      : "bg-secondary text-secondary-foreground group-hover:bg-primary/10"
+                      ? "bg-foreground text-background shadow-lg" 
+                      : "bg-secondary text-secondary-foreground group-hover:bg-foreground/10"
                   )}>
                     <Video className="w-7 h-7" />
                   </div>
-                  <div className={cn("font-semibold mb-1", !data.includeNarration ? "text-primary" : "text-foreground")}>
+                  <div className={cn("font-semibold mb-1", !data.includeNarration ? "text-foreground" : "text-foreground")}>
                     Visual Only
                   </div>
                   <div className="text-xs text-muted-foreground">Silent film aesthetic</div>
                   {!data.includeNarration && (
-                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg animate-scale-in">
-                      <Check className="w-4 h-4 text-primary-foreground" />
+                    <div className="absolute -top-2 -right-2 w-7 h-7 bg-foreground rounded-full flex items-center justify-center shadow-lg animate-scale-in">
+                      <Check className="w-4 h-4 text-background" />
                     </div>
                   )}
                 </button>
@@ -656,9 +656,9 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
         return (
           <div className={cn("space-y-6", contentClass)}>
             {/* Summary Card */}
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 border border-primary/20">
+            <div className="p-6 rounded-2xl bg-muted border border-border">
               <div className="flex items-start gap-4 mb-6">
-                <span className="text-5xl">{GENRE_OPTIONS.find(g => g.value === data.genre)?.emoji}</span>
+                <span className="text-5xl grayscale">{GENRE_OPTIONS.find(g => g.value === data.genre)?.emoji}</span>
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold font-display text-foreground">{data.title || 'Untitled Movie'}</h3>
                   <p className="text-muted-foreground">
@@ -682,11 +682,11 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                 </div>
                 <div className="p-3 rounded-xl bg-card/50 border border-border/50">
                   <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Narration</span>
-                  <p className="text-foreground">{data.includeNarration ? '🎙️ With Voice' : '🎬 Visual Only'}</p>
+                  <p className="text-foreground">{data.includeNarration ? 'With Voice' : 'Visual Only'}</p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-primary/10">
+              <div className="pt-4 border-t border-border">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-2">Cast ({data.characters.filter(c => c.name).length})</span>
                 <div className="flex flex-wrap gap-2">
                   {data.characters.filter(c => c.name).map((char, i) => (
@@ -695,7 +695,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                       className={cn(
                         "text-sm py-1.5",
                         i === 0 
-                          ? "bg-gradient-to-r from-primary to-accent text-primary-foreground" 
+                          ? "bg-foreground text-background" 
                           : "bg-secondary text-secondary-foreground"
                       )}
                     >
@@ -706,7 +706,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
               </div>
 
               {data.synopsis && (
-                <div className="mt-4 pt-4 border-t border-primary/10">
+                <div className="mt-4 pt-4 border-t border-border">
                   <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-1">Synopsis</span>
                   <p className="text-sm text-foreground">{data.synopsis}</p>
                 </div>
@@ -714,13 +714,13 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             </div>
 
             {/* Ready Banner */}
-            <div className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary to-accent text-primary-foreground">
-              <div className="p-3 rounded-xl bg-primary-foreground/20">
+            <div className="flex items-center gap-4 p-5 rounded-2xl bg-foreground text-background">
+              <div className="p-3 rounded-xl bg-background/20">
                 <Zap className="w-7 h-7" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-lg">Ready for Magic! ✨</p>
-                <p className="text-sm text-primary-foreground/80">
+                <p className="font-bold text-lg">Ready to Generate</p>
+                <p className="text-sm text-background/70">
                   ~{data.targetDurationMinutes * 150} words • {data.characters.filter(c => c.name).length} characters
                 </p>
               </div>
@@ -757,8 +757,8 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                 >
                   <div className={cn(
                     "w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0",
-                    isActive && `bg-gradient-to-br ${step.color} text-primary-foreground shadow-lg`,
-                    isComplete && "bg-success/20 text-success",
+                    isActive && "bg-foreground text-background shadow-lg",
+                    isComplete && "bg-foreground/20 text-foreground",
                     !isActive && !isComplete && "bg-secondary text-muted-foreground"
                   )}>
                     {isComplete ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
@@ -774,7 +774,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                 {index < WIZARD_STEPS.length - 1 && (
                   <div className={cn(
                     "w-6 h-0.5 mx-1 rounded-full transition-colors",
-                    index < currentStep ? "bg-success" : "bg-border"
+                    index < currentStep ? "bg-foreground" : "bg-border"
                   )} />
                 )}
               </div>
@@ -788,13 +788,10 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
         <div className="max-w-2xl mx-auto">
           {/* Step Title */}
           <div className="mb-8 text-center">
-            <div className={cn(
-              "inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 bg-gradient-to-br shadow-lg",
-              WIZARD_STEPS[currentStep].color
-            )}>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 bg-foreground shadow-lg">
               {(() => {
                 const Icon = WIZARD_STEPS[currentStep].icon;
-                return <Icon className="w-7 h-7 text-primary-foreground" />;
+                return <Icon className="w-7 h-7 text-background" />;
               })()}
             </div>
             <h2 className="text-2xl font-bold font-display text-foreground">
@@ -831,7 +828,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
               className={cn(
                 "gap-2 px-6 transition-all duration-200",
                 currentStep === WIZARD_STEPS.length - 1
-                  ? "bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 hover:scale-105"
+                  ? "bg-foreground hover:bg-foreground/90 text-background hover:shadow-lg hover:scale-105"
                   : ""
               )}
             >

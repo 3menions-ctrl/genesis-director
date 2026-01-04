@@ -15,6 +15,7 @@ interface UserProfile {
   use_case: string | null;
   company: string | null;
   onboarding_completed: boolean;
+  created_at: string;
 }
 
 interface AuthContextType {

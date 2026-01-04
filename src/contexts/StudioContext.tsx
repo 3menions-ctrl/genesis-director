@@ -34,8 +34,15 @@ const COLOR_GRADES = [
 ];
 
 // Helper to detect content type from script
-function detectContentType(script: string): 'documentary' | 'dramatic' | 'epic' | 'intimate' | 'action' {
+function detectContentType(script: string): 'documentary' | 'dramatic' | 'epic' | 'intimate' | 'action' | 'scifi' {
   const lower = script.toLowerCase();
+  // Detect sci-fi first - allows physics-bending content
+  if (lower.includes('sci-fi') || lower.includes('science fiction') || lower.includes('futuristic') || 
+      lower.includes('spaceship') || lower.includes('alien') || lower.includes('robot') ||
+      lower.includes('cyberpunk') || lower.includes('dystopia') || lower.includes('teleport') ||
+      lower.includes('time travel') || lower.includes('laser') || lower.includes('hologram')) {
+    return 'scifi';
+  }
   if (lower.includes('documentary') || lower.includes('real') || lower.includes('true story')) return 'documentary';
   if (lower.includes('action') || lower.includes('chase') || lower.includes('fight')) return 'action';
   if (lower.includes('epic') || lower.includes('grand') || lower.includes('vast')) return 'epic';
@@ -98,6 +105,14 @@ function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: 
   // Extract key visual elements from clip text (max 300 chars to leave room)
   const visualContent = clipText.slice(0, 300);
   
+  // Detect if sci-fi to allow physics-bending
+  const isSciFi = detectContentType(clipText) === 'scifi';
+  
+  // Physics and realism constraints (except for sci-fi)
+  const physicsConstraints = isSciFi 
+    ? 'stylized sci-fi physics allowed, futuristic technology' 
+    : 'strict real-world physics, natural gravity and motion, realistic weight and momentum, authentic material behavior, no impossible movements, believable human anatomy and motion';
+  
   // Build the cinematic prompt
   const prompt = [
     `Cinematic ${cameraMove}`,
@@ -105,6 +120,7 @@ function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: 
     sceneDescription,
     colorGrade,
     transitionHint,
+    physicsConstraints,
     'photorealistic, 8K quality, film grain, shallow depth of field, professional cinematography',
   ].join('. ');
   

@@ -198,6 +198,7 @@ function mapDbProject(dbProject: any): Project {
     video_clips: dbProject.video_clips || [],
     include_narration: true,
     target_duration_minutes: dbProject.target_duration_minutes,
+    thumbnail_url: dbProject.thumbnail_url,
   };
 }
 

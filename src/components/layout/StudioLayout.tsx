@@ -496,22 +496,6 @@ function StudioHeader() {
           </span>
         </button>
 
-        {/* Export Button */}
-        <Button
-          onClick={() => navigate('/export')}
-          disabled={activeProject?.status !== 'completed'}
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5 px-3 rounded-full text-xs font-medium transition-all",
-            activeProject?.status === 'completed'
-              ? "bg-foreground text-background hover:bg-foreground/90"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
-          )}
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
-
         {/* User Menu */}
         <UserMenu />
       </div>

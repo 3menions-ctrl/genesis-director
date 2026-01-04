@@ -146,8 +146,15 @@ export default function Production() {
   }
 
   const wordCount = activeProject.script_content?.split(/\s+/).filter(w => w.trim()).length || 0;
-  const estimatedDurationSeconds = Math.ceil((wordCount / 150) * 60); // Video length in seconds
-  const estimatedClips = Math.ceil(estimatedDurationSeconds / 8); // 8 seconds per clip
+  
+  // Clip duration settings (4 sec clips as base)
+  const CLIP_DURATION = 4; // seconds per clip
+  const CLIPS_PER_SCENE = 3; // combine clips to form scenes
+  
+  // Estimate clips needed based on script length (roughly 1 clip per 15-20 words for good pacing)
+  const estimatedClips = Math.max(1, Math.ceil(wordCount / 18));
+  const estimatedScenes = Math.ceil(estimatedClips / CLIPS_PER_SCENE);
+  const totalDurationSeconds = estimatedClips * CLIP_DURATION;
   const renderTimeMinutes = Math.ceil(estimatedClips * 1.5); // ~1.5 min per clip to render
 
   // Format duration nicely
@@ -180,7 +187,7 @@ export default function Production() {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              {wordCount} words • {formatDuration(estimatedDurationSeconds)} video • {estimatedClips} clips
+              {wordCount} words • {formatDuration(totalDurationSeconds)} video • {estimatedClips} clips ({CLIP_DURATION}s each)
             </p>
           </div>
           
@@ -271,7 +278,7 @@ export default function Production() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Film className="w-4 h-4" />
-                            <span>{estimatedClips} clips × 8s</span>
+                            <span>{estimatedClips} clips × {CLIP_DURATION}s</span>
                           </div>
                         </div>
                       </div>
@@ -411,7 +418,7 @@ export default function Production() {
                 
                 <div className="flex items-center justify-between py-3 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Video Length</span>
-                  <span className="text-sm font-medium text-foreground">{formatDuration(estimatedDurationSeconds)}</span>
+                  <span className="text-sm font-medium text-foreground">{formatDuration(totalDurationSeconds)}</span>
                 </div>
                 
                 <div className="flex items-center justify-between py-3 border-b border-border/50">

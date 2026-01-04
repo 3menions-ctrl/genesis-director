@@ -83,6 +83,7 @@ interface StudioContextType {
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   updateSettings: (settings: Partial<StudioSettings>) => void;
   generatePreview: () => Promise<void>;
+  cancelGeneration: () => void;
   exportVideo: () => void;
   buyCredits: () => void;
   deductCredits: (durationSeconds: number) => boolean;
@@ -138,6 +139,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     percent: 0,
     estimatedSecondsRemaining: null,
   });
+  
+  // Cancel flag ref
+  const cancelRef = useRef(false);
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -265,6 +269,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
+  // Cancel generation
+  const cancelGeneration = async () => {
+    cancelRef.current = true;
+    setIsGenerating(false);
+    setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
+    
+    if (activeProjectId) {
+      await updateProject(activeProjectId, { status: 'idle' as ProjectStatus });
+    }
+    
+    toast.info('Video generation cancelled');
+  };
+
   const pollingRef = useRef<number | null>(null);
 
   // Cleanup polling on unmount
@@ -280,6 +297,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    cancelRef.current = false; // Reset cancel flag
     setIsGenerating(true);
     const script = activeProject.script_content;
     const projectId = activeProjectId!;
@@ -339,6 +357,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
 
       for (let i = 0; i < numClips; i++) {
+        // Check for cancellation
+        if (cancelRef.current) {
+          throw new Error('Generation cancelled');
+        }
+        
         const clipStartWord = i * wordsPerClip;
         const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
         const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
@@ -372,6 +395,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const maxPolls = 60; // 5 minutes max per clip
 
         while (!clipUrl && pollAttempts < maxPolls) {
+          // Check for cancellation
+          if (cancelRef.current) {
+            throw new Error('Generation cancelled');
+          }
+          
           await new Promise(resolve => setTimeout(resolve, 5000));
           pollAttempts++;
           
@@ -490,6 +518,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         updateProject,
         updateSettings,
         generatePreview,
+        cancelGeneration,
         exportVideo,
         buyCredits,
         deductCredits,

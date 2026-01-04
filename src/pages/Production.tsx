@@ -146,8 +146,17 @@ export default function Production() {
   }
 
   const wordCount = activeProject.script_content?.split(/\s+/).filter(w => w.trim()).length || 0;
-  const estimatedDuration = Math.ceil((wordCount / 150) * 60);
-  const estimatedClips = Math.ceil(estimatedDuration / 8);
+  const estimatedDurationSeconds = Math.ceil((wordCount / 150) * 60); // Video length in seconds
+  const estimatedClips = Math.ceil(estimatedDurationSeconds / 8); // 8 seconds per clip
+  const renderTimeMinutes = Math.ceil(estimatedClips * 1.5); // ~1.5 min per clip to render
+
+  // Format duration nicely
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] pb-8">
@@ -171,7 +180,7 @@ export default function Production() {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              {wordCount} words • ~{estimatedDuration}s video • {estimatedClips} clips
+              {wordCount} words • {formatDuration(estimatedDurationSeconds)} video • {estimatedClips} clips
             </p>
           </div>
           
@@ -258,11 +267,11 @@ export default function Production() {
                         <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4" />
-                            <span>~{Math.ceil(estimatedClips * 2)} min</span>
+                            <span>~{renderTimeMinutes} min to render</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Film className="w-4 h-4" />
-                            <span>{estimatedClips} clips</span>
+                            <span>{estimatedClips} clips × 8s</span>
                           </div>
                         </div>
                       </div>
@@ -401,8 +410,13 @@ export default function Production() {
                 </div>
                 
                 <div className="flex items-center justify-between py-3 border-b border-border/50">
-                  <span className="text-sm text-muted-foreground">Est. Duration</span>
-                  <span className="text-sm font-medium text-foreground">{estimatedDuration}s</span>
+                  <span className="text-sm text-muted-foreground">Video Length</span>
+                  <span className="text-sm font-medium text-foreground">{formatDuration(estimatedDurationSeconds)}</span>
+                </div>
+                
+                <div className="flex items-center justify-between py-3 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">Render Time</span>
+                  <span className="text-sm font-medium text-foreground">~{renderTimeMinutes} min</span>
                 </div>
                 
                 <div className="flex items-center justify-between py-3">

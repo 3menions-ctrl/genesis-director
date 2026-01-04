@@ -3,38 +3,113 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Helper function to build a concise scene description (Runway API has 1000 char limit)
-function buildSceneConsistencyPrompt(script: string, project: Project): string {
-  const scriptLower = script.toLowerCase();
-  
-  // Detect environment - keep brief
-  let env = 'modern studio';
-  if (scriptLower.includes('jungle') || scriptLower.includes('forest')) env = 'lush jungle';
-  else if (scriptLower.includes('office')) env = 'modern office';
-  else if (scriptLower.includes('outdoor') || scriptLower.includes('nature')) env = 'outdoor landscape';
-  else if (scriptLower.includes('city') || scriptLower.includes('urban')) env = 'urban cityscape';
-  else if (scriptLower.includes('home')) env = 'cozy living room';
+// Cinematic camera movements for professional movie feel
+const CAMERA_MOVEMENTS = [
+  'smooth dolly forward',
+  'elegant crane shot rising',
+  'steady tracking shot',
+  'subtle push-in',
+  'graceful pan right',
+  'cinematic dolly out',
+  'slow sweeping arc',
+  'gentle floating camera',
+];
 
-  // Detect mood - keep brief
-  let mood = 'professional';
-  if (scriptLower.includes('exciting') || scriptLower.includes('action')) mood = 'dynamic energetic';
-  else if (scriptLower.includes('calm') || scriptLower.includes('peaceful')) mood = 'serene calm';
-  
-  return `${env}, ${mood} mood, cinematic 4K, consistent lighting and colors`.trim();
+// Professional cinematography lighting setups
+const LIGHTING_STYLES = {
+  dramatic: 'high contrast chiaroscuro lighting, deep shadows, volumetric light rays',
+  natural: 'soft golden hour light, natural ambient illumination, subtle lens flare',
+  moody: 'atmospheric blue hour tones, diffused backlighting, cinematic haze',
+  documentary: 'realistic natural lighting, authentic exposure, candid quality',
+  epic: 'dramatic god rays, sweeping light beams, majestic illumination',
+};
+
+// Film grain and color grade presets
+const COLOR_GRADES = [
+  'teal and orange color grade',
+  'desaturated cinematic palette',
+  'warm golden tones',
+  'cool blue undertones',
+  'rich saturated colors',
+];
+
+// Helper to detect content type from script
+function detectContentType(script: string): 'documentary' | 'dramatic' | 'epic' | 'intimate' | 'action' {
+  const lower = script.toLowerCase();
+  if (lower.includes('documentary') || lower.includes('real') || lower.includes('true story')) return 'documentary';
+  if (lower.includes('action') || lower.includes('chase') || lower.includes('fight')) return 'action';
+  if (lower.includes('epic') || lower.includes('grand') || lower.includes('vast')) return 'epic';
+  if (lower.includes('personal') || lower.includes('intimate') || lower.includes('quiet')) return 'intimate';
+  return 'dramatic';
 }
 
-// Helper function to build individual clip prompts - must stay under 1000 chars total
+// Helper function to build a cinematic scene description
+function buildSceneConsistencyPrompt(script: string, project: Project): string {
+  const scriptLower = script.toLowerCase();
+  const contentType = detectContentType(script);
+  
+  // Detect environment with rich detail
+  let environment = 'cinematic interior';
+  if (scriptLower.includes('jungle') || scriptLower.includes('forest') || scriptLower.includes('rainforest')) {
+    environment = 'lush dense jungle with dappled sunlight through canopy';
+  } else if (scriptLower.includes('ocean') || scriptLower.includes('sea') || scriptLower.includes('beach')) {
+    environment = 'vast ocean expanse with dramatic waves and horizon';
+  } else if (scriptLower.includes('mountain') || scriptLower.includes('peak')) {
+    environment = 'majestic mountain landscape with atmospheric depth';
+  } else if (scriptLower.includes('city') || scriptLower.includes('urban') || scriptLower.includes('street')) {
+    environment = 'atmospheric urban cityscape with depth and scale';
+  } else if (scriptLower.includes('desert') || scriptLower.includes('sand')) {
+    environment = 'sweeping desert dunes with heat haze';
+  } else if (scriptLower.includes('space') || scriptLower.includes('galaxy') || scriptLower.includes('star')) {
+    environment = 'vast cosmic nebula with stellar phenomena';
+  } else if (scriptLower.includes('underwater') || scriptLower.includes('deep sea')) {
+    environment = 'ethereal underwater realm with caustic light';
+  }
+  
+  // Select lighting based on content type
+  const lighting = contentType === 'documentary' ? LIGHTING_STYLES.documentary 
+    : contentType === 'epic' ? LIGHTING_STYLES.epic 
+    : contentType === 'intimate' ? LIGHTING_STYLES.moody 
+    : LIGHTING_STYLES.dramatic;
+  
+  return `${environment}, ${lighting}, shot on ARRI Alexa, anamorphic lens, 2.39:1 aspect ratio feel`;
+}
+
+// Helper function to build cinematic clip prompts with seamless transitions
 function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: number, totalClips: number): string {
-  // Truncate clip text to fit within limit (leave ~200 chars for scene desc + framing)
-  const maxClipTextLen = 700;
-  const truncatedText = clipText.length > maxClipTextLen 
-    ? clipText.slice(0, maxClipTextLen) + '...' 
-    : clipText;
+  const contentType = detectContentType(clipText);
   
-  const position = clipIndex === 0 ? 'Opening' : clipIndex === totalClips - 1 ? 'Closing' : `Part ${clipIndex + 1}`;
+  // Select camera movement for this clip - creates visual variety while maintaining consistency
+  const cameraMove = CAMERA_MOVEMENTS[clipIndex % CAMERA_MOVEMENTS.length];
   
-  // Keep total prompt under 1000 characters
-  return `${position} scene: ${truncatedText}. Style: ${sceneDescription}`.trim().slice(0, 990);
+  // Select color grade - same throughout for consistency
+  const colorGrade = COLOR_GRADES[Math.floor(totalClips / 2) % COLOR_GRADES.length];
+  
+  // Build transition hints for seamless flow
+  let transitionHint = '';
+  if (clipIndex === 0) {
+    transitionHint = 'fade in from black, establishing shot';
+  } else if (clipIndex === totalClips - 1) {
+    transitionHint = 'conclusive framing, lingering final moment';
+  } else {
+    transitionHint = 'continuous flow from previous scene';
+  }
+  
+  // Extract key visual elements from clip text (max 300 chars to leave room)
+  const visualContent = clipText.slice(0, 300);
+  
+  // Build the cinematic prompt
+  const prompt = [
+    `Cinematic ${cameraMove}`,
+    visualContent,
+    sceneDescription,
+    colorGrade,
+    transitionHint,
+    'photorealistic, 8K quality, film grain, shallow depth of field, professional cinematography',
+  ].join('. ');
+  
+  // Runway has 1000 char limit
+  return prompt.slice(0, 990);
 }
 
 const MOCK_CREDITS: UserCredits = {

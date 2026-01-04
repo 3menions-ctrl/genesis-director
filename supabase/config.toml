@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.extract-characters]
 verify_jwt = false
+
+[functions.extract-scenes]
+verify_jwt = false

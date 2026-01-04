@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { 
   Sparkles, Sun, TreePine, BookOpen, Layers, ChevronRight,
-  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users
+  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users, Clapperboard
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { StudioSettings, ENVIRONMENT_PRESETS, VISUAL_STYLE_PRESETS, VisualStylePreset } from '@/types/studio';
 import { CharacterConsistencyPanel } from './CharacterConsistencyPanel';
+import { SceneBreakdownPanel } from './SceneBreakdownPanel';
 import { cn } from '@/lib/utils';
 
 interface SettingsSidebarProps {
@@ -266,7 +267,38 @@ export function SettingsSidebar({ settings, onSettingsChange, script }: Settings
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Lighting Section */}
+        {/* Scene Breakdown Section */}
+        <Collapsible open={openSections.includes('scenes')} onOpenChange={() => toggleSection('scenes')}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-500/5 hover:to-transparent border-t border-border/5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/10 group-hover:border-cyan-500/30 transition-colors">
+                  <Clapperboard className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-sm text-foreground" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Scenes</span>
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    {settings.scenes?.length || 0} scenes
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={cn(
+                "w-4 h-4 text-muted-foreground/40 transition-transform duration-300",
+                openSections.includes('scenes') && "rotate-90"
+              )} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-6 pb-5">
+              <SceneBreakdownPanel
+                script={script}
+                scenes={settings.scenes || []}
+                onScenesChange={(scenes) => onSettingsChange({ scenes })}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         <Collapsible open={openSections.includes('lighting')} onOpenChange={() => toggleSection('lighting')}>
           <CollapsibleTrigger asChild>
             <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-amber-500/5 hover:to-transparent border-t border-border/5">

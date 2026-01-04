@@ -11,6 +11,7 @@ import { VOICE_OPTIONS, CHARACTER_OPTIONS } from '@/types/studio';
 import { useStudio } from '@/contexts/StudioContext';
 import { cn } from '@/lib/utils';
 import { useState, useCallback } from 'react';
+import { ScriptAssistant } from '@/components/studio/ScriptAssistant';
 
 const AVATAR_COLORS = [
   'from-violet-500 to-purple-600',
@@ -185,6 +186,14 @@ export default function Script() {
             <p className="text-sm text-gray-500">
               Supports .txt and .pdf files
             </p>
+          </div>
+
+          {/* AI Script Assistant */}
+          <div className="animate-fade-in-up" style={{ animationDelay: '75ms' }}>
+            <ScriptAssistant 
+              currentScript={script} 
+              onScriptUpdate={handleScriptChange} 
+            />
           </div>
 
           {/* Script Textarea */}

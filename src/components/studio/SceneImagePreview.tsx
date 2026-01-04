@@ -15,16 +15,8 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { SceneBreakdown } from '@/types/studio';
+import { SceneBreakdown, SceneImage } from '@/types/studio';
 import { cn } from '@/lib/utils';
-
-export interface SceneImage {
-  sceneNumber: number;
-  imageUrl: string;
-  prompt: string;
-  approved?: boolean;
-  regenerating?: boolean;
-}
 
 interface SceneImagePreviewProps {
   scenes: SceneBreakdown[];

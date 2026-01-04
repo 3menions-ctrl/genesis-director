@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Replicate from "https://esm.sh/replicate@0.25.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,44 +12,52 @@ serve(async (req) => {
   }
 
   try {
-    const { taskId } = await req.json();
+    const { taskId, provider = "replicate" } = await req.json();
 
     if (!taskId) {
       throw new Error("Task ID is required");
     }
 
-    console.log("Checking video status for task:", taskId);
+    console.log("Checking video status for task:", taskId, "provider:", provider);
 
-    const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
-    if (!RUNWAY_API_KEY) {
-      throw new Error("RUNWAY_API_KEY is not configured");
+    // Use Replicate as primary provider
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      throw new Error("REPLICATE_API_KEY is not configured");
     }
 
-    const response = await fetch(`https://api.dev.runwayml.com/v1/tasks/${taskId}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "X-Runway-Version": "2024-11-06",
-      },
-    });
+    const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+    const prediction = await replicate.predictions.get(taskId);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Runway status error:", response.status, errorText);
-      throw new Error(`Runway error: ${response.status}`);
+    console.log("Replicate prediction status:", prediction.status);
+
+    // Map Replicate status to our format
+    let status = prediction.status.toUpperCase();
+    if (status === "PROCESSING") status = "RUNNING";
+    if (status === "SUCCEEDED") status = "SUCCEEDED";
+    if (status === "FAILED") status = "FAILED";
+
+    // Get video URL from output
+    let videoUrl = null;
+    if (prediction.output) {
+      // Different models return output differently
+      if (typeof prediction.output === "string") {
+        videoUrl = prediction.output;
+      } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
+        videoUrl = prediction.output[0];
+      } else if (prediction.output.video) {
+        videoUrl = prediction.output.video;
+      }
     }
-
-    const taskData = await response.json();
-    
-    console.log("Video task status:", taskData.status);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        status: taskData.status,
-        progress: taskData.progress || 0,
-        videoUrl: taskData.output?.[0] || null,
-        error: taskData.failure || null,
+        status: status,
+        progress: prediction.status === "succeeded" ? 100 : (prediction.status === "processing" ? 50 : 0),
+        videoUrl: videoUrl,
+        error: prediction.error || null,
+        provider: "replicate",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

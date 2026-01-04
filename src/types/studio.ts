@@ -51,6 +51,7 @@ export interface CharacterProfile {
   distinguishingFeatures: string;
   age?: string;
   gender?: string;
+  referenceImageUrl?: string;
 }
 
 export interface StudioSettings {

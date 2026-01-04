@@ -117,8 +117,8 @@ export default {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        shimmer: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent)",
-        aurora: "linear-gradient(135deg, hsl(var(--primary)), hsl(280 85% 60%), hsl(var(--accent)))",
+        shimmer: "linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.05), transparent)",
+        aurora: "linear-gradient(135deg, hsl(var(--foreground)), hsl(0 0% 30%), hsl(var(--accent)))",
       },
     },
   },

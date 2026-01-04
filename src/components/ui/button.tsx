@@ -5,33 +5,33 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-500/25",
-        destructive: "bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-500/20",
-        outline: "border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-gray-700",
-        secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200",
-        ghost: "hover:bg-gray-100 text-gray-600 hover:text-gray-900",
-        link: "text-violet-600 underline-offset-4 hover:underline",
+        default: "bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md shadow-destructive/20",
+        outline: "border border-border bg-background/80 backdrop-blur-sm hover:bg-muted hover:border-foreground/20 text-foreground",
+        secondary: "bg-muted text-foreground hover:bg-muted/80 border border-border",
+        ghost: "hover:bg-muted text-muted-foreground hover:text-foreground",
+        link: "text-foreground underline-offset-4 hover:underline",
         glow: [
           "relative overflow-hidden",
-          "bg-gradient-to-r from-violet-600 to-purple-600",
-          "text-white font-medium",
-          "shadow-lg shadow-violet-500/30",
-          "hover:shadow-xl hover:shadow-violet-500/40",
-          "hover:from-violet-700 hover:to-purple-700",
+          "bg-foreground",
+          "text-background font-medium",
+          "shadow-lg shadow-foreground/15",
+          "hover:shadow-xl hover:shadow-foreground/20",
+          "hover:bg-foreground/90",
         ].join(" "),
         aurora: [
           "relative overflow-hidden",
-          "bg-gradient-to-r from-violet-600 via-purple-600 to-violet-600",
-          "text-white font-medium",
-          "shadow-lg shadow-violet-500/30",
-          "hover:shadow-xl hover:shadow-violet-500/40",
+          "bg-foreground",
+          "text-background font-medium",
+          "shadow-lg shadow-foreground/15",
+          "hover:shadow-xl hover:shadow-foreground/20",
         ].join(" "),
-        glass: "bg-white/80 backdrop-blur-xl border border-gray-200 text-gray-700 hover:bg-white hover:border-violet-300",
-        premium: "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 font-medium",
+        glass: "bg-background/70 backdrop-blur-xl border border-border text-foreground hover:bg-background/90 hover:border-foreground/20",
+        premium: "bg-foreground text-background shadow-lg shadow-foreground/15 hover:shadow-xl hover:shadow-foreground/20 font-medium",
       },
       size: {
         default: "h-10 px-5 py-2",

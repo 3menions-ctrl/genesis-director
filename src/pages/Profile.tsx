@@ -8,9 +8,8 @@ import { toast } from 'sonner';
 import { 
   User, Coins, History, LogOut, Sparkles, 
   ArrowUpRight, ArrowDownRight, Gift, ShoppingCart,
-  Film, Clock, Zap, TrendingUp, 
-  ChevronRight, Settings, Camera, Mail, Calendar,
-  Video, Target, BarChart3, Timer, Flame,
+  Film, Clock, Zap, TrendingUp, ChevronRight,
+  Video, Target, BarChart3, Timer,
   FolderOpen, CheckCircle2, Edit3, Play, Layers,
   PieChart as PieChartIcon, Activity
 } from 'lucide-react';
@@ -381,105 +380,42 @@ export default function Profile() {
         <div className="absolute bottom-1/4 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-blue-200/30 via-cyan-200/15 to-transparent rounded-full blur-3xl" />
       </div>
 
-      {/* Hero Profile Card */}
-      <div className="relative rounded-3xl overflow-hidden animate-fade-in">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700" />
-        
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-2xl" />
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 right-1/4 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl animate-pulse-soft" />
-          <div 
-            className="absolute inset-0 opacity-[0.08]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '32px 32px',
-            }}
-          />
-        </div>
+      {/* Hero Profile Card - Simplified */}
+      <div className="relative rounded-2xl overflow-hidden animate-fade-in">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-purple-600" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
 
-        <div className="relative p-8 lg:p-10">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-br from-white/30 to-white/10 rounded-2xl blur-sm" />
-                <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center overflow-hidden">
+        <div className="relative px-6 py-6 lg:px-8 lg:py-7">
+          <div className="flex items-center justify-between">
+            {/* Left: Avatar + Name */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-10 h-10 lg:w-12 lg:h-12 text-white/90" />
+                    <User className="w-7 h-7 text-white/90" />
                   )}
                 </div>
-                <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110">
-                  <Camera className="w-4 h-4 text-violet-600" />
-                </button>
               </div>
 
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-2xl lg:text-3xl font-display font-bold text-white">
-                    {profile?.display_name || profile?.full_name || 'Creator'}
-                  </h1>
-                  {profile?.role && (
-                    <div className="px-2.5 py-1 rounded-lg bg-white/20 border border-white/30 flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-white/90">{profile.role}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 text-white/70 text-sm">
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5" />
-                    {profile?.email}
-                  </span>
-                  <span className="hidden sm:flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5" />
-                    Member since {memberSince}
-                  </span>
-                </div>
+                <h1 className="text-xl lg:text-2xl font-display font-bold text-white">
+                  {profile?.display_name || profile?.full_name || 'Creator'}
+                </h1>
+                <p className="text-white/60 text-sm">{profile?.email}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                className="h-11 px-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:text-white"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button 
-                variant="ghost"
-                onClick={handleSignOut} 
-                className="h-11 px-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-red-500/20 hover:border-red-400/30 hover:text-white"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-
-          {/* Hero Quick Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-            {[
-              { label: 'Total Projects', value: loadingMetrics ? '...' : metrics.totalProjects.toString(), icon: FolderOpen },
-              { label: 'Videos Generated', value: loadingMetrics ? '...' : metrics.totalVideosGenerated.toString(), icon: Video },
-              { label: 'This Week', value: loadingMetrics ? '...' : `+${metrics.videosThisWeek}`, icon: Flame },
-              { label: 'Last Active', value: metrics.lastActivityDate ? getTimeAgo(metrics.lastActivityDate) : 'Never', icon: Clock },
-            ].map((stat, i) => (
-              <div 
-                key={stat.label}
-                className={cn(
-                  "px-5 py-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 animate-fade-in",
-                  `delay-${i + 1}`
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <stat.icon className="w-4 h-4 text-white/60" />
-                  <span className="text-xs text-white/60">{stat.label}</span>
-                </div>
-                <p className="text-xl font-display font-bold text-white">{stat.value}</p>
-              </div>
-            ))}
+            {/* Right: Sign Out */}
+            <Button 
+              variant="ghost"
+              onClick={handleSignOut} 
+              className="h-10 px-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:text-white"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>

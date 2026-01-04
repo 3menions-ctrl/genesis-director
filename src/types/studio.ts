@@ -41,6 +41,8 @@ export interface AssetLayer {
   created_at: string;
 }
 
+export type VisualStylePreset = 'cinematic' | 'documentary' | 'anime' | 'vintage';
+
 export interface StudioSettings {
   lighting: 'natural' | 'studio' | 'dramatic' | 'soft';
   lightingIntensity: number;
@@ -48,7 +50,35 @@ export interface StudioSettings {
   bookshelfItems: string[];
   environment: string;
   resolution: '1080p' | '4K';
+  visualStyle: VisualStylePreset;
 }
+
+export const VISUAL_STYLE_PRESETS = [
+  { 
+    id: 'cinematic' as VisualStylePreset, 
+    name: 'Cinematic', 
+    description: 'Hollywood blockbuster look',
+    prompt: 'cinematic film look, anamorphic lens flares, shallow depth of field, dramatic lighting, 2.39:1 aspect ratio feel, shot on ARRI Alexa, professional color grading, filmic texture' 
+  },
+  { 
+    id: 'documentary' as VisualStylePreset, 
+    name: 'Documentary', 
+    description: 'Raw, authentic feel',
+    prompt: 'documentary style, naturalistic lighting, handheld camera feel, authentic raw footage, 16mm film texture, observational cinematography, realistic color grading, journalistic approach' 
+  },
+  { 
+    id: 'anime' as VisualStylePreset, 
+    name: 'Anime', 
+    description: 'Japanese animation style',
+    prompt: 'anime art style, cel-shaded animation, vibrant saturated colors, dramatic speed lines, expressive lighting, Studio Ghibli inspired, clean line art, stylized backgrounds' 
+  },
+  { 
+    id: 'vintage' as VisualStylePreset, 
+    name: 'Vintage', 
+    description: 'Classic retro aesthetic',
+    prompt: 'vintage film aesthetic, warm color temperature, film grain, light leaks, faded colors, 1970s Super 8 look, nostalgic atmosphere, soft vignetting, analog imperfections' 
+  },
+] as const;
 
 export interface UserCredits {
   total: number;

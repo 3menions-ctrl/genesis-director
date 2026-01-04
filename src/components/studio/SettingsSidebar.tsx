@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { 
   Sparkles, Sun, TreePine, BookOpen, Layers, ChevronRight,
-  Palette, Zap, Mountain, Cloudy, Sunset, Moon
+  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { StudioSettings, ENVIRONMENT_PRESETS } from '@/types/studio';
+import { StudioSettings, ENVIRONMENT_PRESETS, VISUAL_STYLE_PRESETS, VisualStylePreset } from '@/types/studio';
 import { cn } from '@/lib/utils';
 
 interface SettingsSidebarProps {
@@ -20,6 +20,20 @@ const LIGHTING_OPTIONS = [
   { id: 'dramatic', label: 'Dramatic', icon: Moon, gradient: 'from-purple-500 to-pink-500' },
   { id: 'soft', label: 'Soft', icon: Cloudy, gradient: 'from-sky-300 to-blue-400' },
 ] as const;
+
+const STYLE_ICONS: Record<VisualStylePreset, React.ComponentType<{ className?: string }>> = {
+  'cinematic': Film,
+  'documentary': Camera,
+  'anime': Tv,
+  'vintage': Clock,
+};
+
+const STYLE_GRADIENTS: Record<VisualStylePreset, string> = {
+  'cinematic': 'from-amber-500 to-orange-600',
+  'documentary': 'from-slate-500 to-gray-600',
+  'anime': 'from-pink-500 to-purple-600',
+  'vintage': 'from-amber-600 to-brown-700',
+};
 
 const ENVIRONMENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   'modern-office': Zap,
@@ -41,6 +55,7 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
   };
 
   const selectedEnvironment = ENVIRONMENT_PRESETS.find(e => e.id === settings.environment);
+  const selectedStyle = VISUAL_STYLE_PRESETS.find(s => s.id === settings.visualStyle);
 
   return (
     <div className="h-full flex flex-col w-full bg-gradient-to-b from-background via-background to-muted/20">
@@ -63,10 +78,86 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
+        {/* Visual Style Section */}
+        <Collapsible open={openSections.includes('visualStyle')} onOpenChange={() => toggleSection('visualStyle')}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-pink-500/5 hover:to-transparent">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/10 group-hover:border-pink-500/30 transition-colors">
+                  <Film className="w-4 h-4 text-pink-400" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-sm text-foreground" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Visual Style</span>
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{selectedStyle?.name || 'Cinematic'}</p>
+                </div>
+              </div>
+              <ChevronRight className={cn(
+                "w-4 h-4 text-muted-foreground/40 transition-transform duration-300",
+                openSections.includes('visualStyle') && "rotate-90"
+              )} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-6 pb-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {VISUAL_STYLE_PRESETS.map((style) => {
+                  const StyleIcon = STYLE_ICONS[style.id];
+                  const isSelected = settings.visualStyle === style.id;
+                  const gradient = STYLE_GRADIENTS[style.id];
+                  
+                  return (
+                    <button
+                      key={style.id}
+                      onClick={() => onSettingsChange({ visualStyle: style.id })}
+                      className={cn(
+                        "relative flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-300 group/style overflow-hidden",
+                        isSelected 
+                          ? "bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/30 shadow-lg shadow-primary/10" 
+                          : "bg-muted/20 border border-transparent hover:border-border/30 hover:bg-muted/40"
+                      )}
+                    >
+                      <div className={cn(
+                        "p-2.5 rounded-xl transition-all duration-300",
+                        isSelected 
+                          ? `bg-gradient-to-br ${gradient} shadow-lg` 
+                          : "bg-muted/50 group-hover/style:bg-muted"
+                      )}>
+                        <StyleIcon className={cn(
+                          "w-4 h-4 transition-colors",
+                          isSelected ? "text-white" : "text-muted-foreground"
+                        )} />
+                      </div>
+                      <div className="text-center">
+                        <span className={cn(
+                          "text-xs font-medium transition-colors block",
+                          isSelected ? "text-foreground" : "text-muted-foreground"
+                        )} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+                          {style.name}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground/60 block mt-0.5">
+                          {style.description}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedStyle && (
+                <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/10">
+                  <p className="text-xs text-muted-foreground/80 leading-relaxed italic" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+                    "{selectedStyle.prompt}"
+                  </p>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         {/* Environment Section */}
         <Collapsible open={openSections.includes('environment')} onOpenChange={() => toggleSection('environment')}>
           <CollapsibleTrigger asChild>
-            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent">
+            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent border-t border-border/5">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/10 group-hover:border-emerald-500/30 transition-colors">
                   <Palette className="w-4 h-4 text-emerald-400" />

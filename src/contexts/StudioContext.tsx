@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -114,15 +114,33 @@ function buildClipPrompt(
   sceneDescription: string, 
   clipIndex: number, 
   totalClips: number,
-  fullScript?: string
+  fullScript?: string,
+  visualStyle?: VisualStylePreset
 ): string {
   const contentType = detectContentType(clipText);
   
-  // Select camera movement for this clip - creates visual variety while maintaining consistency
-  const cameraMove = CAMERA_MOVEMENTS[clipIndex % CAMERA_MOVEMENTS.length];
+  // Get the visual style prompt
+  const stylePreset = VISUAL_STYLE_PRESETS.find(s => s.id === visualStyle);
+  const stylePrompt = stylePreset?.prompt || VISUAL_STYLE_PRESETS[0].prompt;
   
-  // Select color grade - same throughout for consistency
-  const colorGrade = COLOR_GRADES[Math.floor(totalClips / 2) % COLOR_GRADES.length];
+  // Adjust camera movements based on style
+  const cameraMove = visualStyle === 'documentary' 
+    ? 'handheld naturalistic movement'
+    : visualStyle === 'anime'
+    ? 'dynamic anime-style camera sweep'
+    : CAMERA_MOVEMENTS[clipIndex % CAMERA_MOVEMENTS.length];
+  
+  // Select color grade based on style
+  let colorGrade: string;
+  if (visualStyle === 'vintage') {
+    colorGrade = 'warm faded film colors, sepia undertones, nostalgic palette';
+  } else if (visualStyle === 'anime') {
+    colorGrade = 'vibrant saturated anime colors, bold contrast';
+  } else if (visualStyle === 'documentary') {
+    colorGrade = 'natural authentic colors, realistic tones';
+  } else {
+    colorGrade = COLOR_GRADES[Math.floor(totalClips / 2) % COLOR_GRADES.length];
+  }
   
   // Extract consistent scene elements from full script
   const sceneConsistency = fullScript ? extractSceneElements(fullScript) : 'maintain visual continuity';
@@ -147,27 +165,28 @@ function buildClipPrompt(
     sceneConsistency
   ].join(', ');
   
-  // Extract key visual elements from clip text (reduced to 250 chars to fit more instructions)
-  const visualContent = clipText.slice(0, 250);
+  // Extract key visual elements from clip text (reduced to 200 chars to fit style)
+  const visualContent = clipText.slice(0, 200);
   
   // Detect if sci-fi to allow physics-bending
   const isSciFi = detectContentType(clipText) === 'scifi';
   
-  // Physics and realism constraints (except for sci-fi)
-  const physicsConstraints = isSciFi 
-    ? 'stylized sci-fi physics allowed, futuristic technology' 
+  // Physics and realism constraints (except for sci-fi and anime)
+  const physicsConstraints = isSciFi || visualStyle === 'anime'
+    ? 'stylized physics allowed' 
     : 'strict real-world physics, natural gravity and motion, realistic weight and momentum, authentic material behavior, no impossible movements, believable human anatomy and motion';
   
-  // Build the cinematic prompt with strong continuity emphasis
+  // Build the cinematic prompt with style emphasis
   const prompt = [
-    `Cinematic ${cameraMove}`,
+    stylePrompt,
+    `${cameraMove}`,
     visualContent,
     sceneDescription,
     colorGrade,
     transitionHint,
     continuityInstructions,
     physicsConstraints,
-    'photorealistic, 8K quality, film grain, shallow depth of field, professional cinematography, seamless scene matching'
+    'seamless scene matching'
   ].join('. ');
   
   // Runway has 1000 char limit
@@ -288,6 +307,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     bookshelfItems: ['Books', 'Plants'],
     environment: 'jungle_studio',
     resolution: '4K',
+    visualStyle: 'cinematic',
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
@@ -536,8 +556,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           totalClips: numClips
         });
 
-        // Create extensive prompt with scene/character consistency and full script context
-        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script);
+        // Create extensive prompt with scene/character consistency, full script context, and visual style
+        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle);
         
         // Start video generation
         const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {

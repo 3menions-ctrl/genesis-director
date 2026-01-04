@@ -83,67 +83,67 @@ function StudioSidebar() {
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r-0"
+      className="border-r border-white/5"
       style={{ 
-        background: 'linear-gradient(180deg, hsl(262 40% 12%) 0%, hsl(262 45% 8%) 100%)'
+        background: '#0a0a0a'
       }}
     >
-      <SidebarHeader className="p-5">
+      <SidebarHeader className="p-4 pb-6">
         <div className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            <div className="icon-box p-2.5">
+          <div className="relative shrink-0 group">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
+            <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
               <Film className="w-5 h-5 text-white" />
             </div>
           </div>
           {!isCollapsed && (
             <div className="animate-fade-in">
-              <h1 className="text-xl font-display font-bold tracking-tight text-white">
-                Apex<span className="text-violet-400"> Studio</span>
+              <h1 className="text-lg font-display font-bold tracking-tight text-white">
+                Apex<span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent"> Studio</span>
               </h1>
-              <p className="text-xs text-violet-300/60 mt-0.5">AI Movie Creator</p>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className="px-3">
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-2">
               {/* Projects Link */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isOnProjects} tooltip="Projects">
                   <NavLink 
                     to="/projects" 
                     className={cn(
-                      "relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
-                      isOnProjects && "bg-gradient-to-r from-violet-500/20 to-purple-500/10 border border-violet-500/30",
+                      "relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
+                      isOnProjects && "bg-white/10",
                       !isOnProjects && "hover:bg-white/5"
                     )}
                     activeClassName=""
                   >
+                    {isOnProjects && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/10 to-transparent" />
+                    )}
                     <div className={cn(
-                      "flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-all duration-200",
-                      isOnProjects && "bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25",
-                      !isOnProjects && "bg-white/5 group-hover:bg-white/10"
+                      "relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
+                      isOnProjects && "bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/30",
+                      !isOnProjects && "bg-white/5 group-hover:bg-white/10 group-hover:scale-105"
                     )}>
                       <Folder className={cn(
-                        "w-4 h-4 transition-all",
-                        isOnProjects ? "text-white" : "text-violet-300/60 group-hover:text-violet-200"
+                        "w-5 h-5 transition-all",
+                        isOnProjects ? "text-white" : "text-white/50 group-hover:text-white/80"
                       )} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    {!isCollapsed && (
                       <span className={cn(
-                        "font-medium text-sm block",
-                        isOnProjects ? "text-white" : "text-violet-300/60 group-hover:text-violet-200"
+                        "relative font-medium text-sm",
+                        isOnProjects ? "text-white" : "text-white/50 group-hover:text-white/80"
                       )}>
                         Projects
                       </span>
-                      <span className="text-[11px] font-mono text-violet-400/40">
-                        Library
-                      </span>
-                    </div>
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -153,13 +153,13 @@ function StudioSidebar() {
                 <SidebarMenuItem>
                   <Button
                     onClick={handleNewProject}
-                    variant="ghost"
-                    className="w-full justify-start gap-3 px-3 py-3 h-auto text-violet-300/60 hover:text-white hover:bg-white/5"
+                    className="w-full justify-start gap-3 px-3 py-3 h-auto bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0 rounded-xl shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02]"
                   >
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-dashed border-violet-500/30">
-                      <Plus className="w-4 h-4" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20">
+                      <Plus className="w-5 h-5" />
                     </div>
-                    <span className="font-medium text-sm">New Movie</span>
+                    <span className="font-semibold text-sm">New Movie</span>
+                    <Sparkles className="w-4 h-4 ml-auto animate-pulse" />
                   </Button>
                 </SidebarMenuItem>
               )}
@@ -167,87 +167,84 @@ function StudioSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Workflow Steps - Only show when in workflow or have active project */}
+        {/* Workflow Steps */}
         {(isInWorkflow || activeProject) && (
-          <SidebarGroup className="mt-10">
+          <SidebarGroup className="mt-8">
             {!isCollapsed && (
-              <div className="px-3 mb-6">
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-violet-400/50 font-semibold mb-1 p-0">
+              <div className="px-1 mb-4">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold p-0">
                   Workflow
                 </SidebarGroupLabel>
-                <p className="text-[10px] text-violet-400/30">Your creative journey</p>
               </div>
             )}
             <SidebarGroupContent>
-              <div className="flex flex-col gap-4 px-2">
-                {WORKFLOW_STEPS.map((item, index) => {
-                  const isActive = location.pathname === item.url;
-                  const isPast = index < currentStepIndex;
-                  const isFuture = index > currentStepIndex && currentStepIndex >= 0;
-                  
-                  return (
-                    <SidebarMenuItem key={item.title} className="list-none">
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                        <NavLink 
-                          to={item.url} 
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
-                            isActive && "bg-gradient-to-r from-violet-500/20 to-purple-500/10 border border-violet-500/30",
-                            !isActive && "hover:bg-white/5"
-                          )}
-                          activeClassName=""
-                        >
-                          {/* Icon Container */}
-                          <div className={cn(
-                            "relative flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-all duration-200",
-                            isActive && "bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25",
-                            isPast && "bg-emerald-500/20 border border-emerald-500/30",
-                            (isFuture || (!isActive && !isPast)) && "bg-white/5 group-hover:bg-white/10"
-                          )}>
-                            {isPast ? (
-                              <Check className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
-                            ) : (
-                              <item.icon className={cn(
-                                "w-4 h-4 transition-all",
-                                isActive && "text-white",
-                                (isFuture || (!isActive && !isPast)) && "text-violet-300/60 group-hover:text-violet-200"
-                              )} />
+              <div className="relative">
+                {/* Connecting line */}
+                {!isCollapsed && (
+                  <div className="absolute left-[27px] top-6 bottom-6 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
+                )}
+                
+                <div className="flex flex-col gap-2">
+                  {WORKFLOW_STEPS.map((item, index) => {
+                    const isActive = location.pathname === item.url;
+                    const isPast = index < currentStepIndex;
+                    const isFuture = index > currentStepIndex && currentStepIndex >= 0;
+                    
+                    return (
+                      <SidebarMenuItem key={item.title} className="list-none">
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                          <NavLink 
+                            to={item.url} 
+                            className={cn(
+                              "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group",
+                              isActive && "bg-white/10",
+                              !isActive && "hover:bg-white/5"
                             )}
-                          </div>
-                          
-                          {/* Text Content */}
-                          {!isCollapsed && (
-                            <div className="flex-1 min-w-0">
-                              <span className={cn(
-                                "font-medium text-sm block",
-                                isActive && "text-white",
-                                isPast && "text-violet-200",
-                                (isFuture || (!isActive && !isPast)) && "text-violet-300/60 group-hover:text-violet-200"
-                              )}>
-                                {item.title}
-                              </span>
-                              <span className={cn(
-                                "text-[11px] font-mono",
-                                isActive ? "text-violet-300" : "text-violet-400/40"
-                              )}>
-                                Step {item.step}
-                              </span>
+                            activeClassName=""
+                          >
+                            {isActive && (
+                              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-cyan-500/10 to-transparent rounded-xl" />
+                            )}
+                            
+                            <div className={cn(
+                              "relative z-10 flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
+                              isActive && "bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-lg shadow-emerald-500/30",
+                              isPast && "bg-emerald-500/20 ring-2 ring-emerald-500/50",
+                              !isActive && !isPast && "bg-white/5 group-hover:bg-white/10"
+                            )}>
+                              {isPast ? (
+                                <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+                              ) : (
+                                <item.icon className={cn(
+                                  "w-4 h-4 transition-all",
+                                  isActive && "text-white",
+                                  !isActive && !isPast && "text-white/40 group-hover:text-white/70"
+                                )} />
+                              )}
                             </div>
-                          )}
-                          
-                          {/* Arrow */}
-                          {!isCollapsed && (
-                            <ChevronRight className={cn(
-                              "w-4 h-4 opacity-0 -translate-x-1 transition-all duration-200",
-                              "group-hover:opacity-100 group-hover:translate-x-0",
-                              isActive ? "text-violet-300 opacity-100 translate-x-0" : "text-violet-400/40"
-                            )} />
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                            
+                            {!isCollapsed && (
+                              <div className="relative z-10 flex-1 min-w-0">
+                                <span className={cn(
+                                  "font-medium text-sm block",
+                                  isActive && "text-white",
+                                  isPast && "text-emerald-400",
+                                  !isActive && !isPast && "text-white/40 group-hover:text-white/70"
+                                )}>
+                                  {item.title}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {!isCollapsed && isActive && (
+                              <div className="relative z-10 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </div>
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -255,40 +252,35 @@ function StudioSidebar() {
 
         {/* Active Project Card */}
         {!isCollapsed && activeProject && (
-          <div className="mt-8 animate-fade-in-up delay-2">
-            <div className="px-1 mb-3">
-              <span className="text-[10px] uppercase tracking-widest text-violet-400/50 font-semibold">
-                Current Project
-              </span>
-            </div>
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-start gap-3">
+          <div className="mt-8 animate-fade-in">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
                 <div className={cn(
-                  "status-dot mt-1.5",
-                  activeProject.status === 'completed' && "status-completed",
-                  activeProject.status === 'generating' && "status-generating",
-                  activeProject.status === 'rendering' && "status-generating",
-                  activeProject.status === 'idle' && "status-idle"
+                  "w-2 h-2 rounded-full",
+                  activeProject.status === 'completed' && "bg-emerald-400 shadow-lg shadow-emerald-500/50",
+                  activeProject.status === 'generating' && "bg-amber-400 animate-pulse shadow-lg shadow-amber-500/50",
+                  activeProject.status === 'rendering' && "bg-blue-400 animate-pulse shadow-lg shadow-blue-500/50",
+                  activeProject.status === 'idle' && "bg-white/30"
                 )} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {activeProject.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 capitalize">
-                      {activeProject.status}
-                    </span>
-                  </div>
-                </div>
+                <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">
+                  Current
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-white truncate mb-2">
+                {activeProject.name}
+              </p>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-[11px] text-white/50 capitalize">
+                <Zap className="w-3 h-3" />
+                {activeProject.status}
               </div>
             </div>
           </div>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 mt-auto">
         {!isCollapsed && (
-          <div className="animate-fade-in-up delay-3">
+          <div className="animate-fade-in">
             <CreditsDisplay 
               credits={credits} 
               onBuyCredits={buyCredits} 

@@ -119,6 +119,8 @@ export function DirectorDashboard() {
     visualStyle: 'cinematic',
     characters: [],
     scenes: [],
+    sceneImages: [],
+    useImageToVideo: true,
   });
 
   const handleSettingsChange = (newSettings: Partial<StudioSettings>) => {

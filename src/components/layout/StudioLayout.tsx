@@ -5,7 +5,7 @@ import {
   ChevronRight, User, LogOut, CreditCard, Settings,
   Sparkles, Check, Plus, Home, Search, Command,
   Zap, Share2, HelpCircle, Keyboard, Wand2, Video, Music,
-  Mic, Image
+  Mic, Image, Coins
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/sidebar';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import { useStudio } from '@/contexts/StudioContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 // Main navigation - always visible
@@ -300,6 +301,122 @@ function StudioSidebar() {
   );
 }
 
+function UserMenu() {
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const handleProfile = () => {
+    navigate('/profile');
+  };
+
+  const getInitials = () => {
+    if (profile?.display_name) {
+      return profile.display_name.slice(0, 2).toUpperCase();
+    }
+    if (profile?.email) {
+      return profile.email.slice(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+  if (!user) {
+    return (
+      <Button 
+        onClick={() => navigate('/auth')} 
+        size="sm"
+        className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+      >
+        <User className="w-3.5 h-3.5" />
+        Sign In
+      </Button>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <Avatar className="h-7 w-7 ring-2 ring-gray-200">
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <ChevronRight className="w-3 h-3 rotate-90 text-gray-400 hidden sm:block" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200 shadow-2xl p-1.5">
+        <div className="px-2 py-2 flex items-center gap-2.5 border-b border-gray-100 mb-1">
+          <Avatar className="h-9 w-9 ring-2 ring-gray-100">
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-bold text-white">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {profile?.display_name || 'Creator'}
+            </p>
+            <p className="text-[11px] text-gray-500 truncate">{profile?.email}</p>
+          </div>
+        </div>
+
+        {/* Credits display in menu */}
+        <div className="px-2 py-2 mb-1 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-medium text-amber-700">Credits</span>
+            </div>
+            <span className="text-sm font-bold text-amber-700">
+              {profile?.credits_balance?.toLocaleString() || 0}
+            </span>
+          </div>
+        </div>
+        
+        <DropdownMenuItem 
+          onClick={handleProfile}
+          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+        >
+          <User className="w-4 h-4 text-gray-400" />
+          <span className="text-sm">Profile & Credits</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+          <Settings className="w-4 h-4 text-gray-400" />
+          <span className="text-sm">Settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+          <Keyboard className="w-4 h-4 text-gray-400" />
+          <span className="text-sm">Shortcuts</span>
+          <kbd className="ml-auto text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">?</kbd>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator className="bg-gray-100 my-1" />
+        
+        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+          <HelpCircle className="w-4 h-4 text-gray-400" />
+          <span className="text-sm">Help & Support</span>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator className="bg-gray-100 my-1" />
+        
+        <DropdownMenuItem 
+          onClick={handleSignOut}
+          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Sign out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function StudioHeader() {
   const { activeProject, credits, isGenerating, generationProgress } = useStudio();
   const navigate = useNavigate();
@@ -512,65 +629,7 @@ function StudioHeader() {
           <div className="w-px h-5 bg-gray-200 mx-1" />
 
           {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Avatar className="h-7 w-7 ring-2 ring-gray-200">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">
-                    JS
-                  </AvatarFallback>
-                </Avatar>
-                <ChevronRight className="w-3 h-3 rotate-90 text-gray-400 hidden sm:block" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200 shadow-2xl p-1.5">
-              <div className="px-2 py-2 flex items-center gap-2.5 border-b border-gray-100 mb-1">
-                <Avatar className="h-9 w-9 ring-2 ring-gray-100">
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-bold text-white">
-                    JS
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">John Smith</p>
-                  <p className="text-[11px] text-gray-500 truncate">john@example.com</p>
-                </div>
-              </div>
-              
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                <User className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                <CreditCard className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Billing</span>
-                <span className="ml-auto text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Pro</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                <Settings className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                <Keyboard className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Shortcuts</span>
-                <kbd className="ml-auto text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">?</kbd>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator className="bg-gray-100 my-1" />
-              
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
-                <HelpCircle className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Help & Support</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator className="bg-gray-100 my-1" />
-              
-              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm">Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserMenu />
         </div>
       </header>
     </TooltipProvider>

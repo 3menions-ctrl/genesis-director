@@ -135,9 +135,27 @@ serve(async (req) => {
       const errorText = await createResponse.text();
       console.error("Runway create error:", createResponse.status, errorText);
       
+      // Parse error to get specific message
+      let errorMessage = "Video generation failed";
+      let dailyLimitReached = false;
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.includes("daily task limit")) {
+          errorMessage = "Runway daily task limit reached. Your limit resets at midnight UTC. Please try again tomorrow.";
+          dailyLimitReached = true;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // Not JSON, use generic message
+      }
+      
       if (createResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          JSON.stringify({ 
+            error: errorMessage,
+            daily_limit_reached: dailyLimitReached,
+          }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

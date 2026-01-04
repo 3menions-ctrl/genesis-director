@@ -149,6 +149,7 @@ export default function Create() {
           synopsis: data.synopsis,
           generated_script: script,
           status: 'script_ready',
+          include_narration: data.includeNarration,
         })
         .select()
         .single();

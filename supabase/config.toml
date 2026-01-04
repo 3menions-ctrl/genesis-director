@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-thumbnail]
 verify_jwt = false
+
+[functions.extract-characters]
+verify_jwt = false

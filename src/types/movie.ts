@@ -1,4 +1,4 @@
-export type MovieGenre = 'action' | 'drama' | 'comedy' | 'thriller' | 'scifi' | 'fantasy' | 'romance' | 'horror' | 'documentary' | 'adventure';
+export type MovieGenre = 'ad' | 'educational' | 'documentary' | 'cinematic' | 'funny' | 'religious' | 'motivational' | 'storytelling' | 'explainer' | 'vlog';
 
 export type StoryStructure = 'three_act' | 'hero_journey' | 'circular' | 'in_medias_res' | 'episodic';
 
@@ -96,16 +96,16 @@ export interface CharacterInput {
 }
 
 export const GENRE_OPTIONS: { value: MovieGenre; label: string; emoji: string; description: string }[] = [
-  { value: 'action', label: 'Action', emoji: '💥', description: 'High-energy, thrilling sequences' },
-  { value: 'drama', label: 'Drama', emoji: '🎭', description: 'Emotional, character-driven stories' },
-  { value: 'comedy', label: 'Comedy', emoji: '😂', description: 'Humor and light-hearted fun' },
-  { value: 'thriller', label: 'Thriller', emoji: '😰', description: 'Suspense and tension' },
-  { value: 'scifi', label: 'Sci-Fi', emoji: '🚀', description: 'Futuristic and speculative' },
-  { value: 'fantasy', label: 'Fantasy', emoji: '🧙', description: 'Magic and mythical worlds' },
-  { value: 'romance', label: 'Romance', emoji: '💕', description: 'Love and relationships' },
-  { value: 'horror', label: 'Horror', emoji: '👻', description: 'Fear and suspense' },
-  { value: 'documentary', label: 'Documentary', emoji: '📹', description: 'Informative and factual' },
-  { value: 'adventure', label: 'Adventure', emoji: '🗺️', description: 'Exploration and discovery' },
+  { value: 'ad', label: 'Advertisement', emoji: '📢', description: 'Promotional content for products or services' },
+  { value: 'educational', label: 'Educational', emoji: '📚', description: 'Informative learning content' },
+  { value: 'documentary', label: 'Documentary', emoji: '🎬', description: 'Factual storytelling and exploration' },
+  { value: 'cinematic', label: 'Cinematic', emoji: '🎥', description: 'High-production dramatic content' },
+  { value: 'funny', label: 'Comedy', emoji: '😂', description: 'Humorous and entertaining' },
+  { value: 'religious', label: 'Religious', emoji: '🙏', description: 'Faith-based and spiritual content' },
+  { value: 'motivational', label: 'Motivational', emoji: '💪', description: 'Inspiring and uplifting messages' },
+  { value: 'storytelling', label: 'Storytelling', emoji: '📖', description: 'Narrative-driven content' },
+  { value: 'explainer', label: 'Explainer', emoji: '💡', description: 'Breaking down complex topics' },
+  { value: 'vlog', label: 'Vlog Style', emoji: '🎙️', description: 'Personal and casual format' },
 ];
 
 export const STRUCTURE_OPTIONS: { value: StoryStructure; label: string; description: string }[] = [

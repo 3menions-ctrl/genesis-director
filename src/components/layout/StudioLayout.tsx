@@ -168,9 +168,9 @@ function StudioSidebar() {
 
         {/* Workflow Steps - Only show when in workflow or have active project */}
         {(isInWorkflow || activeProject) && (
-          <SidebarGroup className="mt-8">
+          <SidebarGroup className="mt-10">
             {!isCollapsed && (
-              <div className="px-3 mb-4">
+              <div className="px-3 mb-6">
                 <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-violet-400/50 font-semibold mb-1 p-0">
                   Workflow
                 </SidebarGroupLabel>
@@ -178,104 +178,76 @@ function StudioSidebar() {
               </div>
             )}
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-3 px-1">
+              <div className="flex flex-col gap-4 px-2">
                 {WORKFLOW_STEPS.map((item, index) => {
                   const isActive = location.pathname === item.url;
                   const isPast = index < currentStepIndex;
                   const isFuture = index > currentStepIndex && currentStepIndex >= 0;
-                  const isLast = index === WORKFLOW_STEPS.length - 1;
                   
                   return (
-                    <SidebarMenuItem key={item.title} className="relative">
-                      {/* Connector Line */}
-                      {!isLast && !isCollapsed && (
-                        <div className={cn(
-                          "absolute left-[26px] top-[52px] w-[2px] h-6 transition-all duration-300",
-                          isPast ? "bg-gradient-to-b from-emerald-500/50 to-emerald-500/20" : "bg-white/10"
-                        )} />
-                      )}
-                      
+                    <SidebarMenuItem key={item.title} className="list-none">
                       <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
                         <NavLink 
                           to={item.url} 
                           className={cn(
-                            "relative flex items-center gap-4 px-3 py-4 rounded-2xl transition-all duration-300 group",
-                            isActive && "bg-gradient-to-r from-violet-500/25 via-purple-500/15 to-transparent border border-violet-500/40 shadow-lg shadow-violet-500/10",
-                            !isActive && "hover:bg-white/5 hover:translate-x-1"
+                            "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group",
+                            isActive && "bg-gradient-to-r from-violet-500/20 to-purple-500/10 border border-violet-500/30",
+                            !isActive && "hover:bg-white/5"
                           )}
                           activeClassName=""
                         >
-                          {/* Step Number Badge */}
-                          <div className="relative">
-                            <div className={cn(
-                              "flex items-center justify-center w-11 h-11 rounded-xl shrink-0 transition-all duration-300",
-                              isActive && "bg-gradient-to-br from-violet-500 to-purple-600 shadow-xl shadow-violet-500/30 scale-105",
-                              isPast && "bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 border border-emerald-500/40",
-                              isFuture && "bg-white/5 border border-white/10 group-hover:bg-white/10 group-hover:border-white/20",
-                              !isActive && !isPast && !isFuture && "bg-white/5 border border-white/10 group-hover:bg-white/10"
-                            )}>
+                          {/* Icon Container */}
+                          <div className={cn(
+                            "relative flex items-center justify-center w-10 h-10 rounded-lg shrink-0 transition-all duration-200",
+                            isActive && "bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25",
+                            isPast && "bg-emerald-500/20 border border-emerald-500/30",
+                            (isFuture || (!isActive && !isPast)) && "bg-white/5 group-hover:bg-white/10"
+                          )}>
+                            {isPast ? (
+                              <Check className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
+                            ) : (
                               <item.icon className={cn(
-                                "w-5 h-5 transition-all duration-300",
+                                "w-4 h-4 transition-all",
                                 isActive && "text-white",
-                                isPast && "text-emerald-400",
-                                (isFuture || (!isActive && !isPast)) && "text-violet-300/50 group-hover:text-violet-200"
+                                (isFuture || (!isActive && !isPast)) && "text-violet-300/60 group-hover:text-violet-200"
                               )} />
-                            </div>
-                            
-                            {/* Completion Badge */}
-                            {isPast && (
-                              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-scale-in">
-                                <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                              </div>
-                            )}
-                            
-                            {/* Active Glow Ring */}
-                            {isActive && (
-                              <div className="absolute inset-0 rounded-xl bg-violet-500/20 blur-xl animate-pulse" />
                             )}
                           </div>
                           
                           {/* Text Content */}
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2">
+                          {!isCollapsed && (
+                            <div className="flex-1 min-w-0">
                               <span className={cn(
-                                "font-semibold text-sm tracking-wide transition-all",
+                                "font-medium text-sm block",
                                 isActive && "text-white",
-                                isPast && "text-violet-100",
-                                (isFuture || (!isActive && !isPast)) && "text-violet-300/50 group-hover:text-violet-100"
+                                isPast && "text-violet-200",
+                                (isFuture || (!isActive && !isPast)) && "text-violet-300/60 group-hover:text-violet-200"
                               )}>
                                 {item.title}
                               </span>
-                              {isActive && (
-                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-violet-500/30 text-violet-200 rounded-md">
-                                  Active
-                                </span>
-                              )}
+                              <span className={cn(
+                                "text-[11px] font-mono",
+                                isActive ? "text-violet-300" : "text-violet-400/40"
+                              )}>
+                                Step {item.step}
+                              </span>
                             </div>
-                            <span className={cn(
-                              "text-[11px] font-mono block transition-all",
-                              isActive ? "text-violet-300/70" : "text-violet-400/30"
-                            )}>
-                              Step {item.step} of {WORKFLOW_STEPS.length}
-                            </span>
-                          </div>
+                          )}
                           
-                          {/* Arrow Indicator */}
-                          <div className={cn(
-                            "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300",
-                            isActive ? "bg-white/10" : "opacity-0 group-hover:opacity-100"
-                          )}>
+                          {/* Arrow */}
+                          {!isCollapsed && (
                             <ChevronRight className={cn(
-                              "w-4 h-4 transition-all duration-300",
-                              isActive ? "text-violet-300" : "text-violet-400/50 -translate-x-1 group-hover:translate-x-0"
+                              "w-4 h-4 opacity-0 -translate-x-1 transition-all duration-200",
+                              "group-hover:opacity-100 group-hover:translate-x-0",
+                              isActive ? "text-violet-300 opacity-100 translate-x-0" : "text-violet-400/40"
                             )} />
-                          </div>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
                 })}
-              </SidebarMenu>
+              </div>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

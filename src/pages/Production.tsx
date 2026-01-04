@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useStudio } from '@/contexts/StudioContext';
 import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
+import { GenerationLoader } from '@/components/studio/GenerationLoader';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
@@ -20,21 +21,11 @@ const PIPELINE_STEPS = [
   { id: 'render', label: 'Render', icon: Layers, description: 'Final composition' },
 ];
 
-// Fun facts for loading states
-const PRODUCTION_FACTS = [
-  { icon: '🎬', text: 'Hollywood blockbusters take 18+ months to produce. We do it in minutes.' },
-  { icon: '🧠', text: 'Our AI processes billions of visual patterns to create your scenes.' },
-  { icon: '🎭', text: 'Each character voice is unique, never to be replicated exactly again.' },
-  { icon: '✨', text: 'Every frame is individually crafted with cinematic precision.' },
-  { icon: '🚀', text: "You're using the same tech that's reshaping Hollywood." },
-];
-
 export default function Production() {
   const navigate = useNavigate();
   const { activeProject, generatePreview, isGenerating, generationProgress, credits, isLoading } = useStudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [factIndex, setFactIndex] = useState(0);
 
   const status = activeProject?.status || 'idle';
 
@@ -49,16 +40,6 @@ export default function Production() {
       </div>
     );
   }
-
-  // Cycle through fun facts during generation
-  useEffect(() => {
-    if (isGenerating) {
-      const interval = setInterval(() => {
-        setFactIndex(i => (i + 1) % PRODUCTION_FACTS.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isGenerating]);
 
   // Get current pipeline step based on generation progress
   const getCurrentPipelineStep = () => {
@@ -347,82 +328,15 @@ export default function Production() {
                 </div>
               )}
 
-              {/* Generating State - Animated Loading */}
+              {/* Generating State - New Animated Loader */}
               {(status === 'generating' || status === 'rendering' || isGenerating) && (
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-                  {/* Animated background particles */}
-                  <div className="absolute inset-0 overflow-hidden">
-                    {[...Array(20)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute w-1 h-1 rounded-full bg-primary/30 animate-pulse"
-                        style={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                          animationDelay: `${Math.random() * 2}s`,
-                          animationDuration: `${2 + Math.random() * 2}s`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  
-                  <div className="relative z-10 text-center space-y-8 px-8">
-                    {/* Animated rings */}
-                    <div className="relative w-32 h-32 md:w-40 md:h-40 mx-auto">
-                      <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
-                      <div className="absolute inset-4 rounded-full border-2 border-accent/30 animate-spin" style={{ animationDuration: '8s' }} />
-                      <div className="absolute inset-8 rounded-full border-2 border-primary/40 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }} />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl shadow-primary/30">
-                          <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-white animate-pulse" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Progress info */}
-                    <div className="space-y-2">
-                      <h3 className="text-xl md:text-2xl font-display font-bold text-white">
-                        {generationProgress.step === 'voice' && 'Generating Voice...'}
-                        {generationProgress.step === 'video' && 'Creating Visuals...'}
-                        {generationProgress.step === 'polling' && 'Rendering Video...'}
-                        {generationProgress.step === 'idle' && 'Preparing...'}
-                      </h3>
-                      {generationProgress.currentClip && generationProgress.totalClips && (
-                        <p className="text-white/60">
-                          Clip {generationProgress.currentClip} of {generationProgress.totalClips}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Progress bar */}
-                    <div className="w-64 md:w-80 mx-auto">
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-primary via-accent to-primary rounded-full transition-all duration-700 bg-[length:200%_100%] animate-[shimmer_2s_linear_infinite]"
-                          style={{ width: `${generationProgress.percent}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between mt-2 text-sm text-white/50 font-mono">
-                        <span>{generationProgress.percent}%</span>
-                        <span>
-                          {generationProgress.estimatedSecondsRemaining !== null 
-                            ? `~${Math.ceil(generationProgress.estimatedSecondsRemaining / 60)} min`
-                            : 'Calculating...'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Fun fact */}
-                    <div className="max-w-md mx-auto p-4 rounded-xl bg-white/5 border border-white/10">
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">{PRODUCTION_FACTS[factIndex].icon}</span>
-                        <p className="text-sm text-white/70 text-left">
-                          {PRODUCTION_FACTS[factIndex].text}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <GenerationLoader 
+                  step={generationProgress.step}
+                  percent={generationProgress.percent}
+                  estimatedSecondsRemaining={generationProgress.estimatedSecondsRemaining}
+                  currentClip={generationProgress.currentClip}
+                  totalClips={generationProgress.totalClips}
+                />
               )}
 
               {/* Idle State - Ready to Generate */}

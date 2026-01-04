@@ -283,7 +283,7 @@ export function DirectorDashboard() {
 
         {/* Right Sidebar - Settings */}
         <aside className="hidden xl:block w-80 border-l border-border/30 bg-sidebar/50 backdrop-blur-sm">
-          <SettingsSidebar settings={settings} onSettingsChange={handleSettingsChange} />
+          <SettingsSidebar settings={settings} onSettingsChange={handleSettingsChange} script={script} />
         </aside>
       </div>
     </div>

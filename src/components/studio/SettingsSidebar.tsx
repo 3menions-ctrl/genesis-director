@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 interface SettingsSidebarProps {
   settings: StudioSettings;
   onSettingsChange: (settings: Partial<StudioSettings>) => void;
+  script?: string;
 }
 
 const LIGHTING_OPTIONS = [
@@ -44,7 +45,7 @@ const ENVIRONMENT_ICONS: Record<string, React.ComponentType<{ className?: string
   'mountain-vista': Mountain,
 };
 
-export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarProps) {
+export function SettingsSidebar({ settings, onSettingsChange, script }: SettingsSidebarProps) {
   const [openSections, setOpenSections] = useState<string[]>(['environment', 'lighting']);
 
   const toggleSection = (section: string) => {
@@ -259,6 +260,7 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
               <CharacterConsistencyPanel
                 characters={settings.characters}
                 onCharactersChange={(characters) => onSettingsChange({ characters })}
+                script={script}
               />
             </div>
           </CollapsibleContent>

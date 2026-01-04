@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, User, Users, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Trash2, User, Users, ChevronRight, Sparkles, Wand2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,10 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CharacterProfile } from '@/types/studio';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CharacterConsistencyPanelProps {
   characters: CharacterProfile[];
   onCharactersChange: (characters: CharacterProfile[]) => void;
+  script?: string;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -31,8 +34,9 @@ const CLOTHING_SUGGESTIONS = [
   'elegant evening wear',
 ];
 
-export function CharacterConsistencyPanel({ characters, onCharactersChange }: CharacterConsistencyPanelProps) {
+export function CharacterConsistencyPanel({ characters, onCharactersChange, script }: CharacterConsistencyPanelProps) {
   const [expandedCharacter, setExpandedCharacter] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const addCharacter = () => {
     const newCharacter: CharacterProfile = {
@@ -46,6 +50,46 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange }: Ch
     };
     onCharactersChange([...characters, newCharacter]);
     setExpandedCharacter(newCharacter.id);
+  };
+
+  const extractCharactersFromScript = async () => {
+    if (!script || script.trim().length < 20) {
+      toast.error('Script is too short to extract characters');
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-characters', {
+        body: { script }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.characters?.length > 0) {
+        // Merge with existing characters (avoid duplicates by name)
+        const existingNames = new Set(characters.map(c => c.name.toLowerCase()));
+        const newCharacters = data.characters.filter(
+          (c: CharacterProfile) => !existingNames.has(c.name.toLowerCase())
+        );
+        
+        if (newCharacters.length > 0) {
+          onCharactersChange([...characters, ...newCharacters]);
+          toast.success(`Extracted ${newCharacters.length} character${newCharacters.length > 1 ? 's' : ''} from script`);
+        } else {
+          toast.info('All detected characters already exist');
+        }
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.info('No characters found in script');
+      }
+    } catch (error) {
+      console.error('Error extracting characters:', error);
+      toast.error('Failed to extract characters');
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const updateCharacter = (id: string, updates: Partial<CharacterProfile>) => {
@@ -78,15 +122,32 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange }: Ch
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={addCharacter}
-          className="h-8 px-3 text-xs gap-1.5 hover:bg-violet-500/10 hover:text-violet-400"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add
-        </Button>
+        <div className="flex gap-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={extractCharactersFromScript}
+            disabled={isExtracting || !script}
+            className="h-8 px-3 text-xs gap-1.5 hover:bg-purple-500/10 hover:text-purple-400"
+            title={!script ? 'Write a script first' : 'Extract characters from script using AI'}
+          >
+            {isExtracting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="w-3.5 h-3.5" />
+            )}
+            AI Extract
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={addCharacter}
+            className="h-8 px-3 text-xs gap-1.5 hover:bg-violet-500/10 hover:text-violet-400"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add
+          </Button>
+        </div>
       </div>
 
       {/* Character List */}

@@ -14,6 +14,7 @@ import Script from "./pages/Script";
 import Production from "./pages/Production";
 import Export from "./pages/Export";
 import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,13 @@ const App = () => (
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              
+              {/* Onboarding - protected but no layout */}
+              <Route path="/onboarding" element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              } />
               
               {/* Protected routes */}
               <Route path="/projects" element={

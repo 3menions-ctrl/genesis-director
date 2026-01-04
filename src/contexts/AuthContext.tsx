@@ -6,10 +6,15 @@ interface UserProfile {
   id: string;
   email: string | null;
   display_name: string | null;
+  full_name: string | null;
   avatar_url: string | null;
   credits_balance: number;
   total_credits_purchased: number;
   total_credits_used: number;
+  role: string | null;
+  use_case: string | null;
+  company: string | null;
+  onboarding_completed: boolean;
 }
 
 interface AuthContextType {

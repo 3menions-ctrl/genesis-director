@@ -268,36 +268,51 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          company: string | null
           created_at: string
           credits_balance: number
           display_name: string | null
           email: string | null
+          full_name: string | null
           id: string
+          onboarding_completed: boolean | null
+          role: string | null
           total_credits_purchased: number
           total_credits_used: number
           updated_at: string
+          use_case: string | null
         }
         Insert: {
           avatar_url?: string | null
+          company?: string | null
           created_at?: string
           credits_balance?: number
           display_name?: string | null
           email?: string | null
+          full_name?: string | null
           id: string
+          onboarding_completed?: boolean | null
+          role?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
+          use_case?: string | null
         }
         Update: {
           avatar_url?: string | null
+          company?: string | null
           created_at?: string
           credits_balance?: number
           display_name?: string | null
           email?: string | null
+          full_name?: string | null
           id?: string
+          onboarding_completed?: boolean | null
+          role?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
           updated_at?: string
+          use_case?: string | null
         }
         Relationships: []
       }

@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log(`Generating ${scenes.length} scene reference images for project ${projectId} using OpenAI gpt-image-1`);
+    console.log(`Generating ${scenes.length} scene reference images for project ${projectId} using OpenAI DALL-E 3`);
 
     const generatedImages: { sceneNumber: number; imageUrl: string; prompt: string }[] = [];
 
@@ -89,9 +89,10 @@ serve(async (req) => {
 
       const imagePrompt = imagePromptParts.join(". ");
       console.log(`Generating image for scene ${scene.sceneNumber}: ${scene.title}`);
+      console.log(`Prompt: ${imagePrompt.substring(0, 200)}...`);
 
       try {
-        // Use OpenAI gpt-image-1 model
+        // Use OpenAI DALL-E 3 model (gpt-image-1 requires org verification)
         const response = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
@@ -99,51 +100,59 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-image-1",
+            model: "dall-e-3",
             prompt: imagePrompt,
             n: 1,
-            size: "1536x1024", // Closest to 16:9 for cinematic look
-            quality: "high",
+            size: "1792x1024", // Widescreen 16:9 for cinematic look
+            quality: "hd",
+            style: "vivid",
           }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error(`OpenAI error for scene ${scene.sceneNumber}:`, errorData);
+          console.error(`OpenAI error for scene ${scene.sceneNumber}:`, JSON.stringify(errorData));
           
           if (response.status === 429) {
-            console.error(`Rate limit hit for scene ${scene.sceneNumber}, waiting...`);
+            console.error(`Rate limit hit for scene ${scene.sceneNumber}, waiting 10s...`);
             await new Promise(resolve => setTimeout(resolve, 10000));
             continue;
           }
           if (response.status === 402 || response.status === 401) {
-            throw new Error("OpenAI API authentication or billing issue");
+            throw new Error(`OpenAI API error: ${errorData?.error?.message || 'Authentication or billing issue'}`);
           }
+          // Log and continue for other errors
+          console.error(`Skipping scene ${scene.sceneNumber} due to error: ${errorData?.error?.message}`);
           continue;
         }
 
         const data = await response.json();
-        const imageData = data.data?.[0]?.b64_json || data.data?.[0]?.url;
+        console.log(`OpenAI response for scene ${scene.sceneNumber}:`, JSON.stringify(data).substring(0, 200));
 
-        if (imageData) {
-          let imageBuffer: Uint8Array;
-          let imageUrl: string;
+        // DALL-E 3 returns URLs (not base64 by default)
+        const imageUrl = data.data?.[0]?.url;
+        const revisedPrompt = data.data?.[0]?.revised_prompt;
+        
+        if (revisedPrompt) {
+          console.log(`DALL-E 3 revised prompt for scene ${scene.sceneNumber}: ${revisedPrompt.substring(0, 100)}...`);
+        }
 
-          // Check if it's base64 or URL
-          if (data.data?.[0]?.b64_json) {
-            // Base64 encoded image
-            const base64Data = data.data[0].b64_json;
-            imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-          } else if (data.data?.[0]?.url) {
-            // URL - fetch and convert
-            console.log(`Fetching image from URL for scene ${scene.sceneNumber}`);
-            const imageResponse = await fetch(data.data[0].url);
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            imageBuffer = new Uint8Array(arrayBuffer);
-          } else {
-            console.error(`No image data for scene ${scene.sceneNumber}`);
+        if (imageUrl) {
+          // Fetch image from OpenAI URL and upload to Supabase storage
+          console.log(`Downloading image for scene ${scene.sceneNumber} from OpenAI...`);
+          const imageResponse = await fetch(imageUrl);
+          if (!imageResponse.ok) {
+            console.error(`Failed to download image for scene ${scene.sceneNumber}`);
+            // Fall back to using OpenAI URL directly (expires in 60 min)
+            generatedImages.push({
+              sceneNumber: scene.sceneNumber,
+              imageUrl: imageUrl,
+              prompt: imagePrompt,
+            });
             continue;
           }
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          const imageBuffer = new Uint8Array(arrayBuffer);
           
           const fileName = `${projectId}/scene-${scene.sceneNumber}-${Date.now()}.png`;
           

@@ -1,11 +1,10 @@
 import { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Film, Folder, FileText, Play, Download, Bell, 
-  ChevronRight, User, LogOut, CreditCard, Settings,
-  Sparkles, Check, Plus, Home, Search, Command,
-  Zap, Share2, HelpCircle, Keyboard, Wand2, Video, Music,
-  Mic, Image, Coins
+  Film, Folder, FileText, Play, Download,
+  ChevronRight, User, LogOut, Settings,
+  Check, Plus, Zap, HelpCircle, Keyboard, Coins,
+  Home, Video, Mic, Music, Sparkles
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -415,217 +414,108 @@ function StudioHeader() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get current step info
-  const currentStep = WORKFLOW_STEPS.find(step => location.pathname === step.url);
   const currentStepIndex = WORKFLOW_STEPS.findIndex(step => location.pathname === step.url);
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'completed': 
-        return { color: 'bg-emerald-500', ring: 'ring-emerald-500/20', text: 'text-emerald-600', bg: 'bg-emerald-50' };
-      case 'generating': 
-        return { color: 'bg-violet-500 animate-pulse', ring: 'ring-violet-500/20', text: 'text-violet-600', bg: 'bg-violet-50' };
-      case 'rendering': 
-        return { color: 'bg-amber-500 animate-pulse', ring: 'ring-amber-500/20', text: 'text-amber-600', bg: 'bg-amber-50' };
-      default: 
-        return { color: 'bg-gray-400', ring: 'ring-gray-400/20', text: 'text-gray-600', bg: 'bg-gray-50' };
-    }
-  };
-
-  const statusConfig = activeProject ? getStatusConfig(activeProject.status) : null;
-
   return (
-    <TooltipProvider delayDuration={200}>
-      <header 
-        className="h-14 px-3 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50"
-        style={{ fontFamily: "'Instrument Sans', sans-serif" }}
-      >
-        {/* Left Section */}
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="hover:bg-gray-100 rounded-lg h-8 w-8 text-gray-500 hover:text-gray-700 transition-all" />
-          
-          <div className="hidden md:flex items-center">
-            {/* Workflow Steps as Pills */}
-            <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 ml-2">
-              {WORKFLOW_STEPS.map((step, index) => {
-                const isActive = location.pathname === step.url;
-                const isPast = index < currentStepIndex;
-                const isClickable = activeProject || index === 0;
-                
-                return (
-                  <button
-                    key={step.title}
-                    onClick={() => isClickable && navigate(step.url)}
-                    disabled={!isClickable}
-                    className={cn(
-                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                      isActive && "bg-white text-gray-900 shadow-sm",
-                      !isActive && isPast && "text-gray-600 hover:text-gray-900",
-                      !isActive && !isPast && "text-gray-400",
-                      isClickable && !isActive && "hover:text-gray-700"
-                    )}
-                  >
-                    {isPast && !isActive ? (
-                      <Check className="w-3 h-3 text-emerald-500" />
-                    ) : (
-                      <step.icon className={cn("w-3 h-3", isActive ? "text-violet-600" : "")} />
-                    )}
-                    <span className="hidden lg:inline">{step.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Center Section - Project Info */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
-          {activeProject ? (
-            <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-gray-50/80 border border-gray-200/60">
-              <div className={cn("w-2 h-2 rounded-full ring-4", statusConfig?.color, statusConfig?.ring)} />
-              <span className="text-sm font-semibold text-gray-900 max-w-[180px] truncate">
+    <header className="h-12 px-4 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
+      {/* Left Section - Sidebar trigger + Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <SidebarTrigger className="hover:bg-muted rounded-lg h-8 w-8 text-muted-foreground hover:text-foreground transition-colors" />
+        
+        {/* Breadcrumb navigation */}
+        <nav className="hidden md:flex items-center gap-1 text-sm">
+          <button 
+            onClick={() => navigate('/projects')}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Projects
+          </button>
+          {activeProject && (
+            <>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+              <span className="text-foreground font-medium truncate max-w-[160px]">
                 {activeProject.name}
               </span>
-              {isGenerating && (
-                <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-                  <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
-                      style={{ width: `${generationProgress.percent}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-gray-500">{generationProgress.percent}%</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button 
-              onClick={() => navigate('/create')}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200/60 hover:border-violet-300 transition-colors group"
-            >
-              <Plus className="w-3.5 h-3.5 text-violet-600" />
-              <span className="text-sm font-medium text-violet-700 group-hover:text-violet-800">New Project</span>
-            </button>
+            </>
           )}
-        </div>
+        </nav>
+      </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-1.5">
-          {/* Search */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all group">
-                <Search className="w-4 h-4" />
-                <span className="text-xs text-gray-400 group-hover:text-gray-500">Search</span>
-                <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 group-hover:bg-gray-200 text-[10px] font-mono text-gray-400 transition-colors">
-                  ⌘K
-                </kbd>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
-              Command palette
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="w-px h-5 bg-gray-200 mx-1 hidden lg:block" />
-
-          {/* AI Generate Button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-8 gap-1.5 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+      {/* Center Section - Workflow Steps */}
+      <div className="absolute left-1/2 -translate-x-1/2">
+        <div className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50">
+          {WORKFLOW_STEPS.map((step, index) => {
+            const isActive = location.pathname === step.url;
+            const isPast = index < currentStepIndex;
+            const isClickable = activeProject || index === 0;
+            
+            return (
+              <button
+                key={step.title}
+                onClick={() => isClickable && navigate(step.url)}
+                disabled={!isClickable}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                  isActive && "bg-primary text-primary-foreground shadow-sm",
+                  !isActive && isPast && "text-foreground/70 hover:bg-muted",
+                  !isActive && !isPast && "text-muted-foreground",
+                  isClickable && !isActive && "hover:text-foreground cursor-pointer",
+                  !isClickable && "opacity-50 cursor-not-allowed"
+                )}
               >
-                <Wand2 className="w-4 h-4" />
-                <span className="hidden xl:inline text-xs font-medium">AI Tools</span>
-                <ChevronRight className="w-3 h-3 rotate-90 text-gray-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-white border-gray-200 shadow-xl p-1.5">
-              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold px-2 py-1">
-                Generate with AI
-              </DropdownMenuLabel>
-              {QUICK_ACTIONS.map((action) => (
-                <DropdownMenuItem 
-                  key={action.id} 
-                  className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                >
-                  <div className={cn("p-1.5 rounded-md bg-gradient-to-br", action.color)}>
-                    <action.icon className="w-3 h-3 text-white" />
-                  </div>
-                  <span className="flex-1 text-sm">{action.label}</span>
-                  <kbd className="text-[10px] font-mono text-gray-400">{action.shortcut}</kbd>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Credits */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 hover:border-amber-300 transition-colors">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs font-bold text-amber-700" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                  {(credits.remaining / 1000).toFixed(1)}k
-                </span>
+                {isPast && !isActive ? (
+                  <Check className="w-3 h-3 text-success" />
+                ) : (
+                  <step.icon className="w-3 h-3" />
+                )}
+                <span className="hidden lg:inline">{step.title}</span>
               </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
-              {credits.remaining.toLocaleString()} credits remaining
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="w-px h-5 bg-gray-200 mx-1" />
-
-          {/* Notifications */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-violet-500 ring-2 ring-white" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
-              Notifications
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Share */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
-              Share
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Export */}
-          <Button
-            onClick={() => navigate('/export')}
-            disabled={activeProject?.status !== 'completed'}
-            size="sm"
-            className={cn(
-              "h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all",
-              activeProject?.status === 'completed'
-                ? "bg-gray-900 hover:bg-gray-800 text-white"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-            )}
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
-
-          <div className="w-px h-5 bg-gray-200 mx-1" />
-
-          {/* User Menu */}
-          <UserMenu />
+            );
+          })}
         </div>
-      </header>
-    </TooltipProvider>
+      </div>
+
+      {/* Right Section - Actions */}
+      <div className="flex items-center gap-2">
+        {/* Generation Progress */}
+        {isGenerating && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-medium text-primary">{generationProgress.percent}%</span>
+          </div>
+        )}
+
+        {/* Credits */}
+        <button 
+          onClick={() => navigate('/profile')}
+          className="flex items-center gap-1.5 h-8 px-3 rounded-full bg-warning/10 border border-warning/20 hover:bg-warning/15 transition-colors"
+        >
+          <Coins className="w-3.5 h-3.5 text-warning" />
+          <span className="text-xs font-bold text-warning">
+            {credits.remaining.toLocaleString()}
+          </span>
+        </button>
+
+        {/* Export Button */}
+        <Button
+          onClick={() => navigate('/export')}
+          disabled={activeProject?.status !== 'completed'}
+          size="sm"
+          className={cn(
+            "h-8 gap-1.5 px-3 rounded-full text-xs font-medium transition-all",
+            activeProject?.status === 'completed'
+              ? "bg-foreground text-background hover:bg-foreground/90"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          )}
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+
+        {/* User Menu */}
+        <UserMenu />
+      </div>
+    </header>
   );
 }
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -123,6 +123,73 @@ function buildCharacterPrompt(characters: CharacterProfile[]): string {
     if (char.referenceImageUrl) parts.push('(has reference image - maintain exact likeness)');
     return parts.join(', ');
   }).join('; ');
+}
+
+// Build prompt from a scene breakdown (when scenes are extracted)
+function buildSceneBasedPrompt(
+  scene: SceneBreakdown,
+  sceneIndex: number,
+  totalScenes: number,
+  visualStyle?: VisualStylePreset,
+  characters?: CharacterProfile[]
+): string {
+  const stylePreset = VISUAL_STYLE_PRESETS.find(s => s.id === visualStyle);
+  const stylePrompt = stylePreset?.prompt || VISUAL_STYLE_PRESETS[0].prompt;
+  
+  const characterPrompt = characters ? buildCharacterPrompt(characters) : '';
+  
+  // Map scene characters to their full profiles for consistency
+  const sceneCharacterDescriptions = scene.characters
+    .map(charName => {
+      const profile = characters?.find(c => c.name.toLowerCase() === charName.toLowerCase());
+      if (profile) {
+        const parts: string[] = [profile.name];
+        if (profile.appearance) parts.push(profile.appearance);
+        if (profile.clothing) parts.push(`wearing ${profile.clothing}`);
+        if (profile.referenceImageUrl) parts.push('(maintain exact likeness from reference)');
+        return parts.join(', ');
+      }
+      return charName;
+    })
+    .join('; ');
+  
+  // Camera movement based on scene position and style
+  const cameraMove = visualStyle === 'documentary' 
+    ? 'handheld naturalistic movement'
+    : visualStyle === 'anime'
+    ? 'dynamic anime-style camera sweep'
+    : CAMERA_MOVEMENTS[sceneIndex % CAMERA_MOVEMENTS.length];
+  
+  // Transition hints for seamless flow
+  let transitionHint = '';
+  if (sceneIndex === 0) {
+    transitionHint = 'fade in from black, establishing shot';
+  } else if (sceneIndex === totalScenes - 1) {
+    transitionHint = 'conclusive framing, final moment';
+  } else {
+    transitionHint = 'seamless continuation, match previous scene';
+  }
+  
+  // Build comprehensive prompt using scene's visual description
+  const promptParts = [
+    stylePrompt,
+    cameraMove,
+    scene.visualDescription, // Use the AI-generated visual description
+    `mood: ${scene.mood}`,
+  ];
+  
+  if (sceneCharacterDescriptions) {
+    promptParts.push(`CHARACTERS: ${sceneCharacterDescriptions}`);
+  }
+  
+  promptParts.push(
+    transitionHint,
+    'consistent lighting and color throughout',
+    'characters look identical across all scenes'
+  );
+  
+  const prompt = promptParts.join('. ');
+  return prompt.slice(0, 990); // Runway 1000 char limit
 }
 
 // Helper function to build cinematic clip prompts with seamless transitions and scene consistency
@@ -495,18 +562,29 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const projectId = activeProjectId!;
     const includeNarration = activeProject.include_narration !== false;
     
-    // Calculate clips based on script word count (avg speaking rate: 150 words/min)
+    // Check if we have extracted scenes to use for generation
+    const hasScenes = settings.scenes && settings.scenes.length > 0;
+    
+    // Calculate clips based on scenes (if available) or script word count
+    let numClips: number;
+    let clipDuration = 8;
+    
+    if (hasScenes) {
+      // Use scenes for generation - each scene becomes a clip
+      numClips = settings.scenes.length;
+      toast.info(`Using ${numClips} extracted scenes for video generation`);
+    } else {
+      // Fall back to word-based splitting
+      const words = script.split(/\s+/).filter(w => w.trim());
+      const wordCount = words.length;
+      const estimatedNarrationSeconds = Math.ceil((wordCount / 150) * 60);
+      const targetDuration = activeProject.target_duration_minutes || 1;
+      const targetSeconds = Math.max(estimatedNarrationSeconds, targetDuration * 60);
+      numClips = Math.max(1, Math.ceil(targetSeconds / clipDuration));
+    }
+    
     const words = script.split(/\s+/).filter(w => w.trim());
-    const wordCount = words.length;
-    const estimatedNarrationSeconds = Math.ceil((wordCount / 150) * 60);
-    
-    // Use the longer of: estimated narration time or target duration
-    const targetDuration = activeProject.target_duration_minutes || 1;
-    const targetSeconds = Math.max(estimatedNarrationSeconds, targetDuration * 60);
-    
-    const clipDuration = 8;
-    const numClips = Math.max(1, Math.ceil(targetSeconds / clipDuration));
-    const wordsPerClip = Math.ceil(wordCount / numClips);
+    const wordsPerClip = Math.ceil(words.length / numClips);
     
     // More accurate time estimates: ~90-180 seconds per clip for Runway
     const estimatedSecondsPerClip = 120; // 2 minutes avg per clip
@@ -571,9 +649,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
         
         const clipStartTime = Date.now();
-        const clipStartWord = i * wordsPerClip;
-        const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
-        const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
         
         // Calculate remaining time based on actual clip times or estimates
         const avgClipTime = clipTimesMs.length > 0 
@@ -590,8 +665,27 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           totalClips: numClips
         });
 
-        // Create extensive prompt with scene/character consistency, full script context, visual style, and characters
-        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
+        // Build video prompt - use scene-based if scenes are available
+        let videoPrompt: string;
+        
+        if (hasScenes && settings.scenes[i]) {
+          // Use scene breakdown for precise visual descriptions
+          const scene = settings.scenes[i];
+          videoPrompt = buildSceneBasedPrompt(
+            scene, 
+            i, 
+            numClips, 
+            settings.visualStyle, 
+            settings.characters
+          );
+          toast.info(`Scene ${i + 1}: "${scene.title}" generating...`);
+        } else {
+          // Fall back to word-based prompt building
+          const clipStartWord = i * wordsPerClip;
+          const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
+          const clipText = words.slice(clipStartWord, clipEndWord).join(' ');
+          videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
+        }
         
         // Start video generation
         const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {

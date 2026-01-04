@@ -21,12 +21,17 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
     setIsPlaying(false);
   }, [clips]);
 
+  // Track if we should auto-play the next clip
+  const shouldAutoPlayRef = useRef(false);
+
   const handleVideoEnded = () => {
     if (currentClipIndex < clips.length - 1) {
-      // Move to next clip
+      // Mark that we should auto-play next clip
+      shouldAutoPlayRef.current = true;
       setCurrentClipIndex(prev => prev + 1);
     } else {
-      // All clips finished
+      // All clips finished - reset to beginning
+      shouldAutoPlayRef.current = false;
       setIsPlaying(false);
       setCurrentClipIndex(0);
       onPlayStateChange?.(false);
@@ -37,10 +42,23 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
     const video = videoRef.current;
     if (!video || !currentClip) return;
 
-    // When clip changes, load and play if was playing
+    // Load the new clip
     video.load();
-    if (isPlaying) {
-      video.play().catch(console.error);
+    
+    // Auto-play if we should (after previous clip ended) or if already playing
+    if (shouldAutoPlayRef.current || isPlaying) {
+      const playPromise = video.play();
+      if (playPromise) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            onPlayStateChange?.(true);
+          })
+          .catch((err) => {
+            console.error('Failed to auto-play next clip:', err);
+          });
+      }
+      shouldAutoPlayRef.current = false;
     }
   }, [currentClipIndex, currentClip]);
 

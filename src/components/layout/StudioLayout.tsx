@@ -148,18 +148,15 @@ function StudioSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* New Project Button */}
+              {/* New Clip Button */}
               {!isCollapsed && (
                 <SidebarMenuItem>
                   <Button
                     onClick={handleNewProject}
-                    className="w-full justify-start gap-3 px-3 py-3 h-auto bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white border-0 rounded-xl shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02]"
+                    className="w-full justify-center gap-2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded-xl transition-all"
                   >
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20">
-                      <Plus className="w-5 h-5" />
-                    </div>
-                    <span className="font-semibold text-sm">New Movie</span>
-                    <Sparkles className="w-4 h-4 ml-auto animate-pulse" />
+                    <Plus className="w-4 h-4" />
+                    <span className="font-medium text-sm">New Clip</span>
                   </Button>
                 </SidebarMenuItem>
               )}

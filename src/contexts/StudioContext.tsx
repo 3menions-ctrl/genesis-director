@@ -3,99 +3,38 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Helper function to build comprehensive scene consistency prompt for video generation
+// Helper function to build a concise scene description (Runway API has 1000 char limit)
 function buildSceneConsistencyPrompt(script: string, project: Project): string {
-  // Extract key visual elements from the script
   const scriptLower = script.toLowerCase();
   
-  // Detect environment/setting
-  let environment = 'modern indoor setting with neutral lighting';
-  if (scriptLower.includes('jungle') || scriptLower.includes('forest')) {
-    environment = 'lush green jungle environment with dappled sunlight filtering through dense tropical canopy, humid atmosphere';
-  } else if (scriptLower.includes('office') || scriptLower.includes('corporate')) {
-    environment = 'sleek modern corporate office with glass walls, minimalist furniture, soft ambient lighting';
-  } else if (scriptLower.includes('outdoor') || scriptLower.includes('nature')) {
-    environment = 'expansive outdoor natural landscape with clear blue sky, golden hour lighting';
-  } else if (scriptLower.includes('studio') || scriptLower.includes('presentation')) {
-    environment = 'professional video studio with soft diffused lighting, clean neutral background';
-  } else if (scriptLower.includes('city') || scriptLower.includes('urban')) {
-    environment = 'modern urban cityscape with tall buildings, busy streets, dynamic city atmosphere';
-  } else if (scriptLower.includes('home') || scriptLower.includes('living')) {
-    environment = 'cozy modern living room with warm ambient lighting, comfortable furnishings';
-  }
+  // Detect environment - keep brief
+  let env = 'modern studio';
+  if (scriptLower.includes('jungle') || scriptLower.includes('forest')) env = 'lush jungle';
+  else if (scriptLower.includes('office')) env = 'modern office';
+  else if (scriptLower.includes('outdoor') || scriptLower.includes('nature')) env = 'outdoor landscape';
+  else if (scriptLower.includes('city') || scriptLower.includes('urban')) env = 'urban cityscape';
+  else if (scriptLower.includes('home')) env = 'cozy living room';
 
-  // Detect mood/tone
-  let mood = 'professional and engaging';
-  if (scriptLower.includes('exciting') || scriptLower.includes('revolutionary')) {
-    mood = 'dynamic and energetic with high impact visuals';
-  } else if (scriptLower.includes('calm') || scriptLower.includes('peaceful') || scriptLower.includes('meditation')) {
-    mood = 'serene and tranquil with slow deliberate movements';
-  } else if (scriptLower.includes('tutorial') || scriptLower.includes('learn')) {
-    mood = 'educational and clear with focused attention on subject';
-  }
-
-  // Build character consistency description
-  const characterDesc = `
-MAIN PRESENTER CHARACTER - MUST REMAIN IDENTICAL IN EVERY FRAME:
-- Professional adult presenter, confident posture and demeanor
-- Consistent facial features: same face shape, eye color, hair color and style throughout
-- Same clothing and accessories in every single shot
-- Natural subtle movements and expressions
-- Direct camera engagement with professional eye contact
-- Consistent skin tone and lighting on face`;
-
-  // Build comprehensive prompt
-  return `
-CRITICAL VISUAL CONSISTENCY REQUIREMENTS - MUST BE FOLLOWED EXACTLY:
-
-ENVIRONMENT (IDENTICAL IN ALL CLIPS):
-${environment}
-- Same exact location, camera angle style, and spatial layout
-- Consistent color palette and color grading throughout
-- Same lighting direction, intensity, and quality in every frame
-- Identical background elements and props placement
-
-${characterDesc}
-
-CINEMATOGRAPHY STYLE (MAINTAIN THROUGHOUT):
-- ${mood}
-- Professional 4K cinematic quality with film grain
-- Consistent depth of field and focus style
-- Smooth camera movements matching the pacing
-- Same aspect ratio and framing conventions
-- Color grading: warm cinematic tones, consistent across all clips
-
-TECHNICAL REQUIREMENTS:
-- 24fps cinematic motion
-- Consistent motion blur and shutter angle
-- Same level of detail and sharpness throughout
-- Matching audio-visual synchronization pace
-`.trim();
+  // Detect mood - keep brief
+  let mood = 'professional';
+  if (scriptLower.includes('exciting') || scriptLower.includes('action')) mood = 'dynamic energetic';
+  else if (scriptLower.includes('calm') || scriptLower.includes('peaceful')) mood = 'serene calm';
+  
+  return `${env}, ${mood} mood, cinematic 4K, consistent lighting and colors`.trim();
 }
 
-// Helper function to build individual clip prompts with consistency
+// Helper function to build individual clip prompts - must stay under 1000 chars total
 function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: number, totalClips: number): string {
-  const clipPosition = clipIndex === 0 
-    ? 'OPENING SCENE' 
-    : clipIndex === totalClips - 1 
-      ? 'CLOSING SCENE' 
-      : `SCENE ${clipIndex + 1} OF ${totalClips}`;
-
-  const continuityNote = clipIndex > 0 
-    ? `CONTINUITY: This is a DIRECT CONTINUATION of the previous scene. The character, environment, lighting, and visual style must be EXACTLY the same as the preceding clip. No changes to character appearance, clothing, or setting.`
-    : `ESTABLISHING SHOT: Set the visual foundation that ALL subsequent clips must match exactly.`;
-
-  return `
-${clipPosition}
-${continuityNote}
-
-SCENE CONTENT:
-${clipText.slice(0, 500)}
-
-${sceneDescription}
-
-IMPORTANT: Generate visuals that seamlessly connect with adjacent clips. Same character, same location, same lighting, same style. This is one continuous video, not separate scenes.
-`.trim();
+  // Truncate clip text to fit within limit (leave ~200 chars for scene desc + framing)
+  const maxClipTextLen = 700;
+  const truncatedText = clipText.length > maxClipTextLen 
+    ? clipText.slice(0, maxClipTextLen) + '...' 
+    : clipText;
+  
+  const position = clipIndex === 0 ? 'Opening' : clipIndex === totalClips - 1 ? 'Closing' : `Part ${clipIndex + 1}`;
+  
+  // Keep total prompt under 1000 characters
+  return `${position} scene: ${truncatedText}. Style: ${sceneDescription}`.trim().slice(0, 990);
 }
 
 // Mock data for demonstration

@@ -183,7 +183,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Star className="w-4 h-4 text-foreground" />
-                Movie Title
+                Clip Title
               </label>
               <Input
                 value={data.title}

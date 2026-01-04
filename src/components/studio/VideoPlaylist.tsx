@@ -37,6 +37,7 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
     const [currentClipIndex, setCurrentClipIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [transitionPhase, setTransitionPhase] = useState<'idle' | 'fade-out' | 'fade-in'>('idle');
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(1);
@@ -44,6 +45,7 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControlsOverlay, setShowControlsOverlay] = useState(true);
     const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+    const transitionTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const currentClip = clips[currentClipIndex];
     const nextClip = clips[currentClipIndex + 1];
@@ -105,15 +107,24 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
       setCurrentClipIndex(0);
       setIsPlaying(false);
       setIsTransitioning(false);
+      setTransitionPhase('idle');
       setProgress(0);
+      // Clear any pending transitions
+      if (transitionTimeout.current) {
+        clearTimeout(transitionTimeout.current);
+      }
     }, [clips]);
 
+    // Preload next video for smooth transition
     useEffect(() => {
       if (nextVideoRef.current && nextClip) {
         nextVideoRef.current.src = nextClip;
         nextVideoRef.current.load();
+        // Sync volume with main video
+        nextVideoRef.current.volume = volume;
+        nextVideoRef.current.muted = isMuted;
       }
-    }, [nextClip, currentClipIndex]);
+    }, [nextClip, currentClipIndex, volume, isMuted]);
 
     useEffect(() => {
       onClipChange?.(currentClipIndex, clips.length);
@@ -128,15 +139,33 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
       return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
+    // Smooth crossfade transition to next clip
     const handleVideoEnded = () => {
       if (currentClipIndex < clips.length - 1) {
+        // Start crossfade transition
         setIsTransitioning(true);
+        setTransitionPhase('fade-out');
         shouldAutoPlayRef.current = true;
-        setTimeout(() => {
+        
+        // Start playing next video immediately (it's preloaded)
+        if (nextVideoRef.current) {
+          nextVideoRef.current.currentTime = 0;
+          nextVideoRef.current.play().catch(console.error);
+        }
+        
+        // Quick crossfade (300ms)
+        transitionTimeout.current = setTimeout(() => {
           setCurrentClipIndex(prev => prev + 1);
-          setIsTransitioning(false);
-        }, 500);
+          setTransitionPhase('fade-in');
+          
+          // Complete transition
+          setTimeout(() => {
+            setIsTransitioning(false);
+            setTransitionPhase('idle');
+          }, 150);
+        }, 300);
       } else {
+        // End of playlist
         shouldAutoPlayRef.current = false;
         setIsPlaying(false);
         setCurrentClipIndex(0);
@@ -277,8 +306,9 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
         <video
           ref={videoRef}
           className={cn(
-            "absolute inset-0 w-full h-full object-contain transition-opacity duration-500",
-            isTransitioning ? "opacity-0" : "opacity-100"
+            "absolute inset-0 w-full h-full object-contain transition-opacity ease-in-out",
+            transitionPhase === 'fade-out' ? "opacity-0 duration-300" : 
+            transitionPhase === 'fade-in' ? "opacity-100 duration-150" : "opacity-100 duration-0"
           )}
           onEnded={handleVideoEnded}
           onTimeUpdate={handleTimeUpdate}
@@ -298,16 +328,15 @@ export const VideoPlaylist = forwardRef<VideoPlaylistRef, VideoPlaylistProps>(
           playsInline
         />
 
-        {/* Next video (for crossfade preload) */}
+        {/* Next video (for crossfade preload) - shows during transition */}
         {nextClip && (
           <video
             ref={nextVideoRef}
             className={cn(
-              "absolute inset-0 w-full h-full object-contain transition-opacity duration-500",
-              isTransitioning ? "opacity-100" : "opacity-0"
+              "absolute inset-0 w-full h-full object-contain transition-opacity ease-in-out",
+              transitionPhase === 'fade-out' ? "opacity-100 duration-300" : "opacity-0 duration-150"
             )}
             playsInline
-            muted
           />
         )}
 

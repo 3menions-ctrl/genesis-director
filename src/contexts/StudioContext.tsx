@@ -120,6 +120,7 @@ function buildCharacterPrompt(characters: CharacterProfile[]): string {
     if (char.appearance) parts.push(char.appearance);
     if (char.clothing) parts.push(`wearing ${char.clothing}`);
     if (char.distinguishingFeatures) parts.push(`with ${char.distinguishingFeatures}`);
+    if (char.referenceImageUrl) parts.push('(has reference image - maintain exact likeness)');
     return parts.join(', ');
   }).join('; ');
 }

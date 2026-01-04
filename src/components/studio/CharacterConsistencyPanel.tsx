@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, User, Users, ChevronRight, Sparkles, Wand2, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, User, Users, ChevronRight, Sparkles, Wand2, Loader2, Upload, ImageIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +37,8 @@ const CLOTHING_SUGGESTIONS = [
 export function CharacterConsistencyPanel({ characters, onCharactersChange, script }: CharacterConsistencyPanelProps) {
   const [expandedCharacter, setExpandedCharacter] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadingCharacterId, setUploadingCharacterId] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const addCharacter = () => {
     const newCharacter: CharacterProfile = {
@@ -47,6 +49,7 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange, scri
       distinguishingFeatures: '',
       age: '',
       gender: '',
+      referenceImageUrl: '',
     };
     onCharactersChange([...characters, newCharacter]);
     setExpandedCharacter(newCharacter.id);
@@ -102,6 +105,60 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange, scri
     onCharactersChange(characters.filter(char => char.id !== id));
     if (expandedCharacter === id) {
       setExpandedCharacter(null);
+    }
+  };
+
+  const handleImageUpload = async (characterId: string, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploadingCharacterId(characterId);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${characterId}_${Date.now()}.${fileExt}`;
+      const filePath = `references/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('character-references')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('character-references')
+        .getPublicUrl(filePath);
+
+      updateCharacter(characterId, { referenceImageUrl: publicUrl });
+      toast.success('Reference image uploaded');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingCharacterId(null);
+    }
+  };
+
+  const removeReferenceImage = async (characterId: string, imageUrl: string) => {
+    try {
+      // Extract file path from URL
+      const urlParts = imageUrl.split('/character-references/');
+      if (urlParts[1]) {
+        await supabase.storage
+          .from('character-references')
+          .remove([urlParts[1]]);
+      }
+      updateCharacter(characterId, { referenceImageUrl: '' });
+      toast.success('Reference image removed');
+    } catch (error) {
+      console.error('Remove error:', error);
+      updateCharacter(characterId, { referenceImageUrl: '' });
     }
   };
 
@@ -178,17 +235,28 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange, scri
                       : "bg-muted/20 border border-transparent hover:border-border/30 hover:bg-muted/40"
                   )}
                 >
-                  <div className={cn(
-                    "p-2 rounded-lg transition-colors",
-                    expandedCharacter === character.id
-                      ? "bg-violet-500/20"
-                      : "bg-muted/30"
-                  )}>
-                    <User className={cn(
-                      "w-4 h-4",
-                      expandedCharacter === character.id ? "text-violet-400" : "text-muted-foreground"
-                    )} />
-                  </div>
+                  {/* Character Avatar/Reference Image */}
+                  {character.referenceImageUrl ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-violet-500/30">
+                      <img 
+                        src={character.referenceImageUrl} 
+                        alt={character.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      expandedCharacter === character.id
+                        ? "bg-violet-500/20"
+                        : "bg-muted/30"
+                    )}>
+                      <User className={cn(
+                        "w-4 h-4",
+                        expandedCharacter === character.id ? "text-violet-400" : "text-muted-foreground"
+                      )} />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm font-medium truncate",
@@ -202,6 +270,9 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange, scri
                       </p>
                     )}
                   </div>
+                  {character.referenceImageUrl && (
+                    <ImageIcon className="w-3.5 h-3.5 text-violet-400/60" />
+                  )}
                   <ChevronRight className={cn(
                     "w-4 h-4 text-muted-foreground/40 transition-transform",
                     expandedCharacter === character.id && "rotate-90"
@@ -211,6 +282,71 @@ export function CharacterConsistencyPanel({ characters, onCharactersChange, scri
 
               <CollapsibleContent>
                 <div className="p-4 space-y-4 bg-muted/10 rounded-b-xl border-x border-b border-border/10 -mt-2">
+                  {/* Reference Image Upload */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground/70">Reference Image</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={(el) => { fileInputRefs.current[character.id] = el; }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(character.id, file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {character.referenceImageUrl ? (
+                      <div className="relative group">
+                        <img 
+                          src={character.referenceImageUrl} 
+                          alt={character.name}
+                          className="w-full h-32 object-cover rounded-lg border border-border/30"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => fileInputRefs.current[character.id]?.click()}
+                            className="h-8 px-3 text-xs bg-white/10 hover:bg-white/20 text-white"
+                          >
+                            <Upload className="w-3.5 h-3.5 mr-1.5" />
+                            Replace
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeReferenceImage(character.id, character.referenceImageUrl!)}
+                            className="h-8 px-3 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300"
+                          >
+                            <X className="w-3.5 h-3.5 mr-1.5" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRefs.current[character.id]?.click()}
+                        disabled={uploadingCharacterId === character.id}
+                        className="w-full h-24 rounded-lg border-2 border-dashed border-border/30 hover:border-violet-500/50 bg-muted/10 hover:bg-violet-500/5 transition-colors flex flex-col items-center justify-center gap-2"
+                      >
+                        {uploadingCharacterId === character.id ? (
+                          <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+                        ) : (
+                          <>
+                            <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+                            <span className="text-[10px] text-muted-foreground/60">
+                              Click to upload reference image
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <p className="text-[9px] text-muted-foreground/50">
+                      Upload a reference photo to maintain visual consistency across scenes
+                    </p>
+                  </div>
+
                   {/* Name */}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground/70">Character Name</Label>

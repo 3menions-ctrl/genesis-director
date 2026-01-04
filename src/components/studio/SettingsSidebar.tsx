@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { 
   Sparkles, Sun, TreePine, BookOpen, Layers, ChevronRight,
-  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock
+  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { StudioSettings, ENVIRONMENT_PRESETS, VISUAL_STYLE_PRESETS, VisualStylePreset } from '@/types/studio';
+import { CharacterConsistencyPanel } from './CharacterConsistencyPanel';
 import { cn } from '@/lib/utils';
 
 interface SettingsSidebarProps {
@@ -228,6 +229,37 @@ export function SettingsSidebar({ settings, onSettingsChange }: SettingsSidebarP
                   </p>
                 </div>
               )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Character Consistency Section */}
+        <Collapsible open={openSections.includes('characters')} onOpenChange={() => toggleSection('characters')}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-violet-500/5 hover:to-transparent border-t border-border/5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/10 group-hover:border-violet-500/30 transition-colors">
+                  <Users className="w-4 h-4 text-violet-400" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-sm text-foreground" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Characters</span>
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    {settings.characters.length} defined
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={cn(
+                "w-4 h-4 text-muted-foreground/40 transition-transform duration-300",
+                openSections.includes('characters') && "rotate-90"
+              )} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-6 pb-5">
+              <CharacterConsistencyPanel
+                characters={settings.characters}
+                onCharactersChange={(characters) => onSettingsChange({ characters })}
+              />
             </div>
           </CollapsibleContent>
         </Collapsible>

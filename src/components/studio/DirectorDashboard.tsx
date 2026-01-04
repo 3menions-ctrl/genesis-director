@@ -117,6 +117,7 @@ export function DirectorDashboard() {
     environment: 'jungle_studio',
     resolution: '4K',
     visualStyle: 'cinematic',
+    characters: [],
   });
 
   const handleSettingsChange = (newSettings: Partial<StudioSettings>) => {

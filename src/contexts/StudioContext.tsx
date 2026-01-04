@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -108,6 +108,22 @@ function extractSceneElements(fullScript: string): string {
   return elements.length > 0 ? elements.slice(0, 4).join(', ') : 'consistent environment';
 }
 
+// Build character consistency prompt from character profiles
+function buildCharacterPrompt(characters: CharacterProfile[]): string {
+  if (!characters || characters.length === 0) return '';
+  
+  return characters.map(char => {
+    const parts: string[] = [];
+    if (char.name) parts.push(char.name);
+    if (char.age) parts.push(char.age);
+    if (char.gender) parts.push(char.gender);
+    if (char.appearance) parts.push(char.appearance);
+    if (char.clothing) parts.push(`wearing ${char.clothing}`);
+    if (char.distinguishingFeatures) parts.push(`with ${char.distinguishingFeatures}`);
+    return parts.join(', ');
+  }).join('; ');
+}
+
 // Helper function to build cinematic clip prompts with seamless transitions and scene consistency
 function buildClipPrompt(
   clipText: string, 
@@ -115,13 +131,17 @@ function buildClipPrompt(
   clipIndex: number, 
   totalClips: number,
   fullScript?: string,
-  visualStyle?: VisualStylePreset
+  visualStyle?: VisualStylePreset,
+  characters?: CharacterProfile[]
 ): string {
   const contentType = detectContentType(clipText);
   
   // Get the visual style prompt
   const stylePreset = VISUAL_STYLE_PRESETS.find(s => s.id === visualStyle);
   const stylePrompt = stylePreset?.prompt || VISUAL_STYLE_PRESETS[0].prompt;
+  
+  // Build character consistency description
+  const characterPrompt = characters ? buildCharacterPrompt(characters) : '';
   
   // Adjust camera movements based on style
   const cameraMove = visualStyle === 'documentary' 
@@ -155,18 +175,19 @@ function buildClipPrompt(
     transitionHint = 'seamless continuation, match previous scene lighting and color, continuous motion flow';
   }
   
-  // Scene continuity instructions
+  // Scene and character continuity instructions
   const continuityInstructions = [
     'maintain exact same visual style throughout',
     'consistent lighting direction and intensity',
     'same color temperature and grading',
     'matching environment and atmosphere',
     'smooth motion that flows naturally',
+    'characters must look identical across all scenes',
     sceneConsistency
   ].join(', ');
   
-  // Extract key visual elements from clip text (reduced to 200 chars to fit style)
-  const visualContent = clipText.slice(0, 200);
+  // Extract key visual elements from clip text (reduced to fit characters)
+  const visualContent = clipText.slice(0, characterPrompt ? 150 : 200);
   
   // Detect if sci-fi to allow physics-bending
   const isSciFi = detectContentType(clipText) === 'scifi';
@@ -176,18 +197,28 @@ function buildClipPrompt(
     ? 'stylized physics allowed' 
     : 'strict real-world physics, natural gravity and motion, realistic weight and momentum, authentic material behavior, no impossible movements, believable human anatomy and motion';
   
-  // Build the cinematic prompt with style emphasis
-  const prompt = [
+  // Build the cinematic prompt with style and character emphasis
+  const promptParts = [
     stylePrompt,
     `${cameraMove}`,
     visualContent,
     sceneDescription,
+  ];
+  
+  // Add character descriptions for consistency
+  if (characterPrompt) {
+    promptParts.push(`CHARACTERS (must appear exactly as described): ${characterPrompt}`);
+  }
+  
+  promptParts.push(
     colorGrade,
     transitionHint,
     continuityInstructions,
     physicsConstraints,
     'seamless scene matching'
-  ].join('. ');
+  );
+  
+  const prompt = promptParts.join('. ');
   
   // Runway has 1000 char limit
   return prompt.slice(0, 990);
@@ -308,6 +339,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     environment: 'jungle_studio',
     resolution: '4K',
     visualStyle: 'cinematic',
+    characters: [],
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
@@ -556,8 +588,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           totalClips: numClips
         });
 
-        // Create extensive prompt with scene/character consistency, full script context, and visual style
-        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle);
+        // Create extensive prompt with scene/character consistency, full script context, visual style, and characters
+        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
         
         // Start video generation
         const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {

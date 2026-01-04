@@ -1,6 +1,7 @@
-import { Sparkles, Film, Mic, Video, Layers, Zap, Stars, Wand2 } from 'lucide-react';
+import { Sparkles, Film, Mic, Video, Layers, Zap, Stars, Wand2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface GenerationLoaderProps {
   step: 'idle' | 'voice' | 'video' | 'polling';
@@ -8,6 +9,7 @@ interface GenerationLoaderProps {
   estimatedSecondsRemaining: number | null;
   currentClip?: number;
   totalClips?: number;
+  onCancel?: () => void;
 }
 
 const PRODUCTION_FACTS = [
@@ -97,7 +99,8 @@ export function GenerationLoader({
   percent, 
   estimatedSecondsRemaining, 
   currentClip, 
-  totalClips 
+  totalClips,
+  onCancel
 }: GenerationLoaderProps) {
   const [factIndex, setFactIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -287,6 +290,20 @@ export function GenerationLoader({
             </div>
           </div>
         </div>
+
+        {/* Cancel button */}
+        {onCancel && (
+          <div className="mt-8">
+            <Button 
+              variant="ghost" 
+              onClick={onCancel}
+              className="text-white/60 hover:text-white hover:bg-white/10 gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel Generation
+            </Button>
+          </div>
+        )}
 
         {/* Bottom decorative elements */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">

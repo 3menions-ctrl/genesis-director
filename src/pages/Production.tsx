@@ -23,7 +23,7 @@ const PIPELINE_STEPS = [
 
 export default function Production() {
   const navigate = useNavigate();
-  const { activeProject, generatePreview, isGenerating, generationProgress, credits, isLoading } = useStudio();
+  const { activeProject, generatePreview, cancelGeneration, isGenerating, generationProgress, credits, isLoading } = useStudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -336,6 +336,7 @@ export default function Production() {
                   estimatedSecondsRemaining={generationProgress.estimatedSecondsRemaining}
                   currentClip={generationProgress.currentClip}
                   totalClips={generationProgress.totalClips}
+                  onCancel={cancelGeneration}
                 />
               )}
 

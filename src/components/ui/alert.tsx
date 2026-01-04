@@ -4,12 +4,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  "relative w-full rounded-2xl border p-4 backdrop-blur-xl [&>svg~*]:pl-8 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4",
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground",
-        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+        default: "bg-background/90 text-foreground border-border [&>svg]:text-foreground",
+        destructive: "bg-[hsl(0_50%_97%/0.9)] text-[hsl(0_55%_35%)] border-[hsl(0_45%_80%/0.5)] [&>svg]:text-[hsl(0_55%_50%)]",
+        success: "bg-[hsl(145_50%_97%/0.9)] text-[hsl(145_55%_28%)] border-[hsl(145_45%_75%/0.5)] [&>svg]:text-[hsl(145_55%_38%)]",
+        warning: "bg-[hsl(38_60%_97%/0.9)] text-[hsl(30_60%_32%)] border-[hsl(38_50%_75%/0.5)] [&>svg]:text-[hsl(38_70%_45%)]",
+        info: "bg-[hsl(210_50%_97%/0.9)] text-[hsl(210_55%_35%)] border-[hsl(210_45%_80%/0.5)] [&>svg]:text-[hsl(210_55%_50%)]",
       },
     },
     defaultVariants: {

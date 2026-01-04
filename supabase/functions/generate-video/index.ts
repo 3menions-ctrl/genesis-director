@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Replicate from "https://esm.sh/replicate@0.25.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,8 +61,9 @@ function buildConsistentPrompt(
   const consistencyPrefix = consistencyParts.join(' ');
   const combinedPrompt = `${consistencyPrefix} ${basePrompt}`;
   
-  if (combinedPrompt.length > 1000) {
-    const maxBaseLength = 1000 - consistencyPrefix.length - 10;
+  // Replicate models typically have generous prompt limits
+  if (combinedPrompt.length > 2000) {
+    const maxBaseLength = 2000 - consistencyPrefix.length - 10;
     return `${consistencyPrefix} ${basePrompt.slice(0, maxBaseLength)}...`;
   }
   
@@ -74,119 +76,84 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, duration = 8, sceneContext, referenceImageUrl } = await req.json();
-    const validDuration = [4, 6, 8].includes(Number(duration)) ? Number(duration) : 8;
+    const { prompt, duration = 5, sceneContext, referenceImageUrl } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
 
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      throw new Error("REPLICATE_API_KEY is not configured");
+    }
+
+    const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+
     const enhancedPrompt = buildConsistentPrompt(prompt, sceneContext);
     const isImageToVideo = !!referenceImageUrl;
 
-    console.log("Generating video:", {
+    console.log("Generating video with Replicate:", {
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
       promptLength: enhancedPrompt.length,
-      duration: validDuration,
       hasReferenceImage: isImageToVideo,
     });
 
-    const RUNWAY_API_KEY = Deno.env.get("RUNWAY_API_KEY");
-    if (!RUNWAY_API_KEY) {
-      throw new Error("RUNWAY_API_KEY is not configured");
-    }
-
-    let requestBody: Record<string, unknown>;
-    let endpoint: string;
+    let prediction;
 
     if (isImageToVideo) {
-      // Image-to-video mode: use reference image as first frame
-      endpoint = "https://api.dev.runwayml.com/v1/image_to_video";
-      requestBody = {
-        model: "gen4_turbo",
-        promptImage: referenceImageUrl,
-        promptText: enhancedPrompt.slice(0, 512), // Shorter prompt for image-to-video
-        duration: validDuration,
-        ratio: "1920:1080",
-      };
+      // Image-to-video using Stable Video Diffusion
       console.log("Using image-to-video with reference:", referenceImageUrl.slice(0, 100) + "...");
+      
+      prediction = await replicate.predictions.create({
+        model: "stability-ai/stable-video-diffusion",
+        input: {
+          input_image: referenceImageUrl,
+          motion_bucket_id: 127, // Higher = more motion
+          cond_aug: 0.02,
+          decoding_t: 14,
+          fps: 6,
+        },
+      });
     } else {
-      // Text-to-video mode
-      endpoint = "https://api.dev.runwayml.com/v1/text_to_video";
-      requestBody = {
-        model: "veo3.1_fast",
-        promptText: enhancedPrompt,
-        duration: validDuration,
-        ratio: "1920:1080",
-      };
+      // Text-to-video using MiniMax video-01
+      prediction = await replicate.predictions.create({
+        model: "minimax/video-01",
+        input: {
+          prompt: enhancedPrompt,
+          prompt_optimizer: true,
+        },
+      });
     }
 
-    const createResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RUNWAY_API_KEY}`,
-        "Content-Type": "application/json",
-        "X-Runway-Version": "2024-11-06",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      console.error("Runway create error:", createResponse.status, errorText);
-      
-      // Parse error to get specific message
-      let errorMessage = "Video generation failed";
-      let dailyLimitReached = false;
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error?.includes("daily task limit")) {
-          errorMessage = "Runway daily task limit reached. Your limit resets at midnight UTC. Please try again tomorrow.";
-          dailyLimitReached = true;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-      } catch (e) {
-        // Not JSON, use generic message
-      }
-      
-      if (createResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: errorMessage,
-            daily_limit_reached: dailyLimitReached,
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (createResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Insufficient credits. Please add credits to your Runway account." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`Runway error: ${createResponse.status} - ${errorText}`);
-    }
-
-    const taskData = await createResponse.json();
-    const taskId = taskData.id;
-    
-    console.log("Video task created:", taskId, "mode:", isImageToVideo ? "image-to-video" : "text-to-video");
+    console.log("Replicate prediction created:", prediction.id, "status:", prediction.status);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        taskId,
-        status: "PENDING",
+        taskId: prediction.id,
+        status: prediction.status.toUpperCase(),
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
+        provider: "replicate",
         message: "Video generation started. Poll the status endpoint for updates.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in generate-video function:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Handle rate limiting
+    if (errorMessage.includes("rate limit")) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Rate limit exceeded. Please try again in a moment.",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false,

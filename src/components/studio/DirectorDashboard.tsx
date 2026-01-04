@@ -118,6 +118,7 @@ export function DirectorDashboard() {
     resolution: '4K',
     visualStyle: 'cinematic',
     characters: [],
+    scenes: [],
   });
 
   const handleSettingsChange = (newSettings: Partial<StudioSettings>) => {

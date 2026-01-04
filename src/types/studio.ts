@@ -54,6 +54,16 @@ export interface CharacterProfile {
   referenceImageUrl?: string;
 }
 
+export interface SceneBreakdown {
+  sceneNumber: number;
+  title: string;
+  durationSeconds: number;
+  visualDescription: string;
+  scriptText: string;
+  characters: string[];
+  mood: string;
+}
+
 export interface StudioSettings {
   lighting: 'natural' | 'studio' | 'dramatic' | 'soft';
   lightingIntensity: number;
@@ -63,6 +73,7 @@ export interface StudioSettings {
   resolution: '1080p' | '4K';
   visualStyle: VisualStylePreset;
   characters: CharacterProfile[];
+  scenes: SceneBreakdown[];
 }
 
 export const VISUAL_STYLE_PRESETS = [

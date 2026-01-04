@@ -341,6 +341,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     resolution: '4K',
     visualStyle: 'cinematic',
     characters: [],
+    scenes: [],
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;

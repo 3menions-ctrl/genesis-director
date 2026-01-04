@@ -15,9 +15,9 @@ interface SceneImageRequest {
     mood?: string;
   }[];
   projectId: string;
-  globalStyle?: string; // Visual style preset
-  globalCharacters?: string; // Character descriptions for consistency
-  globalEnvironment?: string; // Environment description for consistency
+  globalStyle?: string;
+  globalCharacters?: string;
+  globalEnvironment?: string;
 }
 
 serve(async (req) => {
@@ -36,9 +36,9 @@ serve(async (req) => {
       throw new Error("Project ID is required");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log(`Generating ${scenes.length} scene reference images for project ${projectId}`);
+    console.log(`Generating ${scenes.length} scene reference images for project ${projectId} using OpenAI gpt-image-1`);
 
     const generatedImages: { sceneNumber: number; imageUrl: string; prompt: string }[] = [];
 
@@ -58,8 +58,8 @@ serve(async (req) => {
     for (const scene of scenes) {
       // Build a comprehensive image generation prompt
       const imagePromptParts = [
-        "Generate a high-quality cinematic still image for a video scene.",
-        `Scene: ${scene.title}`,
+        "Create a cinematic film still for a video scene.",
+        `Scene Title: ${scene.title}`,
         `Visual Description: ${scene.visualDescription}`,
       ];
 
@@ -68,11 +68,11 @@ serve(async (req) => {
       }
 
       if (scene.characters && scene.characters.length > 0) {
-        imagePromptParts.push(`Characters in scene: ${scene.characters.join(", ")}`);
+        imagePromptParts.push(`Characters: ${scene.characters.join(", ")}`);
       }
 
       if (globalCharacters) {
-        imagePromptParts.push(`Character consistency reference: ${globalCharacters}`);
+        imagePromptParts.push(`Character Details: ${globalCharacters}`);
       }
 
       if (globalEnvironment) {
@@ -84,60 +84,66 @@ serve(async (req) => {
       }
 
       imagePromptParts.push(
-        "Requirements:",
-        "- Cinematic composition with proper framing",
-        "- High detail and photorealistic quality",
-        "- Consistent lighting throughout",
-        "- 16:9 aspect ratio suitable for video",
-        "- Professional color grading",
-        "- Characters should be clearly visible if present"
+        "Style: Cinematic composition, professional color grading, high detail, photorealistic, 16:9 widescreen aspect ratio"
       );
 
-      const imagePrompt = imagePromptParts.join("\n");
+      const imagePrompt = imagePromptParts.join(". ");
       console.log(`Generating image for scene ${scene.sceneNumber}: ${scene.title}`);
 
       try {
-        // Use Lovable AI Gemini image model
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        // Use OpenAI gpt-image-1 model
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Authorization": `Bearer ${OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: imagePrompt,
-              },
-            ],
-            modalities: ["image", "text"],
+            model: "gpt-image-1",
+            prompt: imagePrompt,
+            n: 1,
+            size: "1536x1024", // Closest to 16:9 for cinematic look
+            quality: "high",
           }),
         });
 
         if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`OpenAI error for scene ${scene.sceneNumber}:`, errorData);
+          
           if (response.status === 429) {
-            console.error(`Rate limit hit for scene ${scene.sceneNumber}`);
-            // Wait and retry once
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            console.error(`Rate limit hit for scene ${scene.sceneNumber}, waiting...`);
+            await new Promise(resolve => setTimeout(resolve, 10000));
             continue;
           }
-          if (response.status === 402) {
-            throw new Error("API credits exhausted. Please add funds.");
+          if (response.status === 402 || response.status === 401) {
+            throw new Error("OpenAI API authentication or billing issue");
           }
-          const errorText = await response.text();
-          console.error(`Image generation failed for scene ${scene.sceneNumber}:`, errorText);
           continue;
         }
 
         const data = await response.json();
-        const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const imageData = data.data?.[0]?.b64_json || data.data?.[0]?.url;
 
         if (imageData) {
-          // Upload base64 image to Supabase Storage
-          const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-          const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          let imageBuffer: Uint8Array;
+          let imageUrl: string;
+
+          // Check if it's base64 or URL
+          if (data.data?.[0]?.b64_json) {
+            // Base64 encoded image
+            const base64Data = data.data[0].b64_json;
+            imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          } else if (data.data?.[0]?.url) {
+            // URL - fetch and convert
+            console.log(`Fetching image from URL for scene ${scene.sceneNumber}`);
+            const imageResponse = await fetch(data.data[0].url);
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            imageBuffer = new Uint8Array(arrayBuffer);
+          } else {
+            console.error(`No image data for scene ${scene.sceneNumber}`);
+            continue;
+          }
           
           const fileName = `${projectId}/scene-${scene.sceneNumber}-${Date.now()}.png`;
           
@@ -150,12 +156,14 @@ serve(async (req) => {
 
           if (uploadError) {
             console.error(`Failed to upload image for scene ${scene.sceneNumber}:`, uploadError);
-            // Still include the base64 data as fallback
-            generatedImages.push({
-              sceneNumber: scene.sceneNumber,
-              imageUrl: imageData,
-              prompt: imagePrompt,
-            });
+            // If we have URL, use it directly as fallback
+            if (data.data?.[0]?.url) {
+              generatedImages.push({
+                sceneNumber: scene.sceneNumber,
+                imageUrl: data.data[0].url,
+                prompt: imagePrompt,
+              });
+            }
           } else {
             // Get public URL
             const { data: publicUrlData } = supabase.storage
@@ -174,8 +182,8 @@ serve(async (req) => {
           console.error(`No image data in response for scene ${scene.sceneNumber}`);
         }
 
-        // Small delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (sceneError) {
         console.error(`Error generating image for scene ${scene.sceneNumber}:`, sceneError);
@@ -183,7 +191,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Generated ${generatedImages.length}/${scenes.length} scene images`);
+    console.log(`Generated ${generatedImages.length}/${scenes.length} scene images using OpenAI`);
 
     return new Response(
       JSON.stringify({

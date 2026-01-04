@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VideoPlaylistProps {
@@ -10,25 +10,43 @@ interface VideoPlaylistProps {
 
 export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlaylistProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const nextVideoRef = useRef<HTMLVideoElement>(null);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const currentClip = clips[currentClipIndex];
+  const nextClip = clips[currentClipIndex + 1];
+
+  // Track if we should auto-play the next clip
+  const shouldAutoPlayRef = useRef(false);
 
   useEffect(() => {
     // Reset to first clip when clips change
     setCurrentClipIndex(0);
     setIsPlaying(false);
+    setIsTransitioning(false);
   }, [clips]);
 
-  // Track if we should auto-play the next clip
-  const shouldAutoPlayRef = useRef(false);
+  // Preload next clip
+  useEffect(() => {
+    if (nextVideoRef.current && nextClip) {
+      nextVideoRef.current.src = nextClip;
+      nextVideoRef.current.load();
+    }
+  }, [nextClip, currentClipIndex]);
 
   const handleVideoEnded = () => {
     if (currentClipIndex < clips.length - 1) {
-      // Mark that we should auto-play next clip
+      // Start crossfade transition
+      setIsTransitioning(true);
       shouldAutoPlayRef.current = true;
-      setCurrentClipIndex(prev => prev + 1);
+      
+      // Brief delay for crossfade effect
+      setTimeout(() => {
+        setCurrentClipIndex(prev => prev + 1);
+        setIsTransitioning(false);
+      }, 500);
     } else {
       // All clips finished - reset to beginning
       shouldAutoPlayRef.current = false;
@@ -43,6 +61,7 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
     if (!video || !currentClip) return;
 
     // Load the new clip
+    video.src = currentClip;
     video.load();
     
     // Auto-play if we should (after previous clip ended) or if already playing
@@ -80,11 +99,14 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
   if (!clips.length) return null;
 
   return (
-    <div className={cn("relative w-full h-full", className)}>
+    <div className={cn("relative w-full h-full bg-black overflow-hidden", className)}>
+      {/* Current video */}
       <video
         ref={videoRef}
-        src={currentClip}
-        className="w-full h-full object-contain bg-black"
+        className={cn(
+          "absolute inset-0 w-full h-full object-contain transition-opacity duration-500",
+          isTransitioning ? "opacity-0" : "opacity-100"
+        )}
         onEnded={handleVideoEnded}
         onPlay={() => {
           setIsPlaying(true);
@@ -97,11 +119,24 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
         playsInline
       />
 
+      {/* Next video (for crossfade preload) */}
+      {nextClip && (
+        <video
+          ref={nextVideoRef}
+          className={cn(
+            "absolute inset-0 w-full h-full object-contain transition-opacity duration-500",
+            isTransitioning ? "opacity-100" : "opacity-0"
+          )}
+          playsInline
+          muted
+        />
+      )}
+
       {/* Play/Pause Overlay */}
       {!isPlaying && (
         <button
           onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center group cursor-pointer"
+          className="absolute inset-0 flex items-center justify-center group cursor-pointer z-10"
         >
           <div className={cn(
             "relative flex items-center justify-center",
@@ -118,7 +153,7 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
 
       {/* Clip indicator */}
       {clips.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-xl">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/60 backdrop-blur-xl z-10">
           {clips.map((_, idx) => (
             <button
               key={idx}
@@ -134,7 +169,9 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
                 "w-2 h-2 rounded-full transition-all",
                 idx === currentClipIndex
                   ? "w-6 bg-primary"
-                  : "bg-muted-foreground/50 hover:bg-muted-foreground"
+                  : idx < currentClipIndex
+                    ? "bg-primary/50"
+                    : "bg-muted-foreground/50 hover:bg-muted-foreground"
               )}
             />
           ))}
@@ -142,6 +179,11 @@ export function VideoPlaylist({ clips, onPlayStateChange, className }: VideoPlay
             {currentClipIndex + 1}/{clips.length}
           </span>
         </div>
+      )}
+
+      {/* Transition overlay for smoother crossfade */}
+      {isTransitioning && (
+        <div className="absolute inset-0 bg-black/20 pointer-events-none z-5" />
       )}
     </div>
   );

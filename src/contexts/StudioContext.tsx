@@ -3,6 +3,101 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to build comprehensive scene consistency prompt
+function buildSceneConsistencyPrompt(script: string, project: Project): string {
+  // Extract key visual elements from the script
+  const scriptLower = script.toLowerCase();
+  
+  // Detect environment/setting
+  let environment = 'modern indoor setting with neutral lighting';
+  if (scriptLower.includes('jungle') || scriptLower.includes('forest')) {
+    environment = 'lush green jungle environment with dappled sunlight filtering through dense tropical canopy, humid atmosphere';
+  } else if (scriptLower.includes('office') || scriptLower.includes('corporate')) {
+    environment = 'sleek modern corporate office with glass walls, minimalist furniture, soft ambient lighting';
+  } else if (scriptLower.includes('outdoor') || scriptLower.includes('nature')) {
+    environment = 'expansive outdoor natural landscape with clear blue sky, golden hour lighting';
+  } else if (scriptLower.includes('studio') || scriptLower.includes('presentation')) {
+    environment = 'professional video studio with soft diffused lighting, clean neutral background';
+  } else if (scriptLower.includes('city') || scriptLower.includes('urban')) {
+    environment = 'modern urban cityscape with tall buildings, busy streets, dynamic city atmosphere';
+  } else if (scriptLower.includes('home') || scriptLower.includes('living')) {
+    environment = 'cozy modern living room with warm ambient lighting, comfortable furnishings';
+  }
+
+  // Detect mood/tone
+  let mood = 'professional and engaging';
+  if (scriptLower.includes('exciting') || scriptLower.includes('revolutionary')) {
+    mood = 'dynamic and energetic with high impact visuals';
+  } else if (scriptLower.includes('calm') || scriptLower.includes('peaceful') || scriptLower.includes('meditation')) {
+    mood = 'serene and tranquil with slow deliberate movements';
+  } else if (scriptLower.includes('tutorial') || scriptLower.includes('learn')) {
+    mood = 'educational and clear with focused attention on subject';
+  }
+
+  // Build character consistency description
+  const characterDesc = `
+MAIN PRESENTER CHARACTER - MUST REMAIN IDENTICAL IN EVERY FRAME:
+- Professional adult presenter, confident posture and demeanor
+- Consistent facial features: same face shape, eye color, hair color and style throughout
+- Same clothing and accessories in every single shot
+- Natural subtle movements and expressions
+- Direct camera engagement with professional eye contact
+- Consistent skin tone and lighting on face`;
+
+  // Build comprehensive prompt
+  return `
+CRITICAL VISUAL CONSISTENCY REQUIREMENTS - MUST BE FOLLOWED EXACTLY:
+
+ENVIRONMENT (IDENTICAL IN ALL CLIPS):
+${environment}
+- Same exact location, camera angle style, and spatial layout
+- Consistent color palette and color grading throughout
+- Same lighting direction, intensity, and quality in every frame
+- Identical background elements and props placement
+
+${characterDesc}
+
+CINEMATOGRAPHY STYLE (MAINTAIN THROUGHOUT):
+- ${mood}
+- Professional 4K cinematic quality with film grain
+- Consistent depth of field and focus style
+- Smooth camera movements matching the pacing
+- Same aspect ratio and framing conventions
+- Color grading: warm cinematic tones, consistent across all clips
+
+TECHNICAL REQUIREMENTS:
+- 24fps cinematic motion
+- Consistent motion blur and shutter angle
+- Same level of detail and sharpness throughout
+- Matching audio-visual synchronization pace
+`.trim();
+}
+
+// Helper function to build individual clip prompts with consistency
+function buildClipPrompt(clipText: string, sceneDescription: string, clipIndex: number, totalClips: number): string {
+  const clipPosition = clipIndex === 0 
+    ? 'OPENING SCENE' 
+    : clipIndex === totalClips - 1 
+      ? 'CLOSING SCENE' 
+      : `SCENE ${clipIndex + 1} OF ${totalClips}`;
+
+  const continuityNote = clipIndex > 0 
+    ? `CONTINUITY: This is a DIRECT CONTINUATION of the previous scene. The character, environment, lighting, and visual style must be EXACTLY the same as the preceding clip. No changes to character appearance, clothing, or setting.`
+    : `ESTABLISHING SHOT: Set the visual foundation that ALL subsequent clips must match exactly.`;
+
+  return `
+${clipPosition}
+${continuityNote}
+
+SCENE CONTENT:
+${clipText.slice(0, 500)}
+
+${sceneDescription}
+
+IMPORTANT: Generate visuals that seamlessly connect with adjacent clips. Same character, same location, same lighting, same style. This is one continuous video, not separate scenes.
+`.trim();
+}
+
 // Mock data for demonstration
 const MOCK_PROJECTS: Project[] = [
   {
@@ -222,6 +317,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)...`);
       updateProject(projectId, { status: 'rendering' as ProjectStatus });
 
+      // Build comprehensive scene consistency description from script
+      const sceneDescription = buildSceneConsistencyPrompt(script, activeProject);
+
       for (let i = 0; i < numClips; i++) {
         const clipStartWord = i * wordsPerClip;
         const clipEndWord = Math.min((i + 1) * wordsPerClip, words.length);
@@ -235,9 +333,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           totalClips: numClips
         });
 
-        const videoPrompt = `Cinematic video visualizing: ${clipText.slice(0, 400)}. 
-          Create professional, engaging visuals. High quality cinematography.
-          ${i > 0 ? 'Continue the visual style from previous scene.' : ''}`;
+        // Create extensive prompt with scene/character consistency
+        const videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips);
         
         // Start video generation
         const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {

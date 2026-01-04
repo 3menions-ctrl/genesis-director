@@ -686,92 +686,132 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         
         toast.info(`Starting batch ${batchNumber}/${totalBatches} (clips ${batchStart + 1}-${batchEnd})`);
         
-        // Start all clips in this batch simultaneously
-        const batchPromises = batchClips.map(async (clip) => {
-          const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-            body: { prompt: clip.prompt, duration: clipDuration },
-          });
+        // Helper function to generate a single clip with retry logic
+        const generateClipWithRetry = async (clip: { index: number; prompt: string; sceneTitle?: string }, maxRetries = 3): Promise<{ index: number; clipUrl: string }> => {
+          let lastError: Error | null = null;
           
-          if (videoError || !videoData?.success) {
-            throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`);
-          }
-          
-          return { index: clip.index, taskId: videoData.taskId, sceneTitle: clip.sceneTitle };
-        });
-        
-        const startedClips = await Promise.all(batchPromises);
-        
-        // Poll all clips in this batch in parallel
-        const pollPromises = startedClips.map(async ({ index, taskId, sceneTitle }) => {
-          let clipUrl: string | null = null;
-          let pollAttempts = 0;
-          const maxPolls = 60; // 5 minutes max per clip
-          
-          while (!clipUrl && pollAttempts < maxPolls) {
-            if (cancelRef.current) {
-              throw new Error('Generation cancelled');
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            pollAttempts++;
-            
-            // Update progress during polling so it doesn't appear stuck
-            const pollProgress = Math.round(baseProgress + (batchNumber - 1) / totalBatches * (85 - baseProgress) + (pollAttempts / maxPolls) * ((85 - baseProgress) / totalBatches * 0.8));
-            setGenerationProgress({ 
-              step: 'polling', 
-              percent: Math.min(pollProgress, 85), 
-              estimatedSecondsRemaining: Math.max(10, (maxPolls - pollAttempts) * 5),
-              currentClip: batchStart + 1,
-              totalClips: numClips
-            });
-            
-            const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
-              body: { taskId },
-            });
-            
-            if (statusError) {
-              console.error('Status check error:', statusError);
-              continue;
-            }
-            
-            if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
-              clipUrl = statusData.videoUrl;
-              completedClips[index] = clipUrl;
-              completedCount++;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              if (cancelRef.current) {
+                throw new Error('Generation cancelled');
+              }
               
-              // Update progress
-              const percent = Math.round(baseProgress + (completedCount / numClips) * (85 - baseProgress));
-              const remainingBatches = totalBatches - batchNumber;
-              const estimatedRemaining = Math.round(remainingBatches * estimatedSecondsPerClip);
+              if (attempt > 1) {
+                toast.info(`Retrying clip ${clip.index + 1} (attempt ${attempt}/${maxRetries})...`);
+                // Exponential backoff before retry
+                await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
+              }
               
-              setGenerationProgress({ 
-                step: 'polling', 
-                percent, 
-                estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
-                currentClip: completedCount,
-                totalClips: numClips
+              // Start video generation
+              const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+                body: { prompt: clip.prompt, duration: clipDuration },
               });
               
-              toast.success(`Clip ${index + 1}/${numClips}${sceneTitle ? ` "${sceneTitle}"` : ''} complete!`);
-            } else if (statusData?.status === 'FAILED') {
-              throw new Error(statusData.error || `Clip ${index + 1} generation failed`);
-            } else if (statusData?.status === 'THROTTLED') {
-              // API is rate limited - continue polling but with longer wait
-              console.log(`Clip ${index + 1} throttled, waiting longer...`);
-              await new Promise(resolve => setTimeout(resolve, 5000)); // Extra wait
+              if (videoError || !videoData?.success) {
+                throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`);
+              }
+              
+              const taskId = videoData.taskId;
+              let clipUrl: string | null = null;
+              let pollAttempts = 0;
+              const maxPolls = 60; // 5 minutes max per clip
+              let throttledCount = 0;
+              const maxThrottled = 20; // Max times we'll see THROTTLED before retrying
+              
+              while (!clipUrl && pollAttempts < maxPolls) {
+                if (cancelRef.current) {
+                  throw new Error('Generation cancelled');
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                pollAttempts++;
+                
+                // Update progress during polling
+                const pollProgress = Math.round(baseProgress + (batchNumber - 1) / totalBatches * (85 - baseProgress) + (pollAttempts / maxPolls) * ((85 - baseProgress) / totalBatches * 0.8));
+                setGenerationProgress({ 
+                  step: 'polling', 
+                  percent: Math.min(pollProgress, 85), 
+                  estimatedSecondsRemaining: Math.max(10, (maxPolls - pollAttempts) * 5),
+                  currentClip: batchStart + 1,
+                  totalClips: numClips
+                });
+                
+                const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+                  body: { taskId },
+                });
+                
+                if (statusError) {
+                  console.error('Status check error:', statusError);
+                  continue;
+                }
+                
+                if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
+                  clipUrl = statusData.videoUrl;
+                  completedClips[clip.index] = clipUrl;
+                  completedCount++;
+                  
+                  const percent = Math.round(baseProgress + (completedCount / numClips) * (85 - baseProgress));
+                  const remainingBatches = totalBatches - batchNumber;
+                  const estimatedRemaining = Math.round(remainingBatches * estimatedSecondsPerClip);
+                  
+                  setGenerationProgress({ 
+                    step: 'polling', 
+                    percent, 
+                    estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
+                    currentClip: completedCount,
+                    totalClips: numClips
+                  });
+                  
+                  toast.success(`Clip ${clip.index + 1}/${numClips}${clip.sceneTitle ? ` "${clip.sceneTitle}"` : ''} complete!`);
+                  return { index: clip.index, clipUrl };
+                } else if (statusData?.status === 'FAILED') {
+                  throw new Error(statusData.error || `Clip ${clip.index + 1} generation failed`);
+                } else if (statusData?.status === 'THROTTLED') {
+                  throttledCount++;
+                  console.log(`Clip ${clip.index + 1} throttled (${throttledCount}/${maxThrottled})`);
+                  
+                  // If stuck in throttled state too long, retry the whole clip
+                  if (throttledCount >= maxThrottled) {
+                    throw new Error(`Clip ${clip.index + 1} stuck in throttled state, retrying...`);
+                  }
+                  
+                  await new Promise(resolve => setTimeout(resolve, 5000)); // Extra wait
+                }
+                // RUNNING or PENDING - continue polling
+              }
+              
+              if (!clipUrl) {
+                throw new Error(`Clip ${clip.index + 1} timed out`);
+              }
+              
+              return { index: clip.index, clipUrl };
+              
+            } catch (error) {
+              lastError = error instanceof Error ? error : new Error(String(error));
+              console.error(`Clip ${clip.index + 1} attempt ${attempt} failed:`, lastError.message);
+              
+              // Don't retry if cancelled
+              if (lastError.message.includes('cancelled')) {
+                throw lastError;
+              }
             }
-            // RUNNING or PENDING status - continue polling
           }
           
-          if (!clipUrl) {
-            throw new Error(`Clip ${index + 1} timed out`);
-          }
-          
-          return { index, clipUrl };
-        });
+          // All retries exhausted
+          throw lastError || new Error(`Clip ${clip.index + 1} failed after ${maxRetries} attempts`);
+        };
         
-        // Wait for all clips in this batch to complete
-        await Promise.all(pollPromises);
+        // Process clips in batch with retry support
+        const batchResults = await Promise.allSettled(
+          batchClips.map(clip => generateClipWithRetry(clip))
+        );
+        
+        // Check for any failures
+        const failures = batchResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+        if (failures.length > 0) {
+          const failedMessages = failures.map(f => f.reason?.message || 'Unknown error').join(', ');
+          throw new Error(`Some clips failed: ${failedMessages}`);
+        }
         
         // Save progress after each batch
         const validClips = completedClips.filter((c): c is string => c !== null);

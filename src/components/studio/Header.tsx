@@ -1,4 +1,4 @@
-import { Film, Download, Share2, Menu, Sparkles, Bell, Settings, User } from 'lucide-react';
+import { Film, Download, Share2, Menu, Bell, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,29 +28,26 @@ export function Header({ projectName, status, onExport, onShare, onMenuClick }: 
   }[status] as 'idle' | 'generating' | 'rendering' | 'completed';
 
   return (
-    <header className="h-16 px-4 lg:px-6 flex items-center justify-between border-b border-border/30 bg-card/40 backdrop-blur-xl relative z-50">
-      {/* Left Section - Logo & Project */}
+    <header className="h-16 px-4 lg:px-6 flex items-center justify-between border-b border-border/50 glass-card rounded-none relative z-50">
+      {/* Left Section */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 text-foreground" />
         </Button>
 
         <div className="flex items-center gap-3">
-          {/* Animated Logo */}
-          <div className="relative group">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-            <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
-              <Film className="w-5 h-5 text-primary-foreground" />
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shadow-lg">
+              <Film className="w-5 h-5 text-background" />
             </div>
           </div>
           
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight">
-                <span className="text-gradient-primary">Apex</span>
-                <span className="text-foreground"> Studio</span>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">
+                Apex Studio
               </h1>
-              <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+              <Badge variant="outline" className="text-[10px] font-mono">
                 BETA
               </Badge>
             </div>
@@ -58,25 +55,26 @@ export function Header({ projectName, status, onExport, onShare, onMenuClick }: 
           </div>
         </div>
 
-        {/* Breadcrumb divider on larger screens */}
         <div className="hidden lg:flex items-center gap-3 text-muted-foreground/50">
           <span>/</span>
           <span className="text-sm text-foreground/80 font-medium">{projectName}</span>
         </div>
       </div>
 
-      {/* Center Section - Status */}
+      {/* Center Section */}
       <div className="hidden md:flex items-center gap-3">
         <Badge variant={statusVariant} className="gap-1.5 px-3 py-1">
-          {status === 'generating' && <Sparkles className="w-3 h-3" />}
+          {status === 'generating' && (
+            <div className="w-2 h-2 rounded-full bg-current animate-pulse-soft" />
+          )}
           {status === 'rendering' && (
-            <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-current animate-pulse-soft" />
           )}
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       </div>
 
-      {/* Right Section - Actions & User */}
+      {/* Right Section */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -90,14 +88,13 @@ export function Header({ projectName, status, onExport, onShare, onMenuClick }: 
           variant="outline"
           size="sm"
           onClick={onShare}
-          className="hidden sm:flex border-border/50 hover:border-primary/50"
+          className="hidden sm:flex"
         >
           <Share2 className="w-4 h-4 mr-2" />
           Share
         </Button>
 
         <Button
-          variant="glow"
           size="sm"
           onClick={onExport}
           disabled={status !== 'completed'}
@@ -110,9 +107,9 @@ export function Header({ projectName, status, onExport, onShare, onMenuClick }: 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-1">
-              <Avatar className="h-8 w-8 border-2 border-border/50 hover:border-primary/50 transition-colors">
+              <Avatar className="h-8 w-8 border border-border hover:border-foreground/20 transition-colors">
                 <AvatarImage src="" />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-sm font-medium">
+                <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
                   JS
                 </AvatarFallback>
               </Avatar>

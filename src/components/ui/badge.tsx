@@ -4,21 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all duration-200",
+  "inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium transition-all duration-200",
   {
     variants: {
       variant: {
         default: "border-border bg-muted text-foreground",
         secondary: "border-border bg-secondary text-secondary-foreground",
-        destructive: "border-destructive/30 bg-destructive/10 text-destructive",
-        outline: "border-border bg-background text-foreground",
-        success: "border-success/30 bg-success/10 text-success",
-        warning: "border-warning/30 bg-warning/10 text-warning",
+        destructive: "border-foreground/20 bg-foreground/5 text-foreground",
+        outline: "border-border bg-transparent text-foreground",
+        success: "border-foreground/20 bg-foreground/10 text-foreground",
+        warning: "border-foreground/15 bg-foreground/5 text-foreground",
         info: "border-border bg-muted text-muted-foreground",
         idle: "border-border bg-muted text-muted-foreground",
-        generating: "border-foreground/20 bg-foreground/5 text-foreground animate-pulse",
-        rendering: "border-warning/30 bg-warning/10 text-warning animate-pulse",
-        completed: "border-success/30 bg-success/10 text-success",
+        generating: "border-foreground/20 bg-foreground text-background animate-pulse-soft",
+        rendering: "border-foreground/15 bg-foreground/80 text-background animate-pulse-soft",
+        completed: "border-foreground/20 bg-foreground text-background",
         aurora: "border-border bg-muted text-foreground",
       },
     },

@@ -5,13 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useStudio } from '@/contexts/StudioContext';
 import { 
-  Sparkles, 
   Loader2,
   Wand2,
-  Star,
-  Clapperboard
+  Film
 } from 'lucide-react';
-import { StoryWizardData, MovieProject, GENRE_OPTIONS } from '@/types/movie';
+import { StoryWizardData, GENRE_OPTIONS } from '@/types/movie';
 import { cn } from '@/lib/utils';
 
 const CREATIVE_QUOTES = [
@@ -142,7 +140,7 @@ export default function Create() {
           title: data.title,
           genre: data.genre,
           story_structure: data.storyStructure,
-          target_duration_minutes: Math.round(data.targetDurationMinutes * 60), // Store as seconds (integer)
+          target_duration_minutes: Math.round(data.targetDurationMinutes * 60),
           setting: data.setting,
           time_period: data.timePeriod,
           mood: data.mood,
@@ -188,73 +186,34 @@ export default function Create() {
   if (isGenerating) {
     return (
       <div className="min-h-[85vh] flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Animated background elements */}
+        {/* Subtle background elements */}
         <div className="absolute inset-0 -z-10">
-          {/* Main glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-foreground/5 blur-3xl animate-pulse" />
-          
-          {/* Floating orbs */}
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-4 h-4 rounded-full bg-foreground/10 animate-float"
-              style={{
-                left: `${15 + i * 15}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                animationDelay: `${i * 0.5}s`,
-                animationDuration: `${3 + i * 0.5}s`,
-              }}
-            />
-          ))}
-          
-          {/* Star particles */}
-          {[...Array(8)].map((_, i) => (
-            <Star
-              key={`star-${i}`}
-              className="absolute w-3 h-3 text-foreground/20 animate-pulse"
-              style={{
-                left: `${10 + i * 12}%`,
-                top: `${15 + (i % 4) * 20}%`,
-                animationDelay: `${i * 0.3}s`,
-              }}
-            />
-          ))}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-foreground/[0.02] blur-3xl" />
+          <div className="absolute inset-0 dot-pattern opacity-30" />
         </div>
 
-        <div className="relative w-full max-w-xl">
+        <div className="relative w-full max-w-lg">
           {/* Main card */}
-          <div className="card-clean p-10 text-center">
-            {/* Animated icon stack */}
-            <div className="relative w-28 h-28 mx-auto mb-8">
+          <div className="glass-card p-10 text-center">
+            {/* Animated icon */}
+            <div className="relative w-24 h-24 mx-auto mb-8">
               {/* Outer ring */}
-              <div className="absolute inset-0 rounded-full border-4 border-foreground/10 animate-spin-slow" />
-              <div className="absolute inset-2 rounded-full border-2 border-dashed border-foreground/20 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }} />
+              <div className="absolute inset-0 rounded-full border-2 border-foreground/10 animate-spin-slow" />
+              <div className="absolute inset-3 rounded-full border border-dashed border-foreground/15" style={{ animation: 'spin-slow 12s linear infinite reverse' }} />
               
               {/* Center icon */}
-              <div className="absolute inset-4 rounded-full bg-foreground flex items-center justify-center shadow-lg shadow-foreground/20">
-                <Wand2 className="w-10 h-10 text-background animate-pulse" />
-              </div>
-              
-              {/* Orbiting icons */}
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '6s' }}>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
-                  <Sparkles className="w-4 h-4 text-foreground" />
-                </div>
-              </div>
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}>
-                <div className="absolute top-1/2 -right-2 -translate-y-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
-                  <Clapperboard className="w-4 h-4 text-foreground" />
-                </div>
+              <div className="absolute inset-5 rounded-full bg-foreground flex items-center justify-center shadow-xl">
+                <Wand2 className="w-8 h-8 text-background" />
               </div>
             </div>
 
             {/* Title & Quote */}
-            <div className="mb-8 min-h-[80px]">
-              <h2 className="text-2xl font-bold font-display text-foreground mb-3">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-4">
                 Creating Your Story
               </h2>
-              <div className="h-12 flex items-center justify-center">
-                <p className="text-muted-foreground text-sm italic animate-fade-in" key={quoteIndex}>
+              <div className="h-10 flex items-center justify-center">
+                <p className="text-muted-foreground text-sm animate-fade-in" key={quoteIndex}>
                   "{CREATIVE_QUOTES[quoteIndex].quote}"
                 </p>
               </div>
@@ -262,19 +221,10 @@ export default function Create() {
 
             {/* Progress bar */}
             <div className="space-y-4 mb-8">
-              <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
+              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out bg-foreground"
                   style={{ width: `${progress}%` }}
-                />
-                {/* Shimmer effect */}
-                <div 
-                  className="absolute inset-y-0 left-0 rounded-full animate-shimmer"
-                  style={{ 
-                    width: `${progress}%`,
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                    backgroundSize: '200% 100%',
-                  }}
                 />
               </div>
               
@@ -283,26 +233,24 @@ export default function Create() {
                   <Loader2 className="w-4 h-4 animate-spin text-foreground" />
                   <span className="text-muted-foreground">{progressMessage}</span>
                 </div>
-                <span className="font-mono font-bold text-foreground">{Math.round(progress)}%</span>
+                <span className="font-mono font-medium text-foreground">{Math.round(progress)}%</span>
               </div>
             </div>
 
-            {/* Story info pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {storyData && (
-                <>
-                  <div className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium">
-                    {GENRE_OPTIONS.find(g => g.value === storyData.genre)?.emoji} {storyData.title}
-                  </div>
-                  <div className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium">
-                    {storyData.targetDurationMinutes} min
-                  </div>
-                  <div className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium">
-                    {storyData.characters.filter(c => c.name).length} characters
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Story info */}
+            {storyData && (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
+                  {storyData.title}
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm">
+                  {storyData.targetDurationMinutes} min
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm">
+                  {storyData.characters.filter(c => c.name).length} characters
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -313,20 +261,25 @@ export default function Create() {
     <div className="min-h-[85vh] flex flex-col">
       {/* Header */}
       <div className="px-6 lg:px-8 py-6 border-b border-border/50">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-semibold text-foreground">
-            New Clip
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure your video settings and generate a script
-          </p>
+        <div className="max-w-5xl mx-auto flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
+            <Film className="w-5 h-5 text-background" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              New Clip
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Configure your video settings and generate a script
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Wizard Container */}
       <div className="flex-1 px-4 lg:px-8 py-6">
         <div className="max-w-5xl mx-auto">
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="glass-card overflow-hidden">
             <StoryWizard
               onComplete={handleWizardComplete}
               onCancel={() => navigate('/projects')}

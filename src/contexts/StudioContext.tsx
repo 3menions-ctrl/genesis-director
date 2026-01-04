@@ -561,6 +561,32 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setIsGenerating(false);
       toast.success(`All ${numClips} clips generated! Total: ${numClips * clipDuration}s`);
 
+      // Auto-generate thumbnail in background
+      toast.info('Generating cinematic thumbnail...');
+      try {
+        const thumbnailPrompt = buildSceneConsistencyPrompt(script, activeProject);
+        const { data: thumbData, error: thumbError } = await supabase.functions.invoke('generate-thumbnail', {
+          body: { 
+            prompt: thumbnailPrompt,
+            projectId,
+            projectName: activeProject.name,
+          },
+        });
+        
+        if (thumbError) {
+          console.error('Thumbnail generation error:', thumbError);
+        } else if (thumbData?.thumbnailUrl) {
+          // Update local state with thumbnail
+          setProjects(prev => prev.map(p => 
+            p.id === projectId ? { ...p, thumbnail_url: thumbData.thumbnailUrl } : p
+          ));
+          toast.success('Thumbnail generated!');
+        }
+      } catch (thumbErr) {
+        console.error('Failed to generate thumbnail:', thumbErr);
+        // Don't fail the whole process for thumbnail
+      }
+
     } catch (error) {
       console.error('Generation error:', error);
       const message = error instanceof Error ? error.message : 'Generation failed';

@@ -3,7 +3,7 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// Helper function to build comprehensive scene consistency prompt
+// Helper function to build comprehensive scene consistency prompt for video generation
 function buildSceneConsistencyPrompt(script: string, project: Project): string {
   // Extract key visual elements from the script
   const scriptLower = script.toLowerCase();

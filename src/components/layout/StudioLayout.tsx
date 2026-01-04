@@ -83,9 +83,10 @@ function StudioSidebar() {
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r border-white/5"
+      className="border-r border-white/10"
       style={{ 
-        background: '#0a0a0a'
+        background: 'linear-gradient(180deg, #0f0f0f 0%, #080808 50%, #0a0a0a 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 4px 0 24px rgba(0,0,0,0.3)'
       }}
     >
       <SidebarHeader className="p-4 pb-6">

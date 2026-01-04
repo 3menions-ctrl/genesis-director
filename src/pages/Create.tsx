@@ -4,18 +4,14 @@ import { StoryWizard } from '@/components/studio/StoryWizard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useStudio } from '@/contexts/StudioContext';
-import { 
-  Loader2,
-  Wand2,
-  Film
-} from 'lucide-react';
-import { StoryWizardData, GENRE_OPTIONS } from '@/types/movie';
+import { Loader2, Wand2 } from 'lucide-react';
+import { StoryWizardData } from '@/types/movie';
 import { cn } from '@/lib/utils';
 
 const CREATIVE_QUOTES = [
-  { quote: "Every great film begins with a single idea...", author: "Your Story" },
-  { quote: "Characters are the heart of every story...", author: "Building worlds" },
-  { quote: "The best stories feel like magic...", author: "Creating wonder" },
+  "Every great film begins with a single idea",
+  "Characters are the heart of every story",
+  "The best stories feel like magic",
 ];
 
 export default function Create() {
@@ -185,69 +181,54 @@ export default function Create() {
 
   if (isGenerating) {
     return (
-      <div className="min-h-[85vh] flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Subtle background elements */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-foreground/[0.02] blur-3xl" />
-          <div className="absolute inset-0 dot-pattern opacity-30" />
-        </div>
-
-        <div className="relative w-full max-w-lg">
-          {/* Main card */}
+      <div className="min-h-[85vh] flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          {/* Minimal loading card */}
           <div className="glass-card p-10 text-center">
             {/* Animated icon */}
-            <div className="relative w-24 h-24 mx-auto mb-8">
-              {/* Outer ring */}
-              <div className="absolute inset-0 rounded-full border-2 border-foreground/10 animate-spin-slow" />
-              <div className="absolute inset-3 rounded-full border border-dashed border-foreground/15" style={{ animation: 'spin-slow 12s linear infinite reverse' }} />
-              
-              {/* Center icon */}
-              <div className="absolute inset-5 rounded-full bg-foreground flex items-center justify-center shadow-xl">
-                <Wand2 className="w-8 h-8 text-background" />
+            <div className="relative w-20 h-20 mx-auto mb-8">
+              <div className="absolute inset-0 rounded-full border border-border animate-spin-slow" />
+              <div className="absolute inset-3 rounded-full bg-foreground flex items-center justify-center">
+                <Wand2 className="w-6 h-6 text-background" />
               </div>
             </div>
 
             {/* Title & Quote */}
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-4">
+              <h2 className="text-lg font-medium text-foreground mb-3">
                 Creating Your Story
               </h2>
-              <div className="h-10 flex items-center justify-center">
-                <p className="text-muted-foreground text-sm animate-fade-in" key={quoteIndex}>
-                  "{CREATIVE_QUOTES[quoteIndex].quote}"
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground animate-fade-in" key={quoteIndex}>
+                {CREATIVE_QUOTES[quoteIndex]}
+              </p>
             </div>
 
             {/* Progress bar */}
-            <div className="space-y-4 mb-8">
-              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+            <div className="space-y-3">
+              <div className="h-1 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out bg-foreground"
+                  className="h-full rounded-full bg-foreground transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
               
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-foreground" />
-                  <span className="text-muted-foreground">{progressMessage}</span>
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>{progressMessage}</span>
                 </div>
-                <span className="font-mono font-medium text-foreground">{Math.round(progress)}%</span>
+                <span className="font-mono text-foreground">{Math.round(progress)}%</span>
               </div>
             </div>
 
-            {/* Story info */}
+            {/* Story info chips */}
             {storyData && (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-6 border-t border-border">
+                <span className="px-2.5 py-1 rounded-md bg-secondary text-muted-foreground text-xs">
                   {storyData.title}
                 </span>
-                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm">
+                <span className="px-2.5 py-1 rounded-md bg-secondary text-muted-foreground text-xs">
                   {storyData.targetDurationMinutes} min
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm">
-                  {storyData.characters.filter(c => c.name).length} characters
                 </span>
               </div>
             )}
@@ -259,26 +240,9 @@ export default function Create() {
 
   return (
     <div className="min-h-[85vh] flex flex-col">
-      {/* Header */}
-      <div className="px-6 lg:px-8 py-6 border-b border-border/50">
-        <div className="max-w-5xl mx-auto flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
-            <Film className="w-5 h-5 text-background" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">
-              New Clip
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Configure your video settings and generate a script
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Wizard Container */}
-      <div className="flex-1 px-4 lg:px-8 py-6">
-        <div className="max-w-5xl mx-auto">
+      {/* Wizard Container - clean and minimal */}
+      <div className="flex-1 px-4 lg:px-6 py-6">
+        <div className="max-w-4xl mx-auto">
           <div className="glass-card overflow-hidden">
             <StoryWizard
               onComplete={handleWizardComplete}

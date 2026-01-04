@@ -1,12 +1,11 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Film, Folder, FileText, Play, Download, Bell, 
   ChevronRight, User, LogOut, CreditCard, Settings,
   Sparkles, Check, Plus, Home, Search, Command,
-  Zap, Clock, Share2, HelpCircle, Keyboard, 
-  LayoutGrid, Moon, Sun, Wand2, Video, Music,
-  Mic, Image, Palette, MoreHorizontal
+  Zap, Share2, HelpCircle, Keyboard, Wand2, Video, Music,
+  Mic, Image
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -292,285 +291,273 @@ function StudioSidebar() {
 }
 
 function StudioHeader() {
-  const { activeProject, credits } = useStudio();
+  const { activeProject, credits, isGenerating, generationProgress } = useStudio();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Get current step info for breadcrumbs
+  // Get current step info
   const currentStep = WORKFLOW_STEPS.find(step => location.pathname === step.url);
   const currentStepIndex = WORKFLOW_STEPS.findIndex(step => location.pathname === step.url);
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-emerald-500';
-      case 'generating': return 'bg-violet-500 animate-pulse';
-      case 'rendering': return 'bg-amber-500 animate-pulse';
-      default: return 'bg-gray-400';
+      case 'completed': 
+        return { color: 'bg-emerald-500', ring: 'ring-emerald-500/20', text: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case 'generating': 
+        return { color: 'bg-violet-500 animate-pulse', ring: 'ring-violet-500/20', text: 'text-violet-600', bg: 'bg-violet-50' };
+      case 'rendering': 
+        return { color: 'bg-amber-500 animate-pulse', ring: 'ring-amber-500/20', text: 'text-amber-600', bg: 'bg-amber-50' };
+      default: 
+        return { color: 'bg-gray-400', ring: 'ring-gray-400/20', text: 'text-gray-600', bg: 'bg-gray-50' };
     }
   };
 
+  const statusConfig = activeProject ? getStatusConfig(activeProject.status) : null;
+
   return (
-    <TooltipProvider delayDuration={300}>
-      <header className="h-16 px-4 flex items-center justify-between bg-background/80 backdrop-blur-2xl border-b border-border/50 sticky top-0 z-50" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
-        {/* Left Section - Sidebar Toggle + Breadcrumbs */}
-        <div className="flex items-center gap-3">
-          <SidebarTrigger className="hover:bg-muted rounded-xl h-10 w-10 text-muted-foreground hover:text-foreground transition-colors" />
-          
-          {/* Breadcrumbs */}
-          <nav className="hidden md:flex items-center gap-1.5">
-            <button 
-              onClick={() => navigate('/projects')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            >
-              <Folder className="w-3.5 h-3.5" />
-              <span>Projects</span>
-            </button>
-            
-            {activeProject && (
-              <>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
-                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/30">
-                  <div className={cn("w-2 h-2 rounded-full", getStatusColor(activeProject.status))} />
-                  <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
-                    {activeProject.name}
-                  </span>
-                </div>
-              </>
-            )}
-            
-            {currentStep && (
-              <>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
-                <div className="flex items-center gap-2 px-2.5 py-1.5">
-                  <currentStep.icon className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{currentStep.title}</span>
-                </div>
-              </>
-            )}
-          </nav>
-        </div>
-
-        {/* Center Section - Command Search */}
-        <div className="hidden lg:flex items-center">
-          <button className="flex items-center gap-3 px-4 py-2 rounded-xl bg-muted/30 border border-border/50 hover:border-border hover:bg-muted/50 transition-all group min-w-[280px]">
-            <Search className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="text-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors flex-1 text-left">
-              Search or run command...
-            </span>
-            <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-background border border-border text-[10px] font-mono text-muted-foreground">
-              <Command className="w-3 h-3" />
-              <span>K</span>
-            </kbd>
-          </button>
-        </div>
-
-        {/* Right Section - Actions */}
+    <TooltipProvider delayDuration={200}>
+      <header 
+        className="h-14 px-3 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50"
+        style={{ fontFamily: "'Instrument Sans', sans-serif" }}
+      >
+        {/* Left Section */}
         <div className="flex items-center gap-2">
-          {/* Quick AI Actions */}
-          <div className="hidden xl:flex items-center gap-1 mr-2">
-            {QUICK_ACTIONS.slice(0, 3).map((action) => (
-              <Tooltip key={action.id}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          <SidebarTrigger className="hover:bg-gray-100 rounded-lg h-8 w-8 text-gray-500 hover:text-gray-700 transition-all" />
+          
+          <div className="hidden md:flex items-center">
+            {/* Workflow Steps as Pills */}
+            <div className="flex items-center bg-gray-100/80 rounded-lg p-0.5 ml-2">
+              {WORKFLOW_STEPS.map((step, index) => {
+                const isActive = location.pathname === step.url;
+                const isPast = index < currentStepIndex;
+                const isClickable = activeProject || index === 0;
+                
+                return (
+                  <button
+                    key={step.title}
+                    onClick={() => isClickable && navigate(step.url)}
+                    disabled={!isClickable}
+                    className={cn(
+                      "relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                      isActive && "bg-white text-gray-900 shadow-sm",
+                      !isActive && isPast && "text-gray-600 hover:text-gray-900",
+                      !isActive && !isPast && "text-gray-400",
+                      isClickable && !isActive && "hover:text-gray-700"
+                    )}
                   >
-                    <action.icon className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="flex items-center gap-2 bg-popover border-border">
-                  <span>{action.label}</span>
-                  <kbd className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                    {action.shortcut}
-                  </kbd>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-popover border-border shadow-xl">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">AI Tools</DropdownMenuLabel>
-                {QUICK_ACTIONS.map((action) => (
-                  <DropdownMenuItem key={action.id} className="gap-3 py-2.5 cursor-pointer">
-                    <div className={cn("p-1.5 rounded-lg bg-gradient-to-br", action.color)}>
-                      <action.icon className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="flex-1">{action.label}</span>
-                    <kbd className="text-[10px] font-mono text-muted-foreground">{action.shortcut}</kbd>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    {isPast && !isActive ? (
+                      <Check className="w-3 h-3 text-emerald-500" />
+                    ) : (
+                      <step.icon className={cn("w-3 h-3", isActive ? "text-violet-600" : "")} />
+                    )}
+                    <span className="hidden lg:inline">{step.title}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        </div>
 
-          <div className="w-px h-6 bg-border/50 hidden xl:block" />
+        {/* Center Section - Project Info */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
+          {activeProject ? (
+            <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-gray-50/80 border border-gray-200/60">
+              <div className={cn("w-2 h-2 rounded-full ring-4", statusConfig?.color, statusConfig?.ring)} />
+              <span className="text-sm font-semibold text-gray-900 max-w-[180px] truncate">
+                {activeProject.name}
+              </span>
+              {isGenerating && (
+                <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+                  <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
+                      style={{ width: `${generationProgress.percent}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono text-gray-500">{generationProgress.percent}%</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button 
+              onClick={() => navigate('/create')}
+              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200/60 hover:border-violet-300 transition-colors group"
+            >
+              <Plus className="w-3.5 h-3.5 text-violet-600" />
+              <span className="text-sm font-medium text-violet-700 group-hover:text-violet-800">New Project</span>
+            </button>
+          )}
+        </div>
 
-          {/* Credits Indicator */}
+        {/* Right Section */}
+        <div className="flex items-center gap-1.5">
+          {/* Search */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors">
+              <button className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all group">
+                <Search className="w-4 h-4" />
+                <span className="text-xs text-gray-400 group-hover:text-gray-500">Search</span>
+                <kbd className="ml-1 px-1.5 py-0.5 rounded bg-gray-100 group-hover:bg-gray-200 text-[10px] font-mono text-gray-400 transition-colors">
+                  ⌘K
+                </kbd>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
+              Command palette
+            </TooltipContent>
+          </Tooltip>
+
+          <div className="w-px h-5 bg-gray-200 mx-1 hidden lg:block" />
+
+          {/* AI Generate Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 gap-1.5 px-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              >
+                <Wand2 className="w-4 h-4" />
+                <span className="hidden xl:inline text-xs font-medium">AI Tools</span>
+                <ChevronRight className="w-3 h-3 rotate-90 text-gray-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 bg-white border-gray-200 shadow-xl p-1.5">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold px-2 py-1">
+                Generate with AI
+              </DropdownMenuLabel>
+              {QUICK_ACTIONS.map((action) => (
+                <DropdownMenuItem 
+                  key={action.id} 
+                  className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                >
+                  <div className={cn("p-1.5 rounded-md bg-gradient-to-br", action.color)}>
+                    <action.icon className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="flex-1 text-sm">{action.label}</span>
+                  <kbd className="text-[10px] font-mono text-gray-400">{action.shortcut}</kbd>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Credits */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 hover:border-amber-300 transition-colors">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-sm font-semibold text-amber-600" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                  {credits.remaining.toLocaleString()}
+                <span className="text-xs font-bold text-amber-700" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  {(credits.remaining / 1000).toFixed(1)}k
                 </span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-popover border-border">
-              <span>Credits remaining</span>
+            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
+              {credits.remaining.toLocaleString()} credits remaining
             </TooltipContent>
           </Tooltip>
+
+          <div className="w-px h-5 bg-gray-200 mx-1" />
 
           {/* Notifications */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                <Bell className="w-[18px] h-[18px]" />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 ring-2 ring-background" />
+              <Button variant="ghost" size="icon" className="relative h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100">
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-violet-500 ring-2 ring-white" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-popover border-border">
-              <span>Notifications</span>
+            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
+              Notifications
             </TooltipContent>
           </Tooltip>
-
-          {/* Help */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="hidden sm:flex h-10 w-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                <HelpCircle className="w-[18px] h-[18px]" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-popover border-border">
-              <span>Help & Support</span>
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="w-px h-6 bg-border/50 mx-1" />
-
-          {/* Export Button */}
-          <Button
-            onClick={() => navigate('/export')}
-            disabled={activeProject?.status !== 'completed'}
-            className={cn(
-              "gap-2 rounded-xl font-medium shadow-lg transition-all",
-              activeProject?.status === 'completed'
-                ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-violet-500/25"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
 
           {/* Share */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-10 w-10 rounded-xl border-border/50 hover:border-border hover:bg-muted/50"
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100">
                 <Share2 className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-popover border-border">
-              <span>Share project</span>
+            <TooltipContent side="bottom" className="bg-gray-900 text-white border-0">
+              Share
             </TooltipContent>
           </Tooltip>
+
+          {/* Export */}
+          <Button
+            onClick={() => navigate('/export')}
+            disabled={activeProject?.status !== 'completed'}
+            size="sm"
+            className={cn(
+              "h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg transition-all",
+              activeProject?.status === 'completed'
+                ? "bg-gray-900 hover:bg-gray-800 text-white"
+                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+            )}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+
+          <div className="w-px h-5 bg-gray-200 mx-1" />
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="ml-1 h-10 w-10 rounded-xl hover:bg-transparent">
-                <Avatar className="h-9 w-9 ring-2 ring-border/50 hover:ring-primary/50 transition-all">
+              <button className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <Avatar className="h-7 w-7 ring-2 ring-gray-200">
                   <AvatarImage src="" />
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-semibold text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">
                     JS
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+                <ChevronRight className="w-3 h-3 rotate-90 text-gray-400 hidden sm:block" />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-popover border-border shadow-2xl p-2">
-              <div className="px-3 py-3 flex items-center gap-3">
-                <Avatar className="h-11 w-11 ring-2 ring-border/50">
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-base font-semibold text-white">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200 shadow-2xl p-1.5">
+              <div className="px-2 py-2 flex items-center gap-2.5 border-b border-gray-100 mb-1">
+                <Avatar className="h-9 w-9 ring-2 ring-gray-100">
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-bold text-white">
                     JS
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">John Smith</p>
-                  <p className="text-xs text-muted-foreground">john@example.com</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">John Smith</p>
+                  <p className="text-[11px] text-gray-500 truncate">john@example.com</p>
                 </div>
               </div>
               
-              <div className="px-3 py-2">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm font-medium text-foreground">{credits.remaining.toLocaleString()} Credits</span>
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10">
-                    Buy More
-                  </Button>
-                </div>
-              </div>
-              
-              <DropdownMenuSeparator className="bg-border/50 my-2" />
-              
-              <DropdownMenuGroup>
-                <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-foreground hover:bg-muted/50">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-foreground hover:bg-muted/50">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  Billing
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-foreground hover:bg-muted/50">
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-foreground hover:bg-muted/50">
-                  <Keyboard className="w-4 h-4 text-muted-foreground" />
-                  Keyboard Shortcuts
-                  <kbd className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">?</kbd>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              
-              <DropdownMenuSeparator className="bg-border/50 my-2" />
-              
-              <DropdownMenuItem 
-                className="gap-3 py-2.5 rounded-xl cursor-pointer justify-between text-foreground hover:bg-muted/50"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-              >
-                <div className="flex items-center gap-3">
-                  {isDarkMode ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
-                  <span>Dark Mode</span>
-                </div>
-                <div className={cn(
-                  "w-8 h-5 rounded-full transition-colors flex items-center px-0.5",
-                  isDarkMode ? "bg-primary justify-end" : "bg-muted justify-start"
-                )}>
-                  <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                </div>
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <User className="w-4 h-4 text-gray-400" />
+                <span className="text-sm">Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <CreditCard className="w-4 h-4 text-gray-400" />
+                <span className="text-sm">Billing</span>
+                <span className="ml-auto text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Pro</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <Settings className="w-4 h-4 text-gray-400" />
+                <span className="text-sm">Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <Keyboard className="w-4 h-4 text-gray-400" />
+                <span className="text-sm">Shortcuts</span>
+                <kbd className="ml-auto text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">?</kbd>
               </DropdownMenuItem>
               
-              <DropdownMenuSeparator className="bg-border/50 my-2" />
+              <DropdownMenuSeparator className="bg-gray-100 my-1" />
               
-              <DropdownMenuItem className="gap-3 py-2.5 rounded-xl cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10">
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-gray-700 hover:text-gray-900 hover:bg-gray-50">
+                <HelpCircle className="w-4 h-4 text-gray-400" />
+                <span className="text-sm">Help & Support</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator className="bg-gray-100 my-1" />
+              
+              <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
                 <LogOut className="w-4 h-4" />
-                Sign out
+                <span className="text-sm">Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1,72 +1,84 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
-  Play, Sparkles, Zap, Film, Wand2, ArrowRight, 
-  Video, Mic, Music, Image, ChevronRight, Star,
-  Check, Users, Globe, Layers
+  Play, Sparkles, Film, ArrowRight, 
+  Video, Mic, Image, Star,
+  Check, MousePointer2, Layers, Wand2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const CAPABILITIES = [
+  { label: 'Text to Video', active: true },
+  { label: 'Image to Video', active: false },
+  { label: 'Script Generation', active: false },
+  { label: 'Voice Synthesis', active: false },
+  { label: 'Style Transfer', active: false },
+];
 
 const FEATURES = [
   {
     icon: Video,
-    title: 'AI Video Generation',
-    description: 'Transform scripts into cinematic videos with state-of-the-art AI models.',
-    gradient: 'from-violet-500 to-purple-600',
+    title: 'Gen-3 Video AI',
+    description: 'State-of-the-art diffusion models generate cinematic footage from text descriptions.',
+    tag: 'NEW',
   },
   {
     icon: Wand2,
-    title: 'Script Assistant',
-    description: 'Let AI help you write compelling narratives and screenplays.',
-    gradient: 'from-blue-500 to-cyan-500',
+    title: 'Intelligent Scripting',
+    description: 'AI-powered narrative engine crafts compelling stories and professional screenplays.',
   },
   {
     icon: Mic,
-    title: 'AI Voice Synthesis',
-    description: 'Generate natural voiceovers with expressive AI voices.',
-    gradient: 'from-pink-500 to-rose-500',
+    title: 'Neural Voice',
+    description: 'Ultra-realistic voice synthesis with emotional range and perfect lip-sync.',
   },
   {
     icon: Image,
-    title: 'Visual Consistency',
-    description: 'Maintain character and scene consistency across your entire project.',
-    gradient: 'from-amber-500 to-orange-500',
+    title: 'Consistent Characters',
+    description: 'Maintain visual consistency across scenes with our character lock technology.',
   },
-];
-
-const STATS = [
-  { value: '10M+', label: 'Videos Created' },
-  { value: '500K+', label: 'Creators' },
-  { value: '4K', label: 'Resolution' },
-  { value: '99.9%', label: 'Uptime' },
+  {
+    icon: Layers,
+    title: 'Multi-track Editor',
+    description: 'Professional timeline with layers, transitions, and real-time preview.',
+  },
+  {
+    icon: MousePointer2,
+    title: 'Motion Brush',
+    description: 'Direct control over motion paths and camera movements in generated video.',
+    tag: 'BETA',
+  },
 ];
 
 const TESTIMONIALS = [
   {
-    quote: "This is the future of content creation. I've never been able to produce videos this fast.",
+    quote: "This completely changed how we approach video production. What took weeks now takes hours.",
     author: "Sarah Chen",
-    role: "Content Creator",
-    avatar: "SC",
+    role: "Creative Director, Vox Media",
+    avatar: "/placeholder.svg",
   },
   {
-    quote: "The AI understands exactly what I want. It's like having a Hollywood studio in my browser.",
+    quote: "The quality rivals professional production studios. It's genuinely revolutionary technology.",
     author: "Marcus Johnson",
-    role: "Filmmaker",
-    avatar: "MJ",
+    role: "Independent Filmmaker",
+    avatar: "/placeholder.svg",
   },
   {
-    quote: "We've cut our video production time by 90%. The quality is incredible.",
+    quote: "We've 10x'd our content output while maintaining quality. Our engagement has never been higher.",
     author: "Emily Rodriguez",
-    role: "Marketing Director",
-    avatar: "ER",
+    role: "VP Marketing, Notion",
+    avatar: "/placeholder.svg",
   },
 ];
+
+const LOGOS = ['Netflix', 'Disney', 'Apple', 'Google', 'Meta', 'Adobe'];
 
 export default function Landing() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [activeCapability, setActiveCapability] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -74,135 +86,201 @@ export default function Landing() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveCapability((prev) => (prev + 1) % CAPABILITIES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white text-slate-900 overflow-hidden">
-      {/* Animated background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-100/50 via-white to-white" />
-        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-violet-200/30 rounded-full blur-[120px] animate-pulse-soft" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-[100px] animate-pulse-soft delay-2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-conic from-violet-200/20 via-transparent to-violet-200/20 rounded-full animate-spin-slow" />
+    <div className="min-h-screen bg-[#0A0A0B] text-white overflow-hidden">
+      {/* Gradient orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[400px] -left-[300px] w-[800px] h-[800px] bg-violet-600/20 rounded-full blur-[150px]" />
+        <div className="absolute top-1/3 -right-[200px] w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[200px] left-1/3 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-50 flex items-center justify-between px-6 lg:px-12 py-5 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
-            <Film className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-display font-bold">
-            Apex<span className="text-violet-600"> Studio</span>
-          </span>
-        </div>
+      {/* Grid overlay */}
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.02]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '100px 100px',
+        }}
+      />
 
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Features</a>
-          <a href="#pricing" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
-          <a href="#testimonials" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Testimonials</a>
+      {/* Navigation */}
+      <nav className="relative z-50 flex items-center justify-between px-6 lg:px-16 py-5">
+        <div className="flex items-center gap-12">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center">
+              <Film className="w-5 h-5 text-[#0A0A0B]" />
+            </div>
+            <span className="text-lg font-semibold tracking-tight">apex</span>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-1">
+            {['Product', 'Research', 'Pricing', 'Company'].map((item) => (
+              <button 
+                key={item}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             onClick={() => navigate('/auth')}
-            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            className="text-zinc-400 hover:text-white hover:bg-white/5 h-9 px-4 text-sm"
           >
-            Sign In
+            Sign in
           </Button>
           <Button
             onClick={() => navigate('/auth')}
-            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium px-5"
+            className="h-9 px-5 text-sm bg-white text-black hover:bg-zinc-200 font-medium rounded-lg"
           >
-            Get Started
-            <ArrowRight className="w-4 h-4 ml-2" />
+            Try Apex
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 px-6 lg:px-12 pt-20 lg:pt-32 pb-20">
-        <div className="max-w-6xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-100 border border-violet-200 mb-8 animate-fade-in">
-            <Sparkles className="w-4 h-4 text-violet-600" />
-            <span className="text-sm text-violet-700">Powered by next-gen AI</span>
-          </div>
+      <section className="relative z-10 px-6 lg:px-16 pt-24 lg:pt-32 pb-24">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="max-w-4xl">
+            {/* Announcement */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs text-zinc-400">
+                Gen-3 Alpha now available — <span className="text-white">Learn more</span>
+              </span>
+            </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-bold tracking-tight mb-6 animate-fade-in-up">
-            <span className="block text-slate-900">Create cinematic</span>
-            <span className="block bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              videos with AI
-            </span>
-          </h1>
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl lg:text-[80px] font-medium tracking-[-0.02em] leading-[0.95] mb-8">
+              <span className="block text-white">The future of</span>
+              <span className="block bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                video creation
+              </span>
+            </h1>
 
-          {/* Subheadline */}
-          <p className="text-lg lg:text-xl text-slate-600 max-w-2xl mx-auto mb-10 animate-fade-in-up delay-2">
-            Transform your ideas into stunning videos in minutes. No camera, no crew, 
-            no experience needed. Just pure creative freedom.
-          </p>
+            {/* Subheadline */}
+            <p className="text-lg lg:text-xl text-zinc-400 max-w-xl mb-10 leading-relaxed">
+              Transform ideas into cinematic videos with AI. No equipment, no expertise—just describe what you imagine.
+            </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up delay-3">
-            <Button
-              onClick={() => navigate('/auth')}
-              size="lg"
-              className="h-14 px-8 text-base bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/25 border-0"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Start Creating — It's Free
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-14 px-8 text-base border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Watch Demo
-            </Button>
+            {/* CTA */}
+            <div className="flex flex-wrap items-center gap-4 mb-16">
+              <Button
+                onClick={() => navigate('/auth')}
+                size="lg"
+                className="h-12 px-6 text-sm bg-white text-black hover:bg-zinc-200 font-medium rounded-lg"
+              >
+                Start creating for free
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="h-12 px-6 text-sm text-white hover:bg-white/5 rounded-lg group"
+              >
+                <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+                Watch demo
+              </Button>
+            </div>
+
+            {/* Capabilities ticker */}
+            <div className="flex flex-wrap items-center gap-2">
+              {CAPABILITIES.map((cap, i) => (
+                <button
+                  key={cap.label}
+                  onClick={() => setActiveCapability(i)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm transition-all duration-300",
+                    activeCapability === i 
+                      ? "bg-white text-black font-medium" 
+                      : "bg-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-white/10"
+                  )}
+                >
+                  {cap.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Hero Visual */}
-          <div className="relative max-w-4xl mx-auto animate-fade-in-up delay-4">
-            <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl" />
-            <div className="relative rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl overflow-hidden shadow-2xl">
-              {/* Fake editor UI */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/50">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+          <div className="mt-20 relative">
+            <div className="absolute -inset-px bg-gradient-to-b from-white/10 via-transparent to-transparent rounded-2xl" />
+            <div className="relative rounded-2xl bg-gradient-to-b from-zinc-900 to-zinc-950 border border-white/10 overflow-hidden">
+              {/* Editor chrome */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-white/10 hover:bg-red-500/80 transition-colors cursor-pointer" />
+                    <div className="w-3 h-3 rounded-full bg-white/10 hover:bg-yellow-500/80 transition-colors cursor-pointer" />
+                    <div className="w-3 h-3 rounded-full bg-white/10 hover:bg-green-500/80 transition-colors cursor-pointer" />
+                  </div>
                 </div>
-                <div className="flex-1 flex justify-center">
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 text-xs text-slate-400">
-                    <Film className="w-3 h-3" />
-                    My Cinematic Project
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <Film className="w-3.5 h-3.5" />
+                  untitled_project.apex
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                    4K Ready
                   </div>
                 </div>
               </div>
               
-              {/* Fake video preview */}
-              <div className="aspect-video bg-gradient-to-br from-violet-900/50 via-slate-900 to-purple-900/50 flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-                <div className="relative flex flex-col items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-violet-500/50 cursor-pointer hover:scale-110 transition-transform">
-                    <Play className="w-8 h-8 text-white ml-1" />
+              {/* Video preview area */}
+              <div className="aspect-[21/9] bg-black flex items-center justify-center relative group">
+                {/* Animated grid */}
+                <div 
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    backgroundImage: `radial-gradient(circle at center, rgba(139,92,246,0.3) 0%, transparent 70%)`,
+                  }}
+                />
+                
+                {/* Center play button */}
+                <div className="relative z-10 flex flex-col items-center gap-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-white/20 blur-xl animate-pulse" />
+                    <div className="relative w-20 h-20 rounded-full bg-white flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-2xl shadow-white/25">
+                      <Play className="w-8 h-8 text-black ml-1" />
+                    </div>
                   </div>
                   <div className="text-center">
-                    <p className="text-white font-medium">Your next masterpiece</p>
-                    <p className="text-slate-500 text-sm">Click to see the magic</p>
+                    <p className="text-white font-medium mb-1">See it in action</p>
+                    <p className="text-zinc-500 text-sm">2 min demo</p>
                   </div>
                 </div>
-                
-                {/* Floating UI elements */}
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-white">4K Ultra HD</span>
+
+                {/* Floating badges */}
+                <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                  <span className="text-xs text-white">Gen-3 Alpha</span>
                 </div>
                 
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10">
-                  <Zap className="w-3 h-3 text-amber-400" />
-                  <span className="text-xs text-white">AI Enhanced</span>
+                <div className="absolute bottom-6 right-6 flex items-center gap-4">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-xs text-white">00:00:00</span>
+                  </div>
+                </div>
+
+                {/* Timeline hint */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/80 to-transparent flex items-end pb-4 px-6">
+                  <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -210,133 +288,83 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="relative z-10 px-6 lg:px-12 py-16 border-y border-slate-200 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {STATS.map((stat, index) => (
-              <div key={index} className="text-center">
-                <p className="text-4xl lg:text-5xl font-display font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-                  {stat.value}
-                </p>
-                <p className="text-slate-500 mt-1">{stat.label}</p>
-              </div>
+      {/* Trusted by */}
+      <section className="relative z-10 px-6 lg:px-16 py-16 border-y border-white/5">
+        <div className="max-w-[1400px] mx-auto">
+          <p className="text-center text-xs text-zinc-500 uppercase tracking-widest mb-10">
+            Trusted by creative teams at
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-8">
+            {LOGOS.map((logo) => (
+              <span key={logo} className="text-2xl font-semibold text-zinc-700 hover:text-zinc-500 transition-colors cursor-default">
+                {logo}
+              </span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="relative z-10 px-6 lg:px-12 py-24">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Features</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
+      {/* Features Grid */}
+      <section id="features" className="relative z-10 px-6 lg:px-16 py-32">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="max-w-2xl mb-16">
+            <h2 className="text-4xl lg:text-5xl font-medium tracking-tight mb-6">
               Everything you need to create
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Our AI-powered toolkit gives you complete creative control from script to screen.
+            <p className="text-lg text-zinc-400">
+              A complete toolkit for video creation, from concept to final cut.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((feature, index) => (
               <div
                 key={index}
-                className="group p-8 rounded-2xl bg-white border border-slate-200 hover:border-violet-300 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10"
+                className="group relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
               >
-                <div className={cn(
-                  "w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform",
-                  feature.gradient
-                )}>
-                  <feature.icon className="w-7 h-7 text-white" />
+                {feature.tag && (
+                  <span className="absolute top-4 right-4 px-2 py-0.5 rounded text-[10px] font-semibold bg-violet-500/20 text-violet-300 uppercase tracking-wider">
+                    {feature.tag}
+                  </span>
+                )}
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mb-5 group-hover:bg-white/10 transition-colors">
+                  <feature.icon className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" />
                 </div>
-                <h3 className="text-xl font-display font-bold mb-3 text-slate-900">{feature.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{feature.description}</p>
+                <h3 className="text-lg font-medium mb-2 text-white">{feature.title}</h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="relative z-10 px-6 lg:px-12 py-24 bg-gradient-to-b from-slate-50 via-violet-50/50 to-slate-50">
-        <div className="max-w-6xl mx-auto">
+      {/* Pricing */}
+      <section id="pricing" className="relative z-10 px-6 lg:px-16 py-32">
+        <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Pricing</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
-              Simple, credit-based pricing
+            <h2 className="text-4xl lg:text-5xl font-medium tracking-tight mb-6">
+              Simple, transparent pricing
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Pay only for what you use. No subscriptions, no hidden fees. Start with 50 free credits.
+            <p className="text-lg text-zinc-400 max-w-xl mx-auto">
+              Start free. Pay only for what you generate.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {/* Free Tier */}
-            <div className="p-8 rounded-2xl bg-white border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-display font-bold mb-2 text-slate-900">Starter</h3>
-              <p className="text-slate-500 text-sm mb-6">Perfect to try things out</p>
-              <p className="text-4xl font-display font-bold mb-6 text-slate-900">
-                Free
-                <span className="text-sm font-normal text-slate-500 ml-2">forever</span>
-              </p>
-              <ul className="space-y-3 mb-8">
-                {['50 free credits', '8-second clips', 'HD quality', 'Basic support'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-700">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button 
-                onClick={() => navigate('/auth')}
-                variant="outline" 
-                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
-              >
-                Get Started
-              </Button>
-            </div>
-
-            {/* Pro Tier */}
-            <div className="relative p-8 rounded-2xl bg-gradient-to-b from-violet-600 to-purple-700 border border-violet-500 shadow-xl shadow-violet-500/20">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-violet-600 text-xs font-medium shadow-md">
-                Most Popular
+          <div className="grid lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            {/* Free */}
+            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-2">Free</h3>
+                <p className="text-sm text-zinc-500">Get started with the basics</p>
               </div>
-              <h3 className="text-xl font-display font-bold mb-2 text-white">Creator</h3>
-              <p className="text-violet-200 text-sm mb-6">For serious creators</p>
-              <p className="text-4xl font-display font-bold mb-6 text-white">
-                $12.99
-                <span className="text-sm font-normal text-violet-200 ml-2">150 credits</span>
-              </p>
+              <div className="mb-8">
+                <span className="text-4xl font-medium">$0</span>
+                <span className="text-zinc-500 ml-2">/ month</span>
+              </div>
               <ul className="space-y-3 mb-8">
-                {['150 credits', 'Up to 1-min clips', '4K quality', 'Priority support', 'Commercial license'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-white">
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button 
-                onClick={() => navigate('/auth')}
-                className="w-full bg-white text-violet-700 hover:bg-slate-100 border-0"
-              >
-                Get Started
-              </Button>
-            </div>
-
-            {/* Studio Tier */}
-            <div className="p-8 rounded-2xl bg-white border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-display font-bold mb-2 text-slate-900">Studio</h3>
-              <p className="text-slate-500 text-sm mb-6">For teams & agencies</p>
-              <p className="text-4xl font-display font-bold mb-6 text-slate-900">
-                $49.99
-                <span className="text-sm font-normal text-slate-500 ml-2">750 credits</span>
-              </p>
-              <ul className="space-y-3 mb-8">
-                {['750 credits', 'Unlimited duration', '4K + HDR', 'Dedicated support', 'API access'].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-700">
-                    <Check className="w-4 h-4 text-emerald-500" />
+                {['50 credits included', '720p exports', '8-second clips', 'Community support'].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-zinc-400">
+                    <Check className="w-4 h-4 text-zinc-600" />
                     {item}
                   </li>
                 ))}
@@ -344,9 +372,66 @@ export default function Landing() {
               <Button 
                 onClick={() => navigate('/auth')}
                 variant="outline" 
-                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
+                className="w-full h-10 border-white/10 text-white hover:bg-white/5 rounded-lg"
               >
-                Get Started
+                Get started
+              </Button>
+            </div>
+
+            {/* Pro */}
+            <div className="relative p-8 rounded-2xl bg-gradient-to-b from-violet-500/10 to-transparent border border-violet-500/20">
+              <div className="absolute -top-px left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-violet-500 to-transparent" />
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-medium">Pro</h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-violet-500/20 text-violet-300 uppercase">
+                    Popular
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-500">For professional creators</p>
+              </div>
+              <div className="mb-8">
+                <span className="text-4xl font-medium">$29</span>
+                <span className="text-zinc-500 ml-2">/ month</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                {['500 credits / month', '4K exports', '60-second clips', 'Priority generation', 'Commercial license'].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-zinc-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button 
+                onClick={() => navigate('/auth')}
+                className="w-full h-10 bg-white text-black hover:bg-zinc-200 rounded-lg font-medium"
+              >
+                Start free trial
+              </Button>
+            </div>
+
+            {/* Enterprise */}
+            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-2">Enterprise</h3>
+                <p className="text-sm text-zinc-500">Custom solutions for teams</p>
+              </div>
+              <div className="mb-8">
+                <span className="text-4xl font-medium">Custom</span>
+              </div>
+              <ul className="space-y-3 mb-8">
+                {['Unlimited credits', '8K exports', 'Unlimited duration', 'API access', 'Dedicated support', 'Custom model training'].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-zinc-400">
+                    <Check className="w-4 h-4 text-zinc-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button 
+                variant="outline" 
+                className="w-full h-10 border-white/10 text-white hover:bg-white/5 rounded-lg"
+              >
+                Contact sales
               </Button>
             </div>
           </div>
@@ -354,34 +439,31 @@ export default function Landing() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="relative z-10 px-6 lg:px-12 py-24">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative z-10 px-6 lg:px-16 py-32 border-t border-white/5">
+        <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-violet-600 uppercase tracking-wider mb-4">Testimonials</p>
-            <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-slate-900">
-              Loved by creators worldwide
+            <h2 className="text-4xl lg:text-5xl font-medium tracking-tight mb-6">
+              Loved by creators
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-4">
             {TESTIMONIALS.map((testimonial, index) => (
               <div
                 key={index}
-                className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm"
+                className="p-8 rounded-2xl bg-white/[0.02] border border-white/5"
               >
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-6">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-slate-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+                <p className="text-zinc-300 mb-8 leading-relaxed">"{testimonial.quote}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
-                    {testimonial.avatar}
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600" />
                   <div>
-                    <p className="font-medium text-slate-900">{testimonial.author}</p>
-                    <p className="text-sm text-slate-500">{testimonial.role}</p>
+                    <p className="font-medium text-white text-sm">{testimonial.author}</p>
+                    <p className="text-xs text-zinc-500">{testimonial.role}</p>
                   </div>
                 </div>
               </div>
@@ -390,51 +472,55 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 px-6 lg:px-12 py-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="relative p-12 rounded-3xl bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 border border-violet-500 overflow-hidden shadow-2xl shadow-violet-500/25">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-            <div className="relative">
-              <h2 className="text-4xl lg:text-5xl font-display font-bold mb-6 text-white">
-                Ready to create?
-              </h2>
-              <p className="text-lg text-violet-100 mb-8 max-w-lg mx-auto">
-                Join thousands of creators using AI to bring their visions to life. 
-                Start with 50 free credits today.
-              </p>
-              <Button
-                onClick={() => navigate('/auth')}
-                size="lg"
-                className="h-14 px-10 text-base bg-white text-violet-700 hover:bg-slate-100 font-medium"
-              >
-                Start Creating for Free
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
+      {/* CTA */}
+      <section className="relative z-10 px-6 lg:px-16 py-32">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-4xl lg:text-6xl font-medium tracking-tight mb-6">
+            Start creating today
+          </h2>
+          <p className="text-lg text-zinc-400 mb-10 max-w-lg mx-auto">
+            Join thousands of creators pushing the boundaries of what's possible with AI video.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button
+              onClick={() => navigate('/auth')}
+              size="lg"
+              className="h-12 px-8 text-sm bg-white text-black hover:bg-zinc-200 font-medium rounded-lg"
+            >
+              Get started for free
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              className="h-12 px-8 text-sm text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg"
+            >
+              Talk to sales
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 px-6 lg:px-12 py-12 border-t border-slate-200 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                <Film className="w-4 h-4 text-white" />
+      <footer className="relative z-10 px-6 lg:px-16 py-16 border-t border-white/5">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+                <Film className="w-4 h-4 text-[#0A0A0B]" />
               </div>
-              <span className="font-display font-bold text-slate-900">Apex Studio</span>
+              <span className="text-base font-semibold tracking-tight">apex</span>
             </div>
             
-            <div className="flex items-center gap-8 text-sm text-slate-500">
-              <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
-              <a href="#" className="hover:text-slate-900 transition-colors">Terms</a>
-              <a href="#" className="hover:text-slate-900 transition-colors">Contact</a>
+            <div className="flex flex-wrap items-center gap-8 text-sm text-zinc-500">
+              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <a href="#" className="hover:text-white transition-colors">Documentation</a>
+              <a href="#" className="hover:text-white transition-colors">Status</a>
             </div>
 
-            <p className="text-sm text-slate-500">
-              © 2026 Apex Studio. All rights reserved.
+            <p className="text-sm text-zinc-600">
+              © 2026 Apex Studio
             </p>
           </div>
         </div>

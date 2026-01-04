@@ -154,41 +154,51 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
 
     setIsGenerating(true);
-    setGenerationProgress({ step: 'voice', percent: 10, estimatedSecondsRemaining: 120 });
     const script = activeProject.script_content;
     const projectId = activeProjectId;
+    const includeNarration = activeProject.include_narration !== false; // default true
+    const targetDuration = activeProject.target_duration_minutes || 1;
+    
+    // Runway supports 4, 6, or 8 second clips - map minutes to reasonable clip duration
+    // For longer videos, we'd need to generate multiple clips (future feature)
+    const videoDuration = targetDuration <= 1 ? 4 : targetDuration <= 2 ? 6 : 8;
 
     try {
-      // Step 1: Generate Voice Narration
       updateProject(projectId, { status: 'generating' as ProjectStatus });
-      toast.info('Generating AI narration with ElevenLabs...');
       
-      const voiceResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ text: script }),
+      // Step 1: Generate Voice Narration (if enabled)
+      if (includeNarration) {
+        setGenerationProgress({ step: 'voice', percent: 10, estimatedSecondsRemaining: 120 });
+        toast.info('Generating AI narration with ElevenLabs...');
+        
+        const voiceResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ text: script }),
+          }
+        );
+
+        if (!voiceResponse.ok) {
+          const errData = await voiceResponse.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to generate voice');
         }
-      );
 
-      if (!voiceResponse.ok) {
-        const errData = await voiceResponse.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to generate voice');
+        const audioBlob = await voiceResponse.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        updateProject(projectId, { voice_audio_url: audioUrl });
+        toast.success('Voice narration generated!');
       }
-
-      const audioBlob = await voiceResponse.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      updateProject(projectId, { voice_audio_url: audioUrl });
+      
       setGenerationProgress({ step: 'video', percent: 30, estimatedSecondsRemaining: 90 });
-      toast.success('Voice narration generated!');
 
       // Step 2: Generate Video
-      toast.info('Starting AI video generation with Runway...');
+      toast.info(`Starting AI video generation (${videoDuration}s clip)...`);
       setGenerationProgress({ step: 'video', percent: 35, estimatedSecondsRemaining: 85 });
       
       const videoPrompt = `Cinematic video visualizing: ${script.slice(0, 500)}. 
@@ -198,7 +208,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: { 
           prompt: videoPrompt,
-          duration: 8
+          duration: videoDuration
         },
       });
 

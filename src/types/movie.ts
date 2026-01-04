@@ -85,6 +85,7 @@ export interface StoryWizardData {
   universeId?: string;
   parentProjectId?: string;
   synopsis: string;
+  includeNarration: boolean;
 }
 
 export interface CharacterInput {

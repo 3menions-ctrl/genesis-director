@@ -68,6 +68,7 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
     synopsis: initialData?.synopsis || '',
     universeId: initialData?.universeId,
     parentProjectId: initialData?.parentProjectId,
+    includeNarration: initialData?.includeNarration ?? true,
   });
 
   const progress = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
@@ -362,6 +363,34 @@ export function StoryWizard({ onComplete, onCancel, initialData }: StoryWizardPr
                     {mood}
                   </Badge>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Voice Narration</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateData('includeNarration', true)}
+                  className={`flex-1 p-3 rounded-xl border text-center transition-all ${
+                    data.includeNarration
+                      ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
+                      : 'border-border/50 hover:border-primary/50 bg-background/50'
+                  }`}
+                >
+                  <div className="font-medium text-sm">🎙️ With Narrator</div>
+                  <div className="text-xs text-muted-foreground">AI voice reads the script</div>
+                </button>
+                <button
+                  onClick={() => updateData('includeNarration', false)}
+                  className={`flex-1 p-3 rounded-xl border text-center transition-all ${
+                    !data.includeNarration
+                      ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
+                      : 'border-border/50 hover:border-primary/50 bg-background/50'
+                  }`}
+                >
+                  <div className="font-medium text-sm">🎬 Video Only</div>
+                  <div className="text-xs text-muted-foreground">No voice narration</div>
+                </button>
               </div>
             </div>
           </div>

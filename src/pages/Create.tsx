@@ -1,24 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StoryWizard } from '@/components/studio/StoryWizard';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useStudio } from '@/contexts/StudioContext';
 import { 
   Sparkles, 
   Loader2,
-  Library,
-  Film,
   Wand2,
-  Zap,
-  Clock,
-  ChevronRight,
-  X
+  Star,
+  Clapperboard,
+  Rocket
 } from 'lucide-react';
 import { StoryWizardData, MovieProject, GENRE_OPTIONS } from '@/types/movie';
 import { cn } from '@/lib/utils';
+
+const CREATIVE_QUOTES = [
+  { quote: "Every great film begins with a single idea...", author: "Your Story" },
+  { quote: "Characters are the heart of every story...", author: "Building worlds" },
+  { quote: "The best stories feel like magic...", author: "Creating wonder" },
+];
 
 export default function Create() {
   const navigate = useNavigate();
@@ -27,53 +28,43 @@ export default function Create() {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('Initializing...');
   const [storyData, setStoryData] = useState<StoryWizardData | null>(null);
-  const [previousProjects, setPreviousProjects] = useState<MovieProject[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState(0);
 
+  // Cycle through quotes during generation
   useEffect(() => {
-    loadPreviousProjects();
-  }, []);
+    if (isGenerating) {
+      const interval = setInterval(() => {
+        setQuoteIndex(i => (i + 1) % CREATIVE_QUOTES.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [isGenerating]);
 
   // Simulate progress steps
   useEffect(() => {
     if (isGenerating) {
       const messages = [
         { at: 10, msg: 'Analyzing story elements...' },
-        { at: 30, msg: 'Building character arcs...' },
-        { at: 50, msg: 'Crafting dialogue...' },
-        { at: 70, msg: 'Weaving plot threads...' },
+        { at: 25, msg: 'Building character arcs...' },
+        { at: 40, msg: 'Crafting dialogue...' },
+        { at: 55, msg: 'Weaving plot threads...' },
+        { at: 70, msg: 'Adding dramatic tension...' },
         { at: 85, msg: 'Polishing the narrative...' },
         { at: 95, msg: 'Final touches...' },
       ];
       
       const interval = setInterval(() => {
         setProgress(p => {
-          const next = Math.min(p + Math.random() * 8, 95);
+          const next = Math.min(p + Math.random() * 6, 95);
           const currentMsg = messages.filter(m => m.at <= next).pop();
           if (currentMsg) setProgressMessage(currentMsg.msg);
           return next;
         });
-      }, 800);
+      }, 600);
       
       return () => clearInterval(interval);
     }
   }, [isGenerating]);
-
-  const loadPreviousProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('movie_projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (data && !error) {
-        setPreviousProjects(data as unknown as MovieProject[]);
-      }
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-    }
-  };
 
   const handleWizardComplete = async (data: StoryWizardData) => {
     setStoryData(data);
@@ -180,91 +171,126 @@ export default function Create() {
     }
   };
 
-  const handleContinueStory = (project: MovieProject) => {
-    setStoryData({
-      title: `${project.title} - Part 2`,
-      genre: project.genre,
-      storyStructure: project.story_structure,
-      targetDurationMinutes: project.target_duration_minutes,
-      setting: project.setting || '',
-      timePeriod: project.time_period || 'Present Day',
-      mood: project.mood || 'Epic & Grand',
-      movieIntroStyle: (project.movie_intro_style as any) || 'cinematic',
-      characters: [],
-      synopsis: `Continuation of "${project.title}"`,
-      parentProjectId: project.id,
-      includeNarration: true,
-    });
-    setShowHistory(false);
-  };
-
   if (isGenerating) {
     return (
-      <div className="min-h-[85vh] flex items-center justify-center p-6">
-        <div className="relative w-full max-w-lg">
-          {/* Animated background */}
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          </div>
+      <div className="min-h-[85vh] flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 -z-10">
+          {/* Main glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-r from-primary/20 via-accent/15 to-primary/20 blur-3xl animate-pulse" />
+          
+          {/* Floating orbs */}
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-4 h-4 rounded-full bg-primary/30 animate-float"
+              style={{
+                left: `${15 + i * 15}%`,
+                top: `${20 + (i % 3) * 25}%`,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${3 + i * 0.5}s`,
+              }}
+            />
+          ))}
+          
+          {/* Star particles */}
+          {[...Array(8)].map((_, i) => (
+            <Star
+              key={`star-${i}`}
+              className="absolute w-3 h-3 text-warning/40 animate-pulse"
+              style={{
+                left: `${10 + i * 12}%`,
+                top: `${15 + (i % 4) * 20}%`,
+                animationDelay: `${i * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
 
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 p-10 shadow-2xl shadow-violet-500/10">
-            {/* Animated icon */}
-            <div className="relative w-24 h-24 mx-auto mb-8">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 animate-spin-slow opacity-20" />
-              <div className="absolute inset-2 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                <Wand2 className="w-10 h-10 text-white animate-pulse" />
+        <div className="relative w-full max-w-xl">
+          {/* Main card */}
+          <div className="card-clean p-10 text-center">
+            {/* Animated icon stack */}
+            <div className="relative w-28 h-28 mx-auto mb-8">
+              {/* Outer ring */}
+              <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-spin-slow" />
+              <div className="absolute inset-2 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }} />
+              
+              {/* Center icon */}
+              <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+                <Wand2 className="w-10 h-10 text-primary-foreground animate-pulse" />
               </div>
-              {/* Orbiting sparkles */}
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-                <Sparkles className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 text-amber-400" />
+              
+              {/* Orbiting icons */}
+              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '6s' }}>
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
+                  <Sparkles className="w-4 h-4 text-warning" />
+                </div>
               </div>
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>
-                <Sparkles className="absolute top-1/2 -right-1 -translate-y-1/2 w-3 h-3 text-pink-400" />
+              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s', animationDirection: 'reverse' }}>
+                <div className="absolute top-1/2 -right-2 -translate-y-1/2 p-1.5 rounded-full bg-card shadow-lg border border-border">
+                  <Clapperboard className="w-4 h-4 text-primary" />
+                </div>
               </div>
             </div>
 
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+            {/* Title & Quote */}
+            <div className="mb-8 min-h-[80px]">
+              <h2 className="text-2xl font-bold font-display text-foreground mb-3">
                 Creating Your Story
               </h2>
-              <p className="text-gray-500">
-                {storyData?.genre && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span>{GENRE_OPTIONS.find(g => g.value === storyData.genre)?.emoji}</span>
-                    <span>{storyData.title}</span>
-                  </span>
-                )}
-              </p>
+              <div className="h-12 flex items-center justify-center">
+                <p className="text-muted-foreground text-sm italic animate-fade-in" key={quoteIndex}>
+                  "{CREATIVE_QUOTES[quoteIndex].quote}"
+                </p>
+              </div>
             </div>
 
-            {/* Progress */}
-            <div className="space-y-4">
-              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+            {/* Progress bar */}
+            <div className="space-y-4 mb-8">
+              <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
                 <div 
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
+                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                  style={{ 
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))',
+                  }}
                 />
+                {/* Shimmer effect */}
                 <div 
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 rounded-full blur-sm transition-all duration-700 ease-out opacity-50"
-                  style={{ width: `${progress}%` }}
+                  className="absolute inset-y-0 left-0 rounded-full animate-shimmer"
+                  style={{ 
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    backgroundSize: '200% 100%',
+                  }}
                 />
               </div>
               
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Loader2 className="w-4 h-4 animate-spin text-violet-500" />
-                  <span>{progressMessage}</span>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-muted-foreground">{progressMessage}</span>
                 </div>
-                <span className="font-mono font-semibold text-violet-600">{Math.round(progress)}%</span>
+                <span className="font-mono font-bold text-primary">{Math.round(progress)}%</span>
               </div>
             </div>
 
-            {/* Fun facts */}
-            <div className="mt-8 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-100">
-              <p className="text-xs text-center text-violet-600">
-                ✨ Our AI is crafting {storyData?.characters.filter(c => c.name).length || 0} unique character arc{(storyData?.characters.filter(c => c.name).length || 0) !== 1 ? 's' : ''} for your ~{storyData?.targetDurationMinutes}-minute film
-              </p>
+            {/* Story info pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {storyData && (
+                <>
+                  <div className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium">
+                    {GENRE_OPTIONS.find(g => g.value === storyData.genre)?.emoji} {storyData.title}
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                    {storyData.targetDurationMinutes} min
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-medium">
+                    {storyData.characters.filter(c => c.name).length} characters
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -273,80 +299,32 @@ export default function Create() {
   }
 
   return (
-    <div className="min-h-[85vh] flex">
-      {/* Main Content */}
-      <div className="flex-1 p-6 lg:p-10">
-        <div className="max-w-4xl mx-auto">
-          {/* Hero Header */}
-          <div className="mb-10 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-100 to-purple-100 border border-violet-200/50 mb-6">
-              <Zap className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-medium text-violet-700">AI-Powered Story Creation</span>
-            </div>
-            
-            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
-              Craft Your <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Cinematic Vision</span>
-            </h1>
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Define your story, build your characters, and let AI transform your imagination into a compelling script
-            </p>
-          </div>
+    <div className="min-h-[85vh] flex flex-col relative">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent/5 blur-3xl" />
+      </div>
 
-          {/* Continue Previous Projects Banner */}
-          {previousProjects.length > 0 && !showHistory && (
-            <button
-              onClick={() => setShowHistory(true)}
-              className="w-full mb-8 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200/50 hover:border-amber-300 transition-all group flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-amber-100">
-                  <Library className="w-5 h-5 text-amber-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900">Continue a Previous Story</p>
-                  <p className="text-sm text-gray-500">{previousProjects.length} projects available</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
-            </button>
-          )}
+      {/* Hero Header */}
+      <div className="text-center pt-8 pb-6 px-6">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-6 animate-fade-in">
+          <Rocket className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-primary">Create Something Amazing</span>
+        </div>
+        
+        <h1 className="text-4xl lg:text-5xl font-bold font-display text-foreground mb-4 animate-fade-in delay-1">
+          Your Story <span className="text-gradient">Starts Here</span>
+        </h1>
+        <p className="text-lg text-muted-foreground max-w-xl mx-auto animate-fade-in delay-2">
+          Define your vision, build unforgettable characters, and let AI craft your cinematic masterpiece
+        </p>
+      </div>
 
-          {/* History Panel */}
-          {showHistory && previousProjects.length > 0 && (
-            <div className="mb-8 p-6 rounded-2xl bg-white border border-gray-200 shadow-lg animate-in slide-in-from-top-2">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Continue a Story</h3>
-                <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)} className="h-8 w-8">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {previousProjects.slice(0, 6).map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => handleContinueStory(project)}
-                    className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-white hover:border-violet-200 hover:shadow-md transition-all text-left group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{GENRE_OPTIONS.find(g => g.value === project.genre)?.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate group-hover:text-violet-700 transition-colors">
-                          {project.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                          <Clock className="w-3 h-3" />
-                          <span>{project.target_duration_minutes}m</span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Story Wizard */}
-          <div className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-gray-200/50 overflow-hidden">
+      {/* Wizard Container */}
+      <div className="flex-1 px-4 pb-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="card-clean overflow-hidden animate-fade-in-up delay-3">
             <StoryWizard
               onComplete={handleWizardComplete}
               onCancel={() => navigate('/projects')}

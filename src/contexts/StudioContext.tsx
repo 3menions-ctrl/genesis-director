@@ -64,6 +64,13 @@ interface GenerationProgress {
   totalClips?: number;
 }
 
+// Credit costs for each duration
+export const DURATION_CREDIT_COSTS = {
+  8: 1000,
+  30: 3500,
+  60: 7000,
+} as const;
+
 interface StudioContextType {
   projects: Project[];
   activeProjectId: string | null;
@@ -83,6 +90,8 @@ interface StudioContextType {
   generatePreview: () => Promise<void>;
   exportVideo: () => void;
   buyCredits: () => void;
+  deductCredits: (durationSeconds: number) => boolean;
+  canAffordDuration: (durationSeconds: number) => boolean;
 }
 
 const StudioContext = createContext<StudioContextType | null>(null);
@@ -90,7 +99,7 @@ const StudioContext = createContext<StudioContextType | null>(null);
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [activeProjectId, setActiveProjectId] = useState<string>(MOCK_PROJECTS[0].id);
-  const [credits] = useState<UserCredits>(MOCK_CREDITS);
+  const [credits, setCredits] = useState<UserCredits>(MOCK_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8); // Default to 8 seconds
@@ -316,6 +325,35 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     toast.info('Opening Stripe checkout...');
   };
 
+  const getCreditsForDuration = (durationSeconds: number): number => {
+    if (durationSeconds <= 8) return DURATION_CREDIT_COSTS[8];
+    if (durationSeconds <= 30) return DURATION_CREDIT_COSTS[30];
+    return DURATION_CREDIT_COSTS[60];
+  };
+
+  const canAffordDuration = (durationSeconds: number): boolean => {
+    const required = getCreditsForDuration(durationSeconds);
+    return credits.remaining >= required;
+  };
+
+  const deductCredits = (durationSeconds: number): boolean => {
+    const required = getCreditsForDuration(durationSeconds);
+    
+    if (credits.remaining < required) {
+      toast.error(`Insufficient credits! You need ${required.toLocaleString()} credits but only have ${credits.remaining.toLocaleString()}.`);
+      return false;
+    }
+    
+    setCredits(prev => ({
+      ...prev,
+      used: prev.used + required,
+      remaining: prev.remaining - required,
+    }));
+    
+    toast.success(`${required.toLocaleString()} credits deducted for ${durationSeconds}s video`);
+    return true;
+  };
+
   return (
     <StudioContext.Provider
       value={{
@@ -337,6 +375,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         generatePreview,
         exportVideo,
         buyCredits,
+        deductCredits,
+        canAffordDuration,
       }}
     >
       {children}

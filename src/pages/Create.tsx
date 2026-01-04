@@ -23,7 +23,7 @@ const CREATIVE_QUOTES = [
 
 export default function Create() {
   const navigate = useNavigate();
-  const { activeProject, updateProject } = useStudio();
+  const { activeProject, updateProject, deductCredits, canAffordDuration } = useStudio();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('Initializing...');
@@ -67,6 +67,21 @@ export default function Create() {
   }, [isGenerating]);
 
   const handleWizardComplete = async (data: StoryWizardData) => {
+    // Calculate duration in seconds from minutes
+    const durationSeconds = Math.round(data.targetDurationMinutes * 60);
+    
+    // Check if user can afford this duration
+    if (!canAffordDuration(durationSeconds)) {
+      toast.error('Insufficient credits for this duration. Please select a shorter duration or purchase more credits.');
+      return;
+    }
+    
+    // Deduct credits before proceeding
+    const creditsDeducted = deductCredits(durationSeconds);
+    if (!creditsDeducted) {
+      return;
+    }
+    
     setStoryData(data);
     setIsGenerating(true);
     setProgress(10);

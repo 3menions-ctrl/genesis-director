@@ -116,6 +116,7 @@ export function DirectorDashboard() {
     bookshelfItems: ['Books', 'Plants'],
     environment: 'jungle_studio',
     resolution: '4K',
+    visualStyle: 'cinematic',
   });
 
   const handleSettingsChange = (newSettings: Partial<StudioSettings>) => {

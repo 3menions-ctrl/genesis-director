@@ -43,6 +43,16 @@ export interface AssetLayer {
 
 export type VisualStylePreset = 'cinematic' | 'documentary' | 'anime' | 'vintage';
 
+export interface CharacterProfile {
+  id: string;
+  name: string;
+  appearance: string;
+  clothing: string;
+  distinguishingFeatures: string;
+  age?: string;
+  gender?: string;
+}
+
 export interface StudioSettings {
   lighting: 'natural' | 'studio' | 'dramatic' | 'soft';
   lightingIntensity: number;
@@ -51,6 +61,7 @@ export interface StudioSettings {
   environment: string;
   resolution: '1080p' | '4K';
   visualStyle: VisualStylePreset;
+  characters: CharacterProfile[];
 }
 
 export const VISUAL_STYLE_PRESETS = [

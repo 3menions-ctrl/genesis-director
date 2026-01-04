@@ -2,10 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { StudioLayout } from "@/components/layout/StudioLayout";
+import Landing from "./pages/Landing";
 import Projects from "./pages/Projects";
 import Create from "./pages/Create";
 import Script from "./pages/Script";
@@ -26,14 +28,42 @@ const App = () => (
         <AuthProvider>
           <StudioProvider>
             <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<Navigate to="/projects" replace />} />
-              <Route path="/projects" element={<StudioLayout><Projects /></StudioLayout>} />
-              <Route path="/create" element={<StudioLayout><Create /></StudioLayout>} />
-              <Route path="/script" element={<StudioLayout><Script /></StudioLayout>} />
-              <Route path="/production" element={<StudioLayout><Production /></StudioLayout>} />
-              <Route path="/export" element={<StudioLayout><Export /></StudioLayout>} />
-              <Route path="/profile" element={<StudioLayout><Profile /></StudioLayout>} />
+              
+              {/* Protected routes */}
+              <Route path="/projects" element={
+                <ProtectedRoute>
+                  <StudioLayout><Projects /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/create" element={
+                <ProtectedRoute>
+                  <StudioLayout><Create /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/script" element={
+                <ProtectedRoute>
+                  <StudioLayout><Script /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/production" element={
+                <ProtectedRoute>
+                  <StudioLayout><Production /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/export" element={
+                <ProtectedRoute>
+                  <StudioLayout><Export /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <StudioLayout><Profile /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </StudioProvider>

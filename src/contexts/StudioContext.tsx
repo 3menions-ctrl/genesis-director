@@ -708,7 +708,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               });
               
               if (videoError || !videoData?.success) {
-                throw new Error(videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`);
+                const errorMessage = videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`;
+                
+                // Check for rate limit errors - these shouldn't be retried immediately
+                if (errorMessage.includes('Rate limit') || errorMessage.includes('daily task limit')) {
+                  toast.error('Runway API rate limit reached. Try again later or reduce the number of clips.');
+                  throw new Error('RATE_LIMIT_EXCEEDED');
+                }
+                
+                throw new Error(errorMessage);
               }
               
               const taskId = videoData.taskId;
@@ -790,8 +798,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               lastError = error instanceof Error ? error : new Error(String(error));
               console.error(`Clip ${clip.index + 1} attempt ${attempt} failed:`, lastError.message);
               
-              // Don't retry if cancelled
-              if (lastError.message.includes('cancelled')) {
+              // Don't retry if cancelled or rate limited
+              if (lastError.message.includes('cancelled') || lastError.message === 'RATE_LIMIT_EXCEEDED') {
                 throw lastError;
               }
             }

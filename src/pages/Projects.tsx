@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  ArrowRight, X, Download, ExternalLink, Loader2, Zap
+  ArrowRight, X, Download, ExternalLink, Loader2, Zap,
+  Sparkles, Clock, CheckCircle2, Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,7 +39,7 @@ export default function Projects() {
     if (hours < 1) return 'Just now';
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const handleSelectProject = (id: string) => {
@@ -97,80 +98,103 @@ export default function Projects() {
   const completedCount = projects.filter(p => p.status === 'completed').length;
   const inProgressCount = projects.filter(p => p.status === 'generating' || p.status === 'rendering').length;
   const draftCount = projects.filter(p => p.status === 'idle').length;
-  const totalClips = projects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0);
 
   return (
-    <div className="min-h-full bg-[hsl(0_0%_4%)]">
-      {/* Minimal Top Bar */}
-      <div className="relative border-b border-white/[0.06]">
-        <div className="px-6 lg:px-10 py-6 max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            {/* Stats Row */}
-            <div className="flex items-center gap-6">
-              {[
-                { value: projects.length, label: 'Projects' },
-                { value: completedCount, label: 'Complete' },
-                { value: inProgressCount, label: 'Active', pulse: inProgressCount > 0 },
-              ].map((stat, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  {stat.pulse && <div className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />}
-                  <span className="text-white/90 font-medium tabular-nums">{stat.value}</span>
-                  <span className="text-white/40 text-sm">{stat.label}</span>
-                </div>
-              ))}
-            </div>
-            
-            {/* Create Buttons */}
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => navigate('/pipeline/scripting')}
-                className="flex items-center gap-2 h-8 px-4 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 border border-primary/30 text-primary hover:text-primary-foreground text-sm font-medium transition-all"
-              >
-                <Zap className="w-3.5 h-3.5" strokeWidth={2} />
-                <span>Iron-Clad Pipeline</span>
-              </button>
-              <button 
-                onClick={handleCreateProject}
-                className="flex items-center gap-2 h-8 px-4 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/80 hover:text-white text-sm font-medium transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-                <span>Quick Clip</span>
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[hsl(0_0%_4%)]">
+      {/* Ambient background effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-white/[0.015] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-white/[0.01] rounded-full blur-[100px]" />
       </div>
 
-      {/* Content */}
-      <div className="px-6 lg:px-10 py-8 max-w-7xl mx-auto">
-        {projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6">
-              <Film className="w-5 h-5 text-white/30" strokeWidth={1.5} />
+      {/* Header */}
+      <header className="relative z-10 border-b border-white/[0.06]">
+        <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+          {/* Top row */}
+          <div className="py-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-white tracking-tight">Projects</h1>
+              <p className="text-sm text-white/40 mt-1">Create and manage your video productions</p>
             </div>
-            <p className="text-white/40 text-sm mb-6">No projects yet</p>
+            
             <div className="flex items-center gap-3">
-              <button 
+              <Button 
+                variant="outline"
                 onClick={() => navigate('/pipeline/scripting')}
-                className="flex items-center gap-2 h-9 px-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 border border-primary/30 text-primary hover:text-white text-sm font-medium transition-all"
+                className="h-10 px-5 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20 transition-all"
               >
-                <Zap className="w-3.5 h-3.5" strokeWidth={2} />
-                Start with Pipeline
-              </button>
-              <button 
+                <Zap className="w-4 h-4 mr-2 text-amber-400" />
+                Production Pipeline
+              </Button>
+              <Button 
                 onClick={handleCreateProject}
-                className="flex items-center gap-2 h-9 px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all"
+                className="h-10 px-5 rounded-xl bg-white text-[hsl(0_0%_8%)] hover:bg-white/90 font-medium shadow-lg shadow-white/10 transition-all"
               >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-                Quick clip
-              </button>
+                <Plus className="w-4 h-4 mr-2" />
+                New Project
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats bar */}
+          <div className="pb-6 flex items-center gap-8">
+            {[
+              { value: projects.length, label: 'Total', icon: Film },
+              { value: completedCount, label: 'Completed', icon: CheckCircle2, color: 'text-emerald-400' },
+              { value: inProgressCount, label: 'In Progress', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
+              { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
+            ].map((stat, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <stat.icon className={cn(
+                  "w-4 h-4",
+                  stat.color || "text-white/50",
+                  stat.animate && "animate-spin"
+                )} />
+                <span className="text-white font-medium tabular-nums">{stat.value}</span>
+                <span className="text-white/40 text-sm">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 py-8">
+        {projects.length === 0 ? (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-white/5 rounded-3xl blur-xl" />
+              <div className="relative w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+                <Film className="w-8 h-8 text-white/20" strokeWidth={1.5} />
+              </div>
+            </div>
+            <h2 className="text-xl font-medium text-white mb-2">No projects yet</h2>
+            <p className="text-white/40 text-sm mb-8 text-center max-w-sm">
+              Start by creating a quick clip or use the production pipeline for full-length videos.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate('/pipeline/scripting')}
+                variant="outline"
+                className="h-11 px-6 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20"
+              >
+                <Zap className="w-4 h-4 mr-2 text-amber-400" />
+                Production Pipeline
+              </Button>
+              <Button 
+                onClick={handleCreateProject}
+                className="h-11 px-6 rounded-xl bg-white text-[hsl(0_0%_8%)] hover:bg-white/90 font-medium"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Quick Clip
+              </Button>
             </div>
           </div>
         ) : (
           /* Projects Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
             {projects.map((project, index) => {
-              // Show videos if clips exist, regardless of status
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
               const isActive = activeProjectId === project.id;
@@ -180,27 +204,26 @@ export default function Projects() {
                   key={project.id}
                   onClick={() => handleSelectProject(project.id)}
                   className={cn(
-                    "group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300",
-                    "bg-white/[0.03] backdrop-blur-md",
-                    "border border-white/[0.06]",
-                    "hover:bg-white/[0.05] hover:border-white/[0.1]",
-                    isActive && "ring-1 ring-white/20 border-white/15",
+                    "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
+                    "bg-white/[0.03] hover:bg-white/[0.05]",
+                    "border border-white/[0.06] hover:border-white/[0.12]",
+                    isActive && "ring-2 ring-white/20 border-white/20",
                     "animate-fade-in"
                   )}
-                  style={{ animationDelay: `${index * 40}ms` }}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
                   {/* Thumbnail */}
-                  <div className="aspect-[16/9] relative overflow-hidden bg-[hsl(0_0%_8%)]">
+                  <div className="aspect-video relative overflow-hidden bg-[hsl(0_0%_6%)]">
                     {project.thumbnail_url ? (
                       <img
                         src={project.thumbnail_url}
                         alt={project.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                       />
                     ) : hasVideo && videoClips[0] ? (
                       <video
                         src={videoClips[0]}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                         muted
                         playsInline
                         preload="metadata"
@@ -211,56 +234,59 @@ export default function Projects() {
                         }}
                       />
                     ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent">
-                        <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
                           {project.status === 'generating' || project.status === 'rendering' ? (
-                            <Loader2 className="w-5 h-5 text-white/20 animate-spin" strokeWidth={1.5} />
+                            <Loader2 className="w-6 h-6 text-white/30 animate-spin" strokeWidth={1.5} />
                           ) : (
-                            <Film className="w-5 h-5 text-white/15" strokeWidth={1.5} />
+                            <Film className="w-6 h-6 text-white/20" strokeWidth={1.5} />
                           )}
                         </div>
                       </div>
                     )}
 
-                    {/* Status indicator */}
-                    <div className="absolute top-3 left-3 z-10">
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Status badge */}
+                    <div className="absolute top-3 left-3">
                       {project.status === 'completed' ? (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[hsl(145_40%_25%/0.9)] backdrop-blur-sm">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[hsl(145_50%_55%)]" />
-                          <span className="text-[10px] font-medium text-[hsl(145_30%_80%)] uppercase tracking-wide">Ready</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="text-[11px] font-medium text-emerald-300">Ready</span>
                         </div>
                       ) : project.status === 'generating' || project.status === 'rendering' ? (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.08] backdrop-blur-sm">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />
-                          <span className="text-[10px] font-medium text-white/60 uppercase tracking-wide">Processing</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
+                          <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                          <span className="text-[11px] font-medium text-amber-300">Processing</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.06] backdrop-blur-sm">
-                          <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                          <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">Draft</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                          <Circle className="w-3 h-3 text-white/50" />
+                          <span className="text-[11px] font-medium text-white/50">Draft</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Clip count */}
+                    {/* Clip count badge */}
                     {hasVideo && videoClips.length > 1 && (
-                      <div className="absolute top-3 right-3 z-10">
-                        <span className="text-[10px] font-medium bg-black/60 text-white/80 px-2 py-1 rounded-md backdrop-blur-sm">
-                          {videoClips.length}
-                        </span>
+                      <div className="absolute top-3 right-3">
+                        <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                          <span className="text-[11px] font-medium text-white/80">{videoClips.length} clips</span>
+                        </div>
                       </div>
                     )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-center pb-4">
+                    {/* Hover actions */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <div className="flex items-center gap-2">
                         {hasVideo ? (
                           <>
                             <button 
                               onClick={(e) => handlePlayVideo(project, e)}
-                              className="flex items-center gap-1.5 h-7 px-3 bg-white text-black text-xs font-medium rounded-md hover:bg-white/90 transition-colors"
+                              className="flex items-center gap-2 h-9 px-4 bg-white text-[hsl(0_0%_8%)] text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
                             >
-                              <Play className="w-3 h-3" fill="currentColor" />
+                              <Play className="w-4 h-4" fill="currentColor" />
                               Play
                             </button>
                             <button 
@@ -268,10 +294,9 @@ export default function Projects() {
                                 e.stopPropagation();
                                 handleOpenProject(project.id);
                               }}
-                              className="flex items-center gap-1.5 h-7 px-3 bg-white/15 text-white text-xs font-medium rounded-md hover:bg-white/25 transition-colors backdrop-blur-sm"
+                              className="flex items-center justify-center w-9 h-9 bg-white/20 backdrop-blur-md text-white rounded-full hover:bg-white/30 transition-all border border-white/20"
                             >
-                              <Edit2 className="w-3 h-3" />
-                              Edit
+                              <Edit2 className="w-4 h-4" />
                             </button>
                           </>
                         ) : (
@@ -280,10 +305,10 @@ export default function Projects() {
                               e.stopPropagation();
                               handleOpenProject(project.id);
                             }}
-                            className="flex items-center gap-1.5 h-7 px-3 bg-white text-black text-xs font-medium rounded-md hover:bg-white/90 transition-colors"
+                            className="flex items-center gap-2 h-9 px-5 bg-white text-[hsl(0_0%_8%)] text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
                           >
-                            Open
-                            <ArrowRight className="w-3 h-3" />
+                            Open Project
+                            <ArrowRight className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -291,27 +316,30 @@ export default function Projects() {
                   </div>
 
                   {/* Content */}
-                  <div className="p-3.5">
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-white/90 truncate text-sm">
+                        <h3 className="font-medium text-white truncate">
                           {project.name}
                         </h3>
-                        <p className="text-xs text-white/30 mt-1">
-                          {formatDate(project.updated_at)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Clock className="w-3 h-3 text-white/30" />
+                          <span className="text-xs text-white/40">
+                            {formatDate(project.updated_at)}
+                          </span>
+                        </div>
                       </div>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
                             onClick={(e) => e.stopPropagation()}
-                            className="h-6 w-6 shrink-0 flex items-center justify-center rounded-md text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors"
+                            className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.08] transition-all"
                           >
-                            <MoreVertical className="w-3.5 h-3.5" />
+                            <MoreVertical className="w-4 h-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 rounded-lg bg-[hsl(0_0%_10%)] border-white/[0.08]">
+                        <DropdownMenuContent align="end" className="w-44 rounded-xl bg-[hsl(0_0%_10%)] border-white/[0.1] shadow-2xl">
                           {hasVideo && (
                             <>
                               <DropdownMenuItem 
@@ -319,44 +347,44 @@ export default function Projects() {
                                   e.stopPropagation();
                                   handlePlayVideo(project, e as any);
                                 }}
-                                className="gap-2 text-xs text-white/70 focus:text-white focus:bg-white/[0.06]"
+                                className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
                               >
-                                <Play className="w-3.5 h-3.5" />
-                                Play
+                                <Play className="w-4 h-4" />
+                                Play Video
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDownloadAll(project);
                                 }}
-                                className="gap-2 text-xs text-white/70 focus:text-white focus:bg-white/[0.06]"
+                                className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
                               >
-                                <Download className="w-3.5 h-3.5" />
-                                Download
+                                <Download className="w-4 h-4" />
+                                Download All
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-white/[0.06]" />
+                              <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
                             </>
                           )}
                           <DropdownMenuItem 
                             onClick={() => handleOpenProject(project.id)} 
-                            className="gap-2 text-xs text-white/70 focus:text-white focus:bg-white/[0.06]"
+                            className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            Edit
+                            <Edit2 className="w-4 h-4" />
+                            Edit Project
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs text-white/70 focus:text-white focus:bg-white/[0.06]">
-                            <Copy className="w-3.5 h-3.5" />
+                          <DropdownMenuItem className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1">
+                            <Copy className="w-4 h-4" />
                             Duplicate
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-white/[0.06]" />
+                          <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
                           <DropdownMenuItem
-                            className="gap-2 text-xs text-[hsl(0_50%_60%)] focus:text-[hsl(0_50%_65%)] focus:bg-[hsl(0_50%_50%/0.1)]"
+                            className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg mx-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteProject(project.id);
                             }}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -371,44 +399,49 @@ export default function Projects() {
             <button
               onClick={handleCreateProject}
               className={cn(
-                "group rounded-xl border border-dashed transition-all duration-300",
-                "border-white/[0.08] hover:border-white/[0.15]",
+                "group relative rounded-2xl border-2 border-dashed transition-all duration-300",
+                "border-white/[0.08] hover:border-white/20",
                 "bg-transparent hover:bg-white/[0.02]",
-                "flex flex-col items-center justify-center min-h-[200px]",
+                "flex flex-col items-center justify-center min-h-[280px]",
                 "animate-fade-in"
               )}
-              style={{ animationDelay: `${projects.length * 40}ms` }}
+              style={{ animationDelay: `${projects.length * 50}ms` }}
             >
-              <div className="w-10 h-10 rounded-lg bg-white/[0.04] group-hover:bg-white/[0.06] flex items-center justify-center transition-all duration-300">
-                <Plus className="w-4 h-4 text-white/25 group-hover:text-white/50 transition-colors" strokeWidth={1.5} />
+              <div className="w-14 h-14 rounded-2xl bg-white/[0.04] group-hover:bg-white/[0.08] flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                <Plus className="w-6 h-6 text-white/30 group-hover:text-white/60 transition-colors" strokeWidth={1.5} />
               </div>
-              <span className="mt-3 text-xs font-medium text-white/25 group-hover:text-white/50 transition-colors">
-                New
+              <span className="mt-4 text-sm font-medium text-white/30 group-hover:text-white/60 transition-colors">
+                Create New
               </span>
             </button>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-4xl w-[90vw] p-0 overflow-hidden bg-[hsl(0_0%_6%)] border border-white/[0.08] rounded-xl">
+        <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-[hsl(0_0%_4%)] border border-white/[0.1] rounded-2xl shadow-2xl">
           <div className="relative">
-            <button
-              className="absolute top-4 right-4 z-50 text-white/50 hover:text-white/80 transition-colors"
-              onClick={() => setVideoModalOpen(false)}
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="absolute top-4 left-5 z-50">
-              <h3 className="text-white/90 font-medium text-sm">{selectedProject?.name}</h3>
-              <p className="text-white/40 text-xs mt-0.5">
-                {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
-              </p>
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-50 p-5 bg-gradient-to-b from-black/80 to-transparent">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-white font-medium">{selectedProject?.name}</h3>
+                  <p className="text-white/50 text-sm mt-0.5">
+                    {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <button
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  onClick={() => setVideoModalOpen(false)}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="aspect-video">
+            {/* Video */}
+            <div className="aspect-video bg-black">
               {selectedProject && (
                 <VideoPlaylist
                   clips={getVideoClips(selectedProject)}
@@ -417,41 +450,44 @@ export default function Projects() {
               )}
             </div>
 
-            <div className="absolute bottom-16 left-0 right-0 flex items-center justify-center gap-2 z-50">
-              <button
-                className="flex items-center gap-1.5 h-7 px-3 bg-white/10 border border-white/10 text-white/80 text-xs font-medium rounded-md hover:bg-white/15 transition-colors backdrop-blur-sm"
-                onClick={() => {
-                  if (selectedProject) {
-                    const clips = getVideoClips(selectedProject);
-                    if (clips[0]) window.open(clips[0], '_blank');
-                  }
-                }}
-              >
-                <ExternalLink className="w-3 h-3" />
-                Open
-              </button>
-              <button
-                className="flex items-center gap-1.5 h-7 px-3 bg-white/10 border border-white/10 text-white/80 text-xs font-medium rounded-md hover:bg-white/15 transition-colors backdrop-blur-sm"
-                onClick={() => {
-                  if (selectedProject) handleDownloadAll(selectedProject);
-                }}
-              >
-                <Download className="w-3 h-3" />
-                Download
-              </button>
-              <button
-                className="flex items-center gap-1.5 h-7 px-3 bg-white text-black text-xs font-medium rounded-md hover:bg-white/90 transition-colors"
-                onClick={() => {
-                  setVideoModalOpen(false);
-                  if (selectedProject) {
-                    setActiveProjectId(selectedProject.id);
-                    navigate('/production');
-                  }
-                }}
-              >
-                <Edit2 className="w-3 h-3" />
-                Edit
-              </button>
+            {/* Footer actions */}
+            <div className="absolute bottom-0 left-0 right-0 z-50 p-5 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  className="flex items-center gap-2 h-9 px-4 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                  onClick={() => {
+                    if (selectedProject) {
+                      const clips = getVideoClips(selectedProject);
+                      if (clips[0]) window.open(clips[0], '_blank');
+                    }
+                  }}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open in Tab
+                </button>
+                <button
+                  className="flex items-center gap-2 h-9 px-4 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                  onClick={() => {
+                    if (selectedProject) handleDownloadAll(selectedProject);
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  className="flex items-center gap-2 h-9 px-5 bg-white text-[hsl(0_0%_8%)] text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
+                  onClick={() => {
+                    setVideoModalOpen(false);
+                    if (selectedProject) {
+                      setActiveProjectId(selectedProject.id);
+                      navigate('/production');
+                    }
+                  }}
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Project
+                </button>
+              </div>
             </div>
           </div>
         </DialogContent>

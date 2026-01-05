@@ -223,18 +223,32 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           videosToDelete.push(projectToDelete.thumbnail_url);
         }
         
-        // Extract storage paths and delete files
+        // Extract storage paths and delete files (only for Supabase storage URLs)
         for (const url of videosToDelete) {
+          if (!url) continue;
+          
           try {
+            // Only process Supabase storage URLs
+            if (!url.includes('supabase.co/storage/v1/object/public/')) {
+              console.log('Skipping non-Supabase URL:', url);
+              continue;
+            }
+            
             // Parse the URL to get bucket and path
             const urlObj = new URL(url);
-            const pathParts = urlObj.pathname.split('/storage/v1/object/public/');
-            if (pathParts.length === 2) {
-              const [bucket, ...filePath] = pathParts[1].split('/');
-              const path = filePath.join('/');
+            const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
+            
+            if (pathMatch) {
+              const bucket = pathMatch[1];
+              const path = decodeURIComponent(pathMatch[2]);
+              
               if (bucket && path) {
-                await supabase.storage.from(bucket).remove([path]);
-                console.log(`Deleted file: ${bucket}/${path}`);
+                const { error: removeError } = await supabase.storage.from(bucket).remove([path]);
+                if (removeError) {
+                  console.warn(`Failed to delete ${bucket}/${path}:`, removeError);
+                } else {
+                  console.log(`Deleted file: ${bucket}/${path}`);
+                }
               }
             }
           } catch (storageErr) {

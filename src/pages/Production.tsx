@@ -249,34 +249,36 @@ export default function Production() {
             >
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <div className="absolute inset-0">
-                  {/* Completed State */}
-                  {status === 'completed' && (
+                  {/* Always show clips if available */}
+                  {activeProject.video_clips && activeProject.video_clips.length > 0 ? (
                     <div className="absolute inset-0">
-                      {activeProject.video_clips && activeProject.video_clips.length > 0 ? (
-                        <VideoPlaylist 
-                          clips={activeProject.video_clips} 
-                          showControls={true}
-                        />
-                      ) : activeProject.video_url ? (
-                        <VideoPlaylist 
-                          clips={[activeProject.video_url]} 
-                          showControls={true}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-success/10 flex items-center justify-center">
-                          <div className="text-center space-y-4">
-                            <div className="w-16 h-16 rounded-2xl bg-success flex items-center justify-center mx-auto">
-                              <CheckCircle2 className="w-8 h-8 text-white" />
+                      <VideoPlaylist 
+                        clips={activeProject.video_clips} 
+                        showControls={true}
+                      />
+                      {/* Overlay status when generating */}
+                      {(status === 'generating' || status === 'rendering' || isGenerating) && (
+                        <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg px-4 py-2 z-30">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+                            <div className="text-sm text-white">
+                              <span className="font-medium">
+                                {generationProgress.currentClip || activeProject.video_clips.length}/{generationProgress.totalClips || estimatedClips} clips
+                              </span>
+                              <span className="text-white/60 ml-2">
+                                {generationProgress.percent}%
+                              </span>
                             </div>
-                            <p className="text-lg font-medium text-foreground">Video Ready</p>
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/* Generating/Rendering State */}
-                  {(status === 'generating' || status === 'rendering') && (
+                  ) : activeProject.video_url ? (
+                    <VideoPlaylist 
+                      clips={[activeProject.video_url]} 
+                      showControls={true}
+                    />
+                  ) : (status === 'generating' || status === 'rendering' || isGenerating) ? (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
                       <div className="text-center space-y-6 p-8">
                         <div className="relative w-20 h-20 mx-auto">
@@ -287,12 +289,10 @@ export default function Production() {
                         </div>
                         <div className="space-y-2">
                           <h3 className="text-xl font-semibold text-foreground">
-                            {status === 'generating' ? 'Generating Video' : 'Rendering Clips'}
+                            {status === 'generating' ? 'Generating Video' : status === 'rendering' ? 'Rendering Clips' : 'Processing...'}
                           </h3>
                           <p className="text-muted-foreground max-w-sm">
-                            {isGenerating 
-                              ? `${generationProgress.currentClip || 0}/${generationProgress.totalClips || estimatedClips} clips completed`
-                              : 'Resuming generation... Please wait.'}
+                            {generationProgress.currentClip || 0}/{generationProgress.totalClips || estimatedClips} clips completed
                           </p>
                           {generationProgress.percent > 0 && (
                             <div className="w-64 mx-auto mt-4">
@@ -318,10 +318,7 @@ export default function Production() {
                         </Button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Idle State */}
-                  {status === 'idle' && (
+                  ) : (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
                       <div className="text-center space-y-6 p-8">
                         <div 
@@ -353,8 +350,8 @@ export default function Production() {
               </div>
             </div>
 
-            {/* Video Clips Grid */}
-            {status === 'completed' && activeProject.video_clips && activeProject.video_clips.length > 0 && (
+            {/* Video Clips Grid - Always show if clips exist */}
+            {activeProject.video_clips && activeProject.video_clips.length > 0 && (
               <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">

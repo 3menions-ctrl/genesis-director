@@ -9,12 +9,13 @@ const corsHeaders = {
 interface SceneImageRequest {
   scenes: {
     sceneNumber: number;
-    title: string;
+    title?: string;
     visualDescription: string;
     characters?: string[];
     mood?: string;
   }[];
-  projectId: string;
+  projectId?: string;  // Optional - generated ID if not provided
+  visualStyle?: string;
   globalStyle?: string;
   globalCharacters?: string;
   globalEnvironment?: string;
@@ -26,15 +27,14 @@ serve(async (req) => {
   }
 
   try {
-    const { scenes, projectId, globalStyle, globalCharacters, globalEnvironment }: SceneImageRequest = await req.json();
+    const { scenes, projectId, visualStyle, globalStyle, globalCharacters, globalEnvironment }: SceneImageRequest = await req.json();
 
     if (!scenes || scenes.length === 0) {
       throw new Error("Scenes array is required");
     }
 
-    if (!projectId) {
-      throw new Error("Project ID is required");
-    }
+    // Generate a temporary ID if projectId not provided (for master anchor generation)
+    const effectiveProjectId = projectId || `temp-${Date.now()}`;
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log(`Generating ${scenes.length} scene reference images for project ${projectId} using OpenAI DALL-E 3`);
+    console.log(`Generating ${scenes.length} scene reference images for project ${effectiveProjectId} using OpenAI DALL-E 3`);
 
     const generatedImages: { sceneNumber: number; imageUrl: string; prompt: string }[] = [];
 
@@ -59,9 +59,13 @@ serve(async (req) => {
       // Build a comprehensive image generation prompt
       const imagePromptParts = [
         "Create a cinematic film still for a video scene.",
-        `Scene Title: ${scene.title}`,
-        `Visual Description: ${scene.visualDescription}`,
       ];
+
+      if (scene.title) {
+        imagePromptParts.push(`Scene Title: ${scene.title}`);
+      }
+      
+      imagePromptParts.push(`Visual Description: ${scene.visualDescription}`);
 
       if (scene.mood) {
         imagePromptParts.push(`Mood/Atmosphere: ${scene.mood}`);
@@ -79,8 +83,10 @@ serve(async (req) => {
         imagePromptParts.push(`Environment: ${globalEnvironment}`);
       }
 
-      if (globalStyle) {
-        imagePromptParts.push(`Visual Style: ${globalStyle}`);
+      // Support both visualStyle and globalStyle
+      const styleToUse = visualStyle || globalStyle;
+      if (styleToUse) {
+        imagePromptParts.push(`Visual Style: ${styleToUse}`);
       }
 
       imagePromptParts.push(
@@ -154,7 +160,7 @@ serve(async (req) => {
           const arrayBuffer = await imageResponse.arrayBuffer();
           const imageBuffer = new Uint8Array(arrayBuffer);
           
-          const fileName = `${projectId}/scene-${scene.sceneNumber}-${Date.now()}.png`;
+          const fileName = `${effectiveProjectId}/scene-${scene.sceneNumber}-${Date.now()}.png`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("scene-images")

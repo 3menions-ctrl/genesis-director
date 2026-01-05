@@ -513,7 +513,8 @@ export default function ScriptingStage() {
             </ScrollArea>
           </div>
           
-            {/* Cinematic Audit Panel OR Summary */}
+          {/* Cinematic Audit Panel OR Summary */}
+          <div className="space-y-4">
             {state.cinematicAudit ? (
               <CinematicAuditPanel
                 audit={state.cinematicAudit}

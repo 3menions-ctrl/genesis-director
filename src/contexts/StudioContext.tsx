@@ -3,6 +3,7 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 const DEFAULT_CREDITS: UserCredits = {
   total: 50,
@@ -17,13 +18,6 @@ const MOCK_LAYERS: AssetLayer[] = [
   { id: 'layer-4', project_id: '1', layer_type: 'overlay_metadata', status: 'idle', z_index: 3, created_at: new Date().toISOString() },
 ];
 
-// Credit costs for each duration (kept for compatibility)
-export const DURATION_CREDIT_COSTS = {
-  8: 1000,
-  30: 3500,
-  60: 7000,
-} as const;
-
 interface StudioContextType {
   projects: Project[];
   activeProjectId: string | null;
@@ -31,18 +25,15 @@ interface StudioContextType {
   credits: UserCredits;
   layers: AssetLayer[];
   settings: StudioSettings;
-  selectedDurationSeconds: number;
   isLoading: boolean;
   setActiveProjectId: (id: string) => void;
-  setSelectedDurationSeconds: (seconds: number) => void;
   createProject: () => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   updateSettings: (settings: Partial<StudioSettings>) => void;
-  buyCredits: () => void;
-  deductCredits: (durationSeconds: number) => Promise<boolean>;
-  canAffordDuration: (durationSeconds: number) => boolean;
+  refreshCredits: () => Promise<void>;
   refreshProjects: () => Promise<void>;
+  canAffordShots: (shotCount: number) => boolean;
 }
 
 const StudioContext = createContext<StudioContextType | null>(null);
@@ -89,7 +80,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDurationSeconds, setSelectedDurationSeconds] = useState(8);
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -271,65 +261,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
-  const buyCredits = () => {
-    toast.info('Visit your profile to purchase more credits');
+  // Refresh credits from profile - used after billing operations
+  const refreshCredits = async () => {
+    await refreshProfile();
   };
 
-  const getCreditsForDuration = (durationSeconds: number): number => {
-    if (durationSeconds <= 8) return DURATION_CREDIT_COSTS[8];
-    if (durationSeconds <= 30) return DURATION_CREDIT_COSTS[30];
-    return DURATION_CREDIT_COSTS[60];
-  };
-
-  const canAffordDuration = (durationSeconds: number): boolean => {
-    const required = getCreditsForDuration(durationSeconds);
+  // Check if user can afford a number of shots with Iron-Clad pricing
+  const canAffordShots = (shotCount: number): boolean => {
+    const required = shotCount * CREDIT_COSTS.TOTAL_PER_SHOT;
     return credits.remaining >= required;
-  };
-
-  const deductCredits = async (durationSeconds: number): Promise<boolean> => {
-    if (!user) {
-      toast.error('Please sign in to generate videos');
-      return false;
-    }
-
-    const required = getCreditsForDuration(durationSeconds);
-    
-    if (credits.remaining < required) {
-      toast.error(`Insufficient credits! You need ${required.toLocaleString()} credits but only have ${credits.remaining.toLocaleString()}.`);
-      return false;
-    }
-    
-    try {
-      const { data, error } = await supabase.rpc('deduct_credits', {
-        p_user_id: user.id,
-        p_amount: required,
-        p_description: `Video generation (${durationSeconds}s)`,
-        p_project_id: activeProjectId || undefined,
-        p_clip_duration: durationSeconds,
-      });
-
-      if (error) throw error;
-
-      if (!data) {
-        toast.error('Insufficient credits');
-        return false;
-      }
-
-      setCredits(prev => ({
-        ...prev,
-        used: prev.used + required,
-        remaining: prev.remaining - required,
-      }));
-
-      refreshProfile();
-      
-      toast.success(`${required.toLocaleString()} credits deducted for ${durationSeconds}s video`);
-      return true;
-    } catch (err) {
-      console.error('Error deducting credits:', err);
-      toast.error('Failed to deduct credits');
-      return false;
-    }
   };
 
   return (
@@ -341,18 +281,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         credits,
         layers,
         settings,
-        selectedDurationSeconds,
         isLoading,
         setActiveProjectId,
-        setSelectedDurationSeconds,
         createProject,
         deleteProject,
         updateProject,
         updateSettings,
-        buyCredits,
-        deductCredits,
-        canAffordDuration,
+        refreshCredits,
         refreshProjects,
+        canAffordShots,
       }}
     >
       {children}

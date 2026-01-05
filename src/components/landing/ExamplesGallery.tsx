@@ -129,12 +129,12 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
         </div>
 
-        {/* Close button */}
+        {/* Close button - Fixed top right */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute top-6 right-6 z-50 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+          className="fixed top-6 right-6 z-[100] w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-all hover:scale-110 shadow-2xl"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </button>
 
         {/* Counter */}

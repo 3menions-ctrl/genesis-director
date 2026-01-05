@@ -563,8 +563,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   // Poll for video completion
   const pollVideoStatus = useCallback(async (taskId: string): Promise<{ status: string; videoUrl?: string }> => {
     try {
+      // Detect provider from taskId format
+      const provider = taskId.includes('projects/') ? 'vertex-ai' : 'replicate';
+      
       const { data, error } = await supabase.functions.invoke('check-video-status', {
-        body: { taskId },
+        body: { taskId, provider },
         signal: abortControllerRef.current?.signal,
       });
       

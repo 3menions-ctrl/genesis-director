@@ -1,8 +1,12 @@
 // Iron-clad Production Pipeline Types
 // Unified state container for shot-by-shot video generation
 // Now with Image-First Reference Architecture & Cinematic Auditor Agent
+// Tiered Quality: Standard (25 credits) vs Iron-Clad Professional (40 credits)
 
 export type ProjectType = 'cinematic-trailer' | 'social-ad' | 'narrative-short' | 'documentary' | 'explainer';
+
+// Quality Tier System
+export type QualityTier = 'standard' | 'professional';
 
 // ============================================
 // IMAGE-FIRST REFERENCE ARCHITECTURE TYPES
@@ -139,6 +143,19 @@ export interface Shot {
   endFrameUrl?: string;   // Extracted last frame for next shot
   taskId?: string; // Replicate/MiniMax task ID
   error?: string;
+  // Professional tier: Visual Debugger tracking
+  retryCount?: number;
+  visualDebugResults?: VisualDebugResultSummary[];
+  lastCorrectivePrompt?: string;
+}
+
+// Visual Debug Result Summary (stored per shot)
+export interface VisualDebugResultSummary {
+  passed: boolean;
+  score: number;
+  issues: string[];
+  correctivePrompt?: string;
+  timestamp: number;
 }
 
 // Master scene consistency anchor
@@ -198,6 +215,9 @@ export interface PipelineState {
   projectType: ProjectType;
   projectTitle: string;
   
+  // QUALITY TIER: Standard (25 credits) vs Professional (40 credits)
+  qualityTier: QualityTier;
+  
   // IMAGE-FIRST: Reference image analysis
   referenceImage?: ReferenceImageAnalysis;
   referenceImageRequired: boolean;
@@ -214,6 +234,9 @@ export interface PipelineState {
   // Production state
   production: ProductionState;
   
+  // Quality Insurance tracking (Professional tier)
+  qualityInsuranceLedger: QualityInsuranceCost[];
+  
   // Final output
   finalVideoUrl?: string;
   finalAudioUrl?: string;
@@ -223,17 +246,29 @@ export interface PipelineState {
   audioMixMode: AudioMixMode;
 }
 
+// Quality Insurance cost entry for ledger
+export interface QualityInsuranceCost {
+  shotId: string;
+  operation: 'audit' | 'visual_debug' | 'retry_generation';
+  creditsCharged: number;
+  realCostCents: number;
+  timestamp: number;
+  metadata?: Record<string, unknown>;
+}
+
 // Initial empty pipeline state
 export const INITIAL_PIPELINE_STATE: PipelineState = {
   currentStage: 'scripting',
   projectId: '',
   projectType: 'cinematic-trailer',
   projectTitle: '',
+  qualityTier: 'standard', // Default to standard tier
   referenceImageRequired: true, // IMAGE-FIRST: Required by default
   rawScript: '',
   structuredShots: [],
   scriptApproved: false,
   auditApproved: false, // CINEMATIC AUDITOR: Must be approved
+  qualityInsuranceLedger: [], // Professional tier cost tracking
   production: {
     globalSeed: Math.floor(Math.random() * 2147483647),
     shots: [],

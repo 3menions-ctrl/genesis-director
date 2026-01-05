@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.cinematic-auditor]
 verify_jwt = false
+
+[functions.visual-debugger]
+verify_jwt = false

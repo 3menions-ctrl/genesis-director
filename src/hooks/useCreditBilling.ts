@@ -2,12 +2,29 @@ import { useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { QualityTier } from '@/types/quality-tiers';
 
-// Two-phase billing: 5 credits pre-production + 20 credits production = 25 credits per shot
+// Two-phase billing: 5 credits pre-production + 20 credits production = 25 credits per shot (Standard)
 export const CREDIT_COSTS = {
   PRE_PRODUCTION: 5,  // Script analysis, image generation
   PRODUCTION: 20,      // Video generation, voice synthesis
-  TOTAL_PER_SHOT: 25,
+  TOTAL_PER_SHOT: 25,  // Standard tier
+} as const;
+
+// Quality Tier Credits
+export const TIER_CREDIT_COSTS = {
+  standard: {
+    PRE_PRODUCTION: 5,
+    PRODUCTION: 20,
+    QUALITY_INSURANCE: 0,
+    TOTAL_PER_SHOT: 25,
+  },
+  professional: {
+    PRE_PRODUCTION: 5,
+    PRODUCTION: 20,
+    QUALITY_INSURANCE: 15, // Audit + Visual Debugger + retry buffer
+    TOTAL_PER_SHOT: 40,
+  },
 } as const;
 
 // Estimated real API costs in cents for profit tracking
@@ -15,6 +32,9 @@ export const API_COSTS_CENTS = {
   REPLICATE_VIDEO_4S: 80,   // ~$0.80 per 4-sec video
   ELEVENLABS_VOICE: 15,     // ~$0.15 per voice clip
   OPENAI_SCRIPT: 5,         // ~$0.05 for script generation
+  VISUAL_DEBUGGER: 3,       // ~$0.03 per AI vision analysis
+  DIRECTOR_AUDIT: 5,        // ~$0.05 per audit call
+  RETRY_GENERATION: 80,     // Same as video generation
 } as const;
 
 interface BillingResult {

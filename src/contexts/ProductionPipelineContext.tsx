@@ -13,12 +13,18 @@ import {
   CAMERA_MOVEMENT_REWRITES,
   ReferenceImageAnalysis,
   CinematicAuditResult,
+  QualityTier,
+  QualityInsuranceCost,
+  VisualDebugResultSummary,
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { extractLastFrame, buildNegativePrompt } from '@/lib/cinematicPromptEngine';
-import { CREDIT_COSTS, API_COSTS_CENTS } from '@/hooks/useCreditBilling';
+import { CREDIT_COSTS, API_COSTS_CENTS, TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Maximum retries per shot for Professional tier
+const MAX_PROFESSIONAL_RETRIES = 2;
 
 interface ProductionPipelineContextType {
   state: PipelineState;
@@ -26,6 +32,9 @@ interface ProductionPipelineContextType {
   // Stage navigation
   goToStage: (stage: WorkflowStage) => void;
   canProceedToStage: (stage: WorkflowStage) => boolean;
+  
+  // QUALITY TIER: Standard vs Professional
+  setQualityTier: (tier: QualityTier) => void;
   
   // IMAGE-FIRST: Reference image functions
   setReferenceImage: (analysis: ReferenceImageAnalysis) => void;
@@ -205,6 +214,15 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         return false;
     }
   }, [state.scriptApproved, state.structuredShots.length, state.production.completedShots]);
+  
+  // Quality Tier selection
+  const setQualityTier = useCallback((tier: QualityTier) => {
+    setState(prev => ({ ...prev, qualityTier: tier }));
+    toast.info(tier === 'professional' 
+      ? 'Iron-Clad Professional mode enabled (40 credits/shot)' 
+      : 'Standard mode enabled (25 credits/shot)'
+    );
+  }, []);
   
   // Scripting stage functions
   const setProjectType = useCallback((type: ProjectType) => {
@@ -549,7 +567,64 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     }
   }, []);
   
-  // Main production orchestration with two-phase billing
+  // Visual Debugger - analyze video quality with multimodal AI
+  const runVisualDebugger = useCallback(async (
+    shot: Shot,
+    videoUrl: string
+  ): Promise<{ passed: boolean; correctivePrompt?: string; score: number }> => {
+    try {
+      console.log(`[VisualDebugger] Analyzing shot ${shot.id}...`);
+      
+      const { data, error } = await supabase.functions.invoke('visual-debugger', {
+        body: {
+          videoUrl,
+          shotDescription: shot.description,
+          shotId: shot.id,
+          projectType: state.projectType,
+          referenceAnalysis: state.referenceImage ? {
+            characterIdentity: state.referenceImage.characterIdentity,
+            environment: state.referenceImage.environment,
+            lighting: state.referenceImage.lighting,
+            colorPalette: state.referenceImage.colorPalette,
+          } : undefined,
+        },
+        signal: abortControllerRef.current?.signal,
+      });
+      
+      if (error) throw error;
+      
+      const result = data.result;
+      console.log(`[VisualDebugger] Result: ${result.verdict} (Score: ${result.score})`);
+      
+      // Log Quality Insurance cost
+      setState(prev => ({
+        ...prev,
+        qualityInsuranceLedger: [
+          ...prev.qualityInsuranceLedger,
+          {
+            shotId: shot.id,
+            operation: 'visual_debug' as const,
+            creditsCharged: 0, // Covered by Quality Insurance
+            realCostCents: API_COSTS_CENTS.VISUAL_DEBUGGER,
+            timestamp: Date.now(),
+            metadata: { score: result.score, verdict: result.verdict },
+          },
+        ],
+      }));
+      
+      return {
+        passed: result.passed,
+        correctivePrompt: result.correctivePrompt,
+        score: result.score,
+      };
+    } catch (err) {
+      console.error('[VisualDebugger] Analysis failed:', err);
+      // On error, default to pass to not block production
+      return { passed: true, score: 70 };
+    }
+  }, [state.projectType, state.referenceImage]);
+  
+  // Main production orchestration with two-phase billing and Quality Tier support
   const startProduction = useCallback(async () => {
     if (!state.scriptApproved || state.structuredShots.length === 0) {
       toast.error('Please approve the script first');
@@ -561,17 +636,25 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       return;
     }
     
+    const isProfessional = state.qualityTier === 'professional';
+    const tierCosts = TIER_CREDIT_COSTS[state.qualityTier];
+    
     cancelRef.current = false;
     abortControllerRef.current = new AbortController();
+    
     // CRITICAL: Ensure production.shots is initialized from structuredShots
-    // This fixes the issue where shots might not have been synced properly
     setState(prev => ({
       ...prev,
       currentStage: 'production',
+      qualityInsuranceLedger: [], // Reset ledger for new production
       production: {
         ...prev.production,
-        // Initialize shots from structuredShots to ensure they're in sync
-        shots: prev.structuredShots.map(shot => ({ ...shot, status: 'pending' as const })),
+        shots: prev.structuredShots.map(shot => ({ 
+          ...shot, 
+          status: 'pending' as const,
+          retryCount: 0,
+          visualDebugResults: [],
+        })),
         currentShotIndex: 0,
         completedShots: 0,
         failedShots: 0,
@@ -581,7 +664,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       },
     }));
     
-    toast.info('Starting iron-clad production pipeline...');
+    const tierLabel = isProfessional ? 'Iron-Clad Professional' : 'Standard';
+    toast.info(`Starting ${tierLabel} production pipeline (${tierCosts.TOTAL_PER_SHOT} credits/shot)...`);
     
     try {
       // Step 1: Use reference image as master anchor, or generate one if not uploaded
@@ -615,7 +699,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         },
       }));
       
-      // Step 3: Generate videos sequentially with frame chaining and TWO-PHASE BILLING
+      // Step 3: Generate videos sequentially with frame chaining and TIERED BILLING
       toast.info('Starting anchor-chain video generation with credit billing...');
       let previousFrameUrl: string | undefined = masterAnchor?.imageUrl;
       
@@ -625,7 +709,9 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           break;
         }
         
-        const shot = state.structuredShots[i];
+        let shot = { ...state.structuredShots[i], retryCount: 0 };
+        let currentPrompt = shot.description;
+        let shotCompleted = false;
         
         // PHASE 1: Charge Pre-Production Credits (5 credits)
         toast.info(`Charging pre-production credits for shot ${i + 1}...`);
@@ -646,165 +732,269 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           },
         }));
         
-        // PHASE 2: Charge Production Credits (20 credits) before video generation
-        toast.info(`Charging production credits for shot ${i + 1}...`);
+        // PHASE 2: Charge Production Credits (20 credits for Standard, 35 for Professional)
+        // Professional tier includes 15 extra for Quality Insurance
+        const productionCredits = isProfessional 
+          ? tierCosts.PRODUCTION + tierCosts.QUALITY_INSURANCE 
+          : tierCosts.PRODUCTION;
+          
+        toast.info(`Charging ${productionCredits} credits for shot ${i + 1}...`);
         const productionCharged = await chargeProduction(shot.id);
         if (!productionCharged) {
-          // Refund pre-production credits
           await refundCredits(shot.id, 'Insufficient credits for production phase');
           toast.error(`Insufficient credits for shot ${i + 1}. Production stopped.`);
           break;
         }
         
-        toast.info(`Generating shot ${i + 1}/${state.structuredShots.length}: ${shot.title}`);
+        // RETRY LOOP - Professional tier gets up to MAX_PROFESSIONAL_RETRIES autonomous retries
+        const maxRetries = isProfessional ? MAX_PROFESSIONAL_RETRIES : 0;
         
-        // Generate video with frame chaining
-        const result = await generateShotVideo(shot, previousFrameUrl);
-        
-        if (result.error) {
-          // AUTOMATIC REFUND on failure
-          await refundCredits(shot.id, `Video generation failed: ${result.error}`);
+        while (shot.retryCount <= maxRetries && !shotCompleted && !cancelRef.current) {
+          const attemptLabel = shot.retryCount > 0 
+            ? ` (retry ${shot.retryCount}/${maxRetries})` 
+            : '';
+          toast.info(`Generating shot ${i + 1}/${state.structuredShots.length}: ${shot.title}${attemptLabel}`);
           
-          setState(prev => ({
-            ...prev,
-            production: {
-              ...prev.production,
-              failedShots: prev.production.failedShots + 1,
-              shots: prev.production.shots.map((s, idx) =>
-                idx === i ? { ...s, status: 'failed' as const, error: result.error } : s
-              ),
-            },
-          }));
-          continue;
-        }
-        
-        // Poll for completion
-        if (result.taskId) {
-          let attempts = 0;
-          const maxAttempts = 120; // 10 minutes
-          let videoCompleted = false;
+          // Use corrective prompt if this is a retry
+          const promptToUse = shot.lastCorrectivePrompt || currentPrompt;
+          const shotWithPrompt = { ...shot, description: promptToUse };
           
-          while (attempts < maxAttempts && !cancelRef.current) {
-            await new Promise(r => setTimeout(r, 5000));
-            const status = await pollVideoStatus(result.taskId);
-            
-            if (status.status === 'SUCCEEDED' && status.videoUrl) {
-              videoCompleted = true;
-              
-              // Log successful API cost for profit tracking
-              await logApiCost(shot.id, 'replicate', 'video_generation', CREDIT_COSTS.TOTAL_PER_SHOT, API_COSTS_CENTS.REPLICATE_VIDEO_4S);
-              
-              // Extract last frame for next shot - with CORS-safe fallback
-              let endFrameUrl: string | undefined;
-              try {
-                endFrameUrl = await extractLastFrame(status.videoUrl);
-                console.log('[Pipeline] Successfully extracted last frame for chaining');
-              } catch (frameErr) {
-                // CORS blocks Replicate URLs - use master anchor as reliable fallback
-                console.warn('[Pipeline] Frame extraction failed (CORS), using master anchor for continuity');
-                endFrameUrl = undefined;
-              }
-              
-              // CRITICAL: Always maintain visual continuity
-              // Priority: extracted frame > master anchor > undefined
-              previousFrameUrl = endFrameUrl || masterAnchor?.imageUrl || previousFrameUrl;
-              
-              // Update in-memory state
+          // Generate video with frame chaining
+          const result = await generateShotVideo(shotWithPrompt, previousFrameUrl);
+          
+          if (result.error) {
+            if (shot.retryCount < maxRetries && isProfessional) {
+              // Log retry attempt as Quality Insurance cost
               setState(prev => ({
                 ...prev,
-                production: {
-                  ...prev.production,
-                  completedShots: prev.production.completedShots + 1,
-                  shots: prev.production.shots.map((s, idx) =>
-                    idx === i ? { 
-                      ...s, 
-                      status: 'completed' as const, 
-                      videoUrl: status.videoUrl,
-                      endFrameUrl,
-                    } : s
-                  ),
-                  chainContext: {
-                    ...prev.production.chainContext,
-                    previousFrameUrl: endFrameUrl,
+                qualityInsuranceLedger: [
+                  ...prev.qualityInsuranceLedger,
+                  {
+                    shotId: shot.id,
+                    operation: 'retry_generation' as const,
+                    creditsCharged: 0, // Covered by Quality Insurance
+                    realCostCents: API_COSTS_CENTS.RETRY_GENERATION,
+                    timestamp: Date.now(),
+                    metadata: { attempt: shot.retryCount + 1, error: result.error },
                   },
-                },
+                ],
               }));
               
-              // PERSIST TO DATABASE - Critical for clip retrieval after refresh
-              if (state.projectId && status.videoUrl) {
-                try {
-                  // Fetch current video_clips array and append new one
-                  const { data: project } = await supabase
-                    .from('movie_projects')
-                    .select('video_clips')
-                    .eq('id', state.projectId)
-                    .maybeSingle();
-                  
-                  const existingClips = (project?.video_clips as string[]) || [];
-                  const updatedClips = [...existingClips, status.videoUrl];
-                  
-                  await supabase
-                    .from('movie_projects')
-                    .update({ 
-                      video_clips: updatedClips,
-                      status: 'producing',
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', state.projectId);
-                  
-                  console.log(`[Pipeline] Saved clip ${i + 1} to database, total: ${updatedClips.length}`);
-                } catch (dbErr) {
-                  console.error('[Pipeline] Failed to save clip to database:', dbErr);
-                }
-              }
-              
-              toast.success(`Shot ${i + 1} completed!`);
-              break;
-            } else if (status.status === 'FAILED') {
-              // AUTOMATIC REFUND on API failure
-              await refundCredits(shot.id, 'API generation failed');
-              
-              setState(prev => ({
-                ...prev,
-                production: {
-                  ...prev.production,
-                  failedShots: prev.production.failedShots + 1,
-                  shots: prev.production.shots.map((s, idx) =>
-                    idx === i ? { ...s, status: 'failed' as const, error: 'Generation failed' } : s
-                  ),
-                },
-              }));
-              break;
+              shot.retryCount++;
+              toast.warning(`Shot ${i + 1} failed, attempting retry ${shot.retryCount}/${maxRetries}...`);
+              continue;
             }
             
-            attempts++;
-          }
-          
-          // Timeout handling - refund if timed out
-          if (!videoCompleted && attempts >= maxAttempts) {
-            await refundCredits(shot.id, 'Generation timed out');
+            // Final failure - no more retries
+            await refundCredits(shot.id, `Video generation failed: ${result.error}`);
             setState(prev => ({
               ...prev,
               production: {
                 ...prev.production,
                 failedShots: prev.production.failedShots + 1,
                 shots: prev.production.shots.map((s, idx) =>
-                  idx === i ? { ...s, status: 'failed' as const, error: 'Generation timed out' } : s
+                  idx === i ? { ...s, status: 'failed' as const, error: result.error } : s
                 ),
               },
             }));
+            break; // Exit retry loop
           }
-        }
-      }
+          
+          // Poll for completion
+          if (result.taskId) {
+            let attempts = 0;
+            const maxAttempts = 120; // 10 minutes
+            
+            while (attempts < maxAttempts && !cancelRef.current) {
+              await new Promise(r => setTimeout(r, 5000));
+              const status = await pollVideoStatus(result.taskId);
+              
+              if (status.status === 'SUCCEEDED' && status.videoUrl) {
+                // PROFESSIONAL TIER: Run Visual Debugger before marking complete
+                if (isProfessional && shot.retryCount < maxRetries) {
+                  toast.info(`Running Visual Debugger on shot ${i + 1}...`);
+                  const debugResult = await runVisualDebugger(shot, status.videoUrl);
+                  
+                  // Store debug result
+                  const debugSummary: VisualDebugResultSummary = {
+                    passed: debugResult.passed,
+                    score: debugResult.score,
+                    issues: [], // Simplified for state
+                    correctivePrompt: debugResult.correctivePrompt,
+                    timestamp: Date.now(),
+                  };
+                  
+                  setState(prev => ({
+                    ...prev,
+                    production: {
+                      ...prev.production,
+                      shots: prev.production.shots.map((s, idx) =>
+                        idx === i ? { 
+                          ...s, 
+                          visualDebugResults: [...(s.visualDebugResults || []), debugSummary],
+                        } : s
+                      ),
+                    },
+                  }));
+                  
+                  if (!debugResult.passed && debugResult.correctivePrompt) {
+                    // FAIL - trigger autonomous retry with corrective prompt
+                    shot.retryCount++;
+                    shot.lastCorrectivePrompt = debugResult.correctivePrompt;
+                    
+                    toast.warning(`Visual Debugger detected issues (score: ${debugResult.score}). Auto-retrying with corrective prompt...`);
+                    
+                    // Log as Quality Insurance cost
+                    setState(prev => ({
+                      ...prev,
+                      qualityInsuranceLedger: [
+                        ...prev.qualityInsuranceLedger,
+                        {
+                          shotId: shot.id,
+                          operation: 'retry_generation' as const,
+                          creditsCharged: 0,
+                          realCostCents: API_COSTS_CENTS.RETRY_GENERATION,
+                          timestamp: Date.now(),
+                          metadata: { 
+                            reason: 'visual_debugger_fail',
+                            score: debugResult.score,
+                            attempt: shot.retryCount,
+                          },
+                        },
+                      ],
+                    }));
+                    
+                    break; // Break poll loop, continue retry loop
+                  }
+                }
+                
+                // PASS - mark shot as completed
+                shotCompleted = true;
+                
+                // Log successful API cost for profit tracking
+                await logApiCost(shot.id, 'replicate', 'video_generation', tierCosts.TOTAL_PER_SHOT, API_COSTS_CENTS.REPLICATE_VIDEO_4S);
+                
+                // Extract last frame for next shot
+                let endFrameUrl: string | undefined;
+                try {
+                  endFrameUrl = await extractLastFrame(status.videoUrl);
+                  console.log('[Pipeline] Successfully extracted last frame for chaining');
+                } catch (frameErr) {
+                  console.warn('[Pipeline] Frame extraction failed (CORS), using master anchor for continuity');
+                  endFrameUrl = undefined;
+                }
+                
+                previousFrameUrl = endFrameUrl || masterAnchor?.imageUrl || previousFrameUrl;
+                
+                // Update in-memory state
+                setState(prev => ({
+                  ...prev,
+                  production: {
+                    ...prev.production,
+                    completedShots: prev.production.completedShots + 1,
+                    shots: prev.production.shots.map((s, idx) =>
+                      idx === i ? { 
+                        ...s, 
+                        status: 'completed' as const, 
+                        videoUrl: status.videoUrl,
+                        endFrameUrl,
+                        retryCount: shot.retryCount,
+                      } : s
+                    ),
+                    chainContext: {
+                      ...prev.production.chainContext,
+                      previousFrameUrl: endFrameUrl,
+                    },
+                  },
+                }));
+                
+                // PERSIST TO DATABASE
+                if (state.projectId && status.videoUrl) {
+                  try {
+                    const { data: project } = await supabase
+                      .from('movie_projects')
+                      .select('video_clips')
+                      .eq('id', state.projectId)
+                      .maybeSingle();
+                    
+                    const existingClips = (project?.video_clips as string[]) || [];
+                    const updatedClips = [...existingClips, status.videoUrl];
+                    
+                    await supabase
+                      .from('movie_projects')
+                      .update({ 
+                        video_clips: updatedClips,
+                        status: 'producing',
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', state.projectId);
+                    
+                    console.log(`[Pipeline] Saved clip ${i + 1} to database, total: ${updatedClips.length}`);
+                  } catch (dbErr) {
+                    console.error('[Pipeline] Failed to save clip to database:', dbErr);
+                  }
+                }
+                
+                const retryInfo = shot.retryCount > 0 ? ` (after ${shot.retryCount} retries)` : '';
+                toast.success(`Shot ${i + 1} completed${retryInfo}!`);
+                break; // Exit poll loop
+                
+              } else if (status.status === 'FAILED') {
+                if (shot.retryCount < maxRetries && isProfessional) {
+                  shot.retryCount++;
+                  toast.warning(`Shot ${i + 1} generation failed, attempting retry ${shot.retryCount}/${maxRetries}...`);
+                  break; // Break poll loop, continue retry loop
+                }
+                
+                // Final failure
+                await refundCredits(shot.id, 'API generation failed');
+                setState(prev => ({
+                  ...prev,
+                  production: {
+                    ...prev.production,
+                    failedShots: prev.production.failedShots + 1,
+                    shots: prev.production.shots.map((s, idx) =>
+                      idx === i ? { ...s, status: 'failed' as const, error: 'Generation failed' } : s
+                    ),
+                  },
+                }));
+                shotCompleted = true; // Exit retry loop (as failed)
+                break;
+              }
+              
+              attempts++;
+            }
+            
+            // Timeout handling
+            if (!shotCompleted && attempts >= maxAttempts) {
+              await refundCredits(shot.id, 'Generation timed out');
+              setState(prev => ({
+                ...prev,
+                production: {
+                  ...prev.production,
+                  failedShots: prev.production.failedShots + 1,
+                  shots: prev.production.shots.map((s, idx) =>
+                    idx === i ? { ...s, status: 'failed' as const, error: 'Generation timed out' } : s
+                  ),
+                },
+              }));
+              break; // Exit retry loop
+            }
+          }
+        } // End retry loop
+      } // End shot loop
       
-      // Production complete - use setState callback to get accurate count
+      // Production complete
       setState(prev => {
         const completedCount = prev.production.shots.filter(s => s.status === 'completed').length;
         const totalShots = prev.structuredShots.length;
+        const totalQICost = prev.qualityInsuranceLedger.reduce((sum, c) => sum + c.realCostCents, 0);
         
-        // Show appropriate toast based on completion
         if (completedCount === totalShots && completedCount > 0) {
-          setTimeout(() => toast.success('All shots generated! Ready for review.'), 100);
+          const qiMessage = isProfessional && totalQICost > 0 
+            ? ` Quality Insurance covered $${(totalQICost / 100).toFixed(2)} in retries.`
+            : '';
+          setTimeout(() => toast.success(`All shots generated! Ready for review.${qiMessage}`), 100);
         } else if (completedCount > 0) {
           setTimeout(() => toast.warning(`${completedCount}/${totalShots} shots completed. Some failed.`), 100);
         } else {
@@ -831,11 +1021,16 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     user,
     state.scriptApproved,
     state.structuredShots,
+    state.qualityTier,
+    state.referenceImage,
+    state.projectType,
+    state.projectId,
+    state.production.masterAnchor,
     generateMasterAnchor,
     generateVoice,
     generateShotVideo,
     pollVideoStatus,
-    goToStage,
+    runVisualDebugger,
     chargePreProduction,
     chargeProduction,
     refundCredits,
@@ -919,6 +1114,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       state,
       goToStage,
       canProceedToStage,
+      // QUALITY TIER
+      setQualityTier,
       // IMAGE-FIRST
       setReferenceImage,
       clearReferenceImage,

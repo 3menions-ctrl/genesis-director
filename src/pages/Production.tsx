@@ -275,8 +275,48 @@ export default function Production() {
                     </div>
                   )}
 
+                  {/* Generating/Rendering State */}
+                  {(status === 'generating' || status === 'rendering') && (
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                      <div className="text-center space-y-6 p-8">
+                        <div className="relative w-20 h-20 mx-auto">
+                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary to-accent opacity-20 animate-pulse" />
+                          <div className="absolute inset-3 rounded-xl bg-card flex items-center justify-center">
+                            <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold text-foreground">
+                            {status === 'generating' ? 'Generating Video' : 'Rendering Clips'}
+                          </h3>
+                          <p className="text-muted-foreground max-w-sm">
+                            {isGenerating 
+                              ? `${generationProgress.currentClip || 0}/${generationProgress.totalClips || estimatedClips} clips completed`
+                              : 'Resuming generation... Please wait.'}
+                          </p>
+                          {generationProgress.percent > 0 && (
+                            <div className="w-64 mx-auto mt-4">
+                              <div className="h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary transition-all duration-500" 
+                                  style={{ width: `${generationProgress.percent}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {generationProgress.percent}% complete
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" onClick={cancelGeneration} className="gap-2">
+                          Cancel Generation
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Idle State */}
-                  {status !== 'completed' && (
+                  {status === 'idle' && (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
                       <div className="text-center space-y-6 p-8">
                         <div 

@@ -222,33 +222,23 @@ serve(async (req) => {
 
     let prediction;
 
+    // Always use MiniMax video-01 for both text-to-video and image-to-video
+    // MiniMax supports first_frame_image for frame chaining
+    const input: Record<string, unknown> = {
+      prompt: enhancedPrompt,
+      prompt_optimizer: true,
+    };
+
     if (isImageToVideo) {
-      // Image-to-video using Stable Video Diffusion for frame chaining
-      console.log("Using image-to-video with start image for visual continuity");
-      
-      prediction = await replicate.predictions.create({
-        model: "stability-ai/stable-video-diffusion",
-        input: {
-          input_image: startImageUrl,
-          motion_bucket_id: 127, // Higher = more motion
-          cond_aug: 0.02,
-          decoding_t: 14,
-          fps: 6,
-          seed: seed || undefined, // Use seed for consistency
-        },
-      });
-    } else {
-      // Text-to-video using MiniMax video-01
-      prediction = await replicate.predictions.create({
-        model: "minimax/video-01",
-        input: {
-          prompt: enhancedPrompt,
-          prompt_optimizer: true,
-          // Note: MiniMax doesn't support negative_prompt or seed directly
-          // The enhanced prompt already includes consistency instructions
-        },
-      });
+      // Use first_frame_image for visual continuity
+      console.log("Using image-to-video with first_frame_image for visual continuity");
+      input.first_frame_image = startImageUrl;
     }
+
+    prediction = await replicate.predictions.create({
+      model: "minimax/video-01",
+      input,
+    });
 
     console.log("Replicate prediction created:", prediction.id, "status:", prediction.status);
 

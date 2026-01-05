@@ -12,6 +12,7 @@ import {
   Brain, Layers, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
 
 const CAPABILITIES = [
   'Text to Video',
@@ -105,16 +106,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Premium gradient background with enhanced depth */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/30" />
-        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-foreground/[0.02] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-foreground/[0.015] rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-foreground/[0.008] rounded-full blur-[150px]" />
-      </div>
+      {/* Premium Video Background */}
+      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.75} />
 
-      {/* Refined dot pattern */}
-      <div className="fixed inset-0 pointer-events-none dot-pattern opacity-30" />
+      {/* Refined dot pattern overlay */}
+      <div className="fixed inset-0 pointer-events-none dot-pattern opacity-20 z-[1]" />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4">

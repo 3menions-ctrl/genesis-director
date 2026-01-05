@@ -299,19 +299,43 @@ async function ensureImageUrl(
 ): Promise<string | undefined> {
   if (!imageInput) return undefined;
   
+  // Trim whitespace
+  const trimmedInput = imageInput.trim();
+  
   // If already an HTTP URL, return as-is
-  if (imageInput.startsWith('http://') || imageInput.startsWith('https://')) {
-    return imageInput;
+  if (trimmedInput.startsWith('http://') || trimmedInput.startsWith('https://')) {
+    console.log(`[ensureImageUrl] Already an HTTP URL: ${trimmedInput.substring(0, 100)}...`);
+    return trimmedInput;
   }
   
   // If base64 data URL, upload to storage
-  if (imageInput.startsWith('data:')) {
+  if (trimmedInput.startsWith('data:')) {
+    // Validate the data URL format before attempting decode
+    const matches = trimmedInput.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      console.error(`[ensureImageUrl] Invalid data URL format. Starts with: ${trimmedInput.substring(0, 100)}`);
+      return undefined;
+    }
+    
     const uniqueId = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    return await uploadBase64ToStorage(imageInput, uniqueId);
+    try {
+      return await uploadBase64ToStorage(trimmedInput, uniqueId);
+    } catch (uploadError) {
+      console.error(`[ensureImageUrl] Failed to upload base64:`, uploadError);
+      return undefined;
+    }
   }
   
-  // Unknown format
-  console.warn("Unknown image format, skipping:", imageInput.substring(0, 50));
+  // Check if it might be raw base64 without the data URL prefix
+  // Base64 strings typically only contain A-Z, a-z, 0-9, +, /, =
+  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+  if (base64Regex.test(trimmedInput.substring(0, 100))) {
+    console.warn(`[ensureImageUrl] Detected raw base64 without data URL prefix. This format is not supported.`);
+    return undefined;
+  }
+  
+  // Unknown format - log and skip
+  console.warn(`[ensureImageUrl] Unknown image format, skipping. First 100 chars: ${trimmedInput.substring(0, 100)}`);
   return undefined;
 }
 

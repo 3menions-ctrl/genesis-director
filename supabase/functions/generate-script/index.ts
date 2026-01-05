@@ -58,56 +58,55 @@ serve(async (req) => {
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
     
     if (isFullMovieMode) {
-      // Full movie script generation - CINEMATIC & DESCRIPTIVE
-      systemPrompt = `You are an elite cinematographer-screenwriter. You write scripts that are VISUAL MASTERPIECES - every scene reads like a painting that an AI video generator can recreate perfectly.
+      // Full movie script generation - CONCISE & VISUAL
+      systemPrompt = `You are a concise visual storyteller. Write SHORT, punchy scripts optimized for AI video generation.
 
-Your scripts are famous for:
-1. RICH ENVIRONMENTAL DESCRIPTIONS - Lighting, weather, atmosphere, textures, colors. Example: "Late afternoon sun filters through oak trees, casting long shadows across the moss-covered path."
-
-2. PRECISE CHARACTER VISUALS - Appearance, clothing, movements, expressions. Example: "HANNAH, 20s, auburn hair catching the light, curled comfortably on a plush grey couch, bare feet tucked beneath her."
-
-3. CAMERA-AWARE WRITING - Write with an invisible camera: "We slowly push in on her face... The camera holds on her thoughtful expression..."
-
-4. ATMOSPHERIC IMMERSION - Sound design, time of day, emotional tone.
+STYLE:
+- Be BRIEF - each shot description should be 1-2 sentences max
+- Focus on KEY visuals only - don't over-describe
+- Write for 4-second video clips - each scene = one simple visual moment
 
 FORMAT:
-- Scene headings: [SCENE: INT/EXT. LOCATION - TIME OF DAY]
-- Visual descriptions in *asterisks*
-- Character introductions with full physical description
-- Dialogue in quotes with (emotional direction)
-- Camera directions in [CAMERA: movement]
+[SHOT 1: Location/Time]
+Brief visual description. Character action.
 
-CRITICAL: Follow the user's concept EXACTLY. Do not add characters or plotlines they didn't request. If they want someone sitting on a couch, write about that - don't invent adventures or conflicts unless asked.`;
+[SHOT 2: Location/Time]
+Brief visual description. Character action.
+
+RULES:
+- Maximum 6-8 shots for a short video
+- Each shot = ONE clear visual idea
+- No lengthy dialogue - keep it minimal
+- No complex camera movements - simple shots only
+- Follow the user's concept EXACTLY`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
         ? requestData.characters!.map(char => 
-            `- ${char.name.toUpperCase()} (${char.role}): ${char.description}. Personality: ${char.personality}.`
+            `- ${char.name.toUpperCase()}: ${char.description}`
           ).join('\n')
         : '';
 
-      const wordTarget = (requestData.targetDurationMinutes || 5) * 150;
+      // Much shorter word targets: ~50 words per minute for video
+      const wordTarget = Math.min((requestData.targetDurationMinutes || 1) * 50, 300);
 
-      userPrompt = `Write a ${requestData.targetDurationMinutes || 5}-minute movie script that EXACTLY follows this concept:
+      userPrompt = `Write a SHORT script for a ${requestData.targetDurationMinutes || 1}-minute video:
 
 TITLE: "${requestData.title}"
 GENRE: ${requestData.genre || 'Drama'}
-MOOD: ${requestData.mood || 'Atmospheric'}
-SETTING: ${requestData.setting || 'Modern day interior'}
+SETTING: ${requestData.setting || 'Modern day'}
 
-${requestData.synopsis ? `USER'S CONCEPT (FOLLOW THIS EXACTLY): ${requestData.synopsis}` : ''}
-
+${requestData.synopsis ? `CONCEPT: ${requestData.synopsis}` : ''}
 ${characterDescriptions ? `CHARACTERS:\n${characterDescriptions}` : ''}
 
-REQUIREMENTS:
-- Write approximately ${wordTarget} words
-- EVERY SCENE must have: lighting, environment details, atmosphere
-- Describe characters visually: appearance, clothing, expressions
-- Include CAMERA DIRECTIONS: [CAMERA: slow push-in], [CAMERA: close-up]
-- Stay TRUE to the user's concept - if they want a simple scene, keep it simple
-- Don't add unnecessary drama or adventure unless requested
+STRICT REQUIREMENTS:
+- Maximum ${wordTarget} words total
+- Maximum 8 shots/scenes
+- Each shot: 1-2 sentences only
+- No unnecessary details
+- Focus on visual moments that can be generated as 4-second clips
 
-Begin the script now:`;
+Write the script now:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
@@ -144,8 +143,8 @@ Write the script now:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.8,
-        max_tokens: isFullMovieMode ? 4000 : 1000,
+        temperature: 0.7,
+        max_tokens: isFullMovieMode ? 1000 : 500,
       }),
     });
 

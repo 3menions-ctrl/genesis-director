@@ -342,11 +342,25 @@ serve(async (req) => {
       }
     }
 
+    // For image-to-video, Veo 3.1 only supports [4, 6, 8] seconds
+    // For text-to-video, it supports [5, 6, 7, 8] seconds
+    let finalDuration = duration;
+    if (isImageToVideo) {
+      // Snap to nearest valid duration for image-to-video: 4, 6, or 8
+      if (duration <= 4) finalDuration = 4;
+      else if (duration <= 5) finalDuration = 4;
+      else if (duration <= 6) finalDuration = 6;
+      else finalDuration = 8;
+    } else {
+      // Text-to-video: clamp to 5-8
+      finalDuration = Math.min(Math.max(duration, 5), 8);
+    }
+
     const requestBody = {
       instances: [instance],
       parameters: {
         aspectRatio: "16:9",
-        durationSeconds: Math.min(Math.max(duration, 5), 8), // Veo 3.1 supports 5-8 seconds
+        durationSeconds: finalDuration,
         sampleCount: 1,
         negativePrompt: negativePrompt,
         resolution: "720p", // 720p or 1080p

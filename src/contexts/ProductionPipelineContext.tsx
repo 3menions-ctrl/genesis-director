@@ -528,8 +528,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           duration: Math.min(MAX_SHOT_DURATION_SECONDS, shot.durationSeconds),
           negativePrompt,
           startImage: previousFrameUrl, // Frame chaining via first_frame_image
-          // Use master anchor as subject_reference for character consistency
-          subjectReference: state.production.masterAnchor?.imageUrl,
+          // NOTE: subjectReference removed - MiniMax doesn't allow both first_frame_image and subject_reference
           // Transition type for seamless shot connections
           transitionOut: shot.transitionOut || 'continuous',
           sceneContext: {

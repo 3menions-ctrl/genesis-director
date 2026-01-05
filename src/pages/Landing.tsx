@@ -268,7 +268,7 @@ export default function Landing() {
                 </div>
               </div>
               
-              {/* Video Player - Large showcase */}
+              {/* Video Player - Clean showcase */}
               <div className="relative aspect-[16/9] bg-black">
                 <video
                   autoPlay
@@ -280,39 +280,7 @@ export default function Landing() {
                 />
                 
                 {/* Subtle vignette overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)] pointer-events-none" />
-                
-                {/* Floating UI elements */}
-                <div className="absolute top-5 left-5 flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 animate-fade-in">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse-soft" />
-                  <span className="text-xs text-white/90 font-medium">AI Generated</span>
-                </div>
-                
-                <div className="absolute top-5 right-5 flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 animate-fade-in" style={{ animationDelay: '100ms' }}>
-                  <Sparkles className="w-4 h-4 text-white/80" />
-                  <span className="text-xs text-white/90 font-medium">Veo 2</span>
-                </div>
-                
-                {/* Bottom gradient for text readability */}
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
-                
-                {/* Bottom info bar */}
-                <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
-                      <Video className="w-4 h-4 text-white/80" />
-                      <span className="text-xs text-white/90 font-medium">Text-to-Video</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
-                      <Eye className="w-4 h-4 text-white/80" />
-                      <span className="text-xs text-white/90 font-medium">Character Locked</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-foreground text-sm font-semibold shadow-xl hover:scale-105 transition-transform cursor-pointer">
-                    <Play className="w-4 h-4" />
-                    Try it yourself
-                  </div>
-                </div>
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_70%,rgba(0,0,0,0.2)_100%)] pointer-events-none" />
               </div>
             </div>
           </div>

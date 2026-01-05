@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
@@ -31,24 +31,6 @@ export default function Projects() {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hasTriedAutoThumbnails, setHasTriedAutoThumbnails] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'in-progress'>('all');
-
-  // Filter projects based on active tab
-  const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
-      const hasVideo = Boolean(project.video_clips?.length || project.video_url);
-      const isCompleted = project.status === 'completed' || hasVideo;
-      
-      switch (activeTab) {
-        case 'completed':
-          return isCompleted;
-        case 'in-progress':
-          return !isCompleted;
-        default:
-          return true;
-      }
-    });
-  }, [projects, activeTab]);
 
   // Auto-generate thumbnails for projects that need them
   useEffect(() => {
@@ -237,33 +219,23 @@ export default function Projects() {
             </div>
           </div>
 
-          {/* Tabs for filtering */}
-          <div className="pb-4 sm:pb-6 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
+          {/* Stats bar - scrollable on mobile */}
+          <div className="pb-4 sm:pb-6 flex items-center gap-4 sm:gap-8 overflow-x-auto scrollbar-hide">
             {[
-              { id: 'all' as const, label: 'All', count: projects.length },
-              { id: 'completed' as const, label: 'Completed', count: completedCount + projects.filter(p => p.video_clips?.length || p.video_url).length - projects.filter(p => p.status === 'completed' && (p.video_clips?.length || p.video_url)).length },
-              { id: 'in-progress' as const, label: 'In Progress', count: projects.filter(p => p.status !== 'completed' && !p.video_clips?.length && !p.video_url).length },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0",
-                  activeTab === tab.id
-                    ? "bg-white text-[hsl(0_0%_8%)]"
-                    : "bg-white/[0.06] text-white/60 hover:bg-white/[0.1] hover:text-white/80"
-                )}
-              >
-                {tab.label}
-                <span className={cn(
-                  "px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs tabular-nums",
-                  activeTab === tab.id
-                    ? "bg-black/10 text-[hsl(0_0%_20%)]"
-                    : "bg-white/10 text-white/50"
-                )}>
-                  {tab.count}
-                </span>
-              </button>
+              { value: projects.length, label: 'Total', icon: Film },
+              { value: completedCount, label: 'Completed', icon: CheckCircle2, color: 'text-emerald-400' },
+              { value: inProgressCount, label: 'In Progress', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
+              { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
+            ].map((stat, i) => (
+              <div key={i} className="flex items-center gap-2 shrink-0">
+                <stat.icon className={cn(
+                  "w-3.5 h-3.5 sm:w-4 sm:h-4",
+                  stat.color || "text-white/50",
+                  stat.animate && "animate-spin"
+                )} />
+                <span className="text-white font-medium tabular-nums text-sm sm:text-base">{stat.value}</span>
+                <span className="text-white/40 text-xs sm:text-sm">{stat.label}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -271,7 +243,7 @@ export default function Projects() {
 
       {/* Content */}
       <main className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-8">
-        {filteredProjects.length === 0 && projects.length === 0 ? (
+        {projects.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-16 sm:py-32 px-4">
             <div className="relative mb-6 sm:mb-8">
@@ -302,38 +274,10 @@ export default function Projects() {
               </Button>
             </div>
           </div>
-        ) : filteredProjects.length === 0 ? (
-          /* Empty filtered state */
-          <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-4">
-            <div className="relative mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                {activeTab === 'completed' ? (
-                  <CheckCircle2 className="w-6 h-6 text-white/20" strokeWidth={1.5} />
-                ) : (
-                  <Circle className="w-6 h-6 text-white/20" strokeWidth={1.5} />
-                )}
-              </div>
-            </div>
-            <h2 className="text-lg font-medium text-white mb-2 text-center">
-              No {activeTab === 'completed' ? 'completed' : 'in-progress'} projects
-            </h2>
-            <p className="text-white/40 text-sm mb-6 text-center max-w-sm">
-              {activeTab === 'completed' 
-                ? "Projects with generated videos will appear here."
-                : "Projects still being worked on will appear here."}
-            </p>
-            <Button
-              onClick={() => setActiveTab('all')}
-              variant="outline"
-              className="h-10 px-5 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06]"
-            >
-              View All Projects
-            </Button>
-          </div>
         ) : (
           /* Projects Grid - Responsive layout */
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-            {filteredProjects.map((project, index) => {
+            {projects.map((project, index) => {
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
               const isActive = activeProjectId === project.id;

@@ -115,13 +115,25 @@ function rewriteCameraReferences(prompt: string): string {
 }
 
 /**
+ * Transition hint phrases for seamless shot connections
+ */
+const TRANSITION_HINTS: Record<string, string> = {
+  'continuous': 'with fluid motion that continues seamlessly',
+  'match-cut': 'ending with visual elements that mirror the next moment',
+  'dissolve': 'gradually transitioning with a soft blend',
+  'fade': 'gently fading as the moment concludes',
+};
+
+/**
  * Build prompt with minimal processing to preserve user intent
  * SIMPLIFIED: Removed excessive markers that diluted scene descriptions
+ * ENHANCED: Adds transition hints for seamless shot connections
  */
 function buildConsistentPrompt(
   basePrompt: string, 
   context?: SceneContext,
-  negativePrompt?: string
+  negativePrompt?: string,
+  transitionOut?: string
 ): { prompt: string; negativePrompt: string } {
   // Only do camera reference cleanup - preserve the actual content
   let rewrittenPrompt = rewriteCameraReferences(basePrompt);
@@ -171,13 +183,24 @@ function buildConsistentPrompt(
     }
   }
   
+  // Add transition hint for seamless connections
+  if (transitionOut && TRANSITION_HINTS[transitionOut]) {
+    rewrittenPrompt = `${rewrittenPrompt}, ${TRANSITION_HINTS[transitionOut]}`;
+  }
+  
   // Enforce prompt limit
   if (rewrittenPrompt.length > 2000) {
     rewrittenPrompt = rewrittenPrompt.slice(0, 1997) + '...';
   }
   
-  // Build negative prompt
-  const allNegatives = [...NEGATIVE_PROMPT_ELEMENTS];
+  // Build negative prompt with anti-jitter elements for smooth transitions
+  const allNegatives = [
+    ...NEGATIVE_PROMPT_ELEMENTS,
+    'jarring cuts',
+    'abrupt transitions',
+    'visual glitches',
+    'frame stuttering',
+  ];
   if (negativePrompt) {
     allNegatives.push(...negativePrompt.split(',').map(s => s.trim()));
   }
@@ -196,16 +219,26 @@ serve(async (req) => {
   try {
     const { 
       prompt, 
-      duration = 5, 
+      duration = 8, 
       sceneContext, 
       referenceImageUrl,
       startImage, // For frame chaining (first_frame_image)
       subjectReference, // For character consistency (subject_reference uses S2V-01 model)
       negativePrompt: inputNegativePrompt,
+      transitionOut, // Transition type for seamless connections
     } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
+    }
+
+    // Enforce max 16 second duration
+    const MAX_DURATION = 16;
+    const MIN_DURATION = 4;
+    const clampedDuration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
+    
+    if (duration > MAX_DURATION) {
+      console.log(`Duration ${duration}s exceeds max, clamping to ${MAX_DURATION}s`);
     }
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -215,11 +248,12 @@ serve(async (req) => {
 
     const replicate = new Replicate({ auth: REPLICATE_API_KEY });
 
-    // Build enhanced prompt with camera rewrites and consistency
+    // Build enhanced prompt with camera rewrites, consistency, and transition hints
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
       prompt, 
       sceneContext,
-      inputNegativePrompt
+      inputNegativePrompt,
+      transitionOut
     );
     
     // Determine the start image (frame chaining or reference image)
@@ -229,10 +263,11 @@ serve(async (req) => {
 
     console.log("Generating video with Replicate MiniMax:", {
       mode: isImageToVideo ? "image-to-video (frame-chained)" : "text-to-video",
+      duration: clampedDuration,
+      transitionOut: transitionOut || 'continuous',
       promptLength: enhancedPrompt.length,
       hasStartImage: isImageToVideo,
       hasSubjectReference: hasSubjectRef,
-      // NOTE: MiniMax video-01 does NOT support seed parameter
     });
 
     // MiniMax video-01 input configuration

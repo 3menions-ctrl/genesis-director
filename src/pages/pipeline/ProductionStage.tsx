@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Play, Pause, RotateCcw, ArrowLeft, ArrowRight,
   Video, Mic, Zap, Check, X, AlertCircle, Clock,
-  Film, Sparkles, Loader2, ChevronRight, Shield
+  Film, Sparkles, Loader2, ChevronRight, Shield, ArrowRightCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -397,6 +397,13 @@ function ProductionShotCard({
               {shot.id}
             </Badge>
             <h4 className="font-medium text-foreground truncate">{shot.title}</h4>
+            {/* Transition indicator */}
+            {shot.transitionOut && (
+              <Badge variant="outline" className="text-xs gap-1 capitalize">
+                <ArrowRightCircle className="w-3 h-3" />
+                {shot.transitionOut}
+              </Badge>
+            )}
             {/* Retry badge */}
             {retryCount > 0 && (
               <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">

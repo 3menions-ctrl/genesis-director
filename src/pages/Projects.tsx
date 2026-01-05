@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
-  Sparkles, Clock, CheckCircle2, Circle, ImageIcon, RefreshCw
+  Clock, CheckCircle2, Circle, ImageIcon, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,12 +78,12 @@ export default function Projects() {
 
   const handleOpenProject = (id: string) => {
     setActiveProjectId(id);
-    navigate('/script');
+    navigate('/pipeline/scripting');
   };
 
   const handleCreateProject = () => {
     createProject();
-    navigate('/create');
+    navigate('/pipeline/scripting');
   };
 
   const handlePlayVideo = (project: Project, e: React.MouseEvent) => {
@@ -150,7 +150,6 @@ export default function Projects() {
 
       if (data?.success) {
         toast.success(data.message || 'Thumbnails generated!');
-        // Refresh projects to show new thumbnails
         await refreshProjects();
       } else {
         toast.error(data?.error || 'Failed to generate thumbnails');
@@ -164,77 +163,101 @@ export default function Projects() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(0_0%_4%)]">
-      {/* Ambient background effects - hidden on mobile for performance */}
-      <div className="hidden md:block fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-white/[0.015] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-white/[0.01] rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[hsl(0_0%_3%)] relative overflow-hidden">
+      {/* Premium Dark Ambient Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {/* Animated gradient orbs */}
+        <div className="absolute top-[-30%] left-[-15%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-white/[0.02] to-transparent blur-[120px] animate-float-slow" />
+        <div className="absolute bottom-[-30%] right-[-15%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-tl from-white/[0.015] to-transparent blur-[150px] animate-float" style={{ animationDelay: '3s' }} />
+        <div className="absolute top-[40%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-bl from-white/[0.01] to-transparent blur-[100px] animate-pulse-soft" />
+        
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px'
+          }}
+        />
+        
+        {/* Noise texture */}
+        <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          }}
+        />
       </div>
 
       {/* Header */}
       <header className="relative z-10 border-b border-white/[0.06]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          {/* Top row - stacks on mobile */}
-          <div className="py-5 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">Projects</h1>
-              <p className="text-xs sm:text-sm text-white/40 mt-0.5 sm:mt-1">Create and manage your video productions</p>
+          {/* Top row */}
+          <div className="py-8 sm:py-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="animate-fade-in">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                  <Film className="w-5 h-5 text-white/70" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Projects</h1>
+              </div>
+              <p className="text-sm sm:text-base text-white/40">Create and manage your video productions</p>
             </div>
             
-            {/* Action buttons - responsive layout */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+            {/* Action buttons */}
+            <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '100ms' }}>
               {projectsWithoutThumbnails > 0 && (
                 <Button 
                   variant="outline"
                   onClick={handleGenerateMissingThumbnails}
                   disabled={isGeneratingThumbnails}
-                  size="sm"
-                  className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20 transition-all text-xs sm:text-sm"
+                  className="h-11 px-5 rounded-xl bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
                 >
                   {isGeneratingThumbnails ? (
-                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <ImageIcon className="w-4 h-4 sm:mr-2 text-purple-400" />
+                    <ImageIcon className="w-4 h-4 mr-2 text-purple-400" />
                   )}
-                  <span className="hidden sm:inline">Generate {projectsWithoutThumbnails} Thumbnails</span>
+                  <span className="hidden sm:inline">Generate Thumbnails</span>
                 </Button>
               )}
               <Button 
                 variant="outline"
                 onClick={() => navigate('/pipeline/scripting')}
-                size="sm"
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20 transition-all text-xs sm:text-sm"
+                className="h-11 px-5 rounded-xl bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
               >
-                <Zap className="w-4 h-4 sm:mr-2 text-amber-400" />
+                <Zap className="w-4 h-4 mr-2 text-amber-400" />
                 <span className="hidden sm:inline">Pipeline</span>
               </Button>
               <Button 
                 onClick={handleCreateProject}
-                size="sm"
-                className="h-9 sm:h-10 px-3 sm:px-5 rounded-xl bg-white text-[hsl(0_0%_8%)] hover:bg-white/90 font-medium shadow-lg shadow-white/10 transition-all text-xs sm:text-sm"
+                className="h-11 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-semibold shadow-lg shadow-white/10 transition-all hover:-translate-y-0.5"
               >
-                <Plus className="w-4 h-4 sm:mr-2" />
-                <span className="hidden xs:inline">New</span>
+                <Plus className="w-4 h-4 mr-2" />
+                <span>New Project</span>
               </Button>
             </div>
           </div>
 
-          {/* Stats bar - scrollable on mobile */}
-          <div className="pb-4 sm:pb-6 flex items-center gap-4 sm:gap-8 overflow-x-auto scrollbar-hide">
+          {/* Stats bar */}
+          <div className="pb-6 sm:pb-8 flex items-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide animate-fade-in" style={{ animationDelay: '150ms' }}>
             {[
-              { value: projects.length, label: 'Total', icon: Film },
+              { value: projects.length, label: 'Total Projects', icon: Film },
               { value: completedCount, label: 'Completed', icon: CheckCircle2, color: 'text-emerald-400' },
               { value: inProgressCount, label: 'In Progress', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
               { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
             ].map((stat, i) => (
-              <div key={i} className="flex items-center gap-2 shrink-0">
-                <stat.icon className={cn(
-                  "w-3.5 h-3.5 sm:w-4 sm:h-4",
-                  stat.color || "text-white/50",
-                  stat.animate && "animate-spin"
-                )} />
-                <span className="text-white font-medium tabular-nums text-sm sm:text-base">{stat.value}</span>
-                <span className="text-white/40 text-xs sm:text-sm">{stat.label}</span>
+              <div key={i} className="flex items-center gap-3 shrink-0 group">
+                <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center group-hover:bg-white/[0.05] transition-colors">
+                  <stat.icon className={cn(
+                    "w-4 h-4",
+                    stat.color || "text-white/50",
+                    stat.animate && "animate-spin"
+                  )} />
+                </div>
+                <div>
+                  <span className="text-white font-semibold text-lg tabular-nums">{stat.value}</span>
+                  <p className="text-white/40 text-xs">{stat.label}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -242,41 +265,41 @@ export default function Projects() {
       </header>
 
       {/* Content */}
-      <main className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-8">
+      <main className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
         {projects.length === 0 ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center py-16 sm:py-32 px-4">
-            <div className="relative mb-6 sm:mb-8">
-              <div className="absolute inset-0 bg-white/5 rounded-3xl blur-xl" />
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                <Film className="w-6 h-6 sm:w-8 sm:h-8 text-white/20" strokeWidth={1.5} />
+          <div className="flex flex-col items-center justify-center py-24 sm:py-40 px-4 animate-fade-in-up">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-white/5 rounded-3xl blur-2xl scale-150" />
+              <div className="relative w-24 h-24 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-white/20" strokeWidth={1.5} />
               </div>
             </div>
-            <h2 className="text-lg sm:text-xl font-medium text-white mb-2 text-center">No projects yet</h2>
-            <p className="text-white/40 text-xs sm:text-sm mb-6 sm:mb-8 text-center max-w-sm">
-              Start by creating a quick clip or use the production pipeline for full-length videos.
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-center">No projects yet</h2>
+            <p className="text-white/40 text-base sm:text-lg mb-10 text-center max-w-md">
+              Start creating stunning AI-generated videos with our production pipeline.
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               <Button 
                 onClick={() => navigate('/pipeline/scripting')}
                 variant="outline"
-                className="w-full sm:w-auto h-10 sm:h-11 px-5 sm:px-6 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20"
+                className="h-12 px-8 rounded-xl bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20 font-medium"
               >
-                <Zap className="w-4 h-4 mr-2 text-amber-400" />
-                Production Pipeline
+                <Zap className="w-5 h-5 mr-2 text-amber-400" />
+                Open Pipeline
               </Button>
               <Button 
                 onClick={handleCreateProject}
-                className="w-full sm:w-auto h-10 sm:h-11 px-5 sm:px-6 rounded-xl bg-white text-[hsl(0_0%_8%)] hover:bg-white/90 font-medium"
+                className="h-12 px-8 rounded-xl bg-white text-black hover:bg-white/90 font-semibold shadow-lg shadow-white/10"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Quick Clip
+                <Plus className="w-5 h-5 mr-2" />
+                Create Project
               </Button>
             </div>
           </div>
         ) : (
-          /* Projects Grid - Responsive layout */
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          /* Projects Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6">
             {projects.map((project, index) => {
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
@@ -287,28 +310,28 @@ export default function Projects() {
                   key={project.id}
                   onClick={() => handleSelectProject(project.id)}
                   className={cn(
-                    "group relative rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
-                    "bg-white/[0.03] hover:bg-white/[0.05]",
+                    "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500",
+                    "bg-white/[0.02] hover:bg-white/[0.04]",
                     "border border-white/[0.06] hover:border-white/[0.12]",
-                    "active:scale-[0.98] sm:active:scale-100",
+                    "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50",
                     isActive && "ring-2 ring-white/20 border-white/20",
                     "animate-fade-in"
                   )}
-                  style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+                  style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
                 >
                   {/* Thumbnail */}
-                  <div className="aspect-video relative overflow-hidden bg-[hsl(0_0%_6%)]">
+                  <div className="aspect-video relative overflow-hidden bg-[hsl(0_0%_5%)]">
                     {project.thumbnail_url ? (
                       <img
                         src={project.thumbnail_url}
                         alt={project.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                         loading="lazy"
                       />
                     ) : hasVideo && videoClips[0] ? (
                       <video
                         src={videoClips[0]}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                         muted
                         playsInline
                         preload="metadata"
@@ -317,76 +340,71 @@ export default function Projects() {
                           e.currentTarget.pause();
                           e.currentTarget.currentTime = 0;
                         }}
-                        onTouchStart={(e) => e.currentTarget.play()}
-                        onTouchEnd={(e) => {
-                          e.currentTarget.pause();
-                          e.currentTarget.currentTime = 0;
-                        }}
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
                           {project.status === 'generating' || project.status === 'rendering' ? (
-                            <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-white/30 animate-spin" strokeWidth={1.5} />
+                            <Loader2 className="w-7 h-7 text-white/30 animate-spin" strokeWidth={1.5} />
                           ) : (
-                            <Film className="w-5 h-5 sm:w-6 sm:h-6 text-white/20" strokeWidth={1.5} />
+                            <Film className="w-7 h-7 text-white/20" strokeWidth={1.5} />
                           )}
                         </div>
                       </div>
                     )}
 
-                    {/* Gradient overlay - always visible on mobile for touch */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                    {/* Status badge - smaller on mobile */}
-                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+                    {/* Status badge */}
+                    <div className="absolute top-3 left-3">
                       {project.status === 'completed' ? (
-                        <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30">
-                          <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
-                          <span className="text-[10px] sm:text-[11px] font-medium text-emerald-300">Ready</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span className="text-[11px] font-medium text-emerald-300">Ready</span>
                         </div>
                       ) : project.status === 'generating' || project.status === 'rendering' ? (
-                        <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
-                          <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 animate-spin" />
-                          <span className="text-[10px] sm:text-[11px] font-medium text-amber-300">Processing</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
+                          <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                          <span className="text-[11px] font-medium text-amber-300">Processing</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-                          <Circle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/50" />
-                          <span className="text-[10px] sm:text-[11px] font-medium text-white/50">Draft</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                          <Circle className="w-3 h-3 text-white/50" />
+                          <span className="text-[11px] font-medium text-white/50">Draft</span>
                         </div>
                       )}
                     </div>
 
                     {/* Clip count badge */}
                     {hasVideo && videoClips.length > 1 && (
-                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-                        <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
-                          <span className="text-[10px] sm:text-[11px] font-medium text-white/80">{videoClips.length}</span>
+                      <div className="absolute top-3 right-3">
+                        <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                          <span className="text-[11px] font-medium text-white/80">{videoClips.length} clips</span>
                         </div>
                       </div>
                     )}
 
-                    {/* Hover/Touch actions - visible on mobile */}
-                    <div className="absolute inset-0 flex items-end sm:items-center justify-center pb-3 sm:pb-0 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
-                      <div className="flex items-center gap-2">
+                    {/* Hover actions */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="flex items-center gap-3">
                         {hasVideo ? (
                           <>
                             <button 
                               onClick={(e) => handlePlayVideo(project, e)}
-                              className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 bg-white text-[hsl(0_0%_8%)] text-xs sm:text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
+                              className="flex items-center gap-2 h-10 px-5 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl hover:scale-105"
                             >
-                              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" />
-                              <span className="hidden xs:inline">Play</span>
+                              <Play className="w-4 h-4" fill="currentColor" />
+                              Play
                             </button>
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenProject(project.id);
                               }}
-                              className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-white/20 backdrop-blur-md text-white rounded-full hover:bg-white/30 transition-all border border-white/20"
+                              className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-md text-white rounded-full hover:bg-white/30 transition-all border border-white/20 hover:scale-105"
                             >
-                              <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
                           </>
                         ) : (
@@ -395,26 +413,26 @@ export default function Projects() {
                               e.stopPropagation();
                               handleOpenProject(project.id);
                             }}
-                            className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-4 sm:px-5 bg-white text-[hsl(0_0%_8%)] text-xs sm:text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
+                            className="flex items-center gap-2 h-10 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl hover:scale-105"
                           >
                             Open
-                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <ArrowRight className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Content - compact on mobile */}
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-start justify-between gap-2 sm:gap-3">
+                  {/* Content */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-white truncate text-sm sm:text-base">
+                        <h3 className="font-semibold text-white truncate text-base group-hover:text-white/90 transition-colors">
                           {project.name}
                         </h3>
-                        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5">
-                          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white/30" />
-                          <span className="text-[10px] sm:text-xs text-white/40">
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Clock className="w-3 h-3 text-white/30" />
+                          <span className="text-xs text-white/40">
                             {formatDate(project.updated_at)}
                           </span>
                         </div>
@@ -429,7 +447,7 @@ export default function Projects() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 rounded-xl bg-[hsl(0_0%_10%)] border-white/[0.1] shadow-2xl">
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl bg-[hsl(0_0%_8%)] border-white/[0.1] shadow-2xl backdrop-blur-xl">
                           {hasVideo && (
                             <>
                               <DropdownMenuItem 
@@ -437,7 +455,7 @@ export default function Projects() {
                                   e.stopPropagation();
                                   handlePlayVideo(project, e as any);
                                 }}
-                                className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
+                                className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
                               >
                                 <Play className="w-4 h-4" />
                                 Play Video
@@ -447,7 +465,7 @@ export default function Projects() {
                                   e.stopPropagation();
                                   handleDownloadAll(project);
                                 }}
-                                className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
+                                className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
                               >
                                 <Download className="w-4 h-4" />
                                 Download All
@@ -457,18 +475,18 @@ export default function Projects() {
                           )}
                           <DropdownMenuItem 
                             onClick={() => handleOpenProject(project.id)} 
-                            className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1"
+                            className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
                           >
                             <Edit2 className="w-4 h-4" />
                             Edit Project
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1">
+                          <DropdownMenuItem className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5">
                             <Copy className="w-4 h-4" />
                             Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
                           <DropdownMenuItem
-                            className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg mx-1"
+                            className="gap-3 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg mx-1 py-2.5"
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteProject(project.id);
@@ -485,47 +503,48 @@ export default function Projects() {
               );
             })}
 
-            {/* New Project Card - Responsive */}
+            {/* New Project Card */}
             <button
               onClick={handleCreateProject}
               className={cn(
-                "group relative rounded-xl sm:rounded-2xl border-2 border-dashed transition-all duration-300",
-                "border-white/[0.08] hover:border-white/20 active:border-white/30",
+                "group relative rounded-2xl border-2 border-dashed transition-all duration-500",
+                "border-white/[0.08] hover:border-white/20",
                 "bg-transparent hover:bg-white/[0.02]",
-                "flex flex-col items-center justify-center min-h-[180px] sm:min-h-[220px] lg:min-h-[280px]",
+                "flex flex-col items-center justify-center min-h-[280px]",
+                "hover:-translate-y-1",
                 "animate-fade-in"
               )}
-              style={{ animationDelay: `${Math.min(projects.length * 30, 300)}ms` }}
+              style={{ animationDelay: `${Math.min(projects.length * 50, 400)}ms` }}
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-white/[0.04] group-hover:bg-white/[0.08] flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white/30 group-hover:text-white/60 transition-colors" strokeWidth={1.5} />
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] group-hover:bg-white/[0.08] border border-white/[0.06] group-hover:border-white/[0.12] flex items-center justify-center transition-all duration-500 group-hover:scale-110">
+                <Plus className="w-7 h-7 text-white/30 group-hover:text-white/60 transition-colors" strokeWidth={1.5} />
               </div>
-              <span className="mt-2 sm:mt-3 lg:mt-4 text-xs sm:text-sm font-medium text-white/30 group-hover:text-white/60 transition-colors">
-                Create New
+              <span className="mt-4 text-sm font-medium text-white/30 group-hover:text-white/60 transition-colors">
+                Create New Project
               </span>
             </button>
           </div>
         )}
       </main>
 
-      {/* Video Player Modal - Responsive */}
+      {/* Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] sm:w-[90vw] p-0 overflow-hidden bg-[hsl(0_0%_4%)] border border-white/[0.1] rounded-xl sm:rounded-2xl shadow-2xl">
+        <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-black border border-white/[0.1] rounded-2xl shadow-2xl left-0 top-0 translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] [&>button]:hidden">
           <div className="relative">
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-50 p-3 sm:p-5 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="absolute top-0 left-0 right-0 z-50 p-5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-white font-medium text-sm sm:text-base">{selectedProject?.name}</h3>
-                  <p className="text-white/50 text-xs sm:text-sm mt-0.5">
+                  <h3 className="text-white font-semibold text-lg">{selectedProject?.name}</h3>
+                  <p className="text-white/50 text-sm mt-0.5">
                     {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
                   </p>
                 </div>
                 <button
-                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
                   onClick={() => setVideoModalOpen(false)}
                 >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -540,11 +559,11 @@ export default function Projects() {
               )}
             </div>
 
-            {/* Footer actions - Responsive */}
-            <div className="absolute bottom-0 left-0 right-0 z-50 p-3 sm:p-5 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
+            {/* Footer actions */}
+            <div className="absolute bottom-0 left-0 right-0 z-50 p-5 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex items-center justify-center gap-3">
                 <button
-                  className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 bg-white/10 border border-white/10 text-white/80 text-xs sm:text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                  className="flex items-center gap-2 h-10 px-5 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
                   onClick={() => {
                     if (selectedProject) {
                       const clips = getVideoClips(selectedProject);
@@ -552,29 +571,29 @@ export default function Projects() {
                     }
                   }}
                 >
-                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Open</span>
+                  <ExternalLink className="w-4 h-4" />
+                  Open
                 </button>
                 <button
-                  className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-3 sm:px-4 bg-white/10 border border-white/10 text-white/80 text-xs sm:text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                  className="flex items-center gap-2 h-10 px-5 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
                   onClick={() => {
                     if (selectedProject) handleDownloadAll(selectedProject);
                   }}
                 >
-                  <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Download</span>
+                  <Download className="w-4 h-4" />
+                  Download
                 </button>
                 <button
-                  className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 px-4 sm:px-5 bg-white text-[hsl(0_0%_8%)] text-xs sm:text-sm font-medium rounded-full hover:bg-white/90 transition-all shadow-lg"
+                  className="flex items-center gap-2 h-10 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-lg"
                   onClick={() => {
                     setVideoModalOpen(false);
                     if (selectedProject) {
                       setActiveProjectId(selectedProject.id);
-                      navigate('/production');
+                      navigate('/pipeline/production');
                     }
                   }}
                 >
-                  <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <Edit2 className="w-4 h-4" />
                   Edit
                 </button>
               </div>

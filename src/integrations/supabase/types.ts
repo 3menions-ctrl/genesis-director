@@ -156,6 +156,7 @@ export type Database = {
           mood: string | null
           movie_intro_style: string | null
           parent_project_id: string | null
+          pending_video_tasks: Json | null
           scene_images: Json | null
           script_content: string | null
           setting: string | null
@@ -183,6 +184,7 @@ export type Database = {
           mood?: string | null
           movie_intro_style?: string | null
           parent_project_id?: string | null
+          pending_video_tasks?: Json | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
@@ -210,6 +212,7 @@ export type Database = {
           mood?: string | null
           movie_intro_style?: string | null
           parent_project_id?: string | null
+          pending_video_tasks?: Json | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null

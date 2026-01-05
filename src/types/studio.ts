@@ -9,6 +9,15 @@ export interface Studio {
   owner_id: string;
 }
 
+// Pending task structure stored in database
+export interface PendingVideoTask {
+  taskId: string;
+  clipIndex: number;
+  prompt: string;
+  startedAt: number;
+  [key: string]: string | number; // Index signature for Json compatibility
+}
+
 export interface Project {
   id: string;
   studio_id: string;
@@ -28,6 +37,7 @@ export interface Project {
   include_narration?: boolean;
   target_duration_minutes?: number;
   thumbnail_url?: string;
+  pending_video_tasks?: PendingVideoTask[];
 }
 
 export interface AssetLayer {

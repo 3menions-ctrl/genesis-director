@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown, SceneImage } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, VISUAL_STYLE_PRESETS, VisualStylePreset, CharacterProfile, SceneBreakdown, SceneImage, PendingVideoTask } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Json } from '@/integrations/supabase/types';
 
 // Cinematic camera movements for professional movie feel
 const CAMERA_MOVEMENTS = [
@@ -394,50 +395,8 @@ function mapDbProject(dbProject: any): Project {
     include_narration: dbProject.include_narration ?? true,
     target_duration_minutes: dbProject.target_duration_minutes,
     thumbnail_url: dbProject.thumbnail_url,
+    pending_video_tasks: dbProject.pending_video_tasks || [],
   };
-}
-
-// Generation state key for localStorage
-const GENERATION_STATE_KEY = 'aifilmstudio_active_generation';
-
-interface ActiveGenerationState {
-  projectId: string;
-  projectName: string;
-  startedAt: number;
-  step: 'voice' | 'video' | 'polling';
-  totalClips: number;
-  completedClips: number;
-  clipDuration: number;
-  creditsDeducted: number;
-}
-
-// Save generation state to localStorage
-function saveGenerationState(state: ActiveGenerationState | null) {
-  if (state) {
-    localStorage.setItem(GENERATION_STATE_KEY, JSON.stringify(state));
-  } else {
-    localStorage.removeItem(GENERATION_STATE_KEY);
-  }
-}
-
-// Load generation state from localStorage
-function loadGenerationState(): ActiveGenerationState | null {
-  try {
-    const saved = localStorage.getItem(GENERATION_STATE_KEY);
-    if (saved) {
-      const state = JSON.parse(saved) as ActiveGenerationState;
-      // Check if generation is stale (more than 30 minutes old)
-      const staleThreshold = 30 * 60 * 1000; // 30 minutes
-      if (Date.now() - state.startedAt > staleThreshold) {
-        localStorage.removeItem(GENERATION_STATE_KEY);
-        return null;
-      }
-      return state;
-    }
-  } catch {
-    localStorage.removeItem(GENERATION_STATE_KEY);
-  }
-  return null;
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
@@ -458,6 +417,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   
   // Cancel flag ref
   const cancelRef = useRef(false);
+  const resumePollingRef = useRef(false);
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -474,29 +434,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
-  
-  // Check for active generation on mount and restore state
-  useEffect(() => {
-    const savedState = loadGenerationState();
-    if (savedState) {
-      setActiveGenerationProjectId(savedState.projectId);
-      setIsGenerating(true);
-      setGenerationProgress({
-        step: savedState.step,
-        percent: Math.round((savedState.completedClips / savedState.totalClips) * 85),
-        estimatedSecondsRemaining: (savedState.totalClips - savedState.completedClips) * 90,
-        currentClip: savedState.completedClips,
-        totalClips: savedState.totalClips,
-      });
-      toast.info(`Generation in progress for "${savedState.projectName}"`, {
-        description: `${savedState.completedClips}/${savedState.totalClips} clips completed`,
-        duration: 5000,
-      });
-    }
-  }, []);
 
-  // Load projects from database on mount
-  const refreshProjects = async () => {
+  // Internal function that loads and returns projects
+  const loadProjects = async (): Promise<Project[]> => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -507,7 +447,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error loading projects:', error);
         toast.error('Failed to load projects');
-        return;
+        return [];
       }
 
       const mappedProjects = (data || []).map(mapDbProject);
@@ -517,16 +457,200 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (mappedProjects.length > 0 && !activeProjectId) {
         setActiveProjectId(mappedProjects[0].id);
       }
+      
+      return mappedProjects;
     } catch (err) {
       console.error('Error loading projects:', err);
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    refreshProjects();
+  // Public function that doesn't return projects
+  const refreshProjects = async (): Promise<void> => {
+    await loadProjects();
+  };
+
+  // Resume polling for pending tasks when a generating project is detected
+  const resumePendingGeneration = useCallback(async (project: Project) => {
+    if (resumePollingRef.current) return; // Already resuming
+    
+    const pendingTasks = project.pending_video_tasks as PendingVideoTask[] || [];
+    if (pendingTasks.length === 0) {
+      // No pending tasks but status is generating - reset to idle
+      console.log('No pending tasks found, resetting status to idle');
+      await supabase
+        .from('movie_projects')
+        .update({ status: 'draft', pending_video_tasks: [] })
+        .eq('id', project.id);
+      return;
+    }
+    
+    resumePollingRef.current = true;
+    setIsGenerating(true);
+    setActiveGenerationProjectId(project.id);
+    
+    const existingClips = project.video_clips || [];
+    const totalClips = existingClips.length + pendingTasks.length;
+    
+    setGenerationProgress({
+      step: 'polling',
+      percent: Math.round((existingClips.length / totalClips) * 85),
+      estimatedSecondsRemaining: pendingTasks.length * 60,
+      currentClip: existingClips.length,
+      totalClips,
+    });
+    
+    toast.info(`Resuming generation for "${project.name}"`, {
+      description: `${existingClips.length}/${totalClips} clips completed, polling ${pendingTasks.length} pending...`,
+    });
+    
+    try {
+      const completedClips = [...existingClips];
+      const remainingTasks = [...pendingTasks];
+      
+      // Poll each pending task
+      for (const task of remainingTasks) {
+        if (cancelRef.current) {
+          throw new Error('Generation cancelled');
+        }
+        
+        let clipUrl: string | null = null;
+        let pollAttempts = 0;
+        const maxPolls = 60; // 5 minutes max per clip
+        
+        while (!clipUrl && pollAttempts < maxPolls) {
+          if (cancelRef.current) break;
+          
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          pollAttempts++;
+          
+          const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+            body: { taskId: task.taskId },
+          });
+          
+          if (statusError) {
+            console.error('Status check error:', statusError);
+            continue;
+          }
+          
+          if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
+            clipUrl = statusData.videoUrl;
+            completedClips[task.clipIndex] = clipUrl;
+            
+            // Remove this task from pending
+            const updatedPendingTasks = remainingTasks.filter(t => t.taskId !== task.taskId);
+            
+            // Update database with new clip and reduced pending tasks
+            await supabase
+              .from('movie_projects')
+              .update({ 
+                video_clips: completedClips.filter(Boolean),
+                pending_video_tasks: updatedPendingTasks,
+              })
+              .eq('id', project.id);
+            
+            const completedCount = completedClips.filter(Boolean).length;
+            setGenerationProgress({
+              step: 'polling',
+              percent: Math.round((completedCount / totalClips) * 85),
+              estimatedSecondsRemaining: updatedPendingTasks.length * 60,
+              currentClip: completedCount,
+              totalClips,
+            });
+            
+            toast.success(`Clip ${task.clipIndex + 1}/${totalClips} complete!`);
+            
+          } else if (statusData?.status === 'FAILED') {
+            console.error(`Clip ${task.clipIndex + 1} failed:`, statusData.error);
+            toast.error(`Clip ${task.clipIndex + 1} failed`);
+            // Remove failed task from pending
+            const updatedPendingTasks = remainingTasks.filter(t => t.taskId !== task.taskId);
+            await supabase
+              .from('movie_projects')
+              .update({ pending_video_tasks: updatedPendingTasks })
+              .eq('id', project.id);
+            break;
+          }
+          
+          // Update progress
+          const progressPercent = Math.round(
+            (completedClips.filter(Boolean).length / totalClips) * 85 + 
+            (pollAttempts / maxPolls) * (15 / pendingTasks.length)
+          );
+          setGenerationProgress(prev => ({
+            ...prev,
+            percent: Math.min(progressPercent, 95),
+          }));
+        }
+        
+        if (!clipUrl && pollAttempts >= maxPolls) {
+          console.error(`Clip ${task.clipIndex + 1} timed out`);
+          toast.error(`Clip ${task.clipIndex + 1} timed out`);
+        }
+      }
+      
+      // All tasks processed - check if we have all clips
+      const finalClips = completedClips.filter(Boolean);
+      if (finalClips.length === totalClips) {
+        // All clips complete!
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            status: 'completed',
+            video_clips: finalClips,
+            video_url: finalClips[0],
+            pending_video_tasks: [],
+          })
+          .eq('id', project.id);
+        
+        setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
+        toast.success(`All ${totalClips} clips generated!`);
+      } else {
+        // Some clips failed
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            status: finalClips.length > 0 ? 'completed' : 'draft',
+            video_clips: finalClips,
+            pending_video_tasks: [],
+          })
+          .eq('id', project.id);
+        
+        toast.warning(`${finalClips.length}/${totalClips} clips completed. Some clips failed.`);
+      }
+      
+    } catch (error) {
+      console.error('Resume polling error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to resume generation');
+    } finally {
+      resumePollingRef.current = false;
+      setIsGenerating(false);
+      setActiveGenerationProjectId(null);
+      await refreshProjects();
+    }
   }, []);
+  
+  // Check for active generation on mount
+  useEffect(() => {
+    const checkForActiveGeneration = async () => {
+      const loadedProjects = await loadProjects();
+      if (!loadedProjects || loadedProjects.length === 0) return;
+      
+      // Find any project that's in generating or rendering status
+      const generatingProject = loadedProjects.find(p => 
+        p.status === 'generating' || p.status === 'rendering'
+      );
+      
+      if (generatingProject) {
+        console.log('Found generating project:', generatingProject.name);
+        resumePendingGeneration(generatingProject);
+      }
+    };
+    
+    checkForActiveGeneration();
+  }, [resumePendingGeneration]);
 
   // Sync credits from auth profile
   useEffect(() => {
@@ -642,11 +766,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     cancelRef.current = true;
     setIsGenerating(false);
     setActiveGenerationProjectId(null);
-    saveGenerationState(null); // Clear persisted state
     setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
     
     if (activeProjectId) {
-      await updateProject(activeProjectId, { status: 'idle' as ProjectStatus });
+      // Clear pending tasks and reset status
+      await supabase
+        .from('movie_projects')
+        .update({ 
+          status: 'draft',
+          pending_video_tasks: [],
+        })
+        .eq('id', activeProjectId);
+      
+      await refreshProjects();
     }
     
     toast.info('Video generation cancelled. Credits were already deducted and cannot be refunded.');
@@ -746,19 +878,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     // Now start generation
     setIsGenerating(true);
     setActiveGenerationProjectId(projectId);
-    
-    // Save generation state for persistence
-    const generationState: ActiveGenerationState = {
-      projectId,
-      projectName,
-      startedAt: Date.now(),
-      step: 'voice',
-      totalClips: numClips,
-      completedClips: 0,
-      clipDuration,
-      creditsDeducted: creditsCost,
-    };
-    saveGenerationState(generationState);
     
     if (hasScenes) {
       toast.info(`Using ${numClips} extracted scenes for video generation`);
@@ -960,153 +1079,145 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         
         toast.info(`Starting batch ${batchNumber}/${totalBatches} (clips ${batchStart + 1}-${batchEnd})`);
         
-        // Helper function to generate a single clip with retry logic
-        const generateClipWithRetry = async (clip: ClipPromptData, maxRetries = 3): Promise<{ index: number; clipUrl: string }> => {
-          let lastError: Error | null = null;
+        // Start all clips in this batch and collect task IDs
+        const pendingTasks: PendingVideoTask[] = [];
+        
+        for (const clip of batchClips) {
+          if (cancelRef.current) {
+            throw new Error('Generation cancelled');
+          }
           
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
+          try {
+            const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+              body: { 
+                prompt: clip.prompt, 
+                duration: clipDuration,
+                sceneContext: clip.sceneContext,
+                referenceImageUrl: clip.referenceImageUrl,
+              },
+            });
+            
+            if (videoError || !videoData?.success) {
+              const errorMessage = videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`;
+              
+              if (errorMessage.includes('Rate limit') || errorMessage.includes('daily task limit')) {
+                toast.error('Runway API rate limit reached. Try again later.');
+                throw new Error('RATE_LIMIT_EXCEEDED');
+              }
+              
+              throw new Error(errorMessage);
+            }
+            
+            pendingTasks.push({
+              taskId: videoData.taskId,
+              clipIndex: clip.index,
+              prompt: clip.prompt,
+              startedAt: Date.now(),
+            });
+            
+          } catch (error) {
+            console.error(`Failed to start clip ${clip.index + 1}:`, error);
+            throw error;
+          }
+        }
+        
+        // Save pending tasks to database for persistence
+        const existingClips = completedClips.filter((c): c is string => c !== null);
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            pending_video_tasks: pendingTasks,
+            video_clips: existingClips,
+          })
+          .eq('id', projectId);
+        
+        // Poll all tasks in this batch
+        const taskResults = await Promise.allSettled(
+          pendingTasks.map(async (task) => {
+            let clipUrl: string | null = null;
+            let pollAttempts = 0;
+            const maxPolls = 60;
+            let throttledCount = 0;
+            const maxThrottled = 20;
+            
+            while (!clipUrl && pollAttempts < maxPolls) {
               if (cancelRef.current) {
                 throw new Error('Generation cancelled');
               }
               
-              if (attempt > 1) {
-                toast.info(`Retrying clip ${clip.index + 1} (attempt ${attempt}/${maxRetries})...`);
-                // Exponential backoff before retry
-                await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
-              }
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              pollAttempts++;
               
-              // Start video generation with scene context and optional reference image
-              const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-                body: { 
-                  prompt: clip.prompt, 
-                  duration: clipDuration,
-                  sceneContext: clip.sceneContext,
-                  referenceImageUrl: clip.referenceImageUrl, // For image-to-video mode
-                },
+              const pollProgress = Math.round(baseProgress + (batchNumber - 1) / totalBatches * (85 - baseProgress) + (pollAttempts / maxPolls) * ((85 - baseProgress) / totalBatches * 0.8));
+              setGenerationProgress({ 
+                step: 'polling', 
+                percent: Math.min(pollProgress, 85), 
+                estimatedSecondsRemaining: Math.max(10, (maxPolls - pollAttempts) * 5),
+                currentClip: batchStart + 1,
+                totalClips: numClips
               });
               
-              if (videoError || !videoData?.success) {
-                const errorMessage = videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`;
-                
-                // Check for rate limit errors - these shouldn't be retried immediately
-                if (errorMessage.includes('Rate limit') || errorMessage.includes('daily task limit')) {
-                  toast.error('Runway API rate limit reached. Try again later or reduce the number of clips.');
-                  throw new Error('RATE_LIMIT_EXCEEDED');
-                }
-                
-                throw new Error(errorMessage);
+              const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+                body: { taskId: task.taskId },
+              });
+              
+              if (statusError) {
+                console.error('Status check error:', statusError);
+                continue;
               }
               
-              const taskId = videoData.taskId;
-              let clipUrl: string | null = null;
-              let pollAttempts = 0;
-              const maxPolls = 60; // 5 minutes max per clip
-              let throttledCount = 0;
-              const maxThrottled = 20; // Max times we'll see THROTTLED before retrying
-              
-              while (!clipUrl && pollAttempts < maxPolls) {
-                if (cancelRef.current) {
-                  throw new Error('Generation cancelled');
-                }
+              if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
+                clipUrl = statusData.videoUrl;
+                completedClips[task.clipIndex] = clipUrl;
+                completedCount++;
                 
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                pollAttempts++;
+                const percent = Math.round(baseProgress + (completedCount / numClips) * (85 - baseProgress));
+                const remainingBatches = totalBatches - batchNumber;
+                const estimatedRemaining = Math.round(remainingBatches * estimatedSecondsPerClip);
                 
-                // Update progress during polling
-                const pollProgress = Math.round(baseProgress + (batchNumber - 1) / totalBatches * (85 - baseProgress) + (pollAttempts / maxPolls) * ((85 - baseProgress) / totalBatches * 0.8));
                 setGenerationProgress({ 
                   step: 'polling', 
-                  percent: Math.min(pollProgress, 85), 
-                  estimatedSecondsRemaining: Math.max(10, (maxPolls - pollAttempts) * 5),
-                  currentClip: batchStart + 1,
+                  percent, 
+                  estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
+                  currentClip: completedCount,
                   totalClips: numClips
                 });
                 
-                const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
-                  body: { taskId },
-                });
+                // Update database with completed clip
+                const validClips = completedClips.filter((c): c is string => c !== null);
+                const remainingTasks = pendingTasks.filter(t => t.taskId !== task.taskId);
+                await supabase
+                  .from('movie_projects')
+                  .update({ 
+                    video_clips: validClips,
+                    pending_video_tasks: remainingTasks,
+                  })
+                  .eq('id', projectId);
                 
-                if (statusError) {
-                  console.error('Status check error:', statusError);
-                  continue;
-                }
+                toast.success(`Clip ${task.clipIndex + 1}/${numClips} complete!`);
+                return { index: task.clipIndex, clipUrl };
                 
-                if (statusData?.status === 'SUCCEEDED' && statusData?.videoUrl) {
-                  clipUrl = statusData.videoUrl;
-                  completedClips[clip.index] = clipUrl;
-                  completedCount++;
-                  
-                  const percent = Math.round(baseProgress + (completedCount / numClips) * (85 - baseProgress));
-                  const remainingBatches = totalBatches - batchNumber;
-                  const estimatedRemaining = Math.round(remainingBatches * estimatedSecondsPerClip);
-                  
-                  setGenerationProgress({ 
-                    step: 'polling', 
-                    percent, 
-                    estimatedSecondsRemaining: Math.max(10, estimatedRemaining),
-                    currentClip: completedCount,
-                    totalClips: numClips
-                  });
-                  
-                  // Update persisted generation state
-                  saveGenerationState({
-                    projectId,
-                    projectName,
-                    startedAt: generationStartTime,
-                    step: 'polling',
-                    totalClips: numClips,
-                    completedClips: completedCount,
-                    clipDuration,
-                    creditsDeducted: creditsCost,
-                  });
-                  
-                  toast.success(`Clip ${clip.index + 1}/${numClips}${clip.sceneTitle ? ` "${clip.sceneTitle}"` : ''} complete!`);
-                  return { index: clip.index, clipUrl };
-                } else if (statusData?.status === 'FAILED') {
-                  throw new Error(statusData.error || `Clip ${clip.index + 1} generation failed`);
-                } else if (statusData?.status === 'THROTTLED') {
-                  throttledCount++;
-                  console.log(`Clip ${clip.index + 1} throttled (${throttledCount}/${maxThrottled})`);
-                  
-                  // If stuck in throttled state too long, retry the whole clip
-                  if (throttledCount >= maxThrottled) {
-                    throw new Error(`Clip ${clip.index + 1} stuck in throttled state, retrying...`);
-                  }
-                  
-                  await new Promise(resolve => setTimeout(resolve, 5000)); // Extra wait
+              } else if (statusData?.status === 'FAILED') {
+                throw new Error(statusData.error || `Clip ${task.clipIndex + 1} generation failed`);
+              } else if (statusData?.status === 'THROTTLED') {
+                throttledCount++;
+                if (throttledCount >= maxThrottled) {
+                  throw new Error(`Clip ${task.clipIndex + 1} stuck in throttled state`);
                 }
-                // RUNNING or PENDING - continue polling
-              }
-              
-              if (!clipUrl) {
-                throw new Error(`Clip ${clip.index + 1} timed out`);
-              }
-              
-              return { index: clip.index, clipUrl };
-              
-            } catch (error) {
-              lastError = error instanceof Error ? error : new Error(String(error));
-              console.error(`Clip ${clip.index + 1} attempt ${attempt} failed:`, lastError.message);
-              
-              // Don't retry if cancelled or rate limited
-              if (lastError.message.includes('cancelled') || lastError.message === 'RATE_LIMIT_EXCEEDED') {
-                throw lastError;
+                await new Promise(resolve => setTimeout(resolve, 5000));
               }
             }
-          }
-          
-          // All retries exhausted
-          throw lastError || new Error(`Clip ${clip.index + 1} failed after ${maxRetries} attempts`);
-        };
-        
-        // Process clips in batch with retry support
-        const batchResults = await Promise.allSettled(
-          batchClips.map(clip => generateClipWithRetry(clip))
+            
+            if (!clipUrl) {
+              throw new Error(`Clip ${task.clipIndex + 1} timed out`);
+            }
+            
+            return { index: task.clipIndex, clipUrl };
+          })
         );
         
-        // Check for any failures
-        const failures = batchResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+        // Check for failures
+        const failures = taskResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
         if (failures.length > 0) {
           const failedMessages = failures.map(f => f.reason?.message || 'Unknown error').join(', ');
           throw new Error(`Some clips failed: ${failedMessages}`);
@@ -1114,7 +1225,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         
         // Save progress after each batch
         const validClips = completedClips.filter((c): c is string => c !== null);
-        await updateProject(projectId, { video_clips: validClips });
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            video_clips: validClips,
+            pending_video_tasks: [],
+          })
+          .eq('id', projectId);
       }
       
       // Verify all clips completed
@@ -1124,20 +1241,23 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       }
 
       // All clips complete - save final state to database
-      await updateProject(projectId, {
-        status: 'completed' as ProjectStatus,
-        video_url: finalClips[0], // First clip as primary
-        video_clips: finalClips,
-        duration_seconds: numClips * clipDuration,
-        credits_used: numClips * clipDuration * 10,
-      });
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'completed',
+          video_url: finalClips[0],
+          video_clips: finalClips,
+          pending_video_tasks: [],
+        })
+        .eq('id', projectId);
       
-      // Clear persisted generation state on success
-      saveGenerationState(null);
       setActiveGenerationProjectId(null);
       setGenerationProgress({ step: 'idle', percent: 100, estimatedSecondsRemaining: null });
       setIsGenerating(false);
       toast.success(`All ${numClips} clips generated! Total: ${numClips * clipDuration}s`);
+      
+      // Refresh to get updated project
+      await refreshProjects();
 
       // Auto-generate thumbnail in background
       toast.info('Generating cinematic thumbnail...');
@@ -1162,24 +1282,31 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }
       } catch (thumbErr) {
         console.error('Failed to generate thumbnail:', thumbErr);
-        // Don't fail the whole process for thumbnail
       }
 
     } catch (error) {
       console.error('Generation error:', error);
       const message = error instanceof Error ? error.message : 'Generation failed';
       
-      // Clear generation state on error (but credits are already deducted)
-      saveGenerationState(null);
+      // Clear pending tasks on error
+      await supabase
+        .from('movie_projects')
+        .update({ 
+          status: 'draft',
+          pending_video_tasks: [],
+        })
+        .eq('id', projectId);
+      
       setActiveGenerationProjectId(null);
       
       toast.error(message, {
         description: 'Credits were already deducted and cannot be refunded.',
       });
-      await updateProject(projectId, { status: 'idle' as ProjectStatus });
       setGenerationProgress({ step: 'idle', percent: 0, estimatedSecondsRemaining: null });
       setIsGenerating(false);
       if (pollingRef.current) clearInterval(pollingRef.current);
+      
+      await refreshProjects();
     }
   };
 

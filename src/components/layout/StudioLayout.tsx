@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Film, Folder, FileText, Play, Download,
   ChevronRight, User, LogOut, Settings,
   Check, Plus, Zap, HelpCircle, Keyboard, Coins,
-  Home, Video, Mic, Music, Sparkles
+  Home, Video, Mic, Music, Sparkles, Activity,
+  TrendingUp, Clock, BarChart3
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,7 @@ function StudioSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds } = useStudio();
+  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds, isGenerating, generationProgress } = useStudio();
   const isCollapsed = state === 'collapsed';
 
   // Check if we're in a project workflow
@@ -345,30 +346,77 @@ function StudioSidebar() {
           </SidebarGroup>
         )}
 
-        {!isCollapsed && activeProject && (
-          <div className="mt-8 animate-fade-in">
-            <div className="p-4 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  activeProject.status === 'completed' && "bg-white shadow-lg shadow-white/50",
-                  activeProject.status === 'generating' && "bg-white/70 animate-pulse shadow-lg shadow-white/30",
-                  activeProject.status === 'rendering' && "bg-white/60 animate-pulse shadow-lg shadow-white/20",
-                  activeProject.status === 'idle' && "bg-white/30"
-                )} />
-                <span className="text-[10px] uppercase tracking-widest text-white/30 font-bold">
-                  Current
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-white truncate mb-2">
-                {activeProject.name}
-              </p>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-[11px] text-white/50 capitalize">
-                <Zap className="w-3 h-3" />
-                {activeProject.status}
-              </div>
+        {/* Progress & Stats Widget */}
+        {!isCollapsed && (
+          <SidebarGroup className="mt-6">
+            <div className="px-1 mb-3">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold p-0 flex items-center gap-2">
+                <Activity className="w-3 h-3" />
+                Stats
+              </SidebarGroupLabel>
             </div>
-          </div>
+            <SidebarGroupContent>
+              <div className="space-y-2">
+                {/* Active Project Card */}
+                {activeProject && (
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        activeProject.status === 'completed' && "bg-emerald-400",
+                        activeProject.status === 'generating' && "bg-amber-400 animate-pulse",
+                        activeProject.status === 'rendering' && "bg-blue-400 animate-pulse",
+                        activeProject.status === 'idle' && "bg-white/30"
+                      )} />
+                      <span className="text-[9px] uppercase tracking-widest text-white/40 font-medium">
+                        Active
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-white/90 truncate mb-1">
+                      {activeProject.name}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+                      <span className="capitalize">{activeProject.status}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage Stats */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Video className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                    <p className="text-sm font-semibold text-white/90">{selectedDurationSeconds || 0}s</p>
+                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Duration</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <TrendingUp className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                    <p className="text-sm font-semibold text-white/90">{credits.remaining > 0 ? Math.floor(credits.remaining / 50) : 0}</p>
+                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Clips Left</p>
+                  </div>
+                </div>
+
+                {/* Quick Generation Queue Indicator */}
+                {isGenerating && (
+                  <div className="p-3 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] text-white/50 uppercase tracking-wide font-medium">Generating</span>
+                      <span className="text-xs font-bold text-white/90">{generationProgress.percent}%</span>
+                    </div>
+                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-white/60 to-white/80 rounded-full transition-all duration-500"
+                        style={{ width: `${generationProgress.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
       </SidebarContent>
 

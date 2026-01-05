@@ -19,6 +19,9 @@ import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
 // New Pipeline Pages
 import ScriptingStage from "./pages/pipeline/ScriptingStage";
 import ProductionStage from "./pages/pipeline/ProductionStage";
@@ -39,6 +42,9 @@ const App = () => (
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/contact" element={<Contact />} />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={

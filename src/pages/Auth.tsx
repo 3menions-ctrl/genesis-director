@@ -332,9 +332,9 @@ export default function Auth() {
           {/* Footer */}
           <p className="mt-8 text-center text-xs text-muted-foreground">
             By continuing, you agree to our{' '}
-            <a href="#" className="text-foreground hover:text-foreground/80">Terms of Service</a>
+            <a href="/terms" className="text-foreground hover:text-foreground/80">Terms of Service</a>
             {' '}and{' '}
-            <a href="#" className="text-foreground hover:text-foreground/80">Privacy Policy</a>
+            <a href="/privacy" className="text-foreground hover:text-foreground/80">Privacy Policy</a>
           </p>
         </div>
       </div>

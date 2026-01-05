@@ -239,36 +239,13 @@ export default function Landing() {
             ))}
           </div>
 
-          {/* Hero Visual - Large Video Showcase */}
+          {/* Hero Visual - Minimal Video Showcase */}
           <div className="relative max-w-7xl mx-auto">
             {/* Ambient glow */}
             <div className="absolute -inset-16 bg-foreground/[0.03] rounded-[5rem] blur-[80px]" />
             
-            {/* Main container with glossy black header */}
-            <div className="relative rounded-[2rem] overflow-hidden shadow-obsidian-xl border border-foreground/5">
-              {/* Editor header - Glossy black */}
-              <div className="flex items-center justify-between px-6 py-4 bg-glossy-black">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-white/20 hover:bg-red-400/80 transition-colors cursor-pointer" />
-                    <div className="w-3 h-3 rounded-full bg-white/15 hover:bg-yellow-400/80 transition-colors cursor-pointer" />
-                    <div className="w-3 h-3 rounded-full bg-white/10 hover:bg-green-400/80 transition-colors cursor-pointer" />
-                  </div>
-                  <div className="h-5 w-px bg-white/10" />
-                  <span className="text-sm text-white/60 font-medium font-mono">sail_adventure.apex</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="px-3 py-1.5 rounded-lg bg-white/10 text-white/70 text-xs font-medium backdrop-blur-sm">
-                    4K Ready
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-foreground text-xs font-semibold shadow-lg">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
-                    Live Preview
-                  </div>
-                </div>
-              </div>
-              
-              {/* Video Player - Clean showcase */}
+            {/* Clean video container */}
+            <div className="relative rounded-[2rem] overflow-hidden shadow-obsidian-xl">
               <div className="relative aspect-[16/9] bg-black">
                 <video
                   autoPlay
@@ -280,7 +257,7 @@ export default function Landing() {
                 />
                 
                 {/* Subtle vignette overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_70%,rgba(0,0,0,0.2)_100%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_70%,rgba(0,0,0,0.15)_100%)] pointer-events-none" />
               </div>
             </div>
           </div>

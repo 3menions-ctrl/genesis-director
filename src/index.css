@@ -415,6 +415,54 @@
     border-color: hsl(0 0% 85%);
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     GLOSSY BLACK - Ultra Premium Shine
+     ═══════════════════════════════════════════════════════════════════ */
+  
+  .bg-glossy-black {
+    background: linear-gradient(
+      145deg,
+      hsl(0 0% 12%) 0%,
+      hsl(0 0% 8%) 50%,
+      hsl(0 0% 5%) 100%
+    );
+  }
+
+  .shadow-obsidian {
+    box-shadow: 
+      0 4px 20px hsl(0 0% 0% / 0.25),
+      0 2px 8px hsl(0 0% 0% / 0.2),
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.2);
+  }
+
+  .shadow-obsidian-lg {
+    box-shadow: 
+      0 8px 40px hsl(0 0% 0% / 0.35),
+      0 4px 16px hsl(0 0% 0% / 0.25),
+      inset 0 1px 0 hsl(0 0% 100% / 0.1),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.2);
+  }
+
+  .shadow-obsidian-xl {
+    box-shadow: 
+      0 16px 64px hsl(0 0% 0% / 0.4),
+      0 8px 32px hsl(0 0% 0% / 0.3),
+      inset 0 1px 0 hsl(0 0% 100% / 0.1),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.15);
+  }
+
+  /* Navigation glass with refined blur */
+  .nav-glass {
+    background: hsl(0 0% 100% / 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(0 0% 100% / 0.8);
+    box-shadow: 
+      0 4px 24px hsl(0 0% 0% / 0.04),
+      inset 0 1px 0 hsl(0 0% 100% / 0.9);
+  }
+
   /* Legacy support */
   .card-clean { @apply glass-card; }
   .card-dark { @apply glass-card-dark; }

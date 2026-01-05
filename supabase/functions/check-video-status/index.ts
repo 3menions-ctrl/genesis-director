@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Replicate from "https://esm.sh/replicate@0.25.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -156,12 +157,51 @@ serve(async (req) => {
 
         if (result?.generatedSamples?.[0]?.video?.uri) {
           videoUrl = result.generatedSamples[0].video.uri;
+        } else if (result?.videos?.[0]?.gcsUri) {
+          videoUrl = result.videos[0].gcsUri;
         } else if (result?.videos?.[0]?.uri) {
           videoUrl = result.videos[0].uri;
+        } else if (result?.videos?.[0]?.bytesBase64Encoded) {
+          // Video returned as base64 - upload to Supabase storage
+          console.log("Video returned as base64, uploading to storage...");
+          
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            const supabase = createClient(supabaseUrl, supabaseKey);
+            
+            const base64Data = result.videos[0].bytesBase64Encoded;
+            const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            
+            const fileName = `veo-${Date.now()}-${Math.random().toString(36).substring(7)}.mp4`;
+            const filePath = `generated-videos/${fileName}`;
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("character-references")
+              .upload(filePath, binaryData, {
+                contentType: "video/mp4",
+                upsert: true,
+              });
+            
+            if (uploadError) {
+              console.error("Failed to upload video to storage:", uploadError);
+              // Return base64 as data URL fallback
+              videoUrl = `data:video/mp4;base64,${base64Data.substring(0, 100)}...`;
+            } else {
+              const { data: publicUrl } = supabase.storage
+                .from("character-references")
+                .getPublicUrl(filePath);
+              
+              videoUrl = publicUrl.publicUrl;
+              console.log("Video uploaded to storage:", videoUrl);
+            }
+          } catch (uploadErr) {
+            console.error("Error uploading video:", uploadErr);
+            videoUrl = "upload-failed";
+          }
         } else if (result?.predictions?.[0]?.bytesBase64Encoded) {
-          // Video returned as base64 - would need to upload to storage
-          console.log("Video returned as base64, needs upload");
-          // For now, indicate success but note the format
+          // Alternative format - also upload to storage
+          console.log("Video in predictions format as base64");
           videoUrl = "base64-encoded";
         }
 

@@ -83,21 +83,31 @@ export default function ReviewStage() {
           return;
         }
         
-        if (projects && projects.length > 0 && projects[0].video_clips) {
+        console.log('[ReviewStage] Query result:', projects);
+        
+        if (projects && projects.length > 0) {
           const project = projects[0];
-          const clips: ReviewClip[] = (project.video_clips as string[]).map((url, index) => ({
-            id: `db_clip_${index}`,
-            index,
-            title: `Clip ${index + 1}`,
-            videoUrl: url,
-            durationSeconds: 5, // Default duration
-            mood: 'cinematic',
-            status: 'completed' as const,
-          }));
+          const videoClips = project.video_clips as string[] | null;
           
-          setDatabaseClips(clips);
-          setProjectTitle(project.title || 'Your Production');
-          console.log('[ReviewStage] Loaded', clips.length, 'clips from database');
+          if (videoClips && Array.isArray(videoClips) && videoClips.length > 0) {
+            const clips: ReviewClip[] = videoClips.map((url, index) => ({
+              id: `db_clip_${index}`,
+              index,
+              title: `Clip ${index + 1}`,
+              videoUrl: url,
+              durationSeconds: 5, // Default duration
+              mood: 'cinematic',
+              status: 'completed' as const,
+            }));
+            
+            setDatabaseClips(clips);
+            setProjectTitle(project.title || 'Your Production');
+            console.log('[ReviewStage] Loaded', clips.length, 'clips from database:', clips.map(c => c.videoUrl));
+          } else {
+            console.log('[ReviewStage] Project found but no video_clips:', project);
+          }
+        } else {
+          console.log('[ReviewStage] No projects with video_clips found for user');
         }
       } catch (err) {
         console.error('[ReviewStage] Failed to load clips:', err);

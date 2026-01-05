@@ -50,6 +50,7 @@ export default function ScriptingStage() {
     goToStage,
     // IMAGE-FIRST
     setReferenceImage,
+    clearReferenceImage,
     // CINEMATIC AUDITOR
     runCinematicAudit,
     approveAudit,
@@ -333,6 +334,7 @@ export default function ScriptingStage() {
           <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
             <ReferenceImageUpload
               onAnalysisComplete={setReferenceImage}
+              onClear={clearReferenceImage}
               existingAnalysis={state.referenceImage}
             />
             
@@ -427,6 +429,7 @@ export default function ScriptingStage() {
             <div className="mb-6 animate-fade-in">
               <ReferenceImageUpload
                 onAnalysisComplete={setReferenceImage}
+                onClear={clearReferenceImage}
                 existingAnalysis={state.referenceImage}
               />
             </div>

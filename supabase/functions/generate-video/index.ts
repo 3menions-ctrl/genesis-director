@@ -310,19 +310,34 @@ serve(async (req) => {
 
     // Add image for image-to-video mode
     if (isImageToVideo && startImageUrl) {
-      // For GCS URIs or HTTP URLs, we need to fetch and encode as base64
+      // For HTTP URLs, we need to fetch and encode as base64
       if (startImageUrl.startsWith("http")) {
         try {
           const imageResponse = await fetch(startImageUrl);
           const imageBuffer = await imageResponse.arrayBuffer();
-          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+          const uint8Array = new Uint8Array(imageBuffer);
+          
+          // Convert to base64 in chunks to avoid stack overflow
+          let binary = '';
+          const chunkSize = 32768; // 32KB chunks
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          const base64Image = btoa(binary);
+          
+          // Determine mime type from URL or default to jpeg
+          const mimeType = startImageUrl.includes('.png') ? 'image/png' : 
+                          startImageUrl.includes('.webp') ? 'image/webp' : 'image/jpeg';
+          
           instance.image = {
             bytesBase64Encoded: base64Image,
-            mimeType: "image/jpeg"
+            mimeType: mimeType
           };
+          console.log("Image converted to base64 for Vertex AI, size:", base64Image.length);
         } catch (imgError) {
           console.error("Failed to fetch image for Vertex AI:", imgError);
-          // Continue without image
+          // Continue without image - will use text-to-video mode
         }
       }
     }

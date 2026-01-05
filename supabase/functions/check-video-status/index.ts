@@ -29,7 +29,14 @@ serve(async (req) => {
     const replicate = new Replicate({ auth: REPLICATE_API_KEY });
     const prediction = await replicate.predictions.get(taskId);
 
-    console.log("Replicate prediction status:", prediction.status);
+    // Log full prediction details to verify model
+    console.log("Replicate prediction:", {
+      id: prediction.id,
+      status: prediction.status,
+      model: prediction.model,
+      version: prediction.version,
+      createdAt: prediction.created_at,
+    });
     
     // Log error details if failed
     if (prediction.status === "failed" && prediction.error) {

@@ -12,6 +12,7 @@ import {
   Brain, Layers, Eye, Stars
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ExamplesGallery from '@/components/landing/ExamplesGallery';
 
 
 const CAPABILITIES = [
@@ -70,6 +71,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [activeCapability, setActiveCapability] = useState(0);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [showExamples, setShowExamples] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -233,12 +235,16 @@ export default function Landing() {
             <Button
               variant="outline"
               size="lg"
+              onClick={() => setShowExamples(true)}
               className="h-14 px-10 text-base font-semibold rounded-2xl hover:-translate-y-0.5 transition-all"
             >
               <Stars className="w-5 h-5 mr-2" />
               See examples
             </Button>
           </div>
+
+          {/* Examples Gallery Modal */}
+          <ExamplesGallery open={showExamples} onOpenChange={setShowExamples} />
 
           {/* Capabilities with refined styling */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-24 animate-fade-in" style={{ animationDelay: '300ms' }}>

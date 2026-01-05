@@ -93,7 +93,7 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden [&>button]:hidden rounded-none left-0 top-0 translate-x-0 translate-y-0">
+      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
         {/* Fullscreen Video - No boundaries */}
         <div className="absolute inset-0">
           {/* Loading state */}
@@ -126,17 +126,18 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
           <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
           
           {/* Top gradient for controls */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
         </div>
 
-        {/* Close button - Top right */}
-        <button
+        {/* Close X button - Top right corner */}
+        <div 
           onClick={() => onOpenChange(false)}
-          className="absolute top-8 right-8 z-[100] w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110 shadow-2xl"
+          className="absolute top-4 right-4 z-[9999] cursor-pointer p-4 group"
+          role="button"
           aria-label="Close gallery"
         >
-          <X className="w-6 h-6" />
-        </button>
+          <X className="w-8 h-8 text-white/70 group-hover:text-white transition-colors drop-shadow-lg" strokeWidth={1.5} />
+        </div>
 
         {/* Counter */}
         <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">

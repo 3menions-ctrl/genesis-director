@@ -663,6 +663,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     checkForActiveGeneration();
   }, [resumePendingGeneration]);
 
+  // Reload projects when user changes (login/logout)
+  useEffect(() => {
+    if (user) {
+      console.log('User changed, reloading projects for:', user.email);
+      loadProjects();
+    } else {
+      // Clear projects when user logs out
+      setProjects([]);
+      setActiveProjectId(null);
+    }
+  }, [user?.id]);
+
   // Sync credits from auth profile
   useEffect(() => {
     if (profile) {

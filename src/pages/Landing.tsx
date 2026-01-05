@@ -59,10 +59,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: '10M+', label: 'Videos Created' },
-  { value: '500K+', label: 'Active Creators' },
-  { value: '4.9', label: 'User Rating' },
-  { value: '<2m', label: 'Avg Generation' },
+  { value: '847K', label: 'Videos Generated' },
+  { value: '23K', label: 'Active Creators' },
+  { value: '4.7', label: 'User Rating' },
+  { value: '45s', label: 'Avg Generation' },
 ];
 
 export default function Landing() {

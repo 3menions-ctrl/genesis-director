@@ -121,6 +121,13 @@ export type ShotStatus = 'pending' | 'generating' | 'completed' | 'failed';
 
 export type AudioMixMode = 'full' | 'dialogue-only' | 'music-only' | 'mute';
 
+// Transition types for seamless shot connections
+export type TransitionType = 'continuous' | 'match-cut' | 'dissolve' | 'fade';
+
+// Maximum video duration per shot
+export const MAX_SHOT_DURATION_SECONDS = 16;
+export const MIN_SHOT_DURATION_SECONDS = 4;
+
 // Shot represents a single unit in the script with associated metadata
 export interface Shot {
   id: string; // Unique Shot ID (e.g., "shot_001")
@@ -128,9 +135,10 @@ export interface Shot {
   title: string;
   description: string; // Visual description for video generation
   dialogue: string; // Dialogue/narration text for this shot
-  durationSeconds: number;
+  durationSeconds: number; // 4-16 seconds per shot (MAX 16)
   mood: string;
   cameraMovement: string; // Will be rewritten by Cameraman Filter
+  transitionOut?: TransitionType; // How this shot flows into the next
   characters: string[];
   // Generated assets
   videoUrl?: string;

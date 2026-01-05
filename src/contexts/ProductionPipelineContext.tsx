@@ -16,6 +16,9 @@ import {
   QualityTier,
   QualityInsuranceCost,
   VisualDebugResultSummary,
+  TransitionType,
+  MAX_SHOT_DURATION_SECONDS,
+  MIN_SHOT_DURATION_SECONDS,
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -263,18 +266,25 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       
       if (error) throw error;
       
-      const shots: Shot[] = (data.scenes || []).map((scene: any, index: number) => ({
-        id: `shot_${String(index + 1).padStart(3, '0')}`,
-        index,
-        title: scene.title || `Shot ${index + 1}`,
-        description: scene.visualDescription || scene.description,
-        dialogue: scene.dialogue || scene.scriptText || '',
-        durationSeconds: scene.durationSeconds || 5,
-        mood: scene.mood || 'neutral',
-        cameraMovement: scene.cameraMovement || 'steady',
-        characters: scene.characters || [],
-        status: 'pending' as const,
-      }));
+      const shots: Shot[] = (data.scenes || []).map((scene: any, index: number) => {
+        // Enforce 4-16 second duration limits
+        let duration = scene.durationSeconds || 8;
+        duration = Math.max(MIN_SHOT_DURATION_SECONDS, Math.min(MAX_SHOT_DURATION_SECONDS, duration));
+        
+        return {
+          id: `shot_${String(index + 1).padStart(3, '0')}`,
+          index,
+          title: scene.title || `Shot ${index + 1}`,
+          description: scene.visualDescription || scene.description,
+          dialogue: scene.dialogue || scene.scriptText || '',
+          durationSeconds: duration,
+          mood: scene.mood || 'neutral',
+          cameraMovement: scene.cameraMovement || 'steady',
+          transitionOut: (scene.transitionOut as TransitionType) || 'continuous',
+          characters: scene.characters || [],
+          status: 'pending' as const,
+        };
+      });
       
       setState(prev => ({
         ...prev,
@@ -515,11 +525,13 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       const { data, error } = await supabase.functions.invoke('generate-video', {
         body: {
           prompt: enrichedPrompt,
-          duration: shot.durationSeconds,
+          duration: Math.min(MAX_SHOT_DURATION_SECONDS, shot.durationSeconds),
           negativePrompt,
           startImage: previousFrameUrl, // Frame chaining via first_frame_image
           // Use master anchor as subject_reference for character consistency
           subjectReference: state.production.masterAnchor?.imageUrl,
+          // Transition type for seamless shot connections
+          transitionOut: shot.transitionOut || 'continuous',
           sceneContext: {
             // Pass full reference analysis for background/lighting adaptation
             environment: state.referenceImage?.environment?.setting || state.production.masterAnchor?.environmentPrompt,

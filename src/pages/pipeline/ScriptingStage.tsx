@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useProductionPipeline } from '@/contexts/ProductionPipelineContext';
-import { PROJECT_TYPES, ProjectType, Shot } from '@/types/production-pipeline';
+import { PROJECT_TYPES, ProjectType, Shot, MAX_SHOT_DURATION_SECONDS } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -640,7 +640,15 @@ function ShotCard({
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 {shot.durationSeconds}s
+                {shot.durationSeconds > MAX_SHOT_DURATION_SECONDS && (
+                  <span className="text-destructive ml-1">(max {MAX_SHOT_DURATION_SECONDS}s)</span>
+                )}
               </Badge>
+              {shot.transitionOut && (
+                <Badge variant="secondary" className="text-xs capitalize">
+                  → {shot.transitionOut}
+                </Badge>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

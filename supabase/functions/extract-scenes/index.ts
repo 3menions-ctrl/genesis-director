@@ -42,7 +42,7 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-    const systemPrompt = `You are a video production assistant. Create a shot breakdown from the user's script/concept.
+const systemPrompt = `You are a video production assistant. Create a shot breakdown from the user's script/concept.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
 STYLE: ${projectTypeContext}
@@ -53,6 +53,8 @@ CRITICAL RULES:
 2. If the script describes ONE simple scene (e.g., "person sitting on couch"), create shots that all show THAT SAME SCENE from different angles/moments
 3. Each shot should be a visual moment within the user's concept, NOT a new adventure
 4. Keep descriptions grounded in what the user actually described
+5. MAXIMUM DURATION: Each shot MUST be between 4-16 seconds. Never exceed 16 seconds per shot.
+6. SEAMLESS TRANSITIONS: Design each shot to flow naturally into the next with smooth visual transitions
 
 For each shot, provide:
 - id: Shot identifier (format: "shot_001", "shot_002")
@@ -63,10 +65,12 @@ For each shot, provide:
   * Lighting and atmosphere
   * Character positions and expressions (if mentioned)
   * Use perspective language, NOT camera terms
+  * End each shot description with a transition hint for continuity
 - dialogue: Any narration/dialogue (empty string if none)
-- durationSeconds: 3-7 seconds per shot
+- durationSeconds: 4-16 seconds per shot (MAXIMUM 16 seconds, aim for 5-10 for most shots)
 - mood: Emotional tone
-- cameraMovement: Perspective type (steady, approaching, retreating, rising)
+- cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
+- transitionOut: How this shot flows into the next ("dissolve", "match-cut", "continuous", "fade")
 - characters: Array of character names (ONLY those mentioned by user)
 
 Return ONLY valid JSON:
@@ -76,16 +80,23 @@ Return ONLY valid JSON:
       "id": "shot_001",
       "index": 0,
       "title": "Scene moment",
-      "description": "Visual description...",
+      "description": "Visual description ending with transition continuity...",
       "dialogue": "",
-      "durationSeconds": 5,
+      "durationSeconds": 8,
       "mood": "calm",
       "cameraMovement": "steady",
+      "transitionOut": "continuous",
       "characters": []
     }
   ],
   "totalDurationSeconds": 30
 }
+
+TRANSITION GUIDELINES:
+- "continuous": Shot ends with movement/action that continues in next shot (best for frame chaining)
+- "match-cut": End frame matches start of next shot (same color, shape, or position)
+- "dissolve": Gradual blend works for mood/time changes
+- "fade": Reserved for scene endings or dramatic pauses
 
 REMEMBER: If the user wants "Hannah sitting on a couch", ALL shots should show Hannah on that couch - different angles, moments, expressions - NOT Hannah going on adventures.`;
 
@@ -160,19 +171,29 @@ REMEMBER: If the user wants "Hannah sitting on a couch", ALL shots should show H
       }
     }
 
-    // Normalize the response to ensure correct format
-    const normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => ({
-      id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
-      index: scene.index ?? index,
-      title: scene.title || `Shot ${index + 1}`,
-      description: scene.description || scene.visualDescription || '',
-      dialogue: scene.dialogue || scene.scriptText || '',
-      durationSeconds: scene.durationSeconds || 5,
-      mood: scene.mood || 'neutral',
-      cameraMovement: scene.cameraMovement || 'steady',
-      characters: scene.characters || [],
-      status: 'pending',
-    }));
+    // Normalize the response to ensure correct format with duration enforcement
+    const MAX_SHOT_DURATION = 16;
+    const MIN_SHOT_DURATION = 4;
+    
+    const normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => {
+      // Enforce 4-16 second duration limits
+      let duration = scene.durationSeconds || 8;
+      duration = Math.max(MIN_SHOT_DURATION, Math.min(MAX_SHOT_DURATION, duration));
+      
+      return {
+        id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
+        index: scene.index ?? index,
+        title: scene.title || `Shot ${index + 1}`,
+        description: scene.description || scene.visualDescription || '',
+        dialogue: scene.dialogue || scene.scriptText || '',
+        durationSeconds: duration,
+        mood: scene.mood || 'neutral',
+        cameraMovement: scene.cameraMovement || 'steady',
+        transitionOut: scene.transitionOut || 'continuous',
+        characters: scene.characters || [],
+        status: 'pending',
+      };
+    });
 
     console.log("Successfully extracted", normalizedScenes.length, "shots");
 

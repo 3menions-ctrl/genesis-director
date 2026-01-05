@@ -429,11 +429,18 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     
     cancelRef.current = false;
     
+    // CRITICAL: Ensure production.shots is initialized from structuredShots
+    // This fixes the issue where shots might not have been synced properly
     setState(prev => ({
       ...prev,
       currentStage: 'production',
       production: {
         ...prev.production,
+        // Initialize shots from structuredShots to ensure they're in sync
+        shots: prev.structuredShots.map(shot => ({ ...shot, status: 'pending' as const })),
+        currentShotIndex: 0,
+        completedShots: 0,
+        failedShots: 0,
         isGeneratingVideo: true,
         isGeneratingAudio: true,
         generationStartedAt: Date.now(),
@@ -615,22 +622,27 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         }
       }
       
-      // Production complete
-      const completedCount = state.production.completedShots;
-      setState(prev => ({
-        ...prev,
-        production: { ...prev.production, isGeneratingVideo: false },
-        exportReady: completedCount > 0,
-      }));
-      
-      if (completedCount === state.structuredShots.length) {
-        toast.success('All shots generated! Ready for review.');
-        goToStage('review');
-      } else if (completedCount > 0) {
-        toast.warning(`${completedCount}/${state.structuredShots.length} shots completed. Some failed.`);
-      } else {
-        toast.error('All shots failed. Please retry.');
-      }
+      // Production complete - use setState callback to get accurate count
+      setState(prev => {
+        const completedCount = prev.production.shots.filter(s => s.status === 'completed').length;
+        const totalShots = prev.structuredShots.length;
+        
+        // Show appropriate toast based on completion
+        if (completedCount === totalShots && completedCount > 0) {
+          setTimeout(() => toast.success('All shots generated! Ready for review.'), 100);
+        } else if (completedCount > 0) {
+          setTimeout(() => toast.warning(`${completedCount}/${totalShots} shots completed. Some failed.`), 100);
+        } else {
+          setTimeout(() => toast.error('All shots failed. Please retry.'), 100);
+        }
+        
+        return {
+          ...prev,
+          production: { ...prev.production, isGeneratingVideo: false },
+          exportReady: completedCount > 0,
+          currentStage: completedCount > 0 ? 'review' : prev.currentStage,
+        };
+      });
       
     } catch (err) {
       console.error('Production error:', err);

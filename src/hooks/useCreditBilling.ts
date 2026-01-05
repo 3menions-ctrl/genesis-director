@@ -11,7 +11,7 @@ export const CREDIT_COSTS = {
   TOTAL_PER_SHOT: 25,  // Standard tier
 } as const;
 
-// Quality Tier Credits
+// Quality Tier Credits (Zero-Waste Premium: 50 credits/unit)
 export const TIER_CREDIT_COSTS = {
   standard: {
     PRE_PRODUCTION: 5,
@@ -22,8 +22,8 @@ export const TIER_CREDIT_COSTS = {
   professional: {
     PRE_PRODUCTION: 5,
     PRODUCTION: 20,
-    QUALITY_INSURANCE: 15, // Audit + Visual Debugger + retry buffer
-    TOTAL_PER_SHOT: 40,
+    QUALITY_INSURANCE: 25, // Audit + Visual Debugger + 4 retry buffer
+    TOTAL_PER_SHOT: 50,
   },
 } as const;
 

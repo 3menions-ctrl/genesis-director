@@ -105,6 +105,13 @@ ${referenceContext}
 - **Scale Consistency**: Objects maintain relative size
 - **Shadow Consistency**: Shadows match light sources
 
+### CHARACTER-FIRST PACING (Zero-Waste Premium):
+- **1.5-Second Static Scenery Cap**: Any shot without character movement or dialogue MUST be capped at 1.5 seconds maximum
+- **Character-Driven Priority**: Every shot should feature character action, expression change, or motivated movement
+- **Match-Cut Transitions**: Prefer match-cuts over dissolves to maintain visual momentum
+- **4-Second Unit Optimization**: Each 4-second unit must have at least 2.5 seconds of character-driven content
+- **Dead Air Elimination**: Flag any shot with >1.5s of static scenery as CRITICAL issue
+
 ### IDENTITY CONSISTENCY (critical for multi-shot projects):
 - Character appearance must stay identical across shots
 - Environment should maintain spatial logic

@@ -307,6 +307,11 @@ export default function Production() {
                               </p>
                             </div>
                           )}
+                          {generationError && (
+                            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg max-w-sm mx-auto">
+                              <p className="text-sm text-destructive">{generationError}</p>
+                            </div>
+                          )}
                         </div>
                         <Button variant="outline" size="sm" onClick={cancelGeneration} className="gap-2">
                           Cancel Generation

@@ -1,7 +1,115 @@
 // Iron-clad Production Pipeline Types
 // Unified state container for shot-by-shot video generation
+// Now with Image-First Reference Architecture & Cinematic Auditor Agent
 
 export type ProjectType = 'cinematic-trailer' | 'social-ad' | 'narrative-short' | 'documentary' | 'explainer';
+
+// ============================================
+// IMAGE-FIRST REFERENCE ARCHITECTURE TYPES
+// ============================================
+
+// Visual features extracted from the mandatory reference image
+export interface ReferenceImageAnalysis {
+  imageUrl: string;
+  analysisComplete: boolean;
+  
+  // Identity anchoring
+  characterIdentity: {
+    description: string;
+    facialFeatures: string;
+    clothing: string;
+    bodyType: string;
+    distinctiveMarkers: string[];
+  };
+  
+  // Environmental analysis
+  environment: {
+    setting: string;
+    geometry: string; // spatial relationships, depth, perspective
+    keyObjects: string[];
+    backgroundElements: string[];
+  };
+  
+  // Lighting & color extraction
+  lighting: {
+    style: string; // e.g., "dramatic chiaroscuro", "soft ambient"
+    direction: string; // e.g., "top-left key light"
+    quality: string; // e.g., "hard shadows", "diffused"
+    timeOfDay: string;
+  };
+  
+  // Color palette
+  colorPalette: {
+    dominant: string[];
+    accent: string[];
+    mood: string; // e.g., "warm cinematic", "cold dramatic"
+  };
+  
+  // Raw prompt for consistency injection
+  consistencyPrompt: string;
+}
+
+// ============================================
+// CINEMATIC AUDITOR AGENT TYPES
+// ============================================
+
+export type AuditSeverity = 'critical' | 'warning' | 'suggestion';
+
+export interface CinematicSuggestion {
+  shotId: string;
+  severity: AuditSeverity;
+  category: 'technique' | 'physics' | 'continuity' | 'identity';
+  originalText: string;
+  suggestion: string;
+  filmTechnique?: string; // e.g., "Kuleshov effect", "match cut"
+  physicsViolation?: string; // e.g., "gravity violation", "anatomical impossibility"
+  rewrittenPrompt?: string; // Optimized prompt for Replicate
+}
+
+export interface CinematicAuditResult {
+  auditComplete: boolean;
+  overallScore: number; // 0-100 production readiness score
+  totalSuggestions: number;
+  criticalIssues: number;
+  
+  // Categorized suggestions
+  suggestions: CinematicSuggestion[];
+  
+  // Film technique analysis
+  techniqueAnalysis: {
+    identifiedTechniques: string[];
+    recommendedTechniques: string[];
+    narrativeFlow: string;
+  };
+  
+  // Physics plausibility check
+  physicsCheck: {
+    gravityViolations: string[];
+    anatomicalIssues: string[];
+    fluidDynamicsIssues: string[];
+    morphingRisks: string[];
+  };
+  
+  // Identity consistency check
+  identityCheck: {
+    characterConsistency: boolean;
+    environmentConsistency: boolean;
+    lightingConsistency: boolean;
+    suggestions: string[];
+  };
+  
+  // Approved/optimized shots ready for production
+  optimizedShots: OptimizedShot[];
+}
+
+export interface OptimizedShot {
+  shotId: string;
+  originalDescription: string;
+  optimizedDescription: string;
+  identityAnchors: string[]; // Injected identity markers from reference image
+  physicsGuards: string[]; // Negative prompts to prevent physics violations
+  approved: boolean;
+}
 
 export type WorkflowStage = 'scripting' | 'production' | 'review';
 
@@ -90,10 +198,18 @@ export interface PipelineState {
   projectType: ProjectType;
   projectTitle: string;
   
+  // IMAGE-FIRST: Reference image analysis
+  referenceImage?: ReferenceImageAnalysis;
+  referenceImageRequired: boolean;
+  
   // Script approval state
   rawScript: string;
   structuredShots: Shot[];
   scriptApproved: boolean;
+  
+  // CINEMATIC AUDITOR: Audit results
+  cinematicAudit?: CinematicAuditResult;
+  auditApproved: boolean;
   
   // Production state
   production: ProductionState;
@@ -113,9 +229,11 @@ export const INITIAL_PIPELINE_STATE: PipelineState = {
   projectId: '',
   projectType: 'cinematic-trailer',
   projectTitle: '',
+  referenceImageRequired: true, // IMAGE-FIRST: Required by default
   rawScript: '',
   structuredShots: [],
   scriptApproved: false,
+  auditApproved: false, // CINEMATIC AUDITOR: Must be approved
   production: {
     globalSeed: Math.floor(Math.random() * 2147483647),
     shots: [],

@@ -1,342 +1,236 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import Replicate from "https://esm.sh/replicate@0.25.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Scene consistency context for multi-clip videos (includes reference image analysis)
+// Scene context for consistency
 interface SceneContext {
-  clipIndex?: number;
-  totalClips?: number;
-  sceneTitle?: string;
-  // Support both naming conventions from client
+  clipIndex: number;
+  totalClips: number;
   environment?: string;
-  globalEnvironment?: string;
-  globalCharacters?: string;
-  previousClipSummary?: string;
+  characters?: string[];
   colorPalette?: string;
   lightingStyle?: string;
-  // Extended reference image analysis fields
-  lightingDirection?: string;
-  timeOfDay?: string;
-  dominantColors?: string;
-  backgroundElements?: string;
+  backgroundElements?: string[];
+  previousClipEndFrame?: string;
 }
 
-// Camera reference patterns to strip from prompts
+// Camera pattern rewrites for better prompts
 const CAMERA_PATTERNS = [
-  /\bcamera\s+(points?|aims?|focuses?|zooms?|pans?|tilts?|tracks?|dollies?)\s+(at|to|on|toward|towards)\s+(the\s+)?/gi,
-  /\b(the\s+)?camera\s+(is\s+)?(on|at|focused\s+on)\s+/gi,
-  /\bcamera(man|person|operator)?\b/gi,
-  /\b(film\s+)?crew\b/gi,
-  /\b(tripod|dolly|crane|steadicam|gimbal)\s+(shot)?\b/gi,
-  /\b(lens|viewfinder|aperture)\b/gi,
-  /\bphotographer\b/gi,
-  /\bcamera\s+(moves?|glides?|sweeps?|rises?|descends?|follows?)\b/gi,
+  /\b(close[- ]?up|closeup)\b/gi,
+  /\b(wide[- ]?shot|wide[- ]?angle)\b/gi,
+  /\b(medium[- ]?shot)\b/gi,
+  /\b(establishing[- ]?shot)\b/gi,
+  /\b(tracking[- ]?shot)\b/gi,
+  /\b(dolly|pan|tilt|zoom)\b/gi,
+  /\b(POV|point[- ]?of[- ]?view)\b/gi,
 ];
 
-// Perspective-based rewrites for body parts
-const BODY_PART_PERSPECTIVES: Record<string, string> = {
-  'legs': 'low-angle ground-level perspective focusing on the subjects\' lower body',
-  'feet': 'extreme low-angle perspective at foot level',
-  'hands': 'intimate close perspective on hands and gestures',
-  'face': 'intimate portrait-level perspective',
-  'eyes': 'extreme close intimate perspective on the eyes',
-  'body': 'full-figure perspective capturing the complete form',
-};
-
-// Mandatory negative prompt elements
-const NEGATIVE_PROMPT_ELEMENTS = [
-  'cameraman',
-  'camera operator',
-  'photographer',
-  'tripod',
-  'camera equipment',
-  'lens visible',
-  'film crew',
-  'boom mic',
-  'lighting rig',
-  'behind the scenes',
-  'visible equipment',
-  'fourth wall break',
-];
-
-/**
- * Rewrites camera references to perspective-based language
- */
-function rewriteCameraReferences(prompt: string): string {
-  let rewritten = prompt;
-  
-  // Detect body part focus
-  const bodyParts = ['legs', 'feet', 'hands', 'face', 'eyes', 'body'];
-  let bodyPartFocus: string | null = null;
-  
-  for (const part of bodyParts) {
-    const patterns = [
-      new RegExp(`camera\\s+(points?|aims?|focuses?|on)\\s+(at\\s+)?(the\\s+)?${part}`, 'i'),
-      new RegExp(`focus(ing)?\\s+on\\s+(the\\s+)?${part}`, 'i'),
-      new RegExp(`shot\\s+of\\s+(the\\s+)?${part}`, 'i'),
-    ];
-    if (patterns.some(p => p.test(prompt.toLowerCase()))) {
-      bodyPartFocus = part;
-      break;
-    }
-  }
-  
-  // Remove camera references
-  for (const pattern of CAMERA_PATTERNS) {
-    rewritten = rewritten.replace(pattern, '');
-  }
-  
-  // Add perspective language for body part focus
-  if (bodyPartFocus && BODY_PART_PERSPECTIVES[bodyPartFocus]) {
-    rewritten = `${BODY_PART_PERSPECTIVES[bodyPartFocus]}. ${rewritten}`;
-  }
-  
-  // Rewrite camera movements to perspective language
-  const movementRewrites: [RegExp, string][] = [
-    [/zoom(s|ing)?\s+in(\s+on)?/gi, 'perspective gradually draws closer to'],
-    [/zoom(s|ing)?\s+out/gi, 'perspective expansively widens revealing'],
-    [/pan(s|ning)?\s+(to\s+the\s+)?left/gi, 'perspective sweeps leftward'],
-    [/pan(s|ning)?\s+(to\s+the\s+)?right/gi, 'perspective sweeps rightward'],
-    [/tilt(s|ing)?\s+up/gi, 'perspective rises revealing'],
-    [/tilt(s|ing)?\s+down/gi, 'perspective descends toward'],
-    [/push\s+in/gi, 'perspective gently approaches'],
-    [/pull\s+(back|out)/gi, 'perspective gradually retreats'],
-  ];
-  
-  for (const [pattern, replacement] of movementRewrites) {
-    rewritten = rewritten.replace(pattern, replacement);
-  }
-  
-  return rewritten.replace(/\s{2,}/g, ' ').trim();
-}
-
-/**
- * Transition hint phrases for seamless shot connections
- */
+// Transition hints for seamless connections
 const TRANSITION_HINTS: Record<string, string> = {
-  'continuous': 'with fluid motion that continues seamlessly',
-  'match-cut': 'ending with visual elements that mirror the next moment',
-  'dissolve': 'gradually transitioning with a soft blend',
-  'fade': 'gently fading as the moment concludes',
+  "fade": "gradual fade transition, smooth brightness change",
+  "cut": "clean cut, direct scene change",
+  "dissolve": "crossfade dissolve, overlapping transition",
+  "wipe": "directional wipe transition",
+  "match-cut": "match cut on similar shapes or movements",
+  "continuous": "continuous motion, seamless flow",
 };
 
-/**
- * Build prompt with minimal processing to preserve user intent
- */
+// Build enhanced prompt with consistency
 function buildConsistentPrompt(
-  basePrompt: string, 
-  context?: SceneContext,
-  negativePrompt?: string,
+  basePrompt: string,
+  sceneContext?: SceneContext,
+  inputNegativePrompt?: string,
   transitionOut?: string
 ): { prompt: string; negativePrompt: string } {
-  // Only do camera reference cleanup - preserve the actual content
-  let rewrittenPrompt = rewriteCameraReferences(basePrompt);
-  
-  // Add minimal consistency hints only for multi-clip projects
-  if (context && (context.totalClips || 0) > 1) {
-    const hints: string[] = [];
+  let prompt = basePrompt;
+
+  // Add scene context for consistency
+  if (sceneContext) {
+    const contextParts: string[] = [];
     
-    // Support both field names from client
-    const environment = context.globalEnvironment || context.environment;
-    if (environment) {
-      hints.push(`Setting: ${environment}`);
+    if (sceneContext.environment) {
+      contextParts.push(`Setting: ${sceneContext.environment}`);
+    }
+    if (sceneContext.lightingStyle) {
+      contextParts.push(`Lighting: ${sceneContext.lightingStyle}`);
+    }
+    if (sceneContext.colorPalette) {
+      contextParts.push(`Color palette: ${sceneContext.colorPalette}`);
+    }
+    if (sceneContext.characters?.length) {
+      contextParts.push(`Characters: ${sceneContext.characters.join(", ")}`);
     }
     
-    // Character consistency is important
-    if (context.globalCharacters) {
-      hints.push(`Characters: ${context.globalCharacters}`);
-    }
-    
-    // Color/lighting consistency from reference image analysis
-    if (context.dominantColors) {
-      hints.push(`Colors: ${context.dominantColors}`);
-    } else if (context.colorPalette) {
-      hints.push(`Colors: ${context.colorPalette}`);
-    }
-    
-    // Lighting with direction and time of day
-    if (context.lightingStyle) {
-      let lightingHint = `Lighting: ${context.lightingStyle}`;
-      if (context.lightingDirection) {
-        lightingHint += `, ${context.lightingDirection}`;
-      }
-      if (context.timeOfDay) {
-        lightingHint += ` (${context.timeOfDay})`;
-      }
-      hints.push(lightingHint);
-    }
-    
-    // Background elements for scene continuity
-    if (context.backgroundElements) {
-      hints.push(`Background: ${context.backgroundElements}`);
-    }
-    
-    // Build final prompt: hints first, then the actual description
-    if (hints.length > 0) {
-      rewrittenPrompt = `[${hints.join(', ')}] ${rewrittenPrompt}`;
+    if (contextParts.length > 0) {
+      prompt = `${prompt}. ${contextParts.join(". ")}`;
     }
   }
-  
-  // Add transition hint for seamless connections
+
+  // Add transition hint
   if (transitionOut && TRANSITION_HINTS[transitionOut]) {
-    rewrittenPrompt = `${rewrittenPrompt}, ${TRANSITION_HINTS[transitionOut]}`;
+    prompt = `${prompt}. End with ${TRANSITION_HINTS[transitionOut]}`;
   }
-  
-  // Enforce prompt limit
-  if (rewrittenPrompt.length > 2000) {
-    rewrittenPrompt = rewrittenPrompt.slice(0, 1997) + '...';
-  }
-  
-  // Build negative prompt with anti-jitter elements for smooth transitions
-  const allNegatives = [
-    ...NEGATIVE_PROMPT_ELEMENTS,
-    'jarring cuts',
-    'abrupt transitions',
-    'visual glitches',
-    'frame stuttering',
+
+  // Add quality modifiers for Veo 3.1
+  prompt = `${prompt}. High quality, cinematic, realistic physics, natural motion, detailed textures.`;
+
+  // Build negative prompt
+  const negativePromptParts = [
+    "blurry", "low quality", "distorted", "artifacts",
+    "watermark", "text overlay", "glitch", "jittery motion"
   ];
-  if (negativePrompt) {
-    allNegatives.push(...negativePrompt.split(',').map(s => s.trim()));
-  }
   
+  if (inputNegativePrompt) {
+    negativePromptParts.push(inputNegativePrompt);
+  }
+
   return {
-    prompt: rewrittenPrompt,
-    negativePrompt: allNegatives.join(', '),
+    prompt: prompt.slice(0, 2000), // Vertex AI prompt limit
+    negativePrompt: negativePromptParts.join(", ")
   };
 }
 
-/**
- * Converts a base64 data URL to a public Supabase Storage URL
- * Replicate requires HTTP URLs, not base64 data
- */
-async function uploadBase64ToStorage(
-  base64DataUrl: string, 
-  fileName: string
-): Promise<string> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+// Get OAuth2 access token from service account
+async function getAccessToken(serviceAccount: any): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 3600; // 1 hour expiry
+
+  // Create JWT header and payload
+  const header = {
+    alg: "RS256",
+    typ: "JWT"
+  };
+
+  const payload = {
+    iss: serviceAccount.client_email,
+    sub: serviceAccount.client_email,
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: exp,
+    scope: "https://www.googleapis.com/auth/cloud-platform"
+  };
+
+  // Base64URL encode
+  const base64UrlEncode = (obj: any) => {
+    const str = JSON.stringify(obj);
+    const bytes = new TextEncoder().encode(str);
+    let base64 = btoa(String.fromCharCode(...bytes));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  };
+
+  const headerB64 = base64UrlEncode(header);
+  const payloadB64 = base64UrlEncode(payload);
+  const unsignedToken = `${headerB64}.${payloadB64}`;
+
+  // Import the private key and sign
+  const pemContents = serviceAccount.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, '')
+    .replace(/-----END PRIVATE KEY-----/, '')
+    .replace(/\n/g, '');
   
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase credentials for storage upload");
+  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256"
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+
+  const jwt = `${unsignedToken}.${signatureB64}`;
+
+  // Exchange JWT for access token
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+  });
+
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.text();
+    console.error("OAuth token error:", error);
+    throw new Error(`Failed to get access token: ${error}`);
   }
-  
+
+  const tokenData = await tokenResponse.json();
+  return tokenData.access_token;
+}
+
+// Upload base64 image to Supabase storage and return URL
+async function uploadBase64ToStorage(base64Data: string): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
-  
-  // Parse base64 data URL
-  const matches = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!matches) {
-    throw new Error("Invalid base64 data URL format");
-  }
-  
+
+  // Extract mime type and data
+  const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) throw new Error("Invalid base64 data URL");
+
   const mimeType = matches[1];
-  const base64Data = matches[2];
-  
-  // Convert base64 to Uint8Array
-  const binaryString = atob(base64Data);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  
-  // Determine file extension from mime type
-  const extMap: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-  };
-  const ext = extMap[mimeType] || 'jpg';
-  const fullFileName = `${fileName}.${ext}`;
-  
-  // Upload to Supabase Storage (temp-frames bucket)
-  const bucketName = 'temp-frames';
-  
-  // Check if bucket exists, create if not
-  const { data: buckets } = await supabase.storage.listBuckets();
-  const bucketExists = buckets?.some(b => b.name === bucketName);
-  
-  if (!bucketExists) {
-    console.log(`Creating storage bucket: ${bucketName}`);
-    await supabase.storage.createBucket(bucketName, {
-      public: true,
-      fileSizeLimit: 10485760, // 10MB
-    });
-  }
-  
-  // Upload the file
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from(bucketName)
-    .upload(fullFileName, bytes, {
+  const data = matches[2];
+  const extension = mimeType.split("/")[1] || "jpg";
+  const fileName = `frame_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extension}`;
+
+  // Decode base64
+  const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+
+  // Upload to storage
+  const { data: uploadData, error } = await supabase.storage
+    .from("temp-frames")
+    .upload(fileName, bytes, {
       contentType: mimeType,
-      upsert: true,
+      upsert: true
     });
-  
-  if (uploadError) {
-    console.error("Storage upload error:", uploadError);
-    throw new Error(`Failed to upload image to storage: ${uploadError.message}`);
+
+  if (error) {
+    // Try creating bucket if it doesn't exist
+    await supabase.storage.createBucket("temp-frames", { public: true });
+    const { error: retryError } = await supabase.storage
+      .from("temp-frames")
+      .upload(fileName, bytes, { contentType: mimeType, upsert: true });
+    if (retryError) throw retryError;
   }
-  
-  // Get public URL
-  const { data: publicUrlData } = supabase.storage
-    .from(bucketName)
-    .getPublicUrl(fullFileName);
-  
-  console.log("Uploaded base64 to storage:", publicUrlData.publicUrl);
-  
-  return publicUrlData.publicUrl;
+
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+  console.log("Uploaded base64 to storage:", publicUrl);
+  return publicUrl;
 }
 
-/**
- * Ensures an image is a valid HTTP URL (uploads base64 if needed)
- */
-async function ensureImageUrl(
-  imageInput: string | undefined, 
-  prefix: string
-): Promise<string | undefined> {
-  if (!imageInput) return undefined;
+// Ensure image URL is valid (convert base64 if needed)
+async function ensureImageUrl(input: string | undefined): Promise<string | null> {
+  if (!input) return null;
   
-  // Trim whitespace
-  const trimmedInput = imageInput.trim();
-  
-  // If already an HTTP URL, return as-is
-  if (trimmedInput.startsWith('http://') || trimmedInput.startsWith('https://')) {
-    console.log(`[ensureImageUrl] Already an HTTP URL: ${trimmedInput.substring(0, 100)}...`);
-    return trimmedInput;
+  if (input.startsWith("http://") || input.startsWith("https://")) {
+    console.log("[ensureImageUrl] Already an HTTP URL:", input.substring(0, 80) + "...");
+    return input;
   }
   
-  // If base64 data URL, upload to storage
-  if (trimmedInput.startsWith('data:')) {
-    // Validate the data URL format before attempting decode
-    const matches = trimmedInput.match(/^data:([^;]+);base64,(.+)$/);
-    if (!matches) {
-      console.error(`[ensureImageUrl] Invalid data URL format. Starts with: ${trimmedInput.substring(0, 100)}`);
-      return undefined;
-    }
-    
-    const uniqueId = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    try {
-      return await uploadBase64ToStorage(trimmedInput, uniqueId);
-    } catch (uploadError) {
-      console.error(`[ensureImageUrl] Failed to upload base64:`, uploadError);
-      return undefined;
-    }
+  if (input.startsWith("data:")) {
+    console.log("[ensureImageUrl] Converting base64 to URL...");
+    return await uploadBase64ToStorage(input);
   }
   
-  // Check if it might be raw base64 without the data URL prefix
-  // Base64 strings typically only contain A-Z, a-z, 0-9, +, /, =
-  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
-  if (base64Regex.test(trimmedInput.substring(0, 100))) {
-    console.warn(`[ensureImageUrl] Detected raw base64 without data URL prefix. This format is not supported.`);
-    return undefined;
-  }
-  
-  // Unknown format - log and skip
-  console.warn(`[ensureImageUrl] Unknown image format, skipping. First 100 chars: ${trimmedInput.substring(0, 100)}`);
-  return undefined;
+  console.log("[ensureImageUrl] Unknown format, skipping");
+  return null;
 }
 
 serve(async (req) => {
@@ -345,110 +239,172 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      prompt, 
-      duration = 8, 
-      sceneContext, 
+    const {
+      prompt,
+      duration = 8,
+      sceneContext,
       referenceImageUrl,
-      startImage, // For frame chaining (image parameter)
+      startImage,
       negativePrompt: inputNegativePrompt,
-      transitionOut, // Transition type for seamless connections
+      transitionOut,
     } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
 
-    // Veo 2 generates 8-second clips by default (fixed duration)
-    // Duration parameter is informational only for Veo 2
-
-    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-    if (!REPLICATE_API_KEY) {
-      throw new Error("REPLICATE_API_KEY is not configured");
+    // Get service account credentials
+    const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
+    if (!serviceAccountJson) {
+      throw new Error("GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured");
     }
 
-    const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(serviceAccountJson);
+    } catch {
+      throw new Error("Invalid GOOGLE_VERTEX_SERVICE_ACCOUNT JSON format");
+    }
 
-    // Build enhanced prompt with physics reinforcement for Veo 2
+    const projectId = serviceAccount.project_id;
+    if (!projectId) {
+      throw new Error("project_id not found in service account");
+    }
+
+    // Get access token
+    console.log("Getting OAuth2 access token...");
+    const accessToken = await getAccessToken(serviceAccount);
+    console.log("Access token obtained successfully");
+
+    // Build enhanced prompt
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
-      prompt, 
+      prompt,
       sceneContext,
       inputNegativePrompt,
       transitionOut
     );
-    
-    // Add physics reinforcement to the prompt for Veo 2
-    // Veo 2 is known for physics simulation, but we reinforce it
-    const physicsEnhancedPrompt = `${enhancedPrompt}. Realistic physics, natural motion, gravity obeyed.`;
-    
-    // Determine the start image (frame chaining or reference image)
-    // IMPORTANT: Convert base64 to URLs - Replicate requires HTTP URLs!
+
+    // Prepare image input if provided
     const rawStartImage = startImage || referenceImageUrl;
-    const startImageUrl = await ensureImageUrl(rawStartImage, 'frame');
-    
+    const startImageUrl = await ensureImageUrl(rawStartImage);
     const isImageToVideo = !!startImageUrl;
 
-    console.log("Generating video with Google Veo 2:", {
+    console.log("Generating video with Google Vertex AI Veo 3.1:", {
+      projectId,
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
-      transitionOut: transitionOut || 'continuous',
-      promptLength: physicsEnhancedPrompt.length,
+      duration,
+      transitionOut: transitionOut || "continuous",
+      promptLength: enhancedPrompt.length,
       hasStartImage: isImageToVideo,
-      startImageUrl: isImageToVideo ? startImageUrl?.substring(0, 80) + '...' : null,
     });
 
-    // Veo 2 input configuration
-    // Veo 2 uses simpler parameters: prompt, image (optional), aspect_ratio
-    const input: Record<string, unknown> = {
-      prompt: physicsEnhancedPrompt,
-      aspect_ratio: "16:9", // Standard video aspect ratio
+    // Build Vertex AI request
+    const location = "us-central1";
+    const model = "veo-3.1-generate-001"; // Latest stable Veo 3.1
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+
+    // Build instances array
+    const instance: Record<string, any> = {
+      prompt: enhancedPrompt,
     };
 
-    // Image-to-video mode: use 'image' parameter for visual reference
-    if (isImageToVideo) {
-      console.log("Using image for visual reference (Veo 2 image-to-video):", startImageUrl);
-      input.image = startImageUrl;
+    // Add image for image-to-video mode
+    if (isImageToVideo && startImageUrl) {
+      // For GCS URIs or HTTP URLs, we need to fetch and encode as base64
+      if (startImageUrl.startsWith("http")) {
+        try {
+          const imageResponse = await fetch(startImageUrl);
+          const imageBuffer = await imageResponse.arrayBuffer();
+          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+          instance.image = {
+            bytesBase64Encoded: base64Image,
+            mimeType: "image/jpeg"
+          };
+        } catch (imgError) {
+          console.error("Failed to fetch image for Vertex AI:", imgError);
+          // Continue without image
+        }
+      }
     }
 
-    const prediction = await replicate.predictions.create({
-      model: "google/veo-2",
-      input,
+    const requestBody = {
+      instances: [instance],
+      parameters: {
+        aspectRatio: "16:9",
+        durationSeconds: Math.min(Math.max(duration, 5), 8), // Veo 3.1 supports 5-8 seconds
+        sampleCount: 1,
+        negativePrompt: negativePrompt,
+        resolution: "720p", // 720p or 1080p
+        personGeneration: "allow_adult", // Allow person generation
+      }
+    };
+
+    console.log("Sending request to Vertex AI:", endpoint);
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
     });
 
-    console.log("Veo 2 prediction created:", prediction.id, "status:", prediction.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Vertex AI error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw new Error(`Vertex AI error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log("Vertex AI response:", JSON.stringify(result).substring(0, 500));
+
+    // The response contains an operation name for long-running operation
+    const operationName = result.name;
+    if (!operationName) {
+      throw new Error("No operation name in Vertex AI response");
+    }
+
+    console.log("Veo 3.1 operation started:", operationName);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        taskId: prediction.id,
-        status: prediction.status.toUpperCase(),
+        taskId: operationName,
+        status: "STARTING",
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
-        provider: "replicate",
-        model: "google/veo-2",
-        promptRewritten: physicsEnhancedPrompt !== prompt,
-        message: "Video generation started with Veo 2. Poll the status endpoint for updates.",
+        provider: "vertex-ai",
+        model: "veo-3.1-generate-001",
+        promptRewritten: enhancedPrompt !== prompt,
+        message: "Video generation started with Veo 3.1. Poll the status endpoint for updates.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: unknown) {
     console.error("Error in generate-video function:", error);
-    
+
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
-    // Handle rate limiting
+
     if (errorMessage.includes("rate limit")) {
       return new Response(
-        JSON.stringify({ 
-          error: "Rate limit exceeded. Please try again in a moment.",
-        }),
+        JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error" 
+        error: errorMessage
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

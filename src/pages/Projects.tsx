@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
@@ -19,10 +19,113 @@ import {
 } from '@/components/ui/dialog';
 import { useStudio } from '@/contexts/StudioContext';
 import { cn } from '@/lib/utils';
-import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Smart video component that auto-corrects rotation
+function SmartVideoPlayer({ 
+  src, 
+  className,
+  autoPlay = false,
+  loop = true,
+  muted = true,
+  previewPercent = 30,
+  playOnHover = false,
+  onVideoClick,
+}: {
+  src: string;
+  className?: string;
+  autoPlay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+  previewPercent?: number;
+  playOnHover?: boolean;
+  onVideoClick?: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [needsRotation, setNeedsRotation] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const { videoWidth, videoHeight } = video;
+    
+    // Detect portrait videos (taller than wide)
+    const isPortraitVideo = videoHeight > videoWidth;
+    setIsPortrait(isPortraitVideo);
+    
+    // Detect potentially sideways videos
+    // If aspect ratio is very extreme, it might be rotated incorrectly
+    const aspectRatio = videoWidth / videoHeight;
+    
+    // Videos with very unusual aspect ratios might need rotation
+    // Normal range: 0.4 (9:16 portrait) to 2.4 (21:9 ultrawide)
+    if (aspectRatio < 0.35 || aspectRatio > 2.8) {
+      // This might be a sideways video
+      setNeedsRotation(true);
+      console.log('Unusual aspect ratio detected, may need rotation:', aspectRatio);
+    }
+
+    // Seek to preview position
+    if (previewPercent !== undefined && video.duration && !autoPlay) {
+      video.currentTime = video.duration * (previewPercent / 100);
+    }
+  }, [previewPercent, autoPlay]);
+
+  const handleMouseEnter = () => {
+    if (playOnHover && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (playOnHover && videoRef.current) {
+      videoRef.current.pause();
+      if (previewPercent !== undefined && videoRef.current.duration) {
+        videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
+      }
+    }
+  };
+
+  const handleClick = () => {
+    if (onVideoClick) {
+      onVideoClick();
+    } else if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className={cn(
+        "transition-transform duration-500",
+        isPortrait ? "object-contain" : "object-cover",
+        needsRotation && "rotate-90 scale-[1.78]", // Rotate and scale to fill container
+        className
+      )}
+      autoPlay={autoPlay}
+      loop={loop}
+      muted={muted}
+      playsInline
+      preload="metadata"
+      onLoadedMetadata={handleLoadedMetadata}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    />
+  );
+}
+
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -355,31 +458,11 @@ export default function Projects() {
                     {/* Video/Placeholder Container */}
                     <div className={cn(aspectClass, "relative overflow-hidden bg-black/40")}>
                       {hasVideo && videoClips.length > 0 ? (
-                        <video
+                        <SmartVideoPlayer
                           src={videoClips.length > 1 ? videoClips[1] : videoClips[0]}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
-                          muted
-                          playsInline
-                          loop
-                          preload="metadata"
-                          onLoadedMetadata={(e) => {
-                            // Seek to 30% of the video for a more interesting preview frame
-                            const video = e.currentTarget;
-                            if (video.duration) {
-                              video.currentTime = video.duration * 0.3;
-                            }
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.currentTime = 0;
-                            e.currentTarget.play();
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.pause();
-                            // Return to the preview frame
-                            if (e.currentTarget.duration) {
-                              e.currentTarget.currentTime = e.currentTarget.duration * 0.3;
-                            }
-                          }}
+                          className="absolute inset-0 w-full h-full transition-transform duration-1000 ease-out group-hover:scale-110"
+                          previewPercent={30}
+                          playOnHover={true}
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
@@ -568,17 +651,14 @@ export default function Projects() {
           {/* Fullscreen Video Container */}
           <div className="absolute inset-0">
             {selectedProject && (
-              <video
+              <SmartVideoPlayer
                 src={getVideoClips(selectedProject)[0]}
-                className="absolute inset-0 w-full h-full object-contain"
-                autoPlay
-                controls={false}
-                playsInline
-                loop
-                onClick={(e) => {
-                  const video = e.currentTarget;
-                  if (video.paused) video.play();
-                  else video.pause();
+                className="absolute inset-0 w-full h-full"
+                autoPlay={true}
+                loop={true}
+                muted={false}
+                onVideoClick={() => {
+                  // Toggle play/pause is handled inside SmartVideoPlayer
                 }}
               />
             )}

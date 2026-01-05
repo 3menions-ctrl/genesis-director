@@ -57,6 +57,8 @@ export default function ScriptingStage() {
     isAuditing,
     // QUALITY TIER
     setQualityTier,
+    // Reset
+    resetPipeline,
   } = useProductionPipeline();
   
   const [step, setStep] = useState<ScriptingStep>('type');
@@ -64,7 +66,28 @@ export default function ScriptingStage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingShot, setEditingShot] = useState<string | null>(null);
   
+  // Reset pipeline when starting fresh (no projectId means new project)
+  useEffect(() => {
+    // If user arrives at scripting with an existing approved project, ask if they want to start fresh
+    if (state.projectId && state.scriptApproved) {
+      // Show existing project - they can start new if they want
+    }
+  }, []);
+  
+  // Start a new project - reset everything
+  const handleStartNewProject = () => {
+    resetPipeline();
+    setSynopsis('');
+    setStep('type');
+    toast.success('Starting fresh project');
+  };
+  
   const handleTypeSelect = (type: ProjectType) => {
+    // If there's an existing project, reset first
+    if (state.projectId) {
+      resetPipeline();
+      setSynopsis('');
+    }
     setProjectType(type);
     setStep('reference'); // Go to reference image upload first
   };
@@ -195,9 +218,41 @@ export default function ScriptingStage() {
 
   // Step 1: Project Type Selection
   if (step === 'type') {
+    // If there's an existing project in progress, show option to continue or start fresh
+    const hasExistingProject = state.projectId && state.projectTitle;
+    
     return (
       <div className="min-h-[85vh] flex flex-col p-6">
         <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
+          {/* Existing Project Banner */}
+          {hasExistingProject && (
+            <Card className="mb-6 p-4 border-primary/30 bg-primary/5 animate-fade-in">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Existing project in progress:</p>
+                  <p className="font-medium text-foreground">{state.projectTitle}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {state.scriptApproved ? (
+                    <Button size="sm" onClick={() => navigate('/pipeline/production')} className="gap-2">
+                      <Play className="w-3 h-3" />
+                      Continue Production
+                    </Button>
+                  ) : state.structuredShots.length > 0 ? (
+                    <Button size="sm" onClick={() => setStep('approve')} className="gap-2">
+                      <ArrowRight className="w-3 h-3" />
+                      Continue Editing
+                    </Button>
+                  ) : null}
+                  <Button size="sm" variant="outline" onClick={handleStartNewProject} className="gap-2">
+                    <RotateCcw className="w-3 h-3" />
+                    Start Fresh
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+          
           {/* Header */}
           <div className="mb-8 animate-fade-in">
             <Badge variant="outline" className="mb-4 gap-2">
@@ -205,7 +260,7 @@ export default function ScriptingStage() {
               Step 1 of 4 — Project Type
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-              Project Creation & Scripting
+              {hasExistingProject ? 'Start a New Project' : 'Project Creation & Scripting'}
             </h1>
             <p className="text-muted-foreground">
               Select your project type to begin the iron-clad production pipeline

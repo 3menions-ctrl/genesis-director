@@ -21,6 +21,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CinematicAuditPanel } from '@/components/studio/CinematicAuditPanel';
+import { QualityTierSelector } from '@/components/studio/QualityTierSelector';
+import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 const PROJECT_TYPE_ICONS: Record<ProjectType, React.ReactNode> = {
   'cinematic-trailer': <Clapperboard className="w-5 h-5" />,
@@ -53,6 +55,8 @@ export default function ScriptingStage() {
     approveAudit,
     applyAuditSuggestion,
     isAuditing,
+    // QUALITY TIER
+    setQualityTier,
   } = useProductionPipeline();
   
   const [step, setStep] = useState<ScriptingStep>('type');
@@ -486,7 +490,7 @@ export default function ScriptingStage() {
                 className="gap-2"
               >
                 <Check className="w-4 h-4" />
-                Start Production (20 credits/shot)
+                Start Production ({TIER_CREDIT_COSTS[state.qualityTier].TOTAL_PER_SHOT} credits/shot)
                 <ArrowRight className="w-4 h-4" />
               </Button>
             )}
@@ -513,8 +517,18 @@ export default function ScriptingStage() {
             </ScrollArea>
           </div>
           
-          {/* Cinematic Audit Panel OR Summary */}
+          {/* Cinematic Audit Panel + Quality Tier OR Summary */}
           <div className="space-y-4">
+            {/* Quality Tier Selector - Always show after audit */}
+            {state.cinematicAudit && (
+              <QualityTierSelector
+                selectedTier={state.qualityTier}
+                onTierChange={setQualityTier}
+                shotCount={state.structuredShots.length}
+                disabled={isAuditing}
+              />
+            )}
+            
             {state.cinematicAudit ? (
               <CinematicAuditPanel
                 audit={state.cinematicAudit}

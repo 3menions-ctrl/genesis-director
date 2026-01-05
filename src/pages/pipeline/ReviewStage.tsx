@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Download, Share2, ArrowLeft, Check, Play, Pause,
   Volume2, VolumeX, Film, Music, Mic, Eye,
-  FileVideo, RotateCcw, ExternalLink, Sparkles
+  FileVideo, RotateCcw, ExternalLink, Sparkles, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,9 +12,11 @@ import { Toggle } from '@/components/ui/toggle';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useProductionPipeline } from '@/contexts/ProductionPipelineContext';
-import { AudioMixMode } from '@/types/production-pipeline';
+import { AudioMixMode, Shot } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AUDIO_MIX_OPTIONS: { id: AudioMixMode; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'full', label: 'Full Mix', icon: <Volume2 className="w-4 h-4" />, description: 'Dialogue, music, and SFX' },
@@ -23,9 +25,21 @@ const AUDIO_MIX_OPTIONS: { id: AudioMixMode; label: string; icon: React.ReactNod
   { id: 'mute', label: 'Visual Only', icon: <VolumeX className="w-4 h-4" />, description: 'No audio - muted' },
 ];
 
+// Clip type for both in-memory and database-loaded clips
+interface ReviewClip {
+  id: string;
+  index: number;
+  title: string;
+  videoUrl: string;
+  durationSeconds: number;
+  mood?: string;
+  status: 'completed';
+}
+
 export default function ReviewStage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { user } = useAuth();
   const {
     state,
     setAudioMixMode,
@@ -39,13 +53,80 @@ export default function ReviewStage() {
   const [volume, setVolume] = useState([1]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [databaseClips, setDatabaseClips] = useState<ReviewClip[]>([]);
+  const [projectTitle, setProjectTitle] = useState(state.projectTitle || 'Your Production');
   
   const { production, audioMixMode, structuredShots } = state;
   
-  // Get completed clips from production shots - sorted by index for proper playback order
-  const completedClips = production.shots
+  // Load completed clips from database as fallback
+  useEffect(() => {
+    const loadDatabaseClips = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        // Fetch projects with video_clips from database
+        const { data: projects, error } = await supabase
+          .from('movie_projects')
+          .select('id, title, video_clips, video_url, status')
+          .eq('user_id', user.id)
+          .not('video_clips', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error('[ReviewStage] Database fetch error:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (projects && projects.length > 0 && projects[0].video_clips) {
+          const project = projects[0];
+          const clips: ReviewClip[] = (project.video_clips as string[]).map((url, index) => ({
+            id: `db_clip_${index}`,
+            index,
+            title: `Clip ${index + 1}`,
+            videoUrl: url,
+            durationSeconds: 5, // Default duration
+            mood: 'cinematic',
+            status: 'completed' as const,
+          }));
+          
+          setDatabaseClips(clips);
+          setProjectTitle(project.title || 'Your Production');
+          console.log('[ReviewStage] Loaded', clips.length, 'clips from database');
+        }
+      } catch (err) {
+        console.error('[ReviewStage] Failed to load clips:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadDatabaseClips();
+  }, [user]);
+  
+  // Get completed clips - prefer in-memory state, fallback to database
+  const inMemoryClips: ReviewClip[] = production.shots
     .filter(s => s.status === 'completed' && s.videoUrl)
+    .map(s => ({
+      id: s.id,
+      index: s.index,
+      title: s.title,
+      videoUrl: s.videoUrl!,
+      durationSeconds: s.durationSeconds,
+      mood: s.mood,
+      status: 'completed' as const,
+    }))
     .sort((a, b) => a.index - b.index);
+  
+  // Use in-memory clips if available, otherwise use database clips
+  const completedClips = inMemoryClips.length > 0 ? inMemoryClips : databaseClips;
+  
+  console.log('[ReviewStage] In-memory clips:', inMemoryClips.length, 'Database clips:', databaseClips.length, 'Using:', completedClips.length);
   
   const currentClip = completedClips[currentClipIndex];
   
@@ -116,14 +197,23 @@ export default function ReviewStage() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const url = await exportFinalVideo();
+      // Try the in-memory export first
+      let url = await exportFinalVideo();
+      
+      // If no in-memory result, use the first database clip
+      if (!url && completedClips.length > 0) {
+        url = completedClips[0].videoUrl;
+      }
+      
       if (url) {
         toast.success('Export ready!');
         // Download the file
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${state.projectTitle}.mp4`;
+        a.download = `${projectTitle || 'video'}.mp4`;
         a.click();
+      } else {
+        toast.error('No video available to export');
       }
     } catch (err) {
       toast.error('Export failed');
@@ -144,6 +234,21 @@ export default function ReviewStage() {
   };
   
   const totalDuration = completedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center p-6">
+        <Card className="p-8 text-center max-w-md">
+          <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Loading Clips...</h2>
+          <p className="text-muted-foreground">
+            Fetching your completed productions
+          </p>
+        </Card>
+      </div>
+    );
+  }
   
   if (completedClips.length === 0) {
     return (
@@ -174,7 +279,7 @@ export default function ReviewStage() {
               Step 3 of 3 — Final Review & Deployment
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-              {state.projectTitle}
+              {projectTitle}
             </h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>{completedClips.length} clips</span>

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProductionPipelineProvider } from "@/contexts/ProductionPipelineContext";
@@ -10,10 +10,6 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { StudioLayout } from "@/components/layout/StudioLayout";
 import Landing from "./pages/Landing";
 import Projects from "./pages/Projects";
-import Create from "./pages/Create";
-import Script from "./pages/Script";
-import Production from "./pages/Production";
-import Export from "./pages/Export";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
@@ -22,7 +18,7 @@ import Admin from "./pages/Admin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
-// New Pipeline Pages
+// Iron-Clad Pipeline Pages
 import ScriptingStage from "./pages/pipeline/ScriptingStage";
 import ProductionStage from "./pages/pipeline/ProductionStage";
 import ReviewStage from "./pages/pipeline/ReviewStage";
@@ -59,26 +55,6 @@ const App = () => (
                     <StudioLayout><Projects /></StudioLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="/create" element={
-                  <ProtectedRoute>
-                    <StudioLayout><Create /></StudioLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/script" element={
-                  <ProtectedRoute>
-                    <StudioLayout><Script /></StudioLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/production" element={
-                  <ProtectedRoute>
-                    <StudioLayout><Production /></StudioLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/export" element={
-                  <ProtectedRoute>
-                    <StudioLayout><Export /></StudioLayout>
-                  </ProtectedRoute>
-                } />
                 <Route path="/profile" element={
                   <ProtectedRoute>
                     <StudioLayout><Profile /></StudioLayout>
@@ -101,6 +77,12 @@ const App = () => (
                     <StudioLayout><ReviewStage /></StudioLayout>
                   </ProtectedRoute>
                 } />
+                
+                {/* Legacy route redirects to pipeline */}
+                <Route path="/create" element={<Navigate to="/pipeline/scripting" replace />} />
+                <Route path="/script" element={<Navigate to="/pipeline/scripting" replace />} />
+                <Route path="/production" element={<Navigate to="/pipeline/production" replace />} />
+                <Route path="/export" element={<Navigate to="/pipeline/review" replace />} />
                 
                 {/* Admin Dashboard (protected, admin-only in component) */}
                 <Route path="/admin" element={

@@ -1,15 +1,13 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Film, Folder, FileText, Play, Download,
+  Film, Folder, FileText, Play,
   ChevronRight, User, LogOut, Settings,
-  Check, Plus, Zap, HelpCircle, Keyboard, Coins,
-  Home, Video, Mic, Music, Sparkles, Activity,
-  TrendingUp, Clock, BarChart3
+  Check, Zap, HelpCircle, Keyboard, Coins,
+  Home, Activity, TrendingUp, Video
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -46,50 +44,27 @@ const MAIN_NAV = [
   { title: 'Projects', url: '/projects', icon: Home },
 ];
 
-// Project workflow steps - shown when in a project flow
-const WORKFLOW_STEPS = [
-  { title: 'Create', url: '/create', icon: Plus, step: 1 },
-  { title: 'Script', url: '/script', icon: FileText, step: 2 },
-  { title: 'Production', url: '/production', icon: Play, step: 3 },
-  { title: 'Export', url: '/export', icon: Download, step: 4 },
-];
-
-// Iron-Clad Pipeline workflow steps
+// Iron-Clad Pipeline workflow steps (primary workflow)
 const PIPELINE_STEPS = [
   { title: 'Scripting', url: '/pipeline/scripting', icon: FileText, step: 1 },
   { title: 'Production', url: '/pipeline/production', icon: Zap, step: 2 },
   { title: 'Review', url: '/pipeline/review', icon: Play, step: 3 },
 ];
 
-// Quick actions for header
-const QUICK_ACTIONS = [
-  { id: 'generate-video', label: 'Generate Video', icon: Video, shortcut: '⌘G' },
-  { id: 'generate-voice', label: 'AI Voice', icon: Mic, shortcut: '⌘V' },
-  { id: 'generate-music', label: 'AI Music', icon: Music, shortcut: '⌘M' },
-  { id: 'generate-image', label: 'AI Image', icon: Sparkles, shortcut: '⌘I' },
-];
-
 function StudioSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds, isGenerating, generationProgress } = useStudio();
+  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds } = useStudio();
   const isCollapsed = state === 'collapsed';
 
-  // Check if we're in a project workflow
-  const isInWorkflow = WORKFLOW_STEPS.some(item => location.pathname === item.url);
+  // Check if we're in the pipeline workflow
   const isInPipeline = PIPELINE_STEPS.some(item => location.pathname === item.url);
   const isOnProjects = location.pathname === '/projects' || location.pathname === '/';
-  
-  const currentStepIndex = WORKFLOW_STEPS.findIndex(item => location.pathname === item.url);
   const currentPipelineIndex = PIPELINE_STEPS.findIndex(item => location.pathname === item.url);
 
   const handleNewProject = () => {
     createProject();
-    navigate('/create');
-  };
-  
-  const handleNewPipeline = () => {
     navigate('/pipeline/scripting');
   };
 
@@ -162,120 +137,21 @@ function StudioSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* New Clip Button */}
+              {/* New Project Button */}
               {!isCollapsed && (
                 <SidebarMenuItem>
                   <Button
                     onClick={handleNewProject}
                     className="w-full justify-center gap-2 h-10 bg-white hover:bg-white/90 text-black border-0 rounded-xl transition-all"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span className="font-medium text-sm">New Clip</span>
-                  </Button>
-                </SidebarMenuItem>
-              )}
-              
-              {/* Iron-Clad Pipeline Button */}
-              {!isCollapsed && (
-                <SidebarMenuItem>
-                  <Button
-                    onClick={handleNewPipeline}
-                    variant="outline"
-                    className="w-full justify-center gap-2 h-10 bg-transparent hover:bg-white/10 text-white/70 hover:text-white border-white/20 rounded-xl transition-all"
-                  >
                     <Zap className="w-4 h-4" />
-                    <span className="font-medium text-sm">Iron-Clad Pipeline</span>
+                    <span className="font-medium text-sm">New Project</span>
                   </Button>
                 </SidebarMenuItem>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Workflow Steps */}
-        {(isInWorkflow || activeProject) && (
-          <SidebarGroup className="mt-8">
-            {!isCollapsed && (
-              <div className="px-1 mb-4">
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold p-0">
-                  Workflow
-                </SidebarGroupLabel>
-              </div>
-            )}
-            <SidebarGroupContent>
-              <div className="relative">
-                {/* Connecting line */}
-                {!isCollapsed && (
-                  <div className="absolute left-[27px] top-6 bottom-6 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
-                )}
-                
-                <div className="flex flex-col gap-2">
-                  {WORKFLOW_STEPS.map((item, index) => {
-                    const isActive = location.pathname === item.url;
-                    const isPast = index < currentStepIndex;
-                    const isFuture = index > currentStepIndex && currentStepIndex >= 0;
-                    
-                    return (
-                      <SidebarMenuItem key={item.title} className="list-none">
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                          <NavLink 
-                            to={item.url} 
-                            className={cn(
-                              "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group",
-                              isActive && "bg-white/10",
-                              !isActive && "hover:bg-white/5"
-                            )}
-                            activeClassName=""
-                          >
-                            {isActive && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/5 to-transparent rounded-xl" />
-                            )}
-                            
-                            <div className={cn(
-                              "relative z-10 flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                              isActive && "bg-white shadow-lg shadow-white/20",
-                              isPast && "bg-white/20 ring-2 ring-white/30",
-                              !isActive && !isPast && "bg-white/5 group-hover:bg-white/10"
-                            )}>
-                              {isPast ? (
-                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                              ) : (
-                                <item.icon className={cn(
-                                  "w-4 h-4 transition-all",
-                                  isActive && "text-black",
-                                  !isActive && !isPast && "text-white/40 group-hover:text-white/70"
-                                )} />
-                              )}
-                            </div>
-                            
-                            {!isCollapsed && (
-                              <div className="relative z-10 flex-1 min-w-0">
-                                <span className={cn(
-                                  "font-medium text-sm block",
-                                  isActive && "text-white",
-                                  isPast && "text-white/70",
-                                  !isActive && !isPast && "text-white/40 group-hover:text-white/70"
-                                )}>
-                                  {item.title}
-                                </span>
-                              </div>
-                            )}
-                            
-                            {!isCollapsed && isActive && (
-                              <div className="relative z-10 w-2 h-2 rounded-full bg-white animate-pulse" />
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </div>
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Iron-Clad Pipeline Steps */}
         {isInPipeline && (
           <SidebarGroup className="mt-8">
             {!isCollapsed && (
@@ -399,21 +275,6 @@ function StudioSidebar() {
                   </div>
                 </div>
 
-                {/* Quick Generation Queue Indicator */}
-                {isGenerating && (
-                  <div className="p-3 rounded-xl bg-white/[0.06] border border-white/[0.08]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] text-white/50 uppercase tracking-wide font-medium">Generating</span>
-                      <span className="text-xs font-bold text-white/90">{generationProgress.percent}%</span>
-                    </div>
-                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-white/60 to-white/80 rounded-full transition-all duration-500"
-                        style={{ width: `${generationProgress.percent}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -551,11 +412,11 @@ function UserMenu() {
 }
 
 function StudioHeader() {
-  const { activeProject, credits, isGenerating, generationProgress } = useStudio();
+  const { activeProject, credits } = useStudio();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const currentStepIndex = WORKFLOW_STEPS.findIndex(step => location.pathname === step.url);
+  const currentPipelineIndex = PIPELINE_STEPS.findIndex(step => location.pathname === step.url);
 
   return (
     <header className="h-12 px-4 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
@@ -582,13 +443,13 @@ function StudioHeader() {
         </nav>
       </div>
 
-      {/* Center Section - Workflow Steps */}
+      {/* Center Section - Pipeline Steps */}
       <div className="flex-1 flex justify-center min-w-0 px-4">
         <div className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-muted/50 border border-border/50">
-          {WORKFLOW_STEPS.map((step, index) => {
+          {PIPELINE_STEPS.map((step, index) => {
             const isActive = location.pathname === step.url;
-            const isPast = index < currentStepIndex;
-            const isClickable = activeProject || index === 0;
+            const isPast = index < currentPipelineIndex;
+            const isClickable = true;
             
             return (
               <button
@@ -618,13 +479,6 @@ function StudioHeader() {
 
       {/* Right Section - Actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Generation Progress */}
-        {isGenerating && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground/10 border border-foreground/20">
-            <div className="w-2 h-2 rounded-full bg-foreground animate-pulse" />
-            <span className="text-xs font-medium text-foreground">{generationProgress.percent}%</span>
-          </div>
-        )}
 
         {/* Credits */}
         <button 

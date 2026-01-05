@@ -354,18 +354,31 @@ export default function Projects() {
                   >
                     {/* Video/Placeholder Container */}
                     <div className={cn(aspectClass, "relative overflow-hidden bg-black/40")}>
-                      {hasVideo && videoClips[0] ? (
+                      {hasVideo && videoClips.length > 0 ? (
                         <video
-                          src={videoClips[0]}
+                          src={videoClips.length > 1 ? videoClips[1] : videoClips[0]}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
                           muted
                           playsInline
                           loop
                           preload="metadata"
-                          onMouseEnter={(e) => e.currentTarget.play()}
+                          onLoadedMetadata={(e) => {
+                            // Seek to 30% of the video for a more interesting preview frame
+                            const video = e.currentTarget;
+                            if (video.duration) {
+                              video.currentTime = video.duration * 0.3;
+                            }
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.currentTime = 0;
+                            e.currentTarget.play();
+                          }}
                           onMouseLeave={(e) => {
                             e.currentTarget.pause();
-                            e.currentTarget.currentTime = 0;
+                            // Return to the preview frame
+                            if (e.currentTarget.duration) {
+                              e.currentTarget.currentTime = e.currentTarget.duration * 0.3;
+                            }
                           }}
                         />
                       ) : (

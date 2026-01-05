@@ -17,6 +17,7 @@ import { PROJECT_TYPES, ProjectType, Shot } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PROJECT_TYPE_ICONS: Record<ProjectType, React.ReactNode> = {
   'cinematic-trailer': <Clapperboard className="w-5 h-5" />,
@@ -30,10 +31,12 @@ type ScriptingStep = 'type' | 'details' | 'generate' | 'approve';
 
 export default function ScriptingStage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { 
     state, 
     setProjectType, 
     setProjectTitle, 
+    setProjectId,
     setRawScript,
     generateStructuredShots,
     updateShot,
@@ -58,17 +61,42 @@ export default function ScriptingStage() {
       return;
     }
     
+    if (!user) {
+      toast.error('Please sign in to create a project');
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
-      // Generate script using LLM
+      // STEP 1: Create project in database FIRST to get projectId
+      const { data: project, error: projectError } = await supabase
+        .from('movie_projects')
+        .insert({
+          title: state.projectTitle,
+          user_id: user.id,
+          genre: 'cinematic', // Map project type to genre
+          synopsis: synopsis,
+          status: 'scripting',
+          target_duration_minutes: PROJECT_TYPES.find(t => t.id === state.projectType)?.shotCount || 6,
+        })
+        .select()
+        .single();
+      
+      if (projectError) throw projectError;
+      
+      // Store project ID in pipeline state
+      setProjectId(project.id);
+      console.log('[ScriptingStage] Created project:', project.id);
+      
+      // STEP 2: Generate script using LLM
       const { data, error } = await supabase.functions.invoke('generate-script', {
         body: {
           title: state.projectTitle,
           genre: state.projectType,
           synopsis: synopsis,
           targetDurationMinutes: PROJECT_TYPES.find(t => t.id === state.projectType)?.shotCount || 6,
-          fullMovieMode: true, // Request structured shot-by-shot output
+          fullMovieMode: true,
         },
       });
       
@@ -76,7 +104,16 @@ export default function ScriptingStage() {
       
       setRawScript(data.script || '');
       
-      // Now extract scenes into shots
+      // Update project with generated script
+      await supabase
+        .from('movie_projects')
+        .update({ 
+          generated_script: data.script,
+          script_content: data.script,
+        })
+        .eq('id', project.id);
+      
+      // STEP 3: Extract scenes into shots
       await generateStructuredShots(data.script);
       
       setStep('approve');

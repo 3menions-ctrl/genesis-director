@@ -28,6 +28,7 @@ interface ProductionPipelineContextType {
   // Scripting stage
   setProjectType: (type: ProjectType) => void;
   setProjectTitle: (title: string) => void;
+  setProjectId: (id: string) => void;
   setRawScript: (script: string) => void;
   generateStructuredShots: (synopsis?: string) => Promise<void>;
   updateShot: (shotId: string, updates: Partial<Shot>) => void;
@@ -199,6 +200,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   const setProjectTitle = useCallback((title: string) => {
     setState(prev => ({ ...prev, projectTitle: title }));
+  }, []);
+  
+  const setProjectId = useCallback((id: string) => {
+    setState(prev => ({ ...prev, projectId: id }));
   }, []);
   
   const setRawScript = useCallback((script: string) => {
@@ -563,6 +568,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
               
               previousFrameUrl = endFrameUrl || previousFrameUrl;
               
+              // Update in-memory state
               setState(prev => ({
                 ...prev,
                 production: {
@@ -582,6 +588,34 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
                   },
                 },
               }));
+              
+              // PERSIST TO DATABASE - Critical for clip retrieval after refresh
+              if (state.projectId && status.videoUrl) {
+                try {
+                  // Fetch current video_clips array and append new one
+                  const { data: project } = await supabase
+                    .from('movie_projects')
+                    .select('video_clips')
+                    .eq('id', state.projectId)
+                    .maybeSingle();
+                  
+                  const existingClips = (project?.video_clips as string[]) || [];
+                  const updatedClips = [...existingClips, status.videoUrl];
+                  
+                  await supabase
+                    .from('movie_projects')
+                    .update({ 
+                      video_clips: updatedClips,
+                      status: 'producing',
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', state.projectId);
+                  
+                  console.log(`[Pipeline] Saved clip ${i + 1} to database, total: ${updatedClips.length}`);
+                } catch (dbErr) {
+                  console.error('[Pipeline] Failed to save clip to database:', dbErr);
+                }
+              }
               
               toast.success(`Shot ${i + 1} completed!`);
               break;
@@ -733,6 +767,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       canProceedToStage,
       setProjectType,
       setProjectTitle,
+      setProjectId,
       setRawScript,
       generateStructuredShots,
       updateShot,

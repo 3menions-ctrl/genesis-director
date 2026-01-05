@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import Replicate from "https://esm.sh/replicate@0.25.2";
 
 const corsHeaders = {
@@ -97,7 +98,7 @@ function rewriteCameraReferences(prompt: string): string {
   
   // Rewrite camera movements to perspective language
   const movementRewrites: [RegExp, string][] = [
-    [/zoom(s|ing)?\s+in(\s+on)?/gi, 'perspective draws intimately closer to'],
+    [/zoom(s|ing)?\s+in(\s+on)?/gi, 'perspective gradually draws closer to'],
     [/zoom(s|ing)?\s+out/gi, 'perspective expansively widens revealing'],
     [/pan(s|ning)?\s+(to\s+the\s+)?left/gi, 'perspective sweeps leftward'],
     [/pan(s|ning)?\s+(to\s+the\s+)?right/gi, 'perspective sweeps rightward'],
@@ -126,8 +127,6 @@ const TRANSITION_HINTS: Record<string, string> = {
 
 /**
  * Build prompt with minimal processing to preserve user intent
- * SIMPLIFIED: Removed excessive markers that diluted scene descriptions
- * ENHANCED: Adds transition hints for seamless shot connections
  */
 function buildConsistentPrompt(
   basePrompt: string, 
@@ -211,6 +210,111 @@ function buildConsistentPrompt(
   };
 }
 
+/**
+ * Converts a base64 data URL to a public Supabase Storage URL
+ * Replicate requires HTTP URLs, not base64 data
+ */
+async function uploadBase64ToStorage(
+  base64DataUrl: string, 
+  fileName: string
+): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase credentials for storage upload");
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // Parse base64 data URL
+  const matches = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error("Invalid base64 data URL format");
+  }
+  
+  const mimeType = matches[1];
+  const base64Data = matches[2];
+  
+  // Convert base64 to Uint8Array
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  // Determine file extension from mime type
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  };
+  const ext = extMap[mimeType] || 'jpg';
+  const fullFileName = `${fileName}.${ext}`;
+  
+  // Upload to Supabase Storage (temp-frames bucket)
+  const bucketName = 'temp-frames';
+  
+  // Check if bucket exists, create if not
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const bucketExists = buckets?.some(b => b.name === bucketName);
+  
+  if (!bucketExists) {
+    console.log(`Creating storage bucket: ${bucketName}`);
+    await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 10485760, // 10MB
+    });
+  }
+  
+  // Upload the file
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(bucketName)
+    .upload(fullFileName, bytes, {
+      contentType: mimeType,
+      upsert: true,
+    });
+  
+  if (uploadError) {
+    console.error("Storage upload error:", uploadError);
+    throw new Error(`Failed to upload image to storage: ${uploadError.message}`);
+  }
+  
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(fullFileName);
+  
+  console.log("Uploaded base64 to storage:", publicUrlData.publicUrl);
+  
+  return publicUrlData.publicUrl;
+}
+
+/**
+ * Ensures an image is a valid HTTP URL (uploads base64 if needed)
+ */
+async function ensureImageUrl(
+  imageInput: string | undefined, 
+  prefix: string
+): Promise<string | undefined> {
+  if (!imageInput) return undefined;
+  
+  // If already an HTTP URL, return as-is
+  if (imageInput.startsWith('http://') || imageInput.startsWith('https://')) {
+    return imageInput;
+  }
+  
+  // If base64 data URL, upload to storage
+  if (imageInput.startsWith('data:')) {
+    const uniqueId = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    return await uploadBase64ToStorage(imageInput, uniqueId);
+  }
+  
+  // Unknown format
+  console.warn("Unknown image format, skipping:", imageInput.substring(0, 50));
+  return undefined;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -257,9 +361,13 @@ serve(async (req) => {
     );
     
     // Determine the start image (frame chaining or reference image)
-    const startImageUrl = startImage || referenceImageUrl;
+    // IMPORTANT: Convert base64 to URLs - Replicate requires HTTP URLs!
+    const rawStartImage = startImage || referenceImageUrl;
+    const startImageUrl = await ensureImageUrl(rawStartImage, 'frame');
+    const subjectReferenceUrl = await ensureImageUrl(subjectReference, 'subject');
+    
     const isImageToVideo = !!startImageUrl;
-    const hasSubjectRef = !!subjectReference;
+    const hasSubjectRef = !!subjectReferenceUrl;
 
     console.log("Generating video with Replicate MiniMax:", {
       mode: isImageToVideo ? "image-to-video (frame-chained)" : "text-to-video",
@@ -272,9 +380,6 @@ serve(async (req) => {
 
     // MiniMax video-01 input configuration
     // CRITICAL: prompt_optimizer DISABLED to preserve user intent
-    // NOTE: seed is NOT supported by this model - visual consistency comes from:
-    //   1. first_frame_image (frame chaining)
-    //   2. subject_reference (character consistency via S2V-01)
     const input: Record<string, unknown> = {
       prompt: enhancedPrompt,
       prompt_optimizer: false, // DISABLED: was destroying user's intent
@@ -282,14 +387,14 @@ serve(async (req) => {
 
     // Frame chaining: use first_frame_image for scene continuity
     if (isImageToVideo) {
-      console.log("Using first_frame_image for visual continuity");
+      console.log("Using first_frame_image for visual continuity:", startImageUrl);
       input.first_frame_image = startImageUrl;
     }
 
     // Character consistency: use subject_reference (triggers S2V-01 model)
     if (hasSubjectRef) {
-      console.log("Using subject_reference for character consistency (S2V-01)");
-      input.subject_reference = subjectReference;
+      console.log("Using subject_reference for character consistency (S2V-01):", subjectReferenceUrl);
+      input.subject_reference = subjectReferenceUrl;
     }
 
     const prediction = await replicate.predictions.create({

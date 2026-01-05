@@ -571,14 +571,21 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     toast.info('Starting iron-clad production pipeline...');
     
     try {
-      // Step 1: Generate master anchor image
-      toast.info('Generating master anchor for visual consistency...');
-      const masterAnchor = await generateMasterAnchor();
-      if (masterAnchor) {
-        setState(prev => ({
-          ...prev,
-          production: { ...prev.production, masterAnchor },
-        }));
+      // Step 1: Use reference image as master anchor, or generate one if not uploaded
+      let masterAnchor = state.production.masterAnchor;
+      
+      if (!masterAnchor?.imageUrl) {
+        toast.info('No reference image provided. Generating master anchor...');
+        masterAnchor = await generateMasterAnchor();
+        if (masterAnchor) {
+          setState(prev => ({
+            ...prev,
+            production: { ...prev.production, masterAnchor },
+          }));
+        }
+      } else {
+        toast.info('Using uploaded reference image as visual anchor');
+        console.log('[Pipeline] Using reference image as master anchor:', masterAnchor.imageUrl.substring(0, 50) + '...');
       }
       
       // Step 2: Generate all voice tracks in parallel

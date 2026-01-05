@@ -18,56 +18,160 @@ interface SceneContext {
   lightingStyle?: string;
 }
 
-// Build enhanced prompt with scene consistency
+// Camera reference patterns to strip from prompts
+const CAMERA_PATTERNS = [
+  /\bcamera\s+(points?|aims?|focuses?|zooms?|pans?|tilts?|tracks?|dollies?)\s+(at|to|on|toward|towards)\s+(the\s+)?/gi,
+  /\b(the\s+)?camera\s+(is\s+)?(on|at|focused\s+on)\s+/gi,
+  /\bcamera(man|person|operator)?\b/gi,
+  /\b(film\s+)?crew\b/gi,
+  /\b(tripod|dolly|crane|steadicam|gimbal)\s+(shot)?\b/gi,
+  /\b(lens|viewfinder|aperture)\b/gi,
+  /\bphotographer\b/gi,
+  /\bcamera\s+(moves?|glides?|sweeps?|rises?|descends?|follows?)\b/gi,
+];
+
+// Perspective-based rewrites for body parts
+const BODY_PART_PERSPECTIVES: Record<string, string> = {
+  'legs': 'low-angle ground-level perspective focusing on the subjects\' lower body',
+  'feet': 'extreme low-angle perspective at foot level',
+  'hands': 'intimate close perspective on hands and gestures',
+  'face': 'intimate portrait-level perspective',
+  'eyes': 'extreme close intimate perspective on the eyes',
+  'body': 'full-figure perspective capturing the complete form',
+};
+
+// Mandatory negative prompt elements
+const NEGATIVE_PROMPT_ELEMENTS = [
+  'cameraman',
+  'camera operator',
+  'photographer',
+  'tripod',
+  'camera equipment',
+  'lens visible',
+  'film crew',
+  'boom mic',
+  'lighting rig',
+  'behind the scenes',
+  'visible equipment',
+  'fourth wall break',
+];
+
+/**
+ * Rewrites camera references to perspective-based language
+ */
+function rewriteCameraReferences(prompt: string): string {
+  let rewritten = prompt;
+  
+  // Detect body part focus
+  const bodyParts = ['legs', 'feet', 'hands', 'face', 'eyes', 'body'];
+  let bodyPartFocus: string | null = null;
+  
+  for (const part of bodyParts) {
+    const patterns = [
+      new RegExp(`camera\\s+(points?|aims?|focuses?|on)\\s+(at\\s+)?(the\\s+)?${part}`, 'i'),
+      new RegExp(`focus(ing)?\\s+on\\s+(the\\s+)?${part}`, 'i'),
+      new RegExp(`shot\\s+of\\s+(the\\s+)?${part}`, 'i'),
+    ];
+    if (patterns.some(p => p.test(prompt.toLowerCase()))) {
+      bodyPartFocus = part;
+      break;
+    }
+  }
+  
+  // Remove camera references
+  for (const pattern of CAMERA_PATTERNS) {
+    rewritten = rewritten.replace(pattern, '');
+  }
+  
+  // Add perspective language for body part focus
+  if (bodyPartFocus && BODY_PART_PERSPECTIVES[bodyPartFocus]) {
+    rewritten = `${BODY_PART_PERSPECTIVES[bodyPartFocus]}. ${rewritten}`;
+  }
+  
+  // Rewrite camera movements to perspective language
+  const movementRewrites: [RegExp, string][] = [
+    [/zoom(s|ing)?\s+in(\s+on)?/gi, 'perspective draws intimately closer to'],
+    [/zoom(s|ing)?\s+out/gi, 'perspective expansively widens revealing'],
+    [/pan(s|ning)?\s+(to\s+the\s+)?left/gi, 'perspective sweeps leftward'],
+    [/pan(s|ning)?\s+(to\s+the\s+)?right/gi, 'perspective sweeps rightward'],
+    [/tilt(s|ing)?\s+up/gi, 'perspective rises revealing'],
+    [/tilt(s|ing)?\s+down/gi, 'perspective descends toward'],
+    [/push\s+in/gi, 'perspective gently approaches'],
+    [/pull\s+(back|out)/gi, 'perspective gradually retreats'],
+  ];
+  
+  for (const [pattern, replacement] of movementRewrites) {
+    rewritten = rewritten.replace(pattern, replacement);
+  }
+  
+  return rewritten.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
+ * Build enhanced prompt with scene consistency and camera rewrites
+ */
 function buildConsistentPrompt(
   basePrompt: string, 
-  context?: SceneContext
-): string {
-  if (!context) return basePrompt;
-
+  context?: SceneContext,
+  negativePrompt?: string
+): { prompt: string; negativePrompt: string } {
+  // First, rewrite camera references to perspective language
+  let rewrittenPrompt = rewriteCameraReferences(basePrompt);
+  
   const consistencyParts: string[] = [];
   
-  if (context.globalEnvironment) {
-    consistencyParts.push(`[ENVIRONMENT: ${context.globalEnvironment}]`);
+  if (context) {
+    if (context.globalEnvironment) {
+      consistencyParts.push(`[ENVIRONMENT: ${context.globalEnvironment}]`);
+    }
+    
+    if (context.globalCharacters) {
+      consistencyParts.push(`[CHARACTERS - MUST MATCH EXACTLY: ${context.globalCharacters}]`);
+    }
+    
+    if (context.previousClipSummary && context.clipIndex > 0) {
+      consistencyParts.push(`[SEAMLESS CONTINUATION FROM: ${context.previousClipSummary}]`);
+    }
+    
+    if (context.colorPalette) {
+      consistencyParts.push(`[COLOR PALETTE: ${context.colorPalette}]`);
+    }
+    if (context.lightingStyle) {
+      consistencyParts.push(`[LIGHTING: ${context.lightingStyle}]`);
+    }
+    
+    // Position hints
+    let positionHint = '';
+    if (context.clipIndex === 0) {
+      positionHint = '[OPENING SHOT: Establish setting and tone]';
+    } else if (context.clipIndex === context.totalClips - 1) {
+      positionHint = '[FINAL SHOT: Conclusive framing, sense of resolution]';
+    } else {
+      positionHint = `[CLIP ${context.clipIndex + 1}/${context.totalClips}: Seamless continuation]`;
+    }
+    consistencyParts.push(positionHint);
+    consistencyParts.push('[CRITICAL: Maintain exact visual consistency across all clips]');
   }
-  
-  if (context.globalCharacters) {
-    consistencyParts.push(`[CHARACTERS - MUST MATCH EXACTLY: ${context.globalCharacters}]`);
-  }
-  
-  if (context.previousClipSummary && context.clipIndex > 0) {
-    consistencyParts.push(`[CONTINUATION FROM: ${context.previousClipSummary}]`);
-  }
-  
-  if (context.colorPalette) {
-    consistencyParts.push(`[COLOR PALETTE: ${context.colorPalette}]`);
-  }
-  if (context.lightingStyle) {
-    consistencyParts.push(`[LIGHTING: ${context.lightingStyle}]`);
-  }
-  
-  let positionHint = '';
-  if (context.clipIndex === 0) {
-    positionHint = '[OPENING SHOT: Establish setting and tone]';
-  } else if (context.clipIndex === context.totalClips - 1) {
-    positionHint = '[FINAL SHOT: Conclusive framing, sense of resolution]';
-  } else {
-    positionHint = `[CLIP ${context.clipIndex + 1}/${context.totalClips}: Seamless continuation]`;
-  }
-  consistencyParts.push(positionHint);
-  
-  consistencyParts.push('[CRITICAL: Maintain exact visual consistency]');
   
   const consistencyPrefix = consistencyParts.join(' ');
-  const combinedPrompt = `${consistencyPrefix} ${basePrompt}`;
+  let combinedPrompt = consistencyPrefix ? `${consistencyPrefix} ${rewrittenPrompt}` : rewrittenPrompt;
   
-  // Replicate models typically have generous prompt limits
+  // Enforce prompt limit
   if (combinedPrompt.length > 2000) {
     const maxBaseLength = 2000 - consistencyPrefix.length - 10;
-    return `${consistencyPrefix} ${basePrompt.slice(0, maxBaseLength)}...`;
+    combinedPrompt = `${consistencyPrefix} ${rewrittenPrompt.slice(0, maxBaseLength)}...`;
   }
   
-  return combinedPrompt;
+  // Build negative prompt
+  const allNegatives = [...NEGATIVE_PROMPT_ELEMENTS];
+  if (negativePrompt) {
+    allNegatives.push(...negativePrompt.split(',').map(s => s.trim()));
+  }
+  
+  return {
+    prompt: combinedPrompt,
+    negativePrompt: allNegatives.join(', '),
+  };
 }
 
 serve(async (req) => {
@@ -76,7 +180,15 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, duration = 5, sceneContext, referenceImageUrl } = await req.json();
+    const { 
+      prompt, 
+      duration = 5, 
+      sceneContext, 
+      referenceImageUrl,
+      startImage, // New: for frame chaining (base64 or URL)
+      seed, // New: for consistent generation
+      negativePrompt: inputNegativePrompt,
+    } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
@@ -89,29 +201,40 @@ serve(async (req) => {
 
     const replicate = new Replicate({ auth: REPLICATE_API_KEY });
 
-    const enhancedPrompt = buildConsistentPrompt(prompt, sceneContext);
-    const isImageToVideo = !!referenceImageUrl;
+    // Build enhanced prompt with camera rewrites and consistency
+    const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
+      prompt, 
+      sceneContext,
+      inputNegativePrompt
+    );
+    
+    // Determine the start image (frame chaining or reference image)
+    const startImageUrl = startImage || referenceImageUrl;
+    const isImageToVideo = !!startImageUrl;
 
     console.log("Generating video with Replicate:", {
-      mode: isImageToVideo ? "image-to-video" : "text-to-video",
+      mode: isImageToVideo ? "image-to-video (frame-chained)" : "text-to-video",
       promptLength: enhancedPrompt.length,
-      hasReferenceImage: isImageToVideo,
+      hasStartImage: isImageToVideo,
+      seed: seed || 'random',
+      negativePromptLength: negativePrompt.length,
     });
 
     let prediction;
 
     if (isImageToVideo) {
-      // Image-to-video using Stable Video Diffusion
-      console.log("Using image-to-video with reference:", referenceImageUrl.slice(0, 100) + "...");
+      // Image-to-video using Stable Video Diffusion for frame chaining
+      console.log("Using image-to-video with start image for visual continuity");
       
       prediction = await replicate.predictions.create({
         model: "stability-ai/stable-video-diffusion",
         input: {
-          input_image: referenceImageUrl,
+          input_image: startImageUrl,
           motion_bucket_id: 127, // Higher = more motion
           cond_aug: 0.02,
           decoding_t: 14,
           fps: 6,
+          seed: seed || undefined, // Use seed for consistency
         },
       });
     } else {
@@ -121,6 +244,8 @@ serve(async (req) => {
         input: {
           prompt: enhancedPrompt,
           prompt_optimizer: true,
+          // Note: MiniMax doesn't support negative_prompt or seed directly
+          // The enhanced prompt already includes consistency instructions
         },
       });
     }
@@ -134,6 +259,8 @@ serve(async (req) => {
         status: prediction.status.toUpperCase(),
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
         provider: "replicate",
+        seed: seed || null,
+        promptRewritten: enhancedPrompt !== prompt,
         message: "Video generation started. Poll the status endpoint for updates.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

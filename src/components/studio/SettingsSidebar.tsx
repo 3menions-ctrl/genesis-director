@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Sparkles, Sun, TreePine, BookOpen, Layers, ChevronRight,
-  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users, Clapperboard, Rocket
+  Palette, Zap, Mountain, Cloudy, Sunset, Moon, Film, Camera, Tv, Clock, Users, Clapperboard, Rocket, Link, Eye, Hash, MessageSquareOff
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -493,6 +493,105 @@ export function SettingsSidebar({ settings, onSettingsChange, script }: Settings
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Cinematic Orchestration Section */}
+        <Collapsible open={openSections.includes('cinematic')} onOpenChange={() => toggleSection('cinematic')}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full px-6 py-4 flex items-center justify-between group transition-all duration-300 hover:bg-gradient-to-r hover:from-rose-500/5 hover:to-transparent border-t border-border/5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 border border-rose-500/10 group-hover:border-rose-500/30 transition-colors">
+                  <Film className="w-4 h-4 text-rose-400" />
+                </div>
+                <div className="text-left">
+                  <span className="font-medium text-sm text-foreground" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Cinematic Engine</span>
+                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">Visual continuity controls</p>
+                </div>
+              </div>
+              <ChevronRight className={cn(
+                "w-4 h-4 text-muted-foreground/40 transition-transform duration-300",
+                openSections.includes('cinematic') && "rotate-90"
+              )} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-6 pb-5 space-y-4">
+              {/* Frame Chaining */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10 hover:border-border/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
+                    <Link className="w-3.5 h-3.5 text-blue-400" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Frame Chaining</Label>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Extract last frame for seamless transitions</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.useFrameChaining ?? true}
+                  onCheckedChange={(checked) => onSettingsChange({ useFrameChaining: checked })}
+                />
+              </div>
+
+              {/* Master Image */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10 hover:border-border/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-violet-500/20">
+                    <Eye className="w-3.5 h-3.5 text-purple-400" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Master Image</Label>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Generate anchor image for visual consistency</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.useMasterImage ?? true}
+                  onCheckedChange={(checked) => onSettingsChange({ useMasterImage: checked })}
+                />
+              </div>
+
+              {/* Persistent Seed */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10 hover:border-border/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                    <Hash className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Persistent Seed</Label>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Same seed across all clips for consistency</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.usePersistentSeed ?? true}
+                  onCheckedChange={(checked) => onSettingsChange({ usePersistentSeed: checked })}
+                />
+              </div>
+
+              {/* Prompt Rewriting */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10 hover:border-border/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-500/20">
+                    <MessageSquareOff className="w-3.5 h-3.5 text-green-400" />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Camera Rewriting</Label>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">Convert camera refs to perspective language</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.rewriteCameraPrompts ?? true}
+                  onCheckedChange={(checked) => onSettingsChange({ rewriteCameraPrompts: checked })}
+                />
+              </div>
+
+              {/* Info Box */}
+              <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-rose-500/5 to-pink-500/5 border border-rose-500/10">
+                <p className="text-[10px] text-muted-foreground/70 leading-relaxed" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+                  These features ensure Shot A's final pixels match Shot B's start, preventing AI visual drift and cameraman appearances.
+                </p>
               </div>
             </div>
           </CollapsibleContent>

@@ -4,6 +4,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Json } from '@/integrations/supabase/types';
+import { 
+  rewritePromptForCinematic, 
+  generateSceneSeed, 
+  extractLastFrame,
+  buildNegativePrompt,
+} from '@/lib/cinematicPromptEngine';
 
 // Cinematic camera movements for professional movie feel
 const CAMERA_MOVEMENTS = [
@@ -431,6 +437,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     scenes: [],
     sceneImages: [],
     useImageToVideo: true,
+    // Cinematic Orchestration - enabled by default
+    useFrameChaining: true,
+    useMasterImage: true,
+    usePersistentSeed: true,
+    rewriteCameraPrompts: true,
   });
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
@@ -976,8 +987,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       interface ClipPromptData {
         index: number;
         prompt: string;
+        rewrittenPrompt?: string; // After camera rewriting
+        negativePrompt?: string;
         sceneTitle?: string;
         referenceImageUrl?: string; // Reference image for image-to-video
+        startImage?: string; // Frame from previous clip (for chaining)
         sceneContext: {
           clipIndex: number;
           totalClips: number;
@@ -990,12 +1004,27 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         };
       }
       
+      // Generate persistent seed for this scene if enabled
+      const sceneSeed = settings.usePersistentSeed 
+        ? generateSceneSeed(projectId, 0) 
+        : undefined;
+      
       const clipPrompts: ClipPromptData[] = [];
       
       // Check if we have approved scene images for image-to-video mode
       const hasApprovedImages = settings.useImageToVideo && 
         settings.sceneImages.length > 0 && 
         settings.sceneImages.every(img => img.approved);
+      
+      // Log cinematic orchestration settings
+      if (settings.useFrameChaining || settings.useMasterImage || settings.usePersistentSeed || settings.rewriteCameraPrompts) {
+        const features = [];
+        if (settings.useFrameChaining) features.push('Frame Chaining');
+        if (settings.useMasterImage) features.push('Master Image');
+        if (settings.usePersistentSeed) features.push(`Persistent Seed: ${sceneSeed}`);
+        if (settings.rewriteCameraPrompts) features.push('Prompt Rewriting');
+        toast.info(`Cinematic Mode: ${features.join(', ')}`);
+      }
       
       if (hasApprovedImages) {
         toast.info('Using reference images for video generation (image-to-video mode)');
@@ -1044,9 +1073,24 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           videoPrompt = buildClipPrompt(clipText, sceneDescription, i, numClips, script, settings.visualStyle, settings.characters);
         }
         
+        // Apply prompt rewriting if enabled
+        let rewrittenPrompt: string | undefined;
+        let negativePrompt: string | undefined;
+        
+        if (settings.rewriteCameraPrompts) {
+          const rewritten = rewritePromptForCinematic(videoPrompt, {
+            includeNegativePrompt: true,
+            perspectiveHint: i === 0 ? 'Establishing shot perspective' : undefined,
+          });
+          rewrittenPrompt = rewritten.prompt;
+          negativePrompt = rewritten.negativePrompt;
+        }
+        
         clipPrompts.push({ 
           index: i, 
-          prompt: videoPrompt, 
+          prompt: videoPrompt,
+          rewrittenPrompt,
+          negativePrompt,
           sceneTitle,
           referenceImageUrl,
           sceneContext: {
@@ -1062,9 +1106,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         });
       }
       
-      // Generate clips in parallel batches for speed
+      // Generate clips - sequential if frame chaining, parallel otherwise
       const completedClips: (string | null)[] = new Array(numClips).fill(null);
       let completedCount = 0;
+      let previousFrameUrl: string | undefined;
+      
+      // Use sequential processing for frame chaining to extract last frames
+      const useSequential = settings.useFrameChaining && numClips > 1;
+      const parallelBatchSize = useSequential ? 1 : 2; // Process one at a time for chaining
+      
+      if (useSequential) {
+        toast.info('Using sequential frame-chaining for visual continuity');
+      }
       
       // Process in batches of parallelBatchSize
       for (let batchStart = 0; batchStart < numClips; batchStart += parallelBatchSize) {
@@ -1088,12 +1141,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           }
           
           try {
+            // Determine start image: previous frame (chaining) or reference image
+            const startImage = settings.useFrameChaining && previousFrameUrl 
+              ? previousFrameUrl 
+              : clip.referenceImageUrl;
+            
+            // Use rewritten prompt if available, otherwise original
+            const promptToUse = clip.rewrittenPrompt || clip.prompt;
+            
             const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
               body: { 
-                prompt: clip.prompt, 
+                prompt: promptToUse, 
                 duration: clipDuration,
                 sceneContext: clip.sceneContext,
-                referenceImageUrl: clip.referenceImageUrl,
+                startImage, // Frame from previous clip or reference image
+                seed: sceneSeed, // Persistent seed for consistency
+                negativePrompt: clip.negativePrompt,
               },
             });
             
@@ -1101,17 +1164,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               const errorMessage = videoData?.error || videoError?.message || `Failed to start clip ${clip.index + 1}`;
               
               if (errorMessage.includes('Rate limit') || errorMessage.includes('daily task limit')) {
-                toast.error('Runway API rate limit reached. Try again later.');
+                toast.error('Replicate API rate limit reached. Try again later.');
                 throw new Error('RATE_LIMIT_EXCEEDED');
               }
               
               throw new Error(errorMessage);
             }
             
+            // Log if prompt was rewritten
+            if (videoData.promptRewritten) {
+              console.log(`Clip ${clip.index + 1}: Prompt rewritten for cinematic perspective`);
+            }
+            
             pendingTasks.push({
               taskId: videoData.taskId,
               clipIndex: clip.index,
-              prompt: clip.prompt,
+              prompt: promptToUse,
               startedAt: Date.now(),
             });
             
@@ -1221,6 +1289,21 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (failures.length > 0) {
           const failedMessages = failures.map(f => f.reason?.message || 'Unknown error').join(', ');
           throw new Error(`Some clips failed: ${failedMessages}`);
+        }
+        
+        // Extract last frame for next batch if frame chaining is enabled
+        if (settings.useFrameChaining && batchEnd < numClips) {
+          const lastCompletedClip = completedClips.filter((c): c is string => c !== null).pop();
+          if (lastCompletedClip) {
+            try {
+              toast.info('Extracting frame for visual continuity...');
+              previousFrameUrl = await extractLastFrame(lastCompletedClip);
+              console.log('Extracted last frame for chaining to next clip');
+            } catch (frameError) {
+              console.warn('Failed to extract frame for chaining:', frameError);
+              // Continue without frame chaining for next clip
+            }
+          }
         }
         
         // Save progress after each batch

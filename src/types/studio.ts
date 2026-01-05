@@ -95,6 +95,11 @@ export interface StudioSettings {
   sceneImages: SceneImage[]; // Reference images for each scene
   turboMode?: boolean; // Faster generation with shorter clips
   useImageToVideo?: boolean; // Use reference images for video generation
+  // Cinematic Orchestration Settings
+  useFrameChaining?: boolean; // Extract last frame for next clip start
+  useMasterImage?: boolean; // Generate anchor image for visual consistency
+  usePersistentSeed?: boolean; // Same seed across all clips in scene
+  rewriteCameraPrompts?: boolean; // Strip camera refs, use perspective language
 }
 
 export const VISUAL_STYLE_PRESETS = [

@@ -8,11 +8,10 @@ import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 interface CreditsDisplayProps {
   credits: UserCredits;
-  onBuyCredits?: () => void;
   selectedShotCount?: number;
 }
 
-export function CreditsDisplay({ credits, onBuyCredits, selectedShotCount }: CreditsDisplayProps) {
+export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   

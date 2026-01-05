@@ -55,7 +55,7 @@ function StudioSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
-  const { credits, buyCredits, activeProject, createProject, selectedDurationSeconds } = useStudio();
+  const { credits, activeProject, createProject } = useStudio();
   const isCollapsed = state === 'collapsed';
 
   // Check if we're in the pipeline workflow
@@ -257,21 +257,21 @@ function StudioSidebar() {
                   </div>
                 )}
 
-                {/* Usage Stats */}
+                {/* Usage Stats - Iron-Clad shot-based pricing */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Video className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
                     </div>
-                    <p className="text-sm font-semibold text-white/90">{selectedDurationSeconds || 0}s</p>
-                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Duration</p>
+                    <p className="text-sm font-semibold text-white/90">4s</p>
+                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Per Shot</p>
                   </div>
                   <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <TrendingUp className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
                     </div>
-                    <p className="text-sm font-semibold text-white/90">{credits.remaining > 0 ? Math.floor(credits.remaining / 50) : 0}</p>
-                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Clips Left</p>
+                    <p className="text-sm font-semibold text-white/90">{credits.remaining > 0 ? Math.floor(credits.remaining / 25) : 0}</p>
+                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Shots Left</p>
                   </div>
                 </div>
 
@@ -286,7 +286,6 @@ function StudioSidebar() {
           <div className="animate-fade-in">
             <CreditsDisplay 
               credits={credits} 
-              onBuyCredits={buyCredits} 
             />
           </div>
         )}

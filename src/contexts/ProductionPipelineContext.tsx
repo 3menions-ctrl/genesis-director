@@ -586,10 +586,21 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   // Visual Debugger - analyze video quality with multimodal AI
   const runVisualDebugger = useCallback(async (
     shot: Shot,
-    videoUrl: string
+    videoUrl: string,
+    shotIndex?: number
   ): Promise<{ passed: boolean; correctivePrompt?: string; score: number }> => {
     try {
       console.log(`[VisualDebugger] Analyzing shot ${shot.id}...`);
+      
+      // Build previous shot context for continuity
+      let previousShotContext = '';
+      if (shotIndex !== undefined && shotIndex > 0) {
+        const previousShots = state.production.shots.slice(0, shotIndex);
+        previousShotContext = previousShots
+          .filter(s => s.status === 'completed')
+          .map((s, i) => `Shot ${i + 1}: ${s.title} - ${s.description.substring(0, 100)}...`)
+          .join('\n');
+      }
       
       const { data, error } = await supabase.functions.invoke('visual-debugger', {
         body: {
@@ -597,11 +608,22 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           shotDescription: shot.description,
           shotId: shot.id,
           projectType: state.projectType,
+          referenceImageUrl: state.production.masterAnchor?.imageUrl, // Pass reference image for visual comparison
+          previousShotContext: previousShotContext || undefined,
           referenceAnalysis: state.referenceImage ? {
-            characterIdentity: state.referenceImage.characterIdentity,
-            environment: state.referenceImage.environment,
+            characterIdentity: {
+              ...state.referenceImage.characterIdentity,
+              clothing: state.referenceImage.characterIdentity?.description?.match(/wearing[^.]+/i)?.[0],
+              features: state.referenceImage.characterIdentity?.description?.match(/(?:with|has)[^.]+/i)?.[0],
+            },
+            environment: {
+              ...state.referenceImage.environment,
+              time: state.referenceImage.environment?.setting?.match(/(?:dawn|dusk|night|morning|evening|noon)/i)?.[0],
+              weather: state.referenceImage.environment?.setting?.match(/(?:rain|sun|cloud|fog|storm|snow)/i)?.[0],
+            },
             lighting: state.referenceImage.lighting,
             colorPalette: state.referenceImage.colorPalette,
+            visualStyle: state.projectType || 'cinematic',
           } : undefined,
         },
         signal: abortControllerRef.current?.signal,
@@ -829,7 +851,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
                 // PROFESSIONAL TIER: Run Visual Debugger before marking complete
                 if (isProfessional && shot.retryCount < maxRetries) {
                   toast.info(`Running Visual Debugger on shot ${i + 1}...`);
-                  const debugResult = await runVisualDebugger(shot, status.videoUrl);
+                  const debugResult = await runVisualDebugger(shot, status.videoUrl, i);
                   
                   // Store debug result
                   const debugSummary: VisualDebugResultSummary = {

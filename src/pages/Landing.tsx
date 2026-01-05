@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ExamplesGallery from '@/components/landing/ExamplesGallery';
+import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
 
 
 const CAPABILITIES = [
@@ -108,32 +109,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden relative">
-      {/* Stunning Animated Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted" />
-        
-        {/* Animated gradient orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-foreground/[0.03] to-transparent blur-[100px] animate-float-slow" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-foreground/[0.04] to-transparent blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-[30%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-foreground/[0.02] to-transparent blur-[80px] animate-pulse-soft" />
-        
-        {/* Subtle grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px'
-          }}
-        />
-        
-        {/* Noise texture */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
+      {/* Premium Video Background */}
+      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.75} />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4">

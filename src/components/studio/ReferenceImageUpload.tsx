@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Upload, Image, Check, Loader2, AlertCircle, 
-  Camera, Sparkles, Eye, Palette, Sun, User
+  Camera, Sparkles, Eye, Palette, Sun, User, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,12 +15,14 @@ import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 
 interface ReferenceImageUploadProps {
   onAnalysisComplete: (analysis: ReferenceImageAnalysis) => void;
+  onClear?: () => void;
   existingAnalysis?: ReferenceImageAnalysis;
   className?: string;
 }
 
 export function ReferenceImageUpload({ 
   onAnalysisComplete, 
+  onClear,
   existingAnalysis,
   className 
 }: ReferenceImageUploadProps) {
@@ -30,6 +32,29 @@ export function ReferenceImageUpload({
   const [analysis, setAnalysis] = useState<ReferenceImageAnalysis | null>(existingAnalysis || null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync with external state changes (e.g., when reset is called)
+  useEffect(() => {
+    if (!existingAnalysis) {
+      setPreviewUrl(null);
+      setAnalysis(null);
+      setError(null);
+    } else {
+      setPreviewUrl(existingAnalysis.imageUrl || null);
+      setAnalysis(existingAnalysis);
+    }
+  }, [existingAnalysis]);
+
+  const handleClear = () => {
+    setPreviewUrl(null);
+    setAnalysis(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    onClear?.();
+    toast.success('Reference image cleared');
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -176,16 +201,26 @@ export function ReferenceImageUpload({
             </ScrollArea>
           </div>
 
-          {/* Change button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClick}
-            className="shrink-0"
-          >
-            <Camera className="w-4 h-4 mr-1" />
-            Change
-          </Button>
+          {/* Action buttons */}
+          <div className="flex flex-col gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClick}
+            >
+              <Camera className="w-4 h-4 mr-1" />
+              Change
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Clear
+            </Button>
+          </div>
         </div>
 
         <input

@@ -246,17 +246,17 @@ export default function Projects() {
               { value: inProgressCount, label: 'In Progress', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
               { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
             ].map((stat, i) => (
-              <div key={i} className="flex items-center gap-3 shrink-0 group">
-                <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center group-hover:bg-white/[0.05] transition-colors">
+              <div key={i} className="flex items-center gap-3 shrink-0 group px-4 py-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-xl hover:bg-white/15 hover:border-white/30 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/10 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                   <stat.icon className={cn(
                     "w-4 h-4",
-                    stat.color || "text-white/50",
+                    stat.color || "text-white/70",
                     stat.animate && "animate-spin"
                   )} />
                 </div>
                 <div>
                   <span className="text-white font-semibold text-lg tabular-nums">{stat.value}</span>
-                  <p className="text-white/40 text-xs">{stat.label}</p>
+                  <p className="text-white/50 text-xs">{stat.label}</p>
                 </div>
               </div>
             ))}

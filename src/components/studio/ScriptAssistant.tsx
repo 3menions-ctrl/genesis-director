@@ -103,7 +103,7 @@ export function ScriptAssistant({ currentScript, onScriptUpdate }: ScriptAssista
       onScriptUpdate(generatedScript);
       setGeneratedScript(null);
       setPrompt('');
-      toast.success('Script applied!');
+      // Note: The save confirmation toast is now handled in updateProject
     }
   };
 

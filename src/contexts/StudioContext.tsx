@@ -1189,7 +1189,25 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       const globalCharacters = settings.characters?.map(c => `${c.name}: ${c.appearance}`).join('; ') || '';
       const globalEnvironment = extractSceneElements(activeProject.script_content || '');
 
-      toast.info(`Generating ${settings.scenes.length} scene reference images...`);
+      toast.info(`Generating ${settings.scenes.length} scene reference images with DALL-E...`);
+
+      // Simulate progress updates during API call (actual call is blocking)
+      const totalScenes = settings.scenes.length;
+      let progressInterval: NodeJS.Timeout | null = null;
+      let currentProgress = 0;
+      
+      progressInterval = setInterval(() => {
+        currentProgress += 100 / (totalScenes * 8); // ~8 seconds per image estimate
+        if (currentProgress < 95) {
+          const estimatedScene = Math.min(Math.floor(currentProgress / (100 / totalScenes)) + 1, totalScenes);
+          setImageGenerationProgress({
+            isGenerating: true,
+            progress: Math.round(currentProgress),
+            currentScene: estimatedScene,
+            totalScenes,
+          });
+        }
+      }, 1000);
 
       const { data, error } = await supabase.functions.invoke('generate-scene-images', {
         body: {
@@ -1207,6 +1225,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         },
       });
 
+      // Clear progress interval
+      if (progressInterval) clearInterval(progressInterval);
+
       if (error) throw error;
 
       if (data?.success && data.images) {
@@ -1219,7 +1240,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         }));
 
         updateSettings({ sceneImages: newSceneImages });
-        toast.success(`Generated ${newSceneImages.length} reference images!`);
+        toast.success(`Generated ${newSceneImages.length} reference images with DALL-E!`);
       } else {
         throw new Error(data?.error || 'Failed to generate images');
       }

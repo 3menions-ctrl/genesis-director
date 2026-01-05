@@ -85,6 +85,7 @@ export function SceneImagePreview({
   }
 
   if (isGenerating) {
+    const currentScene = Math.min(Math.floor((generationProgress / 100) * scenes.length) + 1, scenes.length);
     return (
       <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
         <div className="text-center space-y-4">
@@ -94,17 +95,30 @@ export function SceneImagePreview({
           <div>
             <h3 className="text-lg font-semibold text-foreground">Generating Reference Images</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Creating consistent visuals for your scenes...
+              Creating scene {currentScene} of {scenes.length} with DALL-E...
             </p>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
             <div 
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500 ease-out"
               style={{ width: `${generationProgress}%` }}
             />
           </div>
+          <div className="flex items-center justify-center gap-2">
+            {scenes.map((scene, index) => (
+              <div
+                key={scene.sceneNumber}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all duration-300",
+                  index < currentScene - 1 ? "bg-primary" :
+                  index === currentScene - 1 ? "bg-primary animate-pulse scale-125" :
+                  "bg-muted-foreground/30"
+                )}
+              />
+            ))}
+          </div>
           <p className="text-xs text-muted-foreground">
-            {Math.round(generationProgress)}% complete
+            {Math.round(generationProgress)}% complete • ~{Math.max(1, Math.ceil((scenes.length - currentScene + 1) * 8))}s remaining
           </p>
         </div>
       </Card>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Play, Pause, RotateCcw, ArrowLeft, ArrowRight,
   Video, Mic, Zap, Check, X, AlertCircle, Clock,
-  Film, Sparkles, Loader2, ChevronRight
+  Film, Sparkles, Loader2, ChevronRight, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -13,6 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useProductionPipeline } from '@/contexts/ProductionPipelineContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { VisualDebuggerPanel } from '@/components/studio/VisualDebuggerPanel';
+import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 export default function ProductionStage() {
   const navigate = useNavigate();
@@ -84,7 +86,7 @@ export default function ProductionStage() {
                 className="gap-2"
               >
                 <Play className="w-4 h-4" />
-                Start Production
+                Start Production ({TIER_CREDIT_COSTS[state.qualityTier].TOTAL_PER_SHOT} credits/shot)
               </Button>
             ) : isGenerating ? (
               <Button
@@ -205,8 +207,31 @@ export default function ProductionStage() {
             </ScrollArea>
           </div>
           
-          {/* Live Preview */}
+          {/* Live Preview & Visual Debugger */}
           <div className="space-y-4">
+            {/* Quality Tier Badge */}
+            <div className="flex items-center justify-between">
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "gap-1.5",
+                  state.qualityTier === 'professional' 
+                    ? "border-amber-500/50 text-amber-600 bg-amber-500/10" 
+                    : "border-border"
+                )}
+              >
+                <Shield className="w-3 h-3" />
+                {state.qualityTier === 'professional' ? 'Iron-Clad Professional' : 'Standard'} Tier
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {TIER_CREDIT_COSTS[state.qualityTier].TOTAL_PER_SHOT} credits/shot
+              </span>
+            </div>
+            
+            {/* Visual Debugger Panel - Professional Tier Feature */}
+            <VisualDebuggerPanel />
+            
+            {/* Live Preview */}
             <Card className="overflow-hidden">
               <div className="aspect-video bg-muted relative">
                 {generatingShot?.videoUrl ? (
@@ -320,7 +345,7 @@ function PipelineFeature({
   );
 }
 
-// Production Shot Card
+// Production Shot Card with Visual Debugger info
 function ProductionShotCard({ 
   shot, 
   index,
@@ -330,6 +355,12 @@ function ProductionShotCard({
   index: number;
   isActive: boolean;
 }) {
+  const retryCount = shot.retryCount || 0;
+  const hasDebugResults = shot.visualDebugResults && shot.visualDebugResults.length > 0;
+  const latestDebugResult = hasDebugResults 
+    ? shot.visualDebugResults[shot.visualDebugResults.length - 1] 
+    : null;
+  
   return (
     <Card className={cn(
       "p-4 transition-all duration-300",
@@ -366,6 +397,13 @@ function ProductionShotCard({
               {shot.id}
             </Badge>
             <h4 className="font-medium text-foreground truncate">{shot.title}</h4>
+            {/* Retry badge */}
+            {retryCount > 0 && (
+              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                <RotateCcw className="w-3 h-3" />
+                {retryCount} retry
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground truncate">
             {shot.description?.slice(0, 60)}...
@@ -373,6 +411,20 @@ function ProductionShotCard({
         </div>
         
         <div className="flex items-center gap-2 shrink-0">
+          {/* Visual Debugger Score */}
+          {latestDebugResult && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs",
+                latestDebugResult.passed 
+                  ? "border-green-500/50 text-green-600 bg-green-500/10" 
+                  : "border-amber-500/50 text-amber-600 bg-amber-500/10"
+              )}
+            >
+              {latestDebugResult.score}%
+            </Badge>
+          )}
           <Badge
             variant={
               shot.status === 'completed' ? 'default' :
@@ -391,10 +443,21 @@ function ProductionShotCard({
         </div>
       </div>
       
+      {/* Error display */}
       {shot.error && (
         <div className="mt-2 p-2 bg-destructive/10 rounded text-xs text-destructive flex items-center gap-2">
           <AlertCircle className="w-3 h-3" />
           {shot.error}
+        </div>
+      )}
+      
+      {/* Visual Debugger corrective prompt info */}
+      {latestDebugResult?.correctivePrompt && !latestDebugResult.passed && (
+        <div className="mt-2 p-2 bg-amber-500/10 rounded text-xs text-amber-700 flex items-start gap-2">
+          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span className="line-clamp-2">
+            Corrective: {latestDebugResult.correctivePrompt.slice(0, 100)}...
+          </span>
         </div>
       )}
     </Card>

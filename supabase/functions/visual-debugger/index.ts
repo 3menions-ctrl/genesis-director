@@ -11,11 +11,14 @@ interface VisualDebugRequest {
   shotDescription: string;
   shotId: string;
   projectType?: string;
+  referenceImageUrl?: string; // Master anchor image for character/scene consistency
+  previousShotContext?: string; // Description of what happened in previous shots
   referenceAnalysis?: {
-    characterIdentity?: { description: string };
-    environment?: { setting: string };
-    lighting?: { style: string; direction: string };
+    characterIdentity?: { description: string; clothing?: string; features?: string };
+    environment?: { setting: string; time?: string; weather?: string };
+    lighting?: { style: string; direction: string; color?: string };
     colorPalette?: { mood: string; dominant: string[] };
+    visualStyle?: string; // e.g., "cinematic", "anime", "realistic"
   };
 }
 
@@ -51,20 +54,52 @@ serve(async (req) => {
     }
 
     const body: VisualDebugRequest = await req.json();
-    const { videoUrl, frameUrl, shotDescription, shotId, projectType, referenceAnalysis } = body;
+    const { videoUrl, frameUrl, shotDescription, shotId, projectType, referenceImageUrl, previousShotContext, referenceAnalysis } = body;
 
     console.log(`[VisualDebugger] Analyzing shot ${shotId}`);
     console.log(`[VisualDebugger] Video URL: ${videoUrl?.substring(0, 80)}...`);
+    console.log(`[VisualDebugger] Reference image: ${referenceImageUrl ? 'provided' : 'none'}`);
 
-    // Build reference context for the model
+    // Build comprehensive reference context for maintaining consistency
     let referenceContext = '';
+    let characterContext = '';
+    let environmentContext = '';
+    
     if (referenceAnalysis) {
+      characterContext = referenceAnalysis.characterIdentity?.description || '';
+      if (referenceAnalysis.characterIdentity?.clothing) {
+        characterContext += ` Wearing: ${referenceAnalysis.characterIdentity.clothing}.`;
+      }
+      if (referenceAnalysis.characterIdentity?.features) {
+        characterContext += ` Features: ${referenceAnalysis.characterIdentity.features}.`;
+      }
+      
+      environmentContext = referenceAnalysis.environment?.setting || '';
+      if (referenceAnalysis.environment?.time) {
+        environmentContext += ` Time: ${referenceAnalysis.environment.time}.`;
+      }
+      if (referenceAnalysis.environment?.weather) {
+        environmentContext += ` Weather: ${referenceAnalysis.environment.weather}.`;
+      }
+      
       referenceContext = `
-REFERENCE IMAGE REQUIREMENTS:
-- Character: ${referenceAnalysis.characterIdentity?.description || 'Not specified'}
-- Environment: ${referenceAnalysis.environment?.setting || 'Not specified'}
-- Lighting: ${referenceAnalysis.lighting?.style || 'Not specified'}, Direction: ${referenceAnalysis.lighting?.direction || 'Not specified'}
-- Color Palette: ${referenceAnalysis.colorPalette?.mood || 'Not specified'}, Dominant: ${referenceAnalysis.colorPalette?.dominant?.join(', ') || 'Not specified'}
+CRITICAL - REFERENCE IMAGE REQUIREMENTS (must match exactly):
+- CHARACTER: ${characterContext || 'Not specified'}
+- ENVIRONMENT: ${environmentContext || 'Not specified'}
+- LIGHTING: ${referenceAnalysis.lighting?.style || 'Not specified'}, Direction: ${referenceAnalysis.lighting?.direction || 'Not specified'}${referenceAnalysis.lighting?.color ? `, Color: ${referenceAnalysis.lighting.color}` : ''}
+- COLOR PALETTE: ${referenceAnalysis.colorPalette?.mood || 'Not specified'}, Dominant colors: ${referenceAnalysis.colorPalette?.dominant?.join(', ') || 'Not specified'}
+- VISUAL STYLE: ${referenceAnalysis.visualStyle || projectType || 'cinematic'}
+`;
+    }
+    
+    // Add previous shot context for continuity
+    let continuityContext = '';
+    if (previousShotContext) {
+      continuityContext = `
+PREVIOUS SHOT CONTEXT (for continuity):
+${previousShotContext}
+
+The current shot must maintain visual continuity with what was established in previous shots.
 `;
     }
 
@@ -104,10 +139,14 @@ VERDICT RULES:
 
 If FAIL, you MUST provide a corrective prompt that:
 1. Explicitly addresses the detected issues
-2. Adds negative prompts to prevent the issue
-3. Reinforces the correct behavior
+2. MAINTAINS THE EXACT SAME CHARACTER DESCRIPTION from the reference
+3. MAINTAINS THE EXACT SAME ENVIRONMENT/BACKGROUND from the reference  
+4. Adds specific fixes for the issues (e.g., "smooth natural movement", "stable character appearance")
+5. Adds negative prompts to prevent the issue (e.g., "no morphing, no extra limbs, no jerky motion")
+6. The corrective prompt should be a COMPLETE standalone prompt, not just the fixes
 
 ${referenceContext}
+${continuityContext}
 
 OUTPUT FORMAT (JSON only):
 {
@@ -121,7 +160,7 @@ OUTPUT FORMAT (JSON only):
       "description": "Specific issue description"
     }
   ],
-  "correctivePrompt": "Only if FAIL - the corrected prompt for retry",
+  "correctivePrompt": "Only if FAIL - COMPLETE corrective prompt including full character/environment description plus fixes",
   "analysisDetails": {
     "physicsPlausibility": 0-25,
     "identityConsistency": 0-25,
@@ -129,6 +168,12 @@ OUTPUT FORMAT (JSON only):
     "cinematicQuality": 0-25
   }
 }`;
+
+    // Build character/environment context string for corrective prompts
+    const contextForCorrection = `
+CHARACTER: ${characterContext || 'as shown in reference image'}
+ENVIRONMENT: ${environmentContext || 'as shown in reference image'}
+STYLE: ${referenceAnalysis?.visualStyle || projectType || 'cinematic'}`;
 
     const userPrompt = `Analyze this AI-generated video shot for production quality:
 
@@ -138,13 +183,23 @@ PROJECT TYPE: ${projectType || 'cinematic'}
 INTENDED SHOT DESCRIPTION:
 "${shotDescription}"
 
+${referenceImageUrl ? 'A REFERENCE IMAGE is provided below - the character and environment in the video MUST match this reference exactly.' : ''}
+
+${previousShotContext ? `PREVIOUS SHOTS CONTEXT:\n${previousShotContext}\n` : ''}
+
 VIDEO/FRAME URL TO ANALYZE: ${frameUrl || videoUrl}
 
-Carefully examine the visual content and evaluate:
-1. Does the physics look realistic? (gravity, anatomy, fluid dynamics)
-2. Is the character identity consistent with the description?
-3. Is the lighting logical and consistent?
-4. Is the cinematic quality professional?
+CRITICAL CONSISTENCY CHECK:
+1. Does the CHARACTER match the reference image exactly? (same person, clothing, features)
+2. Does the ENVIRONMENT/BACKGROUND match? (same setting, time of day, lighting)
+3. Is the physics realistic? (gravity, anatomy, fluid dynamics, smooth motion)
+4. Is the cinematic quality professional? (no artifacts, no morphing, smooth transitions)
+
+If you create a corrective prompt, it MUST include:
+- The FULL character description: ${characterContext || 'from reference'}
+- The FULL environment description: ${environmentContext || 'from reference'}
+- Specific fixes for any detected issues
+- Negative prompts to prevent the issues
 
 Provide your analysis as JSON.`;
 
@@ -164,8 +219,12 @@ Provide your analysis as JSON.`;
             role: 'user', 
             content: [
               { type: 'text', text: userPrompt },
-              // Only include image URLs - videos (.mp4) are not supported for vision
-              // The AI will analyze based on the shot description instead
+              // Include reference image for character/environment consistency check
+              ...(referenceImageUrl && !referenceImageUrl.endsWith('.mp4') ? [{
+                type: 'image_url',
+                image_url: { url: referenceImageUrl }
+              }] : []),
+              // Include frame from the generated video for analysis
               ...(frameUrl && !frameUrl.endsWith('.mp4') ? [{
                 type: 'image_url',
                 image_url: { url: frameUrl }

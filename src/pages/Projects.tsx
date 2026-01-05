@@ -318,205 +318,200 @@ export default function Projects() {
             </div>
           </div>
         ) : (
-          /* Projects Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6">
+          /* Projects Masonry Gallery */
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {projects.map((project, index) => {
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
               const isActive = activeProjectId === project.id;
               
+              // Dynamic aspect ratios for visual variety
+              const aspectVariants = [
+                'aspect-video',           // 16:9
+                'aspect-[4/5]',           // Portrait
+                'aspect-square',          // 1:1
+                'aspect-[3/4]',           // Tall portrait
+                'aspect-[16/10]',         // Wide
+                'aspect-[5/4]',           // Slightly square
+              ];
+              const aspectClass = aspectVariants[index % aspectVariants.length];
+              
               return (
                 <div
                   key={project.id}
-                  onClick={() => handleSelectProject(project.id)}
-                  className={cn(
-                    "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500",
-                    "bg-white/[0.02] hover:bg-white/[0.04]",
-                    "border border-white/[0.06] hover:border-white/[0.12]",
-                    "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50",
-                    isActive && "ring-2 ring-white/20 border-white/20",
-                    "animate-fade-in"
-                  )}
-                  style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+                  className="break-inside-avoid mb-4"
                 >
-                  {/* Thumbnail */}
-                  <div className="aspect-video relative overflow-hidden bg-[hsl(0_0%_5%)]">
-                    {project.thumbnail_url ? (
-                      <img
-                        src={project.thumbnail_url}
-                        alt={project.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                        loading="lazy"
-                      />
-                    ) : hasVideo && videoClips[0] ? (
-                      <video
-                        src={videoClips[0]}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        onMouseEnter={(e) => e.currentTarget.play()}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.pause();
-                          e.currentTarget.currentTime = 0;
-                        }}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
-                          {project.status === 'generating' || project.status === 'rendering' ? (
-                            <Loader2 className="w-7 h-7 text-white/30 animate-spin" strokeWidth={1.5} />
-                          ) : (
-                            <Film className="w-7 h-7 text-white/20" strokeWidth={1.5} />
+                  <div
+                    onClick={() => hasVideo ? handlePlayVideo(project, { stopPropagation: () => {} } as React.MouseEvent) : handleOpenProject(project.id)}
+                    className={cn(
+                      "group relative overflow-hidden cursor-pointer transition-all duration-700",
+                      "rounded-[2rem] sm:rounded-[2.5rem]",
+                      "hover:scale-[1.02] hover:shadow-2xl hover:shadow-white/5",
+                      isActive && "ring-2 ring-white/30",
+                      "animate-fade-in"
+                    )}
+                    style={{ animationDelay: `${Math.min(index * 80, 500)}ms` }}
+                  >
+                    {/* Video/Placeholder Container */}
+                    <div className={cn(aspectClass, "relative overflow-hidden bg-black/40")}>
+                      {hasVideo && videoClips[0] ? (
+                        <video
+                          src={videoClips[0]}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+                          muted
+                          playsInline
+                          loop
+                          preload="metadata"
+                          onMouseEnter={(e) => e.currentTarget.play()}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.pause();
+                            e.currentTarget.currentTime = 0;
+                          }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150" />
+                            {project.status === 'generating' || project.status === 'rendering' ? (
+                              <Loader2 className="relative w-10 h-10 text-white/20 animate-spin" strokeWidth={1} />
+                            ) : (
+                              <Film className="relative w-10 h-10 text-white/15" strokeWidth={1} />
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Elegant gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                      
+                      {/* Shimmer effect on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out" />
+
+                      {/* Floating status indicator */}
+                      <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                        {project.status === 'completed' ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 backdrop-blur-xl">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span className="text-[10px] font-medium text-emerald-300 uppercase tracking-wider">Ready</span>
+                          </div>
+                        ) : project.status === 'generating' || project.status === 'rendering' ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 backdrop-blur-xl">
+                            <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                            <span className="text-[10px] font-medium text-amber-300 uppercase tracking-wider">Processing</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-xl">
+                            <Circle className="w-3 h-3 text-white/50" />
+                            <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Draft</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Clip count - top right */}
+                      {hasVideo && videoClips.length > 1 && (
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                          <div className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xl">
+                            <span className="text-[10px] font-medium text-white/70">{videoClips.length} clips</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bottom content overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                        <h3 className="font-semibold text-white text-lg truncate mb-1 drop-shadow-lg">
+                          {project.name}
+                        </h3>
+                        <div className="flex items-center gap-3 text-white/50 text-xs">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDate(project.updated_at)}
+                          </span>
+                          {hasVideo && (
+                            <span className="flex items-center gap-1">
+                              <Play className="w-3 h-3" fill="currentColor" />
+                              {videoClips.length} video{videoClips.length > 1 ? 's' : ''}
+                            </span>
                           )}
                         </div>
                       </div>
-                    )}
 
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    {/* Status badge */}
-                    <div className="absolute top-3 left-3">
-                      {project.status === 'completed' ? (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          <span className="text-[11px] font-medium text-emerald-300">Ready</span>
-                        </div>
-                      ) : project.status === 'generating' || project.status === 'rendering' ? (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
-                          <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
-                          <span className="text-[11px] font-medium text-amber-300">Processing</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-                          <Circle className="w-3 h-3 text-white/50" />
-                          <span className="text-[11px] font-medium text-white/50">Draft</span>
+                      {/* Center play icon on hover */}
+                      {hasVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform duration-500">
+                            <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    {/* Clip count badge */}
-                    {hasVideo && videoClips.length > 1 && (
-                      <div className="absolute top-3 right-3">
-                        <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
-                          <span className="text-[11px] font-medium text-white/80">{videoClips.length} clips</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Hover actions */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="flex items-center gap-3">
-                        {hasVideo ? (
-                          <>
-                            <button 
-                              onClick={(e) => handlePlayVideo(project, e)}
-                              className="flex items-center gap-2 h-10 px-5 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl hover:scale-105"
+                      {/* Floating action menu */}
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300" style={{ top: hasVideo && videoClips.length > 1 ? '3rem' : '1rem' }}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-8 w-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/60 transition-all"
                             >
-                              <Play className="w-4 h-4" fill="currentColor" />
-                              Play
+                              <MoreVertical className="w-4 h-4" />
                             </button>
-                            <button 
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 rounded-2xl bg-black/90 border-white/10 shadow-2xl backdrop-blur-2xl p-1">
+                            {hasVideo && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayVideo(project, e as any);
+                                  }}
+                                  className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-xl py-2.5 px-3"
+                                >
+                                  <Play className="w-4 h-4" />
+                                  Play
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadAll(project);
+                                  }}
+                                  className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-xl py-2.5 px-3"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Download
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-white/10 my-1" />
+                              </>
+                            )}
+                            <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenProject(project.id);
-                              }}
-                              className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-md text-white rounded-full hover:bg-white/30 transition-all border border-white/20 hover:scale-105"
+                              }} 
+                              className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-xl py-2.5 px-3"
                             >
                               <Edit2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenProject(project.id);
-                            }}
-                            className="flex items-center gap-2 h-10 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl hover:scale-105"
-                          >
-                            Open
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        )}
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="gap-2.5 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-xl py-2.5 px-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Copy className="w-4 h-4" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-white/10 my-1" />
+                            <DropdownMenuItem
+                              className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-xl py-2.5 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteProject(project.id);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white truncate text-base group-hover:text-white/90 transition-colors">
-                          {project.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <Clock className="w-3 h-3 text-white/30" />
-                          <span className="text-xs text-white/40">
-                            {formatDate(project.updated_at)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.08] transition-all"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl bg-[hsl(0_0%_8%)] border-white/[0.1] shadow-2xl backdrop-blur-xl">
-                          {hasVideo && (
-                            <>
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePlayVideo(project, e as any);
-                                }}
-                                className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
-                              >
-                                <Play className="w-4 h-4" />
-                                Play Video
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadAll(project);
-                                }}
-                                className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
-                              >
-                                <Download className="w-4 h-4" />
-                                Download All
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
-                            </>
-                          )}
-                          <DropdownMenuItem 
-                            onClick={() => handleOpenProject(project.id)} 
-                            className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit Project
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-3 text-sm text-white/70 focus:text-white focus:bg-white/[0.08] rounded-lg mx-1 py-2.5">
-                            <Copy className="w-4 h-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className="bg-white/[0.08] my-1" />
-                          <DropdownMenuItem
-                            className="gap-3 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg mx-1 py-2.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteProject(project.id);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
@@ -524,25 +519,31 @@ export default function Projects() {
             })}
 
             {/* New Project Card */}
-            <button
-              onClick={handleCreateProject}
-              className={cn(
-                "group relative rounded-2xl border-2 border-dashed transition-all duration-500",
-                "border-white/[0.08] hover:border-white/20",
-                "bg-transparent hover:bg-white/[0.02]",
-                "flex flex-col items-center justify-center min-h-[280px]",
-                "hover:-translate-y-1",
-                "animate-fade-in"
-              )}
-              style={{ animationDelay: `${Math.min(projects.length * 50, 400)}ms` }}
-            >
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] group-hover:bg-white/[0.08] border border-white/[0.06] group-hover:border-white/[0.12] flex items-center justify-center transition-all duration-500 group-hover:scale-110">
-                <Plus className="w-7 h-7 text-white/30 group-hover:text-white/60 transition-colors" strokeWidth={1.5} />
-              </div>
-              <span className="mt-4 text-sm font-medium text-white/30 group-hover:text-white/60 transition-colors">
-                Create New Project
-              </span>
-            </button>
+            <div className="break-inside-avoid mb-4">
+              <button
+                onClick={handleCreateProject}
+                className={cn(
+                  "group relative w-full overflow-hidden transition-all duration-700",
+                  "rounded-[2rem] sm:rounded-[2.5rem]",
+                  "border border-dashed border-white/10 hover:border-white/20",
+                  "bg-white/[0.02] hover:bg-white/[0.04]",
+                  "aspect-[4/3] flex flex-col items-center justify-center",
+                  "hover:scale-[1.02]",
+                  "animate-fade-in"
+                )}
+                style={{ animationDelay: `${Math.min(projects.length * 80, 500)}ms` }}
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative w-14 h-14 rounded-2xl bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/20 flex items-center justify-center transition-all duration-500 group-hover:scale-110">
+                    <Plus className="w-6 h-6 text-white/30 group-hover:text-white/60 transition-colors" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <span className="mt-4 text-sm font-medium text-white/30 group-hover:text-white/60 transition-colors">
+                  New Project
+                </span>
+              </button>
+            </div>
           </div>
         )}
         </div>

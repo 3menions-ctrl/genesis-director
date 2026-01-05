@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
-  Play, Film, ArrowRight, 
+  Film, ArrowRight, 
   Video, Mic, Image,
-  Check, Sparkles, Wand2,
+  Check, 
   ChevronRight, Loader2, Zap, 
-  Brain, Layers, Eye
+  Brain, Layers, Eye, Stars
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
+
 
 const CAPABILITIES = [
   'Text to Video',
@@ -105,12 +105,33 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Premium Video Background */}
-      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.75} />
-
-      {/* Refined dot pattern overlay */}
-      <div className="fixed inset-0 pointer-events-none dot-pattern opacity-20 z-[1]" />
+    <div className="min-h-screen bg-background overflow-hidden relative">
+      {/* Stunning Animated Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted" />
+        
+        {/* Animated gradient orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-foreground/[0.03] to-transparent blur-[100px] animate-float-slow" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-foreground/[0.04] to-transparent blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-[30%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-foreground/[0.02] to-transparent blur-[80px] animate-pulse-soft" />
+        
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px'
+          }}
+        />
+        
+        {/* Noise texture */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          }}
+        />
+      </div>
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4">
@@ -172,10 +193,10 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 px-4 lg:px-8 pt-32 lg:pt-40 pb-20">
+      <section className="relative z-10 px-4 lg:px-8 pt-32 lg:pt-48 pb-32">
         <div className="max-w-7xl mx-auto">
           {/* Badge with shimmer */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-10 animate-fade-in">
             <div className="relative group cursor-pointer">
               <div className="absolute inset-0 rounded-full bg-foreground/5 blur-xl group-hover:bg-foreground/10 transition-colors" />
               <div className="relative flex items-center gap-3 px-5 py-2.5 rounded-full glass-card border-foreground/10">
@@ -187,11 +208,12 @@ export default function Landing() {
           </div>
 
           {/* Main headline */}
-          <div className="text-center max-w-5xl mx-auto mb-8">
-            <h1 className="text-5xl sm:text-6xl lg:text-8xl font-bold tracking-tight leading-[1.05] mb-8">
-              <span className="text-foreground">Create videos that</span>
-              <br />
-              <span className="text-shine">captivate the world</span>
+          <div className="text-center max-w-5xl mx-auto mb-10 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <h1 className="text-5xl sm:text-7xl lg:text-[6.5rem] font-bold tracking-tighter leading-[0.95] mb-8">
+              <span className="block text-foreground">Create videos that</span>
+              <span className="block mt-2 bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-clip-text text-transparent animate-gradient-shift">
+                captivate the world
+              </span>
             </h1>
             <p className="text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">
               Transform text or images into cinema. AI writes your script, generates scenes, and produces professional videos.
@@ -199,11 +221,11 @@ export default function Landing() {
           </div>
 
           {/* CTA buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             <Button
               onClick={() => navigate('/auth')}
               size="lg"
-              className="group h-14 px-8 text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-shadow"
+              className="group h-14 px-10 text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
             >
               Start creating for free
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -211,23 +233,23 @@ export default function Landing() {
             <Button
               variant="outline"
               size="lg"
-              className="h-14 px-8 text-base font-semibold rounded-2xl"
+              className="h-14 px-10 text-base font-semibold rounded-2xl hover:-translate-y-0.5 transition-all"
             >
-              <Play className="w-5 h-5 mr-2" />
-              Watch demo
+              <Stars className="w-5 h-5 mr-2" />
+              See examples
             </Button>
           </div>
 
           {/* Capabilities with refined styling */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-20">
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-24 animate-fade-in" style={{ animationDelay: '300ms' }}>
             {CAPABILITIES.map((cap, i) => (
               <div
                 key={cap}
                 className={cn(
                   "relative px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
                   activeCapability === i 
-                    ? "bg-glossy-black text-white shadow-obsidian" 
-                    : "glass-card text-muted-foreground hover:text-foreground border-transparent"
+                    ? "bg-glossy-black text-white shadow-obsidian scale-105" 
+                    : "glass-card text-muted-foreground hover:text-foreground border-transparent hover:scale-105"
                 )}
                 onClick={() => setActiveCapability(i)}
               >
@@ -239,25 +261,64 @@ export default function Landing() {
             ))}
           </div>
 
-          {/* Hero Visual - Minimal Video Showcase */}
-          <div className="relative max-w-7xl mx-auto">
-            {/* Ambient glow */}
-            <div className="absolute -inset-16 bg-foreground/[0.03] rounded-[5rem] blur-[80px]" />
+          {/* Floating Feature Cards - Replacing Video */}
+          <div className="relative max-w-6xl mx-auto animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+            {/* Central glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.02] to-transparent blur-[60px]" />
             
-            {/* Clean video container */}
-            <div className="relative rounded-[2rem] overflow-hidden shadow-obsidian-xl">
-              <div className="relative aspect-[16/9] bg-black">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                  src="https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4"
-                />
+            {/* Bento-style feature showcase */}
+            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Main feature - Text to Video */}
+              <div className="md:col-span-2 group relative p-8 lg:p-10 rounded-3xl bg-glossy-black text-white shadow-obsidian-xl hover:shadow-obsidian-xl transition-all hover:-translate-y-1 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 
-                {/* Subtle vignette overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_70%,rgba(0,0,0,0.15)_100%)] pointer-events-none" />
+                <div className="relative">
+                  <div className="w-14 h-14 mb-6 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                    <Video className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-2xl lg:text-3xl font-bold mb-3">Text-to-Video</h3>
+                  <p className="text-lg text-white/60 max-w-md leading-relaxed">
+                    Describe any scene and watch AI bring it to life with stunning cinematic quality.
+                  </p>
+                  
+                  {/* Animated typing indicator */}
+                  <div className="mt-8 flex items-center gap-3 text-white/40">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse-soft" />
+                      <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse-soft" style={{ animationDelay: '200ms' }} />
+                      <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse-soft" style={{ animationDelay: '400ms' }} />
+                    </div>
+                    <span className="text-sm font-medium">Generating your vision...</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Side features */}
+              <div className="flex flex-col gap-4">
+                {/* Image to Video */}
+                <div className="group relative flex-1 p-6 rounded-2xl glass-card hover:border-foreground/10 transition-all hover:-translate-y-1 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative">
+                    <div className="w-12 h-12 mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Image className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-foreground mb-2">Image-to-Video</h4>
+                    <p className="text-sm text-muted-foreground">Animate any image into dynamic video</p>
+                  </div>
+                </div>
+
+                {/* AI Script */}
+                <div className="group relative flex-1 p-6 rounded-2xl glass-card hover:border-foreground/10 transition-all hover:-translate-y-1 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative">
+                    <div className="w-12 h-12 mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Brain className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-foreground mb-2">AI Script Writer</h4>
+                    <p className="text-sm text-muted-foreground">Generate compelling narratives</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

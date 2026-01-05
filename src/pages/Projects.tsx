@@ -163,7 +163,7 @@ export default function Projects() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(0_0%_3%)] relative overflow-hidden">
+    <div className="h-screen bg-[hsl(0_0%_3%)] relative overflow-hidden flex flex-col">
       {/* Premium Dark Ambient Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Animated gradient orbs */}
@@ -188,84 +188,104 @@ export default function Projects() {
         />
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 border-b border-white/[0.06]">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          {/* Top row */}
-          <div className="py-8 sm:py-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-            <div className="animate-fade-in">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <Film className="w-5 h-5 text-white/70" />
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Projects</h1>
-              </div>
-              <p className="text-sm sm:text-base text-white/40">Create and manage your video productions</p>
-            </div>
-            
-            {/* Action buttons */}
-            <div className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: '100ms' }}>
-              {projectsWithoutThumbnails > 0 && (
-                <Button 
-                  variant="outline"
-                  onClick={handleGenerateMissingThumbnails}
-                  disabled={isGeneratingThumbnails}
-                  className="h-11 px-5 rounded-xl bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
-                >
-                  {isGeneratingThumbnails ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <ImageIcon className="w-4 h-4 mr-2 text-purple-400" />
-                  )}
-                  <span className="hidden sm:inline">Generate Thumbnails</span>
-                </Button>
-              )}
-              <Button 
-                variant="outline"
-                onClick={() => navigate('/pipeline/scripting')}
-                className="h-11 px-5 rounded-xl bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
-              >
-                <Zap className="w-4 h-4 mr-2 text-amber-400" />
-                <span className="hidden sm:inline">Pipeline</span>
-              </Button>
-              <Button 
-                onClick={handleCreateProject}
-                className="h-11 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-semibold shadow-lg shadow-white/10 transition-all hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                <span>New Project</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats bar */}
-          <div className="pb-6 sm:pb-8 flex items-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide animate-fade-in" style={{ animationDelay: '150ms' }}>
-            {[
-              { value: projects.length, label: 'Total Projects', icon: Film },
-              { value: completedCount, label: 'Completed', icon: CheckCircle2, color: 'text-emerald-400' },
-              { value: inProgressCount, label: 'In Progress', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
-              { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
-            ].map((stat, i) => (
-              <div key={i} className="flex items-center gap-3 shrink-0 group px-4 py-3 rounded-xl bg-white/10 border border-white/20 backdrop-blur-xl hover:bg-white/15 hover:border-white/30 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-white/20 border border-white/10 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                  <stat.icon className={cn(
-                    "w-4 h-4",
-                    stat.color || "text-white/70",
-                    stat.animate && "animate-spin"
-                  )} />
+      {/* Premium Header */}
+      <header className="relative z-10 shrink-0">
+        {/* Top accent line */}
+        <div className="h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        
+        {/* Glassmorphism header background */}
+        <div className="relative bg-white/[0.03] backdrop-blur-2xl border-b border-white/[0.08]">
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-shimmer" />
+          
+          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Main header content */}
+            <div className="py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="animate-fade-in flex items-center gap-4">
+                {/* Premium logo container */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-white/15 to-white/5 border border-white/20 flex items-center justify-center shadow-lg shadow-black/20 group-hover:border-white/30 transition-all">
+                    <Film className="w-5 h-5 text-white" />
+                  </div>
                 </div>
                 <div>
-                  <span className="text-white font-semibold text-lg tabular-nums">{stat.value}</span>
-                  <p className="text-white/50 text-xs">{stat.label}</p>
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Projects</h1>
+                  <p className="text-xs sm:text-sm text-white/40 hidden sm:block">Manage your video productions</p>
                 </div>
               </div>
-            ))}
+              
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 sm:gap-3 animate-fade-in" style={{ animationDelay: '100ms' }}>
+                {projectsWithoutThumbnails > 0 && (
+                  <Button 
+                    variant="outline"
+                    onClick={handleGenerateMissingThumbnails}
+                    disabled={isGeneratingThumbnails}
+                    size="sm"
+                    className="h-9 px-3 sm:px-4 rounded-lg bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
+                  >
+                    {isGeneratingThumbnails ? (
+                      <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-4 h-4 sm:mr-2 text-purple-400" />
+                    )}
+                    <span className="hidden sm:inline text-sm">Thumbnails</span>
+                  </Button>
+                )}
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/pipeline/scripting')}
+                  size="sm"
+                  className="h-9 px-3 sm:px-4 rounded-lg bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
+                >
+                  <Zap className="w-4 h-4 sm:mr-2 text-amber-400" />
+                  <span className="hidden sm:inline text-sm">Pipeline</span>
+                </Button>
+                <Button 
+                  onClick={handleCreateProject}
+                  size="sm"
+                  className="h-9 px-4 sm:px-5 rounded-lg bg-white text-black hover:bg-white/90 font-semibold shadow-lg shadow-white/10 transition-all hover:-translate-y-0.5 text-sm"
+                >
+                  <Plus className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">New</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Stats bar - horizontal scroll on mobile */}
+            <div className="pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide animate-fade-in" style={{ animationDelay: '150ms' }}>
+              {[
+                { value: projects.length, label: 'Total', icon: Film },
+                { value: completedCount, label: 'Done', icon: CheckCircle2, color: 'text-emerald-400' },
+                { value: inProgressCount, label: 'Active', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
+                { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
+              ].map((stat, i) => (
+                <div 
+                  key={i} 
+                  className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-lg bg-white/10 border border-white/15 backdrop-blur-xl hover:bg-white/15 hover:border-white/25 transition-all group cursor-default"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
+                    <stat.icon className={cn(
+                      "w-3.5 h-3.5",
+                      stat.color || "text-white/70",
+                      stat.animate && "animate-spin"
+                    )} />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white font-semibold text-sm tabular-nums">{stat.value}</span>
+                    <span className="text-white/40 text-xs hidden sm:inline">{stat.label}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+      {/* Content - scrollable area */}
+      <main className="relative z-10 flex-1 overflow-y-auto">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {projects.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-24 sm:py-40 px-4 animate-fade-in-up">
@@ -525,6 +545,7 @@ export default function Projects() {
             </button>
           </div>
         )}
+        </div>
       </main>
 
       {/* Video Player Modal */}

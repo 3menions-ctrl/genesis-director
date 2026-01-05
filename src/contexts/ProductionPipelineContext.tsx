@@ -527,8 +527,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           prompt: enrichedPrompt,
           duration: Math.min(MAX_SHOT_DURATION_SECONDS, shot.durationSeconds),
           negativePrompt,
-          startImage: previousFrameUrl, // Frame chaining via first_frame_image
-          // NOTE: subjectReference removed - MiniMax doesn't allow both first_frame_image and subject_reference
+          // Frame chaining: use previous frame if available, otherwise use reference image
+          startImage: previousFrameUrl,
+          // Always pass reference image URL as fallback for image-to-video mode
+          referenceImageUrl: state.production.masterAnchor?.imageUrl || state.referenceImage?.imageUrl,
           // Transition type for seamless shot connections
           transitionOut: shot.transitionOut || 'continuous',
           sceneContext: {

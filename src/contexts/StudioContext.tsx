@@ -587,7 +587,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
-    // Update local state immediately
+    // Update local state immediately for responsive UI
     setProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
     );
@@ -606,6 +606,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (updates.target_duration_minutes !== undefined) dbUpdates.target_duration_minutes = updates.target_duration_minutes;
     if (updates.include_narration !== undefined) dbUpdates.include_narration = updates.include_narration;
 
+    // Only proceed if there are actual updates beyond timestamp
+    if (Object.keys(dbUpdates).length <= 1) return;
+
     try {
       const { error } = await supabase
         .from('movie_projects')
@@ -614,9 +617,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error updating project:', error);
+        // Show toast for script-related updates as these are important
+        if (updates.script_content !== undefined) {
+          toast.error('Failed to save script. Please try again.');
+        }
+        // Revert local state on error
+        await refreshProjects();
+      } else if (updates.script_content !== undefined) {
+        // Confirm script was saved
+        toast.success('Script saved');
       }
     } catch (err) {
       console.error('Error updating project:', err);
+      toast.error('Failed to save changes');
     }
   };
 

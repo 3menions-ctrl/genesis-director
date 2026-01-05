@@ -6,6 +6,7 @@ import {
   CheckCircle2, Zap, AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GenerationVisualizer } from "./GenerationVisualizer";
 
 interface GenerationProgressModalProps {
   open: boolean;
@@ -47,8 +48,8 @@ export function GenerationProgressModal({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
-        <div className="glass-card-dark p-8 space-y-8">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <div className="glass-card-dark p-8 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -74,6 +75,16 @@ export function GenerationProgressModal({
             </Button>
           </div>
 
+          {/* Animated Visualizer */}
+          {!error && (
+            <GenerationVisualizer
+              step={step}
+              percent={percent}
+              currentClip={currentClip}
+              totalClips={totalClips}
+            />
+          )}
+
           {/* Error State */}
           {error && (
             <div className="rounded-xl bg-destructive/20 border border-destructive/30 p-4 flex items-start gap-3">
@@ -87,7 +98,7 @@ export function GenerationProgressModal({
 
           {/* Progress Steps */}
           {!error && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
               {STEPS.map((s, index) => {
                 const status = getStepStatus(index);
                 const StepIcon = s.icon;
@@ -96,7 +107,7 @@ export function GenerationProgressModal({
                   <div
                     key={s.id}
                     className={cn(
-                      "relative flex items-center gap-4 p-4 rounded-xl transition-all duration-300",
+                      "relative flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-300",
                       status === 'active' && "bg-white/10 border border-white/20",
                       status === 'complete' && "bg-success/10 border border-success/20",
                       status === 'pending' && "opacity-40"
@@ -120,63 +131,38 @@ export function GenerationProgressModal({
                     </div>
 
                     {/* Step Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className={cn(
-                          "font-semibold",
-                          status === 'complete' && "text-success",
-                          status === 'active' && "text-white",
-                          status === 'pending' && "text-white/50"
-                        )}>
-                          {s.label}
-                        </h3>
-                        {status === 'active' && (
-                          <span className="text-xs font-mono text-primary bg-primary/20 px-2 py-0.5 rounded-full">
-                            {percent}%
-                          </span>
-                        )}
-                        {status === 'complete' && (
-                          <span className="text-xs text-success font-medium">Done</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-white/50 mt-0.5">{s.description}</p>
-                      
-                      {/* Active step progress */}
-                      {status === 'active' && (
-                        <div className="mt-3 space-y-2">
-                          <Progress 
-                            value={percent} 
-                            className="h-1.5 bg-white/10" 
-                          />
+                    <div className="text-center">
+                      <h3 className={cn(
+                        "font-semibold text-sm",
+                        status === 'complete' && "text-success",
+                        status === 'active' && "text-white",
+                        status === 'pending' && "text-white/50"
+                      )}>
+                        {s.label}
+                      </h3>
+                      <p className="text-xs text-white/40 mt-0.5">{s.description}</p>
+                    </div>
+                    
+                    {/* Active step progress */}
+                    {status === 'active' && (
+                      <div className="w-full space-y-1">
+                        <Progress 
+                          value={percent} 
+                          className="h-1 bg-white/10" 
+                        />
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs font-mono text-primary">{percent}%</span>
                           {currentClip && totalClips && step === 'video' && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex gap-1">
-                                {[...Array(totalClips)].map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={cn(
-                                      "w-1.5 h-1.5 rounded-full transition-all",
-                                      i < currentClip ? "bg-success" : 
-                                      i === currentClip - 1 ? "bg-primary animate-pulse" : "bg-white/20"
-                                    )}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-xs text-white/50">
-                                Clip {currentClip}/{totalClips}
-                              </span>
-                            </div>
+                            <span className="text-xs text-white/40">
+                              • Clip {currentClip}/{totalClips}
+                            </span>
                           )}
                         </div>
-                      )}
-                    </div>
-
-                    {/* Connector line */}
-                    {index < STEPS.length - 1 && (
-                      <div className={cn(
-                        "absolute left-9 top-[4.5rem] w-0.5 h-4",
-                        status === 'complete' ? "bg-success" : "bg-white/10"
-                      )} />
+                      </div>
+                    )}
+                    
+                    {status === 'complete' && (
+                      <span className="text-xs text-success font-medium">Complete</span>
                     )}
                   </div>
                 );

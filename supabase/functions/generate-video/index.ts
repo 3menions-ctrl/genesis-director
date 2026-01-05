@@ -350,8 +350,7 @@ serve(async (req) => {
       duration = 8, 
       sceneContext, 
       referenceImageUrl,
-      startImage, // For frame chaining (first_frame_image)
-      subjectReference, // For character consistency (subject_reference uses S2V-01 model)
+      startImage, // For frame chaining (image parameter)
       negativePrompt: inputNegativePrompt,
       transitionOut, // Transition type for seamless connections
     } = await req.json();
@@ -360,14 +359,8 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
 
-    // Enforce max 16 second duration
-    const MAX_DURATION = 16;
-    const MIN_DURATION = 4;
-    const clampedDuration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, duration));
-    
-    if (duration > MAX_DURATION) {
-      console.log(`Duration ${duration}s exceeds max, clamping to ${MAX_DURATION}s`);
-    }
+    // Veo 2 generates 8-second clips by default (fixed duration)
+    // Duration parameter is informational only for Veo 2
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     if (!REPLICATE_API_KEY) {
@@ -376,13 +369,17 @@ serve(async (req) => {
 
     const replicate = new Replicate({ auth: REPLICATE_API_KEY });
 
-    // Build enhanced prompt with camera rewrites, consistency, and transition hints
+    // Build enhanced prompt with physics reinforcement for Veo 2
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
       prompt, 
       sceneContext,
       inputNegativePrompt,
       transitionOut
     );
+    
+    // Add physics reinforcement to the prompt for Veo 2
+    // Veo 2 is known for physics simulation, but we reinforce it
+    const physicsEnhancedPrompt = `${enhancedPrompt}. Realistic physics, natural motion, gravity obeyed.`;
     
     // Determine the start image (frame chaining or reference image)
     // IMPORTANT: Convert base64 to URLs - Replicate requires HTTP URLs!
@@ -391,36 +388,33 @@ serve(async (req) => {
     
     const isImageToVideo = !!startImageUrl;
 
-    console.log("Generating video with Replicate MiniMax:", {
+    console.log("Generating video with Google Veo 2:", {
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
-      duration: clampedDuration,
       transitionOut: transitionOut || 'continuous',
-      promptLength: enhancedPrompt.length,
+      promptLength: physicsEnhancedPrompt.length,
       hasStartImage: isImageToVideo,
       startImageUrl: isImageToVideo ? startImageUrl?.substring(0, 80) + '...' : null,
     });
 
-    // MiniMax video-01 input configuration
-    // CRITICAL: prompt_optimizer DISABLED to preserve user intent
+    // Veo 2 input configuration
+    // Veo 2 uses simpler parameters: prompt, image (optional), aspect_ratio
     const input: Record<string, unknown> = {
-      prompt: enhancedPrompt,
-      prompt_optimizer: false, // DISABLED: was destroying user's intent
+      prompt: physicsEnhancedPrompt,
+      aspect_ratio: "16:9", // Standard video aspect ratio
     };
 
-    // Image-to-video mode: use first_frame_image for visual continuity
-    // NOTE: We use first_frame_image mode only. subject_reference requires S2V-01 model
-    // and a different input format (array of objects), which we're not using here.
+    // Image-to-video mode: use 'image' parameter for visual reference
     if (isImageToVideo) {
-      console.log("Using first_frame_image for visual continuity:", startImageUrl);
-      input.first_frame_image = startImageUrl;
+      console.log("Using image for visual reference (Veo 2 image-to-video):", startImageUrl);
+      input.image = startImageUrl;
     }
 
     const prediction = await replicate.predictions.create({
-      model: "minimax/video-01",
+      model: "google/veo-2",
       input,
     });
 
-    console.log("Replicate prediction created:", prediction.id, "status:", prediction.status);
+    console.log("Veo 2 prediction created:", prediction.id, "status:", prediction.status);
 
     return new Response(
       JSON.stringify({ 
@@ -429,8 +423,9 @@ serve(async (req) => {
         status: prediction.status.toUpperCase(),
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
         provider: "replicate",
-        promptRewritten: enhancedPrompt !== prompt,
-        message: "Video generation started. Poll the status endpoint for updates.",
+        model: "google/veo-2",
+        promptRewritten: physicsEnhancedPrompt !== prompt,
+        message: "Video generation started with Veo 2. Poll the status endpoint for updates.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

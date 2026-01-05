@@ -380,9 +380,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         body: {
           prompt: cleanPrompt, // Direct prompt, no over-processing
           duration: shot.durationSeconds,
-          seed: state.production.globalSeed, // Locked seed for consistency
           negativePrompt,
-          startImage: previousFrameUrl, // Frame chaining
+          startImage: previousFrameUrl, // Frame chaining via first_frame_image
+          // Use master anchor as subject_reference for character consistency
+          subjectReference: state.production.masterAnchor?.imageUrl,
           sceneContext: {
             environment: state.production.masterAnchor?.environmentPrompt,
             colorPalette: state.production.masterAnchor?.colorPalette,
@@ -403,7 +404,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       console.error('Video generation failed for shot:', shot.id, err);
       return { error: err instanceof Error ? err.message : 'Generation failed' };
     }
-  }, [state.production.globalSeed, state.production.masterAnchor, applyCameramanFilter]);
+  }, [state.production.masterAnchor, state.structuredShots.length, applyCameramanFilter]);
   
   // Poll for video completion
   const pollVideoStatus = useCallback(async (taskId: string): Promise<{ status: string; videoUrl?: string }> => {

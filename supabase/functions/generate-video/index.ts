@@ -8,9 +8,11 @@ const corsHeaders = {
 
 // Scene consistency context for multi-clip videos
 interface SceneContext {
-  clipIndex: number;
-  totalClips: number;
+  clipIndex?: number;
+  totalClips?: number;
   sceneTitle?: string;
+  // Support both naming conventions from client
+  environment?: string;
   globalEnvironment?: string;
   globalCharacters?: string;
   previousClipSummary?: string;
@@ -120,12 +122,13 @@ function buildConsistentPrompt(
   let rewrittenPrompt = rewriteCameraReferences(basePrompt);
   
   // Add minimal consistency hints only for multi-clip projects
-  if (context && context.totalClips > 1) {
+  if (context && (context.totalClips || 0) > 1) {
     const hints: string[] = [];
     
-    // Only add environment if provided
-    if (context.globalEnvironment) {
-      hints.push(`Setting: ${context.globalEnvironment}`);
+    // Support both field names from client
+    const environment = context.globalEnvironment || context.environment;
+    if (environment) {
+      hints.push(`Setting: ${environment}`);
     }
     
     // Character consistency is important
@@ -175,8 +178,8 @@ serve(async (req) => {
       duration = 5, 
       sceneContext, 
       referenceImageUrl,
-      startImage, // New: for frame chaining (base64 or URL)
-      seed, // New: for consistent generation
+      startImage, // For frame chaining (first_frame_image)
+      subjectReference, // For character consistency (subject_reference uses S2V-01 model)
       negativePrompt: inputNegativePrompt,
     } = await req.json();
 
@@ -201,38 +204,39 @@ serve(async (req) => {
     // Determine the start image (frame chaining or reference image)
     const startImageUrl = startImage || referenceImageUrl;
     const isImageToVideo = !!startImageUrl;
+    const hasSubjectRef = !!subjectReference;
 
-    console.log("Generating video with Replicate:", {
+    console.log("Generating video with Replicate MiniMax:", {
       mode: isImageToVideo ? "image-to-video (frame-chained)" : "text-to-video",
       promptLength: enhancedPrompt.length,
       hasStartImage: isImageToVideo,
-      seed: seed || 'random',
-      negativePromptLength: negativePrompt.length,
+      hasSubjectReference: hasSubjectRef,
+      // NOTE: MiniMax video-01 does NOT support seed parameter
     });
 
-    let prediction;
-
-    // Always use MiniMax video-01 for both text-to-video and image-to-video
+    // MiniMax video-01 input configuration
     // CRITICAL: prompt_optimizer DISABLED to preserve user intent
-    // CRITICAL: seed passed for visual consistency across clips
+    // NOTE: seed is NOT supported by this model - visual consistency comes from:
+    //   1. first_frame_image (frame chaining)
+    //   2. subject_reference (character consistency via S2V-01)
     const input: Record<string, unknown> = {
       prompt: enhancedPrompt,
-      prompt_optimizer: false, // DISABLED: was destroying user's intent by rewriting prompts
+      prompt_optimizer: false, // DISABLED: was destroying user's intent
     };
 
-    // Pass seed for consistent generation across all clips
-    if (seed) {
-      input.seed = seed;
-      console.log("Using locked seed for consistency:", seed);
-    }
-
+    // Frame chaining: use first_frame_image for scene continuity
     if (isImageToVideo) {
-      // Use first_frame_image for visual continuity
-      console.log("Using image-to-video with first_frame_image for visual continuity");
+      console.log("Using first_frame_image for visual continuity");
       input.first_frame_image = startImageUrl;
     }
 
-    prediction = await replicate.predictions.create({
+    // Character consistency: use subject_reference (triggers S2V-01 model)
+    if (hasSubjectRef) {
+      console.log("Using subject_reference for character consistency (S2V-01)");
+      input.subject_reference = subjectReference;
+    }
+
+    const prediction = await replicate.predictions.create({
       model: "minimax/video-01",
       input,
     });
@@ -245,8 +249,8 @@ serve(async (req) => {
         taskId: prediction.id,
         status: prediction.status.toUpperCase(),
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
+        hasSubjectReference: hasSubjectRef,
         provider: "replicate",
-        seed: seed || null,
         promptRewritten: enhancedPrompt !== prompt,
         message: "Video generation started. Poll the status endpoint for updates.",
       }),

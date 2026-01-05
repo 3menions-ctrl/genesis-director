@@ -388,18 +388,16 @@ serve(async (req) => {
     // IMPORTANT: Convert base64 to URLs - Replicate requires HTTP URLs!
     const rawStartImage = startImage || referenceImageUrl;
     const startImageUrl = await ensureImageUrl(rawStartImage, 'frame');
-    const subjectReferenceUrl = await ensureImageUrl(subjectReference, 'subject');
     
     const isImageToVideo = !!startImageUrl;
-    const hasSubjectRef = !!subjectReferenceUrl;
 
     console.log("Generating video with Replicate MiniMax:", {
-      mode: isImageToVideo ? "image-to-video (frame-chained)" : "text-to-video",
+      mode: isImageToVideo ? "image-to-video" : "text-to-video",
       duration: clampedDuration,
       transitionOut: transitionOut || 'continuous',
       promptLength: enhancedPrompt.length,
       hasStartImage: isImageToVideo,
-      hasSubjectReference: hasSubjectRef,
+      startImageUrl: isImageToVideo ? startImageUrl?.substring(0, 80) + '...' : null,
     });
 
     // MiniMax video-01 input configuration
@@ -409,16 +407,12 @@ serve(async (req) => {
       prompt_optimizer: false, // DISABLED: was destroying user's intent
     };
 
-    // Frame chaining: use first_frame_image for scene continuity
+    // Image-to-video mode: use first_frame_image for visual continuity
+    // NOTE: We use first_frame_image mode only. subject_reference requires S2V-01 model
+    // and a different input format (array of objects), which we're not using here.
     if (isImageToVideo) {
       console.log("Using first_frame_image for visual continuity:", startImageUrl);
       input.first_frame_image = startImageUrl;
-    }
-
-    // Character consistency: use subject_reference (triggers S2V-01 model)
-    if (hasSubjectRef) {
-      console.log("Using subject_reference for character consistency (S2V-01):", subjectReferenceUrl);
-      input.subject_reference = subjectReferenceUrl;
     }
 
     const prediction = await replicate.predictions.create({
@@ -434,7 +428,6 @@ serve(async (req) => {
         taskId: prediction.id,
         status: prediction.status.toUpperCase(),
         mode: isImageToVideo ? "image-to-video" : "text-to-video",
-        hasSubjectReference: hasSubjectRef,
         provider: "replicate",
         promptRewritten: enhancedPrompt !== prompt,
         message: "Video generation started. Poll the status endpoint for updates.",

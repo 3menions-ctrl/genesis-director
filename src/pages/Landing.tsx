@@ -239,13 +239,13 @@ export default function Landing() {
             ))}
           </div>
 
-          {/* Hero Visual - Enhanced editor preview */}
-          <div className="relative max-w-6xl mx-auto">
+          {/* Hero Visual - Large Video Showcase */}
+          <div className="relative max-w-7xl mx-auto">
             {/* Ambient glow */}
-            <div className="absolute -inset-12 bg-foreground/[0.02] rounded-[4rem] blur-[60px]" />
+            <div className="absolute -inset-16 bg-foreground/[0.03] rounded-[5rem] blur-[80px]" />
             
             {/* Main container with glossy black header */}
-            <div className="relative rounded-3xl glass-card overflow-hidden border-foreground/5">
+            <div className="relative rounded-[2rem] overflow-hidden shadow-obsidian-xl border border-foreground/5">
               {/* Editor header - Glossy black */}
               <div className="flex items-center justify-between px-6 py-4 bg-glossy-black">
                 <div className="flex items-center gap-4">
@@ -255,58 +255,62 @@ export default function Landing() {
                     <div className="w-3 h-3 rounded-full bg-white/10 hover:bg-green-400/80 transition-colors cursor-pointer" />
                   </div>
                   <div className="h-5 w-px bg-white/10" />
-                  <span className="text-sm text-white/60 font-medium font-mono">my_first_film.apex</span>
+                  <span className="text-sm text-white/60 font-medium font-mono">sail_adventure.apex</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="px-3 py-1.5 rounded-lg bg-white/10 text-white/70 text-xs font-medium backdrop-blur-sm">
                     4K Ready
                   </div>
-                  <div className="px-3 py-1.5 rounded-lg bg-white text-foreground text-xs font-semibold shadow-lg">
-                    Gen-3 Alpha
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-foreground text-xs font-semibold shadow-lg">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-soft" />
+                    Live Preview
                   </div>
                 </div>
               </div>
               
-              {/* Video preview area */}
-              <div className="aspect-video bg-gradient-to-br from-muted/50 to-muted/20 flex items-center justify-center relative overflow-hidden">
-                {/* Grid overlay */}
-                <div className="absolute inset-0 grid-pattern opacity-40" />
+              {/* Video Player - Large showcase */}
+              <div className="relative aspect-[16/9] bg-black">
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                  src="https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4"
+                />
                 
-                {/* Floating UI elements for depth */}
-                <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-glossy-black/90 backdrop-blur-sm shadow-obsidian animate-fade-in">
-                  <Sparkles className="w-4 h-4 text-white/70" />
-                  <span className="text-xs text-white/80 font-medium">AI Processing</span>
+                {/* Subtle vignette overlay */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.3)_100%)] pointer-events-none" />
+                
+                {/* Floating UI elements */}
+                <div className="absolute top-5 left-5 flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 animate-fade-in">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse-soft" />
+                  <span className="text-xs text-white/90 font-medium">AI Generated</span>
                 </div>
                 
-                <div className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-xl glass-card shadow-lg animate-fade-in" style={{ animationDelay: '100ms' }}>
-                  <Zap className="w-4 h-4 text-foreground/70" />
-                  <span className="text-xs text-foreground/80 font-medium">Real-time Preview</span>
+                <div className="absolute top-5 right-5 flex items-center gap-2 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 animate-fade-in" style={{ animationDelay: '100ms' }}>
+                  <Sparkles className="w-4 h-4 text-white/80" />
+                  <span className="text-xs text-white/90 font-medium">Veo 2</span>
                 </div>
                 
-                {/* Center play button with enhanced styling */}
-                <div className="relative z-10 flex flex-col items-center gap-6">
-                  <div className="relative group cursor-pointer">
-                    <div className="absolute inset-0 rounded-full bg-foreground/10 animate-pulse-ring" />
-                    <div className="absolute -inset-4 rounded-full bg-foreground/5 blur-2xl group-hover:bg-foreground/10 transition-colors" />
-                    <div className="relative w-24 h-24 rounded-full bg-glossy-black flex items-center justify-center shadow-obsidian-lg group-hover:scale-110 transition-transform">
-                      <Play className="w-10 h-10 text-white ml-1" />
+                {/* Bottom gradient for text readability */}
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+                
+                {/* Bottom info bar */}
+                <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                      <Video className="w-4 h-4 text-white/80" />
+                      <span className="text-xs text-white/90 font-medium">Text-to-Video</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                      <Eye className="w-4 h-4 text-white/80" />
+                      <span className="text-xs text-white/90 font-medium">Character Locked</span>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-foreground font-semibold text-lg mb-1">See the magic</p>
-                    <p className="text-muted-foreground text-sm">2 minute demo</p>
-                  </div>
-                </div>
-                
-                {/* Bottom floating elements */}
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card shadow-lg animate-fade-in" style={{ animationDelay: '200ms' }}>
-                    <div className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
-                    <span className="text-xs text-foreground/70 font-medium">Text-to-Video Ready</span>
-                  </div>
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card shadow-lg animate-fade-in" style={{ animationDelay: '300ms' }}>
-                    <Image className="w-4 h-4 text-foreground/60" />
-                    <span className="text-xs text-foreground/70 font-medium">Image-to-Video Enabled</span>
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-foreground text-sm font-semibold shadow-xl hover:scale-105 transition-transform cursor-pointer">
+                    <Play className="w-4 h-4" />
+                    Try it yourself
                   </div>
                 </div>
               </div>

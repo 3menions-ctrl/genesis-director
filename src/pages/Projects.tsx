@@ -30,6 +30,34 @@ export default function Projects() {
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [hasTriedAutoThumbnails, setHasTriedAutoThumbnails] = useState(false);
+
+  // Auto-generate thumbnails for projects that need them
+  useEffect(() => {
+    const autoGenerateThumbnails = async () => {
+      const projectsNeedingThumbnails = projects.filter(p => !p.thumbnail_url && (p.video_clips?.length || p.video_url));
+      
+      if (projectsNeedingThumbnails.length > 0 && !hasTriedAutoThumbnails && !isGeneratingThumbnails) {
+        setHasTriedAutoThumbnails(true);
+        setIsGeneratingThumbnails(true);
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-missing-thumbnails');
+          if (data?.success) {
+            await refreshProjects();
+          }
+        } catch (err) {
+          console.error('Auto-thumbnail generation failed:', err);
+        } finally {
+          setIsGeneratingThumbnails(false);
+        }
+      }
+    };
+
+    if (projects.length > 0) {
+      autoGenerateThumbnails();
+    }
+  }, [projects.length, hasTriedAutoThumbnails, isGeneratingThumbnails, refreshProjects]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -243,8 +271,8 @@ export default function Projects() {
             </div>
           </div>
         ) : (
-          /* Projects Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+          /* Projects Grid - Neat masonry-style layout */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {projects.map((project, index) => {
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);

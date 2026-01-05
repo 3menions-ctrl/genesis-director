@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,13 +13,13 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = "JBFqnCBsd6RMkjVDRZzb" } = await req.json();
+    const { text, voiceId = "EXAVITQu4vr4xnSDxMaL", shotId, projectId } = await req.json();
 
     if (!text) {
       throw new Error("Text is required");
     }
 
-    console.log("Generating voice for text length:", text.length);
+    console.log("Generating voice for text length:", text.length, "shotId:", shotId);
 
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
     if (!ELEVENLABS_API_KEY) {
@@ -57,8 +59,6 @@ serve(async (req) => {
             JSON.stringify({ 
               error: "ElevenLabs quota exceeded. Please use 'Skip Narration' option or upgrade your ElevenLabs plan.",
               quota_exceeded: true,
-              credits_remaining: errorData.detail.message?.match(/(\d+) credits remaining/)?.[1],
-              credits_required: errorData.detail.message?.match(/(\d+) credits are required/)?.[1],
             }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -78,15 +78,75 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    
     console.log("Voice generated successfully, size:", audioBuffer.byteLength);
 
-    return new Response(audioBuffer, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "audio/mpeg",
-      },
-    });
+    // Initialize Supabase client for storage upload
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (supabaseUrl && supabaseServiceKey) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Create a unique filename
+        const timestamp = Date.now();
+        const filename = shotId 
+          ? `voice-${projectId || 'unknown'}-${shotId}-${timestamp}.mp3`
+          : `voice-${timestamp}.mp3`;
+        
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('voice-tracks')
+          .upload(filename, audioBuffer, {
+            contentType: 'audio/mpeg',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          // Fall back to base64 response
+          const base64Audio = base64Encode(audioBuffer);
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              audioBase64: base64Audio,
+              durationMs: Math.round((text.length / 15) * 1000),
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('voice-tracks')
+          .getPublicUrl(filename);
+
+        console.log("Voice uploaded to storage:", publicUrl);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            audioUrl: publicUrl,
+            durationMs: Math.round((text.length / 15) * 1000),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (storageError) {
+        console.error("Storage error:", storageError);
+      }
+    }
+
+    // Fallback: return base64 encoded audio
+    const base64Audio = base64Encode(audioBuffer);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        audioBase64: base64Audio,
+        durationMs: Math.round((text.length / 15) * 1000),
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Error in generate-voice function:", error);
     return new Response(

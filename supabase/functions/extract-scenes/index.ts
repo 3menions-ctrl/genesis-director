@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { script } = await req.json();
+    const { script, projectType, title } = await req.json();
     
     if (!script || script.trim().length === 0) {
       return new Response(
@@ -30,36 +30,64 @@ serve(async (req) => {
       );
     }
 
-    console.log("Extracting scenes from script, length:", script.length);
+    console.log("Extracting scenes from script, length:", script.length, "type:", projectType);
 
-    const systemPrompt = `You are a professional script analyst and video production assistant. Your task is to analyze a script and break it down into distinct scenes for video production.
+    // Build context based on project type
+    const projectTypeMap: Record<string, string> = {
+      'cinematic-trailer': 'high-impact, fast-paced shots with dramatic tension',
+      'social-ad': 'attention-grabbing, concise visuals optimized for mobile viewing',
+      'narrative-short': 'story-driven scenes with character development',
+      'documentary': 'authentic, informative visuals with explanatory elements',
+      'explainer': 'clear, educational visuals that illustrate concepts',
+    };
+    const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-For each scene, you must provide:
-1. A scene number (sequential)
-2. A title for the scene (brief, descriptive)
-3. The estimated duration in seconds (based on dialogue/action pacing - typically 2-3 seconds per sentence for narration)
-4. A detailed visual description suitable for AI video generation (describe setting, mood, camera angles, character positions, actions)
-5. The relevant script text/dialogue for that scene
-6. Characters appearing in the scene
-7. The mood/tone of the scene
+    const systemPrompt = `You are an expert video production director. Analyze the script and create a detailed shot-by-shot breakdown for AI video generation.
 
-Return your analysis as a JSON array with this exact structure:
+PROJECT TYPE: ${projectType || 'cinematic'}
+STYLE CONTEXT: ${projectTypeContext}
+PROJECT TITLE: ${title || 'Untitled'}
+
+For each shot, you MUST provide (following the exact JSON structure):
+- id: A unique shot identifier (format: "shot_001", "shot_002", etc.)
+- index: Zero-based index number
+- title: Brief descriptive title for the shot
+- description: DETAILED visual description for AI video generation. Include:
+  * Setting and environment details
+  * Lighting conditions and atmosphere
+  * Character positions and actions (if any)
+  * Visual mood and color palette
+  * Any movement or action in the scene
+  * DO NOT include literal camera references like "camera pans" - describe perspective instead
+- dialogue: The narration or dialogue text for this shot (can be empty string if none)
+- durationSeconds: Estimated duration (typically 3-7 seconds per shot)
+- mood: The emotional tone (dramatic, calm, tense, joyful, mysterious, etc.)
+- cameraMovement: Perspective movement type (steady, tracking, rising, descending, approaching, retreating)
+- characters: Array of character names appearing in this shot
+
+Return ONLY valid JSON with this EXACT structure:
 {
   "scenes": [
     {
-      "sceneNumber": 1,
-      "title": "Opening Scene Title",
-      "durationSeconds": 15,
-      "visualDescription": "Detailed description of what should be shown visually...",
-      "scriptText": "The actual dialogue or narration text...",
-      "characters": ["Character1", "Character2"],
-      "mood": "dramatic/calm/tense/joyful/etc"
+      "id": "shot_001",
+      "index": 0,
+      "title": "Opening Scene",
+      "description": "A wide establishing view of...",
+      "dialogue": "Narration text here...",
+      "durationSeconds": 5,
+      "mood": "dramatic",
+      "cameraMovement": "steady",
+      "characters": ["Character1"]
     }
   ],
-  "totalDurationSeconds": 120
+  "totalDurationSeconds": 30
 }
 
-Be thorough in visual descriptions - they will be used directly for video generation prompts.`;
+CRITICAL RULES:
+1. Each description should be 2-4 sentences, highly detailed for AI video generation
+2. Never mention cameras, lenses, or filming equipment in descriptions
+3. Use perspective-based language: "the view rises", "perspective approaches", "we see from above"
+4. Ensure shots flow naturally from one to the next for seamless transitions`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -71,7 +99,7 @@ Be thorough in visual descriptions - they will be used directly for video genera
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Please analyze and break down the following script into scenes:\n\n${script}` }
+          { role: "user", content: `Break down this script into shots:\n\n${script}` }
         ],
       }),
     });
@@ -132,10 +160,28 @@ Be thorough in visual descriptions - they will be used directly for video genera
       }
     }
 
-    console.log("Successfully extracted", scenesData.scenes?.length || 0, "scenes");
+    // Normalize the response to ensure correct format
+    const normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => ({
+      id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
+      index: scene.index ?? index,
+      title: scene.title || `Shot ${index + 1}`,
+      description: scene.description || scene.visualDescription || '',
+      dialogue: scene.dialogue || scene.scriptText || '',
+      durationSeconds: scene.durationSeconds || 5,
+      mood: scene.mood || 'neutral',
+      cameraMovement: scene.cameraMovement || 'steady',
+      characters: scene.characters || [],
+      status: 'pending',
+    }));
+
+    console.log("Successfully extracted", normalizedScenes.length, "shots");
 
     return new Response(
-      JSON.stringify(scenesData),
+      JSON.stringify({
+        scenes: normalizedScenes,
+        totalDurationSeconds: scenesData.totalDurationSeconds || 
+          normalizedScenes.reduce((sum: number, s: any) => sum + (s.durationSeconds || 5), 0),
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

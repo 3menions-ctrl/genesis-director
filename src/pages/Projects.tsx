@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  ArrowRight, X, Download, ExternalLink, Loader2
+  ArrowRight, X, Download, ExternalLink, Loader2, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -120,14 +120,23 @@ export default function Projects() {
               ))}
             </div>
             
-            {/* Create */}
-            <button 
-              onClick={handleCreateProject}
-              className="flex items-center gap-2 h-8 px-4 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/80 hover:text-white text-sm font-medium transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>New</span>
-            </button>
+            {/* Create Buttons */}
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => navigate('/pipeline/scripting')}
+                className="flex items-center gap-2 h-8 px-4 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 border border-primary/30 text-primary hover:text-primary-foreground text-sm font-medium transition-all"
+              >
+                <Zap className="w-3.5 h-3.5" strokeWidth={2} />
+                <span>Iron-Clad Pipeline</span>
+              </button>
+              <button 
+                onClick={handleCreateProject}
+                className="flex items-center gap-2 h-8 px-4 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/80 hover:text-white text-sm font-medium transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+                <span>Quick Clip</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -140,13 +149,22 @@ export default function Projects() {
               <Film className="w-5 h-5 text-white/30" strokeWidth={1.5} />
             </div>
             <p className="text-white/40 text-sm mb-6">No projects yet</p>
-            <button 
-              onClick={handleCreateProject}
-              className="flex items-center gap-2 h-8 px-4 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-              Create project
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => navigate('/pipeline/scripting')}
+                className="flex items-center gap-2 h-9 px-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 hover:from-primary/30 hover:to-primary/20 border border-primary/30 text-primary hover:text-white text-sm font-medium transition-all"
+              >
+                <Zap className="w-3.5 h-3.5" strokeWidth={2} />
+                Start with Pipeline
+              </button>
+              <button 
+                onClick={handleCreateProject}
+                className="flex items-center gap-2 h-9 px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+                Quick clip
+              </button>
+            </div>
           </div>
         ) : (
           /* Projects Grid */

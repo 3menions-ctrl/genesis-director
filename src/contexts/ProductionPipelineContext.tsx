@@ -11,6 +11,8 @@ import {
   AudioMixMode,
   CAMERAMAN_NEGATIVE_PROMPTS,
   CAMERA_MOVEMENT_REWRITES,
+  ReferenceImageAnalysis,
+  CinematicAuditResult,
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -25,6 +27,10 @@ interface ProductionPipelineContextType {
   goToStage: (stage: WorkflowStage) => void;
   canProceedToStage: (stage: WorkflowStage) => boolean;
   
+  // IMAGE-FIRST: Reference image functions
+  setReferenceImage: (analysis: ReferenceImageAnalysis) => void;
+  clearReferenceImage: () => void;
+  
   // Scripting stage
   setProjectType: (type: ProjectType) => void;
   setProjectTitle: (title: string) => void;
@@ -34,6 +40,11 @@ interface ProductionPipelineContextType {
   updateShot: (shotId: string, updates: Partial<Shot>) => void;
   approveScript: () => void;
   rejectAndRegenerate: () => Promise<void>;
+  
+  // CINEMATIC AUDITOR: Audit functions
+  runCinematicAudit: () => Promise<void>;
+  approveAudit: () => void;
+  applyAuditSuggestion: (shotId: string, optimizedDescription: string) => void;
   
   // Production stage
   startProduction: () => Promise<void>;
@@ -46,6 +57,7 @@ interface ProductionPipelineContextType {
   
   // State queries
   isGenerating: boolean;
+  isAuditing: boolean;
   productionProgress: number;
   
   // Reset
@@ -282,13 +294,111 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   const approveScript = useCallback(() => {
     setState(prev => ({ ...prev, scriptApproved: true }));
-    toast.success('Script approved! Ready for production.');
+    toast.success('Script approved! Ready for audit.');
   }, []);
   
   const rejectAndRegenerate = useCallback(async () => {
-    setState(prev => ({ ...prev, scriptApproved: false, structuredShots: [] }));
+    setState(prev => ({ ...prev, scriptApproved: false, structuredShots: [], cinematicAudit: undefined, auditApproved: false }));
     await generateStructuredShots();
   }, [generateStructuredShots]);
+  
+  // IMAGE-FIRST: Reference image functions
+  const setReferenceImage = useCallback((analysis: ReferenceImageAnalysis) => {
+    setState(prev => ({ 
+      ...prev, 
+      referenceImage: analysis,
+      // Also set as master anchor for production consistency
+      production: {
+        ...prev.production,
+        masterAnchor: {
+          imageUrl: analysis.imageUrl,
+          seed: prev.production.globalSeed,
+          environmentPrompt: analysis.consistencyPrompt || analysis.environment?.setting || '',
+          colorPalette: analysis.colorPalette?.mood || 'cinematic',
+          lightingStyle: analysis.lighting?.style || 'dramatic',
+        },
+      },
+    }));
+    toast.success('Reference image locked as visual anchor');
+  }, []);
+  
+  const clearReferenceImage = useCallback(() => {
+    setState(prev => ({ 
+      ...prev, 
+      referenceImage: undefined,
+      production: {
+        ...prev.production,
+        masterAnchor: undefined,
+      },
+    }));
+  }, []);
+  
+  // CINEMATIC AUDITOR: Run the director agent audit
+  const [isAuditing, setIsAuditing] = useState(false);
+  
+  const runCinematicAudit = useCallback(async () => {
+    if (state.structuredShots.length === 0) {
+      toast.error('Generate shots first before auditing');
+      return;
+    }
+    
+    setIsAuditing(true);
+    toast.info('Director Agent analyzing script for production readiness...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('cinematic-auditor', {
+        body: {
+          shots: state.structuredShots,
+          referenceAnalysis: state.referenceImage,
+          projectType: state.projectType,
+          title: state.projectTitle,
+        },
+      });
+      
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      setState(prev => ({
+        ...prev,
+        cinematicAudit: data.audit,
+      }));
+      
+      const score = data.audit?.overallScore || 0;
+      if (score >= 80) {
+        toast.success(`Audit complete! Score: ${score}% - Production Ready`);
+      } else if (score >= 60) {
+        toast.warning(`Audit complete! Score: ${score}% - Review suggestions`);
+      } else {
+        toast.error(`Audit complete! Score: ${score}% - Critical issues found`);
+      }
+    } catch (err) {
+      console.error('Cinematic audit error:', err);
+      toast.error('Failed to run cinematic audit');
+    } finally {
+      setIsAuditing(false);
+    }
+  }, [state.structuredShots, state.referenceImage, state.projectType, state.projectTitle]);
+  
+  const approveAudit = useCallback(() => {
+    setState(prev => ({ ...prev, auditApproved: true }));
+    toast.success('Audit approved! Ready for 20-credit production phase.');
+  }, []);
+  
+  const applyAuditSuggestion = useCallback((shotId: string, optimizedDescription: string) => {
+    setState(prev => ({
+      ...prev,
+      structuredShots: prev.structuredShots.map(shot =>
+        shot.id === shotId ? { ...shot, description: optimizedDescription } : shot
+      ),
+      production: {
+        ...prev.production,
+        shots: prev.production.shots.map(shot =>
+          shot.id === shotId ? { ...shot, description: optimizedDescription } : shot
+        ),
+      },
+    }));
+    toast.success(`Applied optimized prompt to ${shotId}`);
+  }, []);
   
   // Generate master anchor image for visual consistency
   const generateMasterAnchor = useCallback(async (): Promise<MasterAnchor | null> => {
@@ -789,6 +899,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       state,
       goToStage,
       canProceedToStage,
+      // IMAGE-FIRST
+      setReferenceImage,
+      clearReferenceImage,
+      // Scripting
       setProjectType,
       setProjectTitle,
       setProjectId,
@@ -797,13 +911,22 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       updateShot,
       approveScript,
       rejectAndRegenerate,
+      // CINEMATIC AUDITOR
+      runCinematicAudit,
+      approveAudit,
+      applyAuditSuggestion,
+      // Production
       startProduction,
       cancelProduction,
       retryFailedShots,
+      // Review
       setAudioMixMode,
       exportFinalVideo,
+      // State queries
       isGenerating,
+      isAuditing,
       productionProgress,
+      // Utils
       resetPipeline,
       initializeFromProject,
     }}>

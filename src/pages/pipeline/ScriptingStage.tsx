@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Film, Sparkles, ArrowRight, Check, Edit3, 
   RotateCcw, Play, Clock, Users, Video, ChevronRight,
-  Clapperboard, Megaphone, BookOpen, FileVideo, MessageSquare
+  Clapperboard, Megaphone, BookOpen, FileVideo, MessageSquare,
+  Image, Shield, AlertTriangle, Eye, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
+import { CinematicAuditPanel } from '@/components/studio/CinematicAuditPanel';
 
 const PROJECT_TYPE_ICONS: Record<ProjectType, React.ReactNode> = {
   'cinematic-trailer': <Clapperboard className="w-5 h-5" />,
@@ -27,7 +30,7 @@ const PROJECT_TYPE_ICONS: Record<ProjectType, React.ReactNode> = {
   'explainer': <MessageSquare className="w-5 h-5" />,
 };
 
-type ScriptingStep = 'type' | 'details' | 'generate' | 'approve';
+type ScriptingStep = 'type' | 'reference' | 'details' | 'generate' | 'approve' | 'audit';
 
 export default function ScriptingStage() {
   const navigate = useNavigate();
@@ -43,6 +46,13 @@ export default function ScriptingStage() {
     approveScript,
     rejectAndRegenerate,
     goToStage,
+    // IMAGE-FIRST
+    setReferenceImage,
+    // CINEMATIC AUDITOR
+    runCinematicAudit,
+    approveAudit,
+    applyAuditSuggestion,
+    isAuditing,
   } = useProductionPipeline();
   
   const [step, setStep] = useState<ScriptingStep>('type');
@@ -52,7 +62,7 @@ export default function ScriptingStage() {
   
   const handleTypeSelect = (type: ProjectType) => {
     setProjectType(type);
-    setStep('details');
+    setStep('reference'); // Go to reference image upload first
   };
   
   const handleGenerateScript = async () => {
@@ -117,7 +127,7 @@ export default function ScriptingStage() {
       await generateStructuredShots(data.script);
       
       setStep('approve');
-      toast.success('Script generated with shot breakdown!');
+      toast.success('Script generated! Now run the Director\'s Audit.');
     } catch (err) {
       console.error('Script generation error:', err);
       toast.error('Failed to generate script');
@@ -126,16 +136,36 @@ export default function ScriptingStage() {
     }
   };
   
+  // Handle running the cinematic audit
+  const handleRunAudit = async () => {
+    await runCinematicAudit();
+    if (state.structuredShots.length > 0) {
+      setStep('audit');
+    }
+  };
+  
+  // Handle approval after audit
   const handleApproveAndContinue = () => {
+    if (!state.auditApproved && state.cinematicAudit) {
+      toast.error('Please approve the Director\'s Audit first');
+      return;
+    }
     approveScript();
     goToStage('production');
     navigate('/pipeline/production');
+  };
+  
+  // Handle audit approval
+  const handleApproveAudit = () => {
+    approveAudit();
+    toast.success('Production-ready! Proceeding to 20-credit generation phase.');
   };
   
   const handleRegenerate = async () => {
     setIsGenerating(true);
     try {
       await rejectAndRegenerate();
+      setStep('approve');
     } finally {
       setIsGenerating(false);
     }
@@ -145,6 +175,8 @@ export default function ScriptingStage() {
   const totalDialogueWords = state.structuredShots.reduce(
     (sum, shot) => sum + (shot.dialogue?.split(/\s+/).length || 0), 0
   );
+  
+  const hasReferenceImage = !!state.referenceImage?.analysisComplete;
 
   // Step 1: Project Type Selection
   if (step === 'type') {
@@ -155,7 +187,7 @@ export default function ScriptingStage() {
           <div className="mb-8 animate-fade-in">
             <Badge variant="outline" className="mb-4 gap-2">
               <Film className="w-3 h-3" />
-              Step 1 of 3
+              Step 1 of 4 — Project Type
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
               Project Creation & Scripting
@@ -207,7 +239,101 @@ export default function ScriptingStage() {
     );
   }
 
-  // Step 2: Project Details
+  // Step 2: Reference Image Upload (IMAGE-FIRST)
+  if (step === 'reference') {
+    return (
+      <div className="min-h-[85vh] flex flex-col p-6">
+        <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
+          {/* Header */}
+          <div className="mb-8 animate-fade-in">
+            <Badge variant="outline" className="mb-4 gap-2">
+              <Image className="w-3 h-3" />
+              Step 2 of 4 — Visual Anchor
+            </Badge>
+            <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+              Upload Reference Image
+            </h1>
+            <p className="text-muted-foreground">
+              This image becomes the <strong>primary visual anchor</strong> for your entire production.
+              Character identity, lighting, and environment will be analyzed and maintained across all clips.
+            </p>
+          </div>
+          
+          {/* Reference Image Upload */}
+          <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <ReferenceImageUpload
+              onAnalysisComplete={setReferenceImage}
+              existingAnalysis={state.referenceImage}
+            />
+            
+            {/* Info Card */}
+            <Card className="p-4 bg-muted/50">
+              <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <Eye className="w-4 h-4 text-primary" />
+                What We Analyze
+              </h4>
+              <ul className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Character Identity
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Facial Features
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Lighting Style
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Color Palette
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Environment
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3 h-3 text-primary" />
+                  Spatial Geometry
+                </li>
+              </ul>
+            </Card>
+            
+            <div className="flex items-center gap-4 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setStep('type')}
+                className="gap-2"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={() => setStep('details')}
+                disabled={!hasReferenceImage}
+                className="flex-1 gap-2"
+              >
+                {hasReferenceImage ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Continue with Visual Anchor
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    <Image className="w-4 h-4" />
+                    Upload Reference Image First
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Project Details
   if (step === 'details' || step === 'generate') {
     return (
       <div className="min-h-[85vh] flex flex-col p-6">
@@ -216,7 +342,7 @@ export default function ScriptingStage() {
           <div className="mb-8 animate-fade-in">
             <Badge variant="outline" className="mb-4 gap-2">
               <Sparkles className="w-3 h-3" />
-              Step 1 of 3 — {PROJECT_TYPES.find(t => t.id === state.projectType)?.name}
+              Step 3 of 4 — {PROJECT_TYPES.find(t => t.id === state.projectType)?.name}
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
               Define Your Story
@@ -225,6 +351,16 @@ export default function ScriptingStage() {
               Our AI will generate a structured shot-by-shot script for your {state.projectType.replace('-', ' ')}
             </p>
           </div>
+          
+          {/* Show locked reference image */}
+          {state.referenceImage?.analysisComplete && (
+            <div className="mb-6 animate-fade-in">
+              <ReferenceImageUpload
+                onAnalysisComplete={setReferenceImage}
+                existingAnalysis={state.referenceImage}
+              />
+            </div>
+          )}
           
           {/* Form */}
           <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -256,7 +392,7 @@ export default function ScriptingStage() {
             <div className="flex items-center gap-4 pt-4">
               <Button
                 variant="outline"
-                onClick={() => setStep('type')}
+                onClick={() => setStep('reference')}
                 className="gap-2"
               >
                 Back
@@ -285,7 +421,7 @@ export default function ScriptingStage() {
     );
   }
 
-  // Step 3: Script Approval
+  // Step 4: Script Approval + Cinematic Audit
   return (
     <div className="min-h-[85vh] flex flex-col p-6">
       <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
@@ -293,8 +429,8 @@ export default function ScriptingStage() {
         <div className="flex items-start justify-between gap-6 mb-6 animate-fade-in">
           <div>
             <Badge variant="outline" className="mb-4 gap-2">
-              <Check className="w-3 h-3" />
-              Step 1 of 3 — Approval Required
+              <Shield className="w-3 h-3" />
+              Step 4 of 4 — Director's Audit & Approval
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
               {state.projectTitle}
@@ -319,21 +455,41 @@ export default function ScriptingStage() {
             <Button
               variant="outline"
               onClick={handleRegenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || isAuditing}
               className="gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               Regenerate
             </Button>
-            <Button
-              onClick={handleApproveAndContinue}
-              disabled={state.structuredShots.length === 0}
-              className="gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Approve & Continue
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+            {!state.cinematicAudit ? (
+              <Button
+                onClick={handleRunAudit}
+                disabled={isAuditing || state.structuredShots.length === 0}
+                className="gap-2"
+              >
+                {isAuditing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Auditing...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4" />
+                    Run Director's Audit
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleApproveAndContinue}
+                disabled={!state.auditApproved}
+                className="gap-2"
+              >
+                <Check className="w-4 h-4" />
+                Start Production (20 credits/shot)
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
         
@@ -357,56 +513,66 @@ export default function ScriptingStage() {
             </ScrollArea>
           </div>
           
-          {/* Preview / Summary */}
-          <div className="space-y-4">
-            <Card className="p-4">
-              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Play className="w-4 h-4" />
-                Shot Flow Preview
-              </h3>
-              <div className="space-y-2">
-                {state.structuredShots.slice(0, 5).map((shot, index) => (
-                  <div key={shot.id} className="flex items-center gap-2 text-sm">
-                    <Badge variant="secondary" className="font-mono text-xs">
-                      {shot.id}
-                    </Badge>
-                    <span className="text-muted-foreground truncate flex-1">
-                      {shot.title}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {shot.durationSeconds}s
-                    </span>
+            {/* Cinematic Audit Panel OR Summary */}
+            {state.cinematicAudit ? (
+              <CinematicAuditPanel
+                audit={state.cinematicAudit}
+                onApprove={handleApproveAudit}
+                onApplySuggestion={applyAuditSuggestion}
+                isApproved={state.auditApproved}
+              />
+            ) : (
+              <>
+                <Card className="p-4">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Play className="w-4 h-4" />
+                    Shot Flow Preview
+                  </h3>
+                  <div className="space-y-2">
+                    {state.structuredShots.slice(0, 5).map((shot) => (
+                      <div key={shot.id} className="flex items-center gap-2 text-sm">
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          {shot.id}
+                        </Badge>
+                        <span className="text-muted-foreground truncate flex-1">
+                          {shot.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {shot.durationSeconds}s
+                        </span>
+                      </div>
+                    ))}
+                    {state.structuredShots.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        +{state.structuredShots.length - 5} more shots
+                      </p>
+                    )}
                   </div>
-                ))}
-                {state.structuredShots.length > 5 && (
-                  <p className="text-xs text-muted-foreground text-center pt-2">
-                    +{state.structuredShots.length - 5} more shots
-                  </p>
-                )}
-              </div>
-            </Card>
-            
-            <Card className="p-4 bg-primary/5 border-primary/20">
-              <h3 className="font-semibold text-foreground mb-2">Iron-Clad Pipeline</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Unique Shot IDs assigned
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Dialogue mapped to shots
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Visual descriptors ready
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Frame chaining enabled
-                </li>
-              </ul>
-            </Card>
+                </Card>
+                
+                <Card className="p-4 bg-primary/5 border-primary/20">
+                  <h3 className="font-semibold text-foreground mb-2">Iron-Clad Pipeline</h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      {hasReferenceImage ? <Check className="w-3 h-3 text-green-500" /> : <AlertTriangle className="w-3 h-3 text-yellow-500" />}
+                      Reference Image Anchor
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3 h-3 text-primary" />
+                      Unique Shot IDs assigned
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3 h-3 text-primary" />
+                      Dialogue mapped to shots
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Shield className="w-3 h-3 text-muted-foreground" />
+                      Director's Audit pending
+                    </li>
+                  </ul>
+                </Card>
+              </>
+            )}
           </div>
         </div>
       </div>

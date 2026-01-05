@@ -58,18 +58,33 @@ serve(async (req) => {
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
     
     if (isFullMovieMode) {
-      // Full movie script generation - ULTRA CONCISE
-      systemPrompt = `You write ULTRA-SHORT scripts for AI video. Maximum 4-5 shots total.
+      // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions
+      systemPrompt = `You write cinematic scripts for AI video generation. MINIMUM 6 shots, each 4 seconds.
 
 FORMAT (use exactly this):
-[SHOT 1] Brief visual. One sentence.
-[SHOT 2] Brief visual. One sentence.
+[SHOT 1] Visual description with motion and physics.
+[SHOT 2] Visual description continuing the motion seamlessly.
+...continue for all shots...
+
+CINEMATIC TRANSITION RULES (CRITICAL):
+1. PHYSICS CONTINUITY: If shot ends with motion (falling, running, reaching), next shot MUST continue that momentum
+2. SPATIAL FLOW: Camera perspective flows naturally - if ending on a close-up, next starts wide or continues movement
+3. MATCH-ACTION: Character's gesture/movement at end of one shot continues at start of next
+4. LIGHTING BRIDGE: Maintain consistent light direction across cuts
+5. GAZE DIRECTION: If character looks left at end, next shot shows what they see or continues their eyeline
+
+MOTION REQUIREMENTS:
+- Every shot includes visible movement (character action, physics motion, or camera drift)
+- End each shot with momentum that carries into the next
+- Use natural physics: objects fall, fabric flows, light shifts, particles move
+- Describe body mechanics: weight shifts, reach, tension, release
 
 RULES:
-- 4-5 shots MAXIMUM
-- ONE sentence per shot
-- No dialogue unless essential
-- Pure visual descriptions only`;
+- MINIMUM 6 shots (can be more for longer stories)
+- Each shot is EXACTLY 4 seconds
+- Rich visual descriptions with motion and physics
+- Every transition must be seamless - no jarring cuts
+- NO static scenes - always movement`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
@@ -78,12 +93,13 @@ RULES:
           ).join(', ')
         : '';
 
-      userPrompt = `Write 4-5 shots for: "${requestData.title}"
+      userPrompt = `Write MINIMUM 6 shots (more if needed) for: "${requestData.title}"
 Genre: ${requestData.genre || 'Drama'}
-${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 150)}` : ''}
+${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
 
-MAXIMUM 5 SHOTS. One sentence each. Go:`;
+CRITICAL: Each shot must transition SMOOTHLY into the next using physics, motion, and spatial continuity.
+MINIMUM 6 SHOTS. Rich visual descriptions with movement. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
@@ -120,7 +136,7 @@ Write the script now:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: isFullMovieMode ? 400 : 300,
+        max_tokens: isFullMovieMode ? 800 : 400,
       }),
     });
 

@@ -42,44 +42,57 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-const systemPrompt = `You are a Zero-Waste Premium video production assistant. Create a shot breakdown from the user's script/concept.
+const systemPrompt = `You are a cinematic video production assistant. Create a shot breakdown with MINIMUM 6 SHOTS.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
 STYLE: ${projectTypeContext}
 TITLE: ${title || 'Untitled'}
 
-ZERO-WASTE PREMIUM RULES:
-1. PRESERVE THE USER'S INTENT - Do not add characters, locations, or story elements they didn't mention
-2. If the script describes ONE simple scene (e.g., "person sitting on couch"), create shots that all show THAT SAME SCENE from different angles/moments
-3. Each shot should be a visual moment within the user's concept, NOT a new adventure
-4. Keep descriptions grounded in what the user actually described
-5. FIXED 4-SECOND UNITS: Each shot MUST be exactly 4 seconds. This is non-negotiable.
-6. SEAMLESS TRANSITIONS: Design each shot to flow naturally into the next with match-cut transitions
+CRITICAL REQUIREMENTS:
+1. MINIMUM 6 SHOTS - Never less. More if the story requires it.
+2. FIXED 4-SECOND UNITS: Each shot MUST be exactly 4 seconds.
+3. SEAMLESS PHYSICS-BASED TRANSITIONS: Every shot must flow into the next using motion, physics, and spatial continuity.
 
-CHARACTER-FIRST PACING (MANDATORY):
-- 1.5-SECOND STATIC SCENERY CAP: Never describe more than 1.5 seconds of static scenery without character action
-- EVERY SHOT must feature character movement, expression change, or motivated action
-- If a shot would be "just scenery", add character entering frame or POV movement
-- MATCH-CUT PRIORITY: Use match-cuts over dissolves to maintain visual momentum
-- DEAD AIR = REJECTION: Static scenic shots without character presence are forbidden
+PHYSICS & MOTION CONTINUITY (MANDATORY):
+Every transition must use one or more of these techniques:
+
+A) MOTION CONTINUITY:
+   - If shot ends with character reaching forward → next shot shows hand completing the reach
+   - Running/walking motion carries across cuts → matching stride phase
+   - Falling/rising motion → gravity continues realistically
+
+B) PHYSICS BRIDGES:
+   - Particles (dust, sparks, water droplets) drift across the cut
+   - Fabric/hair movement continues its arc
+   - Light beams shift direction consistently
+   - Objects in motion maintain momentum
+
+C) SPATIAL FLOW:
+   - Eye-line match: character looks right → next shot reveals what they see
+   - Over-shoulder to reverse → smooth 180-degree rule
+   - Push-in on detail → cut to wider showing same element
+
+D) VISUAL RHYTHM:
+   - Color temperature shifts smoothly (warm to cool or vice versa)
+   - Brightness/contrast flows naturally
+   - Shape echoes: round object → cut to another round element
 
 For each shot, provide:
 - id: Shot identifier (format: "shot_001", "shot_002")
 - index: Zero-based index
 - title: Brief title for this moment
-- description: VISUAL description for AI video generation:
-  * What is visible in frame
-  * CHARACTER ACTION (mandatory in every shot)
+- description: VISUAL description including:
+  * Character action and body mechanics (weight, momentum, tension)
+  * Physics elements (gravity, fabric flow, particle drift)
   * Lighting and atmosphere
-  * Character positions, expressions, and MOVEMENT
-  * Use perspective language, NOT camera terms
-  * End each shot description with a transition hint for continuity
+  * TRANSITION BRIDGE: End each description with motion/element that continues into next shot
 - dialogue: Any narration/dialogue (empty string if none)
 - durationSeconds: EXACTLY 4 seconds (fixed unit)
 - mood: Emotional tone
 - cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
-- transitionOut: How this shot flows into the next ("match-cut" preferred, or "continuous", "dissolve", "fade")
-- characters: Array of character names (ONLY those mentioned by user)
+- transitionOut: Physics-based transition type
+- transitionBridge: Specific element/motion that carries across the cut (e.g., "hand reaching forward", "dust particles drifting right", "golden light shifting")
+- characters: Array of character names
 
 Return ONLY valid JSON:
 {
@@ -87,26 +100,21 @@ Return ONLY valid JSON:
     {
       "id": "shot_001",
       "index": 0,
-      "title": "Scene moment",
-      "description": "Character-driven visual description with action, ending with transition continuity...",
+      "title": "Opening moment",
+      "description": "Visual description with motion ending in transition bridge...",
       "dialogue": "",
       "durationSeconds": 4,
       "mood": "calm",
       "cameraMovement": "steady",
       "transitionOut": "match-cut",
+      "transitionBridge": "element that continues into next shot",
       "characters": []
     }
   ],
-  "totalDurationSeconds": 16
+  "totalDurationSeconds": 24
 }
 
-TRANSITION GUIDELINES:
-- "match-cut": End frame matches start of next shot - PREFERRED for momentum (same color, shape, or position)
-- "continuous": Shot ends with movement/action that continues in next shot (best for frame chaining)
-- "dissolve": Gradual blend works for mood/time changes - USE SPARINGLY
-- "fade": Reserved for scene endings or dramatic pauses - RARE
-
-REMEMBER: Character-First means EVERY shot has visible character action. Static scenery = rejection.`;
+MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/moments.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -180,9 +188,10 @@ REMEMBER: Character-First means EVERY shot has visible character action. Static 
     }
 
     // Normalize the response to ensure correct format with FIXED 4-second units
-    const FIXED_SHOT_DURATION = 4; // Zero-Waste Premium: Fixed 4-second units
+    const FIXED_SHOT_DURATION = 4; // Fixed 4-second units
+    const MINIMUM_SHOTS = 6; // Minimum 6 shots required
     
-    const normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => {
+    let normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => {
       return {
         id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
         index: scene.index ?? index,
@@ -193,10 +202,37 @@ REMEMBER: Character-First means EVERY shot has visible character action. Static 
         mood: scene.mood || 'neutral',
         cameraMovement: scene.cameraMovement || 'steady',
         transitionOut: scene.transitionOut || 'match-cut', // Prefer match-cut
+        transitionBridge: scene.transitionBridge || '',
         characters: scene.characters || [],
         status: 'pending',
       };
     });
+    
+    // Ensure minimum 6 shots by expanding if needed
+    if (normalizedScenes.length < MINIMUM_SHOTS && normalizedScenes.length > 0) {
+      console.log(`Only ${normalizedScenes.length} shots extracted, expanding to minimum ${MINIMUM_SHOTS}`);
+      const expansionNeeded = MINIMUM_SHOTS - normalizedScenes.length;
+      
+      // Duplicate and vary existing shots to reach minimum
+      for (let i = 0; i < expansionNeeded; i++) {
+        const sourceScene = normalizedScenes[i % normalizedScenes.length];
+        const newIndex = normalizedScenes.length;
+        normalizedScenes.push({
+          id: `shot_${String(newIndex + 1).padStart(3, '0')}`,
+          index: newIndex,
+          title: `${sourceScene.title} - continued`,
+          description: `Continuing from previous: ${sourceScene.description}. The motion carries forward with subtle camera drift.`,
+          dialogue: '',
+          durationSeconds: FIXED_SHOT_DURATION,
+          mood: sourceScene.mood,
+          cameraMovement: 'flowing',
+          transitionOut: 'continuous',
+          transitionBridge: 'motion continues into next moment',
+          characters: sourceScene.characters,
+          status: 'pending',
+        });
+      }
+    }
 
     console.log("Successfully extracted", normalizedScenes.length, "shots");
 

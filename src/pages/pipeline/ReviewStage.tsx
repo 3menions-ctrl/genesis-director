@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Download, Share2, ArrowLeft, Check, Play, Pause,
   Volume2, VolumeX, Film, Music, Mic, Eye,
-  FileVideo, RotateCcw, ExternalLink, Sparkles, Loader2
+  FileVideo, RotateCcw, ExternalLink, Sparkles, Loader2,
+  Maximize2, Minimize2, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -56,6 +57,12 @@ export default function ReviewStage() {
   const [isLoading, setIsLoading] = useState(true);
   const [databaseClips, setDatabaseClips] = useState<ReviewClip[]>([]);
   const [projectTitle, setProjectTitle] = useState(state.projectTitle || 'Your Production');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [nextClipIndex, setNextClipIndex] = useState<number | null>(null);
+  
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const nextVideoRef = useRef<HTMLVideoElement>(null);
   
   const { production, audioMixMode, structuredShots } = state;
   
@@ -140,6 +147,43 @@ export default function ReviewStage() {
   
   const currentClip = completedClips[currentClipIndex];
   
+  // Smooth transition to next clip with crossfade
+  const transitionToClip = useCallback((newIndex: number) => {
+    if (newIndex === currentClipIndex || isTransitioning) return;
+    if (newIndex < 0 || newIndex >= completedClips.length) return;
+    
+    const nextClip = completedClips[newIndex];
+    if (!nextClip?.videoUrl) return;
+    
+    // Prepare next video
+    setNextClipIndex(newIndex);
+    setIsTransitioning(true);
+    
+    // Preload and start next video
+    if (nextVideoRef.current) {
+      nextVideoRef.current.src = nextClip.videoUrl;
+      nextVideoRef.current.volume = audioMixMode === 'mute' ? 0 : volume[0];
+      nextVideoRef.current.load();
+      
+      nextVideoRef.current.oncanplay = () => {
+        // Start crossfade after next video is ready
+        setTimeout(() => {
+          if (nextVideoRef.current && isPlaying) {
+            nextVideoRef.current.play();
+          }
+          
+          // Complete transition after crossfade
+          setTimeout(() => {
+            setCurrentClipIndex(newIndex);
+            setNextClipIndex(null);
+            setIsTransitioning(false);
+            setCurrentTime(0);
+          }, 500); // Match CSS transition duration
+        }, 50);
+      };
+    }
+  }, [currentClipIndex, completedClips, isTransitioning, isPlaying, audioMixMode, volume]);
+  
   // Handle video events
   useEffect(() => {
     const video = videoRef.current;
@@ -148,9 +192,9 @@ export default function ReviewStage() {
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleDurationChange = () => setDuration(video.duration);
     const handleEnded = () => {
-      // Auto-advance to next clip
+      // Auto-advance to next clip with smooth transition
       if (currentClipIndex < completedClips.length - 1) {
-        setCurrentClipIndex(prev => prev + 1);
+        transitionToClip(currentClipIndex + 1);
       } else {
         setIsPlaying(false);
       }
@@ -165,23 +209,53 @@ export default function ReviewStage() {
       video.removeEventListener('durationchange', handleDurationChange);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [currentClipIndex, completedClips.length]);
+  }, [currentClipIndex, completedClips.length, transitionToClip]);
   
-  // Apply volume changes
+  // Apply volume changes to both videos
   useEffect(() => {
+    const vol = audioMixMode === 'mute' ? 0 : volume[0];
     if (videoRef.current) {
-      videoRef.current.volume = audioMixMode === 'mute' ? 0 : volume[0];
+      videoRef.current.volume = vol;
+    }
+    if (nextVideoRef.current) {
+      nextVideoRef.current.volume = vol;
     }
   }, [volume, audioMixMode]);
   
-  // Auto-play when clip changes
+  // Auto-play when clip changes (without transition)
   useEffect(() => {
-    if (videoRef.current && isPlaying) {
+    if (videoRef.current && isPlaying && !isTransitioning) {
       videoRef.current.play();
     }
-  }, [currentClipIndex, isPlaying]);
+  }, [currentClipIndex, isPlaying, isTransitioning]);
   
-  const togglePlayPause = () => {
+  // Fullscreen handlers
+  const toggleFullscreen = useCallback(() => {
+    if (!videoContainerRef.current) return;
+    
+    if (!isFullscreen) {
+      if (videoContainerRef.current.requestFullscreen) {
+        videoContainerRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }, [isFullscreen]);
+  
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+  
+  // Play/pause toggle
+  const togglePlayPause = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -190,7 +264,33 @@ export default function ReviewStage() {
       }
       setIsPlaying(!isPlaying);
     }
-  };
+  }, [isPlaying]);
+  
+  // Keyboard shortcuts for fullscreen and playback
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        document.exitFullscreen();
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePlayPause();
+      }
+      // Arrow keys for clip navigation
+      if (e.key === 'ArrowRight' && currentClipIndex < completedClips.length - 1) {
+        transitionToClip(currentClipIndex + 1);
+      }
+      if (e.key === 'ArrowLeft' && currentClipIndex > 0) {
+        transitionToClip(currentClipIndex - 1);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [isFullscreen, toggleFullscreen, togglePlayPause, currentClipIndex, completedClips.length, transitionToClip]);
   
   const handleSeek = (value: number[]) => {
     if (videoRef.current) {
@@ -343,12 +443,22 @@ export default function ReviewStage() {
           <div className="lg:col-span-2 space-y-4">
             {/* Main Video */}
             <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <div className="aspect-video bg-black relative">
+              <div 
+                ref={videoContainerRef}
+                className={cn(
+                  "aspect-video bg-black relative group",
+                  isFullscreen && "!aspect-auto w-full h-full"
+                )}
+              >
+                {/* Current Video Layer */}
                 {currentClip?.videoUrl ? (
                   <video
                     ref={videoRef}
                     src={currentClip.videoUrl}
-                    className="w-full h-full object-contain"
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+                      isTransitioning ? "opacity-0" : "opacity-100"
+                    )}
                     muted={audioMixMode === 'mute'}
                   />
                 ) : (
@@ -357,8 +467,67 @@ export default function ReviewStage() {
                   </div>
                 )}
                 
+                {/* Next Video Layer (for crossfade transition) */}
+                {nextClipIndex !== null && completedClips[nextClipIndex]?.videoUrl && (
+                  <video
+                    ref={nextVideoRef}
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+                      isTransitioning ? "opacity-100" : "opacity-0"
+                    )}
+                    muted={audioMixMode === 'mute'}
+                  />
+                )}
+                
+                {/* Transition indicator */}
+                {isTransitioning && (
+                  <div className="absolute top-4 right-4 z-20">
+                    <Badge variant="secondary" className="animate-pulse bg-black/60 text-white border-none">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Transitioning...
+                    </Badge>
+                  </div>
+                )}
+                
+                {/* Fullscreen toggle button (visible on hover) */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleFullscreen}
+                  className={cn(
+                    "absolute top-4 right-4 z-10 text-white bg-black/40 hover:bg-black/60",
+                    "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                    isTransitioning && "hidden"
+                  )}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-5 h-5" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5" />
+                  )}
+                </Button>
+                
+                {/* Click to play/pause */}
+                <div 
+                  className="absolute inset-0 cursor-pointer z-5"
+                  onClick={togglePlayPause}
+                />
+                
+                {/* Large play button overlay when paused */}
+                {!isPlaying && !isTransitioning && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center transition-transform hover:scale-110">
+                      <Play className="w-10 h-10 text-white ml-1" />
+                    </div>
+                  </div>
+                )}
+                
                 {/* Overlay Controls */}
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <div className={cn(
+                  "absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-10",
+                  "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                  isFullscreen && "p-6"
+                )}>
                   {/* Progress Bar */}
                   <Slider
                     value={[currentTime]}
@@ -406,6 +575,18 @@ export default function ReviewStage() {
                       <Badge variant="secondary" className="font-mono text-xs">
                         Clip {currentClipIndex + 1}/{completedClips.length}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleFullscreen}
+                        className="text-white hover:bg-white/20"
+                      >
+                        {isFullscreen ? (
+                          <Minimize2 className="w-4 h-4" />
+                        ) : (
+                          <Maximize2 className="w-4 h-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -423,12 +604,13 @@ export default function ReviewStage() {
                   {completedClips.map((clip, index) => (
                     <button
                       key={clip.id}
-                      onClick={() => setCurrentClipIndex(index)}
+                      onClick={() => transitionToClip(index)}
                       className={cn(
-                        "shrink-0 w-24 rounded-lg overflow-hidden transition-all",
+                        "shrink-0 w-24 rounded-lg overflow-hidden transition-all duration-300",
                         currentClipIndex === index 
-                          ? "ring-2 ring-primary" 
-                          : "opacity-70 hover:opacity-100"
+                          ? "ring-2 ring-primary scale-105" 
+                          : "opacity-70 hover:opacity-100 hover:scale-102",
+                        nextClipIndex === index && "ring-2 ring-primary/50 animate-pulse"
                       )}
                     >
                       <div className="aspect-video bg-muted relative">
@@ -443,6 +625,10 @@ export default function ReviewStage() {
                           <span className="text-xs text-white font-mono">
                             {clip.durationSeconds}s
                           </span>
+                        </div>
+                        {/* Clip number indicator */}
+                        <div className="absolute top-1 left-1 bg-black/60 rounded px-1">
+                          <span className="text-xs text-white font-mono">{index + 1}</span>
                         </div>
                       </div>
                     </button>

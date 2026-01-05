@@ -42,52 +42,52 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-    const systemPrompt = `You are an expert video production director. Analyze the script and create a detailed shot-by-shot breakdown for AI video generation.
+    const systemPrompt = `You are a video production assistant. Create a shot breakdown from the user's script/concept.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
-STYLE CONTEXT: ${projectTypeContext}
-PROJECT TITLE: ${title || 'Untitled'}
+STYLE: ${projectTypeContext}
+TITLE: ${title || 'Untitled'}
 
-For each shot, you MUST provide (following the exact JSON structure):
-- id: A unique shot identifier (format: "shot_001", "shot_002", etc.)
-- index: Zero-based index number
-- title: Brief descriptive title for the shot
-- description: DETAILED visual description for AI video generation. Include:
-  * Setting and environment details
-  * Lighting conditions and atmosphere
-  * Character positions and actions (if any)
-  * Visual mood and color palette
-  * Any movement or action in the scene
-  * DO NOT include literal camera references like "camera pans" - describe perspective instead
-- dialogue: The narration or dialogue text for this shot (can be empty string if none)
-- durationSeconds: Estimated duration (typically 3-7 seconds per shot)
-- mood: The emotional tone (dramatic, calm, tense, joyful, mysterious, etc.)
-- cameraMovement: Perspective movement type (steady, tracking, rising, descending, approaching, retreating)
-- characters: Array of character names appearing in this shot
+CRITICAL RULES:
+1. PRESERVE THE USER'S INTENT - Do not add characters, locations, or story elements they didn't mention
+2. If the script describes ONE simple scene (e.g., "person sitting on couch"), create shots that all show THAT SAME SCENE from different angles/moments
+3. Each shot should be a visual moment within the user's concept, NOT a new adventure
+4. Keep descriptions grounded in what the user actually described
 
-Return ONLY valid JSON with this EXACT structure:
+For each shot, provide:
+- id: Shot identifier (format: "shot_001", "shot_002")
+- index: Zero-based index
+- title: Brief title for this moment
+- description: VISUAL description for AI video generation:
+  * What is visible in frame
+  * Lighting and atmosphere
+  * Character positions and expressions (if mentioned)
+  * Use perspective language, NOT camera terms
+- dialogue: Any narration/dialogue (empty string if none)
+- durationSeconds: 3-7 seconds per shot
+- mood: Emotional tone
+- cameraMovement: Perspective type (steady, approaching, retreating, rising)
+- characters: Array of character names (ONLY those mentioned by user)
+
+Return ONLY valid JSON:
 {
   "scenes": [
     {
       "id": "shot_001",
       "index": 0,
-      "title": "Opening Scene",
-      "description": "A wide establishing view of...",
-      "dialogue": "Narration text here...",
+      "title": "Scene moment",
+      "description": "Visual description...",
+      "dialogue": "",
       "durationSeconds": 5,
-      "mood": "dramatic",
+      "mood": "calm",
       "cameraMovement": "steady",
-      "characters": ["Character1"]
+      "characters": []
     }
   ],
   "totalDurationSeconds": 30
 }
 
-CRITICAL RULES:
-1. Each description should be 2-4 sentences, highly detailed for AI video generation
-2. Never mention cameras, lenses, or filming equipment in descriptions
-3. Use perspective-based language: "the view rises", "perspective approaches", "we see from above"
-4. Ensure shots flow naturally from one to the next for seamless transitions`;
+REMEMBER: If the user wants "Hannah sitting on a couch", ALL shots should show Hannah on that couch - different angles, moments, expressions - NOT Hannah going on adventures.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -14,7 +14,7 @@ import {
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { extractLastFrame, rewritePromptForCinematic, buildNegativePrompt } from '@/lib/cinematicPromptEngine';
+import { extractLastFrame, buildNegativePrompt } from '@/lib/cinematicPromptEngine';
 import { CREDIT_COSTS, API_COSTS_CENTS } from '@/hooks/useCreditBilling';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -364,30 +364,30 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   }, [state.projectId]);
   
   // Generate video for a single shot with frame chaining
+  // SIMPLIFIED: Reduced prompt processing to preserve user intent
   const generateShotVideo = useCallback(async (
     shot: Shot,
     previousFrameUrl?: string
   ): Promise<{ videoUrl?: string; endFrameUrl?: string; taskId?: string; error?: string }> => {
     try {
-      // Apply Cameraman Filter
+      // SIMPLIFIED: Only apply cameraman filter, skip heavy rewriting
+      // The edge function will handle minimal consistency markers
       const { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
       
-      // Rewrite for cinematic quality
-      const { prompt: cinematicPrompt } = rewritePromptForCinematic(cleanPrompt, {
-        includeNegativePrompt: false,
-      });
+      console.log('[Pipeline] Generating shot with prompt:', cleanPrompt.substring(0, 100) + '...');
       
       const { data, error } = await supabase.functions.invoke('generate-video', {
         body: {
-          prompt: cinematicPrompt,
+          prompt: cleanPrompt, // Direct prompt, no over-processing
           duration: shot.durationSeconds,
-          seed: state.production.globalSeed,
+          seed: state.production.globalSeed, // Locked seed for consistency
           negativePrompt,
           startImage: previousFrameUrl, // Frame chaining
           sceneContext: {
             environment: state.production.masterAnchor?.environmentPrompt,
             colorPalette: state.production.masterAnchor?.colorPalette,
             lightingStyle: state.production.masterAnchor?.lightingStyle,
+            totalClips: state.structuredShots.length,
           },
         },
         signal: abortControllerRef.current?.signal,
@@ -563,15 +563,20 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
               // Log successful API cost for profit tracking
               await logApiCost(shot.id, 'replicate', 'video_generation', CREDIT_COSTS.TOTAL_PER_SHOT, API_COSTS_CENTS.REPLICATE_VIDEO_4S);
               
-              // Extract last frame for next shot
+              // Extract last frame for next shot - with CORS-safe fallback
               let endFrameUrl: string | undefined;
               try {
                 endFrameUrl = await extractLastFrame(status.videoUrl);
-              } catch {
-                console.warn('Could not extract last frame');
+                console.log('[Pipeline] Successfully extracted last frame for chaining');
+              } catch (frameErr) {
+                // CORS blocks Replicate URLs - use master anchor as reliable fallback
+                console.warn('[Pipeline] Frame extraction failed (CORS), using master anchor for continuity');
+                endFrameUrl = undefined;
               }
               
-              previousFrameUrl = endFrameUrl || previousFrameUrl;
+              // CRITICAL: Always maintain visual continuity
+              // Priority: extracted frame > master anchor > undefined
+              previousFrameUrl = endFrameUrl || masterAnchor?.imageUrl || previousFrameUrl;
               
               // Update in-memory state
               setState(prev => ({

@@ -58,55 +58,32 @@ serve(async (req) => {
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
     
     if (isFullMovieMode) {
-      // Full movie script generation - CONCISE & VISUAL
-      systemPrompt = `You are a concise visual storyteller. Write SHORT, punchy scripts optimized for AI video generation.
+      // Full movie script generation - ULTRA CONCISE
+      systemPrompt = `You write ULTRA-SHORT scripts for AI video. Maximum 4-5 shots total.
 
-STYLE:
-- Be BRIEF - each shot description should be 1-2 sentences max
-- Focus on KEY visuals only - don't over-describe
-- Write for 4-second video clips - each scene = one simple visual moment
-
-FORMAT:
-[SHOT 1: Location/Time]
-Brief visual description. Character action.
-
-[SHOT 2: Location/Time]
-Brief visual description. Character action.
+FORMAT (use exactly this):
+[SHOT 1] Brief visual. One sentence.
+[SHOT 2] Brief visual. One sentence.
 
 RULES:
-- Maximum 6-8 shots for a short video
-- Each shot = ONE clear visual idea
-- No lengthy dialogue - keep it minimal
-- No complex camera movements - simple shots only
-- Follow the user's concept EXACTLY`;
+- 4-5 shots MAXIMUM
+- ONE sentence per shot
+- No dialogue unless essential
+- Pure visual descriptions only`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
         ? requestData.characters!.map(char => 
-            `- ${char.name.toUpperCase()}: ${char.description}`
-          ).join('\n')
+            `${char.name}: ${char.description.split('.')[0]}`
+          ).join(', ')
         : '';
 
-      // Much shorter word targets: ~50 words per minute for video
-      const wordTarget = Math.min((requestData.targetDurationMinutes || 1) * 50, 300);
+      userPrompt = `Write 4-5 shots for: "${requestData.title}"
+Genre: ${requestData.genre || 'Drama'}
+${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 150)}` : ''}
+${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
 
-      userPrompt = `Write a SHORT script for a ${requestData.targetDurationMinutes || 1}-minute video:
-
-TITLE: "${requestData.title}"
-GENRE: ${requestData.genre || 'Drama'}
-SETTING: ${requestData.setting || 'Modern day'}
-
-${requestData.synopsis ? `CONCEPT: ${requestData.synopsis}` : ''}
-${characterDescriptions ? `CHARACTERS:\n${characterDescriptions}` : ''}
-
-STRICT REQUIREMENTS:
-- Maximum ${wordTarget} words total
-- Maximum 8 shots/scenes
-- Each shot: 1-2 sentences only
-- No unnecessary details
-- Focus on visual moments that can be generated as 4-second clips
-
-Write the script now:`;
+MAXIMUM 5 SHOTS. One sentence each. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
@@ -143,8 +120,7 @@ Write the script now:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: isFullMovieMode ? 1000 : 500,
+        max_tokens: isFullMovieMode ? 400 : 300,
       }),
     });
 

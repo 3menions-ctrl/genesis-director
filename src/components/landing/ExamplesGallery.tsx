@@ -93,7 +93,7 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden [&>button]:hidden rounded-none">
+      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden [&>button]:hidden rounded-none left-0 top-0 translate-x-0 translate-y-0">
         {/* Fullscreen Video - No boundaries */}
         <div className="absolute inset-0">
           {/* Loading state */}
@@ -129,10 +129,11 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
         </div>
 
-        {/* Close button - Fixed top right */}
+        {/* Close button - Top right */}
         <button
           onClick={() => onOpenChange(false)}
-          className="fixed top-6 right-6 z-[100] w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white hover:bg-white/25 transition-all hover:scale-110 shadow-2xl"
+          className="absolute top-8 right-8 z-[100] w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110 shadow-2xl"
+          aria-label="Close gallery"
         >
           <X className="w-6 h-6" />
         </button>

@@ -233,6 +233,9 @@ export interface PipelineState {
   referenceImage?: ReferenceImageAnalysis;
   referenceImageRequired: boolean;
   
+  // TEXT-TO-VIDEO: Allow pure text-based generation without reference image
+  textToVideoMode: boolean;
+  
   // Script approval state
   rawScript: string;
   structuredShots: Shot[];
@@ -275,6 +278,7 @@ export const INITIAL_PIPELINE_STATE: PipelineState = {
   projectTitle: '',
   qualityTier: 'standard', // Default to standard tier
   referenceImageRequired: true, // IMAGE-FIRST: Required by default
+  textToVideoMode: false, // TEXT-TO-VIDEO: Disabled by default
   rawScript: '',
   structuredShots: [],
   scriptApproved: false,

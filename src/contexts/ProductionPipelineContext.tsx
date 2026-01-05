@@ -43,6 +43,9 @@ interface ProductionPipelineContextType {
   setReferenceImage: (analysis: ReferenceImageAnalysis) => void;
   clearReferenceImage: () => void;
   
+  // TEXT-TO-VIDEO: Toggle mode without reference image
+  setTextToVideoMode: (enabled: boolean) => void;
+  
   // Scripting stage
   setProjectType: (type: ProjectType) => void;
   setProjectTitle: (title: string) => void;
@@ -224,6 +227,19 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     toast.info(tier === 'professional' 
       ? 'Iron-Clad Professional mode enabled (40 credits/shot)' 
       : 'Standard mode enabled (25 credits/shot)'
+    );
+  }, []);
+  
+  // TEXT-TO-VIDEO: Toggle text-only mode (no reference image required)
+  const setTextToVideoMode = useCallback((enabled: boolean) => {
+    setState(prev => ({ 
+      ...prev, 
+      textToVideoMode: enabled,
+      referenceImageRequired: !enabled,
+    }));
+    toast.info(enabled 
+      ? 'Text-to-Video mode enabled - no reference image required' 
+      : 'Image-to-Video mode enabled - reference image required'
     );
   }, []);
   
@@ -503,6 +519,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   // Generate video for a single shot with frame chaining
   // Uses reference image analysis for background/lighting consistency
+  // In text-to-video mode, skips reference image entirely
   const generateShotVideo = useCallback(async (
     shot: Shot,
     previousFrameUrl?: string
@@ -510,30 +527,38 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     try {
       const { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
       
-      // Build enriched prompt with reference image consistency data
+      // Build enriched prompt with reference image consistency data (if not in text-to-video mode)
       let enrichedPrompt = cleanPrompt;
       
-      // If we have reference image analysis, inject consistency markers into prompt
-      if (state.referenceImage?.consistencyPrompt) {
+      // If we have reference image analysis AND not in text-to-video mode, inject consistency markers
+      if (!state.textToVideoMode && state.referenceImage?.consistencyPrompt) {
         // Prepend the consistency prompt to maintain visual coherence
         enrichedPrompt = `[Visual anchor: ${state.referenceImage.consistencyPrompt}] ${cleanPrompt}`;
         console.log('[Pipeline] Injecting reference consistency into prompt');
+      } else if (state.textToVideoMode) {
+        console.log('[Pipeline] Text-to-video mode: skipping reference image injection');
       }
       
       console.log('[Pipeline] Generating shot with prompt:', enrichedPrompt.substring(0, 150) + '...');
+      
+      // In text-to-video mode, don't pass any images
+      const isTextToVideo = state.textToVideoMode;
       
       const { data, error } = await supabase.functions.invoke('generate-video', {
         body: {
           prompt: enrichedPrompt,
           duration: Math.min(MAX_SHOT_DURATION_SECONDS, shot.durationSeconds),
           negativePrompt,
-          // Frame chaining: use previous frame if available, otherwise use reference image
-          startImage: previousFrameUrl,
-          // Always pass reference image URL as fallback for image-to-video mode
-          referenceImageUrl: state.production.masterAnchor?.imageUrl || state.referenceImage?.imageUrl,
+          // Frame chaining: use previous frame if available (for shot continuity), otherwise use reference image
+          // In text-to-video mode, skip reference image but still allow frame chaining for continuity
+          startImage: isTextToVideo ? previousFrameUrl : previousFrameUrl,
+          // Only pass reference image URL in image-to-video mode
+          referenceImageUrl: isTextToVideo ? undefined : (state.production.masterAnchor?.imageUrl || state.referenceImage?.imageUrl),
           // Transition type for seamless shot connections
           transitionOut: shot.transitionOut || 'continuous',
-          sceneContext: {
+          sceneContext: isTextToVideo ? {
+            totalClips: state.structuredShots.length,
+          } : {
             // Pass full reference analysis for background/lighting adaptation
             environment: state.referenceImage?.environment?.setting || state.production.masterAnchor?.environmentPrompt,
             colorPalette: state.referenceImage?.colorPalette?.mood || state.production.masterAnchor?.colorPalette,
@@ -1255,6 +1280,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       // IMAGE-FIRST
       setReferenceImage,
       clearReferenceImage,
+      // TEXT-TO-VIDEO
+      setTextToVideoMode,
       // Scripting
       setProjectType,
       setProjectTitle,

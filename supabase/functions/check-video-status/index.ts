@@ -97,14 +97,31 @@ serve(async (req) => {
       const serviceAccount = JSON.parse(serviceAccountJson);
       const accessToken = await getAccessToken(serviceAccount);
 
-      // Poll the long-running operation
-      const operationUrl = `https://us-central1-aiplatform.googleapis.com/v1/${taskId}`;
+      // Extract project ID, location, and model from the task ID
+      // Format: projects/{project}/locations/{location}/publishers/google/models/{model}/operations/{operation_id}
+      const taskMatch = taskId.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
+      if (!taskMatch) {
+        throw new Error("Invalid task ID format");
+      }
       
-      const response = await fetch(operationUrl, {
+      const [, projectId, location, modelId, operationId] = taskMatch;
+      
+      // Use the fetchPredictOperation endpoint for Veo operations
+      // This is a POST request with the operation name in the body
+      const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
+      
+      console.log("Polling Vertex AI operation:", fetchOperationUrl);
+      console.log("Operation name:", taskId);
+      
+      const response = await fetch(fetchOperationUrl, {
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
-        }
+        },
+        body: JSON.stringify({
+          operationName: taskId
+        })
       });
 
       if (!response.ok) {

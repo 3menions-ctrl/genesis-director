@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Scene consistency context for multi-clip videos
+// Scene consistency context for multi-clip videos (includes reference image analysis)
 interface SceneContext {
   clipIndex?: number;
   totalClips?: number;
@@ -18,6 +18,11 @@ interface SceneContext {
   previousClipSummary?: string;
   colorPalette?: string;
   lightingStyle?: string;
+  // Extended reference image analysis fields
+  lightingDirection?: string;
+  timeOfDay?: string;
+  dominantColors?: string;
+  backgroundElements?: string;
 }
 
 // Camera reference patterns to strip from prompts
@@ -136,12 +141,28 @@ function buildConsistentPrompt(
       hints.push(`Characters: ${context.globalCharacters}`);
     }
     
-    // Color/lighting consistency
-    if (context.colorPalette) {
+    // Color/lighting consistency from reference image analysis
+    if (context.dominantColors) {
+      hints.push(`Colors: ${context.dominantColors}`);
+    } else if (context.colorPalette) {
       hints.push(`Colors: ${context.colorPalette}`);
     }
+    
+    // Lighting with direction and time of day
     if (context.lightingStyle) {
-      hints.push(`Lighting: ${context.lightingStyle}`);
+      let lightingHint = `Lighting: ${context.lightingStyle}`;
+      if (context.lightingDirection) {
+        lightingHint += `, ${context.lightingDirection}`;
+      }
+      if (context.timeOfDay) {
+        lightingHint += ` (${context.timeOfDay})`;
+      }
+      hints.push(lightingHint);
+    }
+    
+    // Background elements for scene continuity
+    if (context.backgroundElements) {
+      hints.push(`Background: ${context.backgroundElements}`);
     }
     
     // Build final prompt: hints first, then the actual description

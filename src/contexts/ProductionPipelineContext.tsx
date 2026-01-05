@@ -474,30 +474,43 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   }, [state.projectId]);
   
   // Generate video for a single shot with frame chaining
-  // SIMPLIFIED: Reduced prompt processing to preserve user intent
+  // Uses reference image analysis for background/lighting consistency
   const generateShotVideo = useCallback(async (
     shot: Shot,
     previousFrameUrl?: string
   ): Promise<{ videoUrl?: string; endFrameUrl?: string; taskId?: string; error?: string }> => {
     try {
-      // SIMPLIFIED: Only apply cameraman filter, skip heavy rewriting
-      // The edge function will handle minimal consistency markers
       const { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
       
-      console.log('[Pipeline] Generating shot with prompt:', cleanPrompt.substring(0, 100) + '...');
+      // Build enriched prompt with reference image consistency data
+      let enrichedPrompt = cleanPrompt;
+      
+      // If we have reference image analysis, inject consistency markers into prompt
+      if (state.referenceImage?.consistencyPrompt) {
+        // Prepend the consistency prompt to maintain visual coherence
+        enrichedPrompt = `[Visual anchor: ${state.referenceImage.consistencyPrompt}] ${cleanPrompt}`;
+        console.log('[Pipeline] Injecting reference consistency into prompt');
+      }
+      
+      console.log('[Pipeline] Generating shot with prompt:', enrichedPrompt.substring(0, 150) + '...');
       
       const { data, error } = await supabase.functions.invoke('generate-video', {
         body: {
-          prompt: cleanPrompt, // Direct prompt, no over-processing
+          prompt: enrichedPrompt,
           duration: shot.durationSeconds,
           negativePrompt,
           startImage: previousFrameUrl, // Frame chaining via first_frame_image
           // Use master anchor as subject_reference for character consistency
           subjectReference: state.production.masterAnchor?.imageUrl,
           sceneContext: {
-            environment: state.production.masterAnchor?.environmentPrompt,
-            colorPalette: state.production.masterAnchor?.colorPalette,
-            lightingStyle: state.production.masterAnchor?.lightingStyle,
+            // Pass full reference analysis for background/lighting adaptation
+            environment: state.referenceImage?.environment?.setting || state.production.masterAnchor?.environmentPrompt,
+            colorPalette: state.referenceImage?.colorPalette?.mood || state.production.masterAnchor?.colorPalette,
+            lightingStyle: state.referenceImage?.lighting?.style || state.production.masterAnchor?.lightingStyle,
+            lightingDirection: state.referenceImage?.lighting?.direction,
+            timeOfDay: state.referenceImage?.lighting?.timeOfDay,
+            dominantColors: state.referenceImage?.colorPalette?.dominant?.join(', '),
+            backgroundElements: state.referenceImage?.environment?.backgroundElements?.join(', '),
             totalClips: state.structuredShots.length,
           },
         },
@@ -514,7 +527,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       console.error('Video generation failed for shot:', shot.id, err);
       return { error: err instanceof Error ? err.message : 'Generation failed' };
     }
-  }, [state.production.masterAnchor, state.structuredShots.length, applyCameramanFilter]);
+  }, [state.production.masterAnchor, state.referenceImage, state.structuredShots.length, applyCameramanFilter]);
   
   // Poll for video completion
   const pollVideoStatus = useCallback(async (taskId: string): Promise<{ status: string; videoUrl?: string }> => {

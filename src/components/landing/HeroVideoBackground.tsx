@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 const SHOWCASE_VIDEOS = [
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596471199-c94lc.mp4', // Heaven 1
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596635855-7jnlfu.mp4', // Heaven 2
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767601850272-ta6bj6n.mp4', // Dance 1
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4', // Sail 1
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767598540272-l6a25k.mp4', // Circus 1
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600585125-0g9aex.mp4', // Sail 2
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767597195370-5ui9ma.mp4', // Sail 3
 ];
 
 interface HeroVideoBackgroundProps {

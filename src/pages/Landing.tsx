@@ -171,93 +171,83 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative z-10 px-4 lg:px-8 pt-32 lg:pt-40 pb-20">
-        <div className="max-w-7xl mx-auto">
-          {/* Badge with shimmer */}
-          <div className="flex justify-center mb-8">
-            <div className="relative group cursor-pointer">
-              <div className="absolute inset-0 rounded-full bg-foreground/5 blur-xl group-hover:bg-foreground/10 transition-colors" />
-              <div className="relative flex items-center gap-3 px-5 py-2.5 rounded-full glass-card border-foreground/10">
-                <span className="flex h-2 w-2 rounded-full bg-success animate-pulse-soft" />
-                <span className="text-sm font-medium text-foreground">New: Text & Image to Video</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+      {/* Full-width Video Hero */}
+      <section className="relative z-10 pt-24">
+        {/* Video Container - Full width, edge to edge */}
+        <div className="relative w-full aspect-[16/9] lg:aspect-[21/9] bg-black overflow-hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            src="https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4"
+          />
+          
+          {/* Gradient overlays for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-background/30 pointer-events-none" />
+          
+          {/* Content overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center max-w-5xl mx-auto px-4">
+              {/* Badge */}
+              <div className="flex justify-center mb-6">
+                <div className="relative group cursor-pointer">
+                  <div className="relative flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+                    <span className="flex h-2 w-2 rounded-full bg-success animate-pulse-soft" />
+                    <span className="text-sm font-medium text-white">New: Text & Image to Video</span>
+                    <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Main headline */}
-          <div className="text-center max-w-5xl mx-auto mb-8">
-            <h1 className="text-5xl sm:text-6xl lg:text-8xl font-bold tracking-tight leading-[1.05] mb-8">
-              <span className="text-foreground">Create videos that</span>
-              <br />
-              <span className="text-shine">captivate the world</span>
-            </h1>
-            <p className="text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">
-              Transform text or images into cinema. AI writes your script, generates scenes, and produces professional videos.
-            </p>
-          </div>
+              {/* Main headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.05] mb-6">
+                <span className="text-white drop-shadow-lg">Create videos that</span>
+                <br />
+                <span className="text-white/90 drop-shadow-lg">captivate the world</span>
+              </h1>
+              <p className="text-lg lg:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed font-light mb-8 drop-shadow-md">
+                Transform text or images into cinema. AI writes your script, generates scenes, and produces professional videos.
+              </p>
 
-          {/* CTA buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
-            <Button
-              onClick={() => navigate('/auth')}
-              size="lg"
-              className="group h-14 px-8 text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-shadow"
-            >
-              Start creating for free
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-14 px-8 text-base font-semibold rounded-2xl"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Watch demo
-            </Button>
-          </div>
-
-          {/* Capabilities with refined styling */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-20">
-            {CAPABILITIES.map((cap, i) => (
-              <div
-                key={cap}
-                className={cn(
-                  "relative px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
-                  activeCapability === i 
-                    ? "bg-glossy-black text-white shadow-obsidian" 
-                    : "glass-card text-muted-foreground hover:text-foreground border-transparent"
-                )}
-                onClick={() => setActiveCapability(i)}
-              >
-                {activeCapability === i && (
-                  <div className="absolute inset-0 rounded-full bg-foreground/10 blur-xl" />
-                )}
-                <span className="relative">{cap}</span>
+              {/* CTA buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+                <Button
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  className="group h-14 px-8 text-base font-semibold rounded-2xl bg-white text-foreground hover:bg-white/90 shadow-2xl"
+                >
+                  Start creating for free
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-14 px-8 text-base font-semibold rounded-2xl bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20"
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  Watch demo
+                </Button>
               </div>
-            ))}
-          </div>
 
-          {/* Hero Visual - Minimal Video Showcase */}
-          <div className="relative max-w-7xl mx-auto">
-            {/* Ambient glow */}
-            <div className="absolute -inset-16 bg-foreground/[0.03] rounded-[5rem] blur-[80px]" />
-            
-            {/* Clean video container */}
-            <div className="relative rounded-[2rem] overflow-hidden shadow-obsidian-xl">
-              <div className="relative aspect-[16/9] bg-black">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                  src="https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4"
-                />
-                
-                {/* Subtle vignette overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_70%,rgba(0,0,0,0.15)_100%)] pointer-events-none" />
+              {/* Capabilities */}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {CAPABILITIES.map((cap, i) => (
+                  <div
+                    key={cap}
+                    className={cn(
+                      "relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
+                      activeCapability === i 
+                        ? "bg-white text-foreground shadow-lg" 
+                        : "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 border border-white/10"
+                    )}
+                    onClick={() => setActiveCapability(i)}
+                  >
+                    {cap}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

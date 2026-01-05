@@ -170,7 +170,8 @@ export default function Projects() {
           /* Projects Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {projects.map((project, index) => {
-              const hasVideo = project.status === 'completed' && (project.video_clips?.length || project.video_url);
+              // Show videos if clips exist, regardless of status
+              const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
               const isActive = activeProjectId === project.id;
               

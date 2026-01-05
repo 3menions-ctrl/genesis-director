@@ -194,6 +194,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const deleteProject = async (projectId: string) => {
     try {
+      // Find the project to get its video URLs before deletion
+      const projectToDelete = projects.find(p => p.id === projectId);
+      
+      // Delete the project from database first
       const { error } = await supabase
         .from('movie_projects')
         .delete()
@@ -201,12 +205,51 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
+      // Clean up video files from storage if they exist
+      if (projectToDelete) {
+        const videosToDelete: string[] = [];
+        
+        // Collect all video URLs
+        if (projectToDelete.video_clips?.length) {
+          videosToDelete.push(...projectToDelete.video_clips);
+        }
+        if (projectToDelete.video_url) {
+          videosToDelete.push(projectToDelete.video_url);
+        }
+        if (projectToDelete.voice_audio_url) {
+          videosToDelete.push(projectToDelete.voice_audio_url);
+        }
+        if (projectToDelete.thumbnail_url) {
+          videosToDelete.push(projectToDelete.thumbnail_url);
+        }
+        
+        // Extract storage paths and delete files
+        for (const url of videosToDelete) {
+          try {
+            // Parse the URL to get bucket and path
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/storage/v1/object/public/');
+            if (pathParts.length === 2) {
+              const [bucket, ...filePath] = pathParts[1].split('/');
+              const path = filePath.join('/');
+              if (bucket && path) {
+                await supabase.storage.from(bucket).remove([path]);
+                console.log(`Deleted file: ${bucket}/${path}`);
+              }
+            }
+          } catch (storageErr) {
+            // Log but don't fail if storage cleanup fails
+            console.warn('Could not delete storage file:', url, storageErr);
+          }
+        }
+      }
+
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       if (activeProjectId === projectId && projects.length > 1) {
         const remaining = projects.filter(p => p.id !== projectId);
         setActiveProjectId(remaining[0]?.id || null);
       }
-      toast.success('Project deleted');
+      toast.success('Project and all videos permanently deleted');
     } catch (err) {
       console.error('Error deleting project:', err);
       toast.error('Failed to delete project');

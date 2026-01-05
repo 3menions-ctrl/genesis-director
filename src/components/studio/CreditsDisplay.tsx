@@ -1,39 +1,29 @@
-import { Coins, Zap, Sparkles, Check, AlertTriangle, LogIn } from 'lucide-react';
+import { Coins, Zap, Sparkles, Check, AlertTriangle, LogIn, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserCredits } from '@/types/studio';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Duration options with credit costs - shared with StoryWizard
-export const DURATION_CREDIT_OPTIONS = [
-  { seconds: 8, label: '8 sec', credits: 1000 },
-  { seconds: 30, label: '30 sec', credits: 3500 },
-  { seconds: 60, label: '1 min', credits: 7000 },
-] as const;
+import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 interface CreditsDisplayProps {
   credits: UserCredits;
   onBuyCredits?: () => void;
-  selectedDurationSeconds?: number;
+  selectedShotCount?: number;
 }
 
-export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds }: CreditsDisplayProps) {
+export function CreditsDisplay({ credits, onBuyCredits, selectedShotCount }: CreditsDisplayProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   
   const usagePercentage = (credits.used / Math.max(credits.total, 1)) * 100;
-  const isLow = credits.remaining < credits.total * 0.2;
+  const isLow = credits.remaining < CREDIT_COSTS.TOTAL_PER_SHOT * 2;
   
-  // Calculate what the user can afford
-  const getRequiredCredits = (seconds: number) => {
-    const option = DURATION_CREDIT_OPTIONS.find(o => o.seconds === seconds);
-    return option?.credits || 0;
-  };
-  
-  const requiredCredits = selectedDurationSeconds ? getRequiredCredits(selectedDurationSeconds) : 0;
+  // Calculate what the user can afford with Iron-Clad pricing
+  const requiredCredits = selectedShotCount ? selectedShotCount * CREDIT_COSTS.TOTAL_PER_SHOT : 0;
   const canAfford = credits.remaining >= requiredCredits;
   const creditsAfter = credits.remaining - requiredCredits;
+  const affordableShots = Math.floor(credits.remaining / CREDIT_COSTS.TOTAL_PER_SHOT);
 
   // Not logged in - show sign in prompt
   if (!user) {
@@ -44,13 +34,13 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
             <Coins className="w-4 h-4 text-white/70" />
           </div>
           <div>
-            <p className="text-xs font-medium text-white">Credits</p>
+            <p className="text-xs font-medium text-white">Production Credits</p>
             <p className="text-[10px] text-white/40">Sign in to track</p>
           </div>
         </div>
 
         <p className="text-xs text-white/50 mb-4">
-          Sign in to get <span className="text-white font-semibold">50 free credits</span> and start creating videos.
+          Sign in to get <span className="text-white font-semibold">50 free credits</span> and start creating Iron-Clad videos.
         </p>
 
         <Button
@@ -75,8 +65,8 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
           <Coins className="w-4 h-4 text-white/70" />
         </div>
         <div>
-          <p className="text-xs font-medium text-white">Credits</p>
-          <p className="text-[10px] text-white/40">Available Balance</p>
+          <p className="text-xs font-medium text-white">Production Credits</p>
+          <p className="text-[10px] text-white/40">Iron-Clad Billing</p>
         </div>
       </div>
 
@@ -90,6 +80,9 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
             / {credits.total.toLocaleString()}
           </span>
         </div>
+        <p className="text-[10px] text-white/50 mt-1">
+          ≈ {affordableShots} Iron-Clad shots available
+        </p>
       </div>
 
       {/* Progress bar */}
@@ -104,62 +97,52 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
         </div>
       </div>
 
-      {/* Affordability breakdown */}
+      {/* Two-phase billing breakdown */}
       <div className="space-y-2 mb-4">
         <p className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
-          Duration Costs
+          Cost Per Shot
         </p>
-        {DURATION_CREDIT_OPTIONS.map((option) => {
-          const affordable = credits.remaining >= option.credits;
-          const isSelected = selectedDurationSeconds === option.seconds;
-          return (
-            <div 
-              key={option.seconds}
-              className={cn(
-                "flex items-center justify-between p-2 rounded-lg transition-all",
-                isSelected && "bg-white/10 border border-white/20",
-                !isSelected && "bg-white/5"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                {affordable ? (
-                  <Check className="w-3.5 h-3.5 text-white" />
-                ) : (
-                  <AlertTriangle className="w-3.5 h-3.5 text-white/50" />
-                )}
-                <span className={cn(
-                  "text-xs font-medium",
-                  affordable ? "text-white" : "text-white/50"
-                )}>
-                  {option.label}
-                </span>
-              </div>
-              <span className={cn(
-                "text-xs font-bold",
-                affordable ? "text-white/70" : "text-white/40"
-              )}>
-                {option.credits.toLocaleString()}
-              </span>
-            </div>
-          );
-        })}
+        <div className="p-3 rounded-lg bg-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/60">Pre-Production</span>
+            <span className="text-xs font-semibold text-white/80">{CREDIT_COSTS.PRE_PRODUCTION} credits</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/60">Production</span>
+            <span className="text-xs font-semibold text-white/80">{CREDIT_COSTS.PRODUCTION} credits</span>
+          </div>
+          <div className="h-px bg-white/10" />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-white">Total per shot</span>
+            <span className="text-xs font-bold text-white">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
+          </div>
+        </div>
       </div>
 
-      {/* Selected duration preview */}
-      {selectedDurationSeconds && requiredCredits > 0 && (
+      {/* Selected shots preview */}
+      {selectedShotCount && selectedShotCount > 0 && (
         <div className={cn(
           "p-3 rounded-lg mb-4 border",
           canAfford 
             ? "bg-white/5 border-white/20" 
             : "bg-white/5 border-white/10"
         )}>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase tracking-wider text-white/40">After Generation</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Film className="w-3.5 h-3.5 text-white/60" />
+              <span className="text-[10px] uppercase tracking-wider text-white/40">
+                {selectedShotCount} Shot{selectedShotCount > 1 ? 's' : ''} Selected
+              </span>
+            </div>
             {canAfford ? (
               <Check className="w-3.5 h-3.5 text-white" />
             ) : (
               <AlertTriangle className="w-3.5 h-3.5 text-white/50" />
             )}
+          </div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/60">Cost</span>
+            <span className="text-xs font-semibold text-white">{requiredCredits.toLocaleString()} credits</span>
           </div>
           <div className="flex items-baseline gap-1">
             <span className={cn(
@@ -172,6 +155,11 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
         </div>
       )}
 
+      {/* Refund notice */}
+      <p className="text-[10px] text-white/30 mb-4">
+        Failed generations are automatically refunded
+      </p>
+
       {/* Buy button */}
       <Button
         onClick={() => navigate('/profile')}
@@ -183,3 +171,8 @@ export function CreditsDisplay({ credits, onBuyCredits, selectedDurationSeconds 
     </div>
   );
 }
+
+// Export for backward compatibility
+export const DURATION_CREDIT_OPTIONS = [
+  { seconds: 4, label: '4 sec (Iron-Clad)', credits: CREDIT_COSTS.TOTAL_PER_SHOT },
+] as const;

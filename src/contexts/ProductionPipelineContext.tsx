@@ -15,6 +15,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { extractLastFrame, rewritePromptForCinematic, buildNegativePrompt } from '@/lib/cinematicPromptEngine';
+import { CREDIT_COSTS, API_COSTS_CENTS } from '@/hooks/useCreditBilling';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductionPipelineContextType {
   state: PipelineState;
@@ -55,8 +57,97 @@ interface ProductionPipelineContextType {
 const ProductionPipelineContext = createContext<ProductionPipelineContextType | null>(null);
 
 export function ProductionPipelineProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [state, setState] = useState<PipelineState>(INITIAL_PIPELINE_STATE);
   const cancelRef = useRef(false);
+  
+  // Two-phase billing helpers
+  const chargePreProduction = useCallback(async (shotId: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { data, error } = await supabase.rpc('charge_preproduction_credits', {
+        p_user_id: user.id,
+        p_project_id: state.projectId || null,
+        p_shot_id: shotId,
+      });
+      if (error) throw error;
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        toast.error(result.error || 'Insufficient credits for pre-production');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Pre-production billing error:', err);
+      return false;
+    }
+  }, [user, state.projectId]);
+  
+  const chargeProduction = useCallback(async (shotId: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const { data, error } = await supabase.rpc('charge_production_credits', {
+        p_user_id: user.id,
+        p_project_id: state.projectId || null,
+        p_shot_id: shotId,
+      });
+      if (error) throw error;
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        toast.error(result.error || 'Insufficient credits for production');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Production billing error:', err);
+      return false;
+    }
+  }, [user, state.projectId]);
+  
+  const refundCredits = useCallback(async (shotId: string, reason: string): Promise<void> => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.rpc('refund_production_credits', {
+        p_user_id: user.id,
+        p_project_id: state.projectId || null,
+        p_shot_id: shotId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      const result = data as { credits_refunded?: number };
+      if (result.credits_refunded && result.credits_refunded > 0) {
+        toast.info(`${result.credits_refunded} credits refunded: ${reason}`);
+      }
+    } catch (err) {
+      console.error('Refund error:', err);
+    }
+  }, [user, state.projectId]);
+  
+  const logApiCost = useCallback(async (
+    shotId: string,
+    service: string,
+    operation: string,
+    creditsCharged: number,
+    realCostCents: number
+  ): Promise<void> => {
+    if (!user) return;
+    try {
+      await supabase.rpc('log_api_cost', {
+        p_user_id: user.id,
+        p_project_id: state.projectId || null,
+        p_shot_id: shotId,
+        p_service: service,
+        p_operation: operation,
+        p_credits_charged: creditsCharged,
+        p_real_cost_cents: realCostCents,
+        p_duration_seconds: null,
+        p_status: 'completed',
+        p_metadata: '{}',
+      });
+    } catch (err) {
+      console.error('Failed to log API cost:', err);
+    }
+  }, [user, state.projectId]);
   
   // Apply Cameraman Hallucination Filter to prompts
   const applyCameramanFilter = useCallback((prompt: string): { cleanPrompt: string; negativePrompt: string } => {
@@ -324,10 +415,15 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     }
   }, []);
   
-  // Main production orchestration
+  // Main production orchestration with two-phase billing
   const startProduction = useCallback(async () => {
     if (!state.scriptApproved || state.structuredShots.length === 0) {
       toast.error('Please approve the script first');
+      return;
+    }
+    
+    if (!user) {
+      toast.error('Please sign in to start production');
       return;
     }
     
@@ -371,8 +467,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         },
       }));
       
-      // Step 3: Generate videos sequentially with frame chaining
-      toast.info('Starting anchor-chain video generation...');
+      // Step 3: Generate videos sequentially with frame chaining and TWO-PHASE BILLING
+      toast.info('Starting anchor-chain video generation with credit billing...');
       let previousFrameUrl: string | undefined = masterAnchor?.imageUrl;
       
       for (let i = 0; i < state.structuredShots.length; i++) {
@@ -382,6 +478,14 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         }
         
         const shot = state.structuredShots[i];
+        
+        // PHASE 1: Charge Pre-Production Credits (5 credits)
+        toast.info(`Charging pre-production credits for shot ${i + 1}...`);
+        const preProductionCharged = await chargePreProduction(shot.id);
+        if (!preProductionCharged) {
+          toast.error(`Insufficient credits for shot ${i + 1}. Production stopped.`);
+          break;
+        }
         
         setState(prev => ({
           ...prev,
@@ -394,12 +498,25 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           },
         }));
         
+        // PHASE 2: Charge Production Credits (20 credits) before video generation
+        toast.info(`Charging production credits for shot ${i + 1}...`);
+        const productionCharged = await chargeProduction(shot.id);
+        if (!productionCharged) {
+          // Refund pre-production credits
+          await refundCredits(shot.id, 'Insufficient credits for production phase');
+          toast.error(`Insufficient credits for shot ${i + 1}. Production stopped.`);
+          break;
+        }
+        
         toast.info(`Generating shot ${i + 1}/${state.structuredShots.length}: ${shot.title}`);
         
         // Generate video with frame chaining
         const result = await generateShotVideo(shot, previousFrameUrl);
         
         if (result.error) {
+          // AUTOMATIC REFUND on failure
+          await refundCredits(shot.id, `Video generation failed: ${result.error}`);
+          
           setState(prev => ({
             ...prev,
             production: {
@@ -417,12 +534,18 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         if (result.taskId) {
           let attempts = 0;
           const maxAttempts = 120; // 10 minutes
+          let videoCompleted = false;
           
           while (attempts < maxAttempts && !cancelRef.current) {
             await new Promise(r => setTimeout(r, 5000));
             const status = await pollVideoStatus(result.taskId);
             
             if (status.status === 'SUCCEEDED' && status.videoUrl) {
+              videoCompleted = true;
+              
+              // Log successful API cost for profit tracking
+              await logApiCost(shot.id, 'replicate', 'video_generation', CREDIT_COSTS.TOTAL_PER_SHOT, API_COSTS_CENTS.REPLICATE_VIDEO_4S);
+              
               // Extract last frame for next shot
               let endFrameUrl: string | undefined;
               try {
@@ -456,6 +579,9 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
               toast.success(`Shot ${i + 1} completed!`);
               break;
             } else if (status.status === 'FAILED') {
+              // AUTOMATIC REFUND on API failure
+              await refundCredits(shot.id, 'API generation failed');
+              
               setState(prev => ({
                 ...prev,
                 production: {
@@ -470,6 +596,21 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
             }
             
             attempts++;
+          }
+          
+          // Timeout handling - refund if timed out
+          if (!videoCompleted && attempts >= maxAttempts) {
+            await refundCredits(shot.id, 'Generation timed out');
+            setState(prev => ({
+              ...prev,
+              production: {
+                ...prev.production,
+                failedShots: prev.production.failedShots + 1,
+                shots: prev.production.shots.map((s, idx) =>
+                  idx === i ? { ...s, status: 'failed' as const, error: 'Generation timed out' } : s
+                ),
+              },
+            }));
           }
         }
       }
@@ -500,6 +641,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       }));
     }
   }, [
+    user,
     state.scriptApproved,
     state.structuredShots,
     generateMasterAnchor,
@@ -507,6 +649,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     generateShotVideo,
     pollVideoStatus,
     goToStage,
+    chargePreProduction,
+    chargeProduction,
+    refundCredits,
+    logApiCost,
   ]);
   
   const cancelProduction = useCallback(() => {

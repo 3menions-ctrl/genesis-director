@@ -705,7 +705,15 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     cancelRef.current = true;
     setState(prev => ({
       ...prev,
-      production: { ...prev.production, isGeneratingVideo: false, isGeneratingAudio: false },
+      production: { 
+        ...prev.production, 
+        isGeneratingVideo: false, 
+        isGeneratingAudio: false,
+        // Reset any 'generating' shots back to 'pending' so UI doesn't show loading
+        shots: prev.production.shots.map(s => 
+          s.status === 'generating' ? { ...s, status: 'pending' as const } : s
+        ),
+      },
     }));
     toast.info('Production cancelled');
   }, []);

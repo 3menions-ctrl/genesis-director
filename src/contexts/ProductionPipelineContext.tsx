@@ -61,6 +61,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   const { user } = useAuth();
   const [state, setState] = useState<PipelineState>(INITIAL_PIPELINE_STATE);
   const cancelRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Two-phase billing helpers
   const chargePreProduction = useCallback(async (shotId: string): Promise<boolean> => {
@@ -305,6 +306,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           }],
           visualStyle: 'cinematic',
         },
+        signal: abortControllerRef.current?.signal,
       });
       
       if (error) throw error;
@@ -338,6 +340,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           shotId: shot.id,
           projectId: state.projectId,
         },
+        signal: abortControllerRef.current?.signal,
       });
       
       if (error) throw error;
@@ -387,6 +390,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
             lightingStyle: state.production.masterAnchor?.lightingStyle,
           },
         },
+        signal: abortControllerRef.current?.signal,
       });
       
       if (error) throw error;
@@ -406,6 +410,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     try {
       const { data, error } = await supabase.functions.invoke('check-video-status', {
         body: { taskId },
+        signal: abortControllerRef.current?.signal,
       });
       
       if (error) throw error;
@@ -433,7 +438,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     }
     
     cancelRef.current = false;
-    
+    abortControllerRef.current = new AbortController();
     // CRITICAL: Ensure production.shots is initialized from structuredShots
     // This fixes the issue where shots might not have been synced properly
     setState(prev => ({
@@ -703,6 +708,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   const cancelProduction = useCallback(() => {
     cancelRef.current = true;
+    // Immediately abort all pending API requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setState(prev => ({
       ...prev,
       production: { 

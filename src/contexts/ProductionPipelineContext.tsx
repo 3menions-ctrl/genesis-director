@@ -594,18 +594,23 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     
     // Remove potentially problematic terms and rephrase
     let saferPrompt = originalPrompt
+      // Remove slap/hit-related terms (common content filter trigger)
+      .replace(/\b(slap|slapping|slapped|hit|hitting|punch|punching|strike|striking|smack|smacking)\b/gi, 'gesture')
+      .replace(/\b(slap contest|slapping contest)\b/gi, 'friendly competition')
       // Remove violence-related terms
-      .replace(/\b(fight|battle|attack|kill|murder|blood|violent|weapon|gun|knife|sword)\b/gi, '')
+      .replace(/\b(fight|fighting|battle|attack|attacking|kill|murder|blood|violent|weapon|gun|knife|sword|assault|beat|beating)\b/gi, '')
       // Rephrase intense emotions
-      .replace(/\b(angry|rage|fury|hatred)\b/gi, 'determined')
-      .replace(/\b(scared|terrified|horrified)\b/gi, 'alert')
+      .replace(/\b(angry|rage|fury|hatred|aggressive)\b/gi, 'determined')
+      .replace(/\b(scared|terrified|horrified|pain|painful)\b/gi, 'alert')
       // Remove nudity/adult-related terms
       .replace(/\b(naked|nude|undressed|revealing|provocative)\b/gi, '')
       // Remove drug/alcohol references
       .replace(/\b(drunk|intoxicated|smoking|drugs)\b/gi, '')
       // Soften conflict language
-      .replace(/\b(confrontation|conflict|struggle)\b/gi, 'interaction')
+      .replace(/\b(confrontation|conflict|struggle|versus|vs)\b/gi, 'interaction')
       .replace(/\b(chase|pursuit)\b/gi, 'movement')
+      // Replace remaining problematic patterns
+      .replace(/\b(face\s*to\s*face\s*(off|showdown))\b/gi, 'standing together')
       // Clean up extra spaces
       .replace(/\s+/g, ' ')
       .trim();

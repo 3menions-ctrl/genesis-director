@@ -42,6 +42,7 @@ export default function ReviewStage() {
   
   const { production, audioMixMode, structuredShots } = state;
   
+  // Get completed clips from production shots - sorted by index for proper playback order
   const completedClips = production.shots
     .filter(s => s.status === 'completed' && s.videoUrl)
     .sort((a, b) => a.index - b.index);

@@ -30,6 +30,11 @@ serve(async (req) => {
     const prediction = await replicate.predictions.get(taskId);
 
     console.log("Replicate prediction status:", prediction.status);
+    
+    // Log error details if failed
+    if (prediction.status === "failed" && prediction.error) {
+      console.error("Replicate prediction failed with error:", prediction.error);
+    }
 
     // Map Replicate status to our format
     let status = prediction.status.toUpperCase();

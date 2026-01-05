@@ -815,6 +815,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       // Step 2: Generate video clips in parallel batches
       const baseProgress = includeNarration ? 15 : 5;
       
+      // Update progress to show we're starting video generation
+      setGenerationProgress({ 
+        step: 'video', 
+        percent: baseProgress, 
+        estimatedSecondsRemaining: totalEstimatedSeconds - voiceGenerationTime,
+        currentClip: 1,
+        totalClips: numClips
+      });
+      
       const parallelMode = numClips > 1;
       toast.info(`Generating ${numClips} video clip${numClips > 1 ? 's' : ''} (${clipDuration}s each)${parallelMode ? ' in parallel' : ''} - Est. ${Math.ceil(totalEstimatedSeconds / 60)} min`);
       await updateProject(projectId, { status: 'rendering' as ProjectStatus });

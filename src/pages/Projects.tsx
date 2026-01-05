@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
-  Sparkles, Clock, CheckCircle2, Circle
+  Sparkles, Clock, CheckCircle2, Circle, ImageIcon, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,10 +22,12 @@ import { cn } from '@/lib/utils';
 import { VideoPlaylist } from '@/components/studio/VideoPlaylist';
 import { Project } from '@/types/studio';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Projects() {
   const navigate = useNavigate();
-  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject } = useStudio();
+  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, refreshProjects } = useStudio();
+  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -98,6 +100,40 @@ export default function Projects() {
   const completedCount = projects.filter(p => p.status === 'completed').length;
   const inProgressCount = projects.filter(p => p.status === 'generating' || p.status === 'rendering').length;
   const draftCount = projects.filter(p => p.status === 'idle').length;
+  const projectsWithoutThumbnails = projects.filter(p => !p.thumbnail_url && (p.video_clips?.length || p.video_url)).length;
+
+  const handleGenerateMissingThumbnails = async () => {
+    if (projectsWithoutThumbnails === 0) {
+      toast.info('All projects already have thumbnails');
+      return;
+    }
+
+    setIsGeneratingThumbnails(true);
+    toast.info('Generating thumbnails...', { description: `Processing ${projectsWithoutThumbnails} projects` });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-missing-thumbnails');
+
+      if (error) {
+        console.error('Thumbnail generation error:', error);
+        toast.error('Failed to generate thumbnails');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(data.message || 'Thumbnails generated!');
+        // Refresh projects to show new thumbnails
+        await refreshProjects();
+      } else {
+        toast.error(data?.error || 'Failed to generate thumbnails');
+      }
+    } catch (err) {
+      console.error('Error generating thumbnails:', err);
+      toast.error('Something went wrong');
+    } finally {
+      setIsGeneratingThumbnails(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[hsl(0_0%_4%)]">
@@ -118,6 +154,21 @@ export default function Projects() {
             </div>
             
             <div className="flex items-center gap-3">
+              {projectsWithoutThumbnails > 0 && (
+                <Button 
+                  variant="outline"
+                  onClick={handleGenerateMissingThumbnails}
+                  disabled={isGeneratingThumbnails}
+                  className="h-10 px-5 rounded-xl bg-transparent border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/20 transition-all"
+                >
+                  {isGeneratingThumbnails ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4 mr-2 text-purple-400" />
+                  )}
+                  Generate {projectsWithoutThumbnails} Thumbnails
+                </Button>
+              )}
               <Button 
                 variant="outline"
                 onClick={() => navigate('/pipeline/scripting')}

@@ -58,11 +58,8 @@ export default function ReviewStage() {
   const [databaseClips, setDatabaseClips] = useState<ReviewClip[]>([]);
   const [projectTitle, setProjectTitle] = useState(state.projectTitle || 'Your Production');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [nextClipIndex, setNextClipIndex] = useState<number | null>(null);
   
   const videoContainerRef = useRef<HTMLDivElement>(null);
-  const nextVideoRef = useRef<HTMLVideoElement>(null);
   
   const { production, audioMixMode, structuredShots } = state;
   
@@ -147,42 +144,27 @@ export default function ReviewStage() {
   
   const currentClip = completedClips[currentClipIndex];
   
-  // Smooth transition to next clip with crossfade
+  // Simple clip navigation - no complex crossfade that causes issues
   const transitionToClip = useCallback((newIndex: number) => {
-    if (newIndex === currentClipIndex || isTransitioning) return;
+    if (newIndex === currentClipIndex) return;
     if (newIndex < 0 || newIndex >= completedClips.length) return;
     
     const nextClip = completedClips[newIndex];
     if (!nextClip?.videoUrl) return;
     
-    // Prepare next video
-    setNextClipIndex(newIndex);
-    setIsTransitioning(true);
+    // Simple immediate switch
+    setCurrentClipIndex(newIndex);
+    setCurrentTime(0);
     
-    // Preload and start next video
-    if (nextVideoRef.current) {
-      nextVideoRef.current.src = nextClip.videoUrl;
-      nextVideoRef.current.volume = audioMixMode === 'mute' ? 0 : volume[0];
-      nextVideoRef.current.load();
-      
-      nextVideoRef.current.oncanplay = () => {
-        // Start crossfade after next video is ready
-        setTimeout(() => {
-          if (nextVideoRef.current && isPlaying) {
-            nextVideoRef.current.play();
-          }
-          
-          // Complete transition after crossfade
-          setTimeout(() => {
-            setCurrentClipIndex(newIndex);
-            setNextClipIndex(null);
-            setIsTransitioning(false);
-            setCurrentTime(0);
-          }, 500); // Match CSS transition duration
-        }, 50);
-      };
+    // Update video source and play if was playing
+    if (videoRef.current) {
+      videoRef.current.src = nextClip.videoUrl;
+      videoRef.current.load();
+      if (isPlaying) {
+        videoRef.current.play().catch(() => {});
+      }
     }
-  }, [currentClipIndex, completedClips, isTransitioning, isPlaying, audioMixMode, volume]);
+  }, [currentClipIndex, completedClips, isPlaying]);
   
   // Handle video events
   useEffect(() => {
@@ -211,23 +193,13 @@ export default function ReviewStage() {
     };
   }, [currentClipIndex, completedClips.length, transitionToClip]);
   
-  // Apply volume changes to both videos
+  // Apply volume changes
   useEffect(() => {
     const vol = audioMixMode === 'mute' ? 0 : volume[0];
     if (videoRef.current) {
       videoRef.current.volume = vol;
     }
-    if (nextVideoRef.current) {
-      nextVideoRef.current.volume = vol;
-    }
   }, [volume, audioMixMode]);
-  
-  // Auto-play when clip changes (without transition)
-  useEffect(() => {
-    if (videoRef.current && isPlaying && !isTransitioning) {
-      videoRef.current.play();
-    }
-  }, [currentClipIndex, isPlaying, isTransitioning]);
   
   // Fullscreen handlers
   const toggleFullscreen = useCallback(() => {
@@ -450,42 +422,18 @@ export default function ReviewStage() {
                   isFullscreen && "!aspect-auto w-full h-full"
                 )}
               >
-                {/* Current Video Layer */}
+                {/* Video Player */}
                 {currentClip?.videoUrl ? (
                   <video
                     ref={videoRef}
                     src={currentClip.videoUrl}
-                    className={cn(
-                      "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
-                      isTransitioning ? "opacity-0" : "opacity-100"
-                    )}
+                    className="absolute inset-0 w-full h-full object-contain"
                     muted={audioMixMode === 'mute'}
+                    onClick={togglePlayPause}
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className="text-white/60">No video available</p>
-                  </div>
-                )}
-                
-                {/* Next Video Layer (for crossfade transition) */}
-                {nextClipIndex !== null && completedClips[nextClipIndex]?.videoUrl && (
-                  <video
-                    ref={nextVideoRef}
-                    className={cn(
-                      "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
-                      isTransitioning ? "opacity-100" : "opacity-0"
-                    )}
-                    muted={audioMixMode === 'mute'}
-                  />
-                )}
-                
-                {/* Transition indicator */}
-                {isTransitioning && (
-                  <div className="absolute top-4 right-4 z-20">
-                    <Badge variant="secondary" className="animate-pulse bg-black/60 text-white border-none">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Transitioning...
-                    </Badge>
                   </div>
                 )}
                 
@@ -494,11 +442,7 @@ export default function ReviewStage() {
                   variant="ghost"
                   size="icon"
                   onClick={toggleFullscreen}
-                  className={cn(
-                    "absolute top-4 right-4 z-10 text-white bg-black/40 hover:bg-black/60",
-                    "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-                    isTransitioning && "hidden"
-                  )}
+                  className="absolute top-4 right-4 z-10 text-white bg-black/40 hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 >
                   {isFullscreen ? (
                     <Minimize2 className="w-5 h-5" />
@@ -507,16 +451,10 @@ export default function ReviewStage() {
                   )}
                 </Button>
                 
-                {/* Click to play/pause */}
-                <div 
-                  className="absolute inset-0 cursor-pointer z-5"
-                  onClick={togglePlayPause}
-                />
-                
                 {/* Large play button overlay when paused */}
-                {!isPlaying && !isTransitioning && (
+                {!isPlaying && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center transition-transform hover:scale-110">
+                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                       <Play className="w-10 h-10 text-white ml-1" />
                     </div>
                   </div>
@@ -606,11 +544,10 @@ export default function ReviewStage() {
                       key={clip.id}
                       onClick={() => transitionToClip(index)}
                       className={cn(
-                        "shrink-0 w-24 rounded-lg overflow-hidden transition-all duration-300",
+                        "shrink-0 w-24 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer",
                         currentClipIndex === index 
                           ? "ring-2 ring-primary scale-105" 
-                          : "opacity-70 hover:opacity-100 hover:scale-102",
-                        nextClipIndex === index && "ring-2 ring-primary/50 animate-pulse"
+                          : "opacity-70 hover:opacity-100 hover:scale-102"
                       )}
                     >
                       <div className="aspect-video bg-muted relative">

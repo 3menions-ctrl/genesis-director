@@ -4,8 +4,9 @@ import {
   Film, Sparkles, ArrowRight, Check, Edit3, 
   RotateCcw, Play, Clock, Users, Video, ChevronRight,
   Clapperboard, Megaphone, BookOpen, FileVideo, MessageSquare,
-  Image, Shield, AlertTriangle, Eye, Loader2
+  Image, Shield, AlertTriangle, Eye, Loader2, Type
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,8 @@ export default function ScriptingStage() {
     // IMAGE-FIRST
     setReferenceImage,
     clearReferenceImage,
+    // TEXT-TO-VIDEO
+    setTextToVideoMode,
     // CINEMATIC AUDITOR
     runCinematicAudit,
     approveAudit,
@@ -216,6 +219,7 @@ export default function ScriptingStage() {
   );
   
   const hasReferenceImage = !!state.referenceImage?.analysisComplete;
+  const canSkipReferenceImage = state.textToVideoMode;
 
   // Step 1: Project Type Selection
   if (step === 'type') {
@@ -322,83 +326,149 @@ export default function ScriptingStage() {
               Step 2 of 4 — Visual Anchor
             </Badge>
             <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-              Upload Reference Image
+              {state.textToVideoMode ? 'Text-to-Video Mode' : 'Upload Reference Image'}
             </h1>
             <p className="text-muted-foreground">
-              This image becomes the <strong>primary visual anchor</strong> for your entire production.
-              Character identity, lighting, and environment will be analyzed and maintained across all clips.
+              {state.textToVideoMode 
+                ? 'Generate videos purely from text descriptions - no reference image needed.'
+                : <>This image becomes the <strong>primary visual anchor</strong> for your entire production.
+                   Character identity, lighting, and environment will be analyzed and maintained across all clips.</>
+              }
             </p>
           </div>
           
-          {/* Reference Image Upload */}
-          <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
-            <ReferenceImageUpload
-              onAnalysisComplete={setReferenceImage}
-              onClear={clearReferenceImage}
-              existingAnalysis={state.referenceImage}
-            />
-            
-            {/* Info Card */}
-            <Card className="p-4 bg-muted/50">
+          {/* Mode Toggle */}
+          <Card className="mb-6 p-4 border-primary/30 animate-fade-in">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center",
+                  state.textToVideoMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  <Type className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Text-to-Video Mode</p>
+                  <p className="text-sm text-muted-foreground">
+                    Generate videos from text only, no reference image required
+                  </p>
+                </div>
+              </div>
+              <Switch 
+                checked={state.textToVideoMode}
+                onCheckedChange={setTextToVideoMode}
+              />
+            </div>
+          </Card>
+          
+          {/* Reference Image Upload - only show if not in text-to-video mode */}
+          {!state.textToVideoMode && (
+            <div className="space-y-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <ReferenceImageUpload
+                onAnalysisComplete={setReferenceImage}
+                onClear={clearReferenceImage}
+                existingAnalysis={state.referenceImage}
+              />
+              
+              {/* Info Card */}
+              <Card className="p-4 bg-muted/50">
+                <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-primary" />
+                  What We Analyze
+                </h4>
+                <ul className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Character Identity
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Facial Features
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Lighting Style
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Color Palette
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Environment
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-3 h-3 text-primary" />
+                    Spatial Geometry
+                  </li>
+                </ul>
+              </Card>
+            </div>
+          )}
+          
+          {/* Text-to-Video Info */}
+          {state.textToVideoMode && (
+            <Card className="p-4 bg-primary/5 border-primary/20 animate-fade-in">
               <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                <Eye className="w-4 h-4 text-primary" />
-                What We Analyze
+                <Type className="w-4 h-4 text-primary" />
+                Text-to-Video Generation
               </h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Videos will be generated purely from your script descriptions. This mode works best for:
+              </p>
               <ul className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <Check className="w-3 h-3 text-primary" />
-                  Character Identity
+                  Abstract concepts
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-3 h-3 text-primary" />
-                  Facial Features
+                  Landscapes & environments
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-3 h-3 text-primary" />
-                  Lighting Style
+                  Motion graphics style
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-3 h-3 text-primary" />
-                  Color Palette
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Environment
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
-                  Spatial Geometry
+                  Stylized animations
                 </li>
               </ul>
             </Card>
-            
-            <div className="flex items-center gap-4 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setStep('type')}
-                className="gap-2"
-              >
-                Back
-              </Button>
-              <Button
-                onClick={() => setStep('details')}
-                disabled={!hasReferenceImage}
-                className="flex-1 gap-2"
-              >
-                {hasReferenceImage ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    Continue with Visual Anchor
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                ) : (
-                  <>
-                    <Image className="w-4 h-4" />
-                    Upload Reference Image First
-                  </>
-                )}
-              </Button>
-            </div>
+          )}
+          
+          <div className="flex items-center gap-4 pt-6">
+            <Button
+              variant="outline"
+              onClick={() => setStep('type')}
+              className="gap-2"
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => setStep('details')}
+              disabled={!hasReferenceImage && !canSkipReferenceImage}
+              className="flex-1 gap-2"
+            >
+              {state.textToVideoMode ? (
+                <>
+                  <Type className="w-4 h-4" />
+                  Continue with Text-to-Video
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : hasReferenceImage ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Continue with Visual Anchor
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <Image className="w-4 h-4" />
+                  Upload Reference Image First
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>

@@ -108,58 +108,48 @@ function rewriteCameraReferences(prompt: string): string {
 }
 
 /**
- * Build enhanced prompt with scene consistency and camera rewrites
+ * Build prompt with minimal processing to preserve user intent
+ * SIMPLIFIED: Removed excessive markers that diluted scene descriptions
  */
 function buildConsistentPrompt(
   basePrompt: string, 
   context?: SceneContext,
   negativePrompt?: string
 ): { prompt: string; negativePrompt: string } {
-  // First, rewrite camera references to perspective language
+  // Only do camera reference cleanup - preserve the actual content
   let rewrittenPrompt = rewriteCameraReferences(basePrompt);
   
-  const consistencyParts: string[] = [];
-  
-  if (context) {
+  // Add minimal consistency hints only for multi-clip projects
+  if (context && context.totalClips > 1) {
+    const hints: string[] = [];
+    
+    // Only add environment if provided
     if (context.globalEnvironment) {
-      consistencyParts.push(`[ENVIRONMENT: ${context.globalEnvironment}]`);
+      hints.push(`Setting: ${context.globalEnvironment}`);
     }
     
+    // Character consistency is important
     if (context.globalCharacters) {
-      consistencyParts.push(`[CHARACTERS - MUST MATCH EXACTLY: ${context.globalCharacters}]`);
+      hints.push(`Characters: ${context.globalCharacters}`);
     }
     
-    if (context.previousClipSummary && context.clipIndex > 0) {
-      consistencyParts.push(`[SEAMLESS CONTINUATION FROM: ${context.previousClipSummary}]`);
-    }
-    
+    // Color/lighting consistency
     if (context.colorPalette) {
-      consistencyParts.push(`[COLOR PALETTE: ${context.colorPalette}]`);
+      hints.push(`Colors: ${context.colorPalette}`);
     }
     if (context.lightingStyle) {
-      consistencyParts.push(`[LIGHTING: ${context.lightingStyle}]`);
+      hints.push(`Lighting: ${context.lightingStyle}`);
     }
     
-    // Position hints
-    let positionHint = '';
-    if (context.clipIndex === 0) {
-      positionHint = '[OPENING SHOT: Establish setting and tone]';
-    } else if (context.clipIndex === context.totalClips - 1) {
-      positionHint = '[FINAL SHOT: Conclusive framing, sense of resolution]';
-    } else {
-      positionHint = `[CLIP ${context.clipIndex + 1}/${context.totalClips}: Seamless continuation]`;
+    // Build final prompt: hints first, then the actual description
+    if (hints.length > 0) {
+      rewrittenPrompt = `[${hints.join(', ')}] ${rewrittenPrompt}`;
     }
-    consistencyParts.push(positionHint);
-    consistencyParts.push('[CRITICAL: Maintain exact visual consistency across all clips]');
   }
   
-  const consistencyPrefix = consistencyParts.join(' ');
-  let combinedPrompt = consistencyPrefix ? `${consistencyPrefix} ${rewrittenPrompt}` : rewrittenPrompt;
-  
   // Enforce prompt limit
-  if (combinedPrompt.length > 2000) {
-    const maxBaseLength = 2000 - consistencyPrefix.length - 10;
-    combinedPrompt = `${consistencyPrefix} ${rewrittenPrompt.slice(0, maxBaseLength)}...`;
+  if (rewrittenPrompt.length > 2000) {
+    rewrittenPrompt = rewrittenPrompt.slice(0, 1997) + '...';
   }
   
   // Build negative prompt
@@ -169,7 +159,7 @@ function buildConsistentPrompt(
   }
   
   return {
-    prompt: combinedPrompt,
+    prompt: rewrittenPrompt,
     negativePrompt: allNegatives.join(', '),
   };
 }
@@ -223,11 +213,18 @@ serve(async (req) => {
     let prediction;
 
     // Always use MiniMax video-01 for both text-to-video and image-to-video
-    // MiniMax supports first_frame_image for frame chaining
+    // CRITICAL: prompt_optimizer DISABLED to preserve user intent
+    // CRITICAL: seed passed for visual consistency across clips
     const input: Record<string, unknown> = {
       prompt: enhancedPrompt,
-      prompt_optimizer: true,
+      prompt_optimizer: false, // DISABLED: was destroying user's intent by rewriting prompts
     };
+
+    // Pass seed for consistent generation across all clips
+    if (seed) {
+      input.seed = seed;
+      console.log("Using locked seed for consistency:", seed);
+    }
 
     if (isImageToVideo) {
       // Use first_frame_image for visual continuity

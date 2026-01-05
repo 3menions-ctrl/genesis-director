@@ -83,12 +83,20 @@ export default function ScriptingStage() {
     setIsGenerating(true);
     
     try {
+      // Verify session is valid before proceeding
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast.error('Session expired. Please sign in again.');
+        setIsGenerating(false);
+        return;
+      }
+      
       // STEP 1: Create project in database FIRST to get projectId
       const { data: project, error: projectError } = await supabase
         .from('movie_projects')
         .insert({
           title: state.projectTitle,
-          user_id: user.id,
+          user_id: session.user.id, // Use session user ID to ensure consistency
           genre: 'cinematic', // Map project type to genre
           synopsis: synopsis,
           status: 'scripting',
@@ -97,7 +105,10 @@ export default function ScriptingStage() {
         .select()
         .single();
       
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error('Project creation error:', projectError);
+        throw projectError;
+      }
       
       // Store project ID in pipeline state
       setProjectId(project.id);

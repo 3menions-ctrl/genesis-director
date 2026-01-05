@@ -93,10 +93,40 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black/95 backdrop-blur-xl overflow-hidden [&>button]:hidden">
-        {/* Ambient glow based on video */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-white/[0.02] rounded-full blur-[150px]" />
+      <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden [&>button]:hidden rounded-none">
+        {/* Fullscreen Video - No boundaries */}
+        <div className="absolute inset-0">
+          {/* Loading state */}
+          {!isLoaded && (
+            <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
+              <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
+            </div>
+          )}
+
+          {/* Video fills entire screen */}
+          <video
+            key={currentIndex}
+            autoPlay={isPlaying}
+            muted={isMuted}
+            playsInline
+            loop
+            onCanPlay={() => setIsLoaded(true)}
+            onTimeUpdate={handleTimeUpdate}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
+              isLoaded ? "opacity-100" : "opacity-0"
+            )}
+            src={currentVideo.url}
+          />
+
+          {/* Subtle vignette for depth */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)] pointer-events-none" />
+          
+          {/* Bottom gradient for text readability */}
+          <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+          
+          {/* Top gradient for controls */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
         </div>
 
         {/* Close button */}
@@ -107,80 +137,58 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
           <X className="w-5 h-5" />
         </button>
 
+        {/* Counter */}
+        <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+          <span className="text-sm font-medium text-white/60">
+            <span className="text-white">{currentIndex + 1}</span> / {SHOWCASE_VIDEOS.length}
+          </span>
+        </div>
+
         {/* Navigation arrows */}
         <button
           onClick={goToPrev}
-          className="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-all hover:scale-105 group"
+          className="absolute left-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
         >
-          <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
+          <ChevronLeft className="w-7 h-7 group-hover:-translate-x-0.5 transition-transform" />
         </button>
         
         <button
           onClick={goToNext}
-          className="absolute right-6 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/15 transition-all hover:scale-105 group"
+          className="absolute right-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110 group"
         >
-          <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-7 h-7 group-hover:translate-x-0.5 transition-transform" />
         </button>
 
-        {/* Main video container */}
-        <div className="relative w-full h-full flex items-center justify-center p-16">
-          <div className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden shadow-2xl">
-            {/* Loading state */}
-            {!isLoaded && (
-              <div className="absolute inset-0 bg-white/5 flex items-center justify-center z-10">
-                <div className="w-12 h-12 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
-              </div>
-            )}
+        {/* Video info overlay - Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-10 z-40">
+          <div className="max-w-4xl">
+            <div className="animate-fade-in mb-6">
+              <h3 className="text-4xl lg:text-5xl font-bold text-white mb-3">{currentVideo.title}</h3>
+              <p className="text-white/60 text-xl max-w-2xl">{currentVideo.description}</p>
+            </div>
 
-            {/* Video */}
-            <video
-              key={currentIndex}
-              autoPlay={isPlaying}
-              muted={isMuted}
-              playsInline
-              loop
-              onCanPlay={() => setIsLoaded(true)}
-              onTimeUpdate={handleTimeUpdate}
-              className={cn(
-                "w-full h-full object-cover transition-opacity duration-500",
-                isLoaded ? "opacity-100" : "opacity-0"
-              )}
-              src={currentVideo.url}
-            />
-
-            {/* Gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
-
-            {/* Video info overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-              <div className="flex items-end justify-between gap-4">
-                <div className="animate-fade-in">
-                  <h3 className="text-3xl font-bold text-white mb-2">{currentVideo.title}</h3>
-                  <p className="text-white/60 text-lg max-w-xl">{currentVideo.description}</p>
-                </div>
-
-                {/* Video controls */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
-                  >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                  </button>
-                  <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
-                  >
-                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
+            {/* Controls row */}
+            <div className="flex items-center gap-4">
+              {/* Play/Pause */}
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+              >
+                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+              </button>
+              
+              {/* Mute/Unmute */}
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
+              >
+                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              </button>
 
               {/* Progress bar */}
-              <div className="mt-6 w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
                 <div 
-                  className="h-full bg-white/80 transition-all duration-100"
+                  className="h-full bg-white transition-all duration-100"
                   style={{ width: `${progress}%` }}
                 />
               </div>

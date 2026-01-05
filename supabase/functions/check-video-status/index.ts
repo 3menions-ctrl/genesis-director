@@ -153,6 +153,27 @@ serve(async (req) => {
 
         // Extract video URL from response
         const result = operation.response;
+        
+        // Check for content filter (RAI) blocking
+        if (result?.raiMediaFilteredCount > 0) {
+          const filterReasons = result.raiMediaFilteredReasons || [];
+          console.warn("Video blocked by content filter:", filterReasons);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              status: "CONTENT_FILTERED",
+              progress: 100,
+              videoUrl: null,
+              error: "Content filter blocked generation. Prompt needs rephrasing.",
+              contentFilterReason: filterReasons[0] || "Content policy violation",
+              provider: "vertex-ai",
+              model: "veo-3.1-generate-001",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
         let videoUrl = null;
 
         if (result?.generatedSamples?.[0]?.video?.uri) {

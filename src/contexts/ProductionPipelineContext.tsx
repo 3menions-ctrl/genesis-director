@@ -561,7 +561,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   }, [state.production.masterAnchor, state.referenceImage, state.structuredShots.length, applyCameramanFilter]);
   
   // Poll for video completion
-  const pollVideoStatus = useCallback(async (taskId: string): Promise<{ status: string; videoUrl?: string }> => {
+  const pollVideoStatus = useCallback(async (taskId: string): Promise<{ 
+    status: string; 
+    videoUrl?: string;
+    contentFilterReason?: string;
+  }> => {
     try {
       // Detect provider from taskId format
       const provider = taskId.includes('projects/') ? 'vertex-ai' : 'replicate';
@@ -576,11 +580,48 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       return {
         status: data.status,
         videoUrl: data.videoUrl,
+        contentFilterReason: data.contentFilterReason,
       };
     } catch (err) {
       console.error('Status check failed:', err);
       return { status: 'error' };
     }
+  }, []);
+  
+  // Rephrase a prompt to avoid content filter issues
+  const rephraseForContentFilter = useCallback((originalPrompt: string): string => {
+    console.log('[Pipeline] Rephrasing prompt to avoid content filter...');
+    
+    // Remove potentially problematic terms and rephrase
+    let saferPrompt = originalPrompt
+      // Remove violence-related terms
+      .replace(/\b(fight|battle|attack|kill|murder|blood|violent|weapon|gun|knife|sword)\b/gi, '')
+      // Rephrase intense emotions
+      .replace(/\b(angry|rage|fury|hatred)\b/gi, 'determined')
+      .replace(/\b(scared|terrified|horrified)\b/gi, 'alert')
+      // Remove nudity/adult-related terms
+      .replace(/\b(naked|nude|undressed|revealing|provocative)\b/gi, '')
+      // Remove drug/alcohol references
+      .replace(/\b(drunk|intoxicated|smoking|drugs)\b/gi, '')
+      // Soften conflict language
+      .replace(/\b(confrontation|conflict|struggle)\b/gi, 'interaction')
+      .replace(/\b(chase|pursuit)\b/gi, 'movement')
+      // Clean up extra spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Add safety prefixes for cinematic content
+    const safetyPrefix = 'Cinematic scene, professional filmmaking style: ';
+    
+    // If prompt is getting too short after filtering, add context
+    if (saferPrompt.length < 50) {
+      saferPrompt = `A person in a natural setting, engaging in everyday activities. ${saferPrompt}`;
+    }
+    
+    const finalPrompt = safetyPrefix + saferPrompt;
+    console.log('[Pipeline] Rephrased prompt:', finalPrompt.substring(0, 100) + '...');
+    
+    return finalPrompt;
   }, []);
   
   // Visual Debugger - analyze video quality with multimodal AI
@@ -977,6 +1018,57 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
                 toast.success(`Shot ${i + 1} completed${retryInfo}!`);
                 break; // Exit poll loop
                 
+              } else if (status.status === 'CONTENT_FILTERED') {
+                // Content filter blocked the generation - rephrase and retry
+                console.log('[Pipeline] Content filter blocked shot, rephrasing prompt...');
+                
+                if (shot.retryCount < maxRetries) {
+                  shot.retryCount++;
+                  // Rephrase the current prompt to avoid content filter
+                  const rephrasedPrompt = rephraseForContentFilter(currentPrompt);
+                  shot.lastCorrectivePrompt = rephrasedPrompt;
+                  currentPrompt = rephrasedPrompt;
+                  
+                  toast.warning(`Shot ${i + 1} blocked by content filter. Auto-rephrasing and retrying (${shot.retryCount}/${maxRetries})...`);
+                  
+                  // Log as Quality Insurance cost
+                  setState(prev => ({
+                    ...prev,
+                    qualityInsuranceLedger: [
+                      ...prev.qualityInsuranceLedger,
+                      {
+                        shotId: shot.id,
+                        operation: 'retry_generation' as const,
+                        creditsCharged: 0,
+                        realCostCents: API_COSTS_CENTS.RETRY_GENERATION,
+                        timestamp: Date.now(),
+                        metadata: { 
+                          reason: 'content_filter',
+                          filterReason: status.contentFilterReason,
+                          attempt: shot.retryCount,
+                        },
+                      },
+                    ],
+                  }));
+                  
+                  break; // Break poll loop, continue retry loop with rephrased prompt
+                } else {
+                  // Max retries reached
+                  await refundCredits(shot.id, 'Content filter blocked after max retries');
+                  setState(prev => ({
+                    ...prev,
+                    production: {
+                      ...prev.production,
+                      failedShots: prev.production.failedShots + 1,
+                      shots: prev.production.shots.map((s, idx) =>
+                        idx === i ? { ...s, status: 'failed' as const, error: 'Content filter blocked generation' } : s
+                      ),
+                    },
+                  }));
+                  shotCompleted = true;
+                  break;
+                }
+                
               } else if (status.status === 'FAILED') {
                 if (shot.retryCount < maxRetries && isProfessional) {
                   shot.retryCount++;
@@ -1069,6 +1161,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     generateShotVideo,
     pollVideoStatus,
     runVisualDebugger,
+    rephraseForContentFilter,
     chargePreProduction,
     chargeProduction,
     refundCredits,

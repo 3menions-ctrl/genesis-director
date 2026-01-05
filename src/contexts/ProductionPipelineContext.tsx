@@ -239,22 +239,30 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         body: {
           text: shot.dialogue,
           voiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
+          shotId: shot.id,
+          projectId: state.projectId,
         },
       });
       
       if (error) throw error;
       
+      // Handle both audioUrl and audioBase64 responses
+      let audioUrl = data.audioUrl || '';
+      if (!audioUrl && data.audioBase64) {
+        audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
+      }
+      
       return {
         shotId: shot.id,
-        audioUrl: data.audioUrl || '',
-        durationMs: (shot.dialogue.length / 15) * 1000, // Rough estimate
+        audioUrl,
+        durationMs: data.durationMs || (shot.dialogue.length / 15) * 1000,
         status: 'completed',
       };
     } catch (err) {
       console.error('Voice generation failed for shot:', shot.id, err);
       return { shotId: shot.id, audioUrl: '', durationMs: 0, status: 'failed' };
     }
-  }, []);
+  }, [state.projectId]);
   
   // Generate video for a single shot with frame chaining
   const generateShotVideo = useCallback(async (
@@ -554,8 +562,10 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   const isGenerating = state.production.isGeneratingVideo || state.production.isGeneratingAudio;
   
-  const productionProgress = state.structuredShots.length > 0
-    ? Math.round((state.production.completedShots / state.structuredShots.length) * 100)
+  // Calculate progress from actual shot statuses for real-time updates
+  const completedShotsCount = state.production.shots.filter(s => s.status === 'completed').length;
+  const productionProgress = state.production.shots.length > 0
+    ? Math.round((completedShotsCount / state.production.shots.length) * 100)
     : 0;
   
   return (

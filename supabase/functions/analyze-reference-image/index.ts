@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +34,65 @@ interface ReferenceImageAnalysis {
     mood: string;
   };
   consistencyPrompt: string;
+}
+
+/**
+ * Upload base64 image to Supabase Storage and return public URL
+ */
+async function uploadToStorage(base64Data: string): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase credentials");
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // Convert base64 to Uint8Array
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  // Generate unique filename
+  const fileName = `ref_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+  const bucketName = 'character-references';
+  
+  // Check if bucket exists, create if not
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const bucketExists = buckets?.some(b => b.name === bucketName);
+  
+  if (!bucketExists) {
+    console.log(`Creating storage bucket: ${bucketName}`);
+    await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 10485760, // 10MB
+    });
+  }
+  
+  // Upload file
+  const { error: uploadError } = await supabase.storage
+    .from(bucketName)
+    .upload(fileName, bytes, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    });
+  
+  if (uploadError) {
+    console.error("Storage upload error:", uploadError);
+    throw new Error(`Failed to upload image: ${uploadError.message}`);
+  }
+  
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(fileName);
+  
+  console.log('[analyze-reference-image] Uploaded to storage:', publicUrlData.publicUrl);
+  
+  return publicUrlData.publicUrl;
 }
 
 serve(async (req) => {
@@ -183,8 +243,16 @@ Return ONLY valid JSON in this exact format:
       throw new Error('Failed to parse analysis response');
     }
 
+    // CRITICAL: Upload image to storage to get a proper HTTP URL
+    // Replicate and other video services require HTTP URLs, not base64
+    let storedImageUrl = imageUrl;
+    if (imageBase64 && !imageUrl) {
+      console.log('[analyze-reference-image] Uploading base64 image to storage...');
+      storedImageUrl = await uploadToStorage(imageBase64);
+    }
+
     const analysis: ReferenceImageAnalysis = {
-      imageUrl: imageUrl || `data:image/jpeg;base64,${imageBase64?.substring(0, 50)}...`,
+      imageUrl: storedImageUrl,
       analysisComplete: true,
       characterIdentity: parsedAnalysis.characterIdentity || {
         description: '',

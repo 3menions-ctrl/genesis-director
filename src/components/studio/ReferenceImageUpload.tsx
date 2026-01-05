@@ -103,10 +103,18 @@ export function ReferenceImageUpload({
       if (fnError) throw fnError;
       if (data.error) throw new Error(data.error);
 
+      // Use the storage URL returned from the edge function (HTTP URL for Replicate)
+      // Fall back to local preview for display purposes only
       const analysisResult: ReferenceImageAnalysis = {
         ...data.analysis,
-        imageUrl: previewUrl || `data:image/jpeg;base64,${imageBase64.substring(0, 50)}...`,
+        // CRITICAL: Use the URL from the edge function - it's an HTTP URL that Replicate can access
+        imageUrl: data.analysis.imageUrl || previewUrl,
       };
+
+      // Update preview to use the stored URL if available
+      if (data.analysis.imageUrl && data.analysis.imageUrl.startsWith('http')) {
+        setPreviewUrl(data.analysis.imageUrl);
+      }
 
       setAnalysis(analysisResult);
       onAnalysisComplete(analysisResult);

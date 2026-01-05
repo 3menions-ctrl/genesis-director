@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_cost_logs: {
+        Row: {
+          created_at: string
+          credits_charged: number
+          duration_seconds: number | null
+          id: string
+          metadata: Json | null
+          operation: string
+          project_id: string | null
+          real_cost_cents: number
+          service: string
+          shot_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_charged?: number
+          duration_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          operation: string
+          project_id?: string | null
+          real_cost_cents?: number
+          service: string
+          shot_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_charged?: number
+          duration_seconds?: number | null
+          id?: string
+          metadata?: Json | null
+          operation?: string
+          project_id?: string | null
+          real_cost_cents?: number
+          service?: string
+          shot_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_cost_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_cost_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           appearance: string | null
@@ -274,6 +334,67 @@ export type Database = {
         }
         Relationships: []
       }
+      production_credit_phases: {
+        Row: {
+          api_cost_log_id: string | null
+          created_at: string
+          credits_amount: number
+          id: string
+          phase: string
+          project_id: string | null
+          refund_reason: string | null
+          shot_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          api_cost_log_id?: string | null
+          created_at?: string
+          credits_amount: number
+          id?: string
+          phase: string
+          project_id?: string | null
+          refund_reason?: string | null
+          shot_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          api_cost_log_id?: string | null
+          created_at?: string
+          credits_amount?: number
+          id?: string
+          phase?: string
+          project_id?: string | null
+          refund_reason?: string | null
+          shot_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_credit_phases_api_cost_log_id_fkey"
+            columns: ["api_cost_log_id"]
+            isOneToOne: false
+            referencedRelation: "api_cost_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_credit_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_credit_phases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -451,6 +572,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      charge_preproduction_credits: {
+        Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
+        Returns: Json
+      }
+      charge_production_credits: {
+        Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
+        Returns: Json
+      }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -460,6 +589,42 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      get_admin_profit_dashboard: {
+        Args: never
+        Returns: {
+          date: string
+          estimated_revenue_cents: number
+          profit_margin_percent: number
+          service: string
+          total_credits_charged: number
+          total_operations: number
+          total_real_cost_cents: number
+        }[]
+      }
+      log_api_cost: {
+        Args: {
+          p_credits_charged: number
+          p_duration_seconds?: number
+          p_metadata?: Json
+          p_operation: string
+          p_project_id: string
+          p_real_cost_cents: number
+          p_service: string
+          p_shot_id: string
+          p_status?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      refund_production_credits: {
+        Args: {
+          p_project_id: string
+          p_reason: string
+          p_shot_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

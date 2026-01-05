@@ -378,7 +378,6 @@ function StudioSidebar() {
             <CreditsDisplay 
               credits={credits} 
               onBuyCredits={buyCredits} 
-              selectedDurationSeconds={selectedDurationSeconds}
             />
           </div>
         )}

@@ -18,6 +18,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 // New Pipeline Pages
 import ScriptingStage from "./pages/pipeline/ScriptingStage";
 import ProductionStage from "./pages/pipeline/ProductionStage";
@@ -92,6 +93,13 @@ const App = () => (
                 <Route path="/pipeline/review" element={
                   <ProtectedRoute>
                     <StudioLayout><ReviewStage /></StudioLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin Dashboard (protected, admin-only in component) */}
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <Admin />
                   </ProtectedRoute>
                 } />
                 

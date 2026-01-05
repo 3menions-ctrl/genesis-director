@@ -245,38 +245,14 @@ Return ONLY valid JSON matching the specified format.`;
       }
     } catch (parseErr) {
       console.error('[cinematic-auditor] JSON parse error:', parseErr, 'Content:', content.substring(0, 500));
-      // Return a default audit result
-      auditResult = {
-        overallScore: 70,
-        totalSuggestions: 0,
-        criticalIssues: 0,
-        suggestions: [],
-        techniqueAnalysis: {
-          identifiedTechniques: [],
-          recommendedTechniques: [],
-          narrativeFlow: 'Unable to parse full analysis',
-        },
-        physicsCheck: {
-          gravityViolations: [],
-          anatomicalIssues: [],
-          fluidDynamicsIssues: [],
-          morphingRisks: [],
-        },
-        identityCheck: {
-          characterConsistency: true,
-          environmentConsistency: true,
-          lightingConsistency: true,
-          suggestions: [],
-        },
-        optimizedShots: shots.map(shot => ({
-          shotId: shot.id,
-          originalDescription: shot.description,
-          optimizedDescription: shot.description,
-          identityAnchors: [],
-          physicsGuards: [],
-          approved: true,
-        })),
-      };
+      // Return error state - don't fake a passing score
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to parse audit response. Please try again.',
+          rawContent: content.substring(0, 1000),
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Ensure optimizedShots covers all input shots

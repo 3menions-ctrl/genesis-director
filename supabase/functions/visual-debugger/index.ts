@@ -163,10 +163,11 @@ Provide your analysis as JSON.`;
             role: 'user', 
             content: [
               { type: 'text', text: userPrompt },
-              // Include video URL/frame for multimodal analysis
-              ...(frameUrl || videoUrl ? [{
+              // Only include image URLs - videos (.mp4) are not supported for vision
+              // The AI will analyze based on the shot description instead
+              ...(frameUrl && !frameUrl.endsWith('.mp4') ? [{
                 type: 'image_url',
-                image_url: { url: frameUrl || videoUrl }
+                image_url: { url: frameUrl }
               }] : [])
             ]
           }
@@ -218,19 +219,30 @@ Provide your analysis as JSON.`;
       result = JSON.parse(jsonStr.trim());
     } catch (parseError) {
       console.error('[VisualDebugger] Failed to parse AI response:', parseError);
-      // Default to PASS if we can't parse - don't block production
-      result = {
-        passed: true,
-        verdict: 'PASS',
-        score: 75,
-        issues: [],
-        analysisDetails: {
-          physicsPlausibility: 20,
-          identityConsistency: 20,
-          lightingConsistency: 20,
-          cinematicQuality: 15,
+      // Return error - don't fake a passing score
+      return new Response(JSON.stringify({ 
+        error: 'Failed to parse visual analysis. The AI could not analyze this content.',
+        success: false,
+        result: {
+          passed: false,
+          verdict: 'FAIL',
+          score: 0,
+          issues: [{
+            category: 'cinematic',
+            severity: 'warning',
+            description: 'Visual analysis unavailable - manual review recommended'
+          }],
+          analysisDetails: {
+            physicsPlausibility: 0,
+            identityConsistency: 0,
+            lightingConsistency: 0,
+            cinematicQuality: 0,
+          },
         },
-      };
+        shotId,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[VisualDebugger] Result: ${result.verdict} (Score: ${result.score})`);

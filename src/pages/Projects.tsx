@@ -562,75 +562,85 @@ export default function Projects() {
         </div>
       </main>
 
-      {/* Video Player Modal */}
+      {/* Fullscreen Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden bg-black border border-white/[0.1] rounded-2xl shadow-2xl left-0 top-0 translate-x-0 translate-y-0 sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] [&>button]:hidden">
-          <div className="relative">
-            {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-50 p-5 bg-gradient-to-b from-black/80 to-transparent">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-semibold text-lg">{selectedProject?.name}</h3>
-                  <p className="text-white/50 text-sm mt-0.5">
-                    {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
-                  </p>
+        <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
+          {/* Fullscreen Video Container */}
+          <div className="absolute inset-0">
+            {selectedProject && (
+              <video
+                src={getVideoClips(selectedProject)[0]}
+                className="absolute inset-0 w-full h-full object-contain"
+                autoPlay
+                controls={false}
+                playsInline
+                loop
+                onClick={(e) => {
+                  const video = e.currentTarget;
+                  if (video.paused) video.play();
+                  else video.pause();
+                }}
+              />
+            )}
+            
+            {/* Transparent overlay controls */}
+            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
+              {/* Top gradient with title and close */}
+              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-medium text-lg drop-shadow-lg">{selectedProject?.name}</h3>
+                    <p className="text-white/60 text-sm">
+                      {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <button
+                    className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
+                    onClick={() => setVideoModalOpen(false)}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
-                  onClick={() => setVideoModalOpen(false)}
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
-            </div>
 
-            {/* Video */}
-            <div className="aspect-video bg-black">
-              {selectedProject && (
-                <VideoPlaylist
-                  clips={getVideoClips(selectedProject)}
-                  showControls={true}
-                />
-              )}
-            </div>
-
-            {/* Footer actions */}
-            <div className="absolute bottom-0 left-0 right-0 z-50 p-5 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  className="flex items-center gap-2 h-10 px-5 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
-                  onClick={() => {
-                    if (selectedProject) {
-                      const clips = getVideoClips(selectedProject);
-                      if (clips[0]) window.open(clips[0], '_blank');
-                    }
-                  }}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Open
-                </button>
-                <button
-                  className="flex items-center gap-2 h-10 px-5 bg-white/10 border border-white/10 text-white/80 text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
-                  onClick={() => {
-                    if (selectedProject) handleDownloadAll(selectedProject);
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-                <button
-                  className="flex items-center gap-2 h-10 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-lg"
-                  onClick={() => {
-                    setVideoModalOpen(false);
-                    if (selectedProject) {
-                      setActiveProjectId(selectedProject.id);
-                      navigate('/pipeline/production');
-                    }
-                  }}
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit
-                </button>
+              {/* Bottom gradient with actions */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    className="flex items-center gap-2 h-11 px-5 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                    onClick={() => {
+                      if (selectedProject) {
+                        const clips = getVideoClips(selectedProject);
+                        if (clips[0]) window.open(clips[0], '_blank');
+                      }
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open
+                  </button>
+                  <button
+                    className="flex items-center gap-2 h-11 px-5 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                    onClick={() => {
+                      if (selectedProject) handleDownloadAll(selectedProject);
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                  <button
+                    className="flex items-center gap-2 h-11 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-lg"
+                    onClick={() => {
+                      setVideoModalOpen(false);
+                      if (selectedProject) {
+                        setActiveProjectId(selectedProject.id);
+                        navigate('/pipeline/production');
+                      }
+                    }}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                </div>
               </div>
             </div>
           </div>

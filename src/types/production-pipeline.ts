@@ -124,9 +124,12 @@ export type AudioMixMode = 'full' | 'dialogue-only' | 'music-only' | 'mute';
 // Transition types for seamless shot connections
 export type TransitionType = 'continuous' | 'match-cut' | 'dissolve' | 'fade';
 
-// Maximum video duration per shot
-export const MAX_SHOT_DURATION_SECONDS = 16;
+// Zero-Waste Premium: Maximum video duration per shot (4-second units)
+export const MAX_SHOT_DURATION_SECONDS = 4;
 export const MIN_SHOT_DURATION_SECONDS = 4;
+
+// Professional tier: Max auto-retries before user sees failure
+export const MAX_PROFESSIONAL_RETRIES = 4;
 
 // Shot represents a single unit in the script with associated metadata
 export interface Shot {

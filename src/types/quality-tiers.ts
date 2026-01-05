@@ -32,29 +32,31 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   },
   {
     id: 'professional',
-    name: 'Iron-Clad Professional',
-    credits: 40,
-    description: 'Premium quality with AI director oversight',
+    name: 'Zero-Waste Premium',
+    credits: 50,
+    description: 'Premium 4s units with Zero-Waste guarantee',
     features: [
       'Everything in Standard',
       'Director Audit analysis',
       'Visual Debugger loop',
-      'Up to 2 autonomous retries',
+      'Up to 4 autonomous retries',
       'Physics & identity validation',
+      'Character-First pacing',
+      '1.5s static scenery cap',
       'Quality Insurance guarantee',
     ],
-    maxRetries: 2,
+    maxRetries: 4,
     includesAudit: true,
     includesVisualDebugger: true,
   },
 ];
 
-// Credit cost breakdown for Professional tier
+// Credit cost breakdown for Professional tier (Zero-Waste Premium)
 export const PROFESSIONAL_CREDIT_BREAKDOWN = {
   PRE_PRODUCTION: 5,    // Script analysis
   PRODUCTION: 20,       // Video generation
-  QUALITY_INSURANCE: 15, // Director audit + Visual debugger + retry buffer
-  TOTAL: 40,
+  QUALITY_INSURANCE: 25, // Director audit + Visual debugger + 4 retry buffer
+  TOTAL: 50,
 } as const;
 
 // Standard tier uses original billing

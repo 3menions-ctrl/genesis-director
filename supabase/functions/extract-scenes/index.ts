@@ -42,19 +42,26 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-const systemPrompt = `You are a video production assistant. Create a shot breakdown from the user's script/concept.
+const systemPrompt = `You are a Zero-Waste Premium video production assistant. Create a shot breakdown from the user's script/concept.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
 STYLE: ${projectTypeContext}
 TITLE: ${title || 'Untitled'}
 
-CRITICAL RULES:
+ZERO-WASTE PREMIUM RULES:
 1. PRESERVE THE USER'S INTENT - Do not add characters, locations, or story elements they didn't mention
 2. If the script describes ONE simple scene (e.g., "person sitting on couch"), create shots that all show THAT SAME SCENE from different angles/moments
 3. Each shot should be a visual moment within the user's concept, NOT a new adventure
 4. Keep descriptions grounded in what the user actually described
-5. MAXIMUM DURATION: Each shot MUST be between 4-16 seconds. Never exceed 16 seconds per shot.
-6. SEAMLESS TRANSITIONS: Design each shot to flow naturally into the next with smooth visual transitions
+5. FIXED 4-SECOND UNITS: Each shot MUST be exactly 4 seconds. This is non-negotiable.
+6. SEAMLESS TRANSITIONS: Design each shot to flow naturally into the next with match-cut transitions
+
+CHARACTER-FIRST PACING (MANDATORY):
+- 1.5-SECOND STATIC SCENERY CAP: Never describe more than 1.5 seconds of static scenery without character action
+- EVERY SHOT must feature character movement, expression change, or motivated action
+- If a shot would be "just scenery", add character entering frame or POV movement
+- MATCH-CUT PRIORITY: Use match-cuts over dissolves to maintain visual momentum
+- DEAD AIR = REJECTION: Static scenic shots without character presence are forbidden
 
 For each shot, provide:
 - id: Shot identifier (format: "shot_001", "shot_002")
@@ -62,15 +69,16 @@ For each shot, provide:
 - title: Brief title for this moment
 - description: VISUAL description for AI video generation:
   * What is visible in frame
+  * CHARACTER ACTION (mandatory in every shot)
   * Lighting and atmosphere
-  * Character positions and expressions (if mentioned)
+  * Character positions, expressions, and MOVEMENT
   * Use perspective language, NOT camera terms
   * End each shot description with a transition hint for continuity
 - dialogue: Any narration/dialogue (empty string if none)
-- durationSeconds: 4-16 seconds per shot (MAXIMUM 16 seconds, aim for 5-10 for most shots)
+- durationSeconds: EXACTLY 4 seconds (fixed unit)
 - mood: Emotional tone
 - cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
-- transitionOut: How this shot flows into the next ("dissolve", "match-cut", "continuous", "fade")
+- transitionOut: How this shot flows into the next ("match-cut" preferred, or "continuous", "dissolve", "fade")
 - characters: Array of character names (ONLY those mentioned by user)
 
 Return ONLY valid JSON:
@@ -80,25 +88,25 @@ Return ONLY valid JSON:
       "id": "shot_001",
       "index": 0,
       "title": "Scene moment",
-      "description": "Visual description ending with transition continuity...",
+      "description": "Character-driven visual description with action, ending with transition continuity...",
       "dialogue": "",
-      "durationSeconds": 8,
+      "durationSeconds": 4,
       "mood": "calm",
       "cameraMovement": "steady",
-      "transitionOut": "continuous",
+      "transitionOut": "match-cut",
       "characters": []
     }
   ],
-  "totalDurationSeconds": 30
+  "totalDurationSeconds": 16
 }
 
 TRANSITION GUIDELINES:
+- "match-cut": End frame matches start of next shot - PREFERRED for momentum (same color, shape, or position)
 - "continuous": Shot ends with movement/action that continues in next shot (best for frame chaining)
-- "match-cut": End frame matches start of next shot (same color, shape, or position)
-- "dissolve": Gradual blend works for mood/time changes
-- "fade": Reserved for scene endings or dramatic pauses
+- "dissolve": Gradual blend works for mood/time changes - USE SPARINGLY
+- "fade": Reserved for scene endings or dramatic pauses - RARE
 
-REMEMBER: If the user wants "Hannah sitting on a couch", ALL shots should show Hannah on that couch - different angles, moments, expressions - NOT Hannah going on adventures.`;
+REMEMBER: Character-First means EVERY shot has visible character action. Static scenery = rejection.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -171,25 +179,20 @@ REMEMBER: If the user wants "Hannah sitting on a couch", ALL shots should show H
       }
     }
 
-    // Normalize the response to ensure correct format with duration enforcement
-    const MAX_SHOT_DURATION = 16;
-    const MIN_SHOT_DURATION = 4;
+    // Normalize the response to ensure correct format with FIXED 4-second units
+    const FIXED_SHOT_DURATION = 4; // Zero-Waste Premium: Fixed 4-second units
     
     const normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => {
-      // Enforce 4-16 second duration limits
-      let duration = scene.durationSeconds || 8;
-      duration = Math.max(MIN_SHOT_DURATION, Math.min(MAX_SHOT_DURATION, duration));
-      
       return {
         id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
         index: scene.index ?? index,
         title: scene.title || `Shot ${index + 1}`,
         description: scene.description || scene.visualDescription || '',
         dialogue: scene.dialogue || scene.scriptText || '',
-        durationSeconds: duration,
+        durationSeconds: FIXED_SHOT_DURATION, // Always 4 seconds
         mood: scene.mood || 'neutral',
         cameraMovement: scene.cameraMovement || 'steady',
-        transitionOut: scene.transitionOut || 'continuous',
+        transitionOut: scene.transitionOut || 'match-cut', // Prefer match-cut
         characters: scene.characters || [],
         status: 'pending',
       };

@@ -252,9 +252,9 @@ export default function Landing() {
             {/* Bento-style feature showcase */}
             <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Main feature - Text to Video */}
-              <div className="md:col-span-2 group relative p-8 lg:p-10 rounded-3xl bg-glossy-black text-white shadow-obsidian-xl hover:shadow-obsidian-xl transition-all hover:-translate-y-1 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none" />
-                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+              <div className="md:col-span-2 group relative p-8 lg:p-10 rounded-3xl bg-black/60 backdrop-blur-xl text-white shadow-obsidian-xl hover:shadow-obsidian-xl transition-all hover:-translate-y-1 overflow-hidden border border-white/10">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.1] via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.05] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 
                 <div className="relative">
                   <div className="w-14 h-14 mb-6 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm">

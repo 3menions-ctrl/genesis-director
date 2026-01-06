@@ -61,9 +61,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     // Build reference context for identity consistency
@@ -196,14 +196,14 @@ Return ONLY valid JSON matching the specified format.`;
 
     console.log('[cinematic-auditor] Auditing', shots.length, 'shots with reference:', !!referenceAnalysis);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro', // Use Pro model for complex analysis
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -214,7 +214,7 @@ Return ONLY valid JSON matching the specified format.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[cinematic-auditor] API error:', response.status, errorText);
+      console.error('[cinematic-auditor] OpenAI API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -222,13 +222,13 @@ Return ONLY valid JSON matching the specified format.`;
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
+      if (response.status === 401) {
         return new Response(
-          JSON.stringify({ error: 'Usage limit reached. Please add credits.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Invalid OpenAI API key.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      throw new Error(`AI API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();

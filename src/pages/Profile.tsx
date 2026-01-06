@@ -616,33 +616,33 @@ export default function Profile() {
             <div className="flex items-end gap-4 w-full">
               {/* Avatar */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 rounded-xl blur-lg" />
-                <div className="relative w-20 h-20 rounded-xl bg-gradient-to-br from-white/10 to-white/[0.02] border-2 border-black flex items-center justify-center overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 rounded-lg blur-lg" />
+                <div className="relative w-16 h-16 rounded-lg bg-gradient-to-br from-white/10 to-white/[0.02] border-2 border-black flex items-center justify-center overflow-hidden shadow-2xl">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-8 h-8 text-white/50" />
+                    <User className="w-6 h-6 text-white/50" />
                   )}
                 </div>
               </div>
               
               {/* Name & Meta */}
               <div className="flex-1 pb-1">
-                <h1 className="text-xl font-semibold text-white drop-shadow-lg">
+                <h1 className="text-base font-semibold text-white drop-shadow-lg">
                   {profile?.display_name || profile?.full_name || 'Creator'}
                 </h1>
-                <p className="text-xs text-white/60 drop-shadow">{profile?.email} · Since {memberSince}</p>
+                <p className="text-[10px] text-white/60 drop-shadow">{profile?.email} · Since {memberSince}</p>
               </div>
 
               {/* Balance */}
               <div 
                 onClick={() => setShowBuyModal(true)}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-black/50 hover:border-white/[0.2] transition-all cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-black/50 hover:border-white/[0.2] transition-all cursor-pointer"
               >
-                <Coins className="w-4 h-4 text-white/70" />
+                <Coins className="w-3.5 h-3.5 text-white/70" />
                 <div>
-                  <p className="text-lg font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
-                  <p className="text-[9px] text-white/50 uppercase tracking-wide">Credits</p>
+                  <p className="text-sm font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
+                  <p className="text-[8px] text-white/50 uppercase tracking-wide">Credits</p>
                 </div>
               </div>
             </div>

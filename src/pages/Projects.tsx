@@ -290,16 +290,16 @@ export default function Projects() {
             {/* Logo / Brand */}
             <button 
               onClick={() => navigate('/projects')}
-              className="flex items-center gap-2.5 group"
+              className="flex items-center gap-2 group"
             >
-              <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.12] transition-colors">
-                <Film className="w-4 h-4 text-white/70" />
+              <div className="w-7 h-7 rounded-md bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.12] transition-colors">
+                <Film className="w-3.5 h-3.5 text-white/70" />
               </div>
-              <span className="text-sm font-semibold text-white/90">apex</span>
+              <span className="text-xs font-semibold text-white/90">apex</span>
             </button>
 
             {/* Center Nav */}
-            <div className="hidden sm:flex items-center gap-1">
+            <div className="hidden sm:flex items-center gap-0.5">
               {[
                 { label: 'Projects', path: '/projects', active: true },
                 { label: 'Create', path: '/pipeline/scripting' },
@@ -308,7 +308,7 @@ export default function Projects() {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                    "px-2.5 py-1 text-[11px] font-medium rounded-md transition-all",
                     item.active 
                       ? "text-white bg-white/[0.08]" 
                       : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]"
@@ -325,33 +325,33 @@ export default function Projects() {
               <Button 
                 onClick={handleCreateProject}
                 size="sm"
-                className="h-8 px-3 text-xs bg-white text-black hover:bg-white/90 font-semibold"
+                className="h-7 px-2.5 text-[11px] bg-white text-black hover:bg-white/90 font-semibold"
               >
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                <Plus className="w-3 h-3 mr-1" />
                 New
               </Button>
 
               {/* Credits */}
               <button
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
               >
-                <Coins className="w-3.5 h-3.5 text-white/50" />
-                <span className="text-xs font-semibold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
+                <Coins className="w-3 h-3 text-white/50" />
+                <span className="text-[11px] font-semibold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
               </button>
 
               {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition-colors">
-                    <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center overflow-hidden">
+                  <button className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg hover:bg-white/[0.05] transition-colors">
+                    <div className="w-6 h-6 rounded-md bg-white/[0.08] border border-white/[0.1] flex items-center justify-center overflow-hidden">
                       {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-3.5 h-3.5 text-white/60" />
+                        <User className="w-3 h-3 text-white/60" />
                       )}
                     </div>
-                    <ChevronDown className="w-3 h-3 text-white/40" />
+                    <ChevronDown className="w-2.5 h-2.5 text-white/40" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-black/95 backdrop-blur-xl border-white/10">
@@ -394,15 +394,15 @@ export default function Projects() {
           ].map((stat, i) => (
             <div 
               key={i} 
-              className="flex items-center gap-2 shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all"
+              className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all"
             >
               <stat.icon className={cn(
-                "w-3 h-3",
+                "w-2.5 h-2.5",
                 stat.color || "text-white/50",
                 stat.animate && "animate-spin"
               )} />
-              <span className="text-xs font-medium text-white">{stat.value}</span>
-              <span className="text-[10px] text-white/30">{stat.label}</span>
+              <span className="text-[11px] font-medium text-white">{stat.value}</span>
+              <span className="text-[9px] text-white/30">{stat.label}</span>
             </div>
           ))}
         </div>

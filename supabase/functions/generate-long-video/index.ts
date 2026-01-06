@@ -6,9 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CLIP_DURATION = 4; // seconds per clip
-const TOTAL_CLIPS = 6; // 6 clips = 24 seconds total
-const CREDITS_COST = 300; // Credits for 24-second video
+const DEFAULT_CLIP_DURATION = 4; // seconds per clip
+const CREDITS_PER_CLIP = 50; // Credits per generated clip
 
 interface ClipPrompt {
   index: number;
@@ -25,7 +24,6 @@ interface IdentityBible {
     distinctiveMarkers?: string[];
   };
   consistencyPrompt?: string;
-  // Multi-view character references for visual consistency
   multiViewUrls?: {
     frontViewUrl: string;
     sideViewUrl: string;
@@ -38,15 +36,15 @@ interface GenerationRequest {
   userId: string;
   projectId: string;
   clips: ClipPrompt[];
+  clipCount?: number; // Dynamic clip count (defaults to clips.length)
   referenceImageUrl?: string;
-  colorGrading?: string; // cinematic, warm, cool, neutral, documentary
-  identityBible?: IdentityBible; // From Hollywood pipeline (with multi-view URLs)
-  // Audio tracks for final assembly (passed from Hollywood pipeline)
+  colorGrading?: string;
+  identityBible?: IdentityBible;
   voiceTrackUrl?: string;
   musicTrackUrl?: string;
-  // Quality options
-  qualityTier?: 'standard' | 'professional'; // professional tier enables visual debugger
-  maxRetries?: number; // Shot-level retry count (default: 2)
+  qualityTier?: 'standard' | 'professional';
+  maxRetries?: number;
+  skipCreditDeduction?: boolean; // Skip credit deduction when called from hollywood-pipeline
 }
 
 interface ClipResult {
@@ -179,7 +177,7 @@ async function generateClip(
     instances: [instance],
     parameters: {
       aspectRatio: "16:9",
-      durationSeconds: CLIP_DURATION,
+      durationSeconds: DEFAULT_CLIP_DURATION,
       sampleCount: 1,
       negativePrompt: "blurry, low quality, distorted, artifacts, watermark, text overlay, glitch, jittery motion",
       resolution: "720p",
@@ -215,11 +213,9 @@ async function generateClip(
 async function pollOperation(
   accessToken: string,
   operationName: string,
-  maxAttempts = 120, // 10 minutes max
-  pollInterval = 5000 // 5 seconds
+  maxAttempts = 120,
+  pollInterval = 5000
 ): Promise<{ videoUrl: string }> {
-  // Extract components from operation name
-  // Format: projects/{project}/locations/{location}/publishers/google/models/{model}/operations/{operation_id}
   const match = operationName.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
   if (!match) {
     throw new Error(`Invalid operation name format: ${operationName}`);
@@ -252,18 +248,15 @@ async function pollOperation(
         throw new Error(`Veo generation failed: ${result.error.message}`);
       }
       
-      // Check for content filter blocking
       if (result.response?.raiMediaFilteredCount > 0) {
         throw new Error("Content filter blocked generation. Prompt needs rephrasing.");
       }
       
-      // Extract video URL from various response formats
       let videoUri = result.response?.generatedSamples?.[0]?.video?.uri ||
                      result.response?.videos?.[0]?.gcsUri ||
                      result.response?.videos?.[0]?.uri;
       
       if (!videoUri) {
-        // Check for base64 encoded video
         const base64Data = result.response?.videos?.[0]?.bytesBase64Encoded ||
                           result.response?.generatedSamples?.[0]?.video?.bytesBase64Encoded;
         if (base64Data) {
@@ -273,7 +266,6 @@ async function pollOperation(
         throw new Error("No video URI in completed response");
       }
       
-      // Convert gs:// to HTTPS URL
       const videoUrl = videoUri.startsWith("gs://") 
         ? `https://storage.googleapis.com/${videoUri.slice(5)}`
         : videoUri;
@@ -299,18 +291,15 @@ async function downloadToStorage(
   const fileName = `long_video_${projectId}_clip_${clipIndex}_${Date.now()}.mp4`;
   let bytes: Uint8Array;
   
-  // Handle base64 encoded video from Veo
   if (videoUrl.startsWith("base64:")) {
-    const base64Data = videoUrl.slice(7); // Remove "base64:" prefix
+    const base64Data = videoUrl.slice(7);
     console.log(`[LongVideo] Converting base64 video to storage (${base64Data.length} chars)`);
     bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
   } else if (videoUrl.startsWith("data:")) {
-    // Handle data URL format
     const matches = videoUrl.match(/^data:[^;]+;base64,(.+)$/);
     if (!matches) throw new Error("Invalid data URL format");
     bytes = Uint8Array.from(atob(matches[1]), c => c.charCodeAt(0));
   } else {
-    // Regular HTTP URL - download the video
     console.log(`[LongVideo] Downloading video from: ${videoUrl.substring(0, 80)}...`);
     const response = await fetch(videoUrl);
     if (!response.ok) {
@@ -341,7 +330,6 @@ async function downloadToStorage(
 
 // Extract motion vectors from prompt for velocity continuity
 function extractMotionVectors(prompt: string, clipIndex: number): ClipResult['motionVectors'] {
-  // Parse movement keywords from prompt
   type MovementVectors = { velocity: string; direction: string; camera?: string };
   const movements: Record<string, MovementVectors> = {
     walk: { velocity: 'moderate walking pace', direction: 'forward' },
@@ -365,7 +353,6 @@ function extractMotionVectors(prompt: string, clipIndex: number): ClipResult['mo
     }
   }
   
-  // Default vectors for continuity
   return {
     endVelocity: 'steady',
     endDirection: 'continuous',
@@ -394,6 +381,7 @@ async function generateLongVideo(
 ): Promise<{ finalVideoUrl: string; clipResults: ClipResult[]; resumedFrom: number }> {
   const clipResults: ClipResult[] = [];
   let resumedFrom = 0;
+  const totalClips = request.clipCount || request.clips.length;
   
   console.log(`[LongVideo] Checking for existing checkpoint...`);
   
@@ -426,7 +414,7 @@ async function generateLongVideo(
             index: clip.shot_index,
             videoUrl: clip.video_url,
             lastFrameUrl: clip.last_frame_url,
-            durationSeconds: clip.duration_seconds || CLIP_DURATION,
+            durationSeconds: clip.duration_seconds || DEFAULT_CLIP_DURATION,
             status: 'completed',
           });
         }
@@ -435,14 +423,14 @@ async function generateLongVideo(
     }
   }
   
-  console.log(`[LongVideo] Starting sequential generation from clip ${startIndex + 1} to ${TOTAL_CLIPS}`);
+  console.log(`[LongVideo] Starting sequential generation from clip ${startIndex + 1} to ${totalClips}`);
   
   // Track previous motion vectors for velocity continuity
   let previousMotionVectors: ClipResult['motionVectors'] | undefined;
   
-  for (let i = startIndex; i < request.clips.length && i < TOTAL_CLIPS; i++) {
+  for (let i = startIndex; i < request.clips.length && i < totalClips; i++) {
     const clip = request.clips[i];
-    console.log(`[LongVideo] Generating clip ${i + 1}/${TOTAL_CLIPS}: ${clip.prompt.substring(0, 50)}...`);
+    console.log(`[LongVideo] Generating clip ${i + 1}/${totalClips}: ${clip.prompt.substring(0, 50)}...`);
     
     // IDENTITY BIBLE: Inject character consistency anchors
     let enhancedPrompt = clip.prompt;
@@ -518,7 +506,6 @@ async function generateLongVideo(
       console.log(`[LongVideo] Clip ${i + 1} stored: ${storedUrl}`);
       
       // Step 4: Send to stitcher for frame extraction
-      const nextPrompt = request.clips[i + 1]?.prompt;
       let stitcherResult = { lastFrameUrl: undefined as string | undefined };
       
       try {
@@ -594,7 +581,6 @@ async function generateLongVideo(
             qaResult = await debugResponse.json();
             console.log(`[LongVideo] QA result for clip ${i + 1}: ${qaResult.result?.verdict} (Score: ${qaResult.result?.score})`);
             
-            // Log issues if any
             if (qaResult.result?.issues?.length > 0) {
               console.log(`[LongVideo] QA issues:`, qaResult.result.issues.map((issue: any) => issue.description).join('; '));
             }
@@ -608,7 +594,7 @@ async function generateLongVideo(
         index: i,
         videoUrl: storedUrl,
         lastFrameUrl: stitcherResult.lastFrameUrl,
-        durationSeconds: CLIP_DURATION,
+        durationSeconds: DEFAULT_CLIP_DURATION,
         status: 'completed',
         motionVectors,
         ...(qaResult?.result && { qaResult: qaResult.result }),
@@ -673,7 +659,7 @@ async function generateLongVideo(
           clipResults.push({
             index: i,
             videoUrl: storedUrl,
-            durationSeconds: CLIP_DURATION,
+            durationSeconds: DEFAULT_CLIP_DURATION,
             status: 'completed',
           });
           
@@ -696,7 +682,7 @@ async function generateLongVideo(
       clipResults.push({
         index: i,
         videoUrl: '',
-        durationSeconds: CLIP_DURATION,
+        durationSeconds: DEFAULT_CLIP_DURATION,
         status: 'failed',
         error: `Failed after ${currentRetryCount + 1} attempts: ${errorMessage}`,
       });
@@ -723,13 +709,12 @@ async function generateLongVideo(
         videoUrl: c.videoUrl,
         durationSeconds: c.durationSeconds,
         transitionOut: 'continuous',
-        motionVectors: c.motionVectors, // Pass motion vectors for transition optimization
+        motionVectors: c.motionVectors,
       })),
       audioMixMode: hasAudioTracks ? 'full' : 'mute',
       outputFormat: 'mp4',
-      colorGrading: request.colorGrading || 'cinematic', // Use user-selected color grading
+      colorGrading: request.colorGrading || 'cinematic',
       isFinalAssembly: true,
-      // Pass audio tracks for mixing in final assembly
       voiceTrackUrl: request.voiceTrackUrl,
       backgroundMusicUrl: request.musicTrackUrl,
     }),
@@ -769,8 +754,11 @@ serve(async (req) => {
       throw new Error("userId and projectId are required");
     }
     
-    if (!request.clips || request.clips.length < TOTAL_CLIPS) {
-      throw new Error(`Exactly ${TOTAL_CLIPS} clip prompts are required for 24-second video`);
+    const totalClips = request.clipCount || request.clips.length;
+    const creditsRequired = totalClips * CREDITS_PER_CLIP;
+    
+    if (!request.clips || request.clips.length < 2) {
+      throw new Error(`At least 2 clip prompts are required`);
     }
 
     // Check for required secrets
@@ -796,30 +784,35 @@ serve(async (req) => {
       throw new Error("project_id not found in service account");
     }
 
-    // Pre-check credits before starting (300 credits required)
-    console.log(`[LongVideo] Checking credits for user ${request.userId}`);
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('credits_balance')
-      .eq('id', request.userId)
-      .single();
+    // Only check credits if not skipping deduction (when called standalone)
+    if (!request.skipCreditDeduction) {
+      console.log(`[LongVideo] Checking credits for user ${request.userId}`);
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('credits_balance')
+        .eq('id', request.userId)
+        .single();
 
-    if (profileError || !profile) {
-      throw new Error("Failed to fetch user profile");
+      if (profileError || !profile) {
+        throw new Error("Failed to fetch user profile");
+      }
+
+      if (profile.credits_balance < creditsRequired) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Insufficient credits. Required: ${creditsRequired}, Available: ${profile.credits_balance}`,
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log(`[LongVideo] User ${request.userId} has ${profile.credits_balance} credits`);
+    } else {
+      console.log(`[LongVideo] Skipping credit check (called from pipeline)`);
     }
 
-    if (profile.credits_balance < CREDITS_COST) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Insufficient credits. Required: ${CREDITS_COST}, Available: ${profile.credits_balance}`,
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[LongVideo] Starting long video generation for project ${request.projectId}`);
-    console.log(`[LongVideo] User ${request.userId} has ${profile.credits_balance} credits`);
+    console.log(`[LongVideo] Starting long video generation for project ${request.projectId} (${totalClips} clips)`);
 
     // Get OAuth access token
     const accessToken = await getAccessToken(serviceAccount);
@@ -835,18 +828,18 @@ serve(async (req) => {
     );
 
     const completedClips = clipResults.filter(c => c.status === 'completed').length;
-    console.log(`[LongVideo] Generation complete: ${completedClips}/${TOTAL_CLIPS} clips successful${resumedFrom > 0 ? `, resumed from clip ${resumedFrom + 1}` : ''}`);
+    console.log(`[LongVideo] Generation complete: ${completedClips}/${totalClips} clips successful${resumedFrom > 0 ? `, resumed from clip ${resumedFrom + 1}` : ''}`);
 
-    // Deduct credits only on success (full completion)
-    if (completedClips === TOTAL_CLIPS) {
-      console.log(`[LongVideo] Deducting ${CREDITS_COST} credits from user ${request.userId}`);
+    // Deduct credits only on success AND if not skipping (full completion)
+    if (completedClips === totalClips && !request.skipCreditDeduction) {
+      console.log(`[LongVideo] Deducting ${creditsRequired} credits from user ${request.userId}`);
       
-      const { data: deductResult, error: deductError } = await supabase.rpc('deduct_credits', {
+      const { error: deductError } = await supabase.rpc('deduct_credits', {
         p_user_id: request.userId,
-        p_amount: CREDITS_COST,
-        p_description: `24-second video generation (${TOTAL_CLIPS} clips)`,
+        p_amount: creditsRequired,
+        p_description: `${totalClips * DEFAULT_CLIP_DURATION}-second video generation (${totalClips} clips)`,
         p_project_id: request.projectId,
-        p_clip_duration: 24,
+        p_clip_duration: totalClips * DEFAULT_CLIP_DURATION,
       });
 
       if (deductError) {
@@ -874,10 +867,10 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         finalVideoUrl,
-        durationSeconds: completedClips * CLIP_DURATION,
+        durationSeconds: completedClips * DEFAULT_CLIP_DURATION,
         clipsGenerated: completedClips,
-        totalClips: TOTAL_CLIPS,
-        creditsCharged: completedClips === TOTAL_CLIPS ? CREDITS_COST : 0,
+        totalClips,
+        creditsCharged: (completedClips === totalClips && !request.skipCreditDeduction) ? creditsRequired : 0,
         resumedFrom: resumedFrom > 0 ? resumedFrom : undefined,
         clipResults,
       }),

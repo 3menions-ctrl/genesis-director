@@ -688,11 +688,59 @@ async function executePipelineInBackground(
   try {
     const stages = request.stages || ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
     
-    if (stages.includes('preproduction')) {
+    // Check if we're resuming from a specific stage
+    const resumeFrom = (request as any).resumeFrom;
+    const approvedScript = (request as any).approvedScript;
+    
+    if (resumeFrom === 'qualitygate' && approvedScript) {
+      // Resuming after script approval - use the approved script
+      console.log(`[Hollywood] Resuming from ${resumeFrom} with approved script`);
+      state.script = approvedScript;
+      state.extractedCharacters = (request as any).extractedCharacters;
+      state.identityBible = (request as any).identityBible;
+      state.referenceAnalysis = (request as any).referenceImageAnalysis;
+      state.progress = 30;
+    } else if (stages.includes('preproduction')) {
       state = await runPreProduction(request, state, supabase);
+      
+      // PAUSE FOR SCRIPT APPROVAL (unless resuming or skipApproval flag is set)
+      if (!(request as any).skipApproval && !resumeFrom) {
+        console.log(`[Hollywood] Pausing for script approval...`);
+        
+        await supabase
+          .from('movie_projects')
+          .update({
+            status: 'awaiting_approval',
+            generated_script: state.script ? JSON.stringify(state.script) : null,
+            pending_video_tasks: {
+              stage: 'awaiting_approval',
+              progress: 30,
+              script: state.script,
+              extractedCharacters: state.extractedCharacters,
+              identityBible: state.identityBible,
+              referenceAnalysis: state.referenceAnalysis,
+              clipCount: state.clipCount,
+              clipDuration: state.clipDuration,
+              totalCredits: state.totalCredits,
+              config: {
+                includeVoice: request.includeVoice,
+                includeMusic: request.includeMusic,
+                genre: request.genre,
+                mood: request.mood,
+                colorGrading: request.colorGrading,
+              },
+              awaitingApprovalAt: new Date().toISOString(),
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
+        
+        console.log(`[Hollywood] Script ready for review. Awaiting user approval.`);
+        return; // Stop here and wait for user to approve via resume-pipeline
+      }
     }
     
-    if (stages.includes('qualitygate')) {
+    if (stages.includes('qualitygate') && (!resumeFrom || resumeFrom === 'qualitygate')) {
       state = await runQualityGate(request, state, supabase);
     }
     

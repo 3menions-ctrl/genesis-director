@@ -52,12 +52,13 @@ import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
 import { ProductionPipeline } from '@/components/studio/ProductionPipeline';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
+import { ScriptReviewPanel, type ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
 
 type PipelineMode = 'ai' | 'manual';
-type PipelineStage = 'idle' | 'preproduction' | 'qualitygate' | 'assets' | 'production' | 'postproduction' | 'complete' | 'error';
+type PipelineStage = 'idle' | 'preproduction' | 'awaiting_approval' | 'qualitygate' | 'assets' | 'production' | 'postproduction' | 'complete' | 'error';
 
 interface StageStatus {
   name: string;
@@ -152,6 +153,8 @@ export function UnifiedStudio() {
   const [referenceExpanded, setReferenceExpanded] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
   const [pipelineLogs, setPipelineLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'warning' | 'error' }>>([]);
+  const [pendingScript, setPendingScript] = useState<ScriptShot[] | null>(null);
+  const [isResumingPipeline, setIsResumingPipeline] = useState(false);
   
   // Stage tracking
   const [stages, setStages] = useState<StageStatus[]>([
@@ -363,6 +366,37 @@ export function UnifiedStudio() {
             toast.success('Video generated successfully!');
           }
           
+          // Handle awaiting_approval stage - show script for review
+          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
+            console.log('[Studio] Script ready for approval:', tasks.script.shots.length, 'shots');
+            setCurrentStage('awaiting_approval');
+            setProgress(30);
+            updateStageStatus(0, 'complete', `${tasks.script.shots.length} shots`);
+            addPipelineLog('Script generated! Awaiting your approval...', 'success');
+            
+            // Convert shots to ScriptShot format
+            const scriptShots: ScriptShot[] = tasks.script.shots.map((shot: any, index: number) => ({
+              id: shot.id || `shot_${index + 1}`,
+              index,
+              title: shot.title || `Shot ${index + 1}`,
+              description: shot.description || '',
+              durationSeconds: shot.durationSeconds || 4,
+              sceneType: shot.sceneType,
+              cameraScale: shot.cameraScale,
+              cameraAngle: shot.cameraAngle,
+              movementType: shot.movementType,
+              transitionOut: shot.transitionOut,
+              visualAnchors: shot.visualAnchors,
+              motionDirection: shot.motionDirection,
+              lightingHint: shot.lightingHint,
+              dialogue: shot.dialogue,
+              mood: shot.mood,
+            }));
+            
+            setPendingScript(scriptShots);
+            toast.info('Script ready! Please review and approve to continue.');
+          }
+          
           // Handle error
           if (tasks.stage === 'error') {
             setError(tasks.error || 'Pipeline failed');
@@ -403,9 +437,138 @@ export function UnifiedStudio() {
     setAuditScore(null);
     setStartTime(null);
     setElapsedTime(0);
-    setPipelineLogs([]); // Clear logs on reset
+    setPipelineLogs([]);
+    setPendingScript(null);
+    setIsResumingPipeline(false);
     setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
     abortControllerRef.current = null;
+  };
+
+  // Handle script approval - resume pipeline with approved/edited shots
+  const handleScriptApprove = async (approvedShots: ScriptShot[]) => {
+    if (!activeProjectId || !user) {
+      toast.error('Missing project or user information');
+      return;
+    }
+
+    setIsResumingPipeline(true);
+    addPipelineLog('Script approved! Resuming pipeline...', 'success');
+    toast.info('Resuming video production pipeline...');
+
+    try {
+      const { data, error: funcError } = await supabase.functions.invoke('resume-pipeline', {
+        body: {
+          projectId: activeProjectId,
+          userId: user.id,
+          approvedShots: approvedShots.map(shot => ({
+            id: shot.id,
+            title: shot.title,
+            description: shot.description,
+            durationSeconds: shot.durationSeconds,
+            sceneType: shot.sceneType,
+            cameraScale: shot.cameraScale,
+            cameraAngle: shot.cameraAngle,
+            movementType: shot.movementType,
+            transitionOut: shot.transitionOut,
+            visualAnchors: shot.visualAnchors,
+            motionDirection: shot.motionDirection,
+            lightingHint: shot.lightingHint,
+            dialogue: shot.dialogue,
+            mood: shot.mood,
+          })),
+        },
+      });
+
+      if (funcError) throw funcError;
+
+      if (data?.success) {
+        setPendingScript(null);
+        setCurrentStage('qualitygate');
+        updateStageStatus(0, 'complete', `${approvedShots.length} shots`);
+        updateStageStatus(2, 'active', 'Auditing...');
+        addPipelineLog('Pipeline resumed! Starting quality audit...', 'info');
+      } else {
+        throw new Error(data?.error || 'Failed to resume pipeline');
+      }
+    } catch (err) {
+      console.error('Resume pipeline error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to resume pipeline';
+      setError(message);
+      addPipelineLog(`Error: ${message}`, 'error');
+      toast.error(message);
+    } finally {
+      setIsResumingPipeline(false);
+    }
+  };
+
+  // Handle script regeneration
+  const handleScriptRegenerate = async () => {
+    if (!activeProjectId || !user) {
+      toast.error('Missing project or user information');
+      return;
+    }
+
+    setPendingScript(null);
+    setIsResumingPipeline(true);
+    addPipelineLog('Regenerating script...', 'info');
+    toast.info('Regenerating script...');
+
+    try {
+      // Reset to preproduction and call pipeline again
+      setCurrentStage('preproduction');
+      updateStageStatus(0, 'active', 'Regenerating...');
+
+      const requestBody: any = {
+        userId: user.id,
+        projectId: activeProjectId,
+        clipCount,
+        totalDuration: clipCount * CLIP_DURATION,
+        includeVoice,
+        includeMusic,
+        genre,
+        mood,
+        colorGrading,
+        qualityTier,
+      };
+
+      if (mode === 'ai') {
+        requestBody.concept = concept;
+      } else {
+        requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
+      }
+
+      if (referenceImageAnalysis) {
+        requestBody.referenceImageAnalysis = referenceImageAnalysis;
+      }
+
+      const { data, error: funcError } = await supabase.functions.invoke('hollywood-pipeline', {
+        body: requestBody,
+      });
+
+      if (funcError) throw funcError;
+
+      if (data?.success) {
+        addPipelineLog('Script regeneration started...', 'info');
+      } else {
+        throw new Error(data?.error || 'Failed to regenerate script');
+      }
+    } catch (err) {
+      console.error('Regenerate script error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to regenerate script';
+      setError(message);
+      setCurrentStage('error');
+      addPipelineLog(`Error: ${message}`, 'error');
+      toast.error(message);
+    } finally {
+      setIsResumingPipeline(false);
+    }
+  };
+
+  // Handle canceling script review
+  const handleScriptCancel = () => {
+    setPendingScript(null);
+    resetState();
+    toast.info('Pipeline cancelled');
   };
 
   const handleCancel = () => {
@@ -547,7 +710,8 @@ export function UnifiedStudio() {
     }
   };
 
-  const isRunning = !['idle', 'complete', 'error'].includes(currentStage);
+  const isRunning = !['idle', 'complete', 'error', 'awaiting_approval'].includes(currentStage);
+  const isAwaitingApproval = currentStage === 'awaiting_approval';
   const completedClips = clipResults.filter(c => c.status === 'completed').length;
   const hasEmptyPrompts = mode === 'manual' && manualPrompts.slice(0, clipCount).some(p => !p.trim());
   const canGenerate = mode === 'ai' ? concept.trim().length > 0 : !hasEmptyPrompts;
@@ -966,8 +1130,24 @@ export function UnifiedStudio() {
           </Card>
         </Collapsible>
 
-        {/* Premium Production Pipeline - Only show when not idle */}
-        {currentStage !== 'idle' && (
+        {/* Script Review Panel - Show when awaiting approval */}
+        {isAwaitingApproval && pendingScript && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-6">
+              <ScriptReviewPanel
+                shots={pendingScript}
+                onApprove={handleScriptApprove}
+                onRegenerate={handleScriptRegenerate}
+                onCancel={handleScriptCancel}
+                isLoading={isResumingPipeline}
+                totalDuration={clipCount * CLIP_DURATION}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Premium Production Pipeline - Show when running (not awaiting approval) */}
+        {currentStage !== 'idle' && !isAwaitingApproval && (
           <ProductionPipeline
             stages={stages}
             progress={progress}

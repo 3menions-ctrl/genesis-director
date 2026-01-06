@@ -567,7 +567,13 @@ export default function Projects() {
                   <div className="pt-3 pb-1 relative">
                     {/* Status and action row */}
                     <div className="flex items-center justify-between mb-1.5">
-                      {project.status === 'completed' ? (
+                      {/* Show "Ready" if project has videos, regardless of status */}
+                      {hasVideo ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span className="text-[11px] font-medium text-emerald-400/80">Ready</span>
+                        </div>
+                      ) : project.status === 'completed' ? (
                         <div className="flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                           <span className="text-[11px] font-medium text-emerald-400/80">Ready</span>

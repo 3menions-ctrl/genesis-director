@@ -140,6 +140,31 @@ async function runFFmpeg(args, description) {
   });
 }
 
+// Color grading presets for visual consistency
+const COLOR_PRESETS = {
+  cinematic: {
+    // Cinematic orange-teal look
+    eq: 'gamma=1.1:contrast=1.05:saturation=1.1',
+    colorbalance: 'rs=0.05:gs=-0.02:bs=-0.08:rm=0.03:gm=0.01:bm=-0.05',
+  },
+  warm: {
+    eq: 'gamma=1.0:contrast=1.02:saturation=1.15',
+    colorbalance: 'rs=0.08:gs=0.02:bs=-0.05:rm=0.05:gm=0.02:bm=-0.03',
+  },
+  cool: {
+    eq: 'gamma=1.05:contrast=1.03:saturation=0.95',
+    colorbalance: 'rs=-0.03:gs=0.0:bs=0.08:rm=-0.02:gm=0.01:bm=0.05',
+  },
+  neutral: {
+    eq: 'gamma=1.0:contrast=1.0:saturation=1.0',
+    colorbalance: 'rs=0:gs=0:bs=0:rm=0:gm=0:bm=0',
+  },
+  documentary: {
+    eq: 'gamma=0.95:contrast=1.08:saturation=0.9',
+    colorbalance: 'rs=0.02:gs=0.02:bs=0.02:rm=0.01:gm=0.01:bm=0.01',
+  }
+};
+
 // Main stitching logic
 async function stitchVideos(request) {
   const {
@@ -149,14 +174,16 @@ async function stitchVideos(request) {
     audioMixMode = 'full',
     backgroundMusicUrl,
     outputFormat = 'mp4',
-    notifyOnError = true
+    notifyOnError = true,
+    colorGrading = 'cinematic', // NEW: Color grading preset
+    customColorProfile = null   // NEW: Custom color settings
   } = request;
   
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, jobId);
   
   console.log(`[Stitch] Starting job ${jobId} for project ${projectId}`);
-  console.log(`[Stitch] Processing ${clips.length} clips`);
+  console.log(`[Stitch] Processing ${clips.length} clips with color grading: ${colorGrading}`);
   
   try {
     // Create work directory
@@ -228,19 +255,29 @@ async function stitchVideos(request) {
     
     await fs.writeFile(concatFilePath, concatContent);
     
-    // Step 3: Lossless concatenation using concat demuxer
-    console.log('[Stitch] Step 3: Performing lossless concatenation...');
+    // Step 3: Concatenation with color grading
+    console.log('[Stitch] Step 3: Concatenating with color grading...');
     
     const concatenatedPath = path.join(workDir, 'concatenated.mp4');
+    
+    // Get color profile
+    const colorProfile = customColorProfile || COLOR_PRESETS[colorGrading] || COLOR_PRESETS.cinematic;
+    
+    // Build color filter chain
+    const colorFilter = `eq=${colorProfile.eq},colorbalance=${colorProfile.colorbalance}`;
     
     await runFFmpeg([
       '-f', 'concat',
       '-safe', '0',
       '-i', concatFilePath,
-      '-c', 'copy', // Lossless copy - no re-encoding
-      '-movflags', '+faststart', // Optimize for web streaming
+      '-vf', colorFilter,  // Apply color grading
+      '-c:v', 'libx264',   // Re-encode with color grading
+      '-preset', 'fast',
+      '-crf', '18',        // High quality
+      '-c:a', 'copy',      // Keep audio lossless
+      '-movflags', '+faststart',
       concatenatedPath
-    ], 'Lossless video concatenation');
+    ], `Concatenation with ${colorGrading} color grading`);
     
     // Step 4: Audio injection (if background music provided)
     let finalPath = concatenatedPath;

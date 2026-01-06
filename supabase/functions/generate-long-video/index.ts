@@ -343,22 +343,71 @@ async function sendToStitcher(
   };
 }
 
-// Main sequential generation with frame-chaining
+// Main sequential generation with frame-chaining and checkpoint recovery
 async function generateLongVideo(
   request: GenerationRequest,
   supabase: any,
   accessToken: string,
   gcpProjectId: string,
   stitcherUrl: string
-): Promise<{ finalVideoUrl: string; clipResults: ClipResult[] }> {
+): Promise<{ finalVideoUrl: string; clipResults: ClipResult[]; resumedFrom: number }> {
   const clipResults: ClipResult[] = [];
+  let resumedFrom = 0;
+  
+  console.log(`[LongVideo] Checking for existing checkpoint...`);
+  
+  // Pre-flight check: Get checkpoint state
+  const { data: checkpoint, error: checkpointError } = await supabase
+    .rpc('get_generation_checkpoint', { p_project_id: request.projectId });
+  
   let previousLastFrameUrl: string | undefined = request.referenceImageUrl;
+  let startIndex = 0;
   
-  console.log(`[LongVideo] Starting sequential generation of ${TOTAL_CLIPS} clips`);
+  if (!checkpointError && checkpoint && checkpoint.length > 0) {
+    const cp = checkpoint[0];
+    if (cp.last_completed_index >= 0) {
+      startIndex = cp.last_completed_index + 1;
+      previousLastFrameUrl = cp.last_frame_url || request.referenceImageUrl;
+      resumedFrom = startIndex;
+      console.log(`[LongVideo] Resuming from checkpoint: clip ${startIndex + 1}, using frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      
+      // Load existing completed clips
+      const { data: existingClips } = await supabase
+        .from('video_clips')
+        .select('*')
+        .eq('project_id', request.projectId)
+        .eq('status', 'completed')
+        .order('shot_index', { ascending: true });
+      
+      if (existingClips) {
+        for (const clip of existingClips) {
+          clipResults.push({
+            index: clip.shot_index,
+            videoUrl: clip.video_url,
+            lastFrameUrl: clip.last_frame_url,
+            durationSeconds: clip.duration_seconds || CLIP_DURATION,
+            status: 'completed',
+          });
+        }
+        console.log(`[LongVideo] Loaded ${existingClips.length} completed clips from checkpoint`);
+      }
+    }
+  }
   
-  for (let i = 0; i < request.clips.length && i < TOTAL_CLIPS; i++) {
+  console.log(`[LongVideo] Starting sequential generation from clip ${startIndex + 1} to ${TOTAL_CLIPS}`);
+  
+  for (let i = startIndex; i < request.clips.length && i < TOTAL_CLIPS; i++) {
     const clip = request.clips[i];
     console.log(`[LongVideo] Generating clip ${i + 1}/${TOTAL_CLIPS}: ${clip.prompt.substring(0, 50)}...`);
+    
+    // Upsert clip as 'generating' (idempotent)
+    await supabase.rpc('upsert_video_clip', {
+      p_project_id: request.projectId,
+      p_user_id: request.userId,
+      p_shot_index: i,
+      p_prompt: clip.prompt,
+      p_status: 'generating',
+    });
     
     try {
       // Step 1: Generate clip with Veo (using previous frame for continuity)
@@ -371,6 +420,16 @@ async function generateLongVideo(
       
       console.log(`[LongVideo] Clip ${i + 1} operation started: ${operationName}`);
       
+      // Save operation name for potential resume
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: request.projectId,
+        p_user_id: request.userId,
+        p_shot_index: i,
+        p_prompt: clip.prompt,
+        p_status: 'generating',
+        p_veo_operation_name: operationName,
+      });
+      
       // Step 2: Poll for completion
       const { videoUrl: rawVideoUrl } = await pollOperation(accessToken, operationName);
       console.log(`[LongVideo] Clip ${i + 1} completed: ${rawVideoUrl}`);
@@ -379,21 +438,45 @@ async function generateLongVideo(
       const storedUrl = await downloadToStorage(supabase, rawVideoUrl, request.projectId, i);
       console.log(`[LongVideo] Clip ${i + 1} stored: ${storedUrl}`);
       
-      // Step 4: Send to stitcher for frame-chaining
+      // Step 4: Send to stitcher for frame extraction
       const nextPrompt = request.clips[i + 1]?.prompt;
-      const stitcherResult = await sendToStitcher(
-        stitcherUrl,
-        storedUrl,
-        i,
-        nextPrompt,
-        request.projectId
-      );
+      let stitcherResult = { lastFrameUrl: undefined as string | undefined };
+      
+      try {
+        const response = await fetch(`${stitcherUrl}/extract-frame`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clipUrl: storedUrl,
+            clipIndex: i,
+            projectId: request.projectId,
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          stitcherResult.lastFrameUrl = result.lastFrameUrl;
+        }
+      } catch (frameError) {
+        console.warn(`[LongVideo] Frame extraction failed, continuing without:`, frameError);
+      }
       
       // Update last frame for next clip's continuity
       if (stitcherResult.lastFrameUrl) {
         previousLastFrameUrl = stitcherResult.lastFrameUrl;
         console.log(`[LongVideo] Frame chain updated for clip ${i + 2}`);
       }
+      
+      // Mark clip as completed in DB
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: request.projectId,
+        p_user_id: request.userId,
+        p_shot_index: i,
+        p_prompt: clip.prompt,
+        p_status: 'completed',
+        p_video_url: storedUrl,
+        p_last_frame_url: stitcherResult.lastFrameUrl,
+      });
       
       clipResults.push({
         index: i,
@@ -405,19 +488,33 @@ async function generateLongVideo(
       
     } catch (error) {
       console.error(`[LongVideo] Clip ${i + 1} failed:`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Mark clip as failed in DB
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: request.projectId,
+        p_user_id: request.userId,
+        p_shot_index: i,
+        p_prompt: clip.prompt,
+        p_status: 'failed',
+        p_error_message: errorMessage,
+      });
+      
       clipResults.push({
         index: i,
         videoUrl: '',
         durationSeconds: CLIP_DURATION,
         status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       });
       // Continue with remaining clips even if one fails
     }
   }
   
   // Step 5: Request final assembly from stitcher
-  console.log(`[LongVideo] Requesting final assembly of ${clipResults.filter(c => c.status === 'completed').length} clips`);
+  const completedClips = clipResults.filter(c => c.status === 'completed');
+  console.log(`[LongVideo] Requesting final assembly of ${completedClips.length} clips`);
   
   const finalAssemblyResponse = await fetch(`${stitcherUrl}/stitch`, {
     method: 'POST',
@@ -425,16 +522,15 @@ async function generateLongVideo(
     body: JSON.stringify({
       projectId: request.projectId,
       projectTitle: `Long Video - ${request.projectId}`,
-      clips: clipResults
-        .filter(c => c.status === 'completed')
-        .map(c => ({
-          shotId: `clip_${c.index}`,
-          videoUrl: c.videoUrl,
-          durationSeconds: c.durationSeconds,
-          transitionOut: 'continuous',
-        })),
+      clips: completedClips.map(c => ({
+        shotId: `clip_${c.index}`,
+        videoUrl: c.videoUrl,
+        durationSeconds: c.durationSeconds,
+        transitionOut: 'continuous',
+      })),
       audioMixMode: 'full',
       outputFormat: 'mp4',
+      colorGrading: 'cinematic', // Use cinematic color grading
       isFinalAssembly: true,
     }),
   });
@@ -453,6 +549,7 @@ async function generateLongVideo(
   return {
     finalVideoUrl: finalResult.finalVideoUrl,
     clipResults,
+    resumedFrom,
   };
 }
 
@@ -528,8 +625,8 @@ serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccount);
     console.log("[LongVideo] OAuth access token obtained");
 
-    // Run the sequential generation
-    const { finalVideoUrl, clipResults } = await generateLongVideo(
+    // Run the sequential generation with checkpoint recovery
+    const { finalVideoUrl, clipResults, resumedFrom } = await generateLongVideo(
       request,
       supabase,
       accessToken,
@@ -538,9 +635,9 @@ serve(async (req) => {
     );
 
     const completedClips = clipResults.filter(c => c.status === 'completed').length;
-    console.log(`[LongVideo] Generation complete: ${completedClips}/${TOTAL_CLIPS} clips successful`);
+    console.log(`[LongVideo] Generation complete: ${completedClips}/${TOTAL_CLIPS} clips successful${resumedFrom > 0 ? `, resumed from clip ${resumedFrom + 1}` : ''}`);
 
-    // Deduct credits only on success
+    // Deduct credits only on success (full completion)
     if (completedClips === TOTAL_CLIPS) {
       console.log(`[LongVideo] Deducting ${CREDITS_COST} credits from user ${request.userId}`);
       
@@ -554,7 +651,6 @@ serve(async (req) => {
 
       if (deductError) {
         console.error("[LongVideo] Credit deduction failed:", deductError);
-        // Don't fail the response - video was generated successfully
       } else {
         console.log(`[LongVideo] Credits deducted successfully`);
       }
@@ -582,6 +678,7 @@ serve(async (req) => {
         clipsGenerated: completedClips,
         totalClips: TOTAL_CLIPS,
         creditsCharged: completedClips === TOTAL_CLIPS ? CREDITS_COST : 0,
+        resumedFrom: resumedFrom > 0 ? resumedFrom : undefined,
         clipResults,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

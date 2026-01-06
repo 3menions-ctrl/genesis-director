@@ -1,0 +1,734 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+/**
+ * HOLLYWOOD PIPELINE ORCHESTRATOR
+ * 
+ * The master edge function that coordinates all components of the Iron-Clad
+ * video production pipeline to achieve Hollywood-rival quality.
+ * 
+ * Pipeline Stages:
+ * 1. PRE-PRODUCTION: Script generation, Identity Bible, Reference Analysis
+ * 2. QUALITY GATE: Cinematic Auditor validates and optimizes all prompts
+ * 3. ASSET CREATION: Scene images, Voice narration, Background music
+ * 4. PRODUCTION: Sequential video generation with frame-chaining
+ * 5. POST-PRODUCTION: Final assembly with audio mixing and color grading
+ * 
+ * Each stage can be run independently or as part of the full pipeline.
+ */
+
+interface PipelineRequest {
+  userId: string;
+  projectId?: string;
+  
+  // Input options (use one)
+  concept?: string;           // High-level story concept for AI script generation
+  manualPrompts?: string[];   // User-provided scene prompts (skip script gen)
+  
+  // Pipeline options
+  stages?: ('preproduction' | 'qualitygate' | 'assets' | 'production' | 'postproduction')[];
+  
+  // Pre-production options
+  referenceImageUrl?: string; // Character/style reference
+  genre?: string;
+  mood?: string;
+  
+  // Asset options
+  includeVoice?: boolean;
+  includeMusic?: boolean;
+  musicMood?: string;
+  voiceId?: string;
+  
+  // Production options
+  colorGrading?: string;
+  totalDuration?: number;     // Target duration in seconds
+  
+  // Quality options
+  qualityTier?: 'standard' | 'professional';
+}
+
+interface PipelineState {
+  projectId: string;
+  stage: string;
+  progress: number;
+  
+  // Stage outputs
+  script?: {
+    shots: Array<{
+      id: string;
+      title: string;
+      description: string;
+      dialogue?: string;
+      durationSeconds: number;
+      mood?: string;
+      cameraMovement?: string;
+    }>;
+  };
+  
+  identityBible?: {
+    characterIdentity?: {
+      description: string;
+      facialFeatures: string;
+      clothing: string;
+      bodyType: string;
+      distinctiveMarkers: string[];
+    };
+    consistencyPrompt?: string;
+  };
+  
+  referenceAnalysis?: {
+    environment?: any;
+    lighting?: any;
+    colorPalette?: any;
+    consistencyPrompt?: string;
+  };
+  
+  auditResult?: {
+    overallScore: number;
+    optimizedShots: Array<{
+      shotId: string;
+      originalDescription: string;
+      optimizedDescription: string;
+      identityAnchors: string[];
+      physicsGuards: string[];
+      velocityContinuity?: string;
+    }>;
+    velocityVectors?: Array<{
+      shotId: string;
+      endFrameMotion: {
+        subjectVelocity: string;
+        subjectDirection: string;
+        cameraMotion: string;
+        continuityPrompt: string;
+      };
+    }>;
+  };
+  
+  assets?: {
+    sceneImages?: Array<{ sceneNumber: number; imageUrl: string }>;
+    voiceUrl?: string;
+    voiceDuration?: number;
+    musicUrl?: string;
+    musicDuration?: number;
+  };
+  
+  production?: {
+    clipResults: Array<{
+      index: number;
+      videoUrl: string;
+      status: string;
+      lastFrameUrl?: string;
+    }>;
+  };
+  
+  finalVideoUrl?: string;
+  error?: string;
+}
+
+const TOTAL_CLIPS = 6;
+const CLIP_DURATION = 4;
+const PIPELINE_CREDITS = 350; // Total credits for full pipeline
+
+// Helper to call edge functions internally
+async function callEdgeFunction(
+  supabase: any,
+  functionName: string,
+  body: any
+): Promise<any> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`${functionName} failed: ${error}`);
+  }
+  
+  return response.json();
+}
+
+// Stage 1: PRE-PRODUCTION
+async function runPreProduction(
+  request: PipelineRequest,
+  state: PipelineState,
+  supabase: any
+): Promise<PipelineState> {
+  console.log(`[Hollywood] Stage 1: PRE-PRODUCTION`);
+  state.stage = 'preproduction';
+  state.progress = 10;
+  
+  // 1a. Generate script from concept (if provided)
+  if (request.concept && !request.manualPrompts) {
+    console.log(`[Hollywood] Generating script from concept...`);
+    
+    try {
+      const scriptResult = await callEdgeFunction(supabase, 'smart-script-generator', {
+        concept: request.concept,
+        genre: request.genre || 'cinematic',
+        mood: request.mood || 'epic',
+        targetDuration: request.totalDuration || 24,
+        shotCount: TOTAL_CLIPS,
+      });
+      
+      if (scriptResult.shots) {
+        state.script = { shots: scriptResult.shots };
+        console.log(`[Hollywood] Script generated: ${state.script.shots.length} shots`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Script generation failed, using fallback:`, err);
+      // Create basic shots from concept
+      state.script = {
+        shots: Array.from({ length: TOTAL_CLIPS }, (_, i) => ({
+          id: `shot_${i + 1}`,
+          title: `Scene ${i + 1}`,
+          description: `${request.concept}. Scene ${i + 1} of ${TOTAL_CLIPS}.`,
+          durationSeconds: CLIP_DURATION,
+          mood: request.mood || 'cinematic',
+        })),
+      };
+    }
+  } else if (request.manualPrompts) {
+    // Use manual prompts
+    state.script = {
+      shots: request.manualPrompts.map((prompt, i) => ({
+        id: `shot_${i + 1}`,
+        title: `Scene ${i + 1}`,
+        description: prompt,
+        durationSeconds: CLIP_DURATION,
+        mood: request.mood,
+      })),
+    };
+  }
+  
+  state.progress = 20;
+  
+  // 1b. Analyze reference image (if provided)
+  if (request.referenceImageUrl) {
+    console.log(`[Hollywood] Analyzing reference image...`);
+    
+    try {
+      const analysisResult = await callEdgeFunction(supabase, 'analyze-reference-image', {
+        imageUrl: request.referenceImageUrl,
+      });
+      
+      state.referenceAnalysis = analysisResult;
+      state.identityBible = {
+        characterIdentity: analysisResult.characterIdentity,
+        consistencyPrompt: analysisResult.consistencyPrompt,
+      };
+      
+      console.log(`[Hollywood] Reference analyzed: ${analysisResult.consistencyPrompt?.substring(0, 50)}...`);
+    } catch (err) {
+      console.warn(`[Hollywood] Reference analysis failed:`, err);
+    }
+  }
+  
+  // 1c. Generate Identity Bible (if no reference but we have character descriptions)
+  if (!state.identityBible && state.script?.shots.some(s => s.description.includes('character'))) {
+    console.log(`[Hollywood] Generating Identity Bible...`);
+    
+    try {
+      const characterDescriptions = state.script.shots
+        .map(s => s.description)
+        .join(' ')
+        .match(/character[^.]*\./gi) || [];
+      
+      if (characterDescriptions.length > 0) {
+        const bibleResult = await callEdgeFunction(supabase, 'generate-identity-bible', {
+          characterDescription: characterDescriptions.join(' '),
+          projectId: state.projectId,
+        });
+        
+        state.identityBible = bibleResult.bible;
+        console.log(`[Hollywood] Identity Bible generated`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Identity Bible generation failed:`, err);
+    }
+  }
+  
+  state.progress = 30;
+  return state;
+}
+
+// Stage 2: QUALITY GATE
+async function runQualityGate(
+  request: PipelineRequest,
+  state: PipelineState,
+  supabase: any
+): Promise<PipelineState> {
+  console.log(`[Hollywood] Stage 2: QUALITY GATE (Cinematic Auditor)`);
+  state.stage = 'qualitygate';
+  state.progress = 35;
+  
+  if (!state.script?.shots) {
+    throw new Error("No script shots to audit");
+  }
+  
+  try {
+    const auditResult = await callEdgeFunction(supabase, 'cinematic-auditor', {
+      shots: state.script.shots,
+      referenceAnalysis: state.referenceAnalysis,
+      projectType: request.genre || 'cinematic',
+      title: `Project ${state.projectId}`,
+    });
+    
+    if (auditResult.audit) {
+      state.auditResult = {
+        overallScore: auditResult.audit.overallScore,
+        optimizedShots: auditResult.audit.optimizedShots || [],
+        velocityVectors: auditResult.audit.velocityVectors || [],
+      };
+      
+      console.log(`[Hollywood] Audit complete: Score ${state.auditResult.overallScore}/100`);
+      console.log(`[Hollywood] Optimized ${state.auditResult.optimizedShots.length} shots`);
+      console.log(`[Hollywood] Generated ${state.auditResult.velocityVectors?.length || 0} velocity vectors`);
+    }
+  } catch (err) {
+    console.warn(`[Hollywood] Cinematic audit failed, using original prompts:`, err);
+    // Create passthrough optimization
+    state.auditResult = {
+      overallScore: 70,
+      optimizedShots: state.script.shots.map(shot => ({
+        shotId: shot.id,
+        originalDescription: shot.description,
+        optimizedDescription: `${shot.description}. Cinematic quality, realistic physics, natural motion.`,
+        identityAnchors: state.identityBible?.consistencyPrompt 
+          ? [state.identityBible.consistencyPrompt] 
+          : [],
+        physicsGuards: ['natural movement', 'consistent lighting'],
+      })),
+    };
+  }
+  
+  state.progress = 45;
+  return state;
+}
+
+// Stage 3: ASSET CREATION
+async function runAssetCreation(
+  request: PipelineRequest,
+  state: PipelineState,
+  supabase: any
+): Promise<PipelineState> {
+  console.log(`[Hollywood] Stage 3: ASSET CREATION`);
+  state.stage = 'assets';
+  state.progress = 50;
+  
+  state.assets = {};
+  
+  // 3a. Generate scene reference images (master anchors)
+  if (state.script?.shots && !request.referenceImageUrl) {
+    console.log(`[Hollywood] Generating scene reference images...`);
+    
+    try {
+      const scenes = state.script.shots.slice(0, 3).map((shot, i) => ({
+        sceneNumber: i + 1,
+        title: shot.title,
+        visualDescription: state.auditResult?.optimizedShots[i]?.optimizedDescription || shot.description,
+        mood: shot.mood,
+      }));
+      
+      const imageResult = await callEdgeFunction(supabase, 'generate-scene-images', {
+        scenes,
+        projectId: state.projectId,
+        globalStyle: 'Cinematic film still, professional color grading, high detail',
+      });
+      
+      if (imageResult.images) {
+        state.assets.sceneImages = imageResult.images;
+        console.log(`[Hollywood] Generated ${imageResult.images.length} scene images`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Scene image generation failed:`, err);
+    }
+  }
+  
+  state.progress = 55;
+  
+  // 3b. Generate voice narration (if requested)
+  if (request.includeVoice !== false) {
+    console.log(`[Hollywood] Generating voice narration...`);
+    
+    try {
+      // Compile all dialogue/descriptions into narration
+      const narrationText = state.script?.shots
+        ?.map(shot => shot.dialogue || shot.description)
+        .join(' ')
+        .substring(0, 2000) || ''; // ElevenLabs limit
+      
+      if (narrationText && narrationText.length > 50) {
+        const voiceResult = await callEdgeFunction(supabase, 'generate-voice', {
+          text: narrationText,
+          voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL', // Default voice
+          projectId: state.projectId,
+        });
+        
+        if (voiceResult.audioUrl) {
+          state.assets.voiceUrl = voiceResult.audioUrl;
+          state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : 24;
+          console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Voice generation failed:`, err);
+    }
+  }
+  
+  state.progress = 60;
+  
+  // 3c. Generate background music (if requested)
+  if (request.includeMusic !== false) {
+    console.log(`[Hollywood] Generating background music...`);
+    
+    try {
+      const musicResult = await callEdgeFunction(supabase, 'generate-music', {
+        mood: request.musicMood || request.mood || 'cinematic',
+        genre: 'hybrid',
+        duration: TOTAL_CLIPS * CLIP_DURATION + 2, // Slightly longer than video
+        projectId: state.projectId,
+      });
+      
+      if (musicResult.musicUrl) {
+        state.assets.musicUrl = musicResult.musicUrl;
+        state.assets.musicDuration = musicResult.durationSeconds;
+        console.log(`[Hollywood] Music generated: ${state.assets.musicUrl}`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Music generation failed:`, err);
+    }
+  }
+  
+  state.progress = 70;
+  return state;
+}
+
+// Stage 4: PRODUCTION
+async function runProduction(
+  request: PipelineRequest,
+  state: PipelineState,
+  supabase: any
+): Promise<PipelineState> {
+  console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation)`);
+  state.stage = 'production';
+  state.progress = 75;
+  
+  // Build the optimized clips array with all enhancements
+  const clips = state.auditResult?.optimizedShots.map((opt, i) => {
+    let finalPrompt = opt.optimizedDescription;
+    
+    // Inject identity anchors
+    if (opt.identityAnchors?.length > 0) {
+      finalPrompt = `[IDENTITY: ${opt.identityAnchors.join(', ')}] ${finalPrompt}`;
+    }
+    
+    // Inject physics guards
+    if (opt.physicsGuards?.length > 0) {
+      finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
+    }
+    
+    // Inject velocity continuity from previous shot
+    if (i > 0 && state.auditResult?.velocityVectors) {
+      const prevVector = state.auditResult.velocityVectors[i - 1];
+      if (prevVector?.endFrameMotion?.continuityPrompt) {
+        finalPrompt = `[MOTION: ${prevVector.endFrameMotion.continuityPrompt}] ${finalPrompt}`;
+      }
+    }
+    
+    return {
+      index: i,
+      prompt: finalPrompt,
+      sceneContext: {
+        clipIndex: i,
+        totalClips: TOTAL_CLIPS,
+        environment: state.referenceAnalysis?.environment?.setting,
+        lightingStyle: state.referenceAnalysis?.lighting?.style,
+        colorPalette: state.referenceAnalysis?.colorPalette?.dominant?.join(', '),
+      },
+    };
+  }) || [];
+  
+  // Determine first frame reference
+  let referenceImageUrl = request.referenceImageUrl;
+  if (!referenceImageUrl && state.assets?.sceneImages?.[0]?.imageUrl) {
+    referenceImageUrl = state.assets.sceneImages[0].imageUrl;
+  }
+  
+  console.log(`[Hollywood] Calling generate-long-video with ${clips.length} optimized clips`);
+  
+  // Call the existing generate-long-video function
+  const productionResult = await callEdgeFunction(supabase, 'generate-long-video', {
+    userId: request.userId,
+    projectId: state.projectId,
+    clips,
+    referenceImageUrl,
+    colorGrading: request.colorGrading || 'cinematic',
+    // Pass identity for enhanced frame-chaining
+    identityBible: state.identityBible,
+  });
+  
+  if (!productionResult.success) {
+    throw new Error(productionResult.error || 'Video production failed');
+  }
+  
+  state.production = {
+    clipResults: productionResult.clipResults || [],
+  };
+  
+  // If generate-long-video already stitched, use its result
+  if (productionResult.finalVideoUrl) {
+    state.finalVideoUrl = productionResult.finalVideoUrl;
+  }
+  
+  state.progress = 90;
+  return state;
+}
+
+// Stage 5: POST-PRODUCTION
+async function runPostProduction(
+  request: PipelineRequest,
+  state: PipelineState,
+  supabase: any
+): Promise<PipelineState> {
+  console.log(`[Hollywood] Stage 5: POST-PRODUCTION`);
+  state.stage = 'postproduction';
+  state.progress = 92;
+  
+  // If we already have a final video without audio mixing, or need to add music
+  const needsAudioMix = state.assets?.musicUrl || state.assets?.voiceUrl;
+  
+  if (state.finalVideoUrl && needsAudioMix) {
+    console.log(`[Hollywood] Requesting final audio mix...`);
+    
+    try {
+      const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+      
+      if (stitcherUrl) {
+        const completedClips = state.production?.clipResults.filter(c => c.status === 'completed') || [];
+        
+        const stitchResult = await fetch(`${stitcherUrl}/stitch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: state.projectId,
+            projectTitle: `Hollywood Pipeline - ${state.projectId}`,
+            clips: completedClips.map(c => ({
+              shotId: `clip_${c.index}`,
+              videoUrl: c.videoUrl,
+              durationSeconds: CLIP_DURATION,
+              transitionOut: 'continuous',
+            })),
+            audioMixMode: 'full',
+            backgroundMusicUrl: state.assets?.musicUrl,
+            voiceTrackUrl: state.assets?.voiceUrl,
+            colorGrading: request.colorGrading || 'cinematic',
+            outputFormat: 'mp4',
+          }),
+        });
+        
+        if (stitchResult.ok) {
+          const result = await stitchResult.json();
+          if (result.finalVideoUrl) {
+            state.finalVideoUrl = result.finalVideoUrl;
+            console.log(`[Hollywood] Final video with audio: ${state.finalVideoUrl}`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Audio mixing failed, using video-only:`, err);
+    }
+  }
+  
+  state.progress = 100;
+  return state;
+}
+
+// Main handler
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  try {
+    const request: PipelineRequest = await req.json();
+    
+    if (!request.userId) {
+      throw new Error("userId is required");
+    }
+    
+    // Validate input
+    if (!request.concept && !request.manualPrompts) {
+      throw new Error("Either 'concept' or 'manualPrompts' is required");
+    }
+    
+    if (request.manualPrompts && request.manualPrompts.length < TOTAL_CLIPS) {
+      throw new Error(`At least ${TOTAL_CLIPS} prompts are required`);
+    }
+
+    // Check credits
+    console.log(`[Hollywood] Checking credits for user ${request.userId}`);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits_balance')
+      .eq('id', request.userId)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error("Failed to fetch user profile");
+    }
+
+    if (profile.credits_balance < PIPELINE_CREDITS) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Insufficient credits. Required: ${PIPELINE_CREDITS}, Available: ${profile.credits_balance}`,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create or use project
+    let projectId = request.projectId;
+    
+    if (!projectId) {
+      const { data: project, error: projectError } = await supabase
+        .from('movie_projects')
+        .insert({
+          title: `Hollywood Pipeline - ${new Date().toLocaleString()}`,
+          user_id: request.userId,
+          status: 'generating',
+          genre: request.genre || 'cinematic',
+          mood: request.mood,
+          story_structure: 'episodic',
+          target_duration_minutes: Math.ceil((TOTAL_CLIPS * CLIP_DURATION) / 60),
+        })
+        .select()
+        .single();
+
+      if (projectError) throw projectError;
+      projectId = project.id;
+    }
+
+    console.log(`[Hollywood] Starting pipeline for project ${projectId}`);
+
+    // Initialize state
+    let state: PipelineState = {
+      projectId: projectId!,
+      stage: 'initializing',
+      progress: 0,
+    };
+
+    // Determine which stages to run
+    const stages = request.stages || ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
+
+    // Execute pipeline stages
+    if (stages.includes('preproduction')) {
+      state = await runPreProduction(request, state, supabase);
+    }
+    
+    if (stages.includes('qualitygate')) {
+      state = await runQualityGate(request, state, supabase);
+    }
+    
+    if (stages.includes('assets')) {
+      state = await runAssetCreation(request, state, supabase);
+    }
+    
+    if (stages.includes('production')) {
+      state = await runProduction(request, state, supabase);
+    }
+    
+    if (stages.includes('postproduction')) {
+      state = await runPostProduction(request, state, supabase);
+    }
+
+    // Deduct credits on success
+    if (state.finalVideoUrl) {
+      console.log(`[Hollywood] Deducting ${PIPELINE_CREDITS} credits`);
+      
+      await supabase.rpc('deduct_credits', {
+        p_user_id: request.userId,
+        p_amount: PIPELINE_CREDITS,
+        p_description: `Hollywood Pipeline - Full production (${TOTAL_CLIPS} clips + audio)`,
+        p_project_id: projectId,
+        p_clip_duration: TOTAL_CLIPS * CLIP_DURATION,
+      });
+
+      // Update project status
+      await supabase
+        .from('movie_projects')
+        .update({
+          video_url: state.finalVideoUrl,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        projectId: state.projectId,
+        finalVideoUrl: state.finalVideoUrl,
+        
+        // Pipeline details
+        stages: {
+          preproduction: {
+            shotsGenerated: state.script?.shots?.length || 0,
+            hasIdentityBible: !!state.identityBible,
+            hasReferenceAnalysis: !!state.referenceAnalysis,
+          },
+          qualitygate: {
+            auditScore: state.auditResult?.overallScore || 0,
+            optimizedShots: state.auditResult?.optimizedShots?.length || 0,
+            velocityVectors: state.auditResult?.velocityVectors?.length || 0,
+          },
+          assets: {
+            sceneImages: state.assets?.sceneImages?.length || 0,
+            hasVoice: !!state.assets?.voiceUrl,
+            hasMusic: !!state.assets?.musicUrl,
+          },
+          production: {
+            clipsCompleted: state.production?.clipResults?.filter(c => c.status === 'completed').length || 0,
+            clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
+          },
+        },
+        
+        // Cost breakdown
+        creditsCharged: state.finalVideoUrl ? PIPELINE_CREDITS : 0,
+        
+        // Full state for debugging
+        _state: state,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[Hollywood] Pipeline error:", error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Pipeline failed",
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

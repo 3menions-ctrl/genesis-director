@@ -16,12 +16,24 @@ interface ClipPrompt {
   sceneContext?: Record<string, any>;
 }
 
+interface IdentityBible {
+  characterIdentity?: {
+    description?: string;
+    facialFeatures?: string;
+    clothing?: string;
+    bodyType?: string;
+    distinctiveMarkers?: string[];
+  };
+  consistencyPrompt?: string;
+}
+
 interface GenerationRequest {
   userId: string;
   projectId: string;
   clips: ClipPrompt[];
   referenceImageUrl?: string;
   colorGrading?: string; // cinematic, warm, cool, neutral, documentary
+  identityBible?: IdentityBible; // From Hollywood pipeline
 }
 
 interface ClipResult {
@@ -419,8 +431,25 @@ async function generateLongVideo(
     const clip = request.clips[i];
     console.log(`[LongVideo] Generating clip ${i + 1}/${TOTAL_CLIPS}: ${clip.prompt.substring(0, 50)}...`);
     
+    // IDENTITY BIBLE: Inject character consistency anchors
+    let enhancedPrompt = clip.prompt;
+    if (request.identityBible?.consistencyPrompt) {
+      enhancedPrompt = `[IDENTITY: ${request.identityBible.consistencyPrompt}] ${enhancedPrompt}`;
+    }
+    if (request.identityBible?.characterIdentity) {
+      const ci = request.identityBible.characterIdentity;
+      const identityParts = [
+        ci.description,
+        ci.clothing,
+        ci.distinctiveMarkers?.join(', ')
+      ].filter(Boolean).join('. ');
+      if (identityParts) {
+        enhancedPrompt = `${enhancedPrompt}. [CHARACTER: ${identityParts}]`;
+      }
+    }
+    
     // VELOCITY VECTORING: Inject motion continuity from previous clip
-    const velocityAwarePrompt = injectVelocityContinuity(clip.prompt, previousMotionVectors);
+    const velocityAwarePrompt = injectVelocityContinuity(enhancedPrompt, previousMotionVectors);
     
     // Upsert clip as 'generating' (idempotent)
     await supabase.rpc('upsert_video_clip', {

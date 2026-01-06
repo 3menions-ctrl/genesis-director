@@ -63,7 +63,9 @@ export default function ScriptingStage() {
     runCinematicAudit,
     approveAudit,
     applyAuditSuggestion,
+    applyAllSuggestionsAndReaudit,
     isAuditing,
+    isReauditing,
     // QUALITY TIER
     setQualityTier,
     // Reset
@@ -859,7 +861,9 @@ export default function ScriptingStage() {
                 audit={state.cinematicAudit}
                 onApprove={handleApproveAudit}
                 onApplySuggestion={applyAuditSuggestion}
+                onApplyAllAndReaudit={applyAllSuggestionsAndReaudit}
                 isApproved={state.auditApproved}
+                isReauditing={isReauditing}
               />
             ) : (
               <>

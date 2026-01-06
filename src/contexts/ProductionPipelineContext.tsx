@@ -61,6 +61,8 @@ interface ProductionPipelineContextType {
   runCinematicAudit: () => Promise<void>;
   approveAudit: () => void;
   applyAuditSuggestion: (shotId: string, optimizedDescription: string) => void;
+  applyAllSuggestionsAndReaudit: () => Promise<void>;
+  isReauditing: boolean;
   
   // Production stage
   startProduction: () => Promise<void>;
@@ -459,6 +461,53 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     }));
     toast.success(`Applied optimized prompt to ${shotId}`);
   }, []);
+  
+  // Apply all audit suggestions and re-run the audit
+  const [isReauditing, setIsReauditing] = useState(false);
+  
+  const applyAllSuggestionsAndReaudit = useCallback(async () => {
+    if (!state.cinematicAudit?.suggestions) return;
+    
+    setIsReauditing(true);
+    
+    try {
+      // Apply all suggestions that have rewritten prompts
+      const suggestionsWithRewrites = state.cinematicAudit.suggestions.filter(s => s.rewrittenPrompt);
+      
+      // Update all shots at once
+      setState(prev => ({
+        ...prev,
+        structuredShots: prev.structuredShots.map(shot => {
+          const suggestion = suggestionsWithRewrites.find(s => s.shotId === shot.id);
+          return suggestion ? { ...shot, description: suggestion.rewrittenPrompt! } : shot;
+        }),
+        production: {
+          ...prev.production,
+          shots: prev.production.shots.map(shot => {
+            const suggestion = suggestionsWithRewrites.find(s => s.shotId === shot.id);
+            return suggestion ? { ...shot, description: suggestion.rewrittenPrompt! } : shot;
+          }),
+        },
+        // Clear the old audit to trigger fresh analysis
+        cinematicAudit: undefined,
+        auditApproved: false,
+      }));
+      
+      toast.success(`Applied ${suggestionsWithRewrites.length} fixes. Re-auditing...`);
+      
+      // Small delay to let state update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Re-run the audit
+      await runCinematicAudit();
+      
+    } catch (err) {
+      console.error('Apply all and reaudit error:', err);
+      toast.error('Failed to apply fixes and re-audit');
+    } finally {
+      setIsReauditing(false);
+    }
+  }, [state.cinematicAudit?.suggestions, runCinematicAudit]);
   
   // Generate master anchor image for visual consistency
   const generateMasterAnchor = useCallback(async (): Promise<MasterAnchor | null> => {
@@ -1312,6 +1361,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       runCinematicAudit,
       approveAudit,
       applyAuditSuggestion,
+      applyAllSuggestionsAndReaudit,
+      isReauditing,
       // Production
       startProduction,
       cancelProduction,

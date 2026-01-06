@@ -10,8 +10,16 @@ import {
   Film, Clock, Zap, TrendingUp, ChevronRight,
   Video, Target, BarChart3, Timer,
   FolderOpen, CheckCircle2, Layers,
-  PieChart as PieChartIcon, Activity, Play, Upload, X
+  PieChart as PieChartIcon, Activity, Play, Upload, X,
+  ChevronDown, LogOut, Settings, HelpCircle
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { cn } from '@/lib/utils';
 import {
@@ -87,7 +95,7 @@ const GENRE_COLORS: Record<string, string> = {
 };
 
 export default function Profile() {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, refreshProfile, signOut } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -363,6 +371,12 @@ export default function Profile() {
     return <TrendingUp className="w-3 h-3 text-emerald-400" />;
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+    toast.success('Signed out successfully');
+  };
+
   return (
     <div className="min-h-screen bg-black relative">
       {/* Subtle ambient */}
@@ -378,6 +392,92 @@ export default function Profile() {
         className="hidden" 
         onChange={handleCoverVideoUpload}
       />
+
+      {/* Premium Top Navigation Bar */}
+      <nav className="sticky top-0 z-50">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className="bg-black/80 backdrop-blur-2xl border-b border-white/[0.05]">
+          <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+            {/* Logo / Brand */}
+            <button 
+              onClick={() => navigate('/projects')}
+              className="flex items-center gap-2.5 group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.12] transition-colors">
+                <Film className="w-4 h-4 text-white/70" />
+              </div>
+              <span className="text-sm font-semibold text-white/90">apex</span>
+            </button>
+
+            {/* Center Nav */}
+            <div className="hidden sm:flex items-center gap-1">
+              {[
+                { label: 'Projects', path: '/projects' },
+                { label: 'Create', path: '/pipeline/scripting' },
+              ].map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="px-3 py-1.5 text-xs font-medium text-white/50 hover:text-white/90 hover:bg-white/[0.05] rounded-lg transition-all"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-2">
+              {/* Credits */}
+              <button
+                onClick={() => setShowBuyModal(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors"
+              >
+                <Coins className="w-3.5 h-3.5 text-white/50" />
+                <span className="text-xs font-semibold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
+              </button>
+
+              {/* User Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition-colors">
+                    <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center overflow-hidden">
+                      {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-3.5 h-3.5 text-white/60" />
+                      )}
+                    </div>
+                    <ChevronDown className="w-3 h-3 text-white/40" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-black/95 backdrop-blur-xl border-white/10">
+                  <div className="px-3 py-2 border-b border-white/[0.06]">
+                    <p className="text-xs font-medium text-white truncate">{profile?.display_name || profile?.full_name || 'Creator'}</p>
+                    <p className="text-[10px] text-white/40 truncate">{profile?.email}</p>
+                  </div>
+                  <DropdownMenuItem onClick={() => navigate('/profile')} className="text-xs text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08]">
+                    <User className="w-3.5 h-3.5 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-xs text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08]">
+                    <Settings className="w-3.5 h-3.5 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-xs text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08]">
+                    <HelpCircle className="w-3.5 h-3.5 mr-2" />
+                    Help
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/[0.06]" />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-xs text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-white/[0.08]">
+                    <LogOut className="w-3.5 h-3.5 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </nav>
 
       {/* Main Content */}
       <main className="relative z-10 max-w-5xl mx-auto px-4 py-6 space-y-5">

@@ -616,11 +616,13 @@ export function ProductionPipeline({
 
       {/* Fullscreen Video Player */}
       {showVideoPlayer && finalVideoUrl && (
-        <FullscreenVideoPlayer
-          clips={[finalVideoUrl]}
-          title="Production Complete"
-          onClose={() => setShowVideoPlayer(false)}
-        />
+        <div className="fixed inset-0 z-50">
+          <FullscreenVideoPlayer
+            clips={[finalVideoUrl]}
+            title="Production Complete"
+            onClose={() => setShowVideoPlayer(false)}
+          />
+        </div>
       )}
     </div>
   );

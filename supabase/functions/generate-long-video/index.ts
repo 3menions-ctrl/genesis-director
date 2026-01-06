@@ -180,20 +180,33 @@ async function generateClip(
   return { operationName };
 }
 
-// Poll for operation completion
+// Poll for operation completion using fetchPredictOperation endpoint
 async function pollOperation(
   accessToken: string,
   operationName: string,
   maxAttempts = 120, // 10 minutes max
   pollInterval = 5000 // 5 seconds
 ): Promise<{ videoUrl: string }> {
-  const operationUrl = `https://us-central1-aiplatform.googleapis.com/v1/${operationName}`;
+  // Extract components from operation name
+  // Format: projects/{project}/locations/{location}/publishers/google/models/{model}/operations/{operation_id}
+  const match = operationName.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
+  if (!match) {
+    throw new Error(`Invalid operation name format: ${operationName}`);
+  }
+  
+  const [, projectId, location, modelId] = match;
+  const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise(resolve => setTimeout(resolve, pollInterval));
     
-    const response = await fetch(operationUrl, {
-      headers: { "Authorization": `Bearer ${accessToken}` }
+    const response = await fetch(fetchOperationUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ operationName }),
     });
     
     if (!response.ok) {
@@ -208,10 +221,24 @@ async function pollOperation(
         throw new Error(`Veo generation failed: ${result.error.message}`);
       }
       
-      const videoUri = result.response?.generatedSamples?.[0]?.video?.uri ||
-                       result.response?.predictions?.[0]?.video?.uri;
+      // Check for content filter blocking
+      if (result.response?.raiMediaFilteredCount > 0) {
+        throw new Error("Content filter blocked generation. Prompt needs rephrasing.");
+      }
+      
+      // Extract video URL from various response formats
+      let videoUri = result.response?.generatedSamples?.[0]?.video?.uri ||
+                     result.response?.videos?.[0]?.gcsUri ||
+                     result.response?.videos?.[0]?.uri;
       
       if (!videoUri) {
+        // Check for base64 encoded video
+        const base64Data = result.response?.videos?.[0]?.bytesBase64Encoded ||
+                          result.response?.generatedSamples?.[0]?.video?.bytesBase64Encoded;
+        if (base64Data) {
+          console.log(`[LongVideo] Video returned as base64 (${base64Data.length} chars)`);
+          return { videoUrl: "base64:" + base64Data };
+        }
         throw new Error("No video URI in completed response");
       }
       
@@ -220,10 +247,12 @@ async function pollOperation(
         ? `https://storage.googleapis.com/${videoUri.slice(5)}`
         : videoUri;
       
+      console.log(`[LongVideo] Clip completed: ${videoUrl.substring(0, 80)}...`);
       return { videoUrl };
     }
     
-    console.log(`[LongVideo] Poll attempt ${attempt + 1}: still processing...`);
+    const progress = result.metadata?.progressPercent || 0;
+    console.log(`[LongVideo] Poll attempt ${attempt + 1}: ${progress}% complete`);
   }
   
   throw new Error("Operation timed out after maximum polling attempts");
@@ -236,14 +265,34 @@ async function downloadToStorage(
   projectId: string,
   clipIndex: number
 ): Promise<string> {
-  const response = await fetch(videoUrl);
-  const videoBuffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(videoBuffer);
-  
   const fileName = `long_video_${projectId}_clip_${clipIndex}_${Date.now()}.mp4`;
+  let bytes: Uint8Array;
+  
+  // Handle base64 encoded video from Veo
+  if (videoUrl.startsWith("base64:")) {
+    const base64Data = videoUrl.slice(7); // Remove "base64:" prefix
+    console.log(`[LongVideo] Converting base64 video to storage (${base64Data.length} chars)`);
+    bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+  } else if (videoUrl.startsWith("data:")) {
+    // Handle data URL format
+    const matches = videoUrl.match(/^data:[^;]+;base64,(.+)$/);
+    if (!matches) throw new Error("Invalid data URL format");
+    bytes = Uint8Array.from(atob(matches[1]), c => c.charCodeAt(0));
+  } else {
+    // Regular HTTP URL - download the video
+    console.log(`[LongVideo] Downloading video from: ${videoUrl.substring(0, 80)}...`);
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download video: ${response.status}`);
+    }
+    const videoBuffer = await response.arrayBuffer();
+    bytes = new Uint8Array(videoBuffer);
+  }
+  
+  console.log(`[LongVideo] Uploading ${bytes.length} bytes to storage`);
   
   const { error } = await supabase.storage
-    .from('voice-tracks') // Reuse existing bucket for video clips
+    .from('video-clips')
     .upload(fileName, bytes, {
       contentType: 'video/mp4',
       upsert: true
@@ -254,7 +303,9 @@ async function downloadToStorage(
   }
   
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  return `${supabaseUrl}/storage/v1/object/public/voice-tracks/${fileName}`;
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${fileName}`;
+  console.log(`[LongVideo] Clip ${clipIndex} stored: ${publicUrl}`);
+  return publicUrl;
 }
 
 // Send clip to stitcher for frame-chaining

@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.smart-script-generator]
 verify_jwt = false
+
+[functions.generate-identity-bible]
+verify_jwt = false
+
+[functions.stitch-video]
+verify_jwt = false

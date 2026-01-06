@@ -2,11 +2,37 @@
 // Unified state container for shot-by-shot video generation
 // Now with Image-First Reference Architecture & Cinematic Auditor Agent
 // Tiered Quality: Standard (25 credits) vs Iron-Clad Professional (40 credits)
+// NEW: Identity Bible 3-Point System & Recursive Frame-Chaining
 
 export type ProjectType = 'cinematic-trailer' | 'social-ad' | 'narrative-short' | 'documentary' | 'explainer';
 
 // Quality Tier System
 export type QualityTier = 'standard' | 'professional';
+
+// ============================================
+// IDENTITY BIBLE 3-POINT SYSTEM
+// ============================================
+
+// 3-point character reference for visual consistency
+export interface IdentityBible {
+  // Original reference image uploaded by user
+  originalImageUrl: string;
+  
+  // Generated 3-point character views
+  frontViewUrl: string;
+  sideViewUrl: string;
+  threeQuarterViewUrl: string;
+  
+  // AI-extracted character description for prompt injection
+  characterDescription: string;
+  
+  // Key visual anchors for consistency
+  consistencyAnchors: string[];
+  
+  // Generation metadata
+  generatedAt: number;
+  isComplete: boolean;
+}
 
 // ============================================
 // IMAGE-FIRST REFERENCE ARCHITECTURE TYPES
@@ -238,6 +264,10 @@ export interface PipelineState {
   referenceImage?: ReferenceImageAnalysis;
   referenceImageRequired: boolean;
   
+  // IDENTITY BIBLE: 3-point character reference system
+  identityBible?: IdentityBible;
+  identityBibleGenerating: boolean;
+  
   // TEXT-TO-VIDEO: Allow pure text-based generation without reference image
   textToVideoMode: boolean;
   
@@ -283,6 +313,7 @@ export const INITIAL_PIPELINE_STATE: PipelineState = {
   projectTitle: '',
   qualityTier: 'standard', // Default to standard tier
   referenceImageRequired: true, // IMAGE-FIRST: Required by default
+  identityBibleGenerating: false, // IDENTITY BIBLE: Not generating by default
   textToVideoMode: false, // TEXT-TO-VIDEO: Disabled by default
   rawScript: '',
   structuredShots: [],

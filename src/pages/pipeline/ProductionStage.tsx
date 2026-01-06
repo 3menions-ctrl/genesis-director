@@ -14,6 +14,8 @@ import { useProductionPipeline } from '@/contexts/ProductionPipelineContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { VisualDebuggerPanel } from '@/components/studio/VisualDebuggerPanel';
+import { IdentityBiblePanel } from '@/components/studio/IdentityBiblePanel';
+import { DirectorsQueuePanel } from '@/components/studio/DirectorsQueuePanel';
 import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
 export default function ProductionStage() {
@@ -227,6 +229,12 @@ export default function ProductionStage() {
                 {TIER_CREDIT_COSTS[state.qualityTier].TOTAL_PER_SHOT} credits/shot
               </span>
             </div>
+            
+            {/* Identity Bible Panel - 3-point character reference */}
+            <IdentityBiblePanel />
+            
+            {/* Director's Queue - Visual shot chaining status */}
+            <DirectorsQueuePanel />
             
             {/* Visual Debugger Panel - Professional Tier Feature */}
             <VisualDebuggerPanel />

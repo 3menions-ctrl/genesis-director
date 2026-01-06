@@ -45,6 +45,7 @@ export default function ReviewStage() {
     state,
     setAudioMixMode,
     exportFinalVideo,
+    stitchFinalVideo,
     goToStage,
   } = useProductionPipeline();
   
@@ -635,7 +636,7 @@ export default function ReviewStage() {
               </Card>
             )}
             
-            {/* Export Options */}
+            {/* Export Options with Stitcher */}
             <Card className="p-4 bg-primary/5 border-primary/20 animate-fade-in" style={{ animationDelay: '300ms' }}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -649,13 +650,26 @@ export default function ReviewStage() {
                 </div>
               </div>
               <div className="space-y-2">
+                {/* Stitch clips together first */}
+                {completedClips.length > 1 && !state.finalVideoUrl && (
+                  <Button 
+                    onClick={async () => {
+                      await stitchFinalVideo();
+                    }}
+                    variant="secondary"
+                    className="w-full gap-2"
+                  >
+                    <Film className="w-4 h-4" />
+                    Stitch {completedClips.length} Clips Together
+                  </Button>
+                )}
                 <Button 
                   onClick={handleExport} 
                   disabled={isExporting}
                   className="w-full gap-2"
                 >
                   <FileVideo className="w-4 h-4" />
-                  Export Full Video
+                  {state.finalVideoUrl ? 'Download Stitched Video' : 'Export Full Video'}
                 </Button>
                 <Button 
                   variant="outline"

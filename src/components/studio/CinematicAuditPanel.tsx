@@ -17,7 +17,9 @@ interface CinematicAuditPanelProps {
   audit: CinematicAuditResult;
   onApprove: () => void;
   onApplySuggestion?: (shotId: string, optimizedDescription: string) => void;
+  onApplyAllAndReaudit?: () => Promise<void>;
   isApproved: boolean;
+  isReauditing?: boolean;
   className?: string;
 }
 
@@ -50,10 +52,21 @@ export function CinematicAuditPanel({
   audit, 
   onApprove,
   onApplySuggestion,
+  onApplyAllAndReaudit,
   isApproved,
+  isReauditing,
   className 
 }: CinematicAuditPanelProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(['suggestions']);
+  const [appliedSuggestions, setAppliedSuggestions] = useState<Set<string>>(new Set());
+
+  const handleApplySuggestion = (shotId: string, optimizedDescription: string) => {
+    onApplySuggestion?.(shotId, optimizedDescription);
+    setAppliedSuggestions(prev => new Set(prev).add(shotId));
+  };
+
+  const suggestionsWithRewrites = audit.suggestions?.filter(s => s.rewrittenPrompt) || [];
+  const unappliedCount = suggestionsWithRewrites.filter(s => !appliedSuggestions.has(s.shotId)).length;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -141,11 +154,35 @@ export function CinematicAuditPanel({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-2 mt-2">
+              {/* Apply All Button */}
+              {suggestionsWithRewrites.length > 0 && onApplyAllAndReaudit && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full mb-3 gap-2"
+                  onClick={onApplyAllAndReaudit}
+                  disabled={isReauditing}
+                >
+                  {isReauditing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Re-auditing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Apply All Fixes & Re-audit ({suggestionsWithRewrites.length})
+                    </>
+                  )}
+                </Button>
+              )}
+              
               {audit.suggestions.map((suggestion, idx) => (
                 <SuggestionCard 
                   key={idx} 
                   suggestion={suggestion}
-                  onApply={onApplySuggestion}
+                  onApply={handleApplySuggestion}
+                  isApplied={appliedSuggestions.has(suggestion.shotId)}
                 />
               ))}
             </CollapsibleContent>
@@ -328,10 +365,12 @@ export function CinematicAuditPanel({
 
 function SuggestionCard({ 
   suggestion,
-  onApply 
+  onApply,
+  isApplied
 }: { 
   suggestion: CinematicSuggestion;
   onApply?: (shotId: string, optimizedDescription: string) => void;
+  isApplied?: boolean;
 }) {
   const config = SEVERITY_CONFIG[suggestion.severity];
   const categoryIcon = CATEGORY_ICONS[suggestion.category];
@@ -366,13 +405,23 @@ function SuggestionCard({
       
       {suggestion.rewrittenPrompt && onApply && (
         <Button
-          variant="outline"
+          variant={isApplied ? "secondary" : "outline"}
           size="sm"
           className="w-full mt-2 text-xs"
           onClick={() => onApply(suggestion.shotId, suggestion.rewrittenPrompt!)}
+          disabled={isApplied}
         >
-          <Sparkles className="w-3 h-3 mr-1" />
-          Apply Optimized Prompt
+          {isApplied ? (
+            <>
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Applied
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-3 h-3 mr-1" />
+              Apply Optimized Prompt
+            </>
+          )}
         </Button>
       )}
     </div>

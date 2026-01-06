@@ -51,30 +51,22 @@ export function FullscreenVideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Preload and prepare next video
-  const prepareNextVideo = useCallback((nextIndex: number) => {
-    const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-    if (!nextVideo || nextIndex < 0 || nextIndex >= clips.length) return;
-
-    setNextVideoReady(false);
-    nextVideo.src = clips[nextIndex];
-    nextVideo.load();
-    nextVideo.currentTime = 0;
-    nextVideo.volume = volume;
-    nextVideo.muted = isMuted;
-
-    // Wait for video to be fully ready
-    const handleCanPlay = () => {
-      setNextVideoReady(true);
-      nextVideo.removeEventListener('canplaythrough', handleCanPlay);
-    };
-    nextVideo.addEventListener('canplaythrough', handleCanPlay);
-  }, [activeVideo, clips, volume, isMuted]);
+  // Refs to track current state without stale closures
+  const currentClipIndexRef = useRef(currentClipIndex);
+  const isTransitioningRef = useRef(isTransitioning);
+  
+  useEffect(() => {
+    currentClipIndexRef.current = currentClipIndex;
+  }, [currentClipIndex]);
+  
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+  }, [isTransitioning]);
 
   // Smooth crossfade to next clip
   const transitionToClip = useCallback((nextIndex: number) => {
-    if (isTransitioning || nextIndex < 0 || nextIndex >= clips.length) return;
-    if (nextIndex === currentClipIndex) return;
+    if (isTransitioningRef.current || nextIndex < 0 || nextIndex >= clips.length) return;
+    if (nextIndex === currentClipIndexRef.current) return;
 
     const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
     const currentVideo = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
@@ -83,33 +75,28 @@ export function FullscreenVideoPlayer({
 
     setIsTransitioning(true);
 
-    // Prepare next video if not already ready
-    if (nextVideo.src !== clips[nextIndex]) {
-      nextVideo.src = clips[nextIndex];
-      nextVideo.load();
-    }
+    // Set up next video
+    nextVideo.src = clips[nextIndex];
     nextVideo.currentTime = 0;
     nextVideo.volume = volume;
     nextVideo.muted = isMuted;
+    nextVideo.load();
 
     // Wait for next video to be ready before transitioning
     const startTransition = () => {
       nextVideo.play().then(() => {
-        // Immediately start crossfade - both videos visible during transition
+        // Start crossfade
         setActiveVideo(prev => prev === 'primary' ? 'secondary' : 'primary');
         setCurrentClipIndex(nextIndex);
         
         // Wait for crossfade to complete before cleanup
         setTimeout(() => {
           currentVideo.pause();
+          currentVideo.currentTime = 0;
           setIsTransitioning(false);
-          // Preload the next clip in sequence
-          const upcomingIndex = (nextIndex + 1) % clips.length;
-          if (clips.length > 1) {
-            prepareNextVideo(upcomingIndex);
-          }
         }, CROSSFADE_DURATION);
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('Video play failed:', err);
         setIsTransitioning(false);
       });
     };
@@ -120,19 +107,19 @@ export function FullscreenVideoPlayer({
     } else {
       nextVideo.addEventListener('canplay', startTransition, { once: true });
     }
-  }, [clips, currentClipIndex, isTransitioning, activeVideo, volume, isMuted, prepareNextVideo]);
+  }, [clips, activeVideo, volume, isMuted]);
 
   // Go to next clip
   const nextClip = useCallback(() => {
-    const nextIndex = (currentClipIndex + 1) % clips.length;
+    const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
     transitionToClip(nextIndex);
-  }, [currentClipIndex, clips.length, transitionToClip]);
+  }, [clips.length, transitionToClip]);
 
   // Go to previous clip
   const prevClip = useCallback(() => {
-    const prevIndex = currentClipIndex === 0 ? clips.length - 1 : currentClipIndex - 1;
+    const prevIndex = currentClipIndexRef.current === 0 ? clips.length - 1 : currentClipIndexRef.current - 1;
     transitionToClip(prevIndex);
-  }, [currentClipIndex, clips.length, transitionToClip]);
+  }, [clips.length, transitionToClip]);
 
   // Handle play/pause
   const togglePlay = useCallback(() => {
@@ -302,13 +289,6 @@ export function FullscreenVideoPlayer({
     };
   }, []);
 
-  // Preload next clip on mount and after transitions
-  useEffect(() => {
-    if (clips.length > 1) {
-      const nextIndex = (currentClipIndex + 1) % clips.length;
-      prepareNextVideo(nextIndex);
-    }
-  }, [currentClipIndex, clips.length, prepareNextVideo]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 

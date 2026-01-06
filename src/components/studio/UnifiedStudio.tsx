@@ -466,8 +466,8 @@ export function UnifiedStudio() {
     })));
 
     try {
-      // Stage 1: Pre-production
-      updateStageStatus(0, 'active', mode === 'ai' ? 'Generating script...' : 'Preparing...');
+      // Mark first stage as active - wait for real backend updates
+      updateStageStatus(0, 'active', 'Initializing...');
       addPipelineLog('Connecting to pipeline...', 'info');
       toast.info(`Starting ${mode === 'ai' ? 'AI Hollywood' : 'Manual'} Pipeline...`);
 
@@ -496,18 +496,7 @@ export function UnifiedStudio() {
         requestBody.referenceImageAnalysis = referenceImageAnalysis;
       }
 
-      // Simulate stage progress
-      updateStageStatus(0, 'complete', 'Script ready');
-      setProgress(15);
-      
-      if (referenceImageAnalysis) {
-        updateStageStatus(1, 'complete', 'Analyzed');
-        setProgress(25);
-      } else {
-        updateStageStatus(1, 'skipped');
-      }
-
-      // Call the unified Hollywood Pipeline (now returns immediately)
+      // Call the unified Hollywood Pipeline (returns immediately, runs in background)
       const { data, error: funcError } = await supabase.functions.invoke('hollywood-pipeline', {
         body: requestBody
       });
@@ -529,12 +518,11 @@ export function UnifiedStudio() {
       if (data.projectId) {
         setActiveProjectId(data.projectId);
         addPipelineLog(`Project created: ${data.projectId.substring(0, 8)}...`, 'success');
-        addPipelineLog('Pipeline running in background...', 'info');
-        toast.info('Pipeline started! Tracking progress in real-time...');
+        addPipelineLog('Waiting for real-time updates from backend...', 'info');
+        toast.success('Pipeline started! Tracking real progress...');
         
-        // The pipeline is now running in background
-        // Progress will be tracked via realtime subscription on movie_projects.pending_video_tasks
-        // Stage updates and completion will trigger the useEffect subscription above
+        // Real progress tracked via realtime subscription on movie_projects.pending_video_tasks
+        // All stage updates come from backend via the useEffect subscription above
       }
 
     } catch (err) {

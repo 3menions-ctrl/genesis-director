@@ -283,6 +283,12 @@ export default function ScriptingStage() {
     toast.success('Production-ready! Proceeding to 20-credit generation phase.');
   };
   
+  // Skip audit and proceed anyway (for users stuck in optimization loops)
+  const handleSkipAudit = () => {
+    approveAudit();
+    toast.warning('Audit skipped - proceeding with current script. Some AI issues may occur.');
+  };
+  
   const handleRegenerate = async () => {
     setIsGenerating(true);
     try {
@@ -892,6 +898,7 @@ export default function ScriptingStage() {
                   onApplySuggestion={applyAuditSuggestion}
                   onApplyAllAndReaudit={applyAllSuggestionsAndReaudit}
                   onAutoOptimize={autoOptimizeUntilReady}
+                  onSkipAudit={handleSkipAudit}
                   isApproved={state.auditApproved}
                   isReauditing={isReauditing}
                   optimizationProgress={optimizationProgress}

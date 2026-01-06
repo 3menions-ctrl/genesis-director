@@ -146,8 +146,8 @@ async function processStitching(
 
     const totalDuration = validClips.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Check for Stitcher URL (production mode)
-    const cloudRunUrl = Deno.env.get("STITCHER_URL");
+    // Check for Cloud Run URL (production mode)
+    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
     if (cloudRunUrl) {
       console.log("[Stitch] Using Cloud Run FFmpeg service (production mode)");
@@ -212,7 +212,7 @@ serve(async (req) => {
     console.log(`[Stitch] Clips to process: ${request.clips.length}`);
     console.log(`[Stitch] Audio mix mode: ${request.audioMixMode}`);
     
-    const cloudRunUrl = Deno.env.get("STITCHER_URL");
+    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     console.log(`[Stitch] Mode: ${cloudRunUrl ? 'Cloud Run FFmpeg' : 'MVP Manifest'}`);
 
     const result = await processStitching(request, supabase);

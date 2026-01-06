@@ -426,9 +426,9 @@ serve(async (req) => {
     }
 
     // Check for required secrets
-    const stitcherUrl = Deno.env.get("STITCHER_URL");
+    const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     if (!stitcherUrl) {
-      throw new Error("STITCHER_URL is not configured");
+      throw new Error("CLOUD_RUN_STITCHER_URL is not configured");
     }
 
     const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");

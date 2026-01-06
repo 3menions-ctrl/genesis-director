@@ -64,8 +64,10 @@ export default function ScriptingStage() {
     approveAudit,
     applyAuditSuggestion,
     applyAllSuggestionsAndReaudit,
+    autoOptimizeUntilReady,
     isAuditing,
     isReauditing,
+    optimizationProgress,
     // QUALITY TIER
     setQualityTier,
     // Reset
@@ -862,8 +864,10 @@ export default function ScriptingStage() {
                 onApprove={handleApproveAudit}
                 onApplySuggestion={applyAuditSuggestion}
                 onApplyAllAndReaudit={applyAllSuggestionsAndReaudit}
+                onAutoOptimize={autoOptimizeUntilReady}
                 isApproved={state.auditApproved}
                 isReauditing={isReauditing}
+                optimizationProgress={optimizationProgress}
               />
             ) : (
               <>

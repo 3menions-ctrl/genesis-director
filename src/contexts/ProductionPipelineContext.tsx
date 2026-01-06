@@ -62,7 +62,9 @@ interface ProductionPipelineContextType {
   approveAudit: () => void;
   applyAuditSuggestion: (shotId: string, optimizedDescription: string) => void;
   applyAllSuggestionsAndReaudit: () => Promise<void>;
+  autoOptimizeUntilReady: () => Promise<void>;
   isReauditing: boolean;
+  optimizationProgress: { iteration: number; score: number; message: string } | null;
   
   // Production stage
   startProduction: () => Promise<void>;
@@ -464,17 +466,17 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   
   // Apply all audit suggestions and re-run the audit
   const [isReauditing, setIsReauditing] = useState(false);
+  const [optimizationProgress, setOptimizationProgress] = useState<{ iteration: number; score: number; message: string } | null>(null);
   
+  // Single pass: apply fixes and re-audit once
   const applyAllSuggestionsAndReaudit = useCallback(async () => {
     if (!state.cinematicAudit?.suggestions) return;
     
     setIsReauditing(true);
     
     try {
-      // Apply all suggestions that have rewritten prompts
       const suggestionsWithRewrites = state.cinematicAudit.suggestions.filter(s => s.rewrittenPrompt);
       
-      // Update all shots at once
       setState(prev => ({
         ...prev,
         structuredShots: prev.structuredShots.map(shot => {
@@ -488,17 +490,12 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
             return suggestion ? { ...shot, description: suggestion.rewrittenPrompt! } : shot;
           }),
         },
-        // Clear the old audit to trigger fresh analysis
         cinematicAudit: undefined,
         auditApproved: false,
       }));
       
       toast.success(`Applied ${suggestionsWithRewrites.length} fixes. Re-auditing...`);
-      
-      // Small delay to let state update
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Re-run the audit
       await runCinematicAudit();
       
     } catch (err) {
@@ -508,6 +505,117 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       setIsReauditing(false);
     }
   }, [state.cinematicAudit?.suggestions, runCinematicAudit]);
+  
+  // Auto-optimize: keep improving until score >= 80% or max iterations
+  const autoOptimizeUntilReady = useCallback(async () => {
+    const TARGET_SCORE = 80;
+    const MAX_ITERATIONS = 5;
+    
+    setIsReauditing(true);
+    setOptimizationProgress({ iteration: 0, score: state.cinematicAudit?.overallScore || 0, message: 'Starting optimization...' });
+    
+    try {
+      let currentShots = [...state.structuredShots];
+      let iteration = 0;
+      let lastScore = state.cinematicAudit?.overallScore || 0;
+      
+      while (iteration < MAX_ITERATIONS) {
+        iteration++;
+        setOptimizationProgress({ 
+          iteration, 
+          score: lastScore, 
+          message: `Iteration ${iteration}/${MAX_ITERATIONS}: Analyzing shots...` 
+        });
+        
+        // Call the cinematic auditor directly with current shots
+        const { data, error } = await supabase.functions.invoke('cinematic-auditor', {
+          body: {
+            shots: currentShots,
+            referenceAnalysis: state.referenceImage,
+            projectType: state.projectType,
+            title: state.projectTitle,
+          },
+        });
+        
+        if (error) {
+          console.error('Audit error during optimization:', error);
+          throw new Error('Audit failed during optimization');
+        }
+        
+        const auditResult = data.audit;
+        lastScore = auditResult?.overallScore || 0;
+        
+        setOptimizationProgress({ 
+          iteration, 
+          score: lastScore, 
+          message: `Iteration ${iteration}: Score ${lastScore}%` 
+        });
+        
+        // Check if we've reached our target
+        if (lastScore >= TARGET_SCORE) {
+          setState(prev => ({
+            ...prev,
+            structuredShots: currentShots,
+            production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
+            cinematicAudit: auditResult,
+            auditApproved: false,
+          }));
+          toast.success(`Optimization complete! Score: ${lastScore}% (${iteration} iteration${iteration > 1 ? 's' : ''})`);
+          break;
+        }
+        
+        // Check if we have suggestions to apply
+        const suggestionsWithRewrites = auditResult?.suggestions?.filter((s: any) => s.rewrittenPrompt) || [];
+        
+        if (suggestionsWithRewrites.length === 0) {
+          // No more suggestions, we've done what we can
+          setState(prev => ({
+            ...prev,
+            structuredShots: currentShots,
+            production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
+            cinematicAudit: auditResult,
+            auditApproved: false,
+          }));
+          toast.warning(`Optimization reached ${lastScore}% - no more automatic improvements available`);
+          break;
+        }
+        
+        setOptimizationProgress({ 
+          iteration, 
+          score: lastScore, 
+          message: `Iteration ${iteration}: Applying ${suggestionsWithRewrites.length} fixes...` 
+        });
+        
+        // Apply all suggestions to current shots
+        currentShots = currentShots.map(shot => {
+          const suggestion = suggestionsWithRewrites.find((s: any) => s.shotId === shot.id);
+          return suggestion ? { ...shot, description: suggestion.rewrittenPrompt } : shot;
+        });
+        
+        // Small delay between iterations
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // If we hit max iterations without reaching target
+      if (iteration >= MAX_ITERATIONS && lastScore < TARGET_SCORE) {
+        setState(prev => ({
+          ...prev,
+          structuredShots: currentShots,
+          production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
+        }));
+        // Run one final audit to get the latest state
+        await runCinematicAudit();
+        toast.warning(`Reached max iterations. Best score: ${lastScore}%`);
+      }
+      
+    } catch (err) {
+      console.error('Auto-optimize error:', err);
+      toast.error('Optimization failed');
+    } finally {
+      setIsReauditing(false);
+      setOptimizationProgress(null);
+    }
+  }, [state.structuredShots, state.cinematicAudit, state.referenceImage, state.projectType, state.projectTitle, runCinematicAudit]);
   
   // Generate master anchor image for visual consistency
   const generateMasterAnchor = useCallback(async (): Promise<MasterAnchor | null> => {
@@ -1362,7 +1470,9 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       approveAudit,
       applyAuditSuggestion,
       applyAllSuggestionsAndReaudit,
+      autoOptimizeUntilReady,
       isReauditing,
+      optimizationProgress,
       // Production
       startProduction,
       cancelProduction,

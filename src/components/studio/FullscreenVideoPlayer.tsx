@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 interface FullscreenVideoPlayerProps {
   clips: string[];
   title?: string;
+  musicUrl?: string; // Continuous background music track
   onClose: () => void;
   onDownload?: () => void;
   onEdit?: () => void;
@@ -21,6 +22,7 @@ const CROSSFADE_START_BEFORE_END = 2; // seconds - start transition before clip 
 export function FullscreenVideoPlayer({
   clips,
   title,
+  musicUrl,
   onClose,
   onDownload,
   onEdit,
@@ -28,6 +30,7 @@ export function FullscreenVideoPlayer({
 }: FullscreenVideoPlayerProps) {
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -42,7 +45,9 @@ export function FullscreenVideoPlayer({
   
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [musicVolume, setMusicVolume] = useState(0.4); // Music at 40% by default
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
@@ -158,26 +163,29 @@ export function FullscreenVideoPlayer({
     transitionToClip(prevIndex);
   }, [clips.length, transitionToClip]);
 
-  // Handle play/pause - control BOTH videos to prevent audio desync
+  // Handle play/pause - control BOTH videos and music to stay in sync
   const togglePlay = useCallback(() => {
     const primaryVideo = primaryVideoRef.current;
     const secondaryVideo = secondaryVideoRef.current;
+    const music = musicRef.current;
     const activeVideoEl = activeVideo === 'primary' ? primaryVideo : secondaryVideo;
     
     if (!activeVideoEl) return;
     
     if (activeVideoEl.paused) {
       activeVideoEl.play();
+      music?.play();
       setIsPlaying(true);
     } else {
-      // Pause BOTH videos to prevent audio from inactive video continuing
+      // Pause BOTH videos and music to prevent audio from continuing
       primaryVideo?.pause();
       secondaryVideo?.pause();
+      music?.pause();
       setIsPlaying(false);
     }
   }, [activeVideo]);
 
-  // Handle mute/unmute
+  // Handle mute/unmute (video audio - dialogue/SFX)
   const toggleMute = useCallback(() => {
     const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
@@ -186,7 +194,16 @@ export function FullscreenVideoPlayer({
     setIsMuted(video.muted);
   }, [activeVideo]);
 
-  // Handle volume change
+  // Handle mute/unmute music
+  const toggleMusicMute = useCallback(() => {
+    const music = musicRef.current;
+    if (!music) return;
+    
+    music.muted = !music.muted;
+    setIsMusicMuted(music.muted);
+  }, []);
+
+  // Handle video volume change (dialogue/SFX)
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
@@ -196,6 +213,17 @@ export function FullscreenVideoPlayer({
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
   }, [activeVideo]);
+
+  // Handle music volume change
+  const handleMusicVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const music = musicRef.current;
+    if (!music) return;
+    
+    const newVolume = parseFloat(e.target.value);
+    music.volume = newVolume;
+    setMusicVolume(newVolume);
+    setIsMusicMuted(newVolume === 0);
+  }, []);
 
   // Handle seeking
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -352,6 +380,21 @@ export function FullscreenVideoPlayer({
     };
   }, []);
 
+  // Sync music with video playback
+  useEffect(() => {
+    const music = musicRef.current;
+    if (!music || !musicUrl) return;
+
+    music.volume = musicVolume;
+    music.muted = isMusicMuted;
+    
+    if (isPlaying) {
+      music.play().catch(() => {});
+    } else {
+      music.pause();
+    }
+  }, [isPlaying, musicUrl, musicVolume, isMusicMuted]);
+
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -402,6 +445,16 @@ export function FullscreenVideoPlayer({
           if (clips.length > 1) nextClip();
         }}
       />
+
+      {/* Continuous Background Music */}
+      {musicUrl && (
+        <audio
+          ref={musicRef}
+          src={musicUrl}
+          loop
+          autoPlay
+        />
+      )}
 
       {/* Controls Overlay */}
       <div 
@@ -504,11 +557,12 @@ export function FullscreenVideoPlayer({
                 <SkipForward className="w-4 h-4" />
               </button>
 
-              {/* Volume */}
+              {/* Video Volume (Dialogue/SFX) */}
               <div className="hidden sm:flex items-center gap-2">
                 <button
                   onClick={toggleMute}
                   className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
+                  title="Video Audio (Dialogue/SFX)"
                 >
                   {isMuted || volume === 0 ? (
                     <VolumeX className="w-5 h-5" />
@@ -523,9 +577,38 @@ export function FullscreenVideoPlayer({
                   step="0.1"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  className="w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  title="Video Audio"
                 />
               </div>
+
+              {/* Music Volume */}
+              {musicUrl && (
+                <div className="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
+                  <button
+                    onClick={toggleMusicMute}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
+                    title="Background Music"
+                  >
+                    {isMusicMuted || musicVolume === 0 ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  <span className="text-white/50 text-xs">Music</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={isMusicMuted ? 0 : musicVolume}
+                    onChange={handleMusicVolumeChange}
+                    className="w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                    title="Music Volume"
+                  />
+                </div>
+              )}
 
               {/* Time */}
               <span className="text-white/70 text-sm font-medium ml-2">

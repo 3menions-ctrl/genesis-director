@@ -507,30 +507,34 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   }, [state.cinematicAudit?.suggestions, runCinematicAudit]);
   
   // Auto-optimize: keep improving until score >= 80% or max iterations
+  // Uses VALIDATED optimization - only keeps fixes that actually improve scores
   const autoOptimizeUntilReady = useCallback(async () => {
     const TARGET_SCORE = 80;
     const MAX_ITERATIONS = 5;
+    const MIN_IMPROVEMENT = 2; // Minimum score improvement to accept a change
     
     setIsReauditing(true);
-    setOptimizationProgress({ iteration: 0, score: state.cinematicAudit?.overallScore || 0, message: 'Starting optimization...' });
+    setOptimizationProgress({ iteration: 0, score: state.cinematicAudit?.overallScore || 0, message: 'Starting validated optimization...' });
     
     try {
-      let currentShots = [...state.structuredShots];
+      let bestShots = [...state.structuredShots];
+      let bestScore = state.cinematicAudit?.overallScore || 0;
+      let bestAudit = state.cinematicAudit;
       let iteration = 0;
-      let lastScore = state.cinematicAudit?.overallScore || 0;
+      let noImprovementCount = 0;
       
-      while (iteration < MAX_ITERATIONS) {
+      while (iteration < MAX_ITERATIONS && noImprovementCount < 2) {
         iteration++;
         setOptimizationProgress({ 
           iteration, 
-          score: lastScore, 
+          score: bestScore, 
           message: `Iteration ${iteration}/${MAX_ITERATIONS}: Analyzing shots...` 
         });
         
-        // Call the cinematic auditor directly with current shots
+        // Call the cinematic auditor with current best shots
         const { data, error } = await supabase.functions.invoke('cinematic-auditor', {
           body: {
-            shots: currentShots,
+            shots: bestShots,
             referenceAnalysis: state.referenceImage,
             projectType: state.projectType,
             title: state.projectTitle,
@@ -543,69 +547,130 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         }
         
         const auditResult = data.audit;
-        lastScore = auditResult?.overallScore || 0;
+        const currentScore = auditResult?.overallScore || 0;
+        
+        // First iteration: update the baseline
+        if (iteration === 1) {
+          bestScore = currentScore;
+          bestAudit = auditResult;
+        }
         
         setOptimizationProgress({ 
           iteration, 
-          score: lastScore, 
-          message: `Iteration ${iteration}: Score ${lastScore}%` 
+          score: currentScore, 
+          message: `Iteration ${iteration}: Score ${currentScore}% (best: ${bestScore}%)` 
         });
         
         // Check if we've reached our target
-        if (lastScore >= TARGET_SCORE) {
+        if (currentScore >= TARGET_SCORE) {
           setState(prev => ({
             ...prev,
-            structuredShots: currentShots,
-            production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
+            structuredShots: bestShots,
+            production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
             cinematicAudit: auditResult,
             auditApproved: false,
           }));
-          toast.success(`Optimization complete! Score: ${lastScore}% (${iteration} iteration${iteration > 1 ? 's' : ''})`);
+          toast.success(`Optimization complete! Score: ${currentScore}% (${iteration} iteration${iteration > 1 ? 's' : ''})`);
           break;
         }
         
-        // Check if we have suggestions to apply
+        // Get suggestions with rewrites
         const suggestionsWithRewrites = auditResult?.suggestions?.filter((s: any) => s.rewrittenPrompt) || [];
         
         if (suggestionsWithRewrites.length === 0) {
-          // No more suggestions, we've done what we can
           setState(prev => ({
             ...prev,
-            structuredShots: currentShots,
-            production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
-            cinematicAudit: auditResult,
+            structuredShots: bestShots,
+            production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
+            cinematicAudit: bestAudit,
             auditApproved: false,
           }));
-          toast.warning(`Optimization reached ${lastScore}% - no more automatic improvements available`);
+          toast.warning(`Optimization reached ${bestScore}% - no more automatic improvements available`);
           break;
         }
         
         setOptimizationProgress({ 
           iteration, 
-          score: lastScore, 
-          message: `Iteration ${iteration}: Applying ${suggestionsWithRewrites.length} fixes...` 
+          score: currentScore, 
+          message: `Iteration ${iteration}: Testing ${suggestionsWithRewrites.length} proposed fixes...` 
         });
         
-        // Apply all suggestions to current shots
-        currentShots = currentShots.map(shot => {
+        // Create candidate shots with all proposed fixes applied
+        const candidateShots = bestShots.map(shot => {
           const suggestion = suggestionsWithRewrites.find((s: any) => s.shotId === shot.id);
           return suggestion ? { ...shot, description: suggestion.rewrittenPrompt } : shot;
         });
+        
+        // VALIDATE: Re-audit the candidate shots to confirm improvement
+        setOptimizationProgress({ 
+          iteration, 
+          score: currentScore, 
+          message: `Iteration ${iteration}: Validating fixes...` 
+        });
+        
+        const { data: validationData, error: validationError } = await supabase.functions.invoke('cinematic-auditor', {
+          body: {
+            shots: candidateShots,
+            referenceAnalysis: state.referenceImage,
+            projectType: state.projectType,
+            title: state.projectTitle,
+          },
+        });
+        
+        if (validationError) {
+          console.error('Validation audit error:', validationError);
+          noImprovementCount++;
+          continue;
+        }
+        
+        const validatedScore = validationData.audit?.overallScore || 0;
+        const improvement = validatedScore - bestScore;
+        
+        setOptimizationProgress({ 
+          iteration, 
+          score: validatedScore, 
+          message: `Iteration ${iteration}: Validated ${validatedScore}% (${improvement >= 0 ? '+' : ''}${improvement}%)` 
+        });
+        
+        // Only accept if there's genuine improvement
+        if (improvement >= MIN_IMPROVEMENT) {
+          bestShots = candidateShots;
+          bestScore = validatedScore;
+          bestAudit = validationData.audit;
+          noImprovementCount = 0;
+          toast.info(`Iteration ${iteration}: Improved by ${improvement}% (now ${validatedScore}%)`);
+        } else if (improvement > 0) {
+          // Small improvement - accept but note it
+          bestShots = candidateShots;
+          bestScore = validatedScore;
+          bestAudit = validationData.audit;
+          noImprovementCount++;
+          toast.info(`Iteration ${iteration}: Minor improvement +${improvement}%`);
+        } else {
+          // No improvement or regression - reject these fixes
+          noImprovementCount++;
+          toast.warning(`Iteration ${iteration}: Fixes rejected (no improvement)`);
+        }
         
         // Small delay between iterations
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      // If we hit max iterations without reaching target
-      if (iteration >= MAX_ITERATIONS && lastScore < TARGET_SCORE) {
+      // Final state update if we didn't reach target
+      if (bestScore < TARGET_SCORE) {
         setState(prev => ({
           ...prev,
-          structuredShots: currentShots,
-          production: { ...prev.production, shots: currentShots.map(s => ({ ...s, status: 'pending' as const })) },
+          structuredShots: bestShots,
+          production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
+          cinematicAudit: bestAudit,
+          auditApproved: false,
         }));
-        // Run one final audit to get the latest state
-        await runCinematicAudit();
-        toast.warning(`Reached max iterations. Best score: ${lastScore}%`);
+        
+        if (noImprovementCount >= 2) {
+          toast.warning(`Optimization stalled at ${bestScore}% - manual review recommended`);
+        } else {
+          toast.warning(`Reached max iterations. Best validated score: ${bestScore}%`);
+        }
       }
       
     } catch (err) {
@@ -615,7 +680,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       setIsReauditing(false);
       setOptimizationProgress(null);
     }
-  }, [state.structuredShots, state.cinematicAudit, state.referenceImage, state.projectType, state.projectTitle, runCinematicAudit]);
+  }, [state.structuredShots, state.cinematicAudit, state.referenceImage, state.projectType, state.projectTitle]);
   
   // Generate master anchor image for visual consistency
   const generateMasterAnchor = useCallback(async (): Promise<MasterAnchor | null> => {

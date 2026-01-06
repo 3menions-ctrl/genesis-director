@@ -98,7 +98,7 @@ serve(async (req) => {
       console.log(`Prompt: ${imagePrompt.substring(0, 200)}...`);
 
       try {
-        // Use OpenAI DALL-E 3 model (gpt-image-1 requires org verification)
+        // Use OpenAI gpt-image-1 model - the latest and most powerful
         const response = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
@@ -106,12 +106,11 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-1",
             prompt: imagePrompt,
             n: 1,
-            size: "1792x1024", // Widescreen 16:9 for cinematic look
-            quality: "hd",
-            style: "vivid",
+            size: "1536x1024", // Widescreen for cinematic look
+            quality: "high",
           }),
         });
 
@@ -133,52 +132,32 @@ serve(async (req) => {
         }
 
         const data = await response.json();
-        console.log(`OpenAI response for scene ${scene.sceneNumber}:`, JSON.stringify(data).substring(0, 200));
+        console.log(`GPT-Image-1 response for scene ${scene.sceneNumber}:`, JSON.stringify(data).substring(0, 200));
 
-        // DALL-E 3 returns URLs (not base64 by default)
-        const imageUrl = data.data?.[0]?.url;
-        const revisedPrompt = data.data?.[0]?.revised_prompt;
-        
-        if (revisedPrompt) {
-          console.log(`DALL-E 3 revised prompt for scene ${scene.sceneNumber}: ${revisedPrompt.substring(0, 100)}...`);
-        }
+        // gpt-image-1 returns base64 directly in b64_json field
+        const imageBase64 = data.data?.[0]?.b64_json;
 
-        if (imageUrl) {
-          // Fetch image from OpenAI URL and upload to Supabase storage
-          console.log(`Downloading image for scene ${scene.sceneNumber} from OpenAI...`);
-          const imageResponse = await fetch(imageUrl);
-          if (!imageResponse.ok) {
-            console.error(`Failed to download image for scene ${scene.sceneNumber}`);
-            // Fall back to using OpenAI URL directly (expires in 60 min)
-            generatedImages.push({
-              sceneNumber: scene.sceneNumber,
-              imageUrl: imageUrl,
-              prompt: imagePrompt,
-            });
-            continue;
-          }
-          const arrayBuffer = await imageResponse.arrayBuffer();
-          const imageBuffer = new Uint8Array(arrayBuffer);
+        if (imageBase64) {
+          // Convert base64 to binary and upload to Supabase storage
+          const binaryData = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
           
           const fileName = `${effectiveProjectId}/scene-${scene.sceneNumber}-${Date.now()}.png`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("scene-images")
-            .upload(fileName, imageBuffer, {
+            .upload(fileName, binaryData, {
               contentType: "image/png",
               upsert: true,
             });
 
           if (uploadError) {
             console.error(`Failed to upload image for scene ${scene.sceneNumber}:`, uploadError);
-            // If we have URL, use it directly as fallback
-            if (data.data?.[0]?.url) {
-              generatedImages.push({
-                sceneNumber: scene.sceneNumber,
-                imageUrl: data.data[0].url,
-                prompt: imagePrompt,
-              });
-            }
+            // Return base64 as fallback
+            generatedImages.push({
+              sceneNumber: scene.sceneNumber,
+              imageUrl: `data:image/png;base64,${imageBase64}`,
+              prompt: imagePrompt,
+            });
           } else {
             // Get public URL
             const { data: publicUrlData } = supabase.storage

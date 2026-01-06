@@ -39,12 +39,11 @@ Style: Ultra high resolution movie poster, dramatic lighting, cinematic color gr
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: thumbnailPrompt,
         n: 1,
-        size: "1792x1024",
-        quality: "standard",
-        response_format: "b64_json",
+        size: "1536x1024",
+        quality: "high",
       }),
     });
 
@@ -69,9 +68,9 @@ Style: Ultra high resolution movie poster, dramatic lighting, cinematic color gr
     }
 
     const data = await response.json();
-    console.log("DALL-E response received");
+    console.log("GPT-Image-1 response received");
 
-    // Extract the base64 image from the DALL-E response
+    // gpt-image-1 returns base64 directly in b64_json field
     const imageBase64 = data.data?.[0]?.b64_json;
     
     if (!imageBase64) {
@@ -80,7 +79,6 @@ Style: Ultra high resolution movie poster, dramatic lighting, cinematic color gr
     }
 
     const imageData = `data:image/png;base64,${imageBase64}`;
-
     // If we have a projectId, upload to storage
     if (projectId) {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");

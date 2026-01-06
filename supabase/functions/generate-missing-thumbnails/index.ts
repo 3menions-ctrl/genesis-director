@@ -76,23 +76,23 @@ Style: Ultra high resolution movie poster, dramatic lighting, cinematic color gr
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "dall-e-3",
+            model: "gpt-image-1",
             prompt: thumbnailPrompt,
             n: 1,
-            size: "1792x1024",
-            quality: "standard",
-            response_format: "b64_json",
+            size: "1536x1024",
+            quality: "high",
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`DALL-E error for ${project.id}:`, response.status, errorText);
+          console.error(`GPT-Image-1 error for ${project.id}:`, response.status, errorText);
           results.push({ projectId: project.id, success: false, error: `API error: ${response.status}` });
           continue;
         }
 
         const data = await response.json();
+        // gpt-image-1 returns base64 directly
         const imageBase64 = data.data?.[0]?.b64_json;
 
         if (!imageBase64) {

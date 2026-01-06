@@ -123,12 +123,12 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-5-mini-2025-08-07",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Break down this script into shots:\n\n${script}` }
         ],
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
       }),
     });
 

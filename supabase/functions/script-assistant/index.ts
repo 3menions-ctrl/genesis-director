@@ -97,12 +97,12 @@ Provide helpful, actionable suggestions or generate content as requested.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage }
         ],
-        max_completion_tokens: 2000,
+        max_tokens: 2000,
       }),
     });
 

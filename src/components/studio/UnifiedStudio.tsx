@@ -151,6 +151,7 @@ export function UnifiedStudio() {
   const [showCostDialog, setShowCostDialog] = useState(false);
   const [referenceExpanded, setReferenceExpanded] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
+  const [pipelineLogs, setPipelineLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'warning' | 'error' }>>([]);
   
   // Stage tracking
   const [stages, setStages] = useState<StageStatus[]>([
@@ -161,6 +162,12 @@ export function UnifiedStudio() {
     { name: 'Video Production', shortName: 'Production', status: 'pending' },
     { name: 'Final Assembly', shortName: 'Assembly', status: 'pending' },
   ]);
+
+  // Helper to add pipeline log entry
+  const addPipelineLog = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setPipelineLogs(prev => [...prev, { time, message, type }].slice(-50)); // Keep last 50 logs
+  }, []);
 
   const totalDuration = clipCount * CLIP_DURATION;
   const estimatedCredits = mode === 'ai' 
@@ -251,18 +258,27 @@ export function UnifiedStudio() {
             setProgress(tasks.progress);
           }
           
-          // Map stage names to indices
-          const stageMap: Record<string, number> = {
-            'preproduction': 0,
-            'qualitygate': 2,
-            'assets': 3,
-            'production': 4,
-            'postproduction': 5,
+          // Map stage names to display names and indices
+          const stageMap: Record<string, { index: number; name: string }> = {
+            'initializing': { index: -1, name: 'Initializing pipeline' },
+            'preproduction': { index: 0, name: 'Pre-production' },
+            'qualitygate': { index: 2, name: 'Quality audit' },
+            'assets': { index: 3, name: 'Asset creation' },
+            'production': { index: 4, name: 'Video production' },
+            'postproduction': { index: 5, name: 'Post-production' },
           };
           
+          // Log stage changes
+          if (tasks.stage && stageMap[tasks.stage]) {
+            const stageInfo = stageMap[tasks.stage];
+            if (stageInfo.index >= 0) {
+              addPipelineLog(`Stage: ${stageInfo.name} (${tasks.progress || 0}%)`, 'info');
+            }
+          }
+          
           // Update stage status based on current stage
-          if (tasks.stage && stageMap[tasks.stage] !== undefined) {
-            const stageIdx = stageMap[tasks.stage];
+          if (tasks.stage && stageMap[tasks.stage] && stageMap[tasks.stage].index >= 0) {
+            const stageIdx = stageMap[tasks.stage].index;
             // Mark previous stages as complete
             for (let i = 0; i < stageIdx; i++) {
               if (stages[i].status !== 'complete' && stages[i].status !== 'skipped') {
@@ -273,18 +289,41 @@ export function UnifiedStudio() {
             updateStageStatus(stageIdx, 'active');
           }
           
-          // Update specific stage details
+          // Log and update specific stage details
+          if (tasks.scriptGenerated && !pipelineLogs.some(l => l.message.includes('Script generated'))) {
+            addPipelineLog('Script generated successfully', 'success');
+          }
+          
           if (tasks.auditScore) {
             setAuditScore(tasks.auditScore);
             updateStageStatus(2, 'complete', `${tasks.auditScore}%`);
+            if (!pipelineLogs.some(l => l.message.includes('Quality score'))) {
+              addPipelineLog(`Quality score: ${tasks.auditScore}/100`, 'success');
+            }
           }
           
           if (tasks.charactersExtracted) {
             updateStageStatus(1, 'complete', `${tasks.charactersExtracted} chars`);
+            if (!pipelineLogs.some(l => l.message.includes('characters extracted'))) {
+              addPipelineLog(`${tasks.charactersExtracted} characters extracted`, 'info');
+            }
+          }
+          
+          if (tasks.hasVoice !== undefined) {
+            if (tasks.hasVoice && !pipelineLogs.some(l => l.message.includes('Voice narration'))) {
+              addPipelineLog('Voice narration generated', 'success');
+            }
+          }
+          
+          if (tasks.hasMusic !== undefined) {
+            if (tasks.hasMusic && !pipelineLogs.some(l => l.message.includes('Background music'))) {
+              addPipelineLog('Background music generated', 'success');
+            }
           }
           
           if (tasks.clipsCompleted) {
             updateStageStatus(4, 'active', `${tasks.clipsCompleted}/${clipCount} clips`);
+            addPipelineLog(`Video clips: ${tasks.clipsCompleted}/${clipCount} completed`, 'info');
           }
           
           // Handle completion
@@ -292,6 +331,7 @@ export function UnifiedStudio() {
             setFinalVideoUrl(tasks.finalVideoUrl);
             setCurrentStage('complete');
             setProgress(100);
+            addPipelineLog('Pipeline completed successfully!', 'success');
             
             // Mark all stages complete
             stages.forEach((_, i) => updateStageStatus(i, 'complete'));
@@ -327,6 +367,7 @@ export function UnifiedStudio() {
           if (tasks.stage === 'error') {
             setError(tasks.error || 'Pipeline failed');
             setCurrentStage('error');
+            addPipelineLog(`Error: ${tasks.error || 'Pipeline failed'}`, 'error');
             toast.error(tasks.error || 'Pipeline failed');
           }
           
@@ -347,7 +388,7 @@ export function UnifiedStudio() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages]);
+  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog]);
 
   const resetState = () => {
     setCurrentStage('idle');
@@ -362,6 +403,7 @@ export function UnifiedStudio() {
     setAuditScore(null);
     setStartTime(null);
     setElapsedTime(0);
+    setPipelineLogs([]); // Clear logs on reset
     setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
     abortControllerRef.current = null;
   };
@@ -410,6 +452,13 @@ export function UnifiedStudio() {
     setCurrentStage('preproduction');
     setProgress(5);
     
+    // Add initial log entries
+    addPipelineLog(`Starting ${mode === 'ai' ? 'AI Hollywood' : 'Manual'} Pipeline`, 'info');
+    addPipelineLog(`Configuration: ${clipCount} clips × ${CLIP_DURATION}s = ${clipCount * CLIP_DURATION}s`, 'info');
+    if (referenceImageAnalysis) {
+      addPipelineLog('Reference image loaded', 'info');
+    }
+    
     // Initialize clip results
     setClipResults(Array(clipCount).fill(null).map((_, i) => ({
       index: i,
@@ -419,6 +468,7 @@ export function UnifiedStudio() {
     try {
       // Stage 1: Pre-production
       updateStageStatus(0, 'active', mode === 'ai' ? 'Generating script...' : 'Preparing...');
+      addPipelineLog('Connecting to pipeline...', 'info');
       toast.info(`Starting ${mode === 'ai' ? 'AI Hollywood' : 'Manual'} Pipeline...`);
 
       const requestBody: any = {
@@ -478,6 +528,8 @@ export function UnifiedStudio() {
       // Set project ID for realtime tracking - pipeline now runs in background
       if (data.projectId) {
         setActiveProjectId(data.projectId);
+        addPipelineLog(`Project created: ${data.projectId.substring(0, 8)}...`, 'success');
+        addPipelineLog('Pipeline running in background...', 'info');
         toast.info('Pipeline started! Tracking progress in real-time...');
         
         // The pipeline is now running in background
@@ -487,6 +539,7 @@ export function UnifiedStudio() {
 
     } catch (err) {
       if (abortControllerRef.current?.signal.aborted) {
+        addPipelineLog('Pipeline cancelled by user', 'warning');
         return;
       }
       
@@ -494,6 +547,7 @@ export function UnifiedStudio() {
       const message = err instanceof Error ? err.message : 'Pipeline failed';
       setError(message);
       setCurrentStage('error');
+      addPipelineLog(`Error: ${message}`, 'error');
       
       // Mark current stage as error
       const activeStageIdx = stages.findIndex(s => s.status === 'active');
@@ -924,7 +978,7 @@ export function UnifiedStudio() {
           </Card>
         </Collapsible>
 
-        {/* Pipeline Progress - Premium Stepper */}
+        {/* Pipeline Progress - Premium Stepper with Live Updates */}
         {currentStage !== 'idle' && (
           <Card className="overflow-hidden">
             <CardHeader className="py-3 px-4 border-b border-border bg-muted/20">
@@ -937,16 +991,81 @@ export function UnifiedStudio() {
                       Processing
                     </Badge>
                   )}
+                  {currentStage === 'complete' && (
+                    <Badge variant="secondary" className="bg-success/10 text-success border-0 text-xs">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Complete
+                    </Badge>
+                  )}
                 </div>
-                {isRunning && (
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}
+                <div className="flex items-center gap-3">
+                  {isRunning && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}
+                    </span>
+                  )}
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {progress}%
                   </span>
-                )}
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="py-6 px-4">
+            
+            <CardContent className="py-4 px-4 space-y-4">
+              {/* Progress Bar */}
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-success transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              
+              {/* Stepper */}
               <PipelineStepper stages={stages} />
+              
+              {/* Live Updates Log */}
+              {pipelineLogs.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Live Updates
+                    </p>
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                      {pipelineLogs.length} events
+                    </Badge>
+                  </div>
+                  <ScrollArea className="h-32 rounded-lg border border-border bg-background/50">
+                    <div className="p-2 space-y-1 font-mono text-xs">
+                      {pipelineLogs.map((log, i) => (
+                        <div 
+                          key={i}
+                          className={cn(
+                            "flex gap-2 py-0.5 px-1 rounded transition-colors",
+                            log.type === 'error' && "bg-destructive/10 text-destructive",
+                            log.type === 'warning' && "bg-warning/10 text-warning",
+                            log.type === 'success' && "text-success",
+                            log.type === 'info' && "text-muted-foreground",
+                            i === pipelineLogs.length - 1 && "bg-muted/50"
+                          )}
+                        >
+                          <span className="text-muted-foreground/60 shrink-0">{log.time}</span>
+                          <span className={cn(
+                            log.type === 'success' && "text-success",
+                            log.type === 'error' && "text-destructive",
+                            log.type === 'warning' && "text-yellow-500"
+                          )}>
+                            {log.type === 'success' && '✓'}
+                            {log.type === 'error' && '✗'}
+                            {log.type === 'warning' && '⚠'}
+                            {log.type === 'info' && '→'}
+                          </span>
+                          <span>{log.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

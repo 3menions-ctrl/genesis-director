@@ -121,16 +121,21 @@ export function FullscreenVideoPlayer({
     transitionToClip(prevIndex);
   }, [clips.length, transitionToClip]);
 
-  // Handle play/pause
+  // Handle play/pause - control BOTH videos to prevent audio desync
   const togglePlay = useCallback(() => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
-    if (!video) return;
+    const primaryVideo = primaryVideoRef.current;
+    const secondaryVideo = secondaryVideoRef.current;
+    const activeVideoEl = activeVideo === 'primary' ? primaryVideo : secondaryVideo;
     
-    if (video.paused) {
-      video.play();
+    if (!activeVideoEl) return;
+    
+    if (activeVideoEl.paused) {
+      activeVideoEl.play();
       setIsPlaying(true);
     } else {
-      video.pause();
+      // Pause BOTH videos to prevent audio from inactive video continuing
+      primaryVideo?.pause();
+      secondaryVideo?.pause();
       setIsPlaying(false);
     }
   }, [activeVideo]);
@@ -218,7 +223,14 @@ export function FullscreenVideoPlayer({
       // Don't set isPlaying to false - loop will restart
     };
     const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePause = () => {
+      // Only set paused if both videos are paused (prevents false pause during transitions)
+      const primaryPaused = primaryVideoRef.current?.paused ?? true;
+      const secondaryPaused = secondaryVideoRef.current?.paused ?? true;
+      if (primaryPaused && secondaryPaused) {
+        setIsPlaying(false);
+      }
+    };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);

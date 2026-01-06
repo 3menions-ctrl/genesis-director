@@ -568,54 +568,52 @@ export default function Profile() {
       <main className="relative z-10 max-w-5xl mx-auto px-4 py-6 space-y-5">
         
         {/* Cover Video + Profile Header */}
-        <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+        <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl group">
           {/* Shiny edge */}
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent z-10" />
           
-          {/* Cover Video Area */}
-          <div className="relative h-48 bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden group">
-            {coverVideo ? (
-              <>
-                <video 
-                  ref={coverVideoRef}
-                  src={coverVideo}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loop
-                  muted
-                  playsInline
-                  autoPlay
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <button
-                  onClick={handlePlayCover}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Play className={cn("w-3 h-3 text-white", isPlayingCover && "hidden")} />
-                  {isPlayingCover && <div className="w-2 h-2 bg-white rounded-sm" />}
-                </button>
-                <button
-                  onClick={() => setCoverVideo(null)}
-                  className="absolute top-3 right-12 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-              </>
-            ) : (
+          {/* Full-size Cover Video */}
+          {coverVideo ? (
+            <>
+              <video 
+                ref={coverVideoRef}
+                src={coverVideo}
+                className="absolute inset-0 w-full h-full object-cover"
+                loop
+                muted
+                playsInline
+                autoPlay
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
               <button
-                onClick={handleOpenVideoPicker}
-                className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-colors"
+                onClick={handlePlayCover}
+                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
-                  <Video className="w-5 h-5 text-white/30" />
-                </div>
-                <span className="text-xs text-white/30">Choose cover video</span>
+                <Play className={cn("w-3 h-3 text-white", isPlayingCover && "hidden")} />
+                {isPlayingCover && <div className="w-2 h-2 bg-white rounded-sm" />}
               </button>
-            )}
-          </div>
+              <button
+                onClick={() => setCoverVideo(null)}
+                className="absolute top-3 right-12 z-20 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleOpenVideoPicker}
+              className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-white/[0.03] to-transparent hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
+                <Video className="w-5 h-5 text-white/30" />
+              </div>
+              <span className="text-xs text-white/30">Choose cover video</span>
+            </button>
+          )}
 
-          {/* Profile Info */}
-          <div className="relative px-5 pb-5 -mt-10">
-            <div className="flex items-end gap-4">
+          {/* Profile Info - Overlaid at bottom */}
+          <div className="relative z-10 px-5 py-5 min-h-[180px] flex items-end">
+            <div className="flex items-end gap-4 w-full">
               {/* Avatar */}
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 rounded-xl blur-lg" />
@@ -630,21 +628,21 @@ export default function Profile() {
               
               {/* Name & Meta */}
               <div className="flex-1 pb-1">
-                <h1 className="text-xl font-semibold text-white">
+                <h1 className="text-xl font-semibold text-white drop-shadow-lg">
                   {profile?.display_name || profile?.full_name || 'Creator'}
                 </h1>
-                <p className="text-xs text-white/40">{profile?.email} · Since {memberSince}</p>
+                <p className="text-xs text-white/60 drop-shadow">{profile?.email} · Since {memberSince}</p>
               </div>
 
               {/* Balance */}
               <div 
                 onClick={() => setShowBuyModal(true)}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all cursor-pointer group"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-black/50 hover:border-white/[0.2] transition-all cursor-pointer"
               >
-                <Coins className="w-4 h-4 text-white/50 group-hover:text-white/70 transition-colors" />
+                <Coins className="w-4 h-4 text-white/70" />
                 <div>
                   <p className="text-lg font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
-                  <p className="text-[9px] text-white/30 uppercase tracking-wide">Credits</p>
+                  <p className="text-[9px] text-white/50 uppercase tracking-wide">Credits</p>
                 </div>
               </div>
             </div>

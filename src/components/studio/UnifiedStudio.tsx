@@ -350,68 +350,77 @@ export function UnifiedStudio() {
   const completedClips = clipResults.filter(c => c.status === 'completed').length;
 
   return (
-    <div className="space-y-6">
-      {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25">
-              <Film className="w-7 h-7 text-primary-foreground" />
+    <div className="space-y-8">
+      {/* Premium Hero Header */}
+      <div className="relative overflow-hidden rounded-3xl bg-card border border-border p-8 shadow-lg">
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/50 via-transparent to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl" />
+        
+        <div className="relative">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="p-4 rounded-2xl bg-foreground shadow-xl">
+                <Film className="w-8 h-8 text-background" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Video Studio</h1>
+                <p className="text-base text-muted-foreground mt-1">
+                  Create cinematic AI videos in minutes
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Video Studio</h1>
-              <p className="text-sm text-muted-foreground">
-                Professional AI-powered video production
-              </p>
+            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted border border-border">
+                <Coins className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold">{credits} credits</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-background">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-semibold">{TOTAL_CLIPS * CLIP_DURATION}s video</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm border-primary/30">
-              <Coins className="w-4 h-4" />
-              {credits} credits
-            </Badge>
-            <Badge className="gap-1.5 px-3 py-1.5 text-sm">
-              <Clock className="w-4 h-4" />
-              {TOTAL_CLIPS * CLIP_DURATION}s video
-            </Badge>
           </div>
         </div>
       </div>
 
       {/* Mode Selection */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Creation Mode</CardTitle>
+      <Card className="overflow-hidden border-border shadow-sm bg-card">
+        <CardHeader className="pb-4 border-b border-border bg-muted/30">
+          <CardTitle className="text-lg font-semibold">Creation Mode</CardTitle>
           <CardDescription>Choose how you want to create your video</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-2 h-auto p-1.5 bg-muted/50 rounded-xl">
               <TabsTrigger 
                 value="ai" 
                 disabled={isRunning}
-                className="flex flex-col items-start gap-1 p-4 data-[state=active]:bg-primary/10"
+                className="flex flex-col items-start gap-1.5 p-5 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
+                  <div className="p-1.5 rounded-lg bg-foreground/10">
+                    <Zap className="w-4 h-4" />
+                  </div>
                   <span className="font-semibold">AI Hollywood Mode</span>
-                  <Badge variant="secondary" className="text-[10px]">RECOMMENDED</Badge>
+                  <Badge variant="secondary" className="text-[10px] bg-success/10 text-success border-0">RECOMMENDED</Badge>
                 </div>
-                <span className="text-xs text-muted-foreground text-left">
+                <span className="text-xs text-muted-foreground text-left pl-8">
                   Describe your concept, AI handles everything
                 </span>
               </TabsTrigger>
               <TabsTrigger 
                 value="manual" 
                 disabled={isRunning}
-                className="flex flex-col items-start gap-1 p-4 data-[state=active]:bg-primary/10"
+                className="flex flex-col items-start gap-1.5 p-5 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
                 <div className="flex items-center gap-2">
-                  <Clapperboard className="w-4 h-4" />
+                  <div className="p-1.5 rounded-lg bg-foreground/10">
+                    <Clapperboard className="w-4 h-4" />
+                  </div>
                   <span className="font-semibold">Manual Mode</span>
                 </div>
-                <span className="text-xs text-muted-foreground text-left">
+                <span className="text-xs text-muted-foreground text-left pl-8">
                   Write each scene prompt yourself
                 </span>
               </TabsTrigger>

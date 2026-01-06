@@ -34,7 +34,10 @@ export function FullscreenVideoPlayer({
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [activeVideo, setActiveVideo] = useState<'primary' | 'secondary'>('primary');
-  const [nextVideoReady, setNextVideoReady] = useState(false);
+  
+  // Track video sources via state to prevent React from resetting them
+  const [primarySrc, setPrimarySrc] = useState(clips[0] || '');
+  const [secondarySrc, setSecondarySrc] = useState('');
   
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -68,15 +71,24 @@ export function FullscreenVideoPlayer({
     if (isTransitioningRef.current || nextIndex < 0 || nextIndex >= clips.length) return;
     if (nextIndex === currentClipIndexRef.current) return;
 
-    const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-    const currentVideo = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    const isNextPrimary = activeVideo === 'secondary';
+    const nextVideo = isNextPrimary ? primaryVideoRef.current : secondaryVideoRef.current;
+    const currentVideo = isNextPrimary ? secondaryVideoRef.current : primaryVideoRef.current;
     
     if (!nextVideo || !currentVideo) return;
 
     setIsTransitioning(true);
 
-    // Set up next video
-    nextVideo.src = clips[nextIndex];
+    // Update source via state (this prevents React from resetting it on re-render)
+    const nextSrc = clips[nextIndex];
+    if (isNextPrimary) {
+      setPrimarySrc(nextSrc);
+    } else {
+      setSecondarySrc(nextSrc);
+    }
+
+    // Also set via ref for immediate effect before React re-renders
+    nextVideo.src = nextSrc;
     nextVideo.currentTime = 0;
     nextVideo.volume = volume;
     nextVideo.muted = isMuted;
@@ -85,8 +97,8 @@ export function FullscreenVideoPlayer({
     // Wait for next video to be ready before transitioning
     const startTransition = () => {
       nextVideo.play().then(() => {
-        // Start crossfade
-        setActiveVideo(prev => prev === 'primary' ? 'secondary' : 'primary');
+        // Start crossfade - swap active video
+        setActiveVideo(isNextPrimary ? 'primary' : 'secondary');
         setCurrentClipIndex(nextIndex);
         
         // Wait for crossfade to complete before cleanup
@@ -314,7 +326,7 @@ export function FullscreenVideoPlayer({
       {/* Primary Video Layer */}
       <video
         ref={primaryVideoRef}
-        src={clips[0]}
+        src={primarySrc}
         className={cn(
           "absolute inset-0 w-full h-full object-contain",
           "transition-opacity ease-in-out",
@@ -335,6 +347,7 @@ export function FullscreenVideoPlayer({
       {/* Secondary Video Layer (for crossfade) */}
       <video
         ref={secondaryVideoRef}
+        src={secondarySrc}
         className={cn(
           "absolute inset-0 w-full h-full object-contain",
           "transition-opacity ease-in-out",

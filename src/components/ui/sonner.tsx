@@ -10,18 +10,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      position="bottom-right"
+      position="bottom-center"
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:rounded-2xl group-[.toaster]:backdrop-blur-xl group-[.toaster]:shadow-xl group-[.toaster]:border",
-          description: "group-[.toast]:text-sm group-[.toast]:opacity-80",
-          actionButton: "group-[.toast]:bg-foreground group-[.toast]:text-background group-[.toast]:rounded-xl group-[.toast]:font-medium",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:rounded-xl",
-          success: "group-[.toaster]:bg-[hsl(145_50%_97%/0.95)] group-[.toaster]:text-[hsl(145_55%_28%)] group-[.toaster]:border-[hsl(145_45%_75%/0.5)]",
-          error: "group-[.toaster]:bg-[hsl(0_50%_97%/0.95)] group-[.toaster]:text-[hsl(0_55%_35%)] group-[.toaster]:border-[hsl(0_45%_80%/0.5)]",
-          warning: "group-[.toaster]:bg-[hsl(38_60%_97%/0.95)] group-[.toaster]:text-[hsl(30_60%_32%)] group-[.toaster]:border-[hsl(38_50%_75%/0.5)]",
-          info: "group-[.toaster]:bg-[hsl(210_50%_97%/0.95)] group-[.toaster]:text-[hsl(210_55%_35%)] group-[.toaster]:border-[hsl(210_45%_80%/0.5)]",
+            "group toast group-[.toaster]:bg-black/80 group-[.toaster]:backdrop-blur-2xl group-[.toaster]:border-white/10 group-[.toaster]:text-white group-[.toaster]:rounded-2xl group-[.toaster]:shadow-2xl group-[.toaster]:shadow-black/40 group-[.toaster]:px-5 group-[.toaster]:py-4",
+          description: "group-[.toast]:text-white/60 group-[.toast]:text-sm",
+          actionButton: "group-[.toast]:bg-white group-[.toast]:text-black group-[.toast]:rounded-xl group-[.toast]:font-semibold group-[.toast]:hover:bg-white/90",
+          cancelButton: "group-[.toast]:bg-white/10 group-[.toast]:text-white/70 group-[.toast]:rounded-xl group-[.toast]:hover:bg-white/20",
+          success: "group-[.toaster]:bg-black/80 group-[.toaster]:text-white group-[.toaster]:border-emerald-500/30 group-[.toaster]:[&>svg]:text-emerald-400",
+          error: "group-[.toaster]:bg-black/80 group-[.toaster]:text-white group-[.toaster]:border-red-500/30 group-[.toaster]:[&>svg]:text-red-400",
+          warning: "group-[.toaster]:bg-black/80 group-[.toaster]:text-white group-[.toaster]:border-amber-500/30 group-[.toaster]:[&>svg]:text-amber-400",
+          info: "group-[.toaster]:bg-black/80 group-[.toaster]:text-white group-[.toaster]:border-blue-500/30 group-[.toaster]:[&>svg]:text-blue-400",
+          title: "group-[.toast]:text-white group-[.toast]:font-medium",
+          icon: "group-[.toast]:text-white/70",
         },
       }}
       {...props}

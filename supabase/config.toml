@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.stitch-video]
 verify_jwt = false
+
+[functions.generate-long-video]
+verify_jwt = false

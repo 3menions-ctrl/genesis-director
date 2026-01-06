@@ -98,9 +98,9 @@ serve(async (req) => {
     
     console.log("[SmartScript] Request:", JSON.stringify(request, null, 2));
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     // Validate and constrain duration (6 sec to 4 min = 240 sec)
@@ -194,27 +194,27 @@ ${transitionPlan.map((t, i) => `Shot ${i + 1} → ${i + 2}: ${t}`).join('\n')}
 
 Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY valid JSON.`;
 
-    console.log("[SmartScript] Calling AI Gateway...");
+    console.log("[SmartScript] Calling OpenAI API...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: Math.min(4000, shotCount * 300), // Scale with shot count
+        max_tokens: Math.min(4000, shotCount * 300),
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[SmartScript] AI Gateway error:", response.status, errorText);
+      console.error("[SmartScript] OpenAI API error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -222,14 +222,14 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      if (response.status === 401) {
         return new Response(
-          JSON.stringify({ success: false, error: "Usage limit reached. Please add credits." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Invalid OpenAI API key." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -308,7 +308,7 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
           cameraVariety: (uniqueScales + uniqueAngles) / 10, // Normalized score
           pacingScore: pacing === 'dynamic' ? 0.9 : pacing === 'fast' ? 0.7 : pacing === 'moderate' ? 0.5 : 0.3,
         },
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         generationTimeMs,
         usage: data.usage,
       }),

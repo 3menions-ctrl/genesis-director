@@ -223,12 +223,12 @@ export function FullscreenVideoPlayer({
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleDurationChange = () => setDuration(video.duration);
     const handleEnded = () => {
-      // Auto-advance to next clip with crossfade
+      // For multiple clips, auto-advance with crossfade
+      // For single clip, the loop attribute handles it
       if (clips.length > 1) {
         nextClip();
-      } else {
-        setIsPlaying(false);
       }
+      // Don't set isPlaying to false - loop will restart
     };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -330,9 +330,11 @@ export function FullscreenVideoPlayer({
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         autoPlay
-        loop={clips.length === 1}
+        loop
+        muted={isMuted}
         playsInline
         onClick={togglePlay}
+        onPlay={() => setIsPlaying(true)}
       />
 
       {/* Secondary Video Layer (for crossfade) */}
@@ -344,9 +346,11 @@ export function FullscreenVideoPlayer({
           activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
-        loop={clips.length === 1}
+        loop
+        muted={isMuted}
         playsInline
         onClick={togglePlay}
+        onPlay={() => setIsPlaying(true)}
       />
 
       {/* Controls Overlay */}
@@ -376,22 +380,6 @@ export function FullscreenVideoPlayer({
           </div>
         </div>
 
-        {/* Center Play/Pause Button - only show when paused */}
-        {!isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <button
-              onClick={togglePlay}
-              className={cn(
-                "w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-full",
-                "bg-white/10 backdrop-blur-xl border border-white/20",
-                "transition-all duration-300 pointer-events-auto",
-                "hover:bg-white/20 hover:scale-105"
-              )}
-            >
-              <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" fill="currentColor" />
-            </button>
-          </div>
-        )}
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">

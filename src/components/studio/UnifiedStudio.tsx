@@ -50,7 +50,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
-import { PipelineStepper } from '@/components/studio/PipelineStepper';
+import { ProductionPipeline } from '@/components/studio/ProductionPipeline';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
@@ -978,248 +978,21 @@ export function UnifiedStudio() {
           </Card>
         </Collapsible>
 
-        {/* Pipeline Progress - Premium Stepper with Live Updates */}
+        {/* Premium Production Pipeline - Only show when not idle */}
         {currentStage !== 'idle' && (
-          <Card className="overflow-hidden">
-            <CardHeader className="py-3 px-4 border-b border-border bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-sm font-medium">Pipeline Progress</CardTitle>
-                  {isRunning && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs animate-pulse">
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      Processing
-                    </Badge>
-                  )}
-                  {currentStage === 'complete' && (
-                    <Badge variant="secondary" className="bg-success/10 text-success border-0 text-xs">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Complete
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  {isRunning && (
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {progress}%
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="py-4 px-4 space-y-4">
-              {/* Progress Bar */}
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary to-success transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              
-              {/* Stepper */}
-              <PipelineStepper stages={stages} />
-              
-              {/* Live Updates Log */}
-              {pipelineLogs.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Live Updates
-                    </p>
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                      {pipelineLogs.length} events
-                    </Badge>
-                  </div>
-                  <ScrollArea className="h-32 rounded-lg border border-border bg-background/50">
-                    <div className="p-2 space-y-1 font-mono text-xs">
-                      {pipelineLogs.map((log, i) => (
-                        <div 
-                          key={i}
-                          className={cn(
-                            "flex gap-2 py-0.5 px-1 rounded transition-colors",
-                            log.type === 'error' && "bg-destructive/10 text-destructive",
-                            log.type === 'warning' && "bg-warning/10 text-warning",
-                            log.type === 'success' && "text-success",
-                            log.type === 'info' && "text-muted-foreground",
-                            i === pipelineLogs.length - 1 && "bg-muted/50"
-                          )}
-                        >
-                          <span className="text-muted-foreground/60 shrink-0">{log.time}</span>
-                          <span className={cn(
-                            log.type === 'success' && "text-success",
-                            log.type === 'error' && "text-destructive",
-                            log.type === 'warning' && "text-yellow-500"
-                          )}>
-                            {log.type === 'success' && '✓'}
-                            {log.type === 'error' && '✗'}
-                            {log.type === 'warning' && '⚠'}
-                            {log.type === 'info' && '→'}
-                          </span>
-                          <span>{log.message}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="py-4 px-4">
-              <div className="flex items-start gap-3">
-                <XCircle className="w-5 h-5 text-destructive shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-destructive">Pipeline Error</p>
-                  <p className="text-sm text-destructive/80 mt-0.5 break-words">{error}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetState}
-                  className="shrink-0 gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Generated Assets Preview */}
-        {(sceneImages.length > 0 || identityBibleViews) && (
-          <Card>
-            <CardHeader className="py-3 px-4 border-b border-border">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Image className="w-4 h-4 text-muted-foreground" />
-                Generated Assets
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-4 px-4 space-y-4">
-              {/* Identity Bible Views */}
-              {identityBibleViews && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" />
-                    Character Reference
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {identityBibleViews.front && (
-                      <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                        <img src={identityBibleViews.front} alt="Front" className="w-full h-full object-cover" />
-                        <Badge className="absolute bottom-1 left-1 text-[9px] px-1 h-4">Front</Badge>
-                      </div>
-                    )}
-                    {identityBibleViews.side && (
-                      <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                        <img src={identityBibleViews.side} alt="Side" className="w-full h-full object-cover" />
-                        <Badge className="absolute bottom-1 left-1 text-[9px] px-1 h-4">Side</Badge>
-                      </div>
-                    )}
-                    {identityBibleViews.threeQuarter && (
-                      <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                        <img src={identityBibleViews.threeQuarter} alt="3/4" className="w-full h-full object-cover" />
-                        <Badge className="absolute bottom-1 left-1 text-[9px] px-1 h-4">3/4</Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Scene Images */}
-              {sceneImages.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5" />
-                    Scene References
-                  </p>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {sceneImages.map((scene) => (
-                      <div key={scene.sceneNumber} className="relative aspect-video rounded-lg overflow-hidden border border-border">
-                        <img src={scene.imageUrl} alt={`Scene ${scene.sceneNumber}`} className="w-full h-full object-cover" />
-                        <Badge className="absolute bottom-0.5 left-0.5 text-[8px] px-1 h-3.5">{scene.sceneNumber}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Final Video */}
-        {finalVideoUrl && (
-          <Card className="border-success/30 bg-gradient-to-br from-success/5 to-transparent overflow-hidden">
-            <CardHeader className="py-4 px-4 border-b border-success/20">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-success/10">
-                    <CheckCircle2 className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base text-success">Video Ready!</CardTitle>
-                    {startTime && (
-                      <p className="text-xs text-muted-foreground">
-                        Generated in {Math.floor((Date.now() - startTime) / 1000 / 60)}m {Math.floor((Date.now() - startTime) / 1000 % 60)}s
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {auditScore && (
-                    <Badge variant="outline" className="border-success/30 text-success text-xs gap-1">
-                      <Star className="w-3 h-3" />
-                      {auditScore}%
-                    </Badge>
-                  )}
-                  {pipelineDetails?.assets?.hasVoice && (
-                    <Badge variant="outline" className="border-success/30 text-success text-xs gap-1">
-                      <Mic className="w-3 h-3" />
-                    </Badge>
-                  )}
-                  {pipelineDetails?.assets?.hasMusic && (
-                    <Badge variant="outline" className="border-success/30 text-success text-xs gap-1">
-                      <Music className="w-3 h-3" />
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="py-4 px-4 space-y-4">
-              <div className="rounded-xl overflow-hidden border border-success/20 shadow-lg">
-                <video
-                  src={finalVideoUrl}
-                  controls
-                  className="w-full aspect-video bg-foreground"
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button className="flex-1 gap-2 h-10" asChild>
-                  <a href={finalVideoUrl} download="video.mp4" target="_blank" rel="noopener noreferrer">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2 h-10"
-                  onClick={resetState}
-                >
-                  <Play className="w-4 h-4" />
-                  New Video
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ProductionPipeline
+            stages={stages}
+            progress={progress}
+            elapsedTime={elapsedTime}
+            isRunning={isRunning}
+            finalVideoUrl={finalVideoUrl}
+            pipelineLogs={pipelineLogs}
+            clipResults={clipResults}
+            auditScore={auditScore}
+            sceneImages={sceneImages}
+            identityBibleViews={identityBibleViews}
+            onCancel={handleCancel}
+          />
         )}
       </div>
 

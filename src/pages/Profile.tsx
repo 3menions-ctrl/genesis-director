@@ -573,7 +573,7 @@ export default function Profile() {
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           
           {/* Cover Video Area */}
-          <div className="relative h-44 bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden group">
+          <div className="relative h-48 bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden group">
             {coverVideo ? (
               <>
                 <video 
@@ -583,8 +583,9 @@ export default function Profile() {
                   loop
                   muted
                   playsInline
+                  autoPlay
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <button
                   onClick={handlePlayCover}
                   className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -602,7 +603,7 @@ export default function Profile() {
             ) : (
               <button
                 onClick={handleOpenVideoPicker}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-colors"
+                className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
                   <Video className="w-5 h-5 text-white/30" />

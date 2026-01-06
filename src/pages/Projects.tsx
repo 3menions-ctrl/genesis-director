@@ -36,14 +36,23 @@ function SmartVideoPlayer({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Seek to 1 second to show a frame as the "saver"
+  const handleLoadedData = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 1;
+    }
+  };
+
   const handleMouseEnter = () => {
     if (!playOnHover || !videoRef.current) return;
+    videoRef.current.currentTime = 0;
     videoRef.current.play().catch(() => {});
   };
 
   const handleMouseLeave = () => {
     if (!playOnHover || !videoRef.current) return;
     videoRef.current.pause();
+    videoRef.current.currentTime = 1;
   };
 
   const handleClick = () => {
@@ -69,7 +78,8 @@ function SmartVideoPlayer({
         loop
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
+        onLoadedData={handleLoadedData}
       />
     </div>
   );

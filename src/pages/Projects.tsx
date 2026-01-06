@@ -320,22 +320,6 @@ export default function Projects() {
               
               {/* Action buttons */}
               <div className="flex items-center gap-2 sm:gap-3 animate-fade-in" style={{ animationDelay: '100ms' }}>
-                {projectsWithoutThumbnails > 0 && (
-                  <Button 
-                    variant="outline"
-                    onClick={handleGenerateMissingThumbnails}
-                    disabled={isGeneratingThumbnails}
-                    size="sm"
-                    className="h-7 px-2.5 rounded-md bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm text-xs"
-                  >
-                    {isGeneratingThumbnails ? (
-                      <Loader2 className="w-3 h-3 sm:mr-1.5 animate-spin" />
-                    ) : (
-                      <ImageIcon className="w-3 h-3 sm:mr-1.5 text-purple-400" />
-                    )}
-                    <span className="hidden sm:inline">Thumbnails</span>
-                  </Button>
-                )}
                 <Button 
                   variant="outline"
                   onClick={() => navigate('/pipeline/scripting')}

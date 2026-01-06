@@ -203,12 +203,12 @@ Return ONLY valid JSON matching the specified format.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini-2025-08-07',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
       }),
     });
 

@@ -649,214 +649,230 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'This Month', value: loadingMetrics ? '—' : metrics.creditsThisMonth, icon: BarChart3, change: monthlyChange },
-            { label: 'Videos', value: loadingMetrics ? '—' : metrics.totalVideosGenerated, icon: Video },
-            { label: 'Projects', value: loadingMetrics ? '—' : metrics.totalProjects, icon: FolderOpen },
-            { label: 'Avg/Video', value: loadingMetrics ? '—' : metrics.avgCreditsPerVideo, icon: Target },
-          ].map((stat, i) => (
-            <div 
-              key={i}
-              className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm hover:bg-white/[0.025] hover:border-white/[0.08] transition-all group"
-            >
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="p-3.5">
-                <div className="flex items-center justify-between mb-2">
-                  <stat.icon className="w-3.5 h-3.5 text-white/30" />
-                  {stat.change !== undefined && (
-                    <span className={cn("text-[9px] font-medium", stat.change >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                      {stat.change >= 0 ? '+' : ''}{stat.change}%
-                    </span>
-                  )}
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-12 gap-3">
+          
+          {/* Left Column - Stats + Activity */}
+          <div className="col-span-12 lg:col-span-8 space-y-3">
+            
+            {/* Key Metrics Row */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Credits Used', value: loadingMetrics ? '—' : metrics.creditsThisMonth, icon: BarChart3, sub: 'this month', change: monthlyChange },
+                { label: 'Videos', value: loadingMetrics ? '—' : metrics.totalVideosGenerated, icon: Video, sub: 'total' },
+                { label: 'Projects', value: loadingMetrics ? '—' : metrics.totalProjects, icon: FolderOpen, sub: `${metrics.completedProjects} done` },
+                { label: 'Avg Cost', value: loadingMetrics ? '—' : metrics.avgCreditsPerVideo, icon: Target, sub: 'per video' },
+              ].map((stat, i) => (
+                <div 
+                  key={i}
+                  className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm hover:bg-white/[0.025] hover:border-white/[0.08] transition-all group p-3"
+                >
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <stat.icon className="w-3 h-3 text-white/25" />
+                    {stat.change !== undefined && (
+                      <span className={cn("text-[8px] font-medium", stat.change >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                        {stat.change >= 0 ? '+' : ''}{stat.change}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-lg font-bold text-white leading-tight">{stat.value}</p>
+                  <p className="text-[9px] text-white/30">{stat.sub}</p>
                 </div>
-                <p className="text-xl font-bold text-white">{stat.value}</p>
-                <p className="text-[10px] text-white/25 mt-0.5">{stat.label}</p>
+              ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Usage Trend - Compact */}
+              <div className="col-span-2 relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-3">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3 h-3 text-white/25" />
+                    <span className="text-[10px] text-white/50">14-day usage</span>
+                  </div>
+                </div>
+                {loadingMetrics ? (
+                  <Skeleton className="h-16 w-full rounded bg-white/5" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={70}>
+                    <AreaChart data={dailyUsage} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="usageGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ffffff" stopOpacity={0.12} />
+                          <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" stroke="rgba(255,255,255,0.1)" fontSize={7} tickLine={false} axisLine={false} interval={2} />
+                      <YAxis stroke="rgba(255,255,255,0.1)" fontSize={7} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'rgba(0,0,0,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '9px' }}
+                        labelStyle={{ color: '#fff' }}
+                      />
+                      <Area type="monotone" dataKey="credits" stroke="rgba(255,255,255,0.35)" strokeWidth={1} fill="url(#usageGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Genre Distribution - Compact */}
+              <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-3">
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="flex items-center gap-2 mb-1">
+                  <PieChartIcon className="w-3 h-3 text-white/25" />
+                  <span className="text-[10px] text-white/50">Genres</span>
+                </div>
+                {loadingMetrics ? (
+                  <Skeleton className="h-16 w-full rounded bg-white/5" />
+                ) : genreData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={70}>
+                    <PieChart>
+                      <Pie data={genreData} cx="50%" cy="50%" innerRadius={18} outerRadius={30} paddingAngle={2} dataKey="value">
+                        {genreData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '9px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-16 flex items-center justify-center text-white/15 text-[10px]">No data</div>
+                )}
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Charts + Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Usage Chart */}
-          <div className="lg:col-span-3 relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-3.5 h-3.5 text-white/30" />
-                <span className="text-xs text-white/60">14-day trend</span>
+            {/* Recent Activity - Compact */}
+            <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="px-3 py-2 border-b border-white/[0.04] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="w-3 h-3 text-white/25" />
+                  <span className="text-[10px] text-white/50">Recent Activity</span>
+                </div>
+                <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px] text-white/30 hover:text-white/50 hover:bg-white/5">
+                  View all <ChevronRight className="w-2.5 h-2.5 ml-0.5" />
+                </Button>
               </div>
-              
-              {loadingMetrics ? (
-                <Skeleton className="h-32 w-full rounded-lg bg-white/5" />
-              ) : (
-                <ResponsiveContainer width="100%" height={130}>
-                  <AreaChart data={dailyUsage} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="usageGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ffffff" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.15)" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="rgba(255,255,255,0.15)" fontSize={9} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(0,0,0,0.9)', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '8px',
-                        fontSize: '10px',
-                      }}
-                      labelStyle={{ color: '#fff' }}
-                    />
-                    <Area type="monotone" dataKey="credits" stroke="rgba(255,255,255,0.4)" strokeWidth={1.5} fill="url(#usageGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+              <div className="divide-y divide-white/[0.03]">
+                {loadingTransactions ? (
+                  [...Array(3)].map((_, i) => (
+                    <div key={i} className="px-3 py-2">
+                      <Skeleton className="h-6 w-full rounded bg-white/5" />
+                    </div>
+                  ))
+                ) : transactions.length === 0 ? (
+                  <div className="px-3 py-6 text-center">
+                    <p className="text-[9px] text-white/20">No activity yet</p>
+                  </div>
+                ) : (
+                  transactions.slice(0, 4).map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between px-3 py-2 hover:bg-white/[0.01] transition-colors">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                          {getTransactionIcon(tx.transaction_type, tx.amount)}
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-white/60">
+                            {tx.description || (tx.transaction_type === 'bonus' ? 'Bonus' : tx.transaction_type === 'purchase' ? 'Purchase' : 'Generation')}
+                          </p>
+                          <p className="text-[8px] text-white/20">
+                            {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {tx.clip_duration_seconds && <span className="ml-1">{tx.clip_duration_seconds}s clip</span>}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={cn("text-[10px] font-semibold tabular-nums", tx.amount >= 0 ? 'text-emerald-400/70' : 'text-white/35')}>
+                        {tx.amount >= 0 ? '+' : ''}{tx.amount}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Genre + Stats */}
-          <div className="lg:col-span-2 space-y-3">
-            {/* Genre Pie */}
+          {/* Right Column - Summary Cards */}
+          <div className="col-span-12 lg:col-span-4 space-y-3">
+            
+            {/* Credits Overview */}
             <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="flex items-center gap-2 mb-2">
-                <PieChartIcon className="w-3.5 h-3.5 text-white/30" />
-                <span className="text-xs text-white/60">Genres</span>
+              <div className="flex items-center gap-2 mb-3">
+                <Coins className="w-3.5 h-3.5 text-white/30" />
+                <span className="text-[10px] text-white/50 uppercase tracking-wider">Credits Overview</span>
               </div>
               
-              {loadingMetrics ? (
-                <Skeleton className="h-24 w-full rounded-lg bg-white/5" />
-              ) : genreData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={90}>
-                  <PieChart>
-                    <Pie
-                      data={genreData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={25}
-                      outerRadius={40}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {genreData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(0,0,0,0.9)', 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '6px',
-                        fontSize: '10px'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-24 flex items-center justify-center text-white/15 text-xs">
-                  No projects
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-white/40">Available</span>
+                  <span className="text-lg font-bold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
                 </div>
-              )}
+                <div className="h-px bg-white/[0.05]" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[8px] uppercase tracking-wider text-white/25 mb-0.5">Purchased</p>
+                    <p className="text-sm font-semibold text-white">{profile?.total_credits_purchased?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] uppercase tracking-wider text-white/25 mb-0.5">Used</p>
+                    <p className="text-sm font-semibold text-white">{profile?.total_credits_used?.toLocaleString() || 0}</p>
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full rounded-full bg-gradient-to-r from-white/20 to-white/40" style={{ width: `${usagePercentage}%` }} />
+                </div>
+                <p className="text-[8px] text-white/25 text-center">{usagePercentage}% of total credits used</p>
+              </div>
             </div>
 
-            {/* Quick Stats */}
+            {/* Production Stats */}
             <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="flex items-center gap-2 mb-3">
+                <Film className="w-3.5 h-3.5 text-white/30" />
+                <span className="text-[10px] text-white/50 uppercase tracking-wider">Production</span>
+              </div>
+              
               <div className="space-y-2.5">
                 {[
-                  { icon: CheckCircle2, label: 'Completed', value: metrics.completedProjects },
-                  { icon: Timer, label: 'Duration', value: formatDuration(metrics.totalVideoDuration) },
-                  { icon: Film, label: 'Top Genre', value: metrics.mostUsedGenre },
+                  { label: 'Total Duration', value: formatDuration(metrics.totalVideoDuration), icon: Timer },
+                  { label: 'Completed', value: `${metrics.completedProjects} projects`, icon: CheckCircle2 },
+                  { label: 'In Progress', value: `${metrics.inProgressProjects} projects`, icon: Layers },
+                  { label: 'Top Genre', value: metrics.mostUsedGenre, icon: Film },
+                  { label: 'This Week', value: `${metrics.videosThisWeek} videos`, icon: TrendingUp },
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-white/35">
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[10px] text-white/35">
                       <item.icon className="w-3 h-3" />
                       {item.label}
                     </span>
-                    <span className="font-medium text-white/80">{item.value}</span>
+                    <span className="text-[10px] font-medium text-white/70">{item.value}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Transactions */}
-        <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm">
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="w-3.5 h-3.5 text-white/30" />
-              <span className="text-xs text-white/60">Activity</span>
-            </div>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-white/40 hover:text-white/60 hover:bg-white/5">
-              All <ChevronRight className="w-3 h-3 ml-0.5" />
-            </Button>
-          </div>
-          
-          <div className="divide-y divide-white/[0.03]">
-            {loadingTransactions ? (
-              [...Array(3)].map((_, i) => (
-                <div key={i} className="px-4 py-3">
-                  <Skeleton className="h-8 w-full rounded bg-white/5" />
-                </div>
-              ))
-            ) : transactions.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <History className="w-6 h-6 mx-auto mb-2 text-white/10" />
-                <p className="text-[10px] text-white/25">No activity yet</p>
-              </div>
-            ) : (
-              transactions.map((tx) => (
-                <div 
-                  key={tx.id}
-                  className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.015] transition-colors"
+            {/* Quick Actions */}
+            <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => navigate('/pipeline/scripting')}
+                  className="w-full h-9 text-xs bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.1] text-white"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center">
-                      {getTransactionIcon(tx.transaction_type, tx.amount)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-white/70">
-                        {tx.description || (tx.transaction_type === 'bonus' ? 'Bonus' : tx.transaction_type === 'purchase' ? 'Purchase' : 'Generation')}
-                      </p>
-                      <p className="text-[9px] text-white/25 flex items-center gap-1">
-                        <Clock className="w-2 h-2" />
-                        {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        {tx.clip_duration_seconds && <span className="ml-1 text-white/35">{tx.clip_duration_seconds}s</span>}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={cn(
-                    "text-xs font-semibold tabular-nums",
-                    tx.amount >= 0 ? 'text-emerald-400/80' : 'text-white/40'
-                  )}>
-                    {tx.amount >= 0 ? '+' : ''}{tx.amount}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Credits Summary */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">Purchased</p>
-            <p className="text-2xl font-bold text-white">{profile?.total_credits_purchased?.toLocaleString() || 0}</p>
-          </div>
-          <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">Used</p>
-            <p className="text-2xl font-bold text-white">{profile?.total_credits_used?.toLocaleString() || 0}</p>
-            <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-              <div className="h-full rounded-full bg-white/30" style={{ width: `${usagePercentage}%` }} />
+                  <Film className="w-3.5 h-3.5 mr-2" />
+                  New Project
+                </Button>
+                <Button 
+                  onClick={() => setShowBuyModal(true)}
+                  variant="ghost"
+                  className="w-full h-9 text-xs text-white/50 hover:text-white hover:bg-white/[0.05]"
+                >
+                  <Coins className="w-3.5 h-3.5 mr-2" />
+                  Buy Credits
+                </Button>
+              </div>
             </div>
           </div>
         </div>

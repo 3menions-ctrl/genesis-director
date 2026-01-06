@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,20 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { 
-  User, Coins, History, LogOut, Sparkles, 
-  ArrowUpRight, ArrowDownRight, Gift, ShoppingCart,
+  User, Coins, History, Gift, ShoppingCart,
   Film, Clock, Zap, TrendingUp, ChevronRight,
   Video, Target, BarChart3, Timer,
-  FolderOpen, CheckCircle2, Edit3, Play, Layers,
-  PieChart as PieChartIcon, Activity, ArrowLeft, Crown
+  FolderOpen, CheckCircle2, Layers,
+  PieChart as PieChartIcon, Activity, Play, Upload, X
 } from 'lucide-react';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { cn } from '@/lib/utils';
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -28,7 +25,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
 } from 'recharts';
 
 interface Transaction {
@@ -70,34 +66,38 @@ interface GenreData {
 
 const GENRE_COLORS: Record<string, string> = {
   action: '#ef4444',
-  drama: '#8b5cf6',
-  comedy: '#eab308',
+  drama: '#a1a1aa',
+  comedy: '#fbbf24',
   thriller: '#6b7280',
-  scifi: '#0ea5e9',
-  fantasy: '#d946ef',
-  romance: '#ec4899',
-  horror: '#1f2937',
-  documentary: '#22c55e',
-  adventure: '#f97316',
-  ad: '#3b82f6',
-  educational: '#06b6d4',
-  cinematic: '#a855f7',
-  funny: '#facc15',
+  scifi: '#60a5fa',
+  fantasy: '#c084fc',
+  romance: '#f472b6',
+  horror: '#374151',
+  documentary: '#4ade80',
+  adventure: '#fb923c',
+  ad: '#60a5fa',
+  educational: '#22d3ee',
+  cinematic: '#a1a1aa',
+  funny: '#fbbf24',
   religious: '#f59e0b',
-  motivational: '#10b981',
-  storytelling: '#8b5cf6',
-  explainer: '#6366f1',
-  vlog: '#ec4899',
+  motivational: '#34d399',
+  storytelling: '#a1a1aa',
+  explainer: '#818cf8',
+  vlog: '#f472b6',
 };
 
 export default function Profile() {
-  const { user, profile, loading, signOut, refreshProfile } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
   const [genreData, setGenreData] = useState<GenreData[]>([]);
+  const [coverVideo, setCoverVideo] = useState<string | null>(null);
+  const [isPlayingCover, setIsPlayingCover] = useState(false);
+  const coverVideoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [metrics, setMetrics] = useState<UserMetrics>({
     totalProjects: 0,
     completedProjects: 0,
@@ -192,7 +192,7 @@ export default function Profile() {
       Object.entries(genreCounts).map(([name, value]) => ({
         name: name.charAt(0).toUpperCase() + name.slice(1),
         value,
-        color: GENRE_COLORS[name] || '#8b5cf6'
+        color: GENRE_COLORS[name] || '#a1a1aa'
       }))
     );
   };
@@ -222,7 +222,6 @@ export default function Profile() {
       const completedProjects = projects?.filter(p => p.status === 'completed').length || 0;
       const draftProjects = projects?.filter(p => p.status === 'draft' || p.status === 'idle').length || 0;
       const inProgressProjects = projects?.filter(p => p.status === 'in_progress' || p.status === 'generating').length || 0;
-      const projectsThisMonth = projects?.filter(p => new Date(p.created_at) >= startOfMonth).length || 0;
 
       const genreCounts: Record<string, number> = {};
       projects?.forEach(p => {
@@ -271,7 +270,7 @@ export default function Profile() {
         creditsThisMonth,
         creditsLastMonth,
         mostUsedGenre: mostUsedGenre.charAt(0).toUpperCase() + mostUsedGenre.slice(1),
-        projectsThisMonth,
+        projectsThisMonth: projects?.filter(p => new Date(p.created_at) >= startOfMonth).length || 0,
         lastActivityDate: lastTx?.created_at || null,
         videosThisWeek,
       });
@@ -290,20 +289,12 @@ export default function Profile() {
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(6);
+      .limit(5);
 
-    if (error) {
-      console.error('Error fetching transactions:', error);
-    } else {
+    if (!error) {
       setTransactions(data || []);
     }
     setLoadingTransactions(false);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-    toast.success('Signed out successfully');
   };
 
   const handlePurchaseComplete = () => {
@@ -316,11 +307,9 @@ export default function Profile() {
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
+    return `${hours}h ${minutes % 60}m`;
   };
 
   const monthlyChange = metrics.creditsLastMonth > 0 
@@ -336,244 +325,237 @@ export default function Profile() {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : 'Recently';
 
+  const handleCoverVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setCoverVideo(url);
+      toast.success('Cover video updated');
+    }
+  };
+
+  const handlePlayCover = () => {
+    if (coverVideoRef.current) {
+      if (isPlayingCover) {
+        coverVideoRef.current.pause();
+      } else {
+        coverVideoRef.current.play();
+      }
+      setIsPlayingCover(!isPlayingCover);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-black p-6 space-y-4 max-w-7xl mx-auto">
-        <Skeleton className="h-32 rounded-2xl bg-white/5" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl bg-white/5" />)}
+      <div className="min-h-screen bg-black p-6 space-y-4 max-w-6xl mx-auto">
+        <Skeleton className="h-48 rounded-2xl bg-white/5" />
+        <div className="grid grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl bg-white/5" />)}
         </div>
-        <Skeleton className="h-48 rounded-xl bg-white/5" />
       </div>
     );
   }
 
   const getTransactionIcon = (type: string, amount: number) => {
-    if (type === 'bonus') return <Gift className="w-3.5 h-3.5 text-emerald-400" />;
-    if (type === 'purchase') return <ShoppingCart className="w-3.5 h-3.5 text-violet-400" />;
-    if (amount < 0) return <ArrowDownRight className="w-3.5 h-3.5 text-rose-400" />;
-    return <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />;
+    if (type === 'bonus') return <Gift className="w-3 h-3 text-emerald-400" />;
+    if (type === 'purchase') return <ShoppingCart className="w-3 h-3 text-white/60" />;
+    if (amount < 0) return <Zap className="w-3 h-3 text-white/40" />;
+    return <TrendingUp className="w-3 h-3 text-emerald-400" />;
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-x-hidden">
-      {/* Premium Dark Ambient Background with Shiny Black Effect */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Glossy reflections */}
-        <div className="absolute top-0 left-1/4 w-[800px] h-[400px] bg-gradient-to-b from-white/[0.03] to-transparent blur-[100px] -rotate-12" />
-        <div className="absolute top-[20%] right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-violet-500/[0.06] to-transparent blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-blue-500/[0.04] to-transparent blur-[100px]" />
-        
-        {/* Shiny overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.01] via-transparent to-white/[0.005]" />
-        
-        {/* Ultra-fine grid */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px'
-          }}
-        />
+    <div className="min-h-screen bg-black relative">
+      {/* Subtle ambient */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/3 w-[600px] h-[300px] bg-gradient-to-b from-white/[0.02] to-transparent blur-[100px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-to-tl from-white/[0.015] to-transparent blur-[80px]" />
       </div>
 
-      {/* Compact Premium Header */}
-      <header className="sticky top-0 z-50">
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="bg-black/80 backdrop-blur-2xl border-b border-white/[0.06]">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/projects')}
-                className="h-8 w-8 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.1] p-0"
+      <input 
+        ref={fileInputRef}
+        type="file" 
+        accept="video/*" 
+        className="hidden" 
+        onChange={handleCoverVideoUpload}
+      />
+
+      {/* Main Content */}
+      <main className="relative z-10 max-w-5xl mx-auto px-4 py-6 space-y-5">
+        
+        {/* Cover Video + Profile Header */}
+        <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+          {/* Shiny edge */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          
+          {/* Cover Video Area */}
+          <div className="relative h-44 bg-gradient-to-br from-white/[0.03] to-transparent overflow-hidden group">
+            {coverVideo ? (
+              <>
+                <video 
+                  ref={coverVideoRef}
+                  src={coverVideo}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loop
+                  muted
+                  playsInline
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <button
+                  onClick={handlePlayCover}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Play className={cn("w-3 h-3 text-white", isPlayingCover && "hidden")} />
+                  {isPlayingCover && <div className="w-2 h-2 bg-white rounded-sm" />}
+                </button>
+                <button
+                  onClick={() => setCoverVideo(null)}
+                  className="absolute top-3 right-12 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
+                <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-white/30" />
+                </div>
+                <span className="text-xs text-white/30">Add cover video</span>
+              </button>
+            )}
+          </div>
+
+          {/* Profile Info */}
+          <div className="relative px-5 pb-5 -mt-10">
+            <div className="flex items-end gap-4">
+              {/* Avatar */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/40 to-purple-500/30 rounded-lg blur-md" />
-                <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 rounded-xl blur-lg" />
+                <div className="relative w-20 h-20 rounded-xl bg-gradient-to-br from-white/10 to-white/[0.02] border-2 border-black flex items-center justify-center overflow-hidden shadow-2xl">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-4 h-4 text-white/80" />
+                    <User className="w-8 h-8 text-white/50" />
                   )}
                 </div>
               </div>
-              <div>
-                <h1 className="text-sm font-semibold text-white leading-tight">
+              
+              {/* Name & Meta */}
+              <div className="flex-1 pb-1">
+                <h1 className="text-xl font-semibold text-white">
                   {profile?.display_name || profile?.full_name || 'Creator'}
                 </h1>
-                <p className="text-[11px] text-white/40">{profile?.email}</p>
+                <p className="text-xs text-white/40">{profile?.email} · Since {memberSince}</p>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={() => setShowBuyModal(true)}
-                size="sm"
-                className="h-8 px-3 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium text-xs hover:opacity-90 shadow-lg shadow-violet-500/20"
-              >
-                <Sparkles className="w-3 h-3 mr-1.5" />
-                Buy Credits
-              </Button>
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut} 
-                className="h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.1] text-xs"
-              >
-                <LogOut className="w-3 h-3 mr-1.5" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content - Compact Layout */}
-      <main className="relative z-10 max-w-6xl mx-auto px-4 py-5 space-y-5">
-        
-        {/* Hero Row: Balance + Quick Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Credit Balance - Premium Glassmorphic Card */}
-          <div className="lg:col-span-2 relative group">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/30 via-purple-500/20 to-fuchsia-500/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity" />
-            <div className="relative rounded-2xl overflow-hidden border border-white/[0.1] bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-2xl">
-              {/* Shiny top edge */}
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-              {/* Inner glow */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.05] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              
-              <div className="relative p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/30 to-purple-500/20 flex items-center justify-center border border-violet-400/20">
-                    <Coins className="w-4 h-4 text-violet-300" />
-                  </div>
-                  <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">Available</span>
-                  <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[9px] font-medium text-emerald-400">Active</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-4xl font-bold text-white tracking-tight">
-                      {profile?.credits_balance.toLocaleString() || 0}
-                    </p>
-                    <p className="text-[10px] text-white/30 mt-1">Since {memberSince}</p>
-                  </div>
-                  <Crown className="w-6 h-6 text-amber-400/60" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Stats Grid */}
-          <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { label: 'This Month', value: loadingMetrics ? '—' : metrics.creditsThisMonth, icon: BarChart3, color: 'blue', change: monthlyChange },
-              { label: 'Videos', value: loadingMetrics ? '—' : metrics.totalVideosGenerated, icon: Video, color: 'emerald' },
-              { label: 'Projects', value: loadingMetrics ? '—' : metrics.totalProjects, icon: FolderOpen, color: 'violet' },
-              { label: 'Avg/Video', value: loadingMetrics ? '—' : metrics.avgCreditsPerVideo, icon: Target, color: 'amber' },
-            ].map((stat, i) => (
+              {/* Balance */}
               <div 
-                key={i}
-                className="relative group rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+                onClick={() => setShowBuyModal(true)}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all cursor-pointer group"
               >
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <stat.icon className={cn("w-3.5 h-3.5", {
-                      'text-blue-400': stat.color === 'blue',
-                      'text-emerald-400': stat.color === 'emerald',
-                      'text-violet-400': stat.color === 'violet',
-                      'text-amber-400': stat.color === 'amber',
-                    })} />
-                    {stat.change !== undefined && (
-                      <span className={cn("text-[9px] font-semibold", stat.change >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                        {stat.change >= 0 ? '+' : ''}{stat.change}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-lg font-bold text-white">{stat.value}</p>
-                  <p className="text-[10px] text-white/30">{stat.label}</p>
+                <Coins className="w-4 h-4 text-white/50 group-hover:text-white/70 transition-colors" />
+                <div>
+                  <p className="text-lg font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
+                  <p className="text-[9px] text-white/30 uppercase tracking-wide">Credits</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Credit Trend Chart */}
-          <div className="lg:col-span-2 relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'This Month', value: loadingMetrics ? '—' : metrics.creditsThisMonth, icon: BarChart3, change: monthlyChange },
+            { label: 'Videos', value: loadingMetrics ? '—' : metrics.totalVideosGenerated, icon: Video },
+            { label: 'Projects', value: loadingMetrics ? '—' : metrics.totalProjects, icon: FolderOpen },
+            { label: 'Avg/Video', value: loadingMetrics ? '—' : metrics.avgCreditsPerVideo, icon: Target },
+          ].map((stat, i) => (
+            <div 
+              key={i}
+              className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm hover:bg-white/[0.025] hover:border-white/[0.08] transition-all group"
+            >
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="p-3.5">
+                <div className="flex items-center justify-between mb-2">
+                  <stat.icon className="w-3.5 h-3.5 text-white/30" />
+                  {stat.change !== undefined && (
+                    <span className={cn("text-[9px] font-medium", stat.change >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                      {stat.change >= 0 ? '+' : ''}{stat.change}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xl font-bold text-white">{stat.value}</p>
+                <p className="text-[10px] text-white/25 mt-0.5">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts + Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Usage Chart */}
+          <div className="lg:col-span-3 relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm">
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs font-medium text-white">Usage Trend</span>
-                  <span className="text-[10px] text-white/30">14 days</span>
-                </div>
-                <div className="flex items-center gap-3 text-[10px]">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500" />Credits</span>
-                  <span className="flex items-center gap-1 text-white/40"><span className="w-2 h-2 rounded-full bg-emerald-500" />Videos</span>
-                </div>
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-3.5 h-3.5 text-white/30" />
+                <span className="text-xs text-white/60">14-day trend</span>
               </div>
               
               {loadingMetrics ? (
-                <Skeleton className="h-40 w-full rounded-lg bg-white/5" />
+                <Skeleton className="h-32 w-full rounded-lg bg-white/5" />
               ) : (
-                <ResponsiveContainer width="100%" height={160}>
-                  <AreaChart data={dailyUsage} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <ResponsiveContainer width="100%" height={130}>
+                  <AreaChart data={dailyUsage} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="creditGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                      <linearGradient id="usageGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ffffff" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} yAxisId="left" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.15)" fontSize={9} tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.15)" fontSize={9} tickLine={false} axisLine={false} />
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'rgba(0,0,0,0.95)', 
+                        backgroundColor: 'rgba(0,0,0,0.9)', 
                         border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '8px',
-                        fontSize: '11px',
+                        fontSize: '10px',
                       }}
                       labelStyle={{ color: '#fff' }}
                     />
-                    <Area type="monotone" dataKey="credits" stroke="#8b5cf6" strokeWidth={2} fill="url(#creditGrad)" yAxisId="left" />
+                    <Area type="monotone" dataKey="credits" stroke="rgba(255,255,255,0.4)" strokeWidth={1.5} fill="url(#usageGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
           </div>
 
-          {/* Genre Pie */}
-          <div className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <PieChartIcon className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-medium text-white">Genres</span>
+          {/* Genre + Stats */}
+          <div className="lg:col-span-2 space-y-3">
+            {/* Genre Pie */}
+            <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <div className="flex items-center gap-2 mb-2">
+                <PieChartIcon className="w-3.5 h-3.5 text-white/30" />
+                <span className="text-xs text-white/60">Genres</span>
               </div>
               
               {loadingMetrics ? (
-                <Skeleton className="h-36 w-full rounded-lg bg-white/5" />
+                <Skeleton className="h-24 w-full rounded-lg bg-white/5" />
               ) : genreData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={140}>
+                <ResponsiveContainer width="100%" height={90}>
                   <PieChart>
                     <Pie
                       data={genreData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={35}
-                      outerRadius={55}
+                      innerRadius={25}
+                      outerRadius={40}
                       paddingAngle={3}
                       dataKey="value"
                     >
@@ -583,161 +565,114 @@ export default function Profile() {
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
-                        backgroundColor: 'rgba(0,0,0,0.95)', 
+                        backgroundColor: 'rgba(0,0,0,0.9)', 
                         border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '8px',
-                        fontSize: '11px'
+                        borderRadius: '6px',
+                        fontSize: '10px'
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-36 flex flex-col items-center justify-center text-white/20">
-                  <Film className="w-8 h-8 mb-1" />
-                  <p className="text-[10px]">No data</p>
+                <div className="h-24 flex items-center justify-center text-white/15 text-xs">
+                  No projects
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Bottom Row: Stats + Transactions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Compact Stats */}
-          <div className="lg:col-span-1 space-y-3">
-            {/* Project Status */}
-            <div className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl p-4">
+            {/* Quick Stats */}
+            <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-4 h-4 text-violet-400" />
-                <span className="text-xs font-medium text-white">Projects</span>
-              </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {[
-                  { label: 'Completed', value: metrics.completedProjects, color: 'bg-emerald-500' },
-                  { label: 'In Progress', value: metrics.inProgressProjects, color: 'bg-blue-500' },
-                  { label: 'Drafts', value: metrics.draftProjects, color: 'bg-white/30' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-white/50">
-                      <span className={cn("w-1.5 h-1.5 rounded-full", item.color)} />
+                  { icon: CheckCircle2, label: 'Completed', value: metrics.completedProjects },
+                  { icon: Timer, label: 'Duration', value: formatDuration(metrics.totalVideoDuration) },
+                  { icon: Film, label: 'Top Genre', value: metrics.mostUsedGenre },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 text-white/35">
+                      <item.icon className="w-3 h-3" />
                       {item.label}
                     </span>
-                    <span className="font-semibold text-white">{item.value}</span>
+                    <span className="font-medium text-white/80">{item.value}</span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Production Summary */}
-            <div className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl p-4">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="flex items-center gap-2 mb-3">
-                <Video className="w-4 h-4 text-rose-400" />
-                <span className="text-xs font-medium text-white">Production</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/50 flex items-center gap-1.5"><Timer className="w-3 h-3" />Duration</span>
-                  <span className="font-semibold text-white">{formatDuration(metrics.totalVideoDuration)}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/50 flex items-center gap-1.5"><Film className="w-3 h-3" />Top Genre</span>
-                  <span className="font-semibold text-white">{metrics.mostUsedGenre}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Credits Summary */}
-            <div className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl p-4">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <p className="text-[9px] uppercase tracking-wide text-emerald-400/70 mb-0.5">Purchased</p>
-                  <p className="text-lg font-bold text-white">{profile?.total_credits_purchased?.toLocaleString() || 0}</p>
-                </div>
-                <div className="p-2.5 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                  <p className="text-[9px] uppercase tracking-wide text-violet-400/70 mb-0.5">Used</p>
-                  <p className="text-lg font-bold text-white">{profile?.total_credits_used?.toLocaleString() || 0}</p>
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div 
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500"
-                    style={{ width: `${usagePercentage}%` }}
-                  />
-                </div>
-                <p className="text-[9px] text-white/30 text-center mt-1">{usagePercentage}% utilized</p>
-              </div>
-            </div>
           </div>
+        </div>
 
-          {/* Transactions */}
-          <div className="lg:col-span-2 relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <div className="p-4 border-b border-white/[0.06] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-white/40" />
-                <span className="text-xs font-medium text-white">Recent Activity</span>
-              </div>
-              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-violet-400 hover:text-violet-300 hover:bg-white/5">
-                View All <ChevronRight className="w-3 h-3 ml-0.5" />
-              </Button>
+        {/* Transactions */}
+        <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-3.5 h-3.5 text-white/30" />
+              <span className="text-xs text-white/60">Activity</span>
             </div>
-            
-            <div className="p-2">
-              {loadingTransactions ? (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 rounded-lg bg-white/5" />
-                  ))}
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-white/40 hover:text-white/60 hover:bg-white/5">
+              All <ChevronRight className="w-3 h-3 ml-0.5" />
+            </Button>
+          </div>
+          
+          <div className="divide-y divide-white/[0.03]">
+            {loadingTransactions ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="px-4 py-3">
+                  <Skeleton className="h-8 w-full rounded bg-white/5" />
                 </div>
-              ) : transactions.length === 0 ? (
-                <div className="text-center py-10">
-                  <History className="w-8 h-8 mx-auto mb-2 text-white/10" />
-                  <p className="text-xs text-white/30">No transactions yet</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {transactions.map((tx) => (
-                    <div 
-                      key={tx.id}
-                      className="flex items-center justify-between p-2.5 rounded-lg hover:bg-white/[0.03] transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center",
-                          tx.transaction_type === 'bonus' && "bg-emerald-500/15",
-                          tx.transaction_type === 'purchase' && "bg-violet-500/15",
-                          tx.amount < 0 && tx.transaction_type !== 'bonus' && tx.transaction_type !== 'purchase' && "bg-rose-500/15",
-                          tx.amount >= 0 && tx.transaction_type !== 'bonus' && tx.transaction_type !== 'purchase' && "bg-emerald-500/15"
-                        )}>
-                          {getTransactionIcon(tx.transaction_type, tx.amount)}
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-white/90">
-                            {tx.description || (tx.transaction_type === 'bonus' ? 'Bonus' : tx.transaction_type === 'purchase' ? 'Purchase' : 'Video Gen')}
-                          </p>
-                          <div className="flex items-center gap-2 text-[10px] text-white/30">
-                            <Clock className="w-2.5 h-2.5" />
-                            {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            {tx.clip_duration_seconds && (
-                              <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">{tx.clip_duration_seconds}s</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <span className={cn(
-                        "text-sm font-bold",
-                        tx.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      )}>
-                        {tx.amount >= 0 ? '+' : ''}{tx.amount}
-                      </span>
+              ))
+            ) : transactions.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <History className="w-6 h-6 mx-auto mb-2 text-white/10" />
+                <p className="text-[10px] text-white/25">No activity yet</p>
+              </div>
+            ) : (
+              transactions.map((tx) => (
+                <div 
+                  key={tx.id}
+                  className="flex items-center justify-between px-4 py-2.5 hover:bg-white/[0.015] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                      {getTransactionIcon(tx.transaction_type, tx.amount)}
                     </div>
-                  ))}
+                    <div>
+                      <p className="text-xs text-white/70">
+                        {tx.description || (tx.transaction_type === 'bonus' ? 'Bonus' : tx.transaction_type === 'purchase' ? 'Purchase' : 'Generation')}
+                      </p>
+                      <p className="text-[9px] text-white/25 flex items-center gap-1">
+                        <Clock className="w-2 h-2" />
+                        {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {tx.clip_duration_seconds && <span className="ml-1 text-white/35">{tx.clip_duration_seconds}s</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "text-xs font-semibold tabular-nums",
+                    tx.amount >= 0 ? 'text-emerald-400/80' : 'text-white/40'
+                  )}>
+                    {tx.amount >= 0 ? '+' : ''}{tx.amount}
+                  </span>
                 </div>
-              )}
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Credits Summary */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">Purchased</p>
+            <p className="text-2xl font-bold text-white">{profile?.total_credits_purchased?.toLocaleString() || 0}</p>
+          </div>
+          <div className="relative rounded-xl overflow-hidden border border-white/[0.05] bg-white/[0.015] backdrop-blur-sm p-4">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">Used</p>
+            <p className="text-2xl font-bold text-white">{profile?.total_credits_used?.toLocaleString() || 0}</p>
+            <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full rounded-full bg-white/30" style={{ width: `${usagePercentage}%` }} />
             </div>
           </div>
         </div>

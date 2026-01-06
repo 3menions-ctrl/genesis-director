@@ -174,17 +174,6 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative z-10 px-4 lg:px-8 pt-32 lg:pt-48 pb-32">
         <div className="max-w-7xl mx-auto">
-          {/* Badge with shimmer */}
-          <div className="flex justify-center mb-10 animate-fade-in">
-            <div className="relative group cursor-pointer">
-              <div className="absolute inset-0 rounded-full bg-foreground/5 blur-xl group-hover:bg-foreground/10 transition-colors" />
-              <div className="relative flex items-center gap-3 px-5 py-2.5 rounded-full glass-card border-foreground/10">
-                <span className="flex h-2 w-2 rounded-full bg-success animate-pulse-soft" />
-                <span className="text-sm font-medium text-foreground">New: Text & Image to Video</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-          </div>
 
           {/* Main headline */}
           <div className="text-center max-w-5xl mx-auto mb-10 animate-fade-in-up" style={{ animationDelay: '100ms' }}>

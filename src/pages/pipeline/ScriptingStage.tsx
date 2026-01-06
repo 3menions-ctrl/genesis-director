@@ -4,7 +4,8 @@ import {
   Film, Sparkles, ArrowRight, Check, Edit3, 
   RotateCcw, Play, Clock, Users, Video, ChevronRight,
   Clapperboard, Megaphone, BookOpen, FileVideo, MessageSquare,
-  Image, Shield, AlertTriangle, Eye, Loader2, Type
+  Image, Shield, AlertTriangle, Eye, Loader2, Type,
+  Zap, Timer, Gauge
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProductionPipeline } from '@/contexts/ProductionPipelineContext';
 import { PROJECT_TYPES, ProjectType, Shot, MAX_SHOT_DURATION_SECONDS } from '@/types/production-pipeline';
+import { getDurationMode, DurationMode, DURATION_PRESETS } from '@/types/smart-script';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +49,7 @@ export default function ScriptingStage() {
     setProjectId,
     setRawScript,
     generateStructuredShots,
+    setStructuredShots,
     updateShot,
     approveScript,
     rejectAndRegenerate,
@@ -69,6 +74,12 @@ export default function ScriptingStage() {
   const [synopsis, setSynopsis] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingShot, setEditingShot] = useState<string | null>(null);
+  
+  // Smart Script Settings
+  const [targetDuration, setTargetDuration] = useState(60); // Default 60 seconds
+  const [pacingStyle, setPacingStyle] = useState<'fast' | 'moderate' | 'slow' | 'dynamic'>('moderate');
+  const [sceneVariety, setSceneVariety] = useState<'low' | 'medium' | 'high'>('high');
+  const [useSmartScript, setUseSmartScript] = useState(true);
   
   // Reset pipeline when starting fresh (no projectId means new project)
   useEffect(() => {
@@ -123,11 +134,11 @@ export default function ScriptingStage() {
         .from('movie_projects')
         .insert({
           title: state.projectTitle,
-          user_id: session.user.id, // Use session user ID to ensure consistency
-          genre: 'cinematic', // Map project type to genre
+          user_id: session.user.id,
+          genre: 'cinematic',
           synopsis: synopsis,
           status: 'scripting',
-          target_duration_minutes: PROJECT_TYPES.find(t => t.id === state.projectType)?.shotCount || 6,
+          target_duration_minutes: Math.ceil(targetDuration / 60),
         })
         .select()
         .single();
@@ -137,39 +148,103 @@ export default function ScriptingStage() {
         throw projectError;
       }
       
-      // Store project ID in pipeline state
       setProjectId(project.id);
       console.log('[ScriptingStage] Created project:', project.id);
       
-      // STEP 2: Generate script using LLM
-      const { data, error } = await supabase.functions.invoke('generate-script', {
-        body: {
-          title: state.projectTitle,
-          genre: state.projectType,
-          synopsis: synopsis,
-          targetDurationMinutes: PROJECT_TYPES.find(t => t.id === state.projectType)?.shotCount || 6,
-          fullMovieMode: true,
-        },
-      });
+      // STEP 2: Generate script using Smart Script Generator or legacy
+      let scriptData;
       
-      if (error) throw error;
-      
-      setRawScript(data.script || '');
-      
-      // Update project with generated script
-      await supabase
-        .from('movie_projects')
-        .update({ 
-          generated_script: data.script,
-          script_content: data.script,
-        })
-        .eq('id', project.id);
-      
-      // STEP 3: Extract scenes into shots
-      await generateStructuredShots(data.script);
+      if (useSmartScript) {
+        // Use new smart script generator with duration/pacing/transitions
+        console.log('[ScriptingStage] Using Smart Script Generator');
+        const { data, error } = await supabase.functions.invoke('smart-script-generator', {
+          body: {
+            topic: state.projectTitle,
+            synopsis: synopsis,
+            genre: state.projectType,
+            targetDurationSeconds: targetDuration,
+            pacingStyle: pacingStyle,
+            sceneVariety: sceneVariety,
+            mainSubjects: state.referenceImage?.characterIdentity 
+              ? [state.referenceImage.characterIdentity.description] 
+              : [],
+            environmentHints: state.referenceImage?.environment 
+              ? [state.referenceImage.environment.setting] 
+              : [],
+          },
+        });
+        
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error || 'Smart script generation failed');
+        
+        scriptData = data;
+        
+        // Convert smart shots to pipeline shots format
+        const shots: Shot[] = (data.shots || []).map((smartShot: any, index: number) => ({
+          id: smartShot.id || `shot_${String(index + 1).padStart(3, '0')}`,
+          index,
+          title: smartShot.title || `Shot ${index + 1}`,
+          description: smartShot.description,
+          dialogue: smartShot.dialogue || '',
+          durationSeconds: smartShot.durationSeconds || 5,
+          mood: smartShot.mood || 'neutral',
+          cameraMovement: smartShot.movementType || 'steady',
+          transitionOut: smartShot.transitionOut?.type || 'continuous',
+          characters: smartShot.visualAnchors || [],
+          status: 'pending' as const,
+        }));
+        
+        // Build raw script text from shots for display
+        const rawScriptText = shots.map((shot, i) => 
+          `[SHOT ${i + 1}] ${shot.description}${shot.dialogue ? `\nDialogue: "${shot.dialogue}"` : ''}`
+        ).join('\n\n');
+        
+        setRawScript(rawScriptText);
+        
+        // Store shots in pipeline state using context method
+        setStructuredShots(shots);
+        
+        // Update project with generated script
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            generated_script: rawScriptText,
+            script_content: rawScriptText,
+          })
+          .eq('id', project.id);
+        
+        toast.success(`Smart script generated: ${shots.length} shots, ~${data.totalDurationSeconds}s`);
+      } else {
+        // Legacy script generation
+        console.log('[ScriptingStage] Using Legacy Script Generator');
+        const { data, error } = await supabase.functions.invoke('generate-script', {
+          body: {
+            title: state.projectTitle,
+            genre: state.projectType,
+            synopsis: synopsis,
+            targetDurationMinutes: PROJECT_TYPES.find(t => t.id === state.projectType)?.shotCount || 6,
+            fullMovieMode: true,
+          },
+        });
+        
+        if (error) throw error;
+        
+        setRawScript(data.script || '');
+        
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            generated_script: data.script,
+            script_content: data.script,
+          })
+          .eq('id', project.id);
+        
+        await generateStructuredShots(data.script);
+        
+        toast.success('Script generated! Now run the Director\'s Audit.');
+      }
       
       setStep('approve');
-      toast.success('Script generated! Now run the Director\'s Audit.');
     } catch (err) {
       console.error('Script generation error:', err);
       toast.error('Failed to generate script');
@@ -177,6 +252,7 @@ export default function ScriptingStage() {
       setIsGenerating(false);
     }
   };
+  
   
   // Handle running the cinematic audit
   const handleRunAudit = async () => {
@@ -525,12 +601,122 @@ export default function ScriptingStage() {
                 value={synopsis}
                 onChange={(e) => setSynopsis(e.target.value)}
                 placeholder="Describe your story idea, key themes, characters, or specific scenes you want to include..."
-                className="min-h-[200px] resize-none"
+                className="min-h-[150px] resize-none"
               />
               <p className="text-xs text-muted-foreground">
                 The more detail you provide, the better the AI can craft your shot-by-shot script
               </p>
             </div>
+            
+            {/* Smart Script Toggle */}
+            <Card className="p-4 border-primary/30 bg-primary/5">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center",
+                    useSmartScript ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Smart Script Engine</p>
+                    <p className="text-sm text-muted-foreground">
+                      AI-powered duration control, transitions & scene diversity
+                    </p>
+                  </div>
+                </div>
+                <Switch 
+                  checked={useSmartScript}
+                  onCheckedChange={setUseSmartScript}
+                />
+              </div>
+              
+              {/* Smart Script Controls */}
+              {useSmartScript && (
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  {/* Duration Slider */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Timer className="w-4 h-4 text-primary" />
+                        Target Duration
+                      </Label>
+                      <span className="text-sm font-medium text-foreground">
+                        {targetDuration < 60 
+                          ? `${targetDuration}s` 
+                          : `${Math.floor(targetDuration / 60)}m ${targetDuration % 60}s`}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[targetDuration]}
+                      onValueChange={(v) => setTargetDuration(v[0])}
+                      min={6}
+                      max={240}
+                      step={6}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>6s</span>
+                      <span>30s</span>
+                      <span>1m</span>
+                      <span>2m</span>
+                      <span>4m</span>
+                    </div>
+                  </div>
+                  
+                  {/* Pacing & Variety */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Gauge className="w-4 h-4 text-primary" />
+                        Pacing Style
+                      </Label>
+                      <Select value={pacingStyle} onValueChange={(v: any) => setPacingStyle(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fast">Fast (4s shots)</SelectItem>
+                          <SelectItem value="moderate">Moderate (5s shots)</SelectItem>
+                          <SelectItem value="slow">Slow (6s shots)</SelectItem>
+                          <SelectItem value="dynamic">Dynamic (varied)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Film className="w-4 h-4 text-primary" />
+                        Scene Variety
+                      </Label>
+                      <Select value={sceneVariety} onValueChange={(v: any) => setSceneVariety(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low (focused)</SelectItem>
+                          <SelectItem value="medium">Medium (balanced)</SelectItem>
+                          <SelectItem value="high">High (diverse)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Info badges */}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Badge variant="outline" className="text-xs">
+                      ~{Math.ceil(targetDuration / (pacingStyle === 'fast' ? 4 : pacingStyle === 'slow' ? 6 : 5))} shots
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {getDurationMode(targetDuration)} mode
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      Smart transitions
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </Card>
             
             <div className="flex items-center gap-4 pt-4">
               <Button
@@ -548,12 +734,12 @@ export default function ScriptingStage() {
                 {isGenerating ? (
                   <>
                     <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    Generating Script...
+                    {useSmartScript ? 'Generating Smart Script...' : 'Generating Script...'}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    Generate Shot-by-Shot Script
+                    {useSmartScript ? <Zap className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                    {useSmartScript ? 'Generate Smart Script' : 'Generate Script'}
                   </>
                 )}
               </Button>

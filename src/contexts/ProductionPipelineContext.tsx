@@ -52,6 +52,7 @@ interface ProductionPipelineContextType {
   setProjectId: (id: string) => void;
   setRawScript: (script: string) => void;
   generateStructuredShots: (synopsis?: string) => Promise<void>;
+  setStructuredShots: (shots: Shot[]) => void; // Direct shot setting for smart script
   updateShot: (shotId: string, updates: Partial<Shot>) => void;
   approveScript: () => void;
   rejectAndRegenerate: () => Promise<void>;
@@ -320,6 +321,21 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       toast.error('Failed to parse script into shots');
     }
   }, [state.rawScript, state.projectType, state.projectTitle]);
+  
+  // Set structured shots directly (for smart script generator)
+  const setStructuredShots = useCallback((shots: Shot[]) => {
+    setState(prev => ({
+      ...prev,
+      structuredShots: shots,
+      production: {
+        ...prev.production,
+        shots,
+        currentShotIndex: 0,
+        completedShots: 0,
+        failedShots: 0,
+      },
+    }));
+  }, []);
   
   const updateShot = useCallback((shotId: string, updates: Partial<Shot>) => {
     setState(prev => ({
@@ -1288,6 +1304,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       setProjectId,
       setRawScript,
       generateStructuredShots,
+      setStructuredShots,
       updateShot,
       approveScript,
       rejectAndRegenerate,

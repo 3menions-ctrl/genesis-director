@@ -330,11 +330,14 @@ export function FullscreenVideoPlayer({
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         autoPlay
-        loop
+        loop={clips.length === 1}
         muted={isMuted}
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
+        onEnded={() => {
+          if (clips.length > 1) nextClip();
+        }}
       />
 
       {/* Secondary Video Layer (for crossfade) */}
@@ -346,11 +349,14 @@ export function FullscreenVideoPlayer({
           activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
-        loop
+        loop={clips.length === 1}
         muted={isMuted}
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
+        onEnded={() => {
+          if (clips.length > 1) nextClip();
+        }}
       />
 
       {/* Controls Overlay */}

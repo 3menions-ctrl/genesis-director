@@ -14,16 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
 import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 
 // Smart video component that auto-corrects rotation
 function SmartVideoPlayer({ 
@@ -638,90 +635,25 @@ export default function Projects() {
         )}
       </main>
 
-      {/* Fullscreen Video Player Modal */}
-      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent variant="fullscreen" hideCloseButton className="!p-0 !m-0">
-          {/* Fullscreen Video Container */}
-          <div className="w-[100vw] h-[100dvh] min-h-[100vh] flex items-center justify-center bg-black">
-            {selectedProject && (
-              <video
-                src={getVideoClips(selectedProject)[0]}
-                className="w-full h-full object-contain"
-                autoPlay
-                loop
-                controls={false}
-                playsInline
-                onClick={(e) => {
-                  const video = e.currentTarget;
-                  if (video.paused) video.play();
-                  else video.pause();
-                }}
-              />
-            )}
-            
-            {/* Transparent overlay controls */}
-            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-              {/* Top gradient with title and close */}
-              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-medium text-xl drop-shadow-lg">{selectedProject?.name}</h3>
-                    <p className="text-white/60 text-sm">
-                      {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <button
-                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md transition-all border border-white/10"
-                    onClick={() => setVideoModalOpen(false)}
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom gradient with actions */}
-              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    className="flex items-center gap-2 h-12 px-6 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/10"
-                    onClick={() => {
-                      if (selectedProject) {
-                        const clips = getVideoClips(selectedProject);
-                        if (clips[0]) window.open(clips[0], '_blank');
-                      }
-                    }}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Open
-                  </button>
-                  <button
-                    className="flex items-center gap-2 h-12 px-6 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/10"
-                    onClick={() => {
-                      if (selectedProject) handleDownloadAll(selectedProject);
-                    }}
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                  <button
-                    className="flex items-center gap-2 h-12 px-8 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl"
-                    onClick={() => {
-                      setVideoModalOpen(false);
-                      if (selectedProject) {
-                        setActiveProjectId(selectedProject.id);
-                        navigate('/pipeline/production');
-                      }
-                    }}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Fullscreen Video Player */}
+      {videoModalOpen && selectedProject && (
+        <FullscreenVideoPlayer
+          src={getVideoClips(selectedProject)[0]}
+          title={selectedProject.name}
+          clipCount={selectedProject.video_clips?.length || 1}
+          onClose={() => setVideoModalOpen(false)}
+          onDownload={() => handleDownloadAll(selectedProject)}
+          onOpenExternal={() => {
+            const clips = getVideoClips(selectedProject);
+            if (clips[0]) window.open(clips[0], '_blank');
+          }}
+          onEdit={() => {
+            setVideoModalOpen(false);
+            setActiveProjectId(selectedProject.id);
+            navigate('/pipeline/production');
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -143,6 +143,11 @@ export interface Shot {
   cameraMovement: string; // Will be rewritten by Cameraman Filter
   transitionOut?: TransitionType; // How this shot flows into the next
   characters: string[];
+  // Smart Camera Properties (from Smart Script Generator)
+  cameraScale?: 'extreme-wide' | 'wide' | 'medium' | 'close-up' | 'extreme-close-up';
+  cameraAngle?: 'eye-level' | 'low-angle' | 'high-angle' | 'dutch-angle' | 'overhead' | 'pov';
+  movementType?: 'static' | 'pan' | 'tilt' | 'dolly' | 'tracking' | 'crane' | 'handheld';
+  transitionHint?: string; // Hint for how this shot flows into the next
   // Generated assets
   videoUrl?: string;
   audioUrl?: string;

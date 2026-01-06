@@ -245,6 +245,152 @@ export function rewritePromptForCinematic(
 }
 
 /**
+ * Camera angle and scale mappings for smart perspective injection
+ */
+const CAMERA_SCALE_PERSPECTIVES: Record<string, string> = {
+  'extreme-wide': 'vast panoramic perspective capturing the entire environment',
+  'wide': 'expansive wide perspective showing full scene context',
+  'medium': 'balanced mid-range perspective at conversational distance',
+  'close-up': 'intimate close perspective capturing facial details and emotions',
+  'extreme-close-up': 'extreme intimate perspective revealing subtle micro-details',
+};
+
+const CAMERA_ANGLE_PERSPECTIVES: Record<string, string> = {
+  'eye-level': 'natural eye-level viewpoint at human standing height',
+  'low-angle': 'powerful low-angle perspective looking upward, adding authority and drama',
+  'high-angle': 'commanding high-angle perspective looking down, creating vulnerability or overview',
+  'dutch-angle': 'dynamic tilted perspective creating tension and unease',
+  'overhead': 'bird\'s-eye overhead perspective directly from above',
+  'pov': 'immersive first-person point-of-view perspective',
+};
+
+const MOVEMENT_TYPE_PERSPECTIVES: Record<string, string> = {
+  'static': 'steady locked-off perspective with no movement',
+  'pan': 'smooth horizontal sweeping perspective',
+  'tilt': 'vertical sweeping perspective rising or descending',
+  'dolly': 'smooth gliding perspective moving through space',
+  'tracking': 'fluid following perspective moving alongside the action',
+  'crane': 'elevated sweeping perspective with vertical and horizontal movement',
+  'handheld': 'organic naturalistic perspective with subtle motion',
+};
+
+/**
+ * Smart angle transition logic - determines complementary angles for smooth cuts
+ */
+const ANGLE_TRANSITION_MAP: Record<string, string[]> = {
+  'eye-level': ['low-angle', 'high-angle', 'eye-level'], // Standard to dynamic
+  'low-angle': ['eye-level', 'overhead', 'dutch-angle'], // Upward to varied
+  'high-angle': ['eye-level', 'low-angle', 'pov'], // Down to up or immersive
+  'dutch-angle': ['eye-level', 'high-angle'], // Tension release
+  'overhead': ['eye-level', 'low-angle', 'pov'], // Top to ground-level
+  'pov': ['eye-level', 'over-shoulder', 'wide'], // Subjective to objective
+};
+
+const SCALE_TRANSITION_MAP: Record<string, string[]> = {
+  'extreme-wide': ['wide', 'medium'], // Draw viewer in
+  'wide': ['medium', 'close-up', 'extreme-wide'], // Varied progression
+  'medium': ['close-up', 'wide', 'extreme-close-up'], // Push/pull options
+  'close-up': ['extreme-close-up', 'medium', 'wide'], // Intensity or release
+  'extreme-close-up': ['close-up', 'medium', 'wide'], // Pull back options
+};
+
+/**
+ * Builds smart camera perspective text from shot properties
+ */
+export function buildCameraPerspective(
+  cameraScale?: string,
+  cameraAngle?: string,
+  movementType?: string,
+  transitionOut?: string,
+  shotIndex?: number,
+  previousShot?: { cameraScale?: string; cameraAngle?: string }
+): string {
+  const parts: string[] = [];
+  
+  // Add scale perspective
+  if (cameraScale && CAMERA_SCALE_PERSPECTIVES[cameraScale]) {
+    parts.push(CAMERA_SCALE_PERSPECTIVES[cameraScale]);
+  }
+  
+  // Add angle perspective with smart transition awareness
+  if (cameraAngle && CAMERA_ANGLE_PERSPECTIVES[cameraAngle]) {
+    // If this is a transition from previous shot, add continuity hint
+    if (previousShot?.cameraAngle && previousShot.cameraAngle !== cameraAngle) {
+      parts.push(`transitioning from ${previousShot.cameraAngle} to ${CAMERA_ANGLE_PERSPECTIVES[cameraAngle]}`);
+    } else {
+      parts.push(CAMERA_ANGLE_PERSPECTIVES[cameraAngle]);
+    }
+  }
+  
+  // Add movement perspective
+  if (movementType && MOVEMENT_TYPE_PERSPECTIVES[movementType]) {
+    parts.push(MOVEMENT_TYPE_PERSPECTIVES[movementType]);
+  }
+  
+  // Add transition-specific ending hints for seamless cuts
+  if (transitionOut) {
+    switch (transitionOut) {
+      case 'angle-change':
+        parts.push('ending with subject centered for angle transition');
+        break;
+      case 'motion-carry':
+        parts.push('ending with forward momentum for motion continuity');
+        break;
+      case 'match-cut':
+        parts.push('ending with distinctive visual shape for match cut');
+        break;
+      case 'whip-pan':
+        parts.push('ending with fast horizontal sweep blur');
+        break;
+      case 'reveal':
+        parts.push('ending with camera moving toward obstruction');
+        break;
+      case 'follow-through':
+        parts.push('subject moving toward frame edge');
+        break;
+    }
+  }
+  
+  return parts.length > 0 ? `[CAMERA: ${parts.join(', ')}]` : '';
+}
+
+/**
+ * Gets recommended next camera setup for smooth transitions
+ */
+export function getSmartNextCamera(
+  currentScale: string,
+  currentAngle: string,
+  transitionType: string
+): { suggestedScale: string; suggestedAngle: string } {
+  // For angle-change transitions, definitely change the angle
+  if (transitionType === 'angle-change') {
+    const angleOptions = ANGLE_TRANSITION_MAP[currentAngle] || ['eye-level'];
+    const scaleOptions = SCALE_TRANSITION_MAP[currentScale] || ['medium'];
+    return {
+      suggestedScale: currentScale, // Keep same scale for angle-change
+      suggestedAngle: angleOptions[0], // First recommended angle
+    };
+  }
+  
+  // For scene-jump, reset to establishing shot
+  if (transitionType === 'scene-jump') {
+    return {
+      suggestedScale: 'wide',
+      suggestedAngle: 'eye-level',
+    };
+  }
+  
+  // For other transitions, follow natural progression
+  const scaleOptions = SCALE_TRANSITION_MAP[currentScale] || ['medium'];
+  const angleOptions = ANGLE_TRANSITION_MAP[currentAngle] || ['eye-level'];
+  
+  return {
+    suggestedScale: scaleOptions[0],
+    suggestedAngle: angleOptions[Math.floor(Math.random() * angleOptions.length)],
+  };
+}
+
+/**
  * Frame chaining context for seamless transitions
  */
 export interface FrameChainContext {
@@ -254,6 +400,7 @@ export interface FrameChainContext {
   sceneSeed: number;
   clipIndex: number;
   totalClips: number;
+  previousCamera?: { cameraScale?: string; cameraAngle?: string; movementType?: string };
 }
 
 /**

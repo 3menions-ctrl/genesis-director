@@ -183,7 +183,7 @@ export default function ScriptingStage() {
         
         scriptData = data;
         
-        // Convert smart shots to pipeline shots format
+        // Convert smart shots to pipeline shots format WITH SMART CAMERA PROPERTIES
         const shots: Shot[] = (data.shots || []).map((smartShot: any, index: number) => ({
           id: smartShot.id || `shot_${String(index + 1).padStart(3, '0')}`,
           index,
@@ -195,6 +195,11 @@ export default function ScriptingStage() {
           cameraMovement: smartShot.movementType || 'steady',
           transitionOut: smartShot.transitionOut?.type || 'continuous',
           characters: smartShot.visualAnchors || [],
+          // SMART CAMERA ANGLES for smooth transitions
+          cameraScale: smartShot.cameraScale || 'medium',
+          cameraAngle: smartShot.cameraAngle || 'eye-level',
+          movementType: smartShot.movementType || 'static',
+          transitionHint: smartShot.transitionOut?.hint || smartShot.transitionHint || '',
           status: 'pending' as const,
         }));
         

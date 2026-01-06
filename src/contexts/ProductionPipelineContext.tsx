@@ -22,7 +22,7 @@ import {
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { extractLastFrame, buildNegativePrompt } from '@/lib/cinematicPromptEngine';
+import { extractLastFrame, buildNegativePrompt, buildCameraPerspective } from '@/lib/cinematicPromptEngine';
 import { CREDIT_COSTS, API_COSTS_CENTS, TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -303,6 +303,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           cameraMovement: scene.cameraMovement || 'steady',
           transitionOut: (scene.transitionOut as TransitionType) || 'continuous',
           characters: scene.characters || [],
+          // SMART CAMERA ANGLES: Map from extract-scenes output or use intelligent defaults
+          cameraScale: scene.cameraScale || (index === 0 ? 'wide' : 'medium'),
+          cameraAngle: scene.cameraAngle || 'eye-level',
+          movementType: scene.movementType || scene.cameraMovement || 'static',
+          transitionHint: scene.transitionBridge || scene.transitionHint || '',
           status: 'pending' as const,
         };
       });
@@ -776,9 +781,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
   // Generate video for a single shot with frame chaining
   // Uses reference image analysis for background/lighting consistency
   // In text-to-video mode, skips reference image entirely
+  // NOW WITH SMART CAMERA ANGLES: Injects perspective-based camera language
   const generateShotVideo = useCallback(async (
     shot: Shot,
-    previousFrameUrl?: string
+    previousFrameUrl?: string,
+    previousShot?: Shot
   ): Promise<{ videoUrl?: string; endFrameUrl?: string; taskId?: string; error?: string }> => {
     try {
       const { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
@@ -786,16 +793,35 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       // Build enriched prompt with reference image consistency data (if not in text-to-video mode)
       let enrichedPrompt = cleanPrompt;
       
+      // SMART CAMERA ANGLES: Build perspective text from shot camera properties
+      const cameraPerspective = buildCameraPerspective(
+        shot.cameraScale,
+        shot.cameraAngle,
+        shot.movementType,
+        shot.transitionOut,
+        shot.index,
+        previousShot ? {
+          cameraScale: previousShot.cameraScale,
+          cameraAngle: previousShot.cameraAngle,
+        } : undefined
+      );
+      
+      // Inject camera perspective at the start of the prompt for strong influence
+      if (cameraPerspective) {
+        enrichedPrompt = `${cameraPerspective} ${enrichedPrompt}`;
+        console.log('[Pipeline] Injecting smart camera perspective:', cameraPerspective);
+      }
+      
       // If we have reference image analysis AND not in text-to-video mode, inject consistency markers
       if (!state.textToVideoMode && state.referenceImage?.consistencyPrompt) {
         // Prepend the consistency prompt to maintain visual coherence
-        enrichedPrompt = `[Visual anchor: ${state.referenceImage.consistencyPrompt}] ${cleanPrompt}`;
+        enrichedPrompt = `[Visual anchor: ${state.referenceImage.consistencyPrompt}] ${enrichedPrompt}`;
         console.log('[Pipeline] Injecting reference consistency into prompt');
       } else if (state.textToVideoMode) {
         console.log('[Pipeline] Text-to-video mode: skipping reference image injection');
       }
       
-      console.log('[Pipeline] Generating shot with prompt:', enrichedPrompt.substring(0, 150) + '...');
+      console.log('[Pipeline] Generating shot with prompt:', enrichedPrompt.substring(0, 200) + '...');
       
       // In text-to-video mode, don't pass any images
       const isTextToVideo = state.textToVideoMode;
@@ -1124,8 +1150,11 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           const promptToUse = shot.lastCorrectivePrompt || currentPrompt;
           const shotWithPrompt = { ...shot, description: promptToUse };
           
-          // Generate video with frame chaining
-          const result = await generateShotVideo(shotWithPrompt, previousFrameUrl);
+          // Get previous shot for smart camera angle continuity
+          const previousShot = i > 0 ? state.structuredShots[i - 1] : undefined;
+          
+          // Generate video with frame chaining AND smart camera angles
+          const result = await generateShotVideo(shotWithPrompt, previousFrameUrl, previousShot);
           
           if (result.error) {
             if (shot.retryCount < maxRetries && isProfessional) {
@@ -1484,7 +1513,8 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     
     for (const shot of failedShots) {
       const prevShot = state.production.shots.find(s => s.index === shot.index - 1);
-      const result = await generateShotVideo(shot, prevShot?.endFrameUrl);
+      // Pass previous shot for smart camera angle continuity
+      const result = await generateShotVideo(shot, prevShot?.endFrameUrl, prevShot);
       
       if (!result.error && result.taskId) {
         // Poll and update...

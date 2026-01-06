@@ -52,6 +52,15 @@ CRITICAL REQUIREMENTS:
 1. MINIMUM 6 SHOTS - Never less. More if the story requires it.
 2. FIXED 4-SECOND UNITS: Each shot MUST be exactly 4 seconds.
 3. SEAMLESS PHYSICS-BASED TRANSITIONS: Every shot must flow into the next using motion, physics, and spatial continuity.
+4. SMART CAMERA ANGLES: Vary camera angles between shots for professional cinematic look.
+
+CAMERA ANGLE RULES (CRITICAL FOR PROFESSIONAL LOOK):
+- Vary cameraScale between shots: extreme-wide → wide → medium → close-up → extreme-close-up
+- Use angle-change transitions: Cut from eye-level to low-angle, or high-angle to eye-level
+- First shot should typically be "wide" or "extreme-wide" (establishing shot)
+- Action/climax shots use "low-angle" for power or "dutch-angle" for tension
+- Reaction shots use "close-up" or "extreme-close-up"
+- Never use the same cameraScale AND cameraAngle for consecutive shots
 
 PHYSICS & MOTION CONTINUITY (MANDATORY):
 Every transition must use one or more of these techniques:
@@ -90,6 +99,9 @@ For each shot, provide:
 - durationSeconds: EXACTLY 4 seconds (fixed unit)
 - mood: Emotional tone
 - cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
+- cameraScale: REQUIRED - One of: extreme-wide, wide, medium, close-up, extreme-close-up
+- cameraAngle: REQUIRED - One of: eye-level, low-angle, high-angle, dutch-angle, overhead, pov
+- movementType: One of: static, pan, tilt, dolly, tracking, crane, handheld
 - transitionOut: Physics-based transition type
 - transitionBridge: Specific element/motion that carries across the cut (e.g., "hand reaching forward", "dust particles drifting right", "golden light shifting")
 - characters: Array of character names
@@ -105,6 +117,9 @@ Return ONLY valid JSON:
       "dialogue": "",
       "durationSeconds": 4,
       "mood": "calm",
+      "cameraScale": "wide",
+      "cameraAngle": "eye-level",
+      "movementType": "static",
       "cameraMovement": "steady",
       "transitionOut": "match-cut",
       "transitionBridge": "element that continues into next shot",
@@ -192,7 +207,15 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
     const FIXED_SHOT_DURATION = 4; // Fixed 4-second units
     const MINIMUM_SHOTS = 6; // Minimum 6 shots required
     
+    // Camera scale progression for intelligent defaults
+    const defaultScaleProgression = ['wide', 'medium', 'close-up', 'medium', 'wide', 'close-up'];
+    const defaultAngleProgression = ['eye-level', 'low-angle', 'eye-level', 'high-angle', 'eye-level', 'dutch-angle'];
+    
     let normalizedScenes = (scenesData.scenes || []).map((scene: any, index: number) => {
+      // Use smart defaults for camera properties if not provided
+      const defaultScale = index === 0 ? 'wide' : defaultScaleProgression[index % defaultScaleProgression.length];
+      const defaultAngle = defaultAngleProgression[index % defaultAngleProgression.length];
+      
       return {
         id: scene.id || `shot_${String(index + 1).padStart(3, '0')}`,
         index: scene.index ?? index,
@@ -202,6 +225,10 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
         durationSeconds: FIXED_SHOT_DURATION, // Always 4 seconds
         mood: scene.mood || 'neutral',
         cameraMovement: scene.cameraMovement || 'steady',
+        // SMART CAMERA PROPERTIES
+        cameraScale: scene.cameraScale || defaultScale,
+        cameraAngle: scene.cameraAngle || defaultAngle,
+        movementType: scene.movementType || 'static',
         transitionOut: scene.transitionOut || 'match-cut', // Prefer match-cut
         transitionBridge: scene.transitionBridge || '',
         characters: scene.characters || [],
@@ -214,10 +241,15 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
       console.log(`Only ${normalizedScenes.length} shots extracted, expanding to minimum ${MINIMUM_SHOTS}`);
       const expansionNeeded = MINIMUM_SHOTS - normalizedScenes.length;
       
-      // Duplicate and vary existing shots to reach minimum
+      // Duplicate and vary existing shots to reach minimum with varied camera angles
       for (let i = 0; i < expansionNeeded; i++) {
         const sourceScene = normalizedScenes[i % normalizedScenes.length];
         const newIndex = normalizedScenes.length;
+        
+        // Use different camera angle for expansion shots
+        const expansionScales = ['close-up', 'medium', 'wide', 'extreme-close-up'];
+        const expansionAngles = ['low-angle', 'high-angle', 'dutch-angle', 'eye-level'];
+        
         normalizedScenes.push({
           id: `shot_${String(newIndex + 1).padStart(3, '0')}`,
           index: newIndex,
@@ -227,6 +259,10 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
           durationSeconds: FIXED_SHOT_DURATION,
           mood: sourceScene.mood,
           cameraMovement: 'flowing',
+          // VARIED CAMERA for expansion shots
+          cameraScale: expansionScales[i % expansionScales.length],
+          cameraAngle: expansionAngles[i % expansionAngles.length],
+          movementType: 'dolly',
           transitionOut: 'continuous',
           transitionBridge: 'motion continues into next moment',
           characters: sourceScene.characters,

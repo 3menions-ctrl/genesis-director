@@ -32,6 +32,7 @@ interface StitchRequest {
   audioMixMode: 'full' | 'dialogue-only' | 'music-only' | 'mute';
   backgroundMusicUrl?: string;
   outputFormat?: 'mp4' | 'webm';
+  forceMvpMode?: boolean; // Skip Cloud Run and use manifest fallback
 }
 
 interface StitchResult {
@@ -92,15 +93,27 @@ async function callCloudRunStitcher(
   cloudRunUrl: string,
   request: StitchRequest
 ): Promise<StitchResult> {
-  console.log(`[Stitch] Calling Cloud Run FFmpeg service: ${cloudRunUrl}`);
+  // Normalize URL - remove trailing slash and append /stitch
+  const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
+  const stitchEndpoint = `${normalizedUrl}/stitch`;
   
-  const response = await fetch(`${cloudRunUrl}/stitch`, {
+  console.log(`[Stitch] Calling Cloud Run FFmpeg service: ${stitchEndpoint}`);
+  
+  const response = await fetch(stitchEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(request),
   });
+  
+  // Handle non-JSON responses gracefully
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const textBody = await response.text();
+    console.error('[Stitch] Cloud Run returned non-JSON response:', textBody.substring(0, 500));
+    throw new Error(`Cloud Run returned unexpected response: ${response.status} - ${textBody.substring(0, 200)}`);
+  }
 
   const result = await response.json();
   
@@ -146,21 +159,26 @@ async function processStitching(
 
     const totalDuration = validClips.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Check for Cloud Run URL (production mode)
+    // Check for Cloud Run URL (production mode) - skip if forceMvpMode is set
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    if (cloudRunUrl) {
+    if (cloudRunUrl && !request.forceMvpMode) {
       console.log("[Stitch] Using Cloud Run FFmpeg service (production mode)");
       
-      const result = await callCloudRunStitcher(cloudRunUrl, {
-        ...request,
-        clips: validClips,
-      });
-      
-      return {
-        ...result,
-        processingTimeMs: Date.now() - startTime,
-      };
+      try {
+        const result = await callCloudRunStitcher(cloudRunUrl, {
+          ...request,
+          clips: validClips,
+        });
+        
+        return {
+          ...result,
+          processingTimeMs: Date.now() - startTime,
+        };
+      } catch (cloudRunError) {
+        console.error("[Stitch] Cloud Run failed, falling back to MVP mode:", cloudRunError);
+        // Fall through to MVP mode
+      }
     }
 
     // MVP fallback: Manifest-based client-side sequential playback

@@ -794,7 +794,18 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     previousShot?: Shot
   ): Promise<{ videoUrl?: string; endFrameUrl?: string; taskId?: string; error?: string }> => {
     try {
-      const { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
+      let { cleanPrompt, negativePrompt } = applyCameramanFilter(shot.description);
+      
+      // IDENTITY BIBLE: Add anti-morphing negative prompts for character consistency
+      if (state.identityBible?.isComplete) {
+        const antiMorphingPrompts = [
+          'character morphing', 'face changing', 'body transformation',
+          'clothing change', 'age progression', 'identity shift',
+          'different person', 'inconsistent appearance', 'warped features'
+        ];
+        negativePrompt = `${negativePrompt}, ${antiMorphingPrompts.join(', ')}`;
+        console.log('[Pipeline] Added anti-morphing guards from Identity Bible');
+      }
       
       // Build enriched prompt with reference image consistency data (if not in text-to-video mode)
       let enrichedPrompt = cleanPrompt;
@@ -818,9 +829,13 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         console.log('[Pipeline] Injecting smart camera perspective:', cameraPerspective);
       }
       
-      // If we have reference image analysis AND not in text-to-video mode, inject consistency markers
-      if (!state.textToVideoMode && state.referenceImage?.consistencyPrompt) {
-        // Prepend the consistency prompt to maintain visual coherence
+      // IDENTITY BIBLE INJECTION: Use 3-point character description if available
+      if (!state.textToVideoMode && state.identityBible?.isComplete) {
+        // Priority 1: Use Identity Bible's detailed character description
+        enrichedPrompt = `[CHARACTER IDENTITY: ${state.identityBible.characterDescription}] ${enrichedPrompt}`;
+        console.log('[Pipeline] Injecting Identity Bible character description');
+      } else if (!state.textToVideoMode && state.referenceImage?.consistencyPrompt) {
+        // Priority 2: Fall back to reference image analysis
         enrichedPrompt = `[Visual anchor: ${state.referenceImage.consistencyPrompt}] ${enrichedPrompt}`;
         console.log('[Pipeline] Injecting reference consistency into prompt');
       } else if (state.textToVideoMode) {
@@ -841,7 +856,18 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           // In text-to-video mode, skip reference image but still allow frame chaining for continuity
           startImage: isTextToVideo ? previousFrameUrl : previousFrameUrl,
           // Only pass reference image URL in image-to-video mode
-          referenceImageUrl: isTextToVideo ? undefined : (state.production.masterAnchor?.imageUrl || state.referenceImage?.imageUrl),
+          // IDENTITY BIBLE: Prefer front view from Identity Bible for best consistency
+          referenceImageUrl: isTextToVideo ? undefined : (
+            state.identityBible?.frontViewUrl || 
+            state.production.masterAnchor?.imageUrl || 
+            state.referenceImage?.imageUrl
+          ),
+          // Pass Identity Bible URLs for visual ingredients (future multi-reference support)
+          identityBibleUrls: state.identityBible?.isComplete ? [
+            state.identityBible.frontViewUrl,
+            state.identityBible.sideViewUrl,
+            state.identityBible.threeQuarterViewUrl,
+          ] : undefined,
           // Transition type for seamless shot connections
           transitionOut: shot.transitionOut || 'continuous',
           sceneContext: isTextToVideo ? {

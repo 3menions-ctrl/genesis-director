@@ -1560,22 +1560,6 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     setState(prev => ({ ...prev, audioMixMode: mode }));
   }, []);
   
-  const exportFinalVideo = useCallback(async (): Promise<string | null> => {
-    // TODO: Implement video concatenation and audio mixing
-    const completedVideos = state.production.shots
-      .filter(s => s.status === 'completed' && s.videoUrl)
-      .map(s => s.videoUrl!);
-    
-    if (completedVideos.length === 0) {
-      toast.error('No completed videos to export');
-      return null;
-    }
-    
-    // For now, return the first completed video
-    toast.success('Export ready!');
-    return completedVideos[0];
-  }, [state.production.shots]);
-  
   // IDENTITY BIBLE: Generate 3-point character reference
   const generateIdentityBible = useCallback(async () => {
     if (!state.referenceImage?.imageUrl) {
@@ -1676,6 +1660,22 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       return null;
     }
   }, [state.production.shots, state.production.voiceTracks, state.projectId, state.projectTitle, state.audioMixMode]);
+  
+  // Export uses stitching if not already done
+  const exportFinalVideo = useCallback(async (): Promise<string | null> => {
+    // If we already have a stitched final video, return it
+    if (state.finalVideoUrl) {
+      toast.success('Export ready!');
+      return state.finalVideoUrl;
+    }
+    
+    // Otherwise, stitch the video first
+    const finalUrl = await stitchFinalVideo();
+    if (finalUrl) {
+      toast.success('Export ready!');
+    }
+    return finalUrl;
+  }, [state.finalVideoUrl, stitchFinalVideo]);
   
   const resetPipeline = useCallback(() => {
     setState(INITIAL_PIPELINE_STATE);

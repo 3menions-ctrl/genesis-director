@@ -189,6 +189,7 @@ export function VideoStitcherPanel() {
     .reduce((sum, s) => sum + s.durationSeconds, 0);
   
   const canStitch = completedCount > 1;
+  const hasStitchedVideo = !!state.finalVideoUrl;
   
   const handleStitch = async () => {
     setIsStitching(true);
@@ -196,6 +197,15 @@ export function VideoStitcherPanel() {
       await stitchFinalVideo();
     } finally {
       setIsStitching(false);
+    }
+  };
+  
+  const handleDownload = () => {
+    if (state.finalVideoUrl) {
+      const a = document.createElement('a');
+      a.href = state.finalVideoUrl;
+      a.download = `${state.projectTitle || 'final-video'}.mp4`;
+      a.click();
     }
   };
   
@@ -237,31 +247,36 @@ export function VideoStitcherPanel() {
           </div>
         )}
         
-        {/* Stitch button */}
-        <Button
-          onClick={handleStitch}
-          disabled={!canStitch || isStitching}
-          className="w-full gap-2"
-        >
-          {isStitching ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Stitching...
-            </>
-          ) : state.finalVideoUrl ? (
-            <>
-              <Download className="w-4 h-4" />
-              Download Final Video
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4" />
-              Stitch {completedCount} Clips
-            </>
-          )}
-        </Button>
+        {/* Stitch / Download buttons */}
+        {hasStitchedVideo ? (
+          <Button
+            onClick={handleDownload}
+            className="w-full gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download Final Video
+          </Button>
+        ) : (
+          <Button
+            onClick={handleStitch}
+            disabled={!canStitch || isStitching}
+            className="w-full gap-2"
+          >
+            {isStitching ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Stitching...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Stitch {completedCount} Clips
+              </>
+            )}
+          </Button>
+        )}
         
-        {!canStitch && (
+        {!canStitch && !hasStitchedVideo && (
           <p className="text-xs text-center text-muted-foreground">
             Need at least 2 completed clips to stitch
           </p>

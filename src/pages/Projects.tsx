@@ -650,18 +650,21 @@ export default function Projects() {
 
       {/* Fullscreen Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent variant="fullscreen" hideCloseButton>
+        <DialogContent variant="fullscreen" hideCloseButton className="!p-0 !m-0">
           {/* Fullscreen Video Container */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <div className="w-[100vw] h-[100dvh] min-h-[100vh] flex items-center justify-center bg-black">
             {selectedProject && (
-              <SmartVideoPlayer
+              <video
                 src={getVideoClips(selectedProject)[0]}
                 className="w-full h-full object-contain"
-                autoPlay={true}
-                loop={true}
-                muted={false}
-                onVideoClick={() => {
-                  // Toggle play/pause is handled inside SmartVideoPlayer
+                autoPlay
+                loop
+                controls={false}
+                playsInline
+                onClick={(e) => {
+                  const video = e.currentTarget;
+                  if (video.paused) video.play();
+                  else video.pause();
                 }}
               />
             )}

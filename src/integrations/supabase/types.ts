@@ -558,6 +558,81 @@ export type Database = {
         }
         Relationships: []
       }
+      video_clips: {
+        Row: {
+          color_profile: Json | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          last_frame_url: string | null
+          motion_vectors: Json | null
+          project_id: string
+          prompt: string
+          retry_count: number | null
+          shot_index: number
+          status: string
+          updated_at: string
+          user_id: string
+          veo_operation_name: string | null
+          video_url: string | null
+        }
+        Insert: {
+          color_profile?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          last_frame_url?: string | null
+          motion_vectors?: Json | null
+          project_id: string
+          prompt: string
+          retry_count?: number | null
+          shot_index: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          veo_operation_name?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          color_profile?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          last_frame_url?: string | null
+          motion_vectors?: Json | null
+          project_id?: string
+          prompt?: string
+          retry_count?: number | null
+          shot_index?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          veo_operation_name?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_clips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -602,6 +677,16 @@ export type Database = {
           total_real_cost_cents: number
         }[]
       }
+      get_generation_checkpoint: {
+        Args: { p_project_id: string }
+        Returns: {
+          completed_count: number
+          failed_count: number
+          last_completed_index: number
+          last_frame_url: string
+          pending_count: number
+        }[]
+      }
       log_api_cost: {
         Args: {
           p_credits_charged: number
@@ -625,6 +710,21 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      upsert_video_clip: {
+        Args: {
+          p_error_message?: string
+          p_last_frame_url?: string
+          p_motion_vectors?: Json
+          p_project_id: string
+          p_prompt: string
+          p_shot_index: number
+          p_status?: string
+          p_user_id: string
+          p_veo_operation_name?: string
+          p_video_url?: string
+        }
+        Returns: string
       }
     }
     Enums: {

@@ -105,6 +105,12 @@ ${referenceContext}
 - **Scale Consistency**: Objects maintain relative size
 - **Shadow Consistency**: Shadows match light sources
 
+### VELOCITY VECTORING (critical for seamless clip transitions):
+- **End-Frame Motion Analysis**: Calculate the movement direction and speed at the end of each shot
+- **Motion Continuity**: Ensure the next shot begins with matching velocity
+- **Acceleration Curves**: Avoid jarring stop-and-start between clips
+- **Camera Momentum**: Track if camera is panning/dollying and at what speed
+
 ### CHARACTER-FIRST PACING (Zero-Waste Premium):
 - **1.5-Second Static Scenery Cap**: Any shot without character movement or dialogue MUST be capped at 1.5 seconds maximum
 - **Character-Driven Priority**: Every shot should feature character action, expression change, or motivated movement
@@ -125,6 +131,7 @@ Analyze each shot description and provide:
 2. **Warnings**: Potential issues that may cause inconsistencies
 3. **Suggestions**: Film technique improvements for better visual storytelling
 4. **Optimized Prompts**: Rewritten descriptions that are optimized for AI video models
+5. **Motion Vectors**: For EACH shot, calculate the expected end-state motion for seamless chaining
 
 ## OUTPUT FORMAT (JSON only):
 
@@ -136,7 +143,7 @@ Analyze each shot description and provide:
     {
       "shotId": "shot_001",
       "severity": "critical|warning|suggestion",
-      "category": "technique|physics|continuity|identity",
+      "category": "technique|physics|continuity|identity|velocity",
       "originalText": "...",
       "suggestion": "...",
       "filmTechnique": "Kuleshov Effect",
@@ -161,6 +168,18 @@ Analyze each shot description and provide:
     "lightingConsistency": false,
     "suggestions": ["Shot 4 lighting conflicts with established direction"]
   },
+  "velocityVectors": [
+    {
+      "shotId": "shot_001",
+      "endFrameMotion": {
+        "subjectVelocity": "walking forward at moderate pace",
+        "subjectDirection": "left-to-right across frame",
+        "cameraMotion": "slow dolly right",
+        "momentum": "medium",
+        "continuityPrompt": "Continue with subject walking left-to-right at same pace, camera maintains rightward movement"
+      }
+    }
+  ],
   "optimizedShots": [
     {
       "shotId": "shot_001",
@@ -168,6 +187,7 @@ Analyze each shot description and provide:
       "optimizedDescription": "...",
       "identityAnchors": ["same woman from reference", "red dress"],
       "physicsGuards": ["no floating", "natural movement"],
+      "velocityContinuity": "Subject enters frame walking left-to-right matching previous shot momentum",
       "approved": true
     }
   ]

@@ -15,7 +15,8 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 800; // ms - longer for smoother transitions
+const CROSSFADE_DURATION = 1500; // ms - smooth crossfade duration
+const CROSSFADE_START_BEFORE_END = 2; // seconds - start transition before clip ends
 
 export function FullscreenVideoPlayer({
   clips,
@@ -66,8 +67,8 @@ export function FullscreenVideoPlayer({
     isTransitioningRef.current = isTransitioning;
   }, [isTransitioning]);
 
-  // Smooth crossfade to next clip
-  const transitionToClip = useCallback((nextIndex: number) => {
+  // Smooth crossfade with audio fade
+  const transitionToClip = useCallback((nextIndex: number, isPreemptive = false) => {
     if (isTransitioningRef.current || nextIndex < 0 || nextIndex >= clips.length) return;
     if (nextIndex === currentClipIndexRef.current) return;
 
@@ -90,23 +91,47 @@ export function FullscreenVideoPlayer({
     // Also set via ref for immediate effect before React re-renders
     nextVideo.src = nextSrc;
     nextVideo.currentTime = 0;
-    nextVideo.volume = volume;
+    nextVideo.volume = 0; // Start silent for crossfade
     nextVideo.muted = isMuted;
     nextVideo.load();
+
+    // Audio crossfade function
+    const crossfadeAudio = () => {
+      const steps = 30;
+      const stepDuration = CROSSFADE_DURATION / steps;
+      let step = 0;
+      
+      const fadeInterval = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        const eased = 1 - Math.pow(1 - progress, 2); // Ease out
+        
+        // Fade out current, fade in next
+        if (!isMuted) {
+          currentVideo.volume = Math.max(0, volume * (1 - eased));
+          nextVideo.volume = Math.min(volume, volume * eased);
+        }
+        
+        if (step >= steps) {
+          clearInterval(fadeInterval);
+          // Cleanup after crossfade
+          currentVideo.pause();
+          currentVideo.currentTime = 0;
+          currentVideo.volume = volume; // Reset for next use
+          setIsTransitioning(false);
+        }
+      }, stepDuration);
+    };
 
     // Wait for next video to be ready before transitioning
     const startTransition = () => {
       nextVideo.play().then(() => {
-        // Start crossfade - swap active video
+        // Start visual crossfade
         setActiveVideo(isNextPrimary ? 'primary' : 'secondary');
         setCurrentClipIndex(nextIndex);
         
-        // Wait for crossfade to complete before cleanup
-        setTimeout(() => {
-          currentVideo.pause();
-          currentVideo.currentTime = 0;
-          setIsTransitioning(false);
-        }, CROSSFADE_DURATION);
+        // Start audio crossfade
+        crossfadeAudio();
       }).catch((err) => {
         console.error('Video play failed:', err);
         setIsTransitioning(false);
@@ -219,24 +244,38 @@ export function FullscreenVideoPlayer({
     }, 3000);
   }, [isPlaying]);
 
-  // Update time from active video
+  // Update time from active video and trigger pre-emptive transitions
   useEffect(() => {
     const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
 
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    let preemptiveTriggered = false;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      
+      // Pre-emptive transition: start crossfade before clip ends
+      if (clips.length > 1 && !isTransitioningRef.current && !preemptiveTriggered) {
+        const timeRemaining = video.duration - video.currentTime;
+        if (timeRemaining > 0 && timeRemaining <= CROSSFADE_START_BEFORE_END) {
+          preemptiveTriggered = true;
+          const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
+          transitionToClip(nextIndex, true);
+        }
+      }
+    };
+    
     const handleDurationChange = () => setDuration(video.duration);
+    
     const handleEnded = () => {
-      // For multiple clips, auto-advance with crossfade
-      // For single clip, the loop attribute handles it
-      if (clips.length > 1) {
+      // Fallback: if pre-emptive didn't trigger (very short clips), advance now
+      if (clips.length > 1 && !isTransitioningRef.current) {
         nextClip();
       }
-      // Don't set isPlaying to false - loop will restart
     };
+    
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => {
-      // Only set paused if both videos are paused (prevents false pause during transitions)
       const primaryPaused = primaryVideoRef.current?.paused ?? true;
       const secondaryPaused = secondaryVideoRef.current?.paused ?? true;
       if (primaryPaused && secondaryPaused) {
@@ -257,7 +296,7 @@ export function FullscreenVideoPlayer({
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
     };
-  }, [activeVideo, clips.length, nextClip]);
+  }, [activeVideo, clips.length, nextClip, transitionToClip]);
 
   // Keyboard controls
   useEffect(() => {

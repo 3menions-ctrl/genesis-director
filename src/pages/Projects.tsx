@@ -43,22 +43,23 @@ function SmartVideoPlayer({
   onVideoClick?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const [needsRotation, setNeedsRotation] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
 
-  const handleLoadedMetadata = useCallback(() => {
+  const handleLoadedData = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const { videoWidth, videoHeight } = video;
     
-    // Detect portrait videos (taller than wide)
+    // Detect portrait videos
     const isPortraitVideo = videoHeight > videoWidth;
     setIsPortrait(isPortraitVideo);
     
-    // Detect potentially sideways videos
+    // Detect sideways videos
     const aspectRatio = videoWidth / videoHeight;
     if (aspectRatio < 0.35 || aspectRatio > 2.8) {
       setNeedsRotation(true);
@@ -69,34 +70,41 @@ function SmartVideoPlayer({
       video.currentTime = video.duration * (previewPercent / 100);
     }
     
-    setIsLoaded(true);
+    // Delay showing video slightly to ensure smooth fade-in
+    requestAnimationFrame(() => {
+      setIsLoaded(true);
+    });
   }, [previewPercent, autoPlay]);
 
-  const handleMouseEnter = () => {
-    if (playOnHover && videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {});
-    }
-  };
+  const handleMouseEnter = useCallback(() => {
+    if (!playOnHover || !videoRef.current) return;
+    
+    setIsHovering(true);
+    videoRef.current.currentTime = 0;
+    
+    // Small delay before playing to sync with visual transition
+    requestAnimationFrame(() => {
+      videoRef.current?.play().catch(() => {});
+    });
+  }, [playOnHover]);
 
-  const handleMouseLeave = () => {
-    if (playOnHover && videoRef.current) {
-      setIsPlaying(false);
-      // Smooth fade out before pausing
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.pause();
-          if (previewPercent !== undefined && videoRef.current.duration) {
-            videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
-          }
+  const handleMouseLeave = useCallback(() => {
+    if (!playOnHover || !videoRef.current) return;
+    
+    setIsHovering(false);
+    
+    // Pause after fade transition completes
+    setTimeout(() => {
+      if (videoRef.current && !isHovering) {
+        videoRef.current.pause();
+        if (previewPercent !== undefined && videoRef.current.duration) {
+          videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
         }
-      }, 150);
-    }
-  };
+      }
+    }, 300);
+  }, [playOnHover, previewPercent, isHovering]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (onVideoClick) {
       onVideoClick();
     } else if (videoRef.current) {
@@ -106,15 +114,21 @@ function SmartVideoPlayer({
         videoRef.current.pause();
       }
     }
-  };
+  }, [onVideoClick]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      {/* Loading placeholder with fade */}
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Smooth loading placeholder */}
       <div 
         className={cn(
-          "absolute inset-0 bg-black/20 transition-opacity duration-500",
-          isLoaded ? "opacity-0" : "opacity-100"
+          "absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent",
+          "transition-opacity duration-700 ease-out",
+          isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
         )} 
       />
       
@@ -122,21 +136,19 @@ function SmartVideoPlayer({
         ref={videoRef}
         src={src}
         className={cn(
-          "transition-all duration-500 ease-out",
+          "w-full h-full",
+          "transition-all duration-700 ease-out",
           isPortrait ? "object-contain" : "object-cover",
           needsRotation && "rotate-90 scale-[1.78]",
-          // Smooth opacity transition for hover state
-          isLoaded ? "opacity-100" : "opacity-0",
+          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
           className
         )}
         autoPlay={autoPlay}
         loop={loop}
         muted={muted}
         playsInline
-        preload="metadata"
-        onLoadedMetadata={handleLoadedMetadata}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        preload="auto"
+        onLoadedData={handleLoadedData}
         onClick={handleClick}
       />
     </div>

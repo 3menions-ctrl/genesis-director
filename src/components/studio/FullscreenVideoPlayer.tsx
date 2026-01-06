@@ -15,6 +15,8 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
+const CROSSFADE_DURATION = 800; // ms - longer for smoother transitions
+
 export function FullscreenVideoPlayer({
   clips,
   title,
@@ -32,6 +34,7 @@ export function FullscreenVideoPlayer({
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [activeVideo, setActiveVideo] = useState<'primary' | 'secondary'>('primary');
+  const [nextVideoReady, setNextVideoReady] = useState(false);
   
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -41,9 +44,6 @@ export function FullscreenVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const currentVideo = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
-  const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-
   // Format time as MM:SS
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -51,39 +51,76 @@ export function FullscreenVideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Crossfade to next clip
+  // Preload and prepare next video
+  const prepareNextVideo = useCallback((nextIndex: number) => {
+    const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
+    if (!nextVideo || nextIndex < 0 || nextIndex >= clips.length) return;
+
+    setNextVideoReady(false);
+    nextVideo.src = clips[nextIndex];
+    nextVideo.load();
+    nextVideo.currentTime = 0;
+    nextVideo.volume = volume;
+    nextVideo.muted = isMuted;
+
+    // Wait for video to be fully ready
+    const handleCanPlay = () => {
+      setNextVideoReady(true);
+      nextVideo.removeEventListener('canplaythrough', handleCanPlay);
+    };
+    nextVideo.addEventListener('canplaythrough', handleCanPlay);
+  }, [activeVideo, clips, volume, isMuted]);
+
+  // Smooth crossfade to next clip
   const transitionToClip = useCallback((nextIndex: number) => {
     if (isTransitioning || nextIndex < 0 || nextIndex >= clips.length) return;
     if (nextIndex === currentClipIndex) return;
 
+    const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
+    const currentVideo = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    
+    if (!nextVideo || !currentVideo) return;
+
     setIsTransitioning(true);
 
-    // Prepare next video
-    if (nextVideo) {
+    // Prepare next video if not already ready
+    if (nextVideo.src !== clips[nextIndex]) {
       nextVideo.src = clips[nextIndex];
-      nextVideo.currentTime = 0;
-      nextVideo.volume = volume;
-      nextVideo.muted = isMuted;
-      
+      nextVideo.load();
+    }
+    nextVideo.currentTime = 0;
+    nextVideo.volume = volume;
+    nextVideo.muted = isMuted;
+
+    // Wait for next video to be ready before transitioning
+    const startTransition = () => {
       nextVideo.play().then(() => {
-        // Start crossfade
+        // Immediately start crossfade - both videos visible during transition
+        setActiveVideo(prev => prev === 'primary' ? 'secondary' : 'primary');
+        setCurrentClipIndex(nextIndex);
+        
+        // Wait for crossfade to complete before cleanup
         setTimeout(() => {
-          setActiveVideo(prev => prev === 'primary' ? 'secondary' : 'primary');
-          setCurrentClipIndex(nextIndex);
-          
-          // Complete transition
-          setTimeout(() => {
-            if (currentVideo) {
-              currentVideo.pause();
-            }
-            setIsTransitioning(false);
-          }, 500);
-        }, 50);
+          currentVideo.pause();
+          setIsTransitioning(false);
+          // Preload the next clip in sequence
+          const upcomingIndex = (nextIndex + 1) % clips.length;
+          if (clips.length > 1) {
+            prepareNextVideo(upcomingIndex);
+          }
+        }, CROSSFADE_DURATION);
       }).catch(() => {
         setIsTransitioning(false);
       });
+    };
+
+    // Check if video is ready
+    if (nextVideo.readyState >= 3) {
+      startTransition();
+    } else {
+      nextVideo.addEventListener('canplay', startTransition, { once: true });
     }
-  }, [clips, currentClipIndex, isTransitioning, nextVideo, currentVideo, volume, isMuted]);
+  }, [clips, currentClipIndex, isTransitioning, activeVideo, volume, isMuted, prepareNextVideo]);
 
   // Go to next clip
   const nextClip = useCallback(() => {
@@ -265,14 +302,13 @@ export function FullscreenVideoPlayer({
     };
   }, []);
 
-  // Preload next clip
+  // Preload next clip on mount and after transitions
   useEffect(() => {
-    if (clips.length > 1 && nextVideo) {
+    if (clips.length > 1) {
       const nextIndex = (currentClipIndex + 1) % clips.length;
-      nextVideo.src = clips[nextIndex];
-      nextVideo.preload = 'auto';
+      prepareNextVideo(nextIndex);
     }
-  }, [currentClipIndex, clips, nextVideo]);
+  }, [currentClipIndex, clips.length, prepareNextVideo]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -288,9 +324,11 @@ export function FullscreenVideoPlayer({
         ref={primaryVideoRef}
         src={clips[0]}
         className={cn(
-          "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+          "absolute inset-0 w-full h-full object-contain",
+          "transition-opacity ease-in-out",
           activeVideo === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
+        style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         autoPlay
         playsInline
         onClick={togglePlay}
@@ -300,9 +338,11 @@ export function FullscreenVideoPlayer({
       <video
         ref={secondaryVideoRef}
         className={cn(
-          "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+          "absolute inset-0 w-full h-full object-contain",
+          "transition-opacity ease-in-out",
           activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
+        style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         playsInline
         onClick={togglePlay}
       />

@@ -19,6 +19,7 @@ import {
   TransitionType,
   MAX_SHOT_DURATION_SECONDS,
   MIN_SHOT_DURATION_SECONDS,
+  IdentityBible,
 } from '@/types/production-pipeline';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -42,6 +43,10 @@ interface ProductionPipelineContextType {
   // IMAGE-FIRST: Reference image functions
   setReferenceImage: (analysis: ReferenceImageAnalysis) => void;
   clearReferenceImage: () => void;
+  
+  // IDENTITY BIBLE: 3-point character reference system
+  generateIdentityBible: () => Promise<void>;
+  clearIdentityBible: () => void;
   
   // TEXT-TO-VIDEO: Toggle mode without reference image
   setTextToVideoMode: (enabled: boolean) => void;
@@ -74,6 +79,7 @@ interface ProductionPipelineContextType {
   // Review stage
   setAudioMixMode: (mode: AudioMixMode) => void;
   exportFinalVideo: () => Promise<string | null>;
+  stitchFinalVideo: () => Promise<string | null>;
   
   // State queries
   isGenerating: boolean;
@@ -1544,6 +1550,107 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
     return completedVideos[0];
   }, [state.production.shots]);
   
+  // IDENTITY BIBLE: Generate 3-point character reference
+  const generateIdentityBible = useCallback(async () => {
+    if (!state.referenceImage?.imageUrl) {
+      toast.error('Please upload a reference image first');
+      return;
+    }
+    
+    setState(prev => ({ ...prev, identityBibleGenerating: true }));
+    toast.info('Generating 3-point Identity Bible...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-identity-bible', {
+        body: { imageUrl: state.referenceImage.imageUrl },
+      });
+      
+      if (error) throw error;
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Identity Bible generation failed');
+      }
+      
+      const identityBible: IdentityBible = {
+        originalImageUrl: data.originalImageUrl,
+        frontViewUrl: data.frontViewUrl,
+        sideViewUrl: data.sideViewUrl,
+        threeQuarterViewUrl: data.threeQuarterViewUrl,
+        characterDescription: data.characterDescription,
+        consistencyAnchors: data.consistencyAnchors || [],
+        generatedAt: Date.now(),
+        isComplete: true,
+      };
+      
+      setState(prev => ({
+        ...prev,
+        identityBible,
+        identityBibleGenerating: false,
+      }));
+      
+      toast.success('Identity Bible generated with 3 character views!');
+    } catch (err) {
+      console.error('Identity Bible generation error:', err);
+      toast.error('Failed to generate Identity Bible');
+      setState(prev => ({ ...prev, identityBibleGenerating: false }));
+    }
+  }, [state.referenceImage?.imageUrl]);
+  
+  const clearIdentityBible = useCallback(() => {
+    setState(prev => ({ ...prev, identityBible: undefined }));
+  }, []);
+  
+  // VIDEO STITCHER: Merge all clips into final production
+  const stitchFinalVideo = useCallback(async (): Promise<string | null> => {
+    const completedShots = state.production.shots
+      .filter(s => s.status === 'completed' && s.videoUrl);
+    
+    if (completedShots.length === 0) {
+      toast.error('No completed videos to stitch');
+      return null;
+    }
+    
+    toast.info('Stitching video clips into final production...');
+    
+    try {
+      const clips = completedShots.map(shot => ({
+        shotId: shot.id,
+        videoUrl: shot.videoUrl!,
+        audioUrl: state.production.voiceTracks.find(v => v.shotId === shot.id)?.audioUrl,
+        durationSeconds: shot.durationSeconds,
+        transitionOut: shot.transitionOut,
+      }));
+      
+      const { data, error } = await supabase.functions.invoke('stitch-video', {
+        body: {
+          projectId: state.projectId,
+          projectTitle: state.projectTitle,
+          clips,
+          audioMixMode: state.audioMixMode,
+        },
+      });
+      
+      if (error) throw error;
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Video stitching failed');
+      }
+      
+      setState(prev => ({
+        ...prev,
+        finalVideoUrl: data.finalVideoUrl,
+        exportReady: true,
+      }));
+      
+      toast.success(`Final video ready! (${data.durationSeconds}s)`);
+      return data.finalVideoUrl;
+    } catch (err) {
+      console.error('Video stitching error:', err);
+      toast.error('Failed to stitch final video');
+      return null;
+    }
+  }, [state.production.shots, state.production.voiceTracks, state.projectId, state.projectTitle, state.audioMixMode]);
+  
   const resetPipeline = useCallback(() => {
     setState(INITIAL_PIPELINE_STATE);
   }, []);
@@ -1566,6 +1673,9 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       // IMAGE-FIRST
       setReferenceImage,
       clearReferenceImage,
+      // IDENTITY BIBLE
+      generateIdentityBible,
+      clearIdentityBible,
       // TEXT-TO-VIDEO
       setTextToVideoMode,
       // Scripting
@@ -1593,6 +1703,7 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
       // Review
       setAudioMixMode,
       exportFinalVideo,
+      stitchFinalVideo,
       // State queries
       isGenerating,
       isAuditing,

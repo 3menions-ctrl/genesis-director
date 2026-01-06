@@ -145,13 +145,22 @@ export function CinematicAuditPanel({
             <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <span className="text-sm font-medium text-primary">Auto-Optimizing...</span>
+                <span className="text-sm font-medium text-primary">
+                  {optimizationProgress.message.includes('Validating') 
+                    ? 'Validating fixes...' 
+                    : 'Auto-Optimizing...'}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground mb-2">{optimizationProgress.message}</p>
               <div className="flex items-center gap-2">
                 <Progress value={optimizationProgress.score} className="flex-1 h-2" />
                 <span className="text-xs font-mono text-foreground">{optimizationProgress.score}%</span>
               </div>
+              {optimizationProgress.message.includes('Validated') && (
+                <p className="text-xs text-green-500 mt-1">
+                  ✓ Only accepting fixes that measurably improve score
+                </p>
+              )}
             </div>
           ) : (
             <Button
@@ -161,11 +170,11 @@ export function CinematicAuditPanel({
               disabled={isReauditing}
             >
               <Zap className="w-4 h-4" />
-              Auto-Optimize to 80%+
+              Auto-Optimize to 80%+ (Validated)
             </Button>
           )}
           <p className="text-xs text-center text-muted-foreground mt-2">
-            Automatically applies fixes and re-audits until production ready
+            Tests each fix and only keeps changes that measurably improve the score
           </p>
         </div>
       )}

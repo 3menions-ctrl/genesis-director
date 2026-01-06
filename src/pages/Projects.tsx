@@ -48,6 +48,7 @@ function SmartVideoPlayer({
   const [isHovering, setIsHovering] = useState(false);
   const [needsRotation, setNeedsRotation] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const handleLoadedData = useCallback(() => {
     const video = videoRef.current;
@@ -75,6 +76,19 @@ function SmartVideoPlayer({
       setIsLoaded(true);
     });
   }, [previewPercent, autoPlay]);
+
+  const handleError = useCallback(() => {
+    console.error('Video failed to load:', src);
+    setHasError(true);
+    setIsLoaded(true); // Show fallback
+  }, [src]);
+
+  const handleCanPlay = useCallback(() => {
+    // Fallback if onLoadedData doesn't fire
+    if (!isLoaded) {
+      setIsLoaded(true);
+    }
+  }, [isLoaded]);
 
   const handleMouseEnter = useCallback(() => {
     if (!playOnHover || !videoRef.current) return;
@@ -126,31 +140,42 @@ function SmartVideoPlayer({
       {/* Smooth loading placeholder */}
       <div 
         className={cn(
-          "absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent",
+          "absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent flex items-center justify-center",
           "transition-opacity duration-700 ease-out",
           isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
         )} 
-      />
+      >
+        <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
+      </div>
       
-      <video
-        ref={videoRef}
-        src={src}
-        className={cn(
-          "w-full h-full",
-          "transition-all duration-700 ease-out",
-          isPortrait ? "object-contain" : "object-cover",
-          needsRotation && "rotate-90 scale-[1.78]",
-          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
-          className
-        )}
-        autoPlay={autoPlay}
-        loop={loop}
-        muted={muted}
-        playsInline
-        preload="auto"
-        onLoadedData={handleLoadedData}
-        onClick={handleClick}
-      />
+      {hasError ? (
+        <div className="w-full h-full flex items-center justify-center bg-white/[0.02]">
+          <Film className="w-8 h-8 text-white/20" />
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          src={src}
+          className={cn(
+            "w-full h-full",
+            "transition-all duration-700 ease-out",
+            isPortrait ? "object-contain" : "object-cover",
+            needsRotation && "rotate-90 scale-[1.78]",
+            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
+            className
+          )}
+          autoPlay={autoPlay}
+          loop={loop}
+          muted={muted}
+          playsInline
+          preload="metadata"
+          crossOrigin="anonymous"
+          onLoadedData={handleLoadedData}
+          onCanPlay={handleCanPlay}
+          onError={handleError}
+          onClick={handleClick}
+        />
+      )}
     </div>
   );
 }

@@ -55,6 +55,7 @@ export default function ReviewStage() {
   const [volume, setVolume] = useState([1]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [isStitching, setIsStitching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [databaseClips, setDatabaseClips] = useState<ReviewClip[]>([]);
   const [projectTitle, setProjectTitle] = useState(state.projectTitle || 'Your Production');
@@ -654,13 +655,28 @@ export default function ReviewStage() {
                 {completedClips.length > 1 && !state.finalVideoUrl && (
                   <Button 
                     onClick={async () => {
-                      await stitchFinalVideo();
+                      setIsStitching(true);
+                      try {
+                        await stitchFinalVideo();
+                      } finally {
+                        setIsStitching(false);
+                      }
                     }}
+                    disabled={isStitching}
                     variant="secondary"
                     className="w-full gap-2"
                   >
-                    <Film className="w-4 h-4" />
-                    Stitch {completedClips.length} Clips Together
+                    {isStitching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Stitching...
+                      </>
+                    ) : (
+                      <>
+                        <Film className="w-4 h-4" />
+                        Stitch {completedClips.length} Clips Together
+                      </>
+                    )}
                   </Button>
                 )}
                 <Button 

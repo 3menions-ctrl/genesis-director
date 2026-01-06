@@ -650,13 +650,13 @@ export default function Projects() {
 
       {/* Fullscreen Video Player Modal */}
       <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
-        <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
+        <DialogContent variant="fullscreen" hideCloseButton>
           {/* Fullscreen Video Container */}
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 flex items-center justify-center bg-black">
             {selectedProject && (
               <SmartVideoPlayer
                 src={getVideoClips(selectedProject)[0]}
-                className="absolute inset-0 w-full h-full"
+                className="w-full h-full object-contain"
                 autoPlay={true}
                 loop={true}
                 muted={false}
@@ -667,30 +667,30 @@ export default function Projects() {
             )}
             
             {/* Transparent overlay controls */}
-            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
               {/* Top gradient with title and close */}
-              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent">
+              <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-medium text-lg drop-shadow-lg">{selectedProject?.name}</h3>
+                    <h3 className="text-white font-medium text-xl drop-shadow-lg">{selectedProject?.name}</h3>
                     <p className="text-white/60 text-sm">
                       {selectedProject?.video_clips?.length || 1} clip{(selectedProject?.video_clips?.length || 1) > 1 ? 's' : ''}
                     </p>
                   </div>
                   <button
-                    className="w-11 h-11 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all"
+                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md transition-all border border-white/10"
                     onClick={() => setVideoModalOpen(false)}
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
               </div>
 
               {/* Bottom gradient with actions */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
                 <div className="flex items-center justify-center gap-4">
                   <button
-                    className="flex items-center gap-2 h-11 px-5 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                    className="flex items-center gap-2 h-12 px-6 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/10"
                     onClick={() => {
                       if (selectedProject) {
                         const clips = getVideoClips(selectedProject);
@@ -702,7 +702,7 @@ export default function Projects() {
                     Open
                   </button>
                   <button
-                    className="flex items-center gap-2 h-11 px-5 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-sm"
+                    className="flex items-center gap-2 h-12 px-6 bg-white/10 text-white text-sm font-medium rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/10"
                     onClick={() => {
                       if (selectedProject) handleDownloadAll(selectedProject);
                     }}
@@ -711,7 +711,7 @@ export default function Projects() {
                     Download
                   </button>
                   <button
-                    className="flex items-center gap-2 h-11 px-6 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-lg"
+                    className="flex items-center gap-2 h-12 px-8 bg-white text-black text-sm font-semibold rounded-full hover:bg-white/90 transition-all shadow-xl"
                     onClick={() => {
                       setVideoModalOpen(false);
                       if (selectedProject) {

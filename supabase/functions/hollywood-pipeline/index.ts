@@ -72,11 +72,11 @@ interface PipelineState {
   
   identityBible?: {
     characterIdentity?: {
-      description: string;
-      facialFeatures: string;
-      clothing: string;
-      bodyType: string;
-      distinctiveMarkers: string[];
+      description?: string;
+      facialFeatures?: string;
+      clothing?: string;
+      bodyType?: string;
+      distinctiveMarkers?: string[];
     };
     consistencyPrompt?: string;
   };
@@ -176,11 +176,11 @@ async function runPreProduction(
     
     try {
       const scriptResult = await callEdgeFunction(supabase, 'smart-script-generator', {
-        concept: request.concept,
+        topic: request.concept, // smart-script-generator expects 'topic'
+        synopsis: request.concept,
         genre: request.genre || 'cinematic',
-        mood: request.mood || 'epic',
-        targetDuration: request.totalDuration || 24,
-        shotCount: TOTAL_CLIPS,
+        pacingStyle: 'moderate',
+        targetDurationSeconds: request.totalDuration || 24, // expects 'targetDurationSeconds'
       });
       
       if (scriptResult.shots) {
@@ -224,13 +224,16 @@ async function runPreProduction(
         imageUrl: request.referenceImageUrl,
       });
       
-      state.referenceAnalysis = analysisResult;
+      // analyze-reference-image returns { analysis: {...} }
+      const analysis = analysisResult.analysis || analysisResult;
+      
+      state.referenceAnalysis = analysis;
       state.identityBible = {
-        characterIdentity: analysisResult.characterIdentity,
-        consistencyPrompt: analysisResult.consistencyPrompt,
+        characterIdentity: analysis.characterIdentity,
+        consistencyPrompt: analysis.consistencyPrompt,
       };
       
-      console.log(`[Hollywood] Reference analyzed: ${analysisResult.consistencyPrompt?.substring(0, 50)}...`);
+      console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
     } catch (err) {
       console.warn(`[Hollywood] Reference analysis failed:`, err);
     }
@@ -247,13 +250,15 @@ async function runPreProduction(
         .match(/character[^.]*\./gi) || [];
       
       if (characterDescriptions.length > 0) {
-        const bibleResult = await callEdgeFunction(supabase, 'generate-identity-bible', {
-          characterDescription: characterDescriptions.join(' '),
-          projectId: state.projectId,
-        });
-        
-        state.identityBible = bibleResult.bible;
-        console.log(`[Hollywood] Identity Bible generated`);
+        // Note: generate-identity-bible requires an imageUrl, not characterDescription
+        // Skip if we don't have a reference image - use text-based identity instead
+        console.log(`[Hollywood] Skipping Identity Bible (requires reference image)`);
+        state.identityBible = {
+          characterIdentity: {
+            description: characterDescriptions.join(' '),
+          },
+          consistencyPrompt: characterDescriptions.join(' '),
+        };
       }
     } catch (err) {
       console.warn(`[Hollywood] Identity Bible generation failed:`, err);

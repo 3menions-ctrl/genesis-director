@@ -173,10 +173,11 @@ async function stitchVideos(request) {
     clips,
     audioMixMode = 'full',
     backgroundMusicUrl,
+    voiceTrackUrl,           // Voice narration track
     outputFormat = 'mp4',
     notifyOnError = true,
-    colorGrading = 'cinematic', // NEW: Color grading preset
-    customColorProfile = null   // NEW: Custom color settings
+    colorGrading = 'cinematic',
+    customColorProfile = null
   } = request;
   
   const jobId = uuidv4();
@@ -279,41 +280,84 @@ async function stitchVideos(request) {
       concatenatedPath
     ], `Concatenation with ${colorGrading} color grading`);
     
-    // Step 4: Audio injection (if background music provided)
+    // Step 4: Audio injection (voice + music if provided)
     let finalPath = concatenatedPath;
+    const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);
     
-    if (backgroundMusicUrl && audioMixMode !== 'mute') {
-      console.log('[Stitch] Step 4: Injecting background audio...');
+    const hasVoice = voiceTrackUrl && audioMixMode !== 'mute';
+    const hasMusic = backgroundMusicUrl && audioMixMode !== 'mute';
+    
+    if (hasVoice || hasMusic) {
+      console.log('[Stitch] Step 4: Audio mixing...');
+      console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}`);
       
-      const audioPath = path.join(workDir, 'background_audio.mp3');
-      await downloadFile(backgroundMusicUrl, audioPath);
+      const audioInputs = ['-i', concatenatedPath];
+      let filterParts = [];
+      let inputIndex = 1;
+      
+      // Download and add voice track
+      let voiceInputIdx = null;
+      if (hasVoice) {
+        const voicePath = path.join(workDir, 'voice_track.mp3');
+        await downloadFile(voiceTrackUrl, voicePath);
+        audioInputs.push('-i', voicePath);
+        voiceInputIdx = inputIndex++;
+      }
+      
+      // Download and add music track  
+      let musicInputIdx = null;
+      if (hasMusic) {
+        const musicPath = path.join(workDir, 'background_music.mp3');
+        await downloadFile(backgroundMusicUrl, musicPath);
+        audioInputs.push('-i', musicPath);
+        musicInputIdx = inputIndex++;
+      }
       
       const withAudioPath = path.join(workDir, 'final_with_audio.mp4');
       
-      // Calculate total duration for audio loop/trim
-      const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);
+      // Build filter complex based on what we have
+      let ffmpegArgs = [...audioInputs, '-t', totalDuration.toString()];
       
-      const audioFilterArgs = audioMixMode === 'music-only' 
-        ? ['-map', '0:v', '-map', '1:a', '-shortest']
-        : [
-            '-filter_complex', 
-            `[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
+      if (hasVoice && hasMusic) {
+        // Mix video audio + voice (front) + music (background, lower volume)
+        ffmpegArgs.push(
+          '-filter_complex',
+          `[${musicInputIdx}:a]volume=0.3[music];[${voiceInputIdx}:a]volume=1.0[voice];[0:a][voice][music]amix=inputs=3:duration=first:dropout_transition=2[aout]`,
+          '-map', '0:v',
+          '-map', '[aout]'
+        );
+      } else if (hasVoice) {
+        // Mix video audio + voice
+        ffmpegArgs.push(
+          '-filter_complex',
+          `[0:a][${voiceInputIdx}:a]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
+          '-map', '0:v',
+          '-map', '[aout]'
+        );
+      } else if (hasMusic) {
+        // Mix video audio + music (lower volume)
+        const musicMode = audioMixMode === 'music-only';
+        if (musicMode) {
+          ffmpegArgs.push('-map', '0:v', '-map', `${musicInputIdx}:a`);
+        } else {
+          ffmpegArgs.push(
+            '-filter_complex',
+            `[${musicInputIdx}:a]volume=0.4[music];[0:a][music]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
             '-map', '0:v',
             '-map', '[aout]'
-          ];
+          );
+        }
+      }
       
-      await runFFmpeg([
-        '-i', concatenatedPath,
-        '-i', audioPath,
-        '-t', totalDuration.toString(),
-        ...audioFilterArgs,
-        '-c:v', 'copy', // Keep video lossless
+      ffmpegArgs.push(
+        '-c:v', 'copy',
         '-c:a', 'aac',
         '-b:a', '192k',
         '-movflags', '+faststart',
         withAudioPath
-      ], 'Audio injection');
+      );
       
+      await runFFmpeg(ffmpegArgs, 'Audio mixing (voice + music)');
       finalPath = withAudioPath;
     }
     

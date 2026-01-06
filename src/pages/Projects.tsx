@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 
-// Smart video component that auto-corrects rotation
+// Smart video component with smooth crossfade transitions
 function SmartVideoPlayer({ 
   src, 
   className,
@@ -43,6 +43,8 @@ function SmartVideoPlayer({
   onVideoClick?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [needsRotation, setNeedsRotation] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
 
@@ -57,36 +59,40 @@ function SmartVideoPlayer({
     setIsPortrait(isPortraitVideo);
     
     // Detect potentially sideways videos
-    // If aspect ratio is very extreme, it might be rotated incorrectly
     const aspectRatio = videoWidth / videoHeight;
-    
-    // Videos with very unusual aspect ratios might need rotation
-    // Normal range: 0.4 (9:16 portrait) to 2.4 (21:9 ultrawide)
     if (aspectRatio < 0.35 || aspectRatio > 2.8) {
-      // This might be a sideways video
       setNeedsRotation(true);
-      console.log('Unusual aspect ratio detected, may need rotation:', aspectRatio);
     }
 
     // Seek to preview position
     if (previewPercent !== undefined && video.duration && !autoPlay) {
       video.currentTime = video.duration * (previewPercent / 100);
     }
+    
+    setIsLoaded(true);
   }, [previewPercent, autoPlay]);
 
   const handleMouseEnter = () => {
     if (playOnHover && videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(() => {});
     }
   };
 
   const handleMouseLeave = () => {
     if (playOnHover && videoRef.current) {
-      videoRef.current.pause();
-      if (previewPercent !== undefined && videoRef.current.duration) {
-        videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
-      }
+      setIsPlaying(false);
+      // Smooth fade out before pausing
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.pause();
+          if (previewPercent !== undefined && videoRef.current.duration) {
+            videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
+          }
+        }
+      }, 150);
     }
   };
 
@@ -103,25 +109,37 @@ function SmartVideoPlayer({
   };
 
   return (
-    <video
-      ref={videoRef}
-      src={src}
-      className={cn(
-        "transition-transform duration-500",
-        isPortrait ? "object-contain" : "object-cover",
-        needsRotation && "rotate-90 scale-[1.78]", // Rotate and scale to fill container
-        className
-      )}
-      autoPlay={autoPlay}
-      loop={loop}
-      muted={muted}
-      playsInline
-      preload="metadata"
-      onLoadedMetadata={handleLoadedMetadata}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-    />
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Loading placeholder with fade */}
+      <div 
+        className={cn(
+          "absolute inset-0 bg-black/20 transition-opacity duration-500",
+          isLoaded ? "opacity-0" : "opacity-100"
+        )} 
+      />
+      
+      <video
+        ref={videoRef}
+        src={src}
+        className={cn(
+          "transition-all duration-500 ease-out",
+          isPortrait ? "object-contain" : "object-cover",
+          needsRotation && "rotate-90 scale-[1.78]",
+          // Smooth opacity transition for hover state
+          isLoaded ? "opacity-100" : "opacity-0",
+          className
+        )}
+        autoPlay={autoPlay}
+        loop={loop}
+        muted={muted}
+        playsInline
+        preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
+      />
+    </div>
   );
 }
 
@@ -638,9 +656,8 @@ export default function Projects() {
       {/* Fullscreen Video Player */}
       {videoModalOpen && selectedProject && (
         <FullscreenVideoPlayer
-          src={getVideoClips(selectedProject)[0]}
+          clips={getVideoClips(selectedProject)}
           title={selectedProject.name}
-          clipCount={selectedProject.video_clips?.length || 1}
           onClose={() => setVideoModalOpen(false)}
           onDownload={() => handleDownloadAll(selectedProject)}
           onOpenExternal={() => {

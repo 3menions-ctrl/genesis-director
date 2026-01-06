@@ -21,9 +21,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not configured");
       return new Response(
         JSON.stringify({ error: "API key not configured" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -116,18 +116,19 @@ Return ONLY valid JSON:
 
 MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/moments.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Break down this script into shots:\n\n${script}` }
         ],
+        max_tokens: 4000,
       }),
     });
 
@@ -139,15 +140,15 @@ MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/momen
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        console.error("Payment required");
+      if (response.status === 401) {
+        console.error("Invalid API key");
         return new Response(
-          JSON.stringify({ error: "API credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: "Invalid OpenAI API key." }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Failed to analyze script" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

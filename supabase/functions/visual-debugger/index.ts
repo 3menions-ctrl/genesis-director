@@ -48,9 +48,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     const body: VisualDebugRequest = await req.json();
@@ -203,16 +203,16 @@ If you create a corrective prompt, it MUST include:
 
 Provide your analysis as JSON.`;
 
-    console.log('[VisualDebugger] Calling Lovable AI for multimodal analysis...');
+    console.log('[VisualDebugger] Calling OpenAI for multimodal analysis...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash', // Multimodal capable
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { 
@@ -232,14 +232,13 @@ Provide your analysis as JSON.`;
             ]
           }
         ],
-        temperature: 0.2, // Low temperature for consistent analysis
         max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VisualDebugger] AI Gateway error:', response.status, errorText);
+      console.error('[VisualDebugger] OpenAI API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
@@ -251,17 +250,17 @@ Provide your analysis as JSON.`;
         });
       }
       
-      if (response.status === 402) {
+      if (response.status === 401) {
         return new Response(JSON.stringify({ 
-          error: 'Payment required for AI analysis',
+          error: 'Invalid OpenAI API key',
           shouldRetry: false 
         }), {
-          status: 402,
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const aiResponse = await response.json();

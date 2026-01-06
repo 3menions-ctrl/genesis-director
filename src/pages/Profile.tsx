@@ -488,10 +488,10 @@ export default function Profile() {
               onClick={() => navigate('/projects')}
               className="flex items-center gap-2.5 group"
             >
-              <div className="w-8 h-8 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.12] transition-colors">
-                <Film className="w-4 h-4 text-white/70" />
+              <div className="w-9 h-9 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.12] transition-colors">
+                <Film className="w-4.5 h-4.5 text-white/70" />
               </div>
-              <span className="text-sm font-semibold text-white/90">apex</span>
+              <span className="text-base font-semibold text-white/90">Apex-Studio</span>
             </button>
 
             {/* Center Nav */}
@@ -628,21 +628,21 @@ export default function Profile() {
               
               {/* Name & Meta */}
               <div className="flex-1 pb-1">
-                <h1 className="text-lg font-semibold text-white drop-shadow-lg">
+                <h1 className="text-xl font-semibold text-white drop-shadow-lg">
                   {profile?.display_name || profile?.full_name || 'Creator'}
                 </h1>
-                <p className="text-xs text-white/60 drop-shadow">{profile?.email} · Since {memberSince}</p>
+                <p className="text-sm text-white/60 drop-shadow">{profile?.email} · Since {memberSince}</p>
               </div>
 
               {/* Balance */}
               <div 
                 onClick={() => setShowBuyModal(true)}
-                className="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-black/50 hover:border-white/[0.2] transition-all cursor-pointer"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-black/50 hover:border-white/[0.2] transition-all cursor-pointer"
               >
-                <Coins className="w-4 h-4 text-white/70" />
+                <Coins className="w-5 h-5 text-white/70" />
                 <div>
-                  <p className="text-base font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
-                  <p className="text-[9px] text-white/50 uppercase tracking-wide">Credits</p>
+                  <p className="text-lg font-bold text-white leading-none">{profile?.credits_balance?.toLocaleString() || 0}</p>
+                  <p className="text-[10px] text-white/50 uppercase tracking-wide">Credits</p>
                 </div>
               </div>
             </div>

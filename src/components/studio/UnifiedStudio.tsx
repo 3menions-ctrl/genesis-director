@@ -223,47 +223,122 @@ export function UnifiedStudio() {
     return () => clearInterval(interval);
   }, [startTime, currentStage]);
 
-  // Realtime subscription for clip progress
+  // Realtime subscription for pipeline progress via movie_projects.pending_video_tasks
   useEffect(() => {
     if (!activeProjectId || currentStage === 'idle' || currentStage === 'complete' || currentStage === 'error') {
       return;
     }
 
     const channel = supabase
-      .channel(`studio_clips_${activeProjectId}`)
+      .channel(`studio_project_${activeProjectId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'video_clips',
-          filter: `project_id=eq.${activeProjectId}`,
+          table: 'movie_projects',
+          filter: `id=eq.${activeProjectId}`,
         },
         (payload) => {
-          const clip = payload.new as any;
-          if (clip) {
-            setClipResults(prev => {
-              const updated = [...prev];
-              const idx = updated.findIndex(c => c.index === clip.shot_index);
-              if (idx >= 0) {
-                updated[idx] = {
-                  ...updated[idx],
-                  status: clip.status,
-                  videoUrl: clip.video_url,
-                  error: clip.error_message,
-                };
+          const project = payload.new as any;
+          if (!project) return;
+          
+          const tasks = project.pending_video_tasks;
+          if (!tasks) return;
+          
+          // Update progress from background task
+          if (tasks.progress) {
+            setProgress(tasks.progress);
+          }
+          
+          // Map stage names to indices
+          const stageMap: Record<string, number> = {
+            'preproduction': 0,
+            'qualitygate': 2,
+            'assets': 3,
+            'production': 4,
+            'postproduction': 5,
+          };
+          
+          // Update stage status based on current stage
+          if (tasks.stage && stageMap[tasks.stage] !== undefined) {
+            const stageIdx = stageMap[tasks.stage];
+            // Mark previous stages as complete
+            for (let i = 0; i < stageIdx; i++) {
+              if (stages[i].status !== 'complete' && stages[i].status !== 'skipped') {
+                updateStageStatus(i, 'complete');
               }
-              return updated;
-            });
-
-            // Update progress
-            const completed = clipResults.filter(c => c.status === 'completed').length;
-            const progressPercent = 60 + (completed / clipCount) * 30;
-            setProgress(progressPercent);
-            
-            if (clip.status === 'completed') {
-              updateStageStatus(4, 'active', `${completed + 1}/${clipCount} clips`);
             }
+            // Mark current stage as active
+            updateStageStatus(stageIdx, 'active');
+          }
+          
+          // Update specific stage details
+          if (tasks.auditScore) {
+            setAuditScore(tasks.auditScore);
+            updateStageStatus(2, 'complete', `${tasks.auditScore}%`);
+          }
+          
+          if (tasks.charactersExtracted) {
+            updateStageStatus(1, 'complete', `${tasks.charactersExtracted} chars`);
+          }
+          
+          if (tasks.clipsCompleted) {
+            updateStageStatus(4, 'active', `${tasks.clipsCompleted}/${clipCount} clips`);
+          }
+          
+          // Handle completion
+          if (tasks.stage === 'complete' && tasks.finalVideoUrl) {
+            setFinalVideoUrl(tasks.finalVideoUrl);
+            setCurrentStage('complete');
+            setProgress(100);
+            
+            // Mark all stages complete
+            stages.forEach((_, i) => updateStageStatus(i, 'complete'));
+            
+            // Extract stage details if available
+            if (tasks.stages) {
+              if (tasks.stages.preproduction) {
+                updateStageStatus(0, 'complete', `${tasks.stages.preproduction.shotCount || clipCount} shots`);
+                if (tasks.stages.preproduction.charactersExtracted) {
+                  updateStageStatus(1, 'complete', `${tasks.stages.preproduction.charactersExtracted} chars`);
+                }
+              }
+              if (tasks.stages.qualitygate) {
+                setAuditScore(tasks.stages.qualitygate.auditScore);
+                updateStageStatus(2, 'complete', `${tasks.stages.qualitygate.auditScore}%`);
+              }
+              if (tasks.stages.assets) {
+                const assetDetails = [];
+                if (tasks.stages.assets.hasVoice) assetDetails.push('Voice');
+                if (tasks.stages.assets.hasMusic) assetDetails.push('Music');
+                updateStageStatus(3, 'complete', assetDetails.join(' + ') || 'Ready');
+              }
+              if (tasks.stages.production) {
+                updateStageStatus(4, 'complete', `${tasks.stages.production.clipsCompleted || clipCount} clips`);
+              }
+            }
+            
+            updateStageStatus(5, 'complete', 'Done');
+            toast.success('Video generated successfully!');
+          }
+          
+          // Handle error
+          if (tasks.stage === 'error') {
+            setError(tasks.error || 'Pipeline failed');
+            setCurrentStage('error');
+            toast.error(tasks.error || 'Pipeline failed');
+          }
+          
+          // Handle status change to completed
+          if (project.status === 'completed' && project.video_url) {
+            setFinalVideoUrl(project.video_url);
+            setCurrentStage('complete');
+          }
+          
+          if (project.status === 'failed') {
+            setError('Pipeline failed');
+            setCurrentStage('error');
           }
         }
       )
@@ -272,7 +347,7 @@ export function UnifiedStudio() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeProjectId, currentStage, clipResults, clipCount, updateStageStatus]);
+  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages]);
 
   const resetState = () => {
     setCurrentStage('idle');
@@ -382,7 +457,7 @@ export function UnifiedStudio() {
         updateStageStatus(1, 'skipped');
       }
 
-      // Call the unified Hollywood Pipeline
+      // Call the unified Hollywood Pipeline (now returns immediately)
       const { data, error: funcError } = await supabase.functions.invoke('hollywood-pipeline', {
         body: requestBody
       });
@@ -400,58 +475,15 @@ export function UnifiedStudio() {
         throw new Error(data.error || 'Pipeline failed');
       }
 
-      // Set project ID for realtime tracking
+      // Set project ID for realtime tracking - pipeline now runs in background
       if (data.projectId) {
         setActiveProjectId(data.projectId);
+        toast.info('Pipeline started! Tracking progress in real-time...');
+        
+        // The pipeline is now running in background
+        // Progress will be tracked via realtime subscription on movie_projects.pending_video_tasks
+        // Stage updates and completion will trigger the useEffect subscription above
       }
-
-      // Update stages based on response
-      if (data.stages?.preproduction) {
-        updateStageStatus(0, 'complete', `${data.stages.preproduction.shotCount || clipCount} shots`);
-        if (data.stages.preproduction.charactersExtracted) {
-          updateStageStatus(1, 'complete', `${data.stages.preproduction.charactersExtracted} chars`);
-        }
-      }
-      
-      if (data.stages?.qualitygate) {
-        setAuditScore(data.stages.qualitygate.auditScore);
-        updateStageStatus(2, 'complete', `${data.stages.qualitygate.auditScore}%`);
-      } else {
-        updateStageStatus(2, 'complete');
-      }
-      
-      if (data.stages?.assets) {
-        const assetDetails = [];
-        if (data.stages.assets.hasVoice) assetDetails.push('Voice');
-        if (data.stages.assets.hasMusic) assetDetails.push('Music');
-        updateStageStatus(3, 'complete', assetDetails.join(' + ') || 'Ready');
-      }
-      
-      updateStageStatus(4, 'complete', `${clipCount} clips`);
-      updateStageStatus(5, 'complete', 'Done');
-      
-      setFinalVideoUrl(data.finalVideoUrl);
-      setPipelineDetails(data.stages);
-      setProgress(100);
-      setCurrentStage('complete');
-      
-      // Extract assets from response
-      if (data.stages?.assets?.sceneImages) {
-        setSceneImages(data.stages.assets.sceneImages);
-      }
-      if (data.stages?.preproduction?.identityBible?.multiViewUrls) {
-        setIdentityBibleViews(data.stages.preproduction.identityBible.multiViewUrls);
-      }
-      if (data.stages?.production?.clipResults) {
-        setClipResults(data.stages.production.clipResults.map((c: any) => ({
-          index: c.index,
-          status: c.status === 'completed' ? 'completed' : 'failed',
-          videoUrl: c.videoUrl,
-          qaResult: c.qaResult,
-        })));
-      }
-      
-      toast.success('Video generated successfully!');
 
     } catch (err) {
       if (abortControllerRef.current?.signal.aborted) {

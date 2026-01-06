@@ -7,54 +7,32 @@ const corsHeaders = {
 };
 
 /**
- * HOLLYWOOD PIPELINE ORCHESTRATOR
+ * HOLLYWOOD PIPELINE ORCHESTRATOR (Async Background Processing)
  * 
- * The master edge function that coordinates all components of the Iron-Clad
- * video production pipeline to achieve Hollywood-rival quality.
- * 
- * Pipeline Stages:
- * 1. PRE-PRODUCTION: Script generation, Identity Bible, Reference Analysis
- * 2. QUALITY GATE: Cinematic Auditor validates and optimizes all prompts
- * 3. ASSET CREATION: Scene images, Voice narration, Background music
- * 4. PRODUCTION: Sequential video generation with frame-chaining
- * 5. POST-PRODUCTION: Final assembly with audio mixing and color grading
- * 
- * Each stage can be run independently or as part of the full pipeline.
+ * Uses EdgeRuntime.waitUntil() to avoid timeout issues.
+ * Returns immediately with project ID, runs pipeline in background.
+ * Updates database with progress - frontend uses realtime to track.
  */
 
 interface PipelineRequest {
   userId: string;
   projectId?: string;
-  
-  // Input options (use one)
-  concept?: string;           // High-level story concept for AI script generation
-  manualPrompts?: string[];   // User-provided scene prompts (skip script gen)
-  
-  // Pipeline options
+  concept?: string;
+  manualPrompts?: string[];
   stages?: ('preproduction' | 'qualitygate' | 'assets' | 'production' | 'postproduction')[];
-  
-  // Pre-production options
-  referenceImageUrl?: string; // Character/style reference
-  referenceImageAnalysis?: any; // Pre-analyzed reference image data (from UI)
+  referenceImageUrl?: string;
+  referenceImageAnalysis?: any;
   genre?: string;
   mood?: string;
-  
-  // Asset options
   includeVoice?: boolean;
   includeMusic?: boolean;
   musicMood?: string;
   voiceId?: string;
-  
-  // Production options
   colorGrading?: string;
-  totalDuration?: number;     // Target duration in seconds
-  clipCount?: number;         // Number of clips (default: calculated from totalDuration)
-  
-  // Quality options
+  totalDuration?: number;
+  clipCount?: number;
   qualityTier?: 'standard' | 'professional';
-  
-  // Pipeline control
-  skipCreditDeduction?: boolean; // Skip credit deduction (for when called from another function)
+  skipCreditDeduction?: boolean;
 }
 
 interface ExtractedCharacter {
@@ -71,11 +49,9 @@ interface PipelineState {
   projectId: string;
   stage: string;
   progress: number;
-  clipCount: number;        // Dynamic clip count
-  clipDuration: number;     // Duration per clip
-  totalCredits: number;     // Calculated total credits
-  
-  // Stage outputs
+  clipCount: number;
+  clipDuration: number;
+  totalCredits: number;
   script?: {
     shots: Array<{
       id: string;
@@ -87,11 +63,7 @@ interface PipelineState {
       cameraMovement?: string;
     }>;
   };
-  
-  // Extracted characters for identity consistency
   extractedCharacters?: ExtractedCharacter[];
-  
-  // Enhanced Identity Bible with multi-view references
   identityBible?: {
     characterIdentity?: {
       description?: string;
@@ -101,7 +73,6 @@ interface PipelineState {
       distinctiveMarkers?: string[];
     };
     consistencyPrompt?: string;
-    // Multi-view character references for visual consistency
     multiViewUrls?: {
       frontViewUrl: string;
       sideViewUrl: string;
@@ -109,14 +80,12 @@ interface PipelineState {
     };
     consistencyAnchors?: string[];
   };
-  
   referenceAnalysis?: {
     environment?: any;
     lighting?: any;
     colorPalette?: any;
     consistencyPrompt?: string;
   };
-  
   auditResult?: {
     overallScore: number;
     optimizedShots: Array<{
@@ -137,7 +106,6 @@ interface PipelineState {
       };
     }>;
   };
-  
   assets?: {
     sceneImages?: Array<{ sceneNumber: number; imageUrl: string }>;
     voiceUrl?: string;
@@ -145,7 +113,6 @@ interface PipelineState {
     musicUrl?: string;
     musicDuration?: number;
   };
-  
   production?: {
     clipResults: Array<{
       index: number;
@@ -154,16 +121,13 @@ interface PipelineState {
       lastFrameUrl?: string;
     }>;
   };
-  
   finalVideoUrl?: string;
   error?: string;
 }
 
-// Constants
-const DEFAULT_CLIP_DURATION = 4; // seconds per clip
-const CREDITS_PER_CLIP = 50; // ~50 credits per clip for full pipeline
+const DEFAULT_CLIP_DURATION = 4;
+const CREDITS_PER_CLIP = 50;
 
-// Helper to calculate dynamic values
 function calculatePipelineParams(request: PipelineRequest): { clipCount: number; clipDuration: number; totalCredits: number } {
   const clipDuration = DEFAULT_CLIP_DURATION;
   let clipCount: number;
@@ -175,20 +139,16 @@ function calculatePipelineParams(request: PipelineRequest): { clipCount: number;
   } else if (request.totalDuration) {
     clipCount = Math.ceil(request.totalDuration / clipDuration);
   } else {
-    clipCount = 6; // Default
+    clipCount = 6;
   }
   
-  // Clamp to reasonable limits
   clipCount = Math.max(2, Math.min(12, clipCount));
-  
   const totalCredits = clipCount * CREDITS_PER_CLIP;
   
   return { clipCount, clipDuration, totalCredits };
 }
 
-// Helper to call edge functions internally
 async function callEdgeFunction(
-  supabase: any,
   functionName: string,
   body: any
 ): Promise<any> {
@@ -212,6 +172,24 @@ async function callEdgeFunction(
   return response.json();
 }
 
+// Update project with pipeline progress
+async function updateProjectProgress(supabase: any, projectId: string, stage: string, progress: number, details?: any) {
+  const pendingTasks = {
+    stage,
+    progress,
+    updatedAt: new Date().toISOString(),
+    ...details,
+  };
+  
+  await supabase
+    .from('movie_projects')
+    .update({
+      pending_video_tasks: pendingTasks,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+}
+
 // Stage 1: PRE-PRODUCTION
 async function runPreProduction(
   request: PipelineRequest,
@@ -221,13 +199,14 @@ async function runPreProduction(
   console.log(`[Hollywood] Stage 1: PRE-PRODUCTION (${state.clipCount} clips)`);
   state.stage = 'preproduction';
   state.progress = 10;
+  await updateProjectProgress(supabase, state.projectId, 'preproduction', 10);
   
-  // 1a. Generate script from concept (if provided)
+  // 1a. Generate script from concept
   if (request.concept && !request.manualPrompts) {
     console.log(`[Hollywood] Generating script from concept...`);
     
     try {
-      const scriptResult = await callEdgeFunction(supabase, 'smart-script-generator', {
+      const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.concept,
         synopsis: request.concept,
         genre: request.genre || 'cinematic',
@@ -237,7 +216,6 @@ async function runPreProduction(
       });
       
       if (scriptResult.shots) {
-        // Ensure we have exactly the right number of shots
         const shots = scriptResult.shots.slice(0, state.clipCount);
         while (shots.length < state.clipCount) {
           shots.push({
@@ -253,7 +231,6 @@ async function runPreProduction(
       }
     } catch (err) {
       console.warn(`[Hollywood] Script generation failed, using fallback:`, err);
-      // Create basic shots from concept
       state.script = {
         shots: Array.from({ length: state.clipCount }, (_, i) => ({
           id: `shot_${i + 1}`,
@@ -265,7 +242,6 @@ async function runPreProduction(
       };
     }
   } else if (request.manualPrompts) {
-    // Use manual prompts
     state.script = {
       shots: request.manualPrompts.slice(0, state.clipCount).map((prompt, i) => ({
         id: `shot_${i + 1}`,
@@ -278,10 +254,10 @@ async function runPreProduction(
   }
   
   state.progress = 20;
+  await updateProjectProgress(supabase, state.projectId, 'preproduction', 20, { scriptGenerated: true });
   
   // 1b. Use pre-analyzed reference image OR analyze reference image
   if (request.referenceImageAnalysis) {
-    // Use pre-analyzed data from UI (avoids double analysis)
     console.log(`[Hollywood] Using pre-analyzed reference image...`);
     state.referenceAnalysis = request.referenceImageAnalysis;
     state.identityBible = {
@@ -292,12 +268,11 @@ async function runPreProduction(
     console.log(`[Hollywood] Analyzing reference image...`);
     
     try {
-      // Run both analysis and identity bible generation in parallel
       const [analysisResult, identityResult] = await Promise.all([
-        callEdgeFunction(supabase, 'analyze-reference-image', {
+        callEdgeFunction('analyze-reference-image', {
           imageUrl: request.referenceImageUrl,
         }),
-        callEdgeFunction(supabase, 'generate-identity-bible', {
+        callEdgeFunction('generate-identity-bible', {
           imageUrl: request.referenceImageUrl,
         }).catch(err => {
           console.warn(`[Hollywood] Identity Bible generation failed:`, err);
@@ -305,17 +280,14 @@ async function runPreProduction(
         }),
       ]);
       
-      // Process reference analysis
       const analysis = analysisResult.analysis || analysisResult;
       state.referenceAnalysis = analysis;
       
-      // Build rich identity bible with multi-view URLs
       state.identityBible = {
         characterIdentity: analysis.characterIdentity,
         consistencyPrompt: analysis.consistencyPrompt,
       };
       
-      // Add multi-view URLs if identity bible succeeded
       if (identityResult?.success) {
         state.identityBible.multiViewUrls = {
           frontViewUrl: identityResult.frontViewUrl,
@@ -324,7 +296,6 @@ async function runPreProduction(
         };
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
         
-        // Enhance consistency prompt with generated character description
         if (identityResult.characterDescription) {
           state.identityBible.consistencyPrompt = identityResult.characterDescription;
         }
@@ -338,7 +309,7 @@ async function runPreProduction(
     }
   }
   
-  // 1c. Generate Identity Bible (if no reference but we have character descriptions)
+  // 1c. Generate Identity Bible from script if no reference
   if (!state.identityBible && state.script?.shots.some(s => s.description.includes('character'))) {
     console.log(`[Hollywood] Generating Identity Bible from script...`);
     
@@ -349,7 +320,6 @@ async function runPreProduction(
         .match(/character[^.]*\./gi) || [];
       
       if (characterDescriptions.length > 0) {
-        console.log(`[Hollywood] Skipping Identity Bible (requires reference image)`);
         state.identityBible = {
           characterIdentity: {
             description: characterDescriptions.join(' '),
@@ -364,17 +334,16 @@ async function runPreProduction(
   
   state.progress = 25;
   
-  // 1d. Extract characters from script for identity consistency
+  // 1d. Extract characters from script
   if (state.script?.shots) {
     console.log(`[Hollywood] Extracting characters from script...`);
     
     try {
-      // Compile all shot descriptions into a script text
       const scriptText = state.script.shots
         .map(s => `${s.title}: ${s.description}${s.dialogue ? ` "${s.dialogue}"` : ''}`)
         .join('\n\n');
       
-      const characterResult = await callEdgeFunction(supabase, 'extract-characters', {
+      const characterResult = await callEdgeFunction('extract-characters', {
         script: scriptText,
       });
       
@@ -384,7 +353,6 @@ async function runPreProduction(
         console.log(`[Hollywood] Extracted ${characters.length} characters:`, 
           characters.map(c => c.name).join(', '));
         
-        // Build character consistency prompt if we don't have one from reference image
         if (!state.identityBible?.consistencyPrompt && characters.length > 0) {
           const characterDescriptions = characters.map(c => {
             const parts = [c.name];
@@ -407,6 +375,11 @@ async function runPreProduction(
   }
   
   state.progress = 30;
+  await updateProjectProgress(supabase, state.projectId, 'preproduction', 30, { 
+    scriptGenerated: true,
+    charactersExtracted: state.extractedCharacters?.length || 0,
+  });
+  
   return state;
 }
 
@@ -419,13 +392,14 @@ async function runQualityGate(
   console.log(`[Hollywood] Stage 2: QUALITY GATE (Cinematic Auditor)`);
   state.stage = 'qualitygate';
   state.progress = 35;
+  await updateProjectProgress(supabase, state.projectId, 'qualitygate', 35);
   
   if (!state.script?.shots) {
     throw new Error("No script shots to audit");
   }
   
   try {
-    const auditResult = await callEdgeFunction(supabase, 'cinematic-auditor', {
+    const auditResult = await callEdgeFunction('cinematic-auditor', {
       shots: state.script.shots,
       referenceAnalysis: state.referenceAnalysis,
       projectType: request.genre || 'cinematic',
@@ -445,7 +419,6 @@ async function runQualityGate(
     }
   } catch (err) {
     console.warn(`[Hollywood] Cinematic audit failed, using original prompts:`, err);
-    // Create passthrough optimization
     state.auditResult = {
       overallScore: 70,
       optimizedShots: state.script.shots.map(shot => ({
@@ -461,6 +434,10 @@ async function runQualityGate(
   }
   
   state.progress = 45;
+  await updateProjectProgress(supabase, state.projectId, 'qualitygate', 45, {
+    auditScore: state.auditResult?.overallScore || 0,
+  });
+  
   return state;
 }
 
@@ -473,10 +450,11 @@ async function runAssetCreation(
   console.log(`[Hollywood] Stage 3: ASSET CREATION`);
   state.stage = 'assets';
   state.progress = 50;
+  await updateProjectProgress(supabase, state.projectId, 'assets', 50);
   
   state.assets = {};
   
-  // 3a. Generate scene reference images (master anchors)
+  // 3a. Generate scene reference images
   if (state.script?.shots && !request.referenceImageUrl && !request.referenceImageAnalysis) {
     console.log(`[Hollywood] Generating scene reference images...`);
     
@@ -488,7 +466,7 @@ async function runAssetCreation(
         mood: shot.mood,
       }));
       
-      const imageResult = await callEdgeFunction(supabase, 'generate-scene-images', {
+      const imageResult = await callEdgeFunction('generate-scene-images', {
         scenes,
         projectId: state.projectId,
         globalStyle: 'Cinematic film still, professional color grading, high detail',
@@ -504,22 +482,22 @@ async function runAssetCreation(
   }
   
   state.progress = 55;
+  await updateProjectProgress(supabase, state.projectId, 'assets', 55);
   
   // 3b. Generate voice narration (if requested)
   if (request.includeVoice !== false) {
     console.log(`[Hollywood] Generating voice narration...`);
     
     try {
-      // Compile all dialogue/descriptions into narration
       const narrationText = state.script?.shots
         ?.map(shot => shot.dialogue || shot.description)
         .join(' ')
-        .substring(0, 2000) || ''; // ElevenLabs limit
+        .substring(0, 2000) || '';
       
       if (narrationText && narrationText.length > 50) {
-        const voiceResult = await callEdgeFunction(supabase, 'generate-voice', {
+        const voiceResult = await callEdgeFunction('generate-voice', {
           text: narrationText,
-          voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL', // Default voice
+          voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
           projectId: state.projectId,
         });
         
@@ -535,16 +513,17 @@ async function runAssetCreation(
   }
   
   state.progress = 60;
+  await updateProjectProgress(supabase, state.projectId, 'assets', 60, { hasVoice: !!state.assets.voiceUrl });
   
   // 3c. Generate background music (if requested)
   if (request.includeMusic !== false) {
     console.log(`[Hollywood] Generating background music...`);
     
     try {
-      const musicResult = await callEdgeFunction(supabase, 'generate-music', {
+      const musicResult = await callEdgeFunction('generate-music', {
         mood: request.musicMood || request.mood || 'cinematic',
         genre: 'hybrid',
-        duration: state.clipCount * state.clipDuration + 2, // Slightly longer than video
+        duration: state.clipCount * state.clipDuration + 2,
         projectId: state.projectId,
       });
       
@@ -559,6 +538,11 @@ async function runAssetCreation(
   }
   
   state.progress = 70;
+  await updateProjectProgress(supabase, state.projectId, 'assets', 70, {
+    hasVoice: !!state.assets.voiceUrl,
+    hasMusic: !!state.assets.musicUrl,
+  });
+  
   return state;
 }
 
@@ -571,8 +555,8 @@ async function runProduction(
   console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation - ${state.clipCount} clips)`);
   state.stage = 'production';
   state.progress = 75;
+  await updateProjectProgress(supabase, state.projectId, 'production', 75);
   
-  // Build character identity prompt from extracted characters
   const characterIdentityPrompt = state.extractedCharacters?.length 
     ? state.extractedCharacters.map(c => {
         const parts = [`${c.name}`];
@@ -586,26 +570,21 @@ async function runProduction(
   
   console.log(`[Hollywood] Character identity prompt: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
   
-  // Build the optimized clips array with all enhancements
   const clips = state.auditResult?.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
     let finalPrompt = opt.optimizedDescription;
     
-    // PRIORITY 1: Inject extracted character identities
     if (characterIdentityPrompt) {
       finalPrompt = `[CHARACTERS: ${characterIdentityPrompt}] ${finalPrompt}`;
     }
     
-    // PRIORITY 2: Inject identity anchors from audit
     if (opt.identityAnchors?.length > 0) {
       finalPrompt = `[IDENTITY: ${opt.identityAnchors.join(', ')}] ${finalPrompt}`;
     }
     
-    // PRIORITY 3: Inject physics guards
     if (opt.physicsGuards?.length > 0) {
       finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
     }
     
-    // PRIORITY 4: Inject velocity continuity from previous shot
     if (i > 0 && state.auditResult?.velocityVectors) {
       const prevVector = state.auditResult.velocityVectors[i - 1];
       if (prevVector?.endFrameMotion?.continuityPrompt) {
@@ -627,7 +606,6 @@ async function runProduction(
     };
   }) || [];
   
-  // Determine first frame reference - prefer identity bible front view for consistency
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
     || request.referenceImageUrl
     || request.referenceImageAnalysis?.imageUrl;
@@ -636,14 +614,9 @@ async function runProduction(
   }
   
   console.log(`[Hollywood] First frame reference: ${referenceImageUrl ? 'using identity bible front view' : 'none'}`);
-  console.log(`[Hollywood] Multi-view URLs available: ${!!state.identityBible?.multiViewUrls}`);
-  
   console.log(`[Hollywood] Calling generate-long-video with ${clips.length} optimized clips`);
-  console.log(`[Hollywood] Audio tracks: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
   
-  // Call the existing generate-long-video function WITH audio tracks
-  // Pass skipCreditDeduction=true since hollywood-pipeline handles credits
-  const productionResult = await callEdgeFunction(supabase, 'generate-long-video', {
+  const productionResult = await callEdgeFunction('generate-long-video', {
     userId: request.userId,
     projectId: state.projectId,
     clips,
@@ -655,7 +628,7 @@ async function runProduction(
     musicTrackUrl: state.assets?.musicUrl,
     qualityTier: request.qualityTier || 'standard',
     maxRetries: 2,
-    skipCreditDeduction: true, // Hollywood pipeline handles credits
+    skipCreditDeduction: true,
   });
   
   if (!productionResult.success) {
@@ -666,16 +639,19 @@ async function runProduction(
     clipResults: productionResult.clipResults || [],
   };
   
-  // If generate-long-video already stitched, use its result
   if (productionResult.finalVideoUrl) {
     state.finalVideoUrl = productionResult.finalVideoUrl;
   }
   
   state.progress = 90;
+  await updateProjectProgress(supabase, state.projectId, 'production', 90, {
+    clipsCompleted: state.production.clipResults.filter(c => c.status === 'completed').length,
+  });
+  
   return state;
 }
 
-// Stage 5: POST-PRODUCTION (now streamlined - audio mixing happens in production)
+// Stage 5: POST-PRODUCTION
 async function runPostProduction(
   request: PipelineRequest,
   state: PipelineState,
@@ -684,9 +660,7 @@ async function runPostProduction(
   console.log(`[Hollywood] Stage 5: POST-PRODUCTION (finalization)`);
   state.stage = 'postproduction';
   state.progress = 95;
-  
-  // Audio mixing now happens in generate-long-video via voiceTrackUrl/musicTrackUrl
-  // This stage is now for any final quality checks or metadata updates
+  await updateProjectProgress(supabase, state.projectId, 'postproduction', 95);
   
   if (!state.finalVideoUrl) {
     console.warn(`[Hollywood] No final video URL from production stage`);
@@ -694,7 +668,6 @@ async function runPostProduction(
     console.log(`[Hollywood] Final video ready (with audio): ${state.finalVideoUrl}`);
   }
   
-  // Log production summary
   const completedClips = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
   const failedClips = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
   
@@ -704,6 +677,112 @@ async function runPostProduction(
   state.progress = 100;
   return state;
 }
+
+// Background pipeline execution
+async function executePipelineInBackground(
+  request: PipelineRequest,
+  projectId: string,
+  state: PipelineState,
+  supabase: any
+) {
+  try {
+    const stages = request.stages || ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
+    
+    if (stages.includes('preproduction')) {
+      state = await runPreProduction(request, state, supabase);
+    }
+    
+    if (stages.includes('qualitygate')) {
+      state = await runQualityGate(request, state, supabase);
+    }
+    
+    if (stages.includes('assets')) {
+      state = await runAssetCreation(request, state, supabase);
+    }
+    
+    if (stages.includes('production')) {
+      state = await runProduction(request, state, supabase);
+    }
+    
+    if (stages.includes('postproduction')) {
+      state = await runPostProduction(request, state, supabase);
+    }
+    
+    // Deduct credits on success
+    if (state.finalVideoUrl && !request.skipCreditDeduction) {
+      console.log(`[Hollywood] Deducting ${state.totalCredits} credits`);
+      
+      await supabase.rpc('deduct_credits', {
+        p_user_id: request.userId,
+        p_amount: state.totalCredits,
+        p_description: `Hollywood Pipeline - Full production (${state.clipCount} clips + audio)`,
+        p_project_id: projectId,
+        p_clip_duration: state.clipCount * state.clipDuration,
+      });
+    }
+    
+    // Update project as completed
+    await supabase
+      .from('movie_projects')
+      .update({
+        video_url: state.finalVideoUrl,
+        status: state.finalVideoUrl ? 'completed' : 'failed',
+        generated_script: state.script ? JSON.stringify(state.script) : null,
+        scene_images: state.assets?.sceneImages || null,
+        pending_video_tasks: {
+          stage: 'complete',
+          progress: 100,
+          finalVideoUrl: state.finalVideoUrl,
+          stages: {
+            preproduction: {
+              shotCount: state.script?.shots?.length || 0,
+              charactersExtracted: state.extractedCharacters?.length || 0,
+            },
+            qualitygate: {
+              auditScore: state.auditResult?.overallScore || 0,
+            },
+            assets: {
+              hasVoice: !!state.assets?.voiceUrl,
+              hasMusic: !!state.assets?.musicUrl,
+              voiceUrl: state.assets?.voiceUrl,
+              musicUrl: state.assets?.musicUrl,
+            },
+            production: {
+              clipsCompleted: state.production?.clipResults?.filter(c => c.status === 'completed').length || 0,
+              clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
+            },
+          },
+          creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+    
+    console.log(`[Hollywood] Pipeline completed successfully!`);
+    
+  } catch (error) {
+    console.error("[Hollywood] Background pipeline error:", error);
+    
+    // Update project as failed
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'failed',
+        pending_video_tasks: {
+          stage: 'error',
+          progress: state.progress,
+          error: error instanceof Error ? error.message : 'Pipeline failed',
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+  }
+}
+
+// Handle shutdown gracefully
+addEventListener('beforeunload', (ev: any) => {
+  console.log('[Hollywood] Function shutdown:', ev.detail?.reason || 'unknown');
+});
 
 // Main handler
 serve(async (req) => {
@@ -722,22 +801,19 @@ serve(async (req) => {
       throw new Error("userId is required");
     }
     
-    // Validate input
     if (!request.concept && !request.manualPrompts) {
       throw new Error("Either 'concept' or 'manualPrompts' is required");
     }
     
-    // Calculate dynamic pipeline parameters
     const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request);
     
     console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s, ${totalCredits} credits`);
     
-    // Validate manual prompts count if provided
     if (request.manualPrompts && request.manualPrompts.length < 2) {
       throw new Error(`At least 2 prompts are required`);
     }
 
-    // Check credits
+    // Check credits upfront
     console.log(`[Hollywood] Checking credits for user ${request.userId}`);
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -773,18 +849,36 @@ serve(async (req) => {
           mood: request.mood,
           story_structure: 'episodic',
           target_duration_minutes: Math.ceil((clipCount * clipDuration) / 60),
+          pending_video_tasks: {
+            stage: 'initializing',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+          },
         })
         .select()
         .single();
 
       if (projectError) throw projectError;
       projectId = project.id;
+    } else {
+      // Update existing project status
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'generating',
+          pending_video_tasks: {
+            stage: 'initializing',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+          },
+        })
+        .eq('id', projectId);
     }
 
-    console.log(`[Hollywood] Starting pipeline for project ${projectId}`);
+    console.log(`[Hollywood] Starting background pipeline for project ${projectId}`);
 
-    // Initialize state with dynamic values
-    let state: PipelineState = {
+    // Initialize state
+    const state: PipelineState = {
       projectId: projectId!,
       stage: 'initializing',
       progress: 0,
@@ -793,109 +887,21 @@ serve(async (req) => {
       totalCredits,
     };
 
-    // Determine which stages to run
-    const stages = request.stages || ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
+    // Start pipeline in background using waitUntil
+    // @ts-ignore - EdgeRuntime is available in Deno edge functions
+    EdgeRuntime.waitUntil(executePipelineInBackground(request, projectId!, state, supabase));
 
-    // Execute pipeline stages
-    if (stages.includes('preproduction')) {
-      state = await runPreProduction(request, state, supabase);
-    }
-    
-    if (stages.includes('qualitygate')) {
-      state = await runQualityGate(request, state, supabase);
-    }
-    
-    if (stages.includes('assets')) {
-      state = await runAssetCreation(request, state, supabase);
-    }
-    
-    if (stages.includes('production')) {
-      state = await runProduction(request, state, supabase);
-    }
-    
-    if (stages.includes('postproduction')) {
-      state = await runPostProduction(request, state, supabase);
-    }
-
-    // Deduct credits on success (unless skipped)
-    if (state.finalVideoUrl && !request.skipCreditDeduction) {
-      console.log(`[Hollywood] Deducting ${state.totalCredits} credits`);
-      
-      await supabase.rpc('deduct_credits', {
-        p_user_id: request.userId,
-        p_amount: state.totalCredits,
-        p_description: `Hollywood Pipeline - Full production (${state.clipCount} clips + audio)`,
-        p_project_id: projectId,
-        p_clip_duration: state.clipCount * state.clipDuration,
-      });
-
-      // Update project status
-      await supabase
-        .from('movie_projects')
-        .update({
-          video_url: state.finalVideoUrl,
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', projectId);
-    }
-
+    // Return immediately with project ID
     return new Response(
       JSON.stringify({
         success: true,
-        projectId: state.projectId,
-        finalVideoUrl: state.finalVideoUrl,
-        
-        // Pipeline details
-        stages: {
-          preproduction: {
-            shotCount: state.script?.shots?.length || 0,
-            hasIdentityBible: !!state.identityBible,
-            hasReferenceAnalysis: !!state.referenceAnalysis,
-            charactersExtracted: state.extractedCharacters?.length || 0,
-            characterNames: state.extractedCharacters?.map(c => c.name) || [],
-            script: state.script,
-            identityBible: state.identityBible?.multiViewUrls ? {
-              multiViewUrls: {
-                front: state.identityBible.multiViewUrls.frontViewUrl,
-                side: state.identityBible.multiViewUrls.sideViewUrl,
-                threeQuarter: state.identityBible.multiViewUrls.threeQuarterViewUrl,
-              },
-              consistencyAnchors: state.identityBible.consistencyAnchors,
-            } : null,
-          },
-          qualitygate: {
-            auditScore: state.auditResult?.overallScore || 0,
-            optimizedShots: state.auditResult?.optimizedShots?.length || 0,
-            velocityVectors: state.auditResult?.velocityVectors?.length || 0,
-          },
-          assets: {
-            sceneImages: state.assets?.sceneImages || [],
-            hasVoice: !!state.assets?.voiceUrl,
-            hasMusic: !!state.assets?.musicUrl,
-            voiceUrl: state.assets?.voiceUrl,
-            musicUrl: state.assets?.musicUrl,
-          },
-          production: {
-            clipsCompleted: state.production?.clipResults?.filter(c => c.status === 'completed').length || 0,
-            clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
-            clipResults: state.production?.clipResults?.map(c => ({
-              index: c.index,
-              status: c.status,
-              videoUrl: c.videoUrl,
-              qaResult: (c as any).qaResult,
-            })),
-          },
-        },
-        
-        // Cost breakdown
-        creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
-        clipCount: state.clipCount,
-        clipDuration: state.clipDuration,
-        totalDuration: state.clipCount * state.clipDuration,
-        
-        // Full state for debugging
-        _state: state,
+        projectId: projectId,
+        status: 'processing',
+        message: 'Pipeline started in background. Use realtime subscription to track progress.',
+        estimatedCredits: totalCredits,
+        clipCount,
+        clipDuration,
+        totalDuration: clipCount * clipDuration,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

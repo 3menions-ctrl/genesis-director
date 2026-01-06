@@ -10,9 +10,15 @@ import {
   Film, Clock, Zap, TrendingUp, ChevronRight,
   Video, Target, BarChart3, Timer,
   FolderOpen, CheckCircle2, Layers,
-  PieChart as PieChartIcon, Activity, Play, Upload, X,
+  PieChart as PieChartIcon, Activity, Play, X, Check,
   ChevronDown, LogOut, Settings, HelpCircle
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,8 +110,10 @@ export default function Profile() {
   const [genreData, setGenreData] = useState<GenreData[]>([]);
   const [coverVideo, setCoverVideo] = useState<string | null>(null);
   const [isPlayingCover, setIsPlayingCover] = useState(false);
+  const [showVideoPicker, setShowVideoPicker] = useState(false);
+  const [userVideoClips, setUserVideoClips] = useState<string[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
   const coverVideoRef = useRef<HTMLVideoElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [metrics, setMetrics] = useState<UserMetrics>({
     totalProjects: 0,
     completedProjects: 0,
@@ -333,13 +341,43 @@ export default function Profile() {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : 'Recently';
 
-  const handleCoverVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCoverVideo(url);
-      toast.success('Cover video updated');
+  const fetchUserVideoClips = async () => {
+    if (!user) return;
+    setLoadingVideos(true);
+    
+    try {
+      const { data: projects } = await supabase
+        .from('movie_projects')
+        .select('video_clips, video_url')
+        .eq('user_id', user.id);
+      
+      const allClips: string[] = [];
+      projects?.forEach(p => {
+        if (p.video_clips && Array.isArray(p.video_clips)) {
+          allClips.push(...p.video_clips.filter(Boolean));
+        }
+        if (p.video_url) {
+          allClips.push(p.video_url);
+        }
+      });
+      
+      setUserVideoClips([...new Set(allClips)]);
+    } catch (error) {
+      console.error('Error fetching video clips:', error);
+    } finally {
+      setLoadingVideos(false);
     }
+  };
+
+  const handleOpenVideoPicker = () => {
+    fetchUserVideoClips();
+    setShowVideoPicker(true);
+  };
+
+  const handleSelectCoverVideo = (videoUrl: string) => {
+    setCoverVideo(videoUrl);
+    setShowVideoPicker(false);
+    toast.success('Cover video updated');
   };
 
   const handlePlayCover = () => {
@@ -385,13 +423,60 @@ export default function Profile() {
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-to-tl from-white/[0.015] to-transparent blur-[80px]" />
       </div>
 
-      <input 
-        ref={fileInputRef}
-        type="file" 
-        accept="video/*" 
-        className="hidden" 
-        onChange={handleCoverVideoUpload}
-      />
+      {/* Video Picker Modal */}
+      <Dialog open={showVideoPicker} onOpenChange={setShowVideoPicker}>
+        <DialogContent className="max-w-2xl bg-black/95 backdrop-blur-2xl border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Choose a Cover Video</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {loadingVideos ? (
+              <div className="grid grid-cols-3 gap-3">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-video rounded-lg bg-white/5" />
+                ))}
+              </div>
+            ) : userVideoClips.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Video className="w-10 h-10 text-white/20 mb-3" />
+                <p className="text-sm text-white/40">No generated videos yet</p>
+                <p className="text-xs text-white/25 mt-1">Create a project to generate video clips</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1">
+                {userVideoClips.map((clip, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectCoverVideo(clip)}
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all group ${
+                      coverVideo === clip 
+                        ? 'border-white/40 ring-2 ring-white/20' 
+                        : 'border-white/5 hover:border-white/15'
+                    }`}
+                  >
+                    <video 
+                      src={clip} 
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                      onMouseEnter={(e) => e.currentTarget.play()}
+                      onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Play className="w-6 h-6 text-white/80" />
+                    </div>
+                    {coverVideo === clip && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                        <Check className="w-3 h-3 text-black" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Premium Top Navigation Bar */}
       <nav className="sticky top-0 z-50">
@@ -516,13 +601,13 @@ export default function Profile() {
               </>
             ) : (
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleOpenVideoPicker}
                 className="absolute inset-0 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-white/30" />
+                  <Video className="w-5 h-5 text-white/30" />
                 </div>
-                <span className="text-xs text-white/30">Add cover video</span>
+                <span className="text-xs text-white/30">Choose cover video</span>
               </button>
             )}
           </div>

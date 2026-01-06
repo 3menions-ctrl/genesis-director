@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 // Main navigation - always visible
 const MAIN_NAV = [
   { title: 'Projects', url: '/projects', icon: Home },
+  { title: 'Long Video', url: '/long-video', icon: Video },
 ];
 
 // Iron-Clad Pipeline workflow steps (primary workflow)
@@ -100,42 +101,48 @@ function StudioSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
-              {/* Projects Link */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isOnProjects} tooltip="Projects">
-                  <NavLink 
-                    to="/projects" 
-                    className={cn(
-                      "relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
-                      isOnProjects && "bg-white/10",
-                      !isOnProjects && "hover:bg-white/5"
-                    )}
-                    activeClassName=""
-                  >
-                    {isOnProjects && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
-                    )}
-                    <div className={cn(
-                      "relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                      isOnProjects && "bg-white shadow-lg shadow-white/20",
-                      !isOnProjects && "bg-white/5 group-hover:bg-white/10 group-hover:scale-105"
-                    )}>
-                      <Folder className={cn(
-                        "w-5 h-5 transition-all",
-                        isOnProjects ? "text-black" : "text-white/50 group-hover:text-white/80"
-                      )} />
-                    </div>
-                    {!isCollapsed && (
-                      <span className={cn(
-                        "relative font-medium text-sm",
-                        isOnProjects ? "text-white" : "text-white/50 group-hover:text-white/80"
-                      )}>
-                        Projects
-                      </span>
-                    )}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {/* Main Navigation Links */}
+              {MAIN_NAV.map((navItem) => {
+                const isActive = location.pathname === navItem.url || 
+                  (navItem.url === '/projects' && location.pathname === '/');
+                return (
+                  <SidebarMenuItem key={navItem.url}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={navItem.title}>
+                      <NavLink 
+                        to={navItem.url} 
+                        className={cn(
+                          "relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
+                          isActive && "bg-white/10",
+                          !isActive && "hover:bg-white/5"
+                        )}
+                        activeClassName=""
+                      >
+                        {isActive && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
+                        )}
+                        <div className={cn(
+                          "relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
+                          isActive && "bg-white shadow-lg shadow-white/20",
+                          !isActive && "bg-white/5 group-hover:bg-white/10 group-hover:scale-105"
+                        )}>
+                          <navItem.icon className={cn(
+                            "w-5 h-5 transition-all",
+                            isActive ? "text-black" : "text-white/50 group-hover:text-white/80"
+                          )} />
+                        </div>
+                        {!isCollapsed && (
+                          <span className={cn(
+                            "relative font-medium text-sm",
+                            isActive ? "text-white" : "text-white/50 group-hover:text-white/80"
+                          )}>
+                            {navItem.title}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
 
               {/* New Project Button */}
               {!isCollapsed && (

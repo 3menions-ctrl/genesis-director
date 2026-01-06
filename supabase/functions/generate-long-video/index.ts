@@ -21,6 +21,7 @@ interface GenerationRequest {
   projectId: string;
   clips: ClipPrompt[];
   referenceImageUrl?: string;
+  colorGrading?: string; // cinematic, warm, cool, neutral, documentary
 }
 
 interface ClipResult {
@@ -30,6 +31,11 @@ interface ClipResult {
   durationSeconds: number;
   status: 'completed' | 'failed';
   error?: string;
+  motionVectors?: {
+    endVelocity?: string;
+    endDirection?: string;
+    cameraMomentum?: string;
+  };
 }
 
 // Get OAuth2 access token from service account
@@ -308,42 +314,52 @@ async function downloadToStorage(
   return publicUrl;
 }
 
-// Send clip to stitcher for frame-chaining
-async function sendToStitcher(
-  stitcherUrl: string,
-  clipUrl: string,
-  clipIndex: number,
-  nextPrompt?: string,
-  projectId?: string
-): Promise<{ lastFrameUrl?: string; stitchedUrl?: string }> {
-  console.log(`[LongVideo] Sending clip ${clipIndex} to stitcher for frame extraction`);
+// Extract motion vectors from prompt for velocity continuity
+function extractMotionVectors(prompt: string, clipIndex: number): ClipResult['motionVectors'] {
+  // Parse movement keywords from prompt
+  type MovementVectors = { velocity: string; direction: string; camera?: string };
+  const movements: Record<string, MovementVectors> = {
+    walk: { velocity: 'moderate walking pace', direction: 'forward' },
+    run: { velocity: 'rapid sprint', direction: 'forward' },
+    pan: { velocity: 'slow', direction: 'lateral', camera: 'panning' },
+    dolly: { velocity: 'smooth glide', direction: 'forward', camera: 'dolly' },
+    static: { velocity: 'stationary', direction: 'none', camera: 'locked' },
+    fly: { velocity: 'soaring', direction: 'upward' },
+    chase: { velocity: 'rapid pursuit', direction: 'forward' },
+  };
   
-  const response = await fetch(`${stitcherUrl}/stitch`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      projectId: projectId,
-      clipUrl: clipUrl,
-      clipIndex: clipIndex,
-      nextPrompt: nextPrompt,
-      extractLastFrame: true, // Request last frame for next clip
-      isFinalClip: clipIndex === TOTAL_CLIPS - 1,
-    }),
-  });
+  const promptLower = prompt.toLowerCase();
   
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Stitcher error: ${response.status} - ${error}`);
+  for (const [key, vectors] of Object.entries(movements)) {
+    if (promptLower.includes(key)) {
+      return {
+        endVelocity: vectors.velocity,
+        endDirection: vectors.direction,
+        cameraMomentum: vectors.camera || 'following',
+      };
+    }
   }
   
-  const result = await response.json();
+  // Default vectors for continuity
   return {
-    lastFrameUrl: result.lastFrameUrl,
-    stitchedUrl: result.stitchedVideoUrl,
+    endVelocity: 'steady',
+    endDirection: 'continuous',
+    cameraMomentum: 'smooth transition',
   };
 }
 
-// Main sequential generation with frame-chaining and checkpoint recovery
+// Build velocity-aware prompt for seamless transitions
+function injectVelocityContinuity(
+  prompt: string,
+  previousMotionVectors?: ClipResult['motionVectors']
+): string {
+  if (!previousMotionVectors) return prompt;
+  
+  const continuityPrefix = `[MOTION CONTINUITY: Subject maintains ${previousMotionVectors.endVelocity} moving ${previousMotionVectors.endDirection}, camera ${previousMotionVectors.cameraMomentum}]`;
+  return `${continuityPrefix} ${prompt}`;
+}
+
+// Main sequential generation with frame-chaining, velocity vectoring, and checkpoint recovery
 async function generateLongVideo(
   request: GenerationRequest,
   supabase: any,
@@ -396,25 +412,31 @@ async function generateLongVideo(
   
   console.log(`[LongVideo] Starting sequential generation from clip ${startIndex + 1} to ${TOTAL_CLIPS}`);
   
+  // Track previous motion vectors for velocity continuity
+  let previousMotionVectors: ClipResult['motionVectors'] | undefined;
+  
   for (let i = startIndex; i < request.clips.length && i < TOTAL_CLIPS; i++) {
     const clip = request.clips[i];
     console.log(`[LongVideo] Generating clip ${i + 1}/${TOTAL_CLIPS}: ${clip.prompt.substring(0, 50)}...`);
+    
+    // VELOCITY VECTORING: Inject motion continuity from previous clip
+    const velocityAwarePrompt = injectVelocityContinuity(clip.prompt, previousMotionVectors);
     
     // Upsert clip as 'generating' (idempotent)
     await supabase.rpc('upsert_video_clip', {
       p_project_id: request.projectId,
       p_user_id: request.userId,
       p_shot_index: i,
-      p_prompt: clip.prompt,
+      p_prompt: velocityAwarePrompt,
       p_status: 'generating',
     });
     
     try {
-      // Step 1: Generate clip with Veo (using previous frame for continuity)
+      // Step 1: Generate clip with Veo (using previous frame AND velocity-aware prompt)
       const { operationName } = await generateClip(
         accessToken,
         gcpProjectId,
-        clip.prompt,
+        velocityAwarePrompt,
         previousLastFrameUrl
       );
       
@@ -425,7 +447,7 @@ async function generateLongVideo(
         p_project_id: request.projectId,
         p_user_id: request.userId,
         p_shot_index: i,
-        p_prompt: clip.prompt,
+        p_prompt: velocityAwarePrompt,
         p_status: 'generating',
         p_veo_operation_name: operationName,
       });
@@ -467,15 +489,21 @@ async function generateLongVideo(
         console.log(`[LongVideo] Frame chain updated for clip ${i + 2}`);
       }
       
-      // Mark clip as completed in DB
+      // VELOCITY VECTORING: Extract motion vectors for next clip
+      const motionVectors = extractMotionVectors(clip.prompt, i);
+      previousMotionVectors = motionVectors;
+      console.log(`[LongVideo] Motion vectors for clip ${i + 1}:`, motionVectors);
+      
+      // Mark clip as completed in DB with motion vectors
       await supabase.rpc('upsert_video_clip', {
         p_project_id: request.projectId,
         p_user_id: request.userId,
         p_shot_index: i,
-        p_prompt: clip.prompt,
+        p_prompt: velocityAwarePrompt,
         p_status: 'completed',
         p_video_url: storedUrl,
         p_last_frame_url: stitcherResult.lastFrameUrl,
+        p_motion_vectors: JSON.stringify(motionVectors),
       });
       
       clipResults.push({
@@ -484,6 +512,7 @@ async function generateLongVideo(
         lastFrameUrl: stitcherResult.lastFrameUrl,
         durationSeconds: CLIP_DURATION,
         status: 'completed',
+        motionVectors,
       });
       
     } catch (error) {
@@ -527,10 +556,11 @@ async function generateLongVideo(
         videoUrl: c.videoUrl,
         durationSeconds: c.durationSeconds,
         transitionOut: 'continuous',
+        motionVectors: c.motionVectors, // Pass motion vectors for transition optimization
       })),
       audioMixMode: 'full',
       outputFormat: 'mp4',
-      colorGrading: 'cinematic', // Use cinematic color grading
+      colorGrading: request.colorGrading || 'cinematic', // Use user-selected color grading
       isFinalAssembly: true,
     }),
   });

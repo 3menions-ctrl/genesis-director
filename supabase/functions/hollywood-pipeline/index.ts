@@ -52,6 +52,16 @@ interface PipelineRequest {
   qualityTier?: 'standard' | 'professional';
 }
 
+interface ExtractedCharacter {
+  id: string;
+  name: string;
+  age?: string;
+  gender?: string;
+  appearance: string;
+  clothing?: string;
+  distinguishingFeatures?: string;
+}
+
 interface PipelineState {
   projectId: string;
   stage: string;
@@ -69,6 +79,9 @@ interface PipelineState {
       cameraMovement?: string;
     }>;
   };
+  
+  // Extracted characters for identity consistency
+  extractedCharacters?: ExtractedCharacter[];
   
   identityBible?: {
     characterIdentity?: {
@@ -265,6 +278,50 @@ async function runPreProduction(
     }
   }
   
+  state.progress = 25;
+  
+  // 1d. Extract characters from script for identity consistency
+  if (state.script?.shots) {
+    console.log(`[Hollywood] Extracting characters from script...`);
+    
+    try {
+      // Compile all shot descriptions into a script text
+      const scriptText = state.script.shots
+        .map(s => `${s.title}: ${s.description}${s.dialogue ? ` "${s.dialogue}"` : ''}`)
+        .join('\n\n');
+      
+      const characterResult = await callEdgeFunction(supabase, 'extract-characters', {
+        script: scriptText,
+      });
+      
+      if (characterResult.success && characterResult.characters?.length > 0) {
+        const characters: ExtractedCharacter[] = characterResult.characters;
+        state.extractedCharacters = characters;
+        console.log(`[Hollywood] Extracted ${characters.length} characters:`, 
+          characters.map(c => c.name).join(', '));
+        
+        // Build character consistency prompt if we don't have one from reference image
+        if (!state.identityBible?.consistencyPrompt && characters.length > 0) {
+          const characterDescriptions = characters.map(c => {
+            const parts = [c.name];
+            if (c.appearance) parts.push(c.appearance);
+            if (c.clothing) parts.push(`wearing ${c.clothing}`);
+            if (c.distinguishingFeatures) parts.push(c.distinguishingFeatures);
+            return parts.join(': ');
+          }).join('. ');
+          
+          state.identityBible = {
+            ...state.identityBible,
+            consistencyPrompt: characterDescriptions,
+          };
+          console.log(`[Hollywood] Built character consistency prompt from extracted characters`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Character extraction failed:`, err);
+    }
+  }
+  
   state.progress = 30;
   return state;
 }
@@ -431,21 +488,40 @@ async function runProduction(
   state.stage = 'production';
   state.progress = 75;
   
+  // Build character identity prompt from extracted characters
+  const characterIdentityPrompt = state.extractedCharacters?.length 
+    ? state.extractedCharacters.map(c => {
+        const parts = [`${c.name}`];
+        if (c.appearance) parts.push(c.appearance);
+        if (c.clothing) parts.push(`wearing ${c.clothing}`);
+        if (c.age) parts.push(`${c.age}`);
+        if (c.distinguishingFeatures) parts.push(c.distinguishingFeatures);
+        return parts.join(', ');
+      }).join('; ')
+    : null;
+  
+  console.log(`[Hollywood] Character identity prompt: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
+  
   // Build the optimized clips array with all enhancements
   const clips = state.auditResult?.optimizedShots.map((opt, i) => {
     let finalPrompt = opt.optimizedDescription;
     
-    // Inject identity anchors
+    // PRIORITY 1: Inject extracted character identities
+    if (characterIdentityPrompt) {
+      finalPrompt = `[CHARACTERS: ${characterIdentityPrompt}] ${finalPrompt}`;
+    }
+    
+    // PRIORITY 2: Inject identity anchors from audit
     if (opt.identityAnchors?.length > 0) {
       finalPrompt = `[IDENTITY: ${opt.identityAnchors.join(', ')}] ${finalPrompt}`;
     }
     
-    // Inject physics guards
+    // PRIORITY 3: Inject physics guards
     if (opt.physicsGuards?.length > 0) {
       finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
     }
     
-    // Inject velocity continuity from previous shot
+    // PRIORITY 4: Inject velocity continuity from previous shot
     if (i > 0 && state.auditResult?.velocityVectors) {
       const prevVector = state.auditResult.velocityVectors[i - 1];
       if (prevVector?.endFrameMotion?.continuityPrompt) {
@@ -462,6 +538,8 @@ async function runProduction(
         environment: state.referenceAnalysis?.environment?.setting,
         lightingStyle: state.referenceAnalysis?.lighting?.style,
         colorPalette: state.referenceAnalysis?.colorPalette?.dominant?.join(', '),
+        // Include character names for reference
+        characters: state.extractedCharacters?.map(c => c.name) || [],
       },
     };
   }) || [];
@@ -699,6 +777,8 @@ serve(async (req) => {
             shotsGenerated: state.script?.shots?.length || 0,
             hasIdentityBible: !!state.identityBible,
             hasReferenceAnalysis: !!state.referenceAnalysis,
+            charactersExtracted: state.extractedCharacters?.length || 0,
+            characterNames: state.extractedCharacters?.map(c => c.name) || [],
           },
           qualitygate: {
             auditScore: state.auditResult?.overallScore || 0,

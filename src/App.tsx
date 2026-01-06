@@ -52,7 +52,7 @@ const App = () => (
                 {/* Protected routes */}
                 <Route path="/projects" element={
                   <ProtectedRoute>
-                    <StudioLayout><Projects /></StudioLayout>
+                    <Projects />
                   </ProtectedRoute>
                 } />
                 <Route path="/profile" element={

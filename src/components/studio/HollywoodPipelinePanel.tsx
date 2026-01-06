@@ -103,6 +103,7 @@ export function HollywoodPipelinePanel() {
   const [includeVoice, setIncludeVoice] = useState(true);
   const [includeMusic, setIncludeMusic] = useState(true);
   const [referenceImageUrl, setReferenceImageUrl] = useState('');
+  const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
   
   // UI State
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -111,6 +112,8 @@ export function HollywoodPipelinePanel() {
   const [error, setError] = useState<string | null>(null);
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [pipelineDetails, setPipelineDetails] = useState<any>(null);
+  const [sceneImages, setSceneImages] = useState<Array<{ sceneNumber: number; imageUrl: string }>>([]);
+  const [identityBibleViews, setIdentityBibleViews] = useState<{ front?: string; side?: string; threeQuarter?: string } | null>(null);
   
   // Stage tracking
   const [stages, setStages] = useState<StageStatus[]>([
@@ -136,6 +139,59 @@ export function HollywoodPipelinePanel() {
       return updated;
     });
   };
+
+  // Realtime subscription to track video clip progress during generation
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [clipProgress, setClipProgress] = useState<Map<number, string>>(new Map());
+
+  useEffect(() => {
+    if (!activeProjectId || currentStage === 'idle' || currentStage === 'complete' || currentStage === 'error') {
+      return;
+    }
+
+    console.log('[HollywoodPipeline] Setting up realtime subscription for project:', activeProjectId);
+
+    const channel = supabase
+      .channel(`video_clips_${activeProjectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_clips',
+          filter: `project_id=eq.${activeProjectId}`,
+        },
+        (payload) => {
+          console.log('[HollywoodPipeline] Clip update:', payload);
+          const clip = payload.new as any;
+          if (clip) {
+            setClipProgress(prev => {
+              const updated = new Map(prev);
+              updated.set(clip.shot_index, clip.status);
+              return updated;
+            });
+
+            // Update production stage details
+            const completedCount = Array.from(clipProgress.values()).filter(s => s === 'completed').length;
+            const generatingCount = Array.from(clipProgress.values()).filter(s => s === 'generating').length;
+            
+            if (clip.status === 'completed') {
+              updateStageStatus(3, 'active', `${completedCount + 1}/${TOTAL_CLIPS} clips completed`);
+            } else if (clip.status === 'generating') {
+              updateStageStatus(3, 'active', `Generating clip ${clip.shot_index + 1}...`);
+            } else if (clip.status === 'failed') {
+              updateStageStatus(3, 'active', `Clip ${clip.shot_index + 1} failed, retrying...`);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[HollywoodPipeline] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [activeProjectId, currentStage]);
 
   const runPipeline = async () => {
     if (!user) {
@@ -163,7 +219,10 @@ export function HollywoodPipelinePanel() {
     setError(null);
     setFinalVideoUrl(null);
     setPipelineDetails(null);
+    setSceneImages([]);
+    setIdentityBibleViews(null);
     setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
+    setClipProgress(new Map());
 
     try {
       toast.info('Starting Hollywood Pipeline...');
@@ -177,6 +236,7 @@ export function HollywoodPipelinePanel() {
         includeVoice,
         includeMusic,
         musicMood: mood,
+        qualityTier,
       };
 
       if (inputMode === 'concept') {
@@ -202,6 +262,11 @@ export function HollywoodPipelinePanel() {
         throw new Error(data.error || 'Pipeline failed');
       }
 
+      // Set project ID for realtime tracking
+      if (data.projectId) {
+        setActiveProjectId(data.projectId);
+      }
+
       // Update all stages to complete
       setStages(prev => prev.map(s => ({ ...s, status: 'complete' })));
       
@@ -209,6 +274,14 @@ export function HollywoodPipelinePanel() {
       setPipelineDetails(data.stages);
       setProgress(100);
       setCurrentStage('complete');
+      
+      // Extract scene images and identity bible views from response
+      if (data.stages?.assets?.sceneImages) {
+        setSceneImages(data.stages.assets.sceneImages);
+      }
+      if (data.stages?.preproduction?.identityBible?.multiViewUrls) {
+        setIdentityBibleViews(data.stages.preproduction.identityBible.multiViewUrls);
+      }
       
       toast.success('Hollywood-quality video generated!');
 
@@ -362,8 +435,8 @@ export function HollywoodPipelinePanel() {
           </div>
         </div>
 
-        {/* Audio toggles */}
-        <div className="flex items-center gap-6 pt-2">
+        {/* Audio toggles & Quality Tier */}
+        <div className="flex flex-wrap items-center gap-6 pt-2">
           <div className="flex items-center gap-2">
             <Switch
               id="voice"
@@ -387,6 +460,21 @@ export function HollywoodPipelinePanel() {
               <Music className="w-4 h-4" />
               Background Music
             </Label>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Switch
+              id="proTier"
+              checked={qualityTier === 'professional'}
+              onCheckedChange={(checked) => setQualityTier(checked ? 'professional' : 'standard')}
+              disabled={isRunning}
+            />
+            <Label htmlFor="proTier" className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <Shield className="w-4 h-4" />
+              Pro QA
+            </Label>
+            {qualityTier === 'professional' && (
+              <Badge variant="secondary" className="text-xs">+Visual Debugger</Badge>
+            )}
           </div>
         </div>
       </Card>
@@ -524,6 +612,58 @@ export function HollywoodPipelinePanel() {
         )}
       </Button>
 
+      {/* Scene Images & Identity Bible Preview */}
+      {(sceneImages.length > 0 || identityBibleViews) && (
+        <Card className="p-4 space-y-3">
+          <h4 className="text-sm font-medium flex items-center gap-2">
+            <Image className="w-4 h-4" />
+            Generated Assets
+          </h4>
+          
+          {/* Identity Bible Views */}
+          {identityBibleViews && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Character Identity (3-Point)</p>
+              <div className="grid grid-cols-3 gap-2">
+                {identityBibleViews.front && (
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-border/30">
+                    <img src={identityBibleViews.front} alt="Front view" className="w-full h-full object-cover" />
+                    <Badge className="absolute bottom-1 left-1 text-[10px] px-1">Front</Badge>
+                  </div>
+                )}
+                {identityBibleViews.side && (
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-border/30">
+                    <img src={identityBibleViews.side} alt="Side view" className="w-full h-full object-cover" />
+                    <Badge className="absolute bottom-1 left-1 text-[10px] px-1">Side</Badge>
+                  </div>
+                )}
+                {identityBibleViews.threeQuarter && (
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-border/30">
+                    <img src={identityBibleViews.threeQuarter} alt="3/4 view" className="w-full h-full object-cover" />
+                    <Badge className="absolute bottom-1 left-1 text-[10px] px-1">3/4</Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Scene Reference Images */}
+          {sceneImages.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Scene References</p>
+              <div className="grid grid-cols-3 gap-2">
+                {sceneImages.map((scene) => (
+                  <div key={scene.sceneNumber} className="relative aspect-video rounded-lg overflow-hidden border border-border/30">
+                    <img src={scene.imageUrl} alt={`Scene ${scene.sceneNumber}`} className="w-full h-full object-cover" />
+                    <Badge className="absolute bottom-1 left-1 text-[10px] px-1">Scene {scene.sceneNumber}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Final Video */}
       {finalVideoUrl && (
         <Card className="p-6 space-y-4 border-emerald-500/20 bg-emerald-500/5">
@@ -562,6 +702,8 @@ export function HollywoodPipelinePanel() {
                 setCurrentStage('idle');
                 setFinalVideoUrl(null);
                 setPipelineDetails(null);
+                setSceneImages([]);
+                setIdentityBibleViews(null);
                 setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
               }}
             >

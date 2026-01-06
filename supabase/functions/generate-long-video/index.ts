@@ -44,6 +44,9 @@ interface GenerationRequest {
   // Audio tracks for final assembly (passed from Hollywood pipeline)
   voiceTrackUrl?: string;
   musicTrackUrl?: string;
+  // Quality options
+  qualityTier?: 'standard' | 'professional'; // professional tier enables visual debugger
+  maxRetries?: number; // Shot-level retry count (default: 2)
 }
 
 interface ClipResult {
@@ -560,6 +563,47 @@ async function generateLongVideo(
         p_motion_vectors: JSON.stringify(motionVectors),
       });
       
+      // VISUAL DEBUGGER: Run QA check for professional tier
+      let qaResult = null;
+      if (request.qualityTier === 'professional' && stitcherResult.lastFrameUrl) {
+        try {
+          console.log(`[LongVideo] Running visual debugger QA for clip ${i + 1}...`);
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          
+          const debugResponse = await fetch(`${supabaseUrl}/functions/v1/visual-debugger`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              videoUrl: storedUrl,
+              frameUrl: stitcherResult.lastFrameUrl,
+              shotDescription: clip.prompt,
+              shotId: `clip_${i}`,
+              projectType: request.colorGrading || 'cinematic',
+              referenceImageUrl: request.referenceImageUrl,
+              referenceAnalysis: request.identityBible?.characterIdentity ? {
+                characterIdentity: request.identityBible.characterIdentity,
+              } : undefined,
+            }),
+          });
+          
+          if (debugResponse.ok) {
+            qaResult = await debugResponse.json();
+            console.log(`[LongVideo] QA result for clip ${i + 1}: ${qaResult.result?.verdict} (Score: ${qaResult.result?.score})`);
+            
+            // Log issues if any
+            if (qaResult.result?.issues?.length > 0) {
+              console.log(`[LongVideo] QA issues:`, qaResult.result.issues.map((issue: any) => issue.description).join('; '));
+            }
+          }
+        } catch (qaError) {
+          console.warn(`[LongVideo] Visual debugger QA failed (non-blocking):`, qaError);
+        }
+      }
+      
       clipResults.push({
         index: i,
         videoUrl: storedUrl,
@@ -567,21 +611,86 @@ async function generateLongVideo(
         durationSeconds: CLIP_DURATION,
         status: 'completed',
         motionVectors,
+        ...(qaResult?.result && { qaResult: qaResult.result }),
       });
       
     } catch (error) {
       console.error(`[LongVideo] Clip ${i + 1} failed:`, error);
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const maxRetries = request.maxRetries ?? 2;
       
-      // Mark clip as failed in DB
+      // SHOT-LEVEL RETRY: Attempt retry for failed clips
+      const { data: existingClip } = await supabase
+        .from('video_clips')
+        .select('retry_count')
+        .eq('project_id', request.projectId)
+        .eq('shot_index', i)
+        .single();
+      
+      const currentRetryCount = existingClip?.retry_count || 0;
+      
+      if (currentRetryCount < maxRetries) {
+        console.log(`[LongVideo] Retrying clip ${i + 1} (attempt ${currentRetryCount + 1}/${maxRetries})...`);
+        
+        // Mark as retrying
+        await supabase.rpc('upsert_video_clip', {
+          p_project_id: request.projectId,
+          p_user_id: request.userId,
+          p_shot_index: i,
+          p_prompt: velocityAwarePrompt,
+          p_status: 'generating',
+          p_error_message: `Retry ${currentRetryCount + 1}: ${errorMessage}`,
+        });
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Retry the clip generation
+        try {
+          const { operationName } = await generateClip(
+            accessToken,
+            gcpProjectId,
+            velocityAwarePrompt,
+            previousLastFrameUrl
+          );
+          
+          const { videoUrl: rawVideoUrl } = await pollOperation(accessToken, operationName);
+          const storedUrl = await downloadToStorage(supabase, rawVideoUrl, request.projectId, i);
+          
+          console.log(`[LongVideo] Clip ${i + 1} retry succeeded: ${storedUrl}`);
+          
+          // Mark as completed
+          await supabase.rpc('upsert_video_clip', {
+            p_project_id: request.projectId,
+            p_user_id: request.userId,
+            p_shot_index: i,
+            p_prompt: velocityAwarePrompt,
+            p_status: 'completed',
+            p_video_url: storedUrl,
+          });
+          
+          clipResults.push({
+            index: i,
+            videoUrl: storedUrl,
+            durationSeconds: CLIP_DURATION,
+            status: 'completed',
+          });
+          
+          continue; // Success on retry, move to next clip
+        } catch (retryError) {
+          console.error(`[LongVideo] Clip ${i + 1} retry failed:`, retryError);
+        }
+      }
+      
+      // Mark clip as failed in DB after all retries exhausted
       await supabase.rpc('upsert_video_clip', {
         p_project_id: request.projectId,
         p_user_id: request.userId,
         p_shot_index: i,
         p_prompt: clip.prompt,
         p_status: 'failed',
-        p_error_message: errorMessage,
+        p_error_message: `Failed after ${currentRetryCount + 1} attempts: ${errorMessage}`,
       });
       
       clipResults.push({
@@ -589,7 +698,7 @@ async function generateLongVideo(
         videoUrl: '',
         durationSeconds: CLIP_DURATION,
         status: 'failed',
-        error: errorMessage,
+        error: `Failed after ${currentRetryCount + 1} attempts: ${errorMessage}`,
       });
       // Continue with remaining clips even if one fails
     }

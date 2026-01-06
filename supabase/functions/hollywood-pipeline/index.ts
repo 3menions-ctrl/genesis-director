@@ -609,6 +609,10 @@ async function runProduction(
     // Pass audio tracks for final assembly (eliminates double-stitch)
     voiceTrackUrl: state.assets?.voiceUrl,
     musicTrackUrl: state.assets?.musicUrl,
+    // Pass quality tier for visual debugger QA (professional tier only)
+    qualityTier: request.qualityTier || 'standard',
+    // Enable shot-level retry
+    maxRetries: 2,
   });
   
   if (!productionResult.success) {
@@ -798,6 +802,15 @@ serve(async (req) => {
             hasReferenceAnalysis: !!state.referenceAnalysis,
             charactersExtracted: state.extractedCharacters?.length || 0,
             characterNames: state.extractedCharacters?.map(c => c.name) || [],
+            // Include identity bible multi-view URLs for UI display
+            identityBible: state.identityBible?.multiViewUrls ? {
+              multiViewUrls: {
+                front: state.identityBible.multiViewUrls.frontViewUrl,
+                side: state.identityBible.multiViewUrls.sideViewUrl,
+                threeQuarter: state.identityBible.multiViewUrls.threeQuarterViewUrl,
+              },
+              consistencyAnchors: state.identityBible.consistencyAnchors,
+            } : null,
           },
           qualitygate: {
             auditScore: state.auditResult?.overallScore || 0,
@@ -805,13 +818,22 @@ serve(async (req) => {
             velocityVectors: state.auditResult?.velocityVectors?.length || 0,
           },
           assets: {
-            sceneImages: state.assets?.sceneImages?.length || 0,
+            // Include actual scene image URLs for UI display
+            sceneImages: state.assets?.sceneImages || [],
             hasVoice: !!state.assets?.voiceUrl,
             hasMusic: !!state.assets?.musicUrl,
+            voiceUrl: state.assets?.voiceUrl,
+            musicUrl: state.assets?.musicUrl,
           },
           production: {
             clipsCompleted: state.production?.clipResults?.filter(c => c.status === 'completed').length || 0,
             clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
+            clipResults: state.production?.clipResults?.map(c => ({
+              index: c.index,
+              status: c.status,
+              videoUrl: c.videoUrl,
+              qaResult: (c as any).qaResult, // Include QA results if available
+            })),
           },
         },
         

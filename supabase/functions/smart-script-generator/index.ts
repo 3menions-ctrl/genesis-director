@@ -203,12 +203,12 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_completion_tokens: Math.min(4000, shotCount * 300),
+        max_tokens: Math.min(4000, shotCount * 300),
       }),
     });
 

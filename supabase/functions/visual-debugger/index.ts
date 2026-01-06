@@ -212,7 +212,7 @@ Provide your analysis as JSON.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { 
@@ -232,7 +232,7 @@ Provide your analysis as JSON.`;
             ]
           }
         ],
-        max_completion_tokens: 1500,
+        max_tokens: 1500,
       }),
     });
 

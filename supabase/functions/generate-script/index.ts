@@ -131,12 +131,12 @@ Write the script now:`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_completion_tokens: isFullMovieMode ? 800 : 400,
+        max_tokens: isFullMovieMode ? 800 : 400,
       }),
     });
 

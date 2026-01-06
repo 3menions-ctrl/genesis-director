@@ -26,14 +26,14 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get projects that have video clips but no thumbnail
+    // Get ONLY ONE project that needs a thumbnail (to avoid CPU timeout)
     const { data: projects, error: fetchError } = await supabase
       .from("movie_projects")
       .select("id, title, video_clips, script_content, generated_script, setting")
       .is("thumbnail_url", null)
       .not("video_clips", "is", null)
       .order("updated_at", { ascending: false })
-      .limit(10);
+      .limit(1);
 
     if (fetchError) {
       throw new Error(`Failed to fetch projects: ${fetchError.message}`);
@@ -50,119 +50,90 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${projects.length} projects needing thumbnails`);
+    const project = projects[0];
+    console.log(`Generating thumbnail for: ${project.title}`);
 
-    const results: { projectId: string; success: boolean; thumbnailUrl?: string; error?: string }[] = [];
-
-    for (const project of projects) {
-      try {
-        // Build a prompt from project data
-        const scriptContent = project.script_content || project.generated_script || "";
-        const setting = project.setting || "";
-        
-        // Extract first meaningful sentence for the thumbnail
-        const firstLine = scriptContent.split(/[.!?\n]/)[0]?.trim() || project.title;
-        
-        const thumbnailPrompt = `Create a stunning cinematic movie poster thumbnail: "${project.title}". 
+    // Build a prompt from project data
+    const scriptContent = project.script_content || project.generated_script || "";
+    const setting = project.setting || "";
+    
+    // Extract first meaningful sentence for the thumbnail
+    const firstLine = scriptContent.split(/[.!?\n]/)[0]?.trim() || project.title;
+    
+    const thumbnailPrompt = `Create a stunning cinematic movie poster thumbnail: "${project.title}". 
 Scene: ${firstLine}. ${setting ? `Setting: ${setting}.` : ""}
 Style: Ultra high resolution movie poster, dramatic lighting, cinematic color grading, professional photography, 16:9 aspect ratio, film grain, shallow depth of field, IMAX quality.`;
 
-        console.log(`Generating thumbnail for: ${project.title}`);
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: thumbnailPrompt,
+        n: 1,
+        size: "1792x1024",
+        quality: "standard",
+        response_format: "b64_json",
+      }),
+    });
 
-        const response = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "dall-e-3",
-            prompt: thumbnailPrompt,
-            n: 1,
-            size: "1792x1024",
-            quality: "standard",
-            response_format: "b64_json",
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`DALL-E 3 error for ${project.id}:`, response.status, errorText);
-          results.push({ projectId: project.id, success: false, error: `API error: ${response.status}` });
-          continue;
-        }
-
-        const data = await response.json();
-        // DALL-E 3 with response_format: "b64_json" returns base64
-        const imageBase64 = data.data?.[0]?.b64_json;
-
-        if (!imageBase64) {
-          console.error(`No image for ${project.id}`);
-          results.push({ projectId: project.id, success: false, error: "No image generated" });
-          continue;
-        }
-
-        // Convert base64 to binary
-        const binaryData = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
-
-        // Upload to storage
-        const fileName = `${project.id}-${Date.now()}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from("thumbnails")
-          .upload(fileName, binaryData, {
-            contentType: "image/png",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          console.error(`Upload error for ${project.id}:`, uploadError);
-          results.push({ projectId: project.id, success: false, error: uploadError.message });
-          continue;
-        }
-
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from("thumbnails")
-          .getPublicUrl(fileName);
-
-        const thumbnailUrl = publicUrlData.publicUrl;
-
-        // Update project
-        const { error: updateError } = await supabase
-          .from("movie_projects")
-          .update({ thumbnail_url: thumbnailUrl })
-          .eq("id", project.id);
-
-        if (updateError) {
-          console.error(`Update error for ${project.id}:`, updateError);
-          results.push({ projectId: project.id, success: false, error: updateError.message });
-          continue;
-        }
-
-        console.log(`Thumbnail generated for ${project.title}: ${thumbnailUrl}`);
-        results.push({ projectId: project.id, success: true, thumbnailUrl });
-
-        // Small delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-      } catch (err) {
-        console.error(`Error processing ${project.id}:`, err);
-        results.push({ 
-          projectId: project.id, 
-          success: false, 
-          error: err instanceof Error ? err.message : "Unknown error" 
-        });
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`DALL-E 3 error for ${project.id}:`, response.status, errorText);
+      throw new Error(`API error: ${response.status}`);
     }
 
-    const successCount = results.filter(r => r.success).length;
+    const data = await response.json();
+    const imageBase64 = data.data?.[0]?.b64_json;
+
+    if (!imageBase64) {
+      throw new Error("No image generated");
+    }
+
+    // Convert base64 to binary
+    const binaryData = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
+
+    // Upload to storage
+    const fileName = `${project.id}-${Date.now()}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from("thumbnails")
+      .upload(fileName, binaryData, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new Error(`Upload error: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("thumbnails")
+      .getPublicUrl(fileName);
+
+    const thumbnailUrl = publicUrlData.publicUrl;
+
+    // Update project
+    const { error: updateError } = await supabase
+      .from("movie_projects")
+      .update({ thumbnail_url: thumbnailUrl })
+      .eq("id", project.id);
+
+    if (updateError) {
+      throw new Error(`Update error: ${updateError.message}`);
+    }
+
+    console.log(`Thumbnail generated for ${project.title}: ${thumbnailUrl}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Generated ${successCount}/${projects.length} thumbnails`,
-        processed: projects.length,
-        results,
+        message: `Generated thumbnail for ${project.title}`,
+        processed: 1,
+        thumbnailUrl,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

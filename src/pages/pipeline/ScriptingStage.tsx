@@ -859,16 +859,44 @@ export default function ScriptingStage() {
             )}
             
             {state.cinematicAudit ? (
-              <CinematicAuditPanel
-                audit={state.cinematicAudit}
-                onApprove={handleApproveAudit}
-                onApplySuggestion={applyAuditSuggestion}
-                onApplyAllAndReaudit={applyAllSuggestionsAndReaudit}
-                onAutoOptimize={autoOptimizeUntilReady}
-                isApproved={state.auditApproved}
-                isReauditing={isReauditing}
-                optimizationProgress={optimizationProgress}
-              />
+              <>
+                {/* Show prominent Begin Production button when approved */}
+                {state.auditApproved && (
+                  <Card className="p-4 bg-green-500/10 border-green-500/30">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <Check className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Production Ready!</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Score: {state.cinematicAudit.overallScore}% • {state.structuredShots.length} shots
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleApproveAndContinue}
+                      className="w-full gap-2 bg-green-600 hover:bg-green-700"
+                      size="lg"
+                    >
+                      <Play className="w-5 h-5" />
+                      Begin Production ({TIER_CREDIT_COSTS[state.qualityTier].TOTAL_PER_SHOT * state.structuredShots.length} credits total)
+                      <ArrowRight className="w-5 h-5" />
+                    </Button>
+                  </Card>
+                )}
+                
+                <CinematicAuditPanel
+                  audit={state.cinematicAudit}
+                  onApprove={handleApproveAudit}
+                  onApplySuggestion={applyAuditSuggestion}
+                  onApplyAllAndReaudit={applyAllSuggestionsAndReaudit}
+                  onAutoOptimize={autoOptimizeUntilReady}
+                  isApproved={state.auditApproved}
+                  isReauditing={isReauditing}
+                  optimizationProgress={optimizationProgress}
+                />
+              </>
             ) : (
               <>
                 <Card className="p-4">

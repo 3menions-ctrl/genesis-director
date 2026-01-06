@@ -14,14 +14,14 @@ serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Supabase configuration missing");
     }
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -69,43 +69,40 @@ Style: Ultra high resolution movie poster, dramatic lighting, cinematic color gr
 
         console.log(`Generating thumbnail for: ${project.title}`);
 
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: thumbnailPrompt,
-              },
-            ],
-            modalities: ["image", "text"],
+            model: "dall-e-3",
+            prompt: thumbnailPrompt,
+            n: 1,
+            size: "1792x1024",
+            quality: "standard",
+            response_format: "b64_json",
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`AI error for ${project.id}:`, response.status, errorText);
+          console.error(`DALL-E error for ${project.id}:`, response.status, errorText);
           results.push({ projectId: project.id, success: false, error: `API error: ${response.status}` });
           continue;
         }
 
         const data = await response.json();
-        const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const imageBase64 = data.data?.[0]?.b64_json;
 
-        if (!imageData) {
+        if (!imageBase64) {
           console.error(`No image for ${project.id}`);
           results.push({ projectId: project.id, success: false, error: "No image generated" });
           continue;
         }
 
         // Convert base64 to binary
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-        const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        const binaryData = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
 
         // Upload to storage
         const fileName = `${project.id}-${Date.now()}.png`;

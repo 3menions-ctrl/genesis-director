@@ -7,13 +7,14 @@ const corsHeaders = {
 };
 
 /**
- * Video Stitcher Edge Function
+ * Video Stitcher Edge Function - Orchestrator
  * 
- * Merges multiple video clips into a single seamless production with synchronized audio.
- * Uses cloud-based video processing via external service (Creatomate or similar).
+ * Routes video stitching requests to Cloud Run FFmpeg service for production processing.
+ * Falls back to manifest-based client-side stitching for MVP mode.
  * 
- * For MVP: Uses client-side concatenation hints and returns a merged video URL
- * For Production: Would integrate with Creatomate, Shotstack, or similar API
+ * Processing Modes:
+ * 1. Cloud Run (CLOUD_RUN_STITCHER_URL set): Full FFmpeg processing
+ * 2. MVP Mode: Client-side sequential playback via manifest
  */
 
 interface ShotClip {
@@ -38,11 +39,14 @@ interface StitchResult {
   finalVideoUrl?: string;
   durationSeconds?: number;
   processingTimeMs?: number;
+  clipsProcessed?: number;
+  invalidClips?: Array<{ shotId: string; error: string }>;
+  requiresRegeneration?: string[];
+  mode?: 'cloud-run' | 'mvp-manifest';
   error?: string;
 }
 
-// For MVP: Create a simple concatenation manifest
-// In production, this would call Creatomate/Shotstack API
+// Create manifest for client-side sequential playback (MVP fallback)
 async function createVideoManifest(
   clips: ShotClip[],
   projectId: string,
@@ -64,7 +68,6 @@ async function createVideoManifest(
     totalDuration: clips.reduce((sum, c) => sum + c.durationSeconds, 0),
   };
 
-  // Save manifest to storage for future processing
   const fileName = `manifest_${projectId}_${Date.now()}.json`;
   const manifestJson = JSON.stringify(manifest, null, 2);
   const bytes = new TextEncoder().encode(manifestJson);
@@ -84,8 +87,47 @@ async function createVideoManifest(
   return `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
 }
 
-// MVP: Use MediaSource API hints for client-side stitching
-// Production: Would use Creatomate or similar cloud video API
+// Call Cloud Run FFmpeg service for production stitching
+async function callCloudRunStitcher(
+  cloudRunUrl: string,
+  request: StitchRequest
+): Promise<StitchResult> {
+  console.log(`[Stitch] Calling Cloud Run FFmpeg service: ${cloudRunUrl}`);
+  
+  const response = await fetch(`${cloudRunUrl}/stitch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  const result = await response.json();
+  
+  if (!response.ok) {
+    console.error('[Stitch] Cloud Run error:', result);
+    
+    // Check if clips need regeneration
+    if (result.requiresRegeneration) {
+      return {
+        success: false,
+        error: result.error,
+        invalidClips: result.invalidClips,
+        requiresRegeneration: result.requiresRegeneration,
+        mode: 'cloud-run',
+      };
+    }
+    
+    throw new Error(result.error || `Cloud Run returned ${response.status}`);
+  }
+
+  return {
+    ...result,
+    mode: 'cloud-run',
+  };
+}
+
+// Main processing logic
 async function processStitching(
   request: StitchRequest,
   supabase: any
@@ -93,7 +135,7 @@ async function processStitching(
   const startTime = Date.now();
   
   try {
-    // Validate all clips have valid URLs
+    // Validate clips
     const validClips = request.clips.filter(c => c.videoUrl && c.videoUrl.startsWith('http'));
     
     if (validClips.length === 0) {
@@ -102,41 +144,37 @@ async function processStitching(
 
     console.log(`[Stitch] Processing ${validClips.length} clips for project ${request.projectId}`);
 
-    // Calculate total duration
     const totalDuration = validClips.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Create manifest for client-side or future server-side processing
-    const manifestUrl = await createVideoManifest(validClips, request.projectId, supabase);
-
-    // For MVP: Return the first clip as the "stitched" video with manifest
-    // Client will handle actual playback sequencing using the manifest
-    // In production, this would call an external video processing API
-
-    // Check if we should use Creatomate (if API key is set)
-    const creatomateKey = Deno.env.get("CREATOMATE_API_KEY");
+    // Check for Cloud Run URL (production mode)
+    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    if (creatomateKey) {
-      // Production path: Use Creatomate for real video stitching
-      console.log("[Stitch] Using Creatomate for video processing...");
+    if (cloudRunUrl) {
+      console.log("[Stitch] Using Cloud Run FFmpeg service (production mode)");
       
-      const creatomateResult = await callCreatomate(creatomateKey, validClips, request);
+      const result = await callCloudRunStitcher(cloudRunUrl, {
+        ...request,
+        clips: validClips,
+      });
       
       return {
-        success: true,
-        finalVideoUrl: creatomateResult.url,
-        durationSeconds: totalDuration,
+        ...result,
         processingTimeMs: Date.now() - startTime,
       };
     }
 
-    // MVP path: Return manifest-based solution for client-side sequential playback
+    // MVP fallback: Manifest-based client-side sequential playback
     console.log("[Stitch] Using manifest-based client-side stitching (MVP mode)");
+
+    const manifestUrl = await createVideoManifest(validClips, request.projectId, supabase);
 
     return {
       success: true,
-      finalVideoUrl: manifestUrl, // Client will parse and play sequentially
+      finalVideoUrl: manifestUrl,
       durationSeconds: totalDuration,
+      clipsProcessed: validClips.length,
       processingTimeMs: Date.now() - startTime,
+      mode: 'mvp-manifest',
     };
 
   } catch (error) {
@@ -147,74 +185,6 @@ async function processStitching(
       processingTimeMs: Date.now() - startTime,
     };
   }
-}
-
-// Creatomate API integration (production)
-async function callCreatomate(
-  apiKey: string,
-  clips: ShotClip[],
-  request: StitchRequest
-): Promise<{ url: string }> {
-  // Build Creatomate render request
-  const elements = clips.map((clip, index) => ({
-    type: "video",
-    source: clip.videoUrl,
-    duration: clip.durationSeconds,
-    ...(clip.audioUrl && request.audioMixMode !== 'mute' ? {
-      audio_source: clip.audioUrl,
-    } : {}),
-  }));
-
-  const renderRequest = {
-    output_format: request.outputFormat || "mp4",
-    width: 1920,
-    height: 1080,
-    frame_rate: 30,
-    elements: [{
-      type: "composition",
-      elements: elements,
-    }],
-  };
-
-  const response = await fetch("https://api.creatomate.com/v1/renders", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(renderRequest),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Creatomate API error: ${response.status}`);
-  }
-
-  const result = await response.json();
-  
-  // Poll for completion (simplified - in production would use webhooks)
-  let renderUrl = result[0]?.url;
-  let status = result[0]?.status;
-  const renderId = result[0]?.id;
-  
-  while (status === "planned" || status === "rendering") {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const statusResponse = await fetch(`https://api.creatomate.com/v1/renders/${renderId}`, {
-      headers: { "Authorization": `Bearer ${apiKey}` },
-    });
-    
-    const statusData = await statusResponse.json();
-    status = statusData.status;
-    renderUrl = statusData.url;
-    
-    console.log(`[Stitch] Creatomate render status: ${status}`);
-  }
-
-  if (status !== "succeeded") {
-    throw new Error(`Creatomate render failed with status: ${status}`);
-  }
-
-  return { url: renderUrl };
 }
 
 serve(async (req) => {
@@ -241,8 +211,19 @@ serve(async (req) => {
     console.log(`[Stitch] Starting video stitching for project: ${request.projectId}`);
     console.log(`[Stitch] Clips to process: ${request.clips.length}`);
     console.log(`[Stitch] Audio mix mode: ${request.audioMixMode}`);
+    
+    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+    console.log(`[Stitch] Mode: ${cloudRunUrl ? 'Cloud Run FFmpeg' : 'MVP Manifest'}`);
 
     const result = await processStitching(request, supabase);
+
+    // If clips need regeneration, return 422 with details
+    if (!result.success && result.requiresRegeneration) {
+      return new Response(
+        JSON.stringify(result),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify(result),

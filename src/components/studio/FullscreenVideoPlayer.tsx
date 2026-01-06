@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   X, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Download, ExternalLink, Edit2,
-  ChevronLeft, ChevronRight
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,16 @@ interface FullscreenVideoPlayerProps {
 
 const CROSSFADE_DURATION = 1500; // ms - smooth crossfade duration
 const CROSSFADE_START_BEFORE_END = 2; // seconds - start transition before clip ends
+const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
+
+// Buffer states for the triple buffer pool
+type BufferState = 'empty' | 'loading' | 'ready';
+
+interface VideoBuffer {
+  ref: React.RefObject<HTMLVideoElement>;
+  clipIndex: number;
+  state: BufferState;
+}
 
 export function FullscreenVideoPlayer({
   clips,
@@ -28,26 +38,32 @@ export function FullscreenVideoPlayer({
   onEdit,
   onOpenExternal,
 }: FullscreenVideoPlayerProps) {
-  const primaryVideoRef = useRef<HTMLVideoElement>(null);
-  const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+  // Triple buffer pool refs
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
+  const videoCRef = useRef<HTMLVideoElement>(null); // Preload buffer
   const musicRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeVideo, setActiveVideo] = useState<'primary' | 'secondary'>('primary');
+  const [activeVideo, setActiveVideo] = useState<'A' | 'B'>('A');
+  const [preloadedClipIndex, setPreloadedClipIndex] = useState<number | null>(null);
+  const [isWaitingForBuffer, setIsWaitingForBuffer] = useState(false);
   
-  // Track video sources via state to prevent React from resetting them
-  const [primarySrc, setPrimarySrc] = useState(clips[0] || '');
-  const [secondarySrc, setSecondarySrc] = useState('');
+  // Track video sources via state
+  const [videoASrc, setVideoASrc] = useState(clips[0] || '');
+  const [videoBSrc, setVideoBSrc] = useState('');
+  const [videoCSrc, setVideoCSrc] = useState(''); // Preload buffer source
   
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [musicVolume, setMusicVolume] = useState(0.4); // Music at 40% by default
+  const [musicVolume, setMusicVolume] = useState(0.4);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
@@ -63,6 +79,10 @@ export function FullscreenVideoPlayer({
   // Refs to track current state without stale closures
   const currentClipIndexRef = useRef(currentClipIndex);
   const isTransitioningRef = useRef(isTransitioning);
+  const activeVideoRef = useRef(activeVideo);
+  const isPlayingRef = useRef(isPlaying);
+  const preloadTriggeredRef = useRef(false);
+  const transitionTriggeredRef = useRef(false);
   
   useEffect(() => {
     currentClipIndexRef.current = currentClipIndex;
@@ -72,33 +92,92 @@ export function FullscreenVideoPlayer({
     isTransitioningRef.current = isTransitioning;
   }, [isTransitioning]);
 
+  useEffect(() => {
+    activeVideoRef.current = activeVideo;
+  }, [activeVideo]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Get video refs by ID
+  const getVideoRef = useCallback((id: 'A' | 'B' | 'C') => {
+    switch (id) {
+      case 'A': return videoARef.current;
+      case 'B': return videoBRef.current;
+      case 'C': return videoCRef.current;
+    }
+  }, []);
+
+  // Preload next clip into buffer C
+  const preloadNextClip = useCallback((nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= clips.length) return;
+    if (preloadedClipIndex === nextIndex) return; // Already preloaded
+    
+    const preloadVideo = videoCRef.current;
+    if (!preloadVideo) return;
+
+    console.log(`[Preload] Starting preload for clip ${nextIndex}`);
+    setVideoCSrc(clips[nextIndex]);
+    preloadVideo.src = clips[nextIndex];
+    preloadVideo.load();
+    
+    const handleCanPlayThrough = () => {
+      console.log(`[Preload] Clip ${nextIndex} fully buffered`);
+      setPreloadedClipIndex(nextIndex);
+      preloadVideo.removeEventListener('canplaythrough', handleCanPlayThrough);
+    };
+    
+    preloadVideo.addEventListener('canplaythrough', handleCanPlayThrough);
+  }, [clips, preloadedClipIndex]);
+
   // Smooth crossfade with audio fade
   const transitionToClip = useCallback((nextIndex: number, isPreemptive = false) => {
     if (isTransitioningRef.current || nextIndex < 0 || nextIndex >= clips.length) return;
     if (nextIndex === currentClipIndexRef.current) return;
 
-    const isNextPrimary = activeVideo === 'secondary';
-    const nextVideo = isNextPrimary ? primaryVideoRef.current : secondaryVideoRef.current;
-    const currentVideo = isNextPrimary ? secondaryVideoRef.current : primaryVideoRef.current;
+    const isNextA = activeVideoRef.current === 'B';
+    const nextVideo = isNextA ? videoARef.current : videoBRef.current;
+    const currentVideo = isNextA ? videoBRef.current : videoARef.current;
+    const preloadVideo = videoCRef.current;
     
     if (!nextVideo || !currentVideo) return;
 
     setIsTransitioning(true);
+    transitionTriggeredRef.current = true;
 
-    // Update source via state (this prevents React from resetting it on re-render)
     const nextSrc = clips[nextIndex];
-    if (isNextPrimary) {
-      setPrimarySrc(nextSrc);
+    
+    // Check if we have this clip preloaded
+    const isPreloaded = preloadedClipIndex === nextIndex && preloadVideo;
+    
+    // If preloaded, copy from buffer C to the target buffer
+    if (isPreloaded && preloadVideo) {
+      console.log(`[Transition] Using preloaded clip ${nextIndex}`);
+      // Copy the preloaded source to the next video
+      if (isNextA) {
+        setVideoASrc(nextSrc);
+      } else {
+        setVideoBSrc(nextSrc);
+      }
+      nextVideo.src = nextSrc;
+      nextVideo.currentTime = 0;
+      nextVideo.volume = 0;
+      nextVideo.muted = isMuted;
+      nextVideo.load();
     } else {
-      setSecondarySrc(nextSrc);
+      console.log(`[Transition] Loading clip ${nextIndex} on demand`);
+      if (isNextA) {
+        setVideoASrc(nextSrc);
+      } else {
+        setVideoBSrc(nextSrc);
+      }
+      nextVideo.src = nextSrc;
+      nextVideo.currentTime = 0;
+      nextVideo.volume = 0;
+      nextVideo.muted = isMuted;
+      nextVideo.load();
     }
-
-    // Also set via ref for immediate effect before React re-renders
-    nextVideo.src = nextSrc;
-    nextVideo.currentTime = 0;
-    nextVideo.volume = 0; // Start silent for crossfade
-    nextVideo.muted = isMuted;
-    nextVideo.load();
 
     // Audio crossfade function
     const crossfadeAudio = () => {
@@ -109,9 +188,8 @@ export function FullscreenVideoPlayer({
       const fadeInterval = setInterval(() => {
         step++;
         const progress = step / steps;
-        const eased = 1 - Math.pow(1 - progress, 2); // Ease out
+        const eased = 1 - Math.pow(1 - progress, 2);
         
-        // Fade out current, fade in next
         if (!isMuted) {
           currentVideo.volume = Math.max(0, volume * (1 - eased));
           nextVideo.volume = Math.min(volume, volume * eased);
@@ -119,37 +197,61 @@ export function FullscreenVideoPlayer({
         
         if (step >= steps) {
           clearInterval(fadeInterval);
-          // Cleanup after crossfade
           currentVideo.pause();
           currentVideo.currentTime = 0;
-          currentVideo.volume = volume; // Reset for next use
+          currentVideo.volume = volume;
           setIsTransitioning(false);
+          transitionTriggeredRef.current = false;
+          preloadTriggeredRef.current = false;
+          setPreloadedClipIndex(null);
+          
+          // Start preloading the NEXT next clip
+          const upcomingIndex = (nextIndex + 1) % clips.length;
+          if (clips.length > 1) {
+            preloadNextClip(upcomingIndex);
+          }
         }
       }, stepDuration);
     };
 
-    // Wait for next video to be ready before transitioning
+    // Start transition when video is ready
     const startTransition = () => {
+      setIsWaitingForBuffer(false);
       nextVideo.play().then(() => {
-        // Start visual crossfade
-        setActiveVideo(isNextPrimary ? 'primary' : 'secondary');
+        setActiveVideo(isNextA ? 'A' : 'B');
         setCurrentClipIndex(nextIndex);
-        
-        // Start audio crossfade
         crossfadeAudio();
       }).catch((err) => {
         console.error('Video play failed:', err);
         setIsTransitioning(false);
+        transitionTriggeredRef.current = false;
       });
     };
 
-    // Check if video is ready
+    // Check if video is ready with fallback
     if (nextVideo.readyState >= 3) {
       startTransition();
     } else {
-      nextVideo.addEventListener('canplay', startTransition, { once: true });
+      // Show loading indicator if we have to wait
+      setIsWaitingForBuffer(true);
+      console.log(`[Transition] Waiting for buffer...`);
+      
+      const handleCanPlay = () => {
+        startTransition();
+        nextVideo.removeEventListener('canplay', handleCanPlay);
+      };
+      
+      nextVideo.addEventListener('canplay', handleCanPlay, { once: true });
+      
+      // Fallback timeout - if video doesn't load in 3 seconds, try anyway
+      setTimeout(() => {
+        if (nextVideo.readyState < 3) {
+          console.log(`[Transition] Fallback: forcing transition`);
+          startTransition();
+        }
+      }, 3000);
     }
-  }, [clips, activeVideo, volume, isMuted]);
+  }, [clips, volume, isMuted, preloadedClipIndex, preloadNextClip]);
 
   // Go to next clip
   const nextClip = useCallback(() => {
@@ -163,12 +265,12 @@ export function FullscreenVideoPlayer({
     transitionToClip(prevIndex);
   }, [clips.length, transitionToClip]);
 
-  // Handle play/pause - control BOTH videos and music to stay in sync
+  // Handle play/pause
   const togglePlay = useCallback(() => {
-    const primaryVideo = primaryVideoRef.current;
-    const secondaryVideo = secondaryVideoRef.current;
+    const videoA = videoARef.current;
+    const videoB = videoBRef.current;
     const music = musicRef.current;
-    const activeVideoEl = activeVideo === 'primary' ? primaryVideo : secondaryVideo;
+    const activeVideoEl = activeVideoRef.current === 'A' ? videoA : videoB;
     
     if (!activeVideoEl) return;
     
@@ -177,22 +279,21 @@ export function FullscreenVideoPlayer({
       music?.play();
       setIsPlaying(true);
     } else {
-      // Pause BOTH videos and music to prevent audio from continuing
-      primaryVideo?.pause();
-      secondaryVideo?.pause();
+      videoA?.pause();
+      videoB?.pause();
       music?.pause();
       setIsPlaying(false);
     }
-  }, [activeVideo]);
+  }, []);
 
-  // Handle mute/unmute (video audio - dialogue/SFX)
+  // Handle mute/unmute
   const toggleMute = useCallback(() => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
     if (!video) return;
     
     video.muted = !video.muted;
     setIsMuted(video.muted);
-  }, [activeVideo]);
+  }, []);
 
   // Handle mute/unmute music
   const toggleMusicMute = useCallback(() => {
@@ -203,16 +304,16 @@ export function FullscreenVideoPlayer({
     setIsMusicMuted(music.muted);
   }, []);
 
-  // Handle video volume change (dialogue/SFX)
+  // Handle video volume change
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
     if (!video) return;
     
     const newVolume = parseFloat(e.target.value);
     video.volume = newVolume;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-  }, [activeVideo]);
+  }, []);
 
   // Handle music volume change
   const handleMusicVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,7 +328,7 @@ export function FullscreenVideoPlayer({
 
   // Handle seeking
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
     const progress = progressRef.current;
     if (!video || !progress) return;
 
@@ -236,14 +337,18 @@ export function FullscreenVideoPlayer({
     const newTime = percent * duration;
     video.currentTime = newTime;
     setCurrentTime(newTime);
-  }, [activeVideo, duration]);
+    
+    // Reset preload triggers when seeking
+    preloadTriggeredRef.current = false;
+    transitionTriggeredRef.current = false;
+  }, [duration]);
 
-  // Skip forward/backward in current clip
+  // Skip forward/backward
   const skip = useCallback((seconds: number) => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+    const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
     if (!video) return;
     video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
-  }, [activeVideo, duration]);
+  }, [duration]);
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -266,65 +371,77 @@ export function FullscreenVideoPlayer({
     }
     
     hideControlsTimeout.current = setTimeout(() => {
-      if (isPlaying) {
+      if (isPlayingRef.current) {
         setShowControls(false);
       }
     }, 3000);
-  }, [isPlaying]);
+  }, []);
 
-  // Update time from active video and trigger pre-emptive transitions
+  // Phase 2: RAF-based timing loop (60fps precision)
   useEffect(() => {
-    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
-    if (!video) return;
+    if (clips.length <= 1) return;
 
-    let preemptiveTriggered = false;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
+    const tick = () => {
+      const video = activeVideoRef.current === 'A' ? videoARef.current : videoBRef.current;
       
-      // Pre-emptive transition: start crossfade before clip ends
-      if (clips.length > 1 && !isTransitioningRef.current && !preemptiveTriggered) {
-        const timeRemaining = video.duration - video.currentTime;
-        if (timeRemaining > 0 && timeRemaining <= CROSSFADE_START_BEFORE_END) {
-          preemptiveTriggered = true;
+      if (video && !video.paused && video.duration > 0) {
+        const currentT = video.currentTime;
+        const totalDuration = video.duration;
+        const percentComplete = currentT / totalDuration;
+        const timeRemaining = totalDuration - currentT;
+
+        // Update UI time (throttled to reduce re-renders)
+        setCurrentTime(currentT);
+        setDuration(totalDuration);
+
+        // Phase 1: Trigger preload at 30%
+        if (percentComplete >= PRELOAD_TRIGGER_PERCENT && !preloadTriggeredRef.current) {
+          preloadTriggeredRef.current = true;
           const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
+          console.log(`[RAF] 30% reached - preloading clip ${nextIndex}`);
+          preloadNextClip(nextIndex);
+        }
+
+        // Trigger transition at CROSSFADE_START_BEFORE_END seconds before end
+        if (timeRemaining > 0 && timeRemaining <= CROSSFADE_START_BEFORE_END && !transitionTriggeredRef.current) {
+          const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
+          console.log(`[RAF] ${timeRemaining.toFixed(2)}s remaining - starting transition to clip ${nextIndex}`);
           transitionToClip(nextIndex, true);
         }
       }
+
+      rafRef.current = requestAnimationFrame(tick);
     };
-    
-    const handleDurationChange = () => setDuration(video.duration);
-    
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [clips.length, preloadNextClip, transitionToClip]);
+
+  // Handle video ended event (fallback for very short clips)
+  useEffect(() => {
     const handleEnded = () => {
-      // Fallback: if pre-emptive didn't trigger (very short clips), advance now
       if (clips.length > 1 && !isTransitioningRef.current) {
+        console.log('[Fallback] Video ended, advancing to next clip');
         nextClip();
       }
     };
-    
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => {
-      const primaryPaused = primaryVideoRef.current?.paused ?? true;
-      const secondaryPaused = secondaryVideoRef.current?.paused ?? true;
-      if (primaryPaused && secondaryPaused) {
-        setIsPlaying(false);
-      }
-    };
 
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('durationchange', handleDurationChange);
-    video.addEventListener('ended', handleEnded);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
+    const videoA = videoARef.current;
+    const videoB = videoBRef.current;
+
+    videoA?.addEventListener('ended', handleEnded);
+    videoB?.addEventListener('ended', handleEnded);
 
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('durationchange', handleDurationChange);
-      video.removeEventListener('ended', handleEnded);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
+      videoA?.removeEventListener('ended', handleEnded);
+      videoB?.removeEventListener('ended', handleEnded);
     };
-  }, [activeVideo, clips.length, nextClip, transitionToClip]);
+  }, [clips.length, nextClip]);
 
   // Keyboard controls
   useEffect(() => {
@@ -371,11 +488,14 @@ export function FullscreenVideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePlay, toggleMute, toggleFullscreen, skip, onClose, nextClip, prevClip, clips.length]);
 
-  // Cleanup timeout on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
       }
     };
   }, []);
@@ -395,7 +515,6 @@ export function FullscreenVideoPlayer({
     }
   }, [isPlaying, musicUrl, musicVolume, isMusicMuted]);
 
-
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -403,16 +522,16 @@ export function FullscreenVideoPlayer({
       ref={containerRef}
       className="fixed inset-0 z-50 bg-black w-screen h-screen"
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      onMouseLeave={() => isPlayingRef.current && setShowControls(false)}
     >
-      {/* Primary Video Layer */}
+      {/* Video A Layer */}
       <video
-        ref={primaryVideoRef}
-        src={primarySrc}
+        ref={videoARef}
+        src={videoASrc}
         className={cn(
           "absolute inset-0 w-full h-full object-contain",
           "transition-opacity ease-in-out",
-          activeVideo === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          activeVideo === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         autoPlay
@@ -421,19 +540,16 @@ export function FullscreenVideoPlayer({
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
-        onEnded={() => {
-          if (clips.length > 1) nextClip();
-        }}
       />
 
-      {/* Secondary Video Layer (for crossfade) */}
+      {/* Video B Layer (for crossfade) */}
       <video
-        ref={secondaryVideoRef}
-        src={secondarySrc}
+        ref={videoBRef}
+        src={videoBSrc}
         className={cn(
           "absolute inset-0 w-full h-full object-contain",
           "transition-opacity ease-in-out",
-          activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          activeVideo === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         loop={clips.length === 1}
@@ -441,9 +557,15 @@ export function FullscreenVideoPlayer({
         playsInline
         onClick={togglePlay}
         onPlay={() => setIsPlaying(true)}
-        onEnded={() => {
-          if (clips.length > 1) nextClip();
-        }}
+      />
+
+      {/* Video C Layer (hidden preload buffer) */}
+      <video
+        ref={videoCRef}
+        src={videoCSrc}
+        className="hidden"
+        preload="auto"
+        muted
       />
 
       {/* Continuous Background Music */}
@@ -454,6 +576,16 @@ export function FullscreenVideoPlayer({
           loop
           autoPlay
         />
+      )}
+
+      {/* Phase 3: Loading/Buffering Indicator */}
+      {isWaitingForBuffer && (
+        <div className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none">
+          <div className="flex flex-col items-center gap-3 bg-black/60 backdrop-blur-sm px-6 py-4 rounded-xl">
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <span className="text-white/80 text-sm font-medium">Buffering next clip...</span>
+          </div>
+        </div>
       )}
 
       {/* Controls Overlay */}
@@ -482,7 +614,6 @@ export function FullscreenVideoPlayer({
             </button>
           </div>
         </div>
-
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
@@ -665,8 +796,8 @@ export function FullscreenVideoPlayer({
         </div>
       </div>
 
-      {/* Transition indicator */}
-      {isTransitioning && (
+      {/* Transition indicator (subtle) */}
+      {isTransitioning && !isWaitingForBuffer && (
         <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
           <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
         </div>

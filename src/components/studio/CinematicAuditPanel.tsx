@@ -18,8 +18,10 @@ interface CinematicAuditPanelProps {
   onApprove: () => void;
   onApplySuggestion?: (shotId: string, optimizedDescription: string) => void;
   onApplyAllAndReaudit?: () => Promise<void>;
+  onAutoOptimize?: () => Promise<void>;
   isApproved: boolean;
   isReauditing?: boolean;
+  optimizationProgress?: { iteration: number; score: number; message: string } | null;
   className?: string;
 }
 
@@ -53,8 +55,10 @@ export function CinematicAuditPanel({
   onApprove,
   onApplySuggestion,
   onApplyAllAndReaudit,
+  onAutoOptimize,
   isApproved,
   isReauditing,
+  optimizationProgress,
   className 
 }: CinematicAuditPanelProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(['suggestions']);
@@ -67,6 +71,7 @@ export function CinematicAuditPanel({
 
   const suggestionsWithRewrites = audit.suggestions?.filter(s => s.rewrittenPrompt) || [];
   const unappliedCount = suggestionsWithRewrites.filter(s => !appliedSuggestions.has(s.shotId)).length;
+  const needsOptimization = audit.overallScore < 80 || audit.criticalIssues > 0;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -132,6 +137,38 @@ export function CinematicAuditPanel({
           <div className="text-xs text-muted-foreground">Optimized</div>
         </div>
       </div>
+
+      {/* Auto-Optimize Button - Show when score < 80% */}
+      {needsOptimization && onAutoOptimize && !isApproved && (
+        <div className="mb-4">
+          {optimizationProgress ? (
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <span className="text-sm font-medium text-primary">Auto-Optimizing...</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">{optimizationProgress.message}</p>
+              <div className="flex items-center gap-2">
+                <Progress value={optimizationProgress.score} className="flex-1 h-2" />
+                <span className="text-xs font-mono text-foreground">{optimizationProgress.score}%</span>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
+              onClick={onAutoOptimize}
+              disabled={isReauditing}
+            >
+              <Zap className="w-4 h-4" />
+              Auto-Optimize to 80%+
+            </Button>
+          )}
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            Automatically applies fixes and re-audits until production ready
+          </p>
+        </div>
+      )}
 
       <ScrollArea className="h-[300px] pr-2">
         {/* Suggestions Section */}

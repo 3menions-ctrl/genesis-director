@@ -551,8 +551,10 @@ async function runProduction(
   }
   
   console.log(`[Hollywood] Calling generate-long-video with ${clips.length} optimized clips`);
+  console.log(`[Hollywood] Audio tracks: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
   
-  // Call the existing generate-long-video function
+  // Call the existing generate-long-video function WITH audio tracks
+  // This eliminates the need for a separate post-production stitch
   const productionResult = await callEdgeFunction(supabase, 'generate-long-video', {
     userId: request.userId,
     projectId: state.projectId,
@@ -561,6 +563,9 @@ async function runProduction(
     colorGrading: request.colorGrading || 'cinematic',
     // Pass identity for enhanced frame-chaining
     identityBible: state.identityBible,
+    // Pass audio tracks for final assembly (eliminates double-stitch)
+    voiceTrackUrl: state.assets?.voiceUrl,
+    musicTrackUrl: state.assets?.musicUrl,
   });
   
   if (!productionResult.success) {
@@ -580,60 +585,31 @@ async function runProduction(
   return state;
 }
 
-// Stage 5: POST-PRODUCTION
+// Stage 5: POST-PRODUCTION (now streamlined - audio mixing happens in production)
 async function runPostProduction(
   request: PipelineRequest,
   state: PipelineState,
   supabase: any
 ): Promise<PipelineState> {
-  console.log(`[Hollywood] Stage 5: POST-PRODUCTION`);
+  console.log(`[Hollywood] Stage 5: POST-PRODUCTION (finalization)`);
   state.stage = 'postproduction';
-  state.progress = 92;
+  state.progress = 95;
   
-  // If we already have a final video without audio mixing, or need to add music
-  const needsAudioMix = state.assets?.musicUrl || state.assets?.voiceUrl;
+  // Audio mixing now happens in generate-long-video via voiceTrackUrl/musicTrackUrl
+  // This stage is now for any final quality checks or metadata updates
   
-  if (state.finalVideoUrl && needsAudioMix) {
-    console.log(`[Hollywood] Requesting final audio mix...`);
-    
-    try {
-      const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-      
-      if (stitcherUrl) {
-        const completedClips = state.production?.clipResults.filter(c => c.status === 'completed') || [];
-        
-        const stitchResult = await fetch(`${stitcherUrl}/stitch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            projectId: state.projectId,
-            projectTitle: `Hollywood Pipeline - ${state.projectId}`,
-            clips: completedClips.map(c => ({
-              shotId: `clip_${c.index}`,
-              videoUrl: c.videoUrl,
-              durationSeconds: CLIP_DURATION,
-              transitionOut: 'continuous',
-            })),
-            audioMixMode: 'full',
-            backgroundMusicUrl: state.assets?.musicUrl,
-            voiceTrackUrl: state.assets?.voiceUrl,
-            colorGrading: request.colorGrading || 'cinematic',
-            outputFormat: 'mp4',
-          }),
-        });
-        
-        if (stitchResult.ok) {
-          const result = await stitchResult.json();
-          if (result.finalVideoUrl) {
-            state.finalVideoUrl = result.finalVideoUrl;
-            console.log(`[Hollywood] Final video with audio: ${state.finalVideoUrl}`);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[Hollywood] Audio mixing failed, using video-only:`, err);
-    }
+  if (!state.finalVideoUrl) {
+    console.warn(`[Hollywood] No final video URL from production stage`);
+  } else {
+    console.log(`[Hollywood] Final video ready (with audio): ${state.finalVideoUrl}`);
   }
+  
+  // Log production summary
+  const completedClips = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+  const failedClips = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
+  
+  console.log(`[Hollywood] Production summary: ${completedClips} completed, ${failedClips} failed`);
+  console.log(`[Hollywood] Assets used: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
   
   state.progress = 100;
   return state;

@@ -34,6 +34,9 @@ interface GenerationRequest {
   referenceImageUrl?: string;
   colorGrading?: string; // cinematic, warm, cool, neutral, documentary
   identityBible?: IdentityBible; // From Hollywood pipeline
+  // Audio tracks for final assembly (passed from Hollywood pipeline)
+  voiceTrackUrl?: string;
+  musicTrackUrl?: string;
 }
 
 interface ClipResult {
@@ -574,6 +577,10 @@ async function generateLongVideo(
   const completedClips = clipResults.filter(c => c.status === 'completed');
   console.log(`[LongVideo] Requesting final assembly of ${completedClips.length} clips`);
   
+  // Include audio tracks if provided (from Hollywood pipeline)
+  const hasAudioTracks = request.voiceTrackUrl || request.musicTrackUrl;
+  console.log(`[LongVideo] Final assembly with audio: voice=${!!request.voiceTrackUrl}, music=${!!request.musicTrackUrl}`);
+  
   const finalAssemblyResponse = await fetch(`${stitcherUrl}/stitch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -587,10 +594,13 @@ async function generateLongVideo(
         transitionOut: 'continuous',
         motionVectors: c.motionVectors, // Pass motion vectors for transition optimization
       })),
-      audioMixMode: 'full',
+      audioMixMode: hasAudioTracks ? 'full' : 'mute',
       outputFormat: 'mp4',
       colorGrading: request.colorGrading || 'cinematic', // Use user-selected color grading
       isFinalAssembly: true,
+      // Pass audio tracks for mixing in final assembly
+      voiceTrackUrl: request.voiceTrackUrl,
+      backgroundMusicUrl: request.musicTrackUrl,
     }),
   });
   

@@ -133,23 +133,19 @@ function SmartVideoPlayer({
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden"
+      className="relative w-full aspect-video overflow-hidden bg-black/20"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* Smooth loading placeholder */}
-      <div 
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent flex items-center justify-center",
-          "transition-opacity duration-700 ease-out",
-          isLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
-        )} 
-      >
-        <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
-      </div>
+      {!isLoaded && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
+          <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
+        </div>
+      )}
       
       {hasError ? (
-        <div className="w-full h-full flex items-center justify-center bg-white/[0.02]">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
           <Film className="w-8 h-8 text-white/20" />
         </div>
       ) : (
@@ -157,11 +153,11 @@ function SmartVideoPlayer({
           ref={videoRef}
           src={src}
           className={cn(
-            "w-full h-full",
-            "transition-all duration-700 ease-out",
+            "absolute inset-0 w-full h-full",
+            "transition-opacity duration-500 ease-out",
             isPortrait ? "object-contain" : "object-cover",
             needsRotation && "rotate-90 scale-[1.78]",
-            isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
+            isLoaded ? "opacity-100" : "opacity-0",
             className
           )}
           autoPlay={autoPlay}
@@ -169,7 +165,6 @@ function SmartVideoPlayer({
           muted={muted}
           playsInline
           preload="metadata"
-          crossOrigin="anonymous"
           onLoadedData={handleLoadedData}
           onCanPlay={handleCanPlay}
           onError={handleError}

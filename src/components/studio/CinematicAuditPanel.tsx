@@ -19,6 +19,7 @@ interface CinematicAuditPanelProps {
   onApplySuggestion?: (shotId: string, optimizedDescription: string) => void;
   onApplyAllAndReaudit?: () => Promise<void>;
   onAutoOptimize?: () => Promise<void>;
+  onSkipAudit?: () => void;
   isApproved: boolean;
   isReauditing?: boolean;
   optimizationProgress?: { iteration: number; score: number; message: string } | null;
@@ -56,6 +57,7 @@ export function CinematicAuditPanel({
   onApplySuggestion,
   onApplyAllAndReaudit,
   onAutoOptimize,
+  onSkipAudit,
   isApproved,
   isReauditing,
   optimizationProgress,
@@ -387,10 +389,20 @@ export function CinematicAuditPanel({
               disabled
             >
               <AlertTriangle className="w-4 h-4" />
-              {audit.criticalIssues} Critical Issue(s) Must Be Fixed
+              {audit.criticalIssues} Critical Issue(s) Detected
             </Button>
+            {onSkipAudit && (
+              <Button 
+                variant="ghost"
+                className="w-full gap-2 text-muted-foreground hover:text-foreground"
+                onClick={onSkipAudit}
+              >
+                <ArrowRight className="w-4 h-4" />
+                Skip Audit & Proceed Anyway
+              </Button>
+            )}
             <p className="text-xs text-center text-muted-foreground">
-              Use "Auto-Optimize" above to fix critical issues automatically
+              Critical issues may cause AI generation problems, but you can skip if stuck
             </p>
           </>
         ) : (

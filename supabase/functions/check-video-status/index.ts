@@ -198,7 +198,7 @@ serve(async (req) => {
             const filePath = `generated-videos/${fileName}`;
             
             const { data: uploadData, error: uploadError } = await supabase.storage
-              .from("character-references")
+              .from("video-clips")
               .upload(filePath, binaryData, {
                 contentType: "video/mp4",
                 upsert: true,
@@ -210,7 +210,7 @@ serve(async (req) => {
               videoUrl = `data:video/mp4;base64,${base64Data.substring(0, 100)}...`;
             } else {
               const { data: publicUrl } = supabase.storage
-                .from("character-references")
+                .from("video-clips")
                 .getPublicUrl(filePath);
               
               videoUrl = publicUrl.publicUrl;

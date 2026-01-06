@@ -425,6 +425,90 @@ app.post('/validate', async (req, res) => {
   });
 });
 
+// Frame extraction endpoint for long video chaining
+app.post('/extract-frame', async (req, res) => {
+  const { clipUrl, clipIndex, projectId } = req.body;
+  
+  if (!clipUrl) {
+    return res.status(400).json({ error: 'clipUrl is required' });
+  }
+  
+  const jobId = uuidv4();
+  const workDir = path.join(TEMP_DIR, `frame_${jobId}`);
+  
+  console.log(`[ExtractFrame] Starting frame extraction for clip ${clipIndex}`);
+  
+  try {
+    await fs.mkdir(workDir, { recursive: true });
+    
+    // Download the video clip
+    const clipPath = path.join(workDir, 'input.mp4');
+    await downloadFile(clipUrl, clipPath);
+    
+    // Validate the video
+    const validation = await validateVideo(clipPath);
+    if (!validation.valid) {
+      throw new Error('Invalid video file');
+    }
+    
+    // Extract the last frame using FFmpeg
+    const framePath = path.join(workDir, 'last_frame.jpg');
+    
+    await runFFmpeg([
+      '-sseof', '-0.1',  // Seek to 0.1 seconds before end
+      '-i', clipPath,
+      '-frames:v', '1',  // Extract 1 frame
+      '-q:v', '2',       // High quality JPEG
+      '-y',              // Overwrite output
+      framePath
+    ], `Extract last frame from clip ${clipIndex}`);
+    
+    // Upload frame to Supabase storage
+    const supabase = getSupabase();
+    const frameFileName = `frame_${projectId || 'unknown'}_clip_${clipIndex}_${Date.now()}.jpg`;
+    
+    const frameBuffer = await fs.readFile(framePath);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('temp-frames')
+      .upload(frameFileName, frameBuffer, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+    
+    if (uploadError) {
+      throw new Error(`Frame upload failed: ${uploadError.message}`);
+    }
+    
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const lastFrameUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${frameFileName}`;
+    
+    // Cleanup
+    await fs.rm(workDir, { recursive: true, force: true });
+    
+    console.log(`[ExtractFrame] Frame extracted successfully: ${lastFrameUrl}`);
+    
+    res.json({
+      success: true,
+      lastFrameUrl,
+      clipIndex
+    });
+    
+  } catch (error) {
+    console.error(`[ExtractFrame] Error:`, error);
+    
+    // Cleanup on error
+    try {
+      await fs.rm(workDir, { recursive: true, force: true });
+    } catch {}
+    
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {

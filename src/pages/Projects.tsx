@@ -22,44 +22,28 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 
-// Simple video component that works
+// Simple paused video component - shows video frame instead of thumbnail
 function SmartVideoPlayer({ 
   src, 
-  thumbnail,
   className,
   playOnHover = false,
   onVideoClick,
 }: {
   src: string;
-  thumbnail?: string;
   className?: string;
   playOnHover?: boolean;
   onVideoClick?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
 
   const handleMouseEnter = () => {
-    if (!playOnHover) return;
-    setShowVideo(true);
-    setIsPlaying(true);
-    // Give video element time to mount, then play
-    setTimeout(() => {
-      videoRef.current?.play().catch(() => {});
-    }, 50);
+    if (!playOnHover || !videoRef.current) return;
+    videoRef.current.play().catch(() => {});
   };
 
   const handleMouseLeave = () => {
-    if (!playOnHover) return;
-    setIsPlaying(false);
-    videoRef.current?.pause();
-    // Keep video visible briefly for smooth transition
-    setTimeout(() => {
-      if (!isPlaying) {
-        setShowVideo(false);
-      }
-    }, 200);
+    if (!playOnHover || !videoRef.current) return;
+    videoRef.current.pause();
   };
 
   const handleClick = () => {
@@ -70,45 +54,23 @@ function SmartVideoPlayer({
 
   return (
     <div 
-      className="relative w-full aspect-video overflow-hidden bg-black/40 cursor-pointer"
+      className="relative w-full aspect-video overflow-hidden bg-black cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      {/* Thumbnail as background */}
-      {thumbnail && (
-        <img 
-          src={thumbnail} 
-          alt="" 
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
-            showVideo ? "opacity-0" : "opacity-100"
-          )}
-        />
-      )}
-      
-      {/* Video overlay on hover */}
-      {showVideo && (
-        <video
-          ref={videoRef}
-          src={src}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover",
-            className
-          )}
-          loop
-          muted
-          playsInline
-          preload="auto"
-        />
-      )}
-      
-      {/* Fallback if no thumbnail */}
-      {!thumbnail && !showVideo && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Film className="w-8 h-8 text-white/20" />
-        </div>
-      )}
+      <video
+        ref={videoRef}
+        src={src}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover",
+          className
+        )}
+        loop
+        muted
+        playsInline
+        preload="metadata"
+      />
     </div>
   );
 }
@@ -466,7 +428,6 @@ export default function Projects() {
                     {hasVideo && videoClips.length > 0 ? (
                       <SmartVideoPlayer
                         src={videoClips.length > 1 ? videoClips[1] : videoClips[0]}
-                        thumbnail={project.thumbnail_url}
                         className="group-hover:scale-105 transition-transform duration-700"
                         playOnHover={true}
                       />

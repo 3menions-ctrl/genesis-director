@@ -561,17 +561,28 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
           message: `Iteration ${iteration}: Score ${currentScore}% (best: ${bestScore}%)` 
         });
         
-        // Check if we've reached our target
-        if (currentScore >= TARGET_SCORE) {
+        // Check if we've reached our target with no critical issues
+        const criticalCount = auditResult?.criticalIssues || 0;
+        if (currentScore >= TARGET_SCORE && criticalCount === 0) {
           setState(prev => ({
             ...prev,
             structuredShots: bestShots,
             production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
             cinematicAudit: auditResult,
-            auditApproved: false,
+            auditApproved: true, // Auto-approve when score ≥80% and no critical issues
           }));
-          toast.success(`Optimization complete! Score: ${currentScore}% (${iteration} iteration${iteration > 1 ? 's' : ''})`);
+          toast.success(`Optimization complete! Score: ${currentScore}% - Production Ready!`);
           break;
+        } else if (currentScore >= TARGET_SCORE) {
+          // Score is good but still has critical issues - don't auto-approve
+          bestScore = currentScore;
+          bestAudit = auditResult;
+          setOptimizationProgress({ 
+            iteration, 
+            score: currentScore, 
+            message: `Score ${currentScore}% but ${criticalCount} critical issue(s) remain...` 
+          });
+          // Continue to try to fix critical issues
         }
         
         // Get suggestions with rewrites
@@ -656,21 +667,28 @@ export function ProductionPipelineProvider({ children }: { children: ReactNode }
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      // Final state update if we didn't reach target
-      if (bestScore < TARGET_SCORE) {
-        setState(prev => ({
-          ...prev,
-          structuredShots: bestShots,
-          production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
-          cinematicAudit: bestAudit,
-          auditApproved: false,
-        }));
-        
+      // Final state update
+      const finalCriticalCount = bestAudit?.criticalIssues || 0;
+      const canAutoApprove = bestScore >= TARGET_SCORE && finalCriticalCount === 0;
+      
+      setState(prev => ({
+        ...prev,
+        structuredShots: bestShots,
+        production: { ...prev.production, shots: bestShots.map(s => ({ ...s, status: 'pending' as const })) },
+        cinematicAudit: bestAudit,
+        auditApproved: canAutoApprove,
+      }));
+      
+      if (canAutoApprove) {
+        toast.success(`Optimization complete! Score: ${bestScore}% - Production Ready!`);
+      } else if (bestScore < TARGET_SCORE) {
         if (noImprovementCount >= 2) {
           toast.warning(`Optimization stalled at ${bestScore}% - manual review recommended`);
         } else {
           toast.warning(`Reached max iterations. Best validated score: ${bestScore}%`);
         }
+      } else if (finalCriticalCount > 0) {
+        toast.warning(`Score ${bestScore}% achieved but ${finalCriticalCount} critical issue(s) need manual fix`);
       }
       
     } catch (err) {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -26,9 +25,7 @@ import {
   Upload,
   Zap,
   RotateCcw,
-  Eye,
   Users,
-  Volume2,
   FileText,
   Layers,
   Target,
@@ -38,7 +35,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
@@ -58,6 +55,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
+import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
 
 type PipelineMode = 'ai' | 'manual';
@@ -145,7 +144,7 @@ export function UnifiedStudio() {
   const [colorGrading, setColorGrading] = useState('cinematic');
   const [includeVoice, setIncludeVoice] = useState(true);
   const [includeMusic, setIncludeMusic] = useState(true);
-  const [referenceImageUrl, setReferenceImageUrl] = useState('');
+  const [referenceImageAnalysis, setReferenceImageAnalysis] = useState<ReferenceImageAnalysis | undefined>();
   const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
   
   // UI State
@@ -330,16 +329,16 @@ export function UnifiedStudio() {
         requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
       }
 
-      if (referenceImageUrl.trim()) {
-        requestBody.referenceImageUrl = referenceImageUrl;
+      if (referenceImageAnalysis?.imageUrl) {
+        requestBody.referenceImageUrl = referenceImageAnalysis.imageUrl;
       }
 
       // Simulate stage progress for better UX
       updateStageStatus(0, 'complete', 'Script ready');
       setProgress(15);
       
-      if (referenceImageUrl) {
-        updateStageStatus(1, 'active', 'Analyzing reference...');
+      if (referenceImageAnalysis) {
+        updateStageStatus(1, 'complete', 'Reference analyzed');
         setProgress(25);
       } else {
         updateStageStatus(1, 'skipped');
@@ -799,22 +798,17 @@ export function UnifiedStudio() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <Card className="mt-3">
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="pt-6">
                 <div className="space-y-3">
                   <Label className="text-sm flex items-center gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    Reference Image URL
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    Reference Image
                   </Label>
-                  <Input
-                    value={referenceImageUrl}
-                    onChange={(e) => setReferenceImageUrl(e.target.value)}
-                    placeholder="https://example.com/character-reference.jpg"
-                    disabled={isRunning}
-                    className="h-11"
+                  <ReferenceImageUpload
+                    onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
+                    onClear={() => setReferenceImageAnalysis(undefined)}
+                    existingAnalysis={referenceImageAnalysis}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Provide a character or style reference. AI will generate a 3-point identity bible for visual consistency across all shots.
-                  </p>
                 </div>
               </CardContent>
             </Card>

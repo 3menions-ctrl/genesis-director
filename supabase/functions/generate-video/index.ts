@@ -25,6 +25,12 @@ interface SceneContext {
   movementType?: string;
   previousCameraScale?: string;
   previousCameraAngle?: string;
+  // VELOCITY VECTORS for seamless transitions
+  previousMotionVectors?: {
+    endVelocity?: string;
+    endDirection?: string;
+    cameraMomentum?: string;
+  };
 }
 
 // Camera scale perspective mappings
@@ -83,7 +89,7 @@ const TRANSITION_HINTS: Record<string, string> = {
   "follow-through": "action carries viewer to next scene",
 };
 
-// Build enhanced prompt with consistency AND SMART CAMERA ANGLES
+// Build enhanced prompt with consistency, SMART CAMERA ANGLES, and VELOCITY VECTORING
 function buildConsistentPrompt(
   basePrompt: string,
   sceneContext?: SceneContext,
@@ -91,6 +97,14 @@ function buildConsistentPrompt(
   transitionOut?: string
 ): { prompt: string; negativePrompt: string } {
   let prompt = basePrompt;
+  
+  // VELOCITY VECTORING: Inject motion continuity from previous clip
+  if (sceneContext?.previousMotionVectors) {
+    const mv = sceneContext.previousMotionVectors;
+    const velocityPrefix = `[MOTION CONTINUITY: Maintain ${mv.endVelocity || 'steady'} movement ${mv.endDirection || 'forward'}, camera ${mv.cameraMomentum || 'smooth'}]`;
+    prompt = `${velocityPrefix} ${prompt}`;
+    console.log('[generate-video] Velocity continuity injected:', velocityPrefix);
+  }
   
   // SMART CAMERA PERSPECTIVE: Inject camera hints at the start for strong influence
   if (sceneContext) {

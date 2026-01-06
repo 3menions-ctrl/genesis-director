@@ -22,6 +22,8 @@ import Contact from "./pages/Contact";
 import ScriptingStage from "./pages/pipeline/ScriptingStage";
 import ProductionStage from "./pages/pipeline/ProductionStage";
 import ReviewStage from "./pages/pipeline/ReviewStage";
+// Long Video Generator
+import LongVideo from "./pages/LongVideo";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,13 @@ const App = () => (
                 <Route path="/pipeline/review" element={
                   <ProtectedRoute>
                     <StudioLayout><ReviewStage /></StudioLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Long Video Generator Route */}
+                <Route path="/long-video" element={
+                  <ProtectedRoute>
+                    <StudioLayout><LongVideo /></StudioLayout>
                   </ProtectedRoute>
                 } />
                 

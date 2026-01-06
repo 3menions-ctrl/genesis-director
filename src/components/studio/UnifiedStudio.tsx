@@ -311,6 +311,7 @@ export function UnifiedStudio() {
         includeMusic: mode === 'ai' ? includeMusic : false,
         musicMood: mood,
         qualityTier,
+        clipCount,
         totalDuration: clipCount * CLIP_DURATION,
       };
 
@@ -318,10 +319,14 @@ export function UnifiedStudio() {
         requestBody.concept = concept;
       } else {
         requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
+        requestBody.includeVoice = includeVoice;
+        requestBody.includeMusic = includeMusic;
       }
 
-      if (referenceImageAnalysis?.imageUrl) {
+      // Pass full reference analysis to avoid re-analysis in backend
+      if (referenceImageAnalysis) {
         requestBody.referenceImageUrl = referenceImageAnalysis.imageUrl;
+        requestBody.referenceImageAnalysis = referenceImageAnalysis;
       }
 
       // Simulate stage progress for better UX

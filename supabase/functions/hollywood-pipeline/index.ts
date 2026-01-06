@@ -35,6 +35,7 @@ interface PipelineRequest {
   
   // Pre-production options
   referenceImageUrl?: string; // Character/style reference
+  referenceImageAnalysis?: any; // Pre-analyzed reference image data (from UI)
   genre?: string;
   mood?: string;
   
@@ -47,9 +48,13 @@ interface PipelineRequest {
   // Production options
   colorGrading?: string;
   totalDuration?: number;     // Target duration in seconds
+  clipCount?: number;         // Number of clips (default: calculated from totalDuration)
   
   // Quality options
   qualityTier?: 'standard' | 'professional';
+  
+  // Pipeline control
+  skipCreditDeduction?: boolean; // Skip credit deduction (for when called from another function)
 }
 
 interface ExtractedCharacter {
@@ -66,6 +71,9 @@ interface PipelineState {
   projectId: string;
   stage: string;
   progress: number;
+  clipCount: number;        // Dynamic clip count
+  clipDuration: number;     // Duration per clip
+  totalCredits: number;     // Calculated total credits
   
   // Stage outputs
   script?: {
@@ -151,9 +159,32 @@ interface PipelineState {
   error?: string;
 }
 
-const TOTAL_CLIPS = 6;
-const CLIP_DURATION = 4;
-const PIPELINE_CREDITS = 350; // Total credits for full pipeline
+// Constants
+const DEFAULT_CLIP_DURATION = 4; // seconds per clip
+const CREDITS_PER_CLIP = 50; // ~50 credits per clip for full pipeline
+
+// Helper to calculate dynamic values
+function calculatePipelineParams(request: PipelineRequest): { clipCount: number; clipDuration: number; totalCredits: number } {
+  const clipDuration = DEFAULT_CLIP_DURATION;
+  let clipCount: number;
+  
+  if (request.clipCount) {
+    clipCount = request.clipCount;
+  } else if (request.manualPrompts) {
+    clipCount = request.manualPrompts.length;
+  } else if (request.totalDuration) {
+    clipCount = Math.ceil(request.totalDuration / clipDuration);
+  } else {
+    clipCount = 6; // Default
+  }
+  
+  // Clamp to reasonable limits
+  clipCount = Math.max(2, Math.min(12, clipCount));
+  
+  const totalCredits = clipCount * CREDITS_PER_CLIP;
+  
+  return { clipCount, clipDuration, totalCredits };
+}
 
 // Helper to call edge functions internally
 async function callEdgeFunction(
@@ -187,7 +218,7 @@ async function runPreProduction(
   state: PipelineState,
   supabase: any
 ): Promise<PipelineState> {
-  console.log(`[Hollywood] Stage 1: PRE-PRODUCTION`);
+  console.log(`[Hollywood] Stage 1: PRE-PRODUCTION (${state.clipCount} clips)`);
   state.stage = 'preproduction';
   state.progress = 10;
   
@@ -197,26 +228,38 @@ async function runPreProduction(
     
     try {
       const scriptResult = await callEdgeFunction(supabase, 'smart-script-generator', {
-        topic: request.concept, // smart-script-generator expects 'topic'
+        topic: request.concept,
         synopsis: request.concept,
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
-        targetDurationSeconds: request.totalDuration || 24, // expects 'targetDurationSeconds'
+        targetDurationSeconds: state.clipCount * state.clipDuration,
+        clipCount: state.clipCount,
       });
       
       if (scriptResult.shots) {
-        state.script = { shots: scriptResult.shots };
+        // Ensure we have exactly the right number of shots
+        const shots = scriptResult.shots.slice(0, state.clipCount);
+        while (shots.length < state.clipCount) {
+          shots.push({
+            id: `shot_${shots.length + 1}`,
+            title: `Scene ${shots.length + 1}`,
+            description: `${request.concept}. Scene ${shots.length + 1} of ${state.clipCount}.`,
+            durationSeconds: state.clipDuration,
+            mood: request.mood || 'cinematic',
+          });
+        }
+        state.script = { shots };
         console.log(`[Hollywood] Script generated: ${state.script.shots.length} shots`);
       }
     } catch (err) {
       console.warn(`[Hollywood] Script generation failed, using fallback:`, err);
       // Create basic shots from concept
       state.script = {
-        shots: Array.from({ length: TOTAL_CLIPS }, (_, i) => ({
+        shots: Array.from({ length: state.clipCount }, (_, i) => ({
           id: `shot_${i + 1}`,
           title: `Scene ${i + 1}`,
-          description: `${request.concept}. Scene ${i + 1} of ${TOTAL_CLIPS}.`,
-          durationSeconds: CLIP_DURATION,
+          description: `${request.concept}. Scene ${i + 1} of ${state.clipCount}.`,
+          durationSeconds: state.clipDuration,
           mood: request.mood || 'cinematic',
         })),
       };
@@ -224,11 +267,11 @@ async function runPreProduction(
   } else if (request.manualPrompts) {
     // Use manual prompts
     state.script = {
-      shots: request.manualPrompts.map((prompt, i) => ({
+      shots: request.manualPrompts.slice(0, state.clipCount).map((prompt, i) => ({
         id: `shot_${i + 1}`,
         title: `Scene ${i + 1}`,
         description: prompt,
-        durationSeconds: CLIP_DURATION,
+        durationSeconds: state.clipDuration,
         mood: request.mood,
       })),
     };
@@ -236,8 +279,16 @@ async function runPreProduction(
   
   state.progress = 20;
   
-  // 1b. Analyze reference image AND generate Identity Bible (if provided)
-  if (request.referenceImageUrl) {
+  // 1b. Use pre-analyzed reference image OR analyze reference image
+  if (request.referenceImageAnalysis) {
+    // Use pre-analyzed data from UI (avoids double analysis)
+    console.log(`[Hollywood] Using pre-analyzed reference image...`);
+    state.referenceAnalysis = request.referenceImageAnalysis;
+    state.identityBible = {
+      characterIdentity: request.referenceImageAnalysis.characterIdentity,
+      consistencyPrompt: request.referenceImageAnalysis.consistencyPrompt,
+    };
+  } else if (request.referenceImageUrl) {
     console.log(`[Hollywood] Analyzing reference image...`);
     
     try {
@@ -278,11 +329,7 @@ async function runPreProduction(
           state.identityBible.consistencyPrompt = identityResult.characterDescription;
         }
         
-        console.log(`[Hollywood] Identity Bible generated with 3-point views:`, {
-          front: identityResult.frontViewUrl?.substring(0, 50),
-          side: identityResult.sideViewUrl?.substring(0, 50),
-          threeQuarter: identityResult.threeQuarterViewUrl?.substring(0, 50),
-        });
+        console.log(`[Hollywood] Identity Bible generated with 3-point views`);
       }
       
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
@@ -293,7 +340,7 @@ async function runPreProduction(
   
   // 1c. Generate Identity Bible (if no reference but we have character descriptions)
   if (!state.identityBible && state.script?.shots.some(s => s.description.includes('character'))) {
-    console.log(`[Hollywood] Generating Identity Bible...`);
+    console.log(`[Hollywood] Generating Identity Bible from script...`);
     
     try {
       const characterDescriptions = state.script.shots
@@ -302,8 +349,6 @@ async function runPreProduction(
         .match(/character[^.]*\./gi) || [];
       
       if (characterDescriptions.length > 0) {
-        // Note: generate-identity-bible requires an imageUrl, not characterDescription
-        // Skip if we don't have a reference image - use text-based identity instead
         console.log(`[Hollywood] Skipping Identity Bible (requires reference image)`);
         state.identityBible = {
           characterIdentity: {
@@ -432,7 +477,7 @@ async function runAssetCreation(
   state.assets = {};
   
   // 3a. Generate scene reference images (master anchors)
-  if (state.script?.shots && !request.referenceImageUrl) {
+  if (state.script?.shots && !request.referenceImageUrl && !request.referenceImageAnalysis) {
     console.log(`[Hollywood] Generating scene reference images...`);
     
     try {
@@ -480,7 +525,7 @@ async function runAssetCreation(
         
         if (voiceResult.audioUrl) {
           state.assets.voiceUrl = voiceResult.audioUrl;
-          state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : 24;
+          state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
           console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
         }
       }
@@ -499,7 +544,7 @@ async function runAssetCreation(
       const musicResult = await callEdgeFunction(supabase, 'generate-music', {
         mood: request.musicMood || request.mood || 'cinematic',
         genre: 'hybrid',
-        duration: TOTAL_CLIPS * CLIP_DURATION + 2, // Slightly longer than video
+        duration: state.clipCount * state.clipDuration + 2, // Slightly longer than video
         projectId: state.projectId,
       });
       
@@ -523,7 +568,7 @@ async function runProduction(
   state: PipelineState,
   supabase: any
 ): Promise<PipelineState> {
-  console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation)`);
+  console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation - ${state.clipCount} clips)`);
   state.stage = 'production';
   state.progress = 75;
   
@@ -542,7 +587,7 @@ async function runProduction(
   console.log(`[Hollywood] Character identity prompt: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
   
   // Build the optimized clips array with all enhancements
-  const clips = state.auditResult?.optimizedShots.map((opt, i) => {
+  const clips = state.auditResult?.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
     let finalPrompt = opt.optimizedDescription;
     
     // PRIORITY 1: Inject extracted character identities
@@ -573,11 +618,10 @@ async function runProduction(
       prompt: finalPrompt,
       sceneContext: {
         clipIndex: i,
-        totalClips: TOTAL_CLIPS,
+        totalClips: state.clipCount,
         environment: state.referenceAnalysis?.environment?.setting,
         lightingStyle: state.referenceAnalysis?.lighting?.style,
         colorPalette: state.referenceAnalysis?.colorPalette?.dominant?.join(', '),
-        // Include character names for reference
         characters: state.extractedCharacters?.map(c => c.name) || [],
       },
     };
@@ -585,7 +629,8 @@ async function runProduction(
   
   // Determine first frame reference - prefer identity bible front view for consistency
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
-    || request.referenceImageUrl;
+    || request.referenceImageUrl
+    || request.referenceImageAnalysis?.imageUrl;
   if (!referenceImageUrl && state.assets?.sceneImages?.[0]?.imageUrl) {
     referenceImageUrl = state.assets.sceneImages[0].imageUrl;
   }
@@ -597,22 +642,20 @@ async function runProduction(
   console.log(`[Hollywood] Audio tracks: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
   
   // Call the existing generate-long-video function WITH audio tracks
-  // This eliminates the need for a separate post-production stitch
+  // Pass skipCreditDeduction=true since hollywood-pipeline handles credits
   const productionResult = await callEdgeFunction(supabase, 'generate-long-video', {
     userId: request.userId,
     projectId: state.projectId,
     clips,
+    clipCount: state.clipCount,
     referenceImageUrl,
     colorGrading: request.colorGrading || 'cinematic',
-    // Pass identity for enhanced frame-chaining
     identityBible: state.identityBible,
-    // Pass audio tracks for final assembly (eliminates double-stitch)
     voiceTrackUrl: state.assets?.voiceUrl,
     musicTrackUrl: state.assets?.musicUrl,
-    // Pass quality tier for visual debugger QA (professional tier only)
     qualityTier: request.qualityTier || 'standard',
-    // Enable shot-level retry
     maxRetries: 2,
+    skipCreditDeduction: true, // Hollywood pipeline handles credits
   });
   
   if (!productionResult.success) {
@@ -684,8 +727,14 @@ serve(async (req) => {
       throw new Error("Either 'concept' or 'manualPrompts' is required");
     }
     
-    if (request.manualPrompts && request.manualPrompts.length < TOTAL_CLIPS) {
-      throw new Error(`At least ${TOTAL_CLIPS} prompts are required`);
+    // Calculate dynamic pipeline parameters
+    const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request);
+    
+    console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s, ${totalCredits} credits`);
+    
+    // Validate manual prompts count if provided
+    if (request.manualPrompts && request.manualPrompts.length < 2) {
+      throw new Error(`At least 2 prompts are required`);
     }
 
     // Check credits
@@ -700,11 +749,11 @@ serve(async (req) => {
       throw new Error("Failed to fetch user profile");
     }
 
-    if (profile.credits_balance < PIPELINE_CREDITS) {
+    if (profile.credits_balance < totalCredits) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Insufficient credits. Required: ${PIPELINE_CREDITS}, Available: ${profile.credits_balance}`,
+          error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
         }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -723,7 +772,7 @@ serve(async (req) => {
           genre: request.genre || 'cinematic',
           mood: request.mood,
           story_structure: 'episodic',
-          target_duration_minutes: Math.ceil((TOTAL_CLIPS * CLIP_DURATION) / 60),
+          target_duration_minutes: Math.ceil((clipCount * clipDuration) / 60),
         })
         .select()
         .single();
@@ -734,11 +783,14 @@ serve(async (req) => {
 
     console.log(`[Hollywood] Starting pipeline for project ${projectId}`);
 
-    // Initialize state
+    // Initialize state with dynamic values
     let state: PipelineState = {
       projectId: projectId!,
       stage: 'initializing',
       progress: 0,
+      clipCount,
+      clipDuration,
+      totalCredits,
     };
 
     // Determine which stages to run
@@ -765,16 +817,16 @@ serve(async (req) => {
       state = await runPostProduction(request, state, supabase);
     }
 
-    // Deduct credits on success
-    if (state.finalVideoUrl) {
-      console.log(`[Hollywood] Deducting ${PIPELINE_CREDITS} credits`);
+    // Deduct credits on success (unless skipped)
+    if (state.finalVideoUrl && !request.skipCreditDeduction) {
+      console.log(`[Hollywood] Deducting ${state.totalCredits} credits`);
       
       await supabase.rpc('deduct_credits', {
         p_user_id: request.userId,
-        p_amount: PIPELINE_CREDITS,
-        p_description: `Hollywood Pipeline - Full production (${TOTAL_CLIPS} clips + audio)`,
+        p_amount: state.totalCredits,
+        p_description: `Hollywood Pipeline - Full production (${state.clipCount} clips + audio)`,
         p_project_id: projectId,
-        p_clip_duration: TOTAL_CLIPS * CLIP_DURATION,
+        p_clip_duration: state.clipCount * state.clipDuration,
       });
 
       // Update project status
@@ -797,12 +849,12 @@ serve(async (req) => {
         // Pipeline details
         stages: {
           preproduction: {
-            shotsGenerated: state.script?.shots?.length || 0,
+            shotCount: state.script?.shots?.length || 0,
             hasIdentityBible: !!state.identityBible,
             hasReferenceAnalysis: !!state.referenceAnalysis,
             charactersExtracted: state.extractedCharacters?.length || 0,
             characterNames: state.extractedCharacters?.map(c => c.name) || [],
-            // Include identity bible multi-view URLs for UI display
+            script: state.script,
             identityBible: state.identityBible?.multiViewUrls ? {
               multiViewUrls: {
                 front: state.identityBible.multiViewUrls.frontViewUrl,
@@ -818,7 +870,6 @@ serve(async (req) => {
             velocityVectors: state.auditResult?.velocityVectors?.length || 0,
           },
           assets: {
-            // Include actual scene image URLs for UI display
             sceneImages: state.assets?.sceneImages || [],
             hasVoice: !!state.assets?.voiceUrl,
             hasMusic: !!state.assets?.musicUrl,
@@ -832,13 +883,16 @@ serve(async (req) => {
               index: c.index,
               status: c.status,
               videoUrl: c.videoUrl,
-              qaResult: (c as any).qaResult, // Include QA results if available
+              qaResult: (c as any).qaResult,
             })),
           },
         },
         
         // Cost breakdown
-        creditsCharged: state.finalVideoUrl ? PIPELINE_CREDITS : 0,
+        creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
+        clipCount: state.clipCount,
+        clipDuration: state.clipDuration,
+        totalDuration: state.clipCount * state.clipDuration,
         
         // Full state for debugging
         _state: state,

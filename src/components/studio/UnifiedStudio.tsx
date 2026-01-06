@@ -20,15 +20,12 @@ import {
   Shield,
   Clapperboard,
   Wand2,
-  ChevronDown,
-  ChevronUp,
   Upload,
   Zap,
   RotateCcw,
   Users,
   FileText,
   Layers,
-  Target,
   Star,
   ArrowRight,
   Plus,
@@ -47,11 +44,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -148,7 +140,6 @@ export function UnifiedStudio() {
   const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
   
   // UI State
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentStage, setCurrentStage] = useState<PipelineStage>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -782,38 +773,35 @@ export function UnifiedStudio() {
           </CardContent>
         </Card>
 
-        {/* Advanced Options */}
-        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-between gap-2 text-muted-foreground hover:text-foreground h-12"
-            >
-              <span className="flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                Advanced Options
-              </span>
-              {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <Card className="mt-3">
-              <CardContent className="pt-6">
-                <div className="space-y-3">
-                  <Label className="text-sm flex items-center gap-2">
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                    Reference Image
-                  </Label>
-                  <ReferenceImageUpload
-                    onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
-                    onClear={() => setReferenceImageAnalysis(undefined)}
-                    existingAnalysis={referenceImageAnalysis}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Reference Image Upload - Prominent placement */}
+        <Card className="overflow-hidden border-border shadow-sm bg-card">
+          <CardHeader className="pb-4 border-b border-border bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Reference Image
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload a character or style reference for visual consistency
+                </p>
+              </div>
+              {referenceImageAnalysis && (
+                <Badge variant="secondary" className="bg-success/10 text-success border-0">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Analyzed
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <ReferenceImageUpload
+              onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
+              onClear={() => setReferenceImageAnalysis(undefined)}
+              existingAnalysis={referenceImageAnalysis}
+            />
+          </CardContent>
+        </Card>
 
         {/* Pipeline Progress */}
         {currentStage !== 'idle' && (

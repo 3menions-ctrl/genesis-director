@@ -22,154 +22,92 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 
-// Smart video component with smooth crossfade transitions
+// Simple video component that works
 function SmartVideoPlayer({ 
   src, 
+  thumbnail,
   className,
-  autoPlay = false,
-  loop = true,
-  muted = true,
-  previewPercent = 30,
   playOnHover = false,
   onVideoClick,
 }: {
   src: string;
+  thumbnail?: string;
   className?: string;
-  autoPlay?: boolean;
-  loop?: boolean;
-  muted?: boolean;
-  previewPercent?: number;
   playOnHover?: boolean;
   onVideoClick?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [needsRotation, setNeedsRotation] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
-  const handleLoadedData = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const { videoWidth, videoHeight } = video;
-    
-    // Detect portrait videos
-    const isPortraitVideo = videoHeight > videoWidth;
-    setIsPortrait(isPortraitVideo);
-    
-    // Detect sideways videos
-    const aspectRatio = videoWidth / videoHeight;
-    if (aspectRatio < 0.35 || aspectRatio > 2.8) {
-      setNeedsRotation(true);
-    }
-
-    // Seek to preview position
-    if (previewPercent !== undefined && video.duration && !autoPlay) {
-      video.currentTime = video.duration * (previewPercent / 100);
-    }
-    
-    // Delay showing video slightly to ensure smooth fade-in
-    requestAnimationFrame(() => {
-      setIsLoaded(true);
-    });
-  }, [previewPercent, autoPlay]);
-
-  const handleError = useCallback(() => {
-    console.error('Video failed to load:', src);
-    setHasError(true);
-    setIsLoaded(true); // Show fallback
-  }, [src]);
-
-  const handleCanPlay = useCallback(() => {
-    // Fallback if onLoadedData doesn't fire
-    if (!isLoaded) {
-      setIsLoaded(true);
-    }
-  }, [isLoaded]);
-
-  const handleMouseEnter = useCallback(() => {
-    if (!playOnHover || !videoRef.current) return;
-    
-    setIsHovering(true);
-    videoRef.current.currentTime = 0;
-    
-    // Small delay before playing to sync with visual transition
-    requestAnimationFrame(() => {
-      videoRef.current?.play().catch(() => {});
-    });
-  }, [playOnHover]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!playOnHover || !videoRef.current) return;
-    
-    setIsHovering(false);
-    
-    // Pause after fade transition completes
+  const handleMouseEnter = () => {
+    if (!playOnHover) return;
+    setShowVideo(true);
+    setIsPlaying(true);
+    // Give video element time to mount, then play
     setTimeout(() => {
-      if (videoRef.current && !isHovering) {
-        videoRef.current.pause();
-        if (previewPercent !== undefined && videoRef.current.duration) {
-          videoRef.current.currentTime = videoRef.current.duration * (previewPercent / 100);
-        }
-      }
-    }, 300);
-  }, [playOnHover, previewPercent, isHovering]);
+      videoRef.current?.play().catch(() => {});
+    }, 50);
+  };
 
-  const handleClick = useCallback(() => {
+  const handleMouseLeave = () => {
+    if (!playOnHover) return;
+    setIsPlaying(false);
+    videoRef.current?.pause();
+    // Keep video visible briefly for smooth transition
+    setTimeout(() => {
+      if (!isPlaying) {
+        setShowVideo(false);
+      }
+    }, 200);
+  };
+
+  const handleClick = () => {
     if (onVideoClick) {
       onVideoClick();
-    } else if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
     }
-  }, [onVideoClick]);
+  };
 
   return (
     <div 
-      ref={containerRef}
-      className="relative w-full aspect-video overflow-hidden bg-black/20"
+      className="relative w-full aspect-video overflow-hidden bg-black/40 cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
     >
-      {/* Smooth loading placeholder */}
-      {!isLoaded && !hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
-          <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
-        </div>
+      {/* Thumbnail as background */}
+      {thumbnail && (
+        <img 
+          src={thumbnail} 
+          alt="" 
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+            showVideo ? "opacity-0" : "opacity-100"
+          )}
+        />
       )}
       
-      {hasError ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
-          <Film className="w-8 h-8 text-white/20" />
-        </div>
-      ) : (
+      {/* Video overlay on hover */}
+      {showVideo && (
         <video
           ref={videoRef}
           src={src}
           className={cn(
-            "absolute inset-0 w-full h-full",
-            "transition-opacity duration-500 ease-out",
-            isPortrait ? "object-contain" : "object-cover",
-            needsRotation && "rotate-90 scale-[1.78]",
-            isLoaded ? "opacity-100" : "opacity-0",
+            "absolute inset-0 w-full h-full object-cover",
             className
           )}
-          autoPlay={autoPlay}
-          loop={loop}
-          muted={muted}
+          loop
+          muted
           playsInline
-          preload="metadata"
-          onLoadedData={handleLoadedData}
-          onCanPlay={handleCanPlay}
-          onError={handleError}
-          onClick={handleClick}
+          preload="auto"
         />
+      )}
+      
+      {/* Fallback if no thumbnail */}
+      {!thumbnail && !showVideo && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Film className="w-8 h-8 text-white/20" />
+        </div>
       )}
     </div>
   );
@@ -528,8 +466,8 @@ export default function Projects() {
                     {hasVideo && videoClips.length > 0 ? (
                       <SmartVideoPlayer
                         src={videoClips.length > 1 ? videoClips[1] : videoClips[0]}
-                        className="w-full h-auto transition-transform duration-700 ease-out group-hover:scale-105"
-                        previewPercent={30}
+                        thumbnail={project.thumbnail_url}
+                        className="group-hover:scale-105 transition-transform duration-700"
                         playOnHover={true}
                       />
                     ) : (

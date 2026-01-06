@@ -373,36 +373,42 @@ export function CinematicAuditPanel({
       </ScrollArea>
 
       {/* Approve Button */}
-      <div className="mt-4 pt-4 border-t">
+      <div className="mt-4 pt-4 border-t space-y-2">
         {isApproved ? (
           <div className="flex items-center justify-center gap-2 text-green-500">
             <CheckCircle className="w-5 h-5" />
-            <span className="font-medium">Audit Approved</span>
+            <span className="font-medium">Audit Approved - Ready for Production!</span>
           </div>
+        ) : audit.criticalIssues > 0 ? (
+          <>
+            <Button 
+              variant="outline"
+              className="w-full gap-2 border-destructive text-destructive"
+              disabled
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {audit.criticalIssues} Critical Issue(s) Must Be Fixed
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Use "Auto-Optimize" above to fix critical issues automatically
+            </p>
+          </>
         ) : (
-          <Button 
-            onClick={onApprove}
-            className="w-full gap-2"
-            disabled={audit.criticalIssues > 0}
-          >
-            {audit.criticalIssues > 0 ? (
-              <>
-                <AlertTriangle className="w-4 h-4" />
-                Fix Critical Issues First
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                Approve & Proceed to Production
-                <ArrowRight className="w-4 h-4" />
-              </>
+          <>
+            <Button 
+              onClick={onApprove}
+              className="w-full gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve & Begin Production
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+            {audit.overallScore < 80 && (
+              <p className="text-xs text-center text-muted-foreground">
+                Score is {audit.overallScore}% (below 80% target, but no critical issues)
+              </p>
             )}
-          </Button>
-        )}
-        {audit.criticalIssues > 0 && (
-          <p className="text-xs text-center text-muted-foreground mt-2">
-            Review and fix {audit.criticalIssues} critical issue(s) before production
-          </p>
+          </>
         )}
       </div>
     </Card>

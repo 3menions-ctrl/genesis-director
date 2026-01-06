@@ -83,6 +83,7 @@ interface PipelineState {
   // Extracted characters for identity consistency
   extractedCharacters?: ExtractedCharacter[];
   
+  // Enhanced Identity Bible with multi-view references
   identityBible?: {
     characterIdentity?: {
       description?: string;
@@ -92,6 +93,13 @@ interface PipelineState {
       distinctiveMarkers?: string[];
     };
     consistencyPrompt?: string;
+    // Multi-view character references for visual consistency
+    multiViewUrls?: {
+      frontViewUrl: string;
+      sideViewUrl: string;
+      threeQuarterViewUrl: string;
+    };
+    consistencyAnchors?: string[];
   };
   
   referenceAnalysis?: {
@@ -228,23 +236,54 @@ async function runPreProduction(
   
   state.progress = 20;
   
-  // 1b. Analyze reference image (if provided)
+  // 1b. Analyze reference image AND generate Identity Bible (if provided)
   if (request.referenceImageUrl) {
     console.log(`[Hollywood] Analyzing reference image...`);
     
     try {
-      const analysisResult = await callEdgeFunction(supabase, 'analyze-reference-image', {
-        imageUrl: request.referenceImageUrl,
-      });
+      // Run both analysis and identity bible generation in parallel
+      const [analysisResult, identityResult] = await Promise.all([
+        callEdgeFunction(supabase, 'analyze-reference-image', {
+          imageUrl: request.referenceImageUrl,
+        }),
+        callEdgeFunction(supabase, 'generate-identity-bible', {
+          imageUrl: request.referenceImageUrl,
+        }).catch(err => {
+          console.warn(`[Hollywood] Identity Bible generation failed:`, err);
+          return null;
+        }),
+      ]);
       
-      // analyze-reference-image returns { analysis: {...} }
+      // Process reference analysis
       const analysis = analysisResult.analysis || analysisResult;
-      
       state.referenceAnalysis = analysis;
+      
+      // Build rich identity bible with multi-view URLs
       state.identityBible = {
         characterIdentity: analysis.characterIdentity,
         consistencyPrompt: analysis.consistencyPrompt,
       };
+      
+      // Add multi-view URLs if identity bible succeeded
+      if (identityResult?.success) {
+        state.identityBible.multiViewUrls = {
+          frontViewUrl: identityResult.frontViewUrl,
+          sideViewUrl: identityResult.sideViewUrl,
+          threeQuarterViewUrl: identityResult.threeQuarterViewUrl,
+        };
+        state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
+        
+        // Enhance consistency prompt with generated character description
+        if (identityResult.characterDescription) {
+          state.identityBible.consistencyPrompt = identityResult.characterDescription;
+        }
+        
+        console.log(`[Hollywood] Identity Bible generated with 3-point views:`, {
+          front: identityResult.frontViewUrl?.substring(0, 50),
+          side: identityResult.sideViewUrl?.substring(0, 50),
+          threeQuarter: identityResult.threeQuarterViewUrl?.substring(0, 50),
+        });
+      }
       
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
     } catch (err) {
@@ -544,11 +583,15 @@ async function runProduction(
     };
   }) || [];
   
-  // Determine first frame reference
-  let referenceImageUrl = request.referenceImageUrl;
+  // Determine first frame reference - prefer identity bible front view for consistency
+  let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
+    || request.referenceImageUrl;
   if (!referenceImageUrl && state.assets?.sceneImages?.[0]?.imageUrl) {
     referenceImageUrl = state.assets.sceneImages[0].imageUrl;
   }
+  
+  console.log(`[Hollywood] First frame reference: ${referenceImageUrl ? 'using identity bible front view' : 'none'}`);
+  console.log(`[Hollywood] Multi-view URLs available: ${!!state.identityBible?.multiViewUrls}`);
   
   console.log(`[Hollywood] Calling generate-long-video with ${clips.length} optimized clips`);
   console.log(`[Hollywood] Audio tracks: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);

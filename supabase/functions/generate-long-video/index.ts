@@ -25,6 +25,13 @@ interface IdentityBible {
     distinctiveMarkers?: string[];
   };
   consistencyPrompt?: string;
+  // Multi-view character references for visual consistency
+  multiViewUrls?: {
+    frontViewUrl: string;
+    sideViewUrl: string;
+    threeQuarterViewUrl: string;
+  };
+  consistencyAnchors?: string[];
 }
 
 interface GenerationRequest {
@@ -33,7 +40,7 @@ interface GenerationRequest {
   clips: ClipPrompt[];
   referenceImageUrl?: string;
   colorGrading?: string; // cinematic, warm, cool, neutral, documentary
-  identityBible?: IdentityBible; // From Hollywood pipeline
+  identityBible?: IdentityBible; // From Hollywood pipeline (with multi-view URLs)
   // Audio tracks for final assembly (passed from Hollywood pipeline)
   voiceTrackUrl?: string;
   musicTrackUrl?: string;
@@ -439,6 +446,12 @@ async function generateLongVideo(
     if (request.identityBible?.consistencyPrompt) {
       enhancedPrompt = `[IDENTITY: ${request.identityBible.consistencyPrompt}] ${enhancedPrompt}`;
     }
+    
+    // Inject consistency anchors (skin tone, hair, eyes, clothing)
+    if (request.identityBible?.consistencyAnchors?.length) {
+      enhancedPrompt = `[ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}] ${enhancedPrompt}`;
+    }
+    
     if (request.identityBible?.characterIdentity) {
       const ci = request.identityBible.characterIdentity;
       const identityParts = [
@@ -449,6 +462,15 @@ async function generateLongVideo(
       if (identityParts) {
         enhancedPrompt = `${enhancedPrompt}. [CHARACTER: ${identityParts}]`;
       }
+    }
+    
+    // Log multi-view URL availability for debugging
+    if (request.identityBible?.multiViewUrls && i === 0) {
+      console.log(`[LongVideo] Multi-view identity references available:`, {
+        front: request.identityBible.multiViewUrls.frontViewUrl?.substring(0, 50),
+        side: request.identityBible.multiViewUrls.sideViewUrl?.substring(0, 50),
+        threeQuarter: request.identityBible.multiViewUrls.threeQuarterViewUrl?.substring(0, 50),
+      });
     }
     
     // VELOCITY VECTORING: Inject motion continuity from previous clip

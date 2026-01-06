@@ -330,6 +330,7 @@ export function FullscreenVideoPlayer({
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
         autoPlay
+        loop={clips.length === 1}
         playsInline
         onClick={togglePlay}
       />
@@ -343,6 +344,7 @@ export function FullscreenVideoPlayer({
           activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
         )}
         style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
+        loop={clips.length === 1}
         playsInline
         onClick={togglePlay}
       />
@@ -374,62 +376,22 @@ export function FullscreenVideoPlayer({
           </div>
         </div>
 
-        {/* Center Controls */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex items-center gap-6">
-            {/* Previous Clip */}
-            {clips.length > 1 && (
-              <button
-                onClick={prevClip}
-                disabled={isTransitioning}
-                className={cn(
-                  "w-12 h-12 flex items-center justify-center rounded-full",
-                  "bg-white/10 backdrop-blur-xl border border-white/20",
-                  "transition-all duration-300 pointer-events-auto",
-                  "hover:bg-white/20 hover:scale-105",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <ChevronLeft className="w-6 h-6 text-white" />
-              </button>
-            )}
-
-            {/* Play/Pause */}
+        {/* Center Play/Pause Button - only show when paused */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <button
               onClick={togglePlay}
               className={cn(
                 "w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-full",
                 "bg-white/10 backdrop-blur-xl border border-white/20",
                 "transition-all duration-300 pointer-events-auto",
-                "hover:bg-white/20 hover:scale-105",
-                isPlaying && showControls ? "opacity-0" : "opacity-100"
+                "hover:bg-white/20 hover:scale-105"
               )}
             >
-              {isPlaying ? (
-                <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" />
-              ) : (
-                <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" fill="currentColor" />
-              )}
+              <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" fill="currentColor" />
             </button>
-
-            {/* Next Clip */}
-            {clips.length > 1 && (
-              <button
-                onClick={nextClip}
-                disabled={isTransitioning}
-                className={cn(
-                  "w-12 h-12 flex items-center justify-center rounded-full",
-                  "bg-white/10 backdrop-blur-xl border border-white/20",
-                  "transition-all duration-300 pointer-events-auto",
-                  "hover:bg-white/20 hover:scale-105",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-              >
-                <ChevronRight className="w-6 h-6 text-white" />
-              </button>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">

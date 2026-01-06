@@ -170,6 +170,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [profile]);
 
   const createProject = async () => {
+    if (!user) {
+      toast.error('Please sign in to create a project');
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('movie_projects')
@@ -177,6 +182,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           title: `Untitled Project ${projects.length + 1}`,
           status: 'draft',
           target_duration_minutes: 1,
+          user_id: user.id,
         })
         .select()
         .single();

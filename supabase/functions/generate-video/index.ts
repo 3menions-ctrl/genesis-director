@@ -14,9 +14,48 @@ interface SceneContext {
   characters?: string[];
   colorPalette?: string;
   lightingStyle?: string;
+  lightingDirection?: string;
+  timeOfDay?: string;
+  dominantColors?: string;
   backgroundElements?: string[];
   previousClipEndFrame?: string;
+  // SMART CAMERA PROPERTIES
+  cameraScale?: string;
+  cameraAngle?: string;
+  movementType?: string;
+  previousCameraScale?: string;
+  previousCameraAngle?: string;
 }
+
+// Camera scale perspective mappings
+const CAMERA_SCALE_HINTS: Record<string, string> = {
+  'extreme-wide': 'vast panoramic view capturing the entire environment',
+  'wide': 'expansive wide shot showing full scene context',
+  'medium': 'balanced mid-range shot at conversational distance',
+  'close-up': 'intimate close shot capturing details and emotions',
+  'extreme-close-up': 'extreme intimate shot revealing micro-details',
+};
+
+// Camera angle perspective mappings
+const CAMERA_ANGLE_HINTS: Record<string, string> = {
+  'eye-level': 'natural eye-level perspective',
+  'low-angle': 'powerful low-angle perspective looking upward',
+  'high-angle': 'commanding high-angle perspective looking down',
+  'dutch-angle': 'dynamic tilted perspective creating tension',
+  'overhead': 'bird\'s-eye top-down perspective',
+  'pov': 'immersive first-person point-of-view',
+};
+
+// Movement type hints
+const MOVEMENT_HINTS: Record<string, string> = {
+  'static': 'steady locked-off shot with no movement',
+  'pan': 'smooth horizontal sweeping motion',
+  'tilt': 'vertical sweeping motion',
+  'dolly': 'smooth gliding movement through space',
+  'tracking': 'fluid following movement alongside action',
+  'crane': 'elevated sweeping movement',
+  'handheld': 'organic naturalistic motion',
+};
 
 // Camera pattern rewrites for better prompts
 const CAMERA_PATTERNS = [
@@ -37,9 +76,14 @@ const TRANSITION_HINTS: Record<string, string> = {
   "wipe": "directional wipe transition",
   "match-cut": "match cut on similar shapes or movements",
   "continuous": "continuous motion, seamless flow",
+  "angle-change": "cut to different angle of same subject",
+  "motion-carry": "movement continues across cut",
+  "whip-pan": "fast camera sweep blur transition",
+  "reveal": "camera movement reveals new element",
+  "follow-through": "action carries viewer to next scene",
 };
 
-// Build enhanced prompt with consistency
+// Build enhanced prompt with consistency AND SMART CAMERA ANGLES
 function buildConsistentPrompt(
   basePrompt: string,
   sceneContext?: SceneContext,
@@ -47,6 +91,36 @@ function buildConsistentPrompt(
   transitionOut?: string
 ): { prompt: string; negativePrompt: string } {
   let prompt = basePrompt;
+  
+  // SMART CAMERA PERSPECTIVE: Inject camera hints at the start for strong influence
+  if (sceneContext) {
+    const cameraParts: string[] = [];
+    
+    // Add camera scale perspective
+    if (sceneContext.cameraScale && CAMERA_SCALE_HINTS[sceneContext.cameraScale]) {
+      cameraParts.push(CAMERA_SCALE_HINTS[sceneContext.cameraScale]);
+    }
+    
+    // Add camera angle perspective with transition awareness
+    if (sceneContext.cameraAngle && CAMERA_ANGLE_HINTS[sceneContext.cameraAngle]) {
+      if (sceneContext.previousCameraAngle && sceneContext.previousCameraAngle !== sceneContext.cameraAngle) {
+        cameraParts.push(`transitioning from ${sceneContext.previousCameraAngle} to ${CAMERA_ANGLE_HINTS[sceneContext.cameraAngle]}`);
+      } else {
+        cameraParts.push(CAMERA_ANGLE_HINTS[sceneContext.cameraAngle]);
+      }
+    }
+    
+    // Add movement type
+    if (sceneContext.movementType && MOVEMENT_HINTS[sceneContext.movementType]) {
+      cameraParts.push(MOVEMENT_HINTS[sceneContext.movementType]);
+    }
+    
+    // Prepend camera perspective for strong influence
+    if (cameraParts.length > 0) {
+      prompt = `[CAMERA: ${cameraParts.join(', ')}] ${prompt}`;
+      console.log('[generate-video] Smart camera perspective injected:', cameraParts.join(', '));
+    }
+  }
 
   // Add scene context for consistency
   if (sceneContext) {
@@ -58,8 +132,17 @@ function buildConsistentPrompt(
     if (sceneContext.lightingStyle) {
       contextParts.push(`Lighting: ${sceneContext.lightingStyle}`);
     }
+    if (sceneContext.lightingDirection) {
+      contextParts.push(`Light direction: ${sceneContext.lightingDirection}`);
+    }
+    if (sceneContext.timeOfDay) {
+      contextParts.push(`Time: ${sceneContext.timeOfDay}`);
+    }
     if (sceneContext.colorPalette) {
       contextParts.push(`Color palette: ${sceneContext.colorPalette}`);
+    }
+    if (sceneContext.dominantColors) {
+      contextParts.push(`Dominant colors: ${sceneContext.dominantColors}`);
     }
     if (sceneContext.characters?.length) {
       contextParts.push(`Characters: ${sceneContext.characters.join(", ")}`);

@@ -1,14 +1,14 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   X, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
-  SkipBack, SkipForward, Download, ExternalLink, Edit2
+  SkipBack, SkipForward, Download, ExternalLink, Edit2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FullscreenVideoPlayerProps {
-  src: string;
+  clips: string[];
   title?: string;
-  clipCount?: number;
   onClose: () => void;
   onDownload?: () => void;
   onEdit?: () => void;
@@ -16,19 +16,23 @@ interface FullscreenVideoPlayerProps {
 }
 
 export function FullscreenVideoPlayer({
-  src,
+  clips,
   title,
-  clipCount = 1,
   onClose,
   onDownload,
   onEdit,
   onOpenExternal,
 }: FullscreenVideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const primaryVideoRef = useRef<HTMLVideoElement>(null);
+  const secondaryVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const [currentClipIndex, setCurrentClipIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<'primary' | 'secondary'>('primary');
+  
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -36,7 +40,9 @@ export function FullscreenVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isSeeking, setIsSeeking] = useState(false);
+
+  const currentVideo = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
+  const nextVideo = activeVideo === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
 
   // Format time as MM:SS
   const formatTime = (time: number) => {
@@ -45,9 +51,55 @@ export function FullscreenVideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Crossfade to next clip
+  const transitionToClip = useCallback((nextIndex: number) => {
+    if (isTransitioning || nextIndex < 0 || nextIndex >= clips.length) return;
+    if (nextIndex === currentClipIndex) return;
+
+    setIsTransitioning(true);
+
+    // Prepare next video
+    if (nextVideo) {
+      nextVideo.src = clips[nextIndex];
+      nextVideo.currentTime = 0;
+      nextVideo.volume = volume;
+      nextVideo.muted = isMuted;
+      
+      nextVideo.play().then(() => {
+        // Start crossfade
+        setTimeout(() => {
+          setActiveVideo(prev => prev === 'primary' ? 'secondary' : 'primary');
+          setCurrentClipIndex(nextIndex);
+          
+          // Complete transition
+          setTimeout(() => {
+            if (currentVideo) {
+              currentVideo.pause();
+            }
+            setIsTransitioning(false);
+          }, 500);
+        }, 50);
+      }).catch(() => {
+        setIsTransitioning(false);
+      });
+    }
+  }, [clips, currentClipIndex, isTransitioning, nextVideo, currentVideo, volume, isMuted]);
+
+  // Go to next clip
+  const nextClip = useCallback(() => {
+    const nextIndex = (currentClipIndex + 1) % clips.length;
+    transitionToClip(nextIndex);
+  }, [currentClipIndex, clips.length, transitionToClip]);
+
+  // Go to previous clip
+  const prevClip = useCallback(() => {
+    const prevIndex = currentClipIndex === 0 ? clips.length - 1 : currentClipIndex - 1;
+    transitionToClip(prevIndex);
+  }, [currentClipIndex, clips.length, transitionToClip]);
+
   // Handle play/pause
   const togglePlay = useCallback(() => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
     
     if (video.paused) {
@@ -57,31 +109,31 @@ export function FullscreenVideoPlayer({
       video.pause();
       setIsPlaying(false);
     }
-  }, []);
+  }, [activeVideo]);
 
   // Handle mute/unmute
   const toggleMute = useCallback(() => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
     
     video.muted = !video.muted;
     setIsMuted(video.muted);
-  }, []);
+  }, [activeVideo]);
 
   // Handle volume change
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
     
     const newVolume = parseFloat(e.target.value);
     video.volume = newVolume;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-  }, []);
+  }, [activeVideo]);
 
   // Handle seeking
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     const progress = progressRef.current;
     if (!video || !progress) return;
 
@@ -90,14 +142,14 @@ export function FullscreenVideoPlayer({
     const newTime = percent * duration;
     video.currentTime = newTime;
     setCurrentTime(newTime);
-  }, [duration]);
+  }, [activeVideo, duration]);
 
-  // Skip forward/backward
+  // Skip forward/backward in current clip
   const skip = useCallback((seconds: number) => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
     video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
-  }, [duration]);
+  }, [activeVideo, duration]);
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -126,14 +178,21 @@ export function FullscreenVideoPlayer({
     }, 3000);
   }, [isPlaying]);
 
-  // Update time
+  // Update time from active video
   useEffect(() => {
-    const video = videoRef.current;
+    const video = activeVideo === 'primary' ? primaryVideoRef.current : secondaryVideoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleDurationChange = () => setDuration(video.duration);
-    const handleEnded = () => setIsPlaying(false);
+    const handleEnded = () => {
+      // Auto-advance to next clip with crossfade
+      if (clips.length > 1) {
+        nextClip();
+      } else {
+        setIsPlaying(false);
+      }
+    };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
@@ -150,7 +209,7 @@ export function FullscreenVideoPlayer({
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
     };
-  }, []);
+  }, [activeVideo, clips.length, nextClip]);
 
   // Keyboard controls
   useEffect(() => {
@@ -165,10 +224,18 @@ export function FullscreenVideoPlayer({
           onClose();
           break;
         case 'ArrowLeft':
-          skip(-10);
+          if (e.shiftKey && clips.length > 1) {
+            prevClip();
+          } else {
+            skip(-10);
+          }
           break;
         case 'ArrowRight':
-          skip(10);
+          if (e.shiftKey && clips.length > 1) {
+            nextClip();
+          } else {
+            skip(10);
+          }
           break;
         case 'm':
           toggleMute();
@@ -176,12 +243,18 @@ export function FullscreenVideoPlayer({
         case 'f':
           toggleFullscreen();
           break;
+        case 'n':
+          if (clips.length > 1) nextClip();
+          break;
+        case 'p':
+          if (clips.length > 1) prevClip();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, toggleMute, toggleFullscreen, skip, onClose]);
+  }, [togglePlay, toggleMute, toggleFullscreen, skip, onClose, nextClip, prevClip, clips.length]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -192,6 +265,15 @@ export function FullscreenVideoPlayer({
     };
   }, []);
 
+  // Preload next clip
+  useEffect(() => {
+    if (clips.length > 1 && nextVideo) {
+      const nextIndex = (currentClipIndex + 1) % clips.length;
+      nextVideo.src = clips[nextIndex];
+      nextVideo.preload = 'auto';
+    }
+  }, [currentClipIndex, clips, nextVideo]);
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -201,13 +283,26 @@ export function FullscreenVideoPlayer({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* Video */}
+      {/* Primary Video Layer */}
       <video
-        ref={videoRef}
-        src={src}
-        className="absolute inset-0 w-full h-full object-contain"
+        ref={primaryVideoRef}
+        src={clips[0]}
+        className={cn(
+          "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+          activeVideo === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+        )}
         autoPlay
-        loop
+        playsInline
+        onClick={togglePlay}
+      />
+
+      {/* Secondary Video Layer (for crossfade) */}
+      <video
+        ref={secondaryVideoRef}
+        className={cn(
+          "absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ease-in-out",
+          activeVideo === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+        )}
         playsInline
         onClick={togglePlay}
       />
@@ -215,7 +310,7 @@ export function FullscreenVideoPlayer({
       {/* Controls Overlay */}
       <div 
         className={cn(
-          "absolute inset-0 transition-opacity duration-300",
+          "absolute inset-0 z-20 transition-opacity duration-300",
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
@@ -227,7 +322,7 @@ export function FullscreenVideoPlayer({
                 {title || 'Untitled'}
               </h2>
               <p className="text-white/50 text-sm mt-0.5">
-                {clipCount} clip{clipCount > 1 ? 's' : ''}
+                {clips.length > 1 ? `Clip ${currentClipIndex + 1} of ${clips.length}` : '1 clip'}
               </p>
             </div>
             <button
@@ -239,28 +334,84 @@ export function FullscreenVideoPlayer({
           </div>
         </div>
 
-        {/* Center Play/Pause Button */}
+        {/* Center Controls */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <button
-            onClick={togglePlay}
-            className={cn(
-              "w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-full",
-              "bg-white/10 backdrop-blur-xl border border-white/20",
-              "transition-all duration-300 pointer-events-auto",
-              "hover:bg-white/20 hover:scale-105",
-              isPlaying && showControls ? "opacity-0" : "opacity-100"
+          <div className="flex items-center gap-6">
+            {/* Previous Clip */}
+            {clips.length > 1 && (
+              <button
+                onClick={prevClip}
+                disabled={isTransitioning}
+                className={cn(
+                  "w-12 h-12 flex items-center justify-center rounded-full",
+                  "bg-white/10 backdrop-blur-xl border border-white/20",
+                  "transition-all duration-300 pointer-events-auto",
+                  "hover:bg-white/20 hover:scale-105",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
             )}
-          >
-            {isPlaying ? (
-              <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" />
-            ) : (
-              <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" fill="currentColor" />
+
+            {/* Play/Pause */}
+            <button
+              onClick={togglePlay}
+              className={cn(
+                "w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-full",
+                "bg-white/10 backdrop-blur-xl border border-white/20",
+                "transition-all duration-300 pointer-events-auto",
+                "hover:bg-white/20 hover:scale-105",
+                isPlaying && showControls ? "opacity-0" : "opacity-100"
+              )}
+            >
+              {isPlaying ? (
+                <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" />
+              ) : (
+                <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" fill="currentColor" />
+              )}
+            </button>
+
+            {/* Next Clip */}
+            {clips.length > 1 && (
+              <button
+                onClick={nextClip}
+                disabled={isTransitioning}
+                className={cn(
+                  "w-12 h-12 flex items-center justify-center rounded-full",
+                  "bg-white/10 backdrop-blur-xl border border-white/20",
+                  "transition-all duration-300 pointer-events-auto",
+                  "hover:bg-white/20 hover:scale-105",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <ChevronRight className="w-6 h-6 text-white" />
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+          {/* Clip indicators */}
+          {clips.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 mb-3">
+              {clips.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => transitionToClip(index)}
+                  disabled={isTransitioning}
+                  className={cn(
+                    "h-1 rounded-full transition-all duration-300",
+                    index === currentClipIndex 
+                      ? "w-6 bg-white" 
+                      : "w-1.5 bg-white/40 hover:bg-white/60"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Progress Bar */}
           <div 
             ref={progressRef}
@@ -390,6 +541,13 @@ export function FullscreenVideoPlayer({
           </div>
         </div>
       </div>
+
+      {/* Transition indicator */}
+      {isTransitioning && (
+        <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+          <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
+        </div>
+      )}
     </div>
   );
 }

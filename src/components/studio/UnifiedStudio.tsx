@@ -101,10 +101,12 @@ const MOOD_OPTIONS = [
 const GENRE_OPTIONS = [
   { value: 'cinematic', label: 'Cinematic' },
   { value: 'documentary', label: 'Documentary' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'music-video', label: 'Music Video' },
-  { value: 'narrative', label: 'Narrative' },
-  { value: 'trailer', label: 'Trailer' },
+  { value: 'ad', label: 'Commercial' },
+  { value: 'educational', label: 'Educational' },
+  { value: 'explainer', label: 'Explainer' },
+  { value: 'storytelling', label: 'Narrative' },
+  { value: 'motivational', label: 'Motivational' },
+  { value: 'vlog', label: 'Vlog' },
 ];
 
 const CLIP_DURATION = 4;

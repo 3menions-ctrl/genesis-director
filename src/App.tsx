@@ -57,7 +57,7 @@ const App = () => (
                 } />
                 <Route path="/profile" element={
                   <ProtectedRoute>
-                    <StudioLayout><Profile /></StudioLayout>
+                    <Profile />
                   </ProtectedRoute>
                 } />
                 

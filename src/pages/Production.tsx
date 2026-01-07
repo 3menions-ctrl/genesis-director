@@ -553,6 +553,32 @@ export default function Production() {
           </CardContent>
         </Card>
 
+        {/* Script Approval Required */}
+        {projectStatus === 'awaiting_approval' && (
+          <Card className="border-amber-500/50 bg-amber-500/5">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-600">Script Approval Required</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    The script has been generated and is ready for your review. Approve it to continue with video production.
+                  </p>
+                  <div className="flex gap-3 mt-4">
+                    <Button 
+                      className="bg-amber-500 hover:bg-amber-600 text-white"
+                      onClick={() => navigate(`/script-review?projectId=${projectId}`)}
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Review & Approve Script
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Error Display */}
         {error && (
           <Card className="border-destructive/50 bg-destructive/10">

@@ -22,9 +22,11 @@ import {
   Clock,
   Zap,
   AlertCircle,
-  Pencil
+  Pencil,
+  CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 interface CostBreakdown {
   preProduction: number;
@@ -82,6 +84,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
     defaultProjectName = '',
   }, ref) {
     const [projectName, setProjectName] = useState(defaultProjectName);
+    const [showBuyCredits, setShowBuyCredits] = useState(false);
     const costs = calculateCosts(clipCount, qualityTier);
     const hasEnoughCredits = userCredits >= costs.total;
     const hasValidName = projectName.trim().length > 0;
@@ -225,43 +228,81 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
           </div>
         </div>
 
-        {/* Credits Warning */}
-        {!hasEnoughCredits && (
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-destructive">Insufficient Credits</p>
-              <p className="text-destructive/80 mt-0.5">
-                You have {userCredits} credits. Please purchase more to continue.
+        {/* Credits Balance - Always show */}
+        <div className={cn(
+          "flex items-center justify-between p-4 rounded-lg border",
+          hasEnoughCredits 
+            ? "bg-muted/30 border-border" 
+            : "bg-destructive/10 border-destructive/30"
+        )}>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg",
+              hasEnoughCredits ? "bg-foreground/5" : "bg-destructive/20"
+            )}>
+              <Coins className={cn(
+                "w-5 h-5",
+                hasEnoughCredits ? "text-muted-foreground" : "text-destructive"
+              )} />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Your Balance</p>
+              <p className={cn(
+                "text-lg font-bold",
+                hasEnoughCredits ? "text-foreground" : "text-destructive"
+              )}>
+                {userCredits} credits
               </p>
             </div>
           </div>
-        )}
-
-        {/* Your Balance */}
-        {hasEnoughCredits && (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 text-sm">
-            <span className="text-muted-foreground">Your Balance</span>
-            <span className="font-medium">
-              {userCredits} → {userCredits - costs.total} credits
-            </span>
-          </div>
-        )}
+          {hasEnoughCredits ? (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">After generation</p>
+              <p className="text-sm font-medium text-success">
+                {userCredits - costs.total} credits remaining
+              </p>
+            </div>
+          ) : (
+            <div className="text-right">
+              <p className="text-xs text-destructive/80">Need {costs.total - userCredits} more</p>
+              <Badge variant="destructive" className="mt-1">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                Insufficient
+              </Badge>
+            </div>
+          )}
+        </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleConfirm} 
-            disabled={!hasEnoughCredits || !hasValidName}
-            className="gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Generate Video
-          </Button>
+          {!hasEnoughCredits ? (
+            <Button 
+              onClick={() => setShowBuyCredits(true)}
+              className="gap-2"
+            >
+              <CreditCard className="w-4 h-4" />
+              Buy Credits
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleConfirm} 
+              disabled={!hasValidName}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate Video
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
+      
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyCredits} 
+        onOpenChange={setShowBuyCredits} 
+      />
     </Dialog>
   );
 });

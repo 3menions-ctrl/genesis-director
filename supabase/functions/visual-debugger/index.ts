@@ -48,15 +48,15 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const body: VisualDebugRequest = await req.json();
     const { videoUrl, frameUrl, shotDescription, shotId, projectType, referenceImageUrl, previousShotContext, referenceAnalysis } = body;
 
-    console.log(`[VisualDebugger] Analyzing shot ${shotId}`);
+    console.log(`[VisualDebugger] Analyzing shot ${shotId} using Gemini 2.5 Pro`);
     console.log(`[VisualDebugger] Video URL: ${videoUrl?.substring(0, 80)}...`);
     console.log(`[VisualDebugger] Reference image: ${referenceImageUrl ? 'provided' : 'none'}`);
 
@@ -103,7 +103,7 @@ The current shot must maintain visual continuity with what was established in pr
 `;
     }
 
-    // Use Lovable AI Gateway with a multimodal model for video/image analysis
+    // System prompt for visual quality analysis
     const systemPrompt = `You are a Visual Quality Debugger for AI-generated videos. Your role is to analyze video frames/thumbnails and determine if the generated content meets production quality standards.
 
 You must output a JSON response with your analysis.
@@ -148,7 +148,7 @@ If FAIL, you MUST provide a corrective prompt that:
 ${referenceContext}
 ${continuityContext}
 
-OUTPUT FORMAT (JSON only):
+OUTPUT FORMAT (JSON only, no markdown code blocks):
 {
   "passed": true/false,
   "verdict": "PASS" or "FAIL",
@@ -168,12 +168,6 @@ OUTPUT FORMAT (JSON only):
     "cinematicQuality": 0-25
   }
 }`;
-
-    // Build character/environment context string for corrective prompts
-    const contextForCorrection = `
-CHARACTER: ${characterContext || 'as shown in reference image'}
-ENVIRONMENT: ${environmentContext || 'as shown in reference image'}
-STYLE: ${referenceAnalysis?.visualStyle || projectType || 'cinematic'}`;
 
     const userPrompt = `Analyze this AI-generated video shot for production quality:
 
@@ -201,48 +195,53 @@ If you create a corrective prompt, it MUST include:
 - Specific fixes for any detected issues
 - Negative prompts to prevent the issues
 
-Provide your analysis as JSON.`;
+Provide your analysis as JSON only, no markdown formatting.`;
 
-    console.log('[VisualDebugger] Calling OpenAI for multimodal analysis...');
+    // Build message content with images for multimodal analysis
+    const messageContent: any[] = [
+      { type: 'text', text: userPrompt }
+    ];
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Include reference image for character/environment consistency check
+    if (referenceImageUrl && !referenceImageUrl.endsWith('.mp4')) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: { url: referenceImageUrl }
+      });
+    }
+
+    // Include frame from the generated video for analysis
+    if (frameUrl && !frameUrl.endsWith('.mp4')) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: { url: frameUrl }
+      });
+    }
+
+    console.log('[VisualDebugger] Calling Lovable AI Gateway (Gemini 2.5 Pro) for multimodal analysis...');
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
-            content: [
-              { type: 'text', text: userPrompt },
-              // Include reference image for character/environment consistency check
-              ...(referenceImageUrl && !referenceImageUrl.endsWith('.mp4') ? [{
-                type: 'image_url',
-                image_url: { url: referenceImageUrl }
-              }] : []),
-              // Include frame from the generated video for analysis
-              ...(frameUrl && !frameUrl.endsWith('.mp4') ? [{
-                type: 'image_url',
-                image_url: { url: frameUrl }
-              }] : [])
-            ]
-          }
+          { role: 'user', content: messageContent }
         ],
-        max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VisualDebugger] OpenAI API error:', response.status, errorText);
+      console.error('[VisualDebugger] Lovable AI Gateway error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded', 
+          error: 'Rate limit exceeded. Please try again later.', 
           shouldRetry: true 
         }), {
           status: 429,
@@ -250,17 +249,17 @@ Provide your analysis as JSON.`;
         });
       }
       
-      if (response.status === 401) {
+      if (response.status === 402) {
         return new Response(JSON.stringify({ 
-          error: 'Invalid OpenAI API key',
+          error: 'Payment required. Please add credits to your Lovable workspace.',
           shouldRetry: false 
         }), {
-          status: 401,
+          status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`Lovable AI Gateway error: ${response.status}`);
     }
 
     const aiResponse = await response.json();

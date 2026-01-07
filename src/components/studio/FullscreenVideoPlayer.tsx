@@ -117,13 +117,11 @@ export function FullscreenVideoPlayer({
     const preloadVideo = videoCRef.current;
     if (!preloadVideo) return;
 
-    console.log(`[Preload] Starting preload for clip ${nextIndex}`);
     setVideoCSrc(clips[nextIndex]);
     preloadVideo.src = clips[nextIndex];
     preloadVideo.load();
     
     const handleCanPlayThrough = () => {
-      console.log(`[Preload] Clip ${nextIndex} fully buffered`);
       setPreloadedClipIndex(nextIndex);
       preloadVideo.removeEventListener('canplaythrough', handleCanPlayThrough);
     };
@@ -153,7 +151,6 @@ export function FullscreenVideoPlayer({
     
     // If preloaded, copy from buffer C to the target buffer
     if (isPreloaded && preloadVideo) {
-      console.log(`[Transition] Using preloaded clip ${nextIndex}`);
       // Copy the preloaded source to the next video
       if (isNextA) {
         setVideoASrc(nextSrc);
@@ -166,7 +163,6 @@ export function FullscreenVideoPlayer({
       nextVideo.muted = isMuted;
       nextVideo.load();
     } else {
-      console.log(`[Transition] Loading clip ${nextIndex} on demand`);
       if (isNextA) {
         setVideoASrc(nextSrc);
       } else {
@@ -234,7 +230,6 @@ export function FullscreenVideoPlayer({
     } else {
       // Show loading indicator if we have to wait
       setIsWaitingForBuffer(true);
-      console.log(`[Transition] Waiting for buffer...`);
       
       const handleCanPlay = () => {
         startTransition();
@@ -246,7 +241,6 @@ export function FullscreenVideoPlayer({
       // Fallback timeout - if video doesn't load in 3 seconds, try anyway
       setTimeout(() => {
         if (nextVideo.readyState < 3) {
-          console.log(`[Transition] Fallback: forcing transition`);
           startTransition();
         }
       }, 3000);
@@ -398,14 +392,12 @@ export function FullscreenVideoPlayer({
         if (percentComplete >= PRELOAD_TRIGGER_PERCENT && !preloadTriggeredRef.current) {
           preloadTriggeredRef.current = true;
           const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
-          console.log(`[RAF] 30% reached - preloading clip ${nextIndex}`);
           preloadNextClip(nextIndex);
         }
 
         // Trigger transition at CROSSFADE_START_BEFORE_END seconds before end
         if (timeRemaining > 0 && timeRemaining <= CROSSFADE_START_BEFORE_END && !transitionTriggeredRef.current) {
           const nextIndex = (currentClipIndexRef.current + 1) % clips.length;
-          console.log(`[RAF] ${timeRemaining.toFixed(2)}s remaining - starting transition to clip ${nextIndex}`);
           transitionToClip(nextIndex, true);
         }
       }
@@ -426,7 +418,6 @@ export function FullscreenVideoPlayer({
   useEffect(() => {
     const handleEnded = () => {
       if (clips.length > 1 && !isTransitioningRef.current) {
-        console.log('[Fallback] Video ended, advancing to next clip');
         nextClip();
       }
     };

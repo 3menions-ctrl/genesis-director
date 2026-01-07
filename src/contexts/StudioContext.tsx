@@ -147,7 +147,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   // Reload projects when user changes (login/logout)
   useEffect(() => {
     if (user) {
-      console.log('User changed, reloading projects for:', user.email);
       loadProjects();
     } else {
       // Clear projects when user logs out
@@ -237,7 +236,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           try {
             // Only process Supabase storage URLs
             if (!url.includes('supabase.co/storage/v1/object/public/')) {
-              console.log('Skipping non-Supabase URL:', url);
               continue;
             }
             
@@ -250,17 +248,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
               const path = decodeURIComponent(pathMatch[2]);
               
               if (bucket && path) {
-                const { error: removeError } = await supabase.storage.from(bucket).remove([path]);
-                if (removeError) {
-                  console.warn(`Failed to delete ${bucket}/${path}:`, removeError);
-                } else {
-                  console.log(`Deleted file: ${bucket}/${path}`);
-                }
+                await supabase.storage.from(bucket).remove([path]);
               }
             }
-          } catch (storageErr) {
-            // Log but don't fail if storage cleanup fails
-            console.warn('Could not delete storage file:', url, storageErr);
+          } catch {
+            // Silently fail if storage cleanup fails - non-critical
           }
         }
       }

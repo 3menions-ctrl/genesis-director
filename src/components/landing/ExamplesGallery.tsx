@@ -130,14 +130,14 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
         </div>
 
         {/* Close X button - Top right corner */}
-        <div 
+        <button 
+          type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 z-[9999] cursor-pointer p-4 group"
-          role="button"
+          className="absolute top-4 right-4 z-[9999] cursor-pointer p-4 group bg-transparent border-0"
           aria-label="Close gallery"
         >
           <X className="w-8 h-8 text-white/70 group-hover:text-white transition-colors drop-shadow-lg" strokeWidth={1.5} />
-        </div>
+        </button>
 
         {/* Counter */}
         <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">

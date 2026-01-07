@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FullscreenVideoPlayer } from './FullscreenVideoPlayer';
+import { ProFeaturesPanel } from './ProFeaturesPanel';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StageStatus {
@@ -39,6 +40,15 @@ interface StageStatus {
   status: 'pending' | 'active' | 'complete' | 'error' | 'skipped';
   details?: string;
   data?: Record<string, any>;
+}
+
+interface ProFeaturesData {
+  musicSync?: { enabled: boolean; score?: number; count?: number };
+  colorGrading?: { enabled: boolean; score?: number; details?: string };
+  sfx?: { enabled: boolean; count?: number };
+  visualDebugger?: { enabled: boolean; retriesUsed?: number; avgScore?: number };
+  multiCharacterBible?: { enabled: boolean; count?: number };
+  depthConsistency?: { enabled: boolean; score?: number };
 }
 
 interface ProductionPipelineProps {
@@ -55,6 +65,8 @@ interface ProductionPipelineProps {
   onCancel?: () => void;
   className?: string;
   projectId?: string;
+  qualityTier?: 'standard' | 'professional';
+  proFeaturesData?: ProFeaturesData;
 }
 
 interface DatabaseClip {
@@ -121,7 +133,9 @@ export function ProductionPipeline({
   identityBibleViews,
   onCancel,
   className,
-  projectId
+  projectId,
+  qualityTier = 'standard',
+  proFeaturesData
 }: ProductionPipelineProps) {
   const [selectedStage, setSelectedStage] = useState<number | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
@@ -428,6 +442,16 @@ export function ProductionPipeline({
             </ScrollArea>
           </div>
         </motion.div>
+      )}
+
+      {/* Pro Features Panel - Show for professional tier */}
+      {qualityTier === 'professional' && (
+        <ProFeaturesPanel
+          qualityTier={qualityTier}
+          proFeaturesData={proFeaturesData}
+          isRunning={isRunning}
+          className="mt-6"
+        />
       )}
 
       {/* Final Video Card */}

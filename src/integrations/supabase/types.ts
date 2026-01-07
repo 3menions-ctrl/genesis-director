@@ -215,8 +215,11 @@ export type Database = {
           is_template: boolean | null
           mood: string | null
           movie_intro_style: string | null
+          music_url: string | null
           parent_project_id: string | null
           pending_video_tasks: Json | null
+          pro_features_data: Json | null
+          quality_tier: string | null
           scene_images: Json | null
           script_content: string | null
           setting: string | null
@@ -243,8 +246,11 @@ export type Database = {
           is_template?: boolean | null
           mood?: string | null
           movie_intro_style?: string | null
+          music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pro_features_data?: Json | null
+          quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
@@ -271,8 +277,11 @@ export type Database = {
           is_template?: boolean | null
           mood?: string | null
           movie_intro_style?: string | null
+          music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pro_features_data?: Json | null
+          quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null

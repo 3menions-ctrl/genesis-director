@@ -730,46 +730,80 @@ async function runProduction(
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');
   console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips`);
   
-  // Request final assembly from stitcher
+  // Request final assembly from intelligent stitcher (uses scene anchors + gap detection)
   if (completedClips.length > 0) {
-    const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-    if (stitcherUrl) {
-      console.log(`[Hollywood] Requesting final assembly...`);
+    console.log(`[Hollywood] Requesting intelligent stitching with scene anchor analysis...`);
+    
+    try {
+      const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
+      const isProfessional = request.qualityTier === 'professional';
       
-      try {
-        const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
-        
-        const response = await fetch(`${stitcherUrl}/stitch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            projectId: state.projectId,
-            projectTitle: `Video - ${state.projectId}`,
-            clips: completedClips.map(c => ({
-              shotId: `clip_${c.index}`,
-              videoUrl: c.videoUrl,
-              durationSeconds: DEFAULT_CLIP_DURATION,
-              transitionOut: 'continuous',
-            })),
-            audioMixMode: hasAudioTracks ? 'full' : 'mute',
-            outputFormat: 'mp4',
-            colorGrading: request.colorGrading || 'cinematic',
-            isFinalAssembly: true,
-            voiceTrackUrl: state.assets?.voiceUrl,
-            backgroundMusicUrl: state.assets?.musicUrl,
-          }),
+      // Use intelligent-stitch for professional tier, fallback to direct stitch for standard
+      if (isProfessional) {
+        const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
+          projectId: state.projectId,
+          clips: completedClips.map((c, idx) => ({
+            shotId: `clip_${c.index}`,
+            videoUrl: c.videoUrl,
+            firstFrameUrl: idx === 0 ? request.referenceImageUrl : undefined,
+            lastFrameUrl: c.lastFrameUrl,
+          })),
+          voiceAudioUrl: state.assets?.voiceUrl,
+          musicAudioUrl: state.assets?.musicUrl,
+          autoGenerateBridges: true,
+          strictnessLevel: 'normal',
+          maxBridgeClips: 3,
+          targetFormat: '1080p',
+          qualityTier: 'professional',
         });
         
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.finalVideoUrl) {
-            state.finalVideoUrl = result.finalVideoUrl;
-            console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
+        if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
+          state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
+          console.log(`[Hollywood] Intelligent stitch complete: ${state.finalVideoUrl}`);
+          console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
+          console.log(`[Hollywood] Bridge clips generated: ${intelligentStitchResult.bridgeClipsGenerated || 0}`);
+        } else {
+          console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to direct stitch`);
+          // Fall through to direct stitch
+        }
+      }
+      
+      // Standard tier OR fallback: Direct Cloud Run stitch
+      if (!state.finalVideoUrl) {
+        const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+        if (stitcherUrl) {
+          const response = await fetch(`${stitcherUrl}/stitch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId: state.projectId,
+              projectTitle: `Video - ${state.projectId}`,
+              clips: completedClips.map(c => ({
+                shotId: `clip_${c.index}`,
+                videoUrl: c.videoUrl,
+                durationSeconds: DEFAULT_CLIP_DURATION,
+                transitionOut: 'continuous',
+              })),
+              audioMixMode: hasAudioTracks ? 'full' : 'mute',
+              outputFormat: 'mp4',
+              colorGrading: request.colorGrading || 'cinematic',
+              isFinalAssembly: true,
+              voiceTrackUrl: state.assets?.voiceUrl,
+              backgroundMusicUrl: state.assets?.musicUrl,
+            }),
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.finalVideoUrl) {
+              state.finalVideoUrl = result.finalVideoUrl;
+              console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
+            }
           }
         }
-      } catch (stitchError) {
-        console.error(`[Hollywood] Stitching failed:`, stitchError);
       }
+    } catch (stitchError) {
+      console.error(`[Hollywood] Stitching failed:`, stitchError);
     }
   }
   

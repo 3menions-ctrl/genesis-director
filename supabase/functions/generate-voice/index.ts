@@ -123,6 +123,32 @@ serve(async (req) => {
 
         console.log("Voice uploaded to storage:", publicUrl);
 
+        // Log API cost for voice generation
+        try {
+          const durationMs = Math.round((text.length / 15) * 1000);
+          const creditsCharged = 2; // Voice generation cost
+          const realCostCents = Math.ceil(text.length * 0.003); // ElevenLabs ~$0.003 per char
+          
+          await supabase.rpc('log_api_cost', {
+            p_user_id: null, // Voice doesn't have user context directly
+            p_project_id: projectId || null,
+            p_shot_id: shotId || 'narration',
+            p_service: 'elevenlabs',
+            p_operation: 'text_to_speech',
+            p_credits_charged: creditsCharged,
+            p_real_cost_cents: realCostCents,
+            p_duration_seconds: Math.round(durationMs / 1000),
+            p_status: 'completed',
+            p_metadata: JSON.stringify({
+              textLength: text.length,
+              voiceId,
+            }),
+          });
+          console.log(`[Voice] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
+        } catch (costError) {
+          console.warn("[Voice] Failed to log API cost:", costError);
+        }
+
         return new Response(
           JSON.stringify({ 
             success: true,

@@ -520,6 +520,33 @@ serve(async (req) => {
       p_motion_vectors: JSON.stringify(motionVectors),
     });
 
+    // Log API cost for this video generation
+    try {
+      const creditsCharged = request.qualityTier === 'professional' ? 20 : 20; // Production credits per shot
+      const realCostCents = 8; // Veo API estimated cost (~$0.08 per 4s clip)
+      
+      await supabase.rpc('log_api_cost', {
+        p_user_id: request.userId,
+        p_project_id: request.projectId,
+        p_shot_id: `clip_${request.clipIndex}`,
+        p_service: 'google_veo',
+        p_operation: 'video_generation',
+        p_credits_charged: creditsCharged,
+        p_real_cost_cents: realCostCents,
+        p_duration_seconds: DEFAULT_CLIP_DURATION,
+        p_status: 'completed',
+        p_metadata: JSON.stringify({
+          model: 'veo-3.1-generate-001',
+          aspectRatio: request.aspectRatio || '16:9',
+          qualityTier: request.qualityTier || 'standard',
+          hasStartImage: !!request.startImageUrl,
+        }),
+      });
+      console.log(`[SingleClip] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
+    } catch (costError) {
+      console.warn(`[SingleClip] Failed to log API cost:`, costError);
+    }
+
     const clipResult: ClipResult = {
       index: request.clipIndex,
       videoUrl: storedUrl,

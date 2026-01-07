@@ -22,6 +22,8 @@ interface SmartScriptRequest {
   pacingStyle?: 'fast' | 'moderate' | 'slow' | 'dynamic';
   mainSubjects?: string[];
   environmentHints?: string[];
+  // NEW: Story-first flow - approved continuous narrative
+  approvedStory?: string;
 }
 
 // Get duration mode from seconds
@@ -172,7 +174,37 @@ PHYSICS & REALISM:
 - Include environmental physics (wind, water, fabric movement)
 - Character body mechanics must be anatomically correct`;
 
-    const userPrompt = `Generate a ${shotCount}-shot script for a ${targetSeconds}-second ${request.genre || 'cinematic'} video.
+    // Build user prompt - different approach if we have an approved story
+    let userPrompt: string;
+    
+    if (request.approvedStory) {
+      // STORY-FIRST FLOW: Break down the approved continuous narrative into shots
+      console.log("[SmartScript] Using approved story for shot breakdown");
+      userPrompt = `Break down this APPROVED STORY into exactly ${shotCount} cinematic shots for a ${targetSeconds}-second ${request.genre || 'cinematic'} video.
+
+THE APPROVED STORY (maintain this narrative exactly, just break it into visual shots):
+"""
+${request.approvedStory}
+"""
+
+CRITICAL REQUIREMENTS:
+1. PRESERVE the story's narrative continuity - each shot should flow naturally from the previous
+2. Break the story into ${shotCount} distinct visual moments
+3. Each shot must represent a specific part of the story in sequence
+4. Maintain character consistency and story progression
+5. Do NOT add new plot elements - only break down what's in the story
+6. Include dialogue/narration from the story in the appropriate shots
+
+SCENE DISTRIBUTION TO FOLLOW:
+${sceneDistribution.map((type, i) => `Shot ${i + 1}: ${type}`).join('\n')}
+
+TRANSITION PLAN (use these to connect story moments smoothly):
+${transitionPlan.map((t, i) => `Shot ${i + 1} → ${i + 2}: ${t}`).join('\n')}
+
+Break down the story into visual shots with SMOOTH TRANSITIONS and NARRATIVE CONTINUITY. Output ONLY valid JSON.`;
+    } else {
+      // LEGACY FLOW: Generate from topic/synopsis
+      userPrompt = `Generate a ${shotCount}-shot script for a ${targetSeconds}-second ${request.genre || 'cinematic'} video.
 
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
@@ -193,6 +225,7 @@ TRANSITION PLAN:
 ${transitionPlan.map((t, i) => `Shot ${i + 1} → ${i + 2}: ${t}`).join('\n')}
 
 Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY valid JSON.`;
+    }
 
     console.log("[SmartScript] Calling OpenAI API...");
 

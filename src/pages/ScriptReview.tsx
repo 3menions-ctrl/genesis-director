@@ -222,7 +222,7 @@ export default function ScriptReview() {
 
       if (data?.success) {
         toast.success('Script approved! Video production started.');
-        navigate('/create');
+        navigate(`/production?projectId=${projectId}`);
       } else {
         throw new Error(data?.error || 'Failed to resume pipeline');
       }

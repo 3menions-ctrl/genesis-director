@@ -5,12 +5,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface ReferenceAnalysis {
+  characterIdentity?: {
+    description?: string;
+    facialFeatures?: string;
+    clothing?: string;
+    bodyType?: string;
+    distinctiveMarkers?: string[];
+  };
+  environment?: {
+    setting?: string;
+    geometry?: string;
+    keyObjects?: string[];
+    backgroundElements?: string[];
+  };
+  lighting?: {
+    style?: string;
+    direction?: string;
+    quality?: string;
+    timeOfDay?: string;
+  };
+  colorPalette?: {
+    dominant?: string[];
+    accent?: string[];
+    mood?: string;
+  };
+  consistencyPrompt?: string;
+}
+
 interface StoryRequest {
   prompt: string;
   genre?: string;
   mood?: string;
   style?: string;
   targetDurationSeconds?: number;
+  referenceAnalysis?: ReferenceAnalysis;
 }
 
 interface StoryResponse {
@@ -77,15 +106,50 @@ DO:
 - Create emotional arcs
 - Ensure visual and thematic continuity`;
 
+    // Build reference image context if available
+    let referenceContext = '';
+    if (request.referenceAnalysis) {
+      const ref = request.referenceAnalysis;
+      const parts: string[] = [];
+      
+      if (ref.characterIdentity?.description) {
+        parts.push(`MAIN CHARACTER: ${ref.characterIdentity.description}`);
+        if (ref.characterIdentity.clothing) parts.push(`Wearing: ${ref.characterIdentity.clothing}`);
+        if (ref.characterIdentity.distinctiveMarkers?.length) {
+          parts.push(`Distinctive features: ${ref.characterIdentity.distinctiveMarkers.join(', ')}`);
+        }
+      }
+      
+      if (ref.environment?.setting) {
+        parts.push(`SETTING: ${ref.environment.setting}`);
+        if (ref.environment.keyObjects?.length) {
+          parts.push(`Key elements: ${ref.environment.keyObjects.join(', ')}`);
+        }
+      }
+      
+      if (ref.lighting?.style) {
+        parts.push(`LIGHTING: ${ref.lighting.style}${ref.lighting.timeOfDay ? ` (${ref.lighting.timeOfDay})` : ''}`);
+      }
+      
+      if (ref.colorPalette?.mood) {
+        parts.push(`COLOR MOOD: ${ref.colorPalette.mood}`);
+      }
+      
+      if (parts.length > 0) {
+        referenceContext = `\n\nVISUAL REFERENCE (incorporate these elements into the story):\n${parts.join('\n')}`;
+      }
+    }
+
     const userPrompt = `Write a continuous, cinematic story based on this concept:
 
 "${request.prompt}"
 
 ${request.genre ? `Genre: ${request.genre}` : ''}
 ${request.mood ? `Mood/Tone: ${request.mood}` : ''}
-${request.style ? `Visual Style: ${request.style}` : ''}
+${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}
 
 The story should be suitable for a ${targetDuration}-second video (approximately ${estimatedScenes} visual scenes).
+${request.referenceAnalysis ? '\nIMPORTANT: The story MUST feature the character and setting described in the VISUAL REFERENCE above. Maintain consistency with their appearance throughout.' : ''}
 
 Write the complete story now:`;
 

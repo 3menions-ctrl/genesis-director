@@ -524,6 +524,7 @@ export function UnifiedStudio() {
           genre,
           mood,
           targetDurationSeconds: clipCount * CLIP_DURATION,
+          referenceAnalysis: referenceImageAnalysis,
         },
       });
 

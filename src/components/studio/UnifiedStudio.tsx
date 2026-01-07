@@ -1254,6 +1254,7 @@ export function UnifiedStudio() {
             sceneImages={sceneImages}
             identityBibleViews={identityBibleViews}
             onCancel={handleCancel}
+            projectId={activeProjectId || undefined}
           />
         )}
       </div>

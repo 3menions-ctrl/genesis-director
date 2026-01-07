@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.intelligent-stitch]
 verify_jwt = false
+
+[functions.generate-multi-character-bible]
+verify_jwt = false

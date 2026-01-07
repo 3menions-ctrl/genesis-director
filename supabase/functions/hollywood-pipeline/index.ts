@@ -380,10 +380,50 @@ async function runPreProduction(
     }
   }
   
+  // 1e. Generate Multi-Character Identity Bible for professional tier (2+ characters)
+  if (request.qualityTier === 'professional' && (state.extractedCharacters?.length || 0) >= 2) {
+    console.log(`[Hollywood] Generating Multi-Character Identity Bible for ${state.extractedCharacters?.length} characters...`);
+    
+    try {
+      const scriptText = state.script?.shots
+        .map(s => `${s.title}: ${s.description}${s.dialogue ? ` "${s.dialogue}"` : ''}`)
+        .join('\n\n') || '';
+      
+      const multiCharResult = await callEdgeFunction('generate-multi-character-bible', {
+        projectId: state.projectId,
+        script: scriptText,
+        characterDescriptions: state.extractedCharacters?.map(c => ({
+          name: c.name,
+          role: 'supporting' as const,
+          description: `${c.appearance || ''} ${c.clothing || ''} ${c.distinguishingFeatures || ''}`.trim(),
+        })),
+        generate3PointViews: true,
+      });
+      
+      if (multiCharResult.success && multiCharResult.bible) {
+        (state as any).multiCharacterBible = multiCharResult.bible;
+        console.log(`[Hollywood] Multi-Character Bible complete: ${multiCharResult.bible.characters?.length || 0} characters with ${multiCharResult.bible.shotPresence?.length || 0} shot mappings`);
+        
+        // Merge character consistency prompts
+        const multiCharPrompts = multiCharResult.bible.characters
+          ?.map((c: any) => c.consistencyPrompt)
+          .filter(Boolean)
+          .join('. ');
+        
+        if (multiCharPrompts && state.identityBible) {
+          state.identityBible.consistencyPrompt = `${state.identityBible.consistencyPrompt || ''}. CHARACTERS: ${multiCharPrompts}`;
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Multi-Character Bible generation failed:`, err);
+    }
+  }
+  
   state.progress = 30;
   await updateProjectProgress(supabase, state.projectId, 'preproduction', 30, { 
     scriptGenerated: true,
     charactersExtracted: state.extractedCharacters?.length || 0,
+    multiCharacterBible: !!(state as any).multiCharacterBible,
   });
   
   return state;

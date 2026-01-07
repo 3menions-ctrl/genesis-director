@@ -666,11 +666,14 @@ export function UnifiedStudio() {
   };
 
   const handleCancel = () => {
+    // Abort any in-flight requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      toast.info('Cancelling pipeline...');
-      resetState();
     }
+    
+    // Always reset state to release UI
+    toast.info('Pipeline cancelled');
+    resetState();
   };
 
   const handleGenerateClick = () => {

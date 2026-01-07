@@ -208,10 +208,20 @@ export function ProductionPipeline({
             </Button>
           )}
           
-          {isRunning && onCancel && (
-            <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground hover:text-destructive">
+          {/* Always show cancel/reset button when pipeline is visible */}
+          {onCancel && (
+            <Button 
+              variant={isRunning ? "ghost" : "destructive"} 
+              size="sm" 
+              onClick={onCancel} 
+              className={cn(
+                isRunning 
+                  ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+                  : ""
+              )}
+            >
               <X className="w-4 h-4 mr-2" />
-              Cancel
+              {isRunning ? 'Cancel' : 'Reset'}
             </Button>
           )}
         </div>

@@ -345,7 +345,15 @@ export default function Production() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/create')}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/create');
+                }}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center">

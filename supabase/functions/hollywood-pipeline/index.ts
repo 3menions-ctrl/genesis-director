@@ -758,6 +758,82 @@ async function runAssetCreation(
     }
   }
   
+  state.progress = 65;
+  
+  // 3d. Generate Sound Effects (professional tier only)
+  if (request.qualityTier === 'professional' && state.script?.shots) {
+    console.log(`[Hollywood] Generating SFX analysis...`);
+    
+    try {
+      const sfxResult = await callEdgeFunction('generate-sfx', {
+        projectId: state.projectId,
+        shots: state.script.shots.map(s => ({
+          id: s.id,
+          description: s.description,
+          durationSeconds: s.durationSeconds,
+          hasDialogue: !!(s.dialogue && s.dialogue.trim().length > 0),
+          environment: s.mood,
+        })),
+        totalDuration: state.clipCount * state.clipDuration,
+        includeAmbient: true,
+        includeFoley: true,
+        includeActionSFX: true,
+        style: 'realistic',
+      });
+      
+      if (sfxResult.success && sfxResult.plan) {
+        (state as any).sfxPlan = sfxResult.plan;
+        console.log(`[Hollywood] SFX plan created: ${sfxResult.summary?.ambientBedCount || 0} ambient beds, ${sfxResult.summary?.sfxCueCount || 0} SFX cues`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] SFX generation failed:`, err);
+    }
+  }
+  
+  // 3e. Run Color Grading Analysis (professional tier only)
+  if (request.qualityTier === 'professional' && state.script?.shots) {
+    console.log(`[Hollywood] Running color grading analysis...`);
+    
+    try {
+      const colorResult = await callEdgeFunction('apply-color-grading', {
+        projectId: state.projectId,
+        shots: state.script.shots.map(s => ({
+          id: s.id,
+          description: state.auditResult?.optimizedShots?.find(o => o.shotId === s.id)?.optimizedDescription || s.description,
+          mood: s.mood,
+        })),
+        targetPreset: request.colorGrading as any || 'cinematic',
+        enforceConsistency: true,
+      });
+      
+      if (colorResult.success) {
+        (state as any).colorGrading = {
+          masterPreset: colorResult.masterPreset,
+          masterFilter: colorResult.masterFFmpegFilter,
+          masterPrompt: colorResult.masterColorPrompt,
+          consistencyScore: colorResult.consistencyScore,
+          shotGradings: colorResult.shotGradings,
+        };
+        console.log(`[Hollywood] Color grading: ${colorResult.masterPreset} preset, consistency ${colorResult.consistencyScore}%`);
+        
+        // Apply color prompt enhancements to optimized shots
+        if (colorResult.colorPromptEnhancements && state.auditResult?.optimizedShots) {
+          for (const enhancement of colorResult.colorPromptEnhancements) {
+            const shotIdx = state.auditResult.optimizedShots.findIndex(s => s.shotId === enhancement.shotId);
+            if (shotIdx >= 0) {
+              const existingDesc = state.auditResult.optimizedShots[shotIdx].optimizedDescription;
+              state.auditResult.optimizedShots[shotIdx].optimizedDescription = 
+                `${existingDesc}. [COLOR: ${enhancement.prompt}]`;
+            }
+          }
+          console.log(`[Hollywood] Applied color grading prompts to ${colorResult.colorPromptEnhancements.length} shots`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Color grading analysis failed:`, err);
+    }
+  }
+  
   state.progress = 70;
   await updateProjectProgress(supabase, state.projectId, 'assets', 70, {
     hasVoice: !!state.assets.voiceUrl,
@@ -765,6 +841,10 @@ async function runAssetCreation(
     hasMusicSyncPlan: !!(state as any).musicSyncPlan,
     musicCues: (state as any).musicSyncPlan?.musicCues?.length || 0,
     emotionalBeats: (state as any).musicSyncPlan?.emotionalBeats?.length || 0,
+    hasSfxPlan: !!(state as any).sfxPlan,
+    sfxCues: (state as any).sfxPlan?.sfxCues?.length || 0,
+    hasColorGrading: !!(state as any).colorGrading,
+    colorPreset: (state as any).colorGrading?.masterPreset,
   });
   
   return state;
@@ -908,7 +988,81 @@ async function runProduction(
         throw new Error(clipResult.error || 'Clip generation failed');
       }
       
-      const result = clipResult.clipResult;
+      let result = clipResult.clipResult;
+      
+      // Visual Debugger Loop (professional tier only) - check quality and retry if needed
+      if (request.qualityTier === 'professional' && result.videoUrl) {
+        console.log(`[Hollywood] Running Visual Debugger on clip ${i + 1}...`);
+        
+        const maxRetries = 2;
+        let retryCount = 0;
+        let debugResult = null;
+        
+        while (retryCount < maxRetries) {
+          try {
+            debugResult = await callEdgeFunction('visual-debugger', {
+              videoUrl: result.videoUrl,
+              frameUrl: result.lastFrameUrl,
+              shotDescription: clip.prompt,
+              shotId: `clip_${i}`,
+              projectType: request.genre || 'cinematic',
+              referenceImageUrl,
+              referenceAnalysis: state.referenceAnalysis,
+            });
+            
+            if (debugResult.success && debugResult.result) {
+              const verdict = debugResult.result;
+              console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
+              
+              if (verdict.passed || verdict.score >= 70) {
+                // Quality check passed
+                console.log(`[Hollywood] Clip ${i + 1} passed quality check`);
+                break;
+              } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
+                // Quality check failed, retry with corrective prompt
+                console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
+                console.log(`[Hollywood] Retrying with corrective prompt...`);
+                
+                const retryResult = await callEdgeFunction('generate-single-clip', {
+                  userId: request.userId,
+                  projectId: state.projectId,
+                  clipIndex: i,
+                  prompt: verdict.correctivePrompt,
+                  totalClips: clips.length,
+                  startImageUrl: previousLastFrameUrl,
+                  previousMotionVectors,
+                  identityBible: state.identityBible,
+                  colorGrading: request.colorGrading || 'cinematic',
+                  qualityTier: 'professional',
+                  referenceImageUrl,
+                  isRetry: true,
+                });
+                
+                if (retryResult.success && retryResult.clipResult) {
+                  result = retryResult.clipResult;
+                  retryCount++;
+                  console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
+                  continue; // Re-run visual debugger on new clip
+                }
+              }
+            }
+            break; // Exit loop if no retry needed
+          } catch (debugError) {
+            console.warn(`[Hollywood] Visual Debugger failed:`, debugError);
+            break; // Continue without visual debugging
+          }
+        }
+        
+        // Store debug results
+        if (debugResult?.result) {
+          (result as any).visualDebugResult = {
+            score: debugResult.result.score,
+            passed: debugResult.result.passed,
+            retriesUsed: retryCount,
+          };
+        }
+      }
+      
       state.production.clipResults.push({
         index: result.index,
         videoUrl: result.videoUrl,
@@ -1010,6 +1164,8 @@ async function runProduction(
               backgroundMusicUrl: state.assets?.musicUrl,
               // Pass music sync plan for intelligent audio mixing
               musicSyncPlan: (state as any).musicSyncPlan,
+              // Pass color grading filter for FFmpeg processing
+              colorGradingFilter: (state as any).colorGrading?.masterFilter,
             }),
           });
           
@@ -1044,22 +1200,75 @@ async function runPostProduction(
 ): Promise<PipelineState> {
   console.log(`[Hollywood] Stage 5: POST-PRODUCTION (finalization)`);
   state.stage = 'postproduction';
-  state.progress = 95;
-  await updateProjectProgress(supabase, state.projectId, 'postproduction', 95);
-  
-  if (!state.finalVideoUrl) {
-    console.warn(`[Hollywood] No final video URL from production stage`);
-  } else {
-    console.log(`[Hollywood] Final video ready (with audio): ${state.finalVideoUrl}`);
-  }
+  state.progress = 92;
+  await updateProjectProgress(supabase, state.projectId, 'postproduction', 92);
   
   const completedClips = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
   const failedClips = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
   
+  // Post-production summary logging
   console.log(`[Hollywood] Production summary: ${completedClips} completed, ${failedClips} failed`);
-  console.log(`[Hollywood] Assets used: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
+  console.log(`[Hollywood] Assets: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
+  
+  // Professional tier: Log enhanced features used
+  if (request.qualityTier === 'professional') {
+    const proFeatures = {
+      multiCharacterBible: !!(state as any).multiCharacterBible,
+      depthConsistency: !!(state as any).depthConsistency,
+      lipSync: !!(state as any).lipSyncData,
+      musicSync: !!(state as any).musicSyncPlan,
+      colorGrading: !!(state as any).colorGrading,
+      sfx: !!(state as any).sfxPlan,
+      visualDebugger: state.production?.clipResults?.some((c: any) => c.visualDebugResult),
+    };
+    
+    const enabledFeatures = Object.entries(proFeatures)
+      .filter(([_, enabled]) => enabled)
+      .map(([name]) => name);
+    
+    console.log(`[Hollywood] Pro features used: ${enabledFeatures.join(', ') || 'none'}`);
+    
+    // Log quality metrics
+    if ((state as any).depthConsistency?.overallScore) {
+      console.log(`[Hollywood] Depth consistency score: ${(state as any).depthConsistency.overallScore}/100`);
+    }
+    if ((state as any).colorGrading?.consistencyScore) {
+      console.log(`[Hollywood] Color consistency score: ${(state as any).colorGrading.consistencyScore}%`);
+    }
+    if ((state as any).musicSyncPlan?.emotionalBeats?.length) {
+      console.log(`[Hollywood] Music sync: ${(state as any).musicSyncPlan.emotionalBeats.length} emotional beats detected`);
+    }
+    
+    // Calculate visual debugger stats
+    const debuggedClips = state.production?.clipResults?.filter((c: any) => c.visualDebugResult) || [];
+    const retriesUsed = debuggedClips.reduce((sum: number, c: any) => sum + (c.visualDebugResult?.retriesUsed || 0), 0);
+    if (debuggedClips.length > 0) {
+      const avgScore = debuggedClips.reduce((sum: number, c: any) => sum + (c.visualDebugResult?.score || 0), 0) / debuggedClips.length;
+      console.log(`[Hollywood] Visual Debugger: ${debuggedClips.length} clips checked, avg score ${Math.round(avgScore)}, ${retriesUsed} retries used`);
+    }
+  }
+  
+  if (!state.finalVideoUrl) {
+    console.warn(`[Hollywood] No final video URL from production stage`);
+  } else {
+    console.log(`[Hollywood] Final video ready: ${state.finalVideoUrl}`);
+  }
   
   state.progress = 100;
+  await updateProjectProgress(supabase, state.projectId, 'postproduction', 100, {
+    finalVideoUrl: state.finalVideoUrl,
+    clipsCompleted: completedClips,
+    clipsFailed: failedClips,
+    proFeaturesUsed: request.qualityTier === 'professional' ? {
+      multiCharacterBible: !!(state as any).multiCharacterBible,
+      depthConsistency: (state as any).depthConsistency?.overallScore,
+      lipSync: Object.keys((state as any).lipSyncData || {}).length,
+      musicSync: (state as any).musicSyncPlan?.emotionalBeats?.length || 0,
+      colorGrading: (state as any).colorGrading?.masterPreset,
+      sfxCues: (state as any).sfxPlan?.sfxCues?.length || 0,
+    } : undefined,
+  });
+  
   return state;
 }
 

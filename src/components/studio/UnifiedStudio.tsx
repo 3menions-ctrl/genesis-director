@@ -116,7 +116,7 @@ const GENRE_OPTIONS = [
 const CLIP_DURATION = 4;
 
 export function UnifiedStudio() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const abortControllerRef = useRef<AbortController | null>(null);
   
@@ -164,7 +164,6 @@ export function UnifiedStudio() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [showCostDialog, setShowCostDialog] = useState(false);
   const [referenceExpanded, setReferenceExpanded] = useState(false);
-  const [userCredits, setUserCredits] = useState(0);
   const [pipelineLogs, setPipelineLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'warning' | 'error' }>>([]);
   const [awaitingApprovalProjectId, setAwaitingApprovalProjectId] = useState<string | null>(null);
   const [awaitingApprovalShotCount, setAwaitingApprovalShotCount] = useState<number>(0);
@@ -189,20 +188,9 @@ export function UnifiedStudio() {
   // Use proper per-shot credit calculation (25 standard, 50 professional)
   const creditsPerShot = qualityTier === 'professional' ? 50 : 25;
   const estimatedCredits = clipCount * creditsPerShot;
-
-  // Fetch user credits
-  useEffect(() => {
-    const fetchCredits = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('credits_balance')
-        .eq('id', user.id)
-        .single();
-      if (data) setUserCredits(data.credits_balance);
-    };
-    fetchCredits();
-  }, [user]);
+  
+  // Get user credits from auth context profile
+  const userCredits = profile?.credits_balance ?? 0;
 
   // Check for projects awaiting approval OR in-progress on mount
   useEffect(() => {

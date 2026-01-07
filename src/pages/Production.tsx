@@ -133,7 +133,19 @@ export default function Production() {
 
         // Parse pending_video_tasks for current state
         const tasks = project.pending_video_tasks as any;
-        if (tasks) {
+        
+        // Check for orphaned projects (status is active but no pending tasks)
+        const isOrphanedProject = ['producing', 'generating', 'rendering'].includes(project.status) 
+          && (!tasks || Object.keys(tasks).length === 0 || Array.isArray(tasks));
+        
+        if (isOrphanedProject) {
+          setError('This project was interrupted before the pipeline could save its state. You can restart it from scratch.');
+          addLog('Orphaned project detected - no pipeline state found', 'warning');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (tasks && typeof tasks === 'object' && !Array.isArray(tasks)) {
           if (tasks.progress) setProgress(tasks.progress);
           if (tasks.auditScore) setAuditScore(tasks.auditScore);
           
@@ -636,6 +648,20 @@ export default function Production() {
                     )}
                     <Button 
                       variant="outline" 
+                      size="sm" 
+                      onClick={async () => {
+                        // Reset project to draft so it can be restarted
+                        await supabase
+                          .from('movie_projects')
+                          .update({ status: 'draft', pending_video_tasks: null })
+                          .eq('id', projectId);
+                        navigate('/create');
+                      }}
+                    >
+                      Restart This Project
+                    </Button>
+                    <Button 
+                      variant="ghost" 
                       size="sm" 
                       onClick={() => navigate('/create')}
                     >

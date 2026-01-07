@@ -20,6 +20,8 @@ import Contact from "./pages/Contact";
 import LongVideo from "./pages/LongVideo";
 import ScriptReview from "./pages/ScriptReview";
 import Production from "./pages/Production";
+import Studio from "./pages/Studio";
+import Clips from "./pages/Clips";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +78,20 @@ const App = () => (
               <Route path="/production" element={
                 <ProtectedRoute>
                   <Production />
+                </ProtectedRoute>
+              } />
+              
+              {/* Studio - In Progress & Failed */}
+              <Route path="/studio" element={
+                <ProtectedRoute>
+                  <Studio />
+                </ProtectedRoute>
+              } />
+              
+              {/* Clips Gallery */}
+              <Route path="/clips" element={
+                <ProtectedRoute>
+                  <Clips />
                 </ProtectedRoute>
               } />
               

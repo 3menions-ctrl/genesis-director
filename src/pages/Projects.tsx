@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
-  Clock, CheckCircle2, Circle, ImageIcon, Sparkles,
+  Clock, CheckCircle2, ImageIcon, Sparkles,
   User, Coins, ChevronDown, LogOut, Settings, HelpCircle,
   Pencil
 } from 'lucide-react';
@@ -218,10 +218,10 @@ export default function Projects() {
     return [];
   };
 
-  const completedCount = projects.filter(p => p.status === 'completed').length;
-  const inProgressCount = projects.filter(p => p.status === 'generating' || p.status === 'rendering').length;
-  const draftCount = projects.filter(p => p.status === 'idle').length;
-  const projectsWithoutThumbnails = projects.filter(p => !p.thumbnail_url && (p.video_clips?.length || p.video_url)).length;
+  // Only show completed projects on this page
+  const completedProjects = projects.filter(p => p.status === 'completed');
+  const completedCount = completedProjects.length;
+  const projectsWithoutThumbnails = completedProjects.filter(p => !p.thumbnail_url && (p.video_clips?.length || p.video_url)).length;
 
   const handleGenerateMissingThumbnails = async () => {
     if (projectsWithoutThumbnails === 0) {
@@ -303,7 +303,9 @@ export default function Projects() {
             <div className="hidden sm:flex items-center gap-1">
               {[
                 { label: 'Projects', path: '/projects', active: true },
-                { label: 'Create', path: '/pipeline/scripting' },
+                { label: 'Studio', path: '/studio' },
+                { label: 'Clips', path: '/clips' },
+                { label: 'Create', path: '/create' },
               ].map((item) => (
                 <button
                   key={item.path}
@@ -387,31 +389,17 @@ export default function Projects() {
       {/* Stats Bar */}
       <div className="sticky top-14 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
-          {[
-            { value: projects.length, label: 'Total', icon: Film },
-            { value: completedCount, label: 'Done', icon: CheckCircle2, color: 'text-emerald-400' },
-            { value: inProgressCount, label: 'Active', icon: Loader2, color: 'text-amber-400', animate: inProgressCount > 0 },
-            { value: draftCount, label: 'Drafts', icon: Circle, color: 'text-white/40' },
-          ].map((stat, i) => (
-            <div 
-              key={i} 
-              className="flex items-center gap-2.5 shrink-0 px-4 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-all"
-            >
-              <stat.icon className={cn(
-                "w-4 h-4",
-                stat.color || "text-white/50",
-                stat.animate && "animate-spin"
-              )} />
-              <span className="text-sm font-medium text-white">{stat.value}</span>
-              <span className="text-xs text-white/30">{stat.label}</span>
-            </div>
-          ))}
+          <div className="flex items-center gap-2.5 shrink-0 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-medium text-white">{completedCount}</span>
+            <span className="text-xs text-white/30">Completed</span>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
-        {projects.length === 0 ? (
+        {completedProjects.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-24 sm:py-40 px-4 animate-fade-in-up">
             <div className="relative mb-8">
@@ -420,9 +408,9 @@ export default function Projects() {
                 <Sparkles className="w-10 h-10 text-white/20" strokeWidth={1.5} />
               </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-center">No projects yet</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 text-center">No completed projects</h2>
             <p className="text-white/40 text-base sm:text-lg mb-10 text-center max-w-md">
-              Start creating stunning AI-generated videos with our production pipeline.
+              Completed videos will appear here. Check Studio for in-progress projects.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <Button 
@@ -445,7 +433,7 @@ export default function Projects() {
         ) : (
           /* Projects Masonry Gallery */
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
-            {projects.map((project, index) => {
+            {completedProjects.map((project, index) => {
               const hasVideo = Boolean(project.video_clips?.length || project.video_url);
               const videoClips = getVideoClips(project);
               const isActive = activeProjectId === project.id;

@@ -2,11 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   Film, ArrowRight, 
   Video, Mic, Image,
   Check, 
-  ChevronRight, Zap, 
+  ChevronRight, Loader2, Zap, 
   Brain, Layers, Eye, Stars
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,6 +71,7 @@ export default function Landing() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeCapability, setActiveCapability] = useState(0);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
 
   useEffect(() => {
@@ -83,6 +86,26 @@ export default function Landing() {
     }, 2500);
     return () => clearInterval(interval);
   }, []);
+
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: 'demo@aifilmstudio.com',
+        password: 'demo123456'
+      });
+      if (error) {
+        toast.error('Demo login failed. Please try again.');
+        console.error('Demo login error:', error);
+      } else {
+        toast.success('Welcome to the demo!');
+      }
+    } catch (err) {
+      toast.error('Something went wrong');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background overflow-hidden relative">
@@ -117,6 +140,18 @@ export default function Landing() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDemoLogin}
+                disabled={demoLoading}
+                className="h-10 px-5 text-sm font-medium rounded-xl"
+              >
+                {demoLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Demo Login'
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}

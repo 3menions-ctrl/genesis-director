@@ -27,11 +27,11 @@ import {
 import { cn } from '@/lib/utils';
 
 interface CostBreakdown {
-  baseClips: number;
-  voice: number;
-  music: number;
-  proQA: number;
+  preProduction: number;
+  production: number;
+  qualityInsurance: number;
   total: number;
+  creditsPerShot: number;
 }
 
 interface CostConfirmationDialogProps {
@@ -48,27 +48,23 @@ interface CostConfirmationDialogProps {
   defaultProjectName?: string;
 }
 
+// Use proper tier-based credit calculation (matches backend)
 function calculateCosts(
-  mode: 'ai' | 'manual',
   clipCount: number,
-  includeVoice: boolean,
-  includeMusic: boolean,
   qualityTier: 'standard' | 'professional'
 ): CostBreakdown {
-  // Base cost per clip
-  const basePerClip = mode === 'ai' ? 40 : 35;
-  const baseClips = clipCount * basePerClip;
+  // Standard: 25 credits per shot (5 pre-prod + 20 production)
+  // Professional: 50 credits per shot (5 pre-prod + 20 production + 25 quality insurance)
+  const isProTier = qualityTier === 'professional';
   
-  // Audio costs
-  const voice = includeVoice ? 30 : 0;
-  const music = includeMusic ? 20 : 0;
+  const preProduction = clipCount * 5;
+  const production = clipCount * 20;
+  const qualityInsurance = isProTier ? clipCount * 25 : 0;
   
-  // Pro QA cost
-  const proQA = qualityTier === 'professional' ? 50 : 0;
+  const creditsPerShot = isProTier ? 50 : 25;
+  const total = clipCount * creditsPerShot;
   
-  const total = baseClips + voice + music + proQA;
-  
-  return { baseClips, voice, music, proQA, total };
+  return { preProduction, production, qualityInsurance, total, creditsPerShot };
 }
 
 export function CostConfirmationDialog({
@@ -85,7 +81,7 @@ export function CostConfirmationDialog({
   defaultProjectName = '',
 }: CostConfirmationDialogProps) {
   const [projectName, setProjectName] = useState(defaultProjectName);
-  const costs = calculateCosts(mode, clipCount, includeVoice, includeMusic, qualityTier);
+  const costs = calculateCosts(clipCount, qualityTier);
   const hasEnoughCredits = userCredits >= costs.total;
   const hasValidName = projectName.trim().length > 0;
 
@@ -164,47 +160,57 @@ export function CostConfirmationDialog({
         {/* Cost Breakdown */}
         <div className="space-y-3">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Cost Breakdown
+            Cost Breakdown ({costs.creditsPerShot} credits/shot)
           </p>
           
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Zap className="w-4 h-4" />
-                Video Generation ({clipCount} clips)
+                Pre-Production ({clipCount} shots × 5)
               </span>
-              <span className="font-medium">{costs.baseClips}</span>
+              <span className="font-medium">{costs.preProduction}</span>
             </div>
             
-            {costs.voice > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Mic className="w-4 h-4" />
-                  AI Voice Narration
-                </span>
-                <span className="font-medium">{costs.voice}</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Film className="w-4 h-4" />
+                Production ({clipCount} shots × 20)
+              </span>
+              <span className="font-medium">{costs.production}</span>
+            </div>
             
-            {costs.music > 0 && (
+            {costs.qualityInsurance > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
-                  <Music className="w-4 h-4" />
-                  Background Music
+                  <Shield className="w-4 h-4 text-success" />
+                  Quality Insurance ({clipCount} shots × 25)
                 </span>
-                <span className="font-medium">{costs.music}</span>
+                <span className="font-medium text-success">{costs.qualityInsurance}</span>
               </div>
             )}
-            
-            {costs.proQA > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4" />
-                  Pro Quality Assurance
-                </span>
-                <span className="font-medium">{costs.proQA}</span>
-              </div>
-            )}
+
+            {/* Included features */}
+            <div className="pt-2 flex flex-wrap gap-2">
+              {includeVoice && (
+                <Badge variant="secondary" className="text-xs">
+                  <Mic className="w-3 h-3 mr-1" />
+                  Voice
+                </Badge>
+              )}
+              {includeMusic && (
+                <Badge variant="secondary" className="text-xs">
+                  <Music className="w-3 h-3 mr-1" />
+                  Music
+                </Badge>
+              )}
+              {qualityTier === 'professional' && (
+                <Badge variant="secondary" className="text-xs bg-success/10 text-success">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Pro Features
+                </Badge>
+              )}
+            </div>
           </div>
           
           <Separator />

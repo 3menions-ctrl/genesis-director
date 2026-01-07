@@ -33,7 +33,8 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  FolderOpen
+  FolderOpen,
+  Volume2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -135,6 +136,7 @@ export function UnifiedStudio() {
   const [colorGrading, setColorGrading] = useState('cinematic');
   const [includeVoice, setIncludeVoice] = useState(true);
   const [includeMusic, setIncludeMusic] = useState(true);
+  const [includeSfx, setIncludeSfx] = useState(false); // SFX only for pro tier
   const [referenceImageAnalysis, setReferenceImageAnalysis] = useState<ReferenceImageAnalysis | undefined>();
   const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
   
@@ -174,9 +176,9 @@ export function UnifiedStudio() {
   }, []);
 
   const totalDuration = clipCount * CLIP_DURATION;
-  const estimatedCredits = mode === 'ai' 
-    ? (qualityTier === 'professional' ? 400 : 350)
-    : (qualityTier === 'professional' ? 350 : 300);
+  // Use proper per-shot credit calculation (25 standard, 50 professional)
+  const creditsPerShot = qualityTier === 'professional' ? 50 : 25;
+  const estimatedCredits = clipCount * creditsPerShot;
 
   // Fetch user credits
   useEffect(() => {
@@ -608,6 +610,7 @@ export function UnifiedStudio() {
         colorGrading,
         includeVoice,
         includeMusic,
+        includeSfx: qualityTier === 'professional' ? includeSfx : false,
         musicMood: mood,
         qualityTier,
         clipCount,
@@ -879,6 +882,26 @@ export function UnifiedStudio() {
                     Music
                   </Label>
                 </div>
+
+                {/* SFX Toggle - Pro feature */}
+                {qualityTier === 'professional' && (
+                  <div className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
+                    includeSfx ? "bg-cyan-500/10 border-cyan-500/30" : "bg-muted/30 border-border/50"
+                  )}>
+                    <Switch
+                      id="sfx"
+                      checked={includeSfx}
+                      onCheckedChange={setIncludeSfx}
+                      disabled={isRunning}
+                      className="scale-90"
+                    />
+                    <Label htmlFor="sfx" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      SFX
+                    </Label>
+                  </div>
+                )}
                 
                 <div className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ml-auto",
@@ -887,7 +910,11 @@ export function UnifiedStudio() {
                   <Switch
                     id="proTier"
                     checked={qualityTier === 'professional'}
-                    onCheckedChange={(checked) => setQualityTier(checked ? 'professional' : 'standard')}
+                    onCheckedChange={(checked) => {
+                      setQualityTier(checked ? 'professional' : 'standard');
+                      // Auto-enable SFX when switching to pro
+                      if (checked) setIncludeSfx(true);
+                    }}
                     disabled={isRunning}
                     className="scale-90"
                   />

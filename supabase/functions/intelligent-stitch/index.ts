@@ -33,6 +33,19 @@ interface StitchRequest {
   maxBridgeClips: number;
   targetFormat: '1080p' | '4k';
   qualityTier: 'standard' | 'professional';
+  // Pro features from hollywood-pipeline
+  musicSyncPlan?: {
+    timingMarkers?: any[];
+    mixingInstructions?: any;
+    musicCues?: any[];
+    emotionalBeats?: any[];
+  };
+  colorGradingFilter?: string;
+  sfxPlan?: {
+    ambientBeds?: any[];
+    sfxCues?: any[];
+    ffmpegFilters?: string[];
+  };
 }
 
 interface TransitionAnalysis {
@@ -108,7 +121,10 @@ serve(async (req) => {
       strictnessLevel = 'normal',
       maxBridgeClips = 3,
       targetFormat = '1080p',
-      qualityTier = 'standard'
+      qualityTier = 'standard',
+      musicSyncPlan,
+      colorGradingFilter,
+      sfxPlan
     } = request;
 
     if (!projectId || !clips || clips.length === 0) {
@@ -335,21 +351,29 @@ serve(async (req) => {
     
     const stitchPayload = {
       projectId,
+      projectTitle: `Video - ${projectId}`,
       clips: finalSequence.map((item, index) => ({
-        url: item.url,
-        transition: item.transition && item.transition !== 'cut' ? {
-          type: item.transition === 'ai-bridge' ? 'dissolve' : item.transition,
-          durationMs: 500,
-        } : undefined,
+        shotId: `clip_${index}`,
+        videoUrl: item.url,
+        durationSeconds: 4,
+        transitionOut: item.transition && item.transition !== 'cut' 
+          ? item.transition === 'ai-bridge' ? 'dissolve' : item.transition 
+          : 'continuous',
       })),
-      voiceAudioUrl,
-      musicAudioUrl,
+      voiceTrackUrl: voiceAudioUrl,
+      backgroundMusicUrl: musicAudioUrl,
+      audioMixMode: (voiceAudioUrl || musicAudioUrl) ? 'full' : 'mute',
+      // Pass pro features through to stitch-video
+      musicSyncPlan: musicSyncPlan,
+      colorGradingFilter: colorGradingFilter,
       output: {
         format: 'mp4',
         resolution: targetFormat === '4k' ? '3840x2160' : '1920x1080',
         fps: 24,
       },
     };
+    
+    console.log(`[Intelligent Stitch] Pro features: musicSync=${!!musicSyncPlan}, colorGrading=${!!colorGradingFilter}, sfx=${!!sfxPlan}`);
     
     let finalVideoUrl: string | undefined;
     

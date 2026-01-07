@@ -165,6 +165,21 @@ const COLOR_PRESETS = {
   }
 };
 
+// Crossfade transition types
+const TRANSITION_TYPES = {
+  fade: 'fade',
+  fadeblack: 'fadeblack',
+  fadewhite: 'fadewhite',
+  dissolve: 'dissolve',
+  wipeleft: 'wipeleft',
+  wiperight: 'wiperight',
+  slideup: 'slideup',
+  slidedown: 'slidedown',
+  circlecrop: 'circlecrop',
+  smoothleft: 'smoothleft',
+  smoothright: 'smoothright',
+};
+
 // Main stitching logic
 async function stitchVideos(request) {
   const {
@@ -173,18 +188,21 @@ async function stitchVideos(request) {
     clips,
     audioMixMode = 'full',
     backgroundMusicUrl,
-    voiceTrackUrl,           // Voice narration track
+    voiceTrackUrl,
     outputFormat = 'mp4',
     notifyOnError = true,
     colorGrading = 'cinematic',
-    customColorProfile = null
+    customColorProfile = null,
+    transitionType = 'fade',      // Default crossfade transition
+    transitionDuration = 0.5      // Seconds for each transition
   } = request;
   
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, jobId);
   
   console.log(`[Stitch] Starting job ${jobId} for project ${projectId}`);
-  console.log(`[Stitch] Processing ${clips.length} clips with color grading: ${colorGrading}`);
+  console.log(`[Stitch] Processing ${clips.length} clips with ${transitionType} transitions (${transitionDuration}s)`);
+  console.log(`[Stitch] Color grading: ${colorGrading}`);
   
   try {
     // Create work directory
@@ -209,12 +227,22 @@ async function stitchVideos(request) {
           throw new Error(validation.error || 'Invalid video');
         }
         
+        // Get actual duration from probe
+        let duration = clip.durationSeconds || 4;
+        if (validation.data?.streams) {
+          const videoStream = validation.data.streams.find(s => s.codec_type === 'video');
+          if (videoStream?.duration) {
+            duration = parseFloat(videoStream.duration);
+          }
+        }
+        
         validClips.push({
           ...clip,
           localPath: clipPath,
-          index: i
+          index: i,
+          actualDuration: duration
         });
-        console.log(`[Stitch] Clip ${i + 1} validated successfully`);
+        console.log(`[Stitch] Clip ${i + 1} validated (duration: ${duration.toFixed(2)}s)`);
         
       } catch (err) {
         console.error(`[Stitch] Clip ${i + 1} (${clip.shotId}) failed: ${err.message}`);
@@ -245,40 +273,93 @@ async function stitchVideos(request) {
       throw new Error('No valid clips to stitch');
     }
     
-    // Step 2: Create concat file for lossless merging
-    console.log('[Stitch] Step 2: Creating concat manifest...');
+    // Sort clips by index
+    validClips.sort((a, b) => a.index - b.index);
     
-    const concatFilePath = path.join(workDir, 'concat.txt');
-    const concatContent = validClips
-      .sort((a, b) => a.index - b.index)
-      .map(c => `file '${c.localPath}'`)
-      .join('\n');
+    // Step 2: Normalize all clips to same resolution/fps for crossfade
+    console.log('[Stitch] Step 2: Normalizing clips for smooth transitions...');
     
-    await fs.writeFile(concatFilePath, concatContent);
+    const normalizedClips = [];
+    for (let i = 0; i < validClips.length; i++) {
+      const clip = validClips[i];
+      const normalizedPath = path.join(workDir, `normalized_${i.toString().padStart(3, '0')}.mp4`);
+      
+      await runFFmpeg([
+        '-i', clip.localPath,
+        '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'aac',
+        '-ar', '48000',
+        '-ac', '2',
+        '-y',
+        normalizedPath
+      ], `Normalizing clip ${i + 1}/${validClips.length}`);
+      
+      normalizedClips.push({
+        ...clip,
+        normalizedPath,
+      });
+    }
     
-    // Step 3: Concatenation with color grading
-    console.log('[Stitch] Step 3: Concatenating with color grading...');
+    // Step 3: Apply crossfade transitions between clips
+    console.log(`[Stitch] Step 3: Applying ${transitionType} crossfades...`);
+    
+    const transition = TRANSITION_TYPES[transitionType] || 'fade';
+    const xfadeDuration = Math.min(transitionDuration, 1.0); // Cap at 1 second
+    
+    let currentPath = normalizedClips[0].normalizedPath;
+    let accumulatedOffset = normalizedClips[0].actualDuration - xfadeDuration;
+    
+    // Chain xfade filters for each pair of clips
+    for (let i = 1; i < normalizedClips.length; i++) {
+      const nextClip = normalizedClips[i];
+      const outputPath = path.join(workDir, `xfade_${i.toString().padStart(3, '0')}.mp4`);
+      
+      // Calculate offset (where in the timeline the transition starts)
+      const offset = accumulatedOffset;
+      
+      console.log(`[Stitch] Crossfading clip ${i} -> ${i + 1} at offset ${offset.toFixed(2)}s`);
+      
+      await runFFmpeg([
+        '-i', currentPath,
+        '-i', nextClip.normalizedPath,
+        '-filter_complex',
+        `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${offset}[outv];[0:a][1:a]acrossfade=d=${xfadeDuration}[outa]`,
+        '-map', '[outv]',
+        '-map', '[outa]',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'aac',
+        '-y',
+        outputPath
+      ], `Crossfade transition ${i}/${normalizedClips.length - 1}`);
+      
+      currentPath = outputPath;
+      // Add duration of next clip minus overlap
+      accumulatedOffset += nextClip.actualDuration - xfadeDuration;
+    }
+    
+    // Step 4: Apply color grading to final merged video
+    console.log(`[Stitch] Step 4: Applying ${colorGrading} color grading...`);
     
     const concatenatedPath = path.join(workDir, 'concatenated.mp4');
-    
-    // Get color profile
     const colorProfile = customColorProfile || COLOR_PRESETS[colorGrading] || COLOR_PRESETS.cinematic;
-    
-    // Build color filter chain
     const colorFilter = `eq=${colorProfile.eq},colorbalance=${colorProfile.colorbalance}`;
     
     await runFFmpeg([
-      '-f', 'concat',
-      '-safe', '0',
-      '-i', concatFilePath,
-      '-vf', colorFilter,  // Apply color grading
-      '-c:v', 'libx264',   // Re-encode with color grading
+      '-i', currentPath,
+      '-vf', colorFilter,
+      '-c:v', 'libx264',
       '-preset', 'fast',
-      '-crf', '18',        // High quality
-      '-c:a', 'copy',      // Keep audio lossless
+      '-crf', '18',
+      '-c:a', 'copy',
       '-movflags', '+faststart',
+      '-y',
       concatenatedPath
-    ], `Concatenation with ${colorGrading} color grading`);
+    ], `Color grading with ${colorGrading}`);
     
     // Step 4: Audio injection (voice + music if provided)
     let finalPath = concatenatedPath;

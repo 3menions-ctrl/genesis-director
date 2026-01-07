@@ -17,6 +17,7 @@ const corsHeaders = {
 interface PipelineRequest {
   userId: string;
   projectId?: string;
+  projectName?: string;
   concept?: string;
   manualPrompts?: string[];
   stages?: ('preproduction' | 'qualitygate' | 'assets' | 'production' | 'postproduction')[];
@@ -896,10 +897,11 @@ serve(async (req) => {
     let projectId = request.projectId;
     
     if (!projectId) {
+      const projectTitle = request.projectName?.trim() || `Project ${new Date().toLocaleString()}`;
       const { data: project, error: projectError } = await supabase
         .from('movie_projects')
         .insert({
-          title: `Hollywood Pipeline - ${new Date().toLocaleString()}`,
+          title: projectTitle,
           user_id: request.userId,
           status: 'generating',
           genre: request.genre || 'cinematic',

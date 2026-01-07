@@ -34,6 +34,8 @@ interface GenerateSingleClipRequest {
   colorGrading?: string;
   qualityTier?: 'standard' | 'professional';
   referenceImageUrl?: string;
+  // NEW: Aspect ratio from reference image orientation
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 }
 
 interface ClipResult {
@@ -124,7 +126,8 @@ async function generateClip(
   accessToken: string,
   projectId: string,
   prompt: string,
-  startImageUrl?: string
+  startImageUrl?: string,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9'
 ): Promise<{ operationName: string }> {
   const location = "us-central1";
   const model = "veo-3.1-generate-001";
@@ -165,7 +168,7 @@ async function generateClip(
   const requestBody = {
     instances: [instance],
     parameters: {
-      aspectRatio: "16:9",
+      aspectRatio: aspectRatio, // Dynamic based on reference image orientation
       durationSeconds: DEFAULT_CLIP_DURATION,
       sampleCount: 1,
       negativePrompt: "blurry, low quality, distorted, artifacts, watermark, text overlay, glitch, jittery motion",
@@ -173,6 +176,8 @@ async function generateClip(
       personGeneration: "allow_adult",
     }
   };
+  
+  console.log(`[SingleClip] Using aspect ratio: ${aspectRatio}`);
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -441,12 +446,16 @@ serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccount);
     console.log("[SingleClip] OAuth access token obtained");
 
-    // Generate clip with Veo
+    // Generate clip with Veo - use aspect ratio from request or default to 16:9
+    const aspectRatio = request.aspectRatio || '16:9';
+    console.log(`[SingleClip] Using aspect ratio from request: ${aspectRatio}`);
+    
     const { operationName } = await generateClip(
       accessToken,
       gcpProjectId,
       velocityAwarePrompt,
-      request.startImageUrl
+      request.startImageUrl,
+      aspectRatio
     );
     
     console.log(`[SingleClip] Operation started: ${operationName}`);

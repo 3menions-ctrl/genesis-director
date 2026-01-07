@@ -6,9 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ImageOrientation {
+  width: number;
+  height: number;
+  aspectRatio: number;
+  orientation: 'landscape' | 'portrait' | 'square';
+  veoAspectRatio: '16:9' | '9:16' | '1:1';
+}
+
 interface ReferenceImageAnalysis {
   imageUrl: string;
   analysisComplete: boolean;
+  imageOrientation: ImageOrientation;
   characterIdentity: {
     description: string;
     facialFeatures: string;
@@ -34,6 +43,101 @@ interface ReferenceImageAnalysis {
     mood: string;
   };
   consistencyPrompt: string;
+}
+
+/**
+ * Detect image orientation from base64 data by decoding image headers
+ * This is a lightweight approach that doesn't require full image decode
+ */
+function detectImageOrientation(base64Data: string): ImageOrientation {
+  try {
+    // Decode base64 to get image bytes
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    let width = 0;
+    let height = 0;
+    
+    // Check for JPEG (FFD8FF)
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      // Parse JPEG markers to find SOF (Start of Frame)
+      let offset = 2;
+      while (offset < bytes.length - 8) {
+        if (bytes[offset] !== 0xFF) break;
+        const marker = bytes[offset + 1];
+        const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+        
+        // SOF0, SOF1, SOF2 markers contain dimensions
+        if (marker >= 0xC0 && marker <= 0xC3) {
+          height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+          width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+          break;
+        }
+        
+        offset += 2 + length;
+      }
+    }
+    // Check for PNG (89504E47)
+    else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      // PNG IHDR chunk starts at byte 16, dimensions at bytes 16-23
+      width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+      height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    }
+    // Check for WebP (RIFF....WEBP)
+    else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      // WebP VP8 chunk - dimensions are at specific offsets depending on format
+      // For simplicity, assume 16:9 for WebP - full parsing would be complex
+      console.log('[detectImageOrientation] WebP detected, using default dimensions');
+      width = 1920;
+      height = 1080;
+    }
+    
+    if (width === 0 || height === 0) {
+      console.log('[detectImageOrientation] Could not parse dimensions, defaulting to 16:9');
+      width = 1920;
+      height = 1080;
+    }
+    
+    const aspectRatio = width / height;
+    
+    // Determine orientation
+    let orientation: 'landscape' | 'portrait' | 'square';
+    let veoAspectRatio: '16:9' | '9:16' | '1:1';
+    
+    if (aspectRatio > 1.2) {
+      orientation = 'landscape';
+      veoAspectRatio = '16:9';
+    } else if (aspectRatio < 0.8) {
+      orientation = 'portrait';
+      veoAspectRatio = '9:16';
+    } else {
+      orientation = 'square';
+      veoAspectRatio = '1:1';
+    }
+    
+    console.log(`[detectImageOrientation] Detected: ${width}x${height}, ratio=${aspectRatio.toFixed(2)}, orientation=${orientation}, veoAspectRatio=${veoAspectRatio}`);
+    
+    return {
+      width,
+      height,
+      aspectRatio,
+      orientation,
+      veoAspectRatio,
+    };
+  } catch (err) {
+    console.error('[detectImageOrientation] Error parsing image:', err);
+    // Default to landscape 16:9 on error
+    return {
+      width: 1920,
+      height: 1080,
+      aspectRatio: 1.78,
+      orientation: 'landscape',
+      veoAspectRatio: '16:9',
+    };
+  }
 }
 
 /**
@@ -251,9 +355,17 @@ Return ONLY valid JSON in this exact format:
       storedImageUrl = await uploadToStorage(imageBase64);
     }
 
+    // CRITICAL: Detect image orientation for correct Veo API aspect ratio
+    const imageOrientation = imageBase64 
+      ? detectImageOrientation(imageBase64)
+      : { width: 1920, height: 1080, aspectRatio: 1.78, orientation: 'landscape' as const, veoAspectRatio: '16:9' as const };
+    
+    console.log('[analyze-reference-image] Image orientation detected:', imageOrientation);
+
     const analysis: ReferenceImageAnalysis = {
       imageUrl: storedImageUrl,
       analysisComplete: true,
+      imageOrientation,
       characterIdentity: parsedAnalysis.characterIdentity || {
         description: '',
         facialFeatures: '',
@@ -285,6 +397,8 @@ Return ONLY valid JSON in this exact format:
       hasCharacter: !!analysis.characterIdentity.description,
       environment: analysis.environment.setting?.substring(0, 50),
       lightingStyle: analysis.lighting.style,
+      orientation: analysis.imageOrientation.orientation,
+      veoAspectRatio: analysis.imageOrientation.veoAspectRatio,
     });
 
     return new Response(

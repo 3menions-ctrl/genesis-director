@@ -19,6 +19,7 @@ import {
   AlertCircle,
   ExternalLink
 } from 'lucide-react';
+import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -748,21 +749,28 @@ export default function Production() {
                   <h2 className="text-2xl font-bold text-green-600">Video Complete!</h2>
                 </div>
                 
+                {/* Detect if URL is a manifest (JSON) or actual video */}
                 <div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden border border-green-500/30">
-                  <video
-                    src={finalVideoUrl}
-                    controls
-                    className="w-full h-full object-contain bg-black"
-                  />
+                  {finalVideoUrl.endsWith('.json') ? (
+                    <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
+                  ) : (
+                    <video
+                      src={finalVideoUrl}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <Button asChild className="bg-green-600 hover:bg-green-700">
-                    <a href={finalVideoUrl} download target="_blank" rel="noopener noreferrer">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Video
-                    </a>
-                  </Button>
+                  {!finalVideoUrl.endsWith('.json') && (
+                    <Button asChild className="bg-green-600 hover:bg-green-700">
+                      <a href={finalVideoUrl} download target="_blank" rel="noopener noreferrer">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Video
+                      </a>
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={() => navigate('/projects')}>
                     View All Projects
                   </Button>

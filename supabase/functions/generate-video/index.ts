@@ -344,6 +344,7 @@ serve(async (req) => {
       startImage,
       negativePrompt: inputNegativePrompt,
       transitionOut,
+      aspectRatio = "16:9",
     } = await req.json();
 
     if (!prompt) {
@@ -453,10 +454,14 @@ serve(async (req) => {
       finalDuration = Math.min(Math.max(duration, 5), 8);
     }
 
+    // Validate and use the aspect ratio from request
+    const validAspectRatios = ["16:9", "9:16", "1:1"];
+    const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "16:9";
+
     const requestBody = {
       instances: [instance],
       parameters: {
-        aspectRatio: "16:9",
+        aspectRatio: finalAspectRatio,
         durationSeconds: finalDuration,
         sampleCount: 1,
         negativePrompt: negativePrompt,
@@ -464,6 +469,8 @@ serve(async (req) => {
         personGeneration: "allow_adult", // Allow person generation
       }
     };
+
+    console.log("[generate-video] Using aspect ratio:", finalAspectRatio);
 
     console.log("Sending request to Vertex AI:", endpoint);
 

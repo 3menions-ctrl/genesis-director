@@ -191,6 +191,91 @@ export function UnifiedStudio() {
     fetchCredits();
   }, [user]);
 
+  // Check for projects awaiting approval on mount
+  useEffect(() => {
+    const checkForAwaitingApproval = async () => {
+      if (!user || currentStage !== 'idle') return;
+      
+      try {
+        // Find projects that are awaiting approval
+        const { data: projects, error } = await supabase
+          .from('movie_projects')
+          .select('id, pending_video_tasks, generated_script, status')
+          .eq('user_id', user.id)
+          .eq('status', 'awaiting_approval')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error('Error checking for awaiting approval:', error);
+          return;
+        }
+        
+        if (projects && projects.length > 0) {
+          const project = projects[0];
+          const tasks = project.pending_video_tasks as any;
+          
+          // Check if there's a script to review (either in tasks or generated_script)
+          let scriptData = tasks?.script?.shots;
+          if (!scriptData && project.generated_script) {
+            try {
+              const parsed = typeof project.generated_script === 'string' 
+                ? JSON.parse(project.generated_script) 
+                : project.generated_script;
+              scriptData = parsed?.shots;
+            } catch (e) {
+              console.error('Failed to parse generated_script:', e);
+            }
+          }
+          
+          if (scriptData && Array.isArray(scriptData)) {
+            console.log('[Studio] Found project awaiting approval:', project.id);
+            
+            // Convert shots to ScriptShot format
+            const scriptShots: ScriptShot[] = scriptData.map((shot: any, index: number) => ({
+              id: shot.id || `shot_${index + 1}`,
+              index,
+              title: shot.title || `Shot ${index + 1}`,
+              description: shot.description || '',
+              durationSeconds: shot.durationSeconds || 4,
+              sceneType: shot.sceneType,
+              cameraScale: shot.cameraScale,
+              cameraAngle: shot.cameraAngle,
+              movementType: shot.movementType,
+              transitionOut: shot.transitionOut,
+              visualAnchors: shot.visualAnchors,
+              motionDirection: shot.motionDirection,
+              lightingHint: shot.lightingHint,
+              dialogue: shot.dialogue,
+              mood: shot.mood,
+            }));
+            
+            // Restore the awaiting approval state
+            setActiveProjectId(project.id);
+            setPendingScript(scriptShots);
+            setCurrentStage('awaiting_approval');
+            setProgress(30);
+            setClipCount(scriptShots.length);
+            
+            // Update stages
+            setStages(prev => {
+              const updated = [...prev];
+              updated[0] = { ...updated[0], status: 'complete', details: `${scriptShots.length} shots` };
+              return updated;
+            });
+            
+            addPipelineLog('Found pending script approval. Please review and approve.', 'info');
+            toast.info('You have a script waiting for approval!');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking awaiting approval:', err);
+      }
+    };
+    
+    checkForAwaitingApproval();
+  }, [user, currentStage, addPipelineLog]);
+
   const updatePrompt = (index: number, value: string) => {
     setManualPrompts(prev => {
       const updated = [...prev];

@@ -48,11 +48,14 @@ verify_jwt = false
 [functions.stitch-video]
 verify_jwt = false
 
-[functions.generate-long-video]
+[functions.generate-single-clip]
 verify_jwt = false
 
 [functions.generate-music]
 verify_jwt = false
 
 [functions.hollywood-pipeline]
+verify_jwt = false
+
+[functions.resume-pipeline]
 verify_jwt = false

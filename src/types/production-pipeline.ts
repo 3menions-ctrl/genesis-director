@@ -43,6 +43,15 @@ export interface ReferenceImageAnalysis {
   imageUrl: string;
   analysisComplete: boolean;
   
+  // IMAGE ORIENTATION - Critical for Veo API aspect ratio
+  imageOrientation: {
+    width: number;
+    height: number;
+    aspectRatio: number; // width/height
+    orientation: 'landscape' | 'portrait' | 'square';
+    veoAspectRatio: '16:9' | '9:16' | '1:1'; // Mapped for Veo API
+  };
+  
   // Identity anchoring
   characterIdentity: {
     description: string;

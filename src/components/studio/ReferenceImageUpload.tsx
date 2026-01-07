@@ -165,7 +165,12 @@ export function ReferenceImageUpload({
                 className="w-full h-full object-cover"
               />
             )}
-            <div className="absolute top-1 right-1">
+            <div className="absolute top-1 right-1 flex gap-1">
+              {analysis.imageOrientation && (
+                <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                  {analysis.imageOrientation.veoAspectRatio}
+                </Badge>
+              )}
               <Badge variant="default" className="text-xs gap-1 px-1.5 py-0.5">
                 <Check className="w-3 h-3" />
               </Badge>

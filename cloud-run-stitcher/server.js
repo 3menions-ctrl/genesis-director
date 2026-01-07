@@ -180,6 +180,123 @@ const TRANSITION_TYPES = {
   smoothright: 'smoothright',
 };
 
+// Music mood to tempo and fade timing
+const MOOD_TEMPO_MAP = {
+  epic: { bpm: 120, fadeIn: 2, fadeOut: 3 },
+  tension: { bpm: 100, fadeIn: 1, fadeOut: 2 },
+  emotional: { bpm: 70, fadeIn: 3, fadeOut: 4 },
+  action: { bpm: 140, fadeIn: 0.5, fadeOut: 1 },
+  peaceful: { bpm: 60, fadeIn: 4, fadeOut: 5 },
+  mysterious: { bpm: 80, fadeIn: 2, fadeOut: 3 },
+  triumphant: { bpm: 110, fadeIn: 1, fadeOut: 3 },
+  melancholic: { bpm: 65, fadeIn: 3, fadeOut: 4 }
+};
+
+// Build dynamic volume filter from music sync timing markers
+function buildMusicVolumeFilter(timingMarkers, totalDuration, baseVolume = 0.3) {
+  if (!timingMarkers || timingMarkers.length === 0) {
+    return `volume=${baseVolume}`;
+  }
+
+  // Sort markers by timestamp
+  const sorted = [...timingMarkers].sort((a, b) => a.timestamp - b.timestamp);
+  
+  // Build volume expression with time-based adjustments
+  let volumeExpr = '';
+  
+  for (let i = 0; i < sorted.length; i++) {
+    const marker = sorted[i];
+    const start = marker.timestamp;
+    const end = start + (marker.duration || 0.5);
+    
+    let targetVolume = baseVolume;
+    
+    switch (marker.type) {
+      case 'duck':
+        targetVolume = baseVolume * (1 - marker.intensity * 0.7); // Duck down
+        break;
+      case 'swell':
+        targetVolume = baseVolume * (1 + marker.intensity * 0.5); // Swell up
+        break;
+      case 'accent':
+        targetVolume = baseVolume * (1 + marker.intensity * 0.3); // Slight boost
+        break;
+      case 'pause':
+        targetVolume = baseVolume * 0.1; // Near silence
+        break;
+    }
+    
+    if (volumeExpr) volumeExpr += '+';
+    volumeExpr += `(between(t,${start},${end})*${targetVolume - baseVolume})`;
+  }
+  
+  if (volumeExpr) {
+    return `volume='${baseVolume}${volumeExpr ? '+' + volumeExpr : ''}':eval=frame`;
+  }
+  
+  return `volume=${baseVolume}`;
+}
+
+// Download SFX files and prepare for mixing
+async function downloadSFXFiles(sfxPlan, workDir) {
+  const sfxTracks = [];
+  
+  if (!sfxPlan) return sfxTracks;
+  
+  // Download SFX cues
+  if (sfxPlan.cues && sfxPlan.cues.length > 0) {
+    for (let i = 0; i < sfxPlan.cues.length; i++) {
+      const cue = sfxPlan.cues[i];
+      if (cue.audioUrl) {
+        const sfxPath = path.join(workDir, `sfx_${i}.mp3`);
+        try {
+          console.log(`[Stitch] Downloading SFX cue ${i + 1}: ${cue.type}`);
+          await downloadFile(cue.audioUrl, sfxPath);
+          sfxTracks.push({
+            type: 'sfx',
+            path: sfxPath,
+            startMs: cue.startMs || 0,
+            durationMs: cue.durationMs,
+            volume: cue.volume || 0.8,
+            panning: cue.panning || 0,
+            category: cue.category
+          });
+        } catch (err) {
+          console.warn(`[Stitch] Failed to download SFX cue ${i}: ${err.message}`);
+        }
+      }
+    }
+  }
+  
+  // Download ambient beds
+  if (sfxPlan.ambientBeds && sfxPlan.ambientBeds.length > 0) {
+    for (let i = 0; i < sfxPlan.ambientBeds.length; i++) {
+      const ambient = sfxPlan.ambientBeds[i];
+      if (ambient.audioUrl) {
+        const ambientPath = path.join(workDir, `ambient_${i}.mp3`);
+        try {
+          console.log(`[Stitch] Downloading ambient bed ${i + 1}: ${ambient.type}`);
+          await downloadFile(ambient.audioUrl, ambientPath);
+          sfxTracks.push({
+            type: 'ambient',
+            path: ambientPath,
+            startMs: ambient.startMs || 0,
+            durationMs: ambient.durationMs,
+            volume: ambient.volume || 0.3,
+            fadeInMs: ambient.fadeInMs || 1000,
+            fadeOutMs: ambient.fadeOutMs || 2000,
+            loop: true
+          });
+        } catch (err) {
+          console.warn(`[Stitch] Failed to download ambient bed ${i}: ${err.message}`);
+        }
+      }
+    }
+  }
+  
+  return sfxTracks;
+}
+
 // Main stitching logic
 async function stitchVideos(request) {
   const {
@@ -194,7 +311,11 @@ async function stitchVideos(request) {
     colorGrading = 'cinematic',
     customColorProfile = null,
     transitionType = 'fade',      // Default crossfade transition
-    transitionDuration = 0.5      // Seconds for each transition
+    transitionDuration = 0.5,     // Seconds for each transition
+    // NEW: Music sync and SFX parameters
+    musicSyncPlan = null,
+    sfxPlan = null,
+    audioMixParams = null
   } = request;
   
   const jobId = uuidv4();
@@ -368,12 +489,15 @@ async function stitchVideos(request) {
     const hasVoice = voiceTrackUrl && audioMixMode !== 'mute';
     const hasMusic = backgroundMusicUrl && audioMixMode !== 'mute';
     
-    if (hasVoice || hasMusic) {
-      console.log('[Stitch] Step 4: Audio mixing...');
-      console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}`);
+    // Download SFX tracks
+    const sfxTracks = await downloadSFXFiles(sfxPlan, workDir);
+    const hasSFX = sfxTracks.length > 0;
+    
+    if (hasVoice || hasMusic || hasSFX) {
+      console.log('[Stitch] Step 4: Audio mixing with music sync and SFX...');
+      console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}, SFX tracks: ${sfxTracks.length}`);
       
       const audioInputs = ['-i', concatenatedPath];
-      let filterParts = [];
       let inputIndex = 1;
       
       // Download and add voice track
@@ -394,43 +518,73 @@ async function stitchVideos(request) {
         musicInputIdx = inputIndex++;
       }
       
-      const withAudioPath = path.join(workDir, 'final_with_audio.mp4');
-      
-      // Build filter complex based on what we have
-      let ffmpegArgs = [...audioInputs, '-t', totalDuration.toString()];
-      
-      if (hasVoice && hasMusic) {
-        // Mix video audio + voice (front) + music (background, lower volume)
-        ffmpegArgs.push(
-          '-filter_complex',
-          `[${musicInputIdx}:a]volume=0.3[music];[${voiceInputIdx}:a]volume=1.0[voice];[0:a][voice][music]amix=inputs=3:duration=first:dropout_transition=2[aout]`,
-          '-map', '0:v',
-          '-map', '[aout]'
-        );
-      } else if (hasVoice) {
-        // Mix video audio + voice
-        ffmpegArgs.push(
-          '-filter_complex',
-          `[0:a][${voiceInputIdx}:a]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
-          '-map', '0:v',
-          '-map', '[aout]'
-        );
-      } else if (hasMusic) {
-        // Mix video audio + music (lower volume)
-        const musicMode = audioMixMode === 'music-only';
-        if (musicMode) {
-          ffmpegArgs.push('-map', '0:v', '-map', `${musicInputIdx}:a`);
-        } else {
-          ffmpegArgs.push(
-            '-filter_complex',
-            `[${musicInputIdx}:a]volume=0.4[music];[0:a][music]amix=inputs=2:duration=first:dropout_transition=2[aout]`,
-            '-map', '0:v',
-            '-map', '[aout]'
-          );
-        }
+      // Add SFX inputs
+      const sfxInputIndices = [];
+      for (const sfx of sfxTracks) {
+        audioInputs.push('-i', sfx.path);
+        sfxInputIndices.push({ index: inputIndex++, ...sfx });
       }
       
+      const withAudioPath = path.join(workDir, 'final_with_audio.mp4');
+      let ffmpegArgs = [...audioInputs, '-t', totalDuration.toString()];
+      
+      // Build complex filter for mixing all audio tracks
+      let filterParts = [];
+      let mixInputs = [];
+      
+      // Voice processing
+      if (voiceInputIdx !== null) {
+        filterParts.push(`[${voiceInputIdx}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=1.0[voice]`);
+        mixInputs.push('[voice]');
+      }
+      
+      // Music processing with sync timing markers
+      if (musicInputIdx !== null) {
+        const baseVolume = audioMixParams?.musicVolume || 0.3;
+        const timingMarkers = audioMixParams?.timingMarkers || musicSyncPlan?.timingMarkers;
+        const volumeFilter = buildMusicVolumeFilter(timingMarkers, totalDuration, baseVolume);
+        
+        const fadeIn = audioMixParams?.fadeIn || 1;
+        const fadeOut = audioMixParams?.fadeOut || 2;
+        const fadeOutStart = Math.max(0, totalDuration - fadeOut);
+        
+        filterParts.push(`[${musicInputIdx}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,${volumeFilter},afade=t=in:st=0:d=${fadeIn},afade=t=out:st=${fadeOutStart}:d=${fadeOut},atrim=0:${totalDuration}[music]`);
+        mixInputs.push('[music]');
+        console.log(`[Stitch] Applied music sync with ${timingMarkers?.length || 0} timing markers`);
+      }
+      
+      // SFX processing
+      for (let i = 0; i < sfxInputIndices.length; i++) {
+        const sfx = sfxInputIndices[i];
+        const label = `sfx${i}`;
+        
+        let sfxFilter = `[${sfx.index}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${sfx.volume}`;
+        
+        if (sfx.startMs > 0) {
+          sfxFilter += `,adelay=${sfx.startMs}|${sfx.startMs}`;
+        }
+        
+        if (sfx.type === 'ambient' && sfx.loop) {
+          sfxFilter += `,aloop=loop=-1:size=48000*${totalDuration},atrim=0:${totalDuration}`;
+        }
+        
+        sfxFilter += `,apad=whole_dur=${totalDuration}[${label}]`;
+        filterParts.push(sfxFilter);
+        mixInputs.push(`[${label}]`);
+      }
+      
+      // Include original video audio
+      filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
+      mixInputs.unshift('[orig]');
+      
+      // Mix all streams
+      const mixFilter = `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first:dropout_transition=2[aout]`;
+      filterParts.push(mixFilter);
+      
       ffmpegArgs.push(
+        '-filter_complex', filterParts.join(';'),
+        '-map', '0:v',
+        '-map', '[aout]',
         '-c:v', 'copy',
         '-c:a', 'aac',
         '-b:a', '192k',
@@ -438,8 +592,10 @@ async function stitchVideos(request) {
         withAudioPath
       );
       
-      await runFFmpeg(ffmpegArgs, 'Audio mixing (voice + music)');
+      await runFFmpeg(ffmpegArgs, 'Audio mixing (voice + music sync + SFX)');
       finalPath = withAudioPath;
+      
+      console.log(`[Stitch] Audio mixing complete: ${mixInputs.length} tracks mixed`);
     }
     
     // Step 5: Upload to Supabase Storage

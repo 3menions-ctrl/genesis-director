@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.analyze-lip-sync]
 verify_jwt = false
+
+[functions.sync-music-to-scenes]
+verify_jwt = false

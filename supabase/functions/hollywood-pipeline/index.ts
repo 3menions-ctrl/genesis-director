@@ -673,22 +673,66 @@ async function runAssetCreation(
   state.progress = 60;
   await updateProjectProgress(supabase, state.projectId, 'assets', 60, { hasVoice: !!state.assets.voiceUrl });
   
-  // 3c. Generate background music (if requested)
+  // 3c. Generate background music with scene synchronization (if requested)
   if (request.includeMusic !== false) {
-    console.log(`[Hollywood] Generating background music...`);
+    console.log(`[Hollywood] Generating synchronized background music...`);
     
     try {
-      const musicResult = await callEdgeFunction('generate-music', {
-        mood: request.musicMood || request.mood || 'cinematic',
-        genre: 'hybrid',
-        duration: state.clipCount * state.clipDuration + 2,
-        projectId: state.projectId,
-      });
-      
-      if (musicResult.musicUrl) {
-        state.assets.musicUrl = musicResult.musicUrl;
-        state.assets.musicDuration = musicResult.durationSeconds;
-        console.log(`[Hollywood] Music generated: ${state.assets.musicUrl}`);
+      // For professional tier, use music sync engine
+      if (request.qualityTier === 'professional' && state.script?.shots) {
+        console.log(`[Hollywood] Using Music Sync Engine for professional tier...`);
+        
+        const syncResult = await callEdgeFunction('sync-music-to-scenes', {
+          projectId: state.projectId,
+          shots: state.script.shots.map(s => ({
+            id: s.id,
+            description: s.description,
+            dialogue: s.dialogue,
+            durationSeconds: s.durationSeconds,
+            mood: s.mood,
+          })),
+          totalDuration: state.clipCount * state.clipDuration,
+          overallMood: request.musicMood || request.mood || 'dramatic',
+          tempoPreference: 'dynamic',
+          includeDialogueDucking: true,
+        });
+        
+        if (syncResult.success && syncResult.plan) {
+          // Store the music sync plan for post-production
+          (state as any).musicSyncPlan = syncResult.plan;
+          console.log(`[Hollywood] Music sync plan created with ${syncResult.plan.musicCues?.length || 0} cues`);
+          console.log(`[Hollywood] Detected ${syncResult.plan.emotionalBeats?.length || 0} emotional beats`);
+          console.log(`[Hollywood] Created ${syncResult.plan.timingMarkers?.length || 0} timing markers`);
+          
+          // Use the optimized music prompt from sync engine
+          const musicResult = await callEdgeFunction('generate-music', {
+            prompt: syncResult.musicPrompt,
+            mood: request.musicMood || request.mood || 'cinematic',
+            genre: 'hybrid',
+            duration: state.clipCount * state.clipDuration + 2,
+            projectId: state.projectId,
+          });
+          
+          if (musicResult.musicUrl) {
+            state.assets.musicUrl = musicResult.musicUrl;
+            state.assets.musicDuration = musicResult.durationSeconds;
+            console.log(`[Hollywood] Synchronized music generated: ${state.assets.musicUrl}`);
+          }
+        }
+      } else {
+        // Standard tier: basic music generation
+        const musicResult = await callEdgeFunction('generate-music', {
+          mood: request.musicMood || request.mood || 'cinematic',
+          genre: 'hybrid',
+          duration: state.clipCount * state.clipDuration + 2,
+          projectId: state.projectId,
+        });
+        
+        if (musicResult.musicUrl) {
+          state.assets.musicUrl = musicResult.musicUrl;
+          state.assets.musicDuration = musicResult.durationSeconds;
+          console.log(`[Hollywood] Music generated: ${state.assets.musicUrl}`);
+        }
       }
     } catch (err) {
       console.warn(`[Hollywood] Music generation failed:`, err);
@@ -699,6 +743,9 @@ async function runAssetCreation(
   await updateProjectProgress(supabase, state.projectId, 'assets', 70, {
     hasVoice: !!state.assets.voiceUrl,
     hasMusic: !!state.assets.musicUrl,
+    hasMusicSyncPlan: !!(state as any).musicSyncPlan,
+    musicCues: (state as any).musicSyncPlan?.musicCues?.length || 0,
+    emotionalBeats: (state as any).musicSyncPlan?.emotionalBeats?.length || 0,
   });
   
   return state;

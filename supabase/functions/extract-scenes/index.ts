@@ -42,94 +42,157 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-const systemPrompt = `You are a cinematic video production assistant. Create a shot breakdown with MINIMUM 6 SHOTS.
+const systemPrompt = `You are a PROFESSIONAL Hollywood cinematographer and director of photography. Create a shot breakdown with MINIMUM 6 SHOTS using ADVANCED CINEMATIC TECHNIQUES.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
 STYLE: ${projectTypeContext}
 TITLE: ${title || 'Untitled'}
 
+═══════════════════════════════════════════════════════════════════════════════
+                         ADVANCED CAMERA SYSTEM
+═══════════════════════════════════════════════════════════════════════════════
+
+CAMERA SCALES (pick variety, never repeat consecutively):
+• extreme-wide: Vast landscape, entire location, scope
+• wide: Full scene with environment context
+• full: Complete figure head to toe
+• medium-wide: Waist up with environment
+• medium: Waist up, conversational distance
+• medium-close: Chest up, intimate
+• close-up: Face-filling, emotional
+• extreme-close-up: Eyes, texture, micro-details
+• insert: Object detail shot
+
+CAMERA ANGLES (use genre-appropriate mix):
+Standard:
+• eye-level: Natural, neutral human height
+• low-angle: Power, heroism, threat (looking up)
+• high-angle: Vulnerability, overview (looking down)
+• overhead: Bird's eye surveillance
+
+Advanced (use these for professional look):
+• dutch-angle: Tilted frame for tension/unease - use in thriller/horror
+• worms-eye: Extreme low, towering subjects - epic/action moments
+• gods-eye: Directly overhead, fate perspective - establishing/reveal
+• over-shoulder: Conversation, connection - dialogue scenes
+• canted-close: Tilted close-up for psychological intensity
+• pov: First-person subjective - chase/horror
+• profile: Side silhouette, contemplative - drama/romance
+• three-quarter: 45-degree classic portrait angle
+
+CAMERA MOVEMENTS (match to scene energy):
+Static/Subtle:
+• static: Locked-off steady
+• tripod-subtle: Organic micro-movements
+
+Horizontal:
+• pan-left, pan-right: Smooth horizontal sweep
+• whip-pan: Fast blur transition (action/comedy)
+
+Vertical:
+• tilt-up, tilt-down: Vertical sweep
+• crane-up, crane-down: Rising/descending with perspective shift
+• crane-reveal: Rising to reveal scene (establishing shots)
+
+Dolly/Track:
+• dolly-in: Push toward subject (building tension)
+• dolly-out: Pull back revealing context (resolution)
+• tracking: Follow subject movement
+• steadicam-follow: Smooth following behind subject
+
+Advanced Combos (cinematic signatures):
+• arc: Circle around subject - romantic/emotional
+• arc-180: Half-circle rotation - dramatic revelation
+• push-pull / vertigo-effect: Hitchcock dolly-zoom - psychological shift
+• spiral: Spiraling motion - dreamlike/disorienting
+• handheld-intense: Urgent shaky energy - action/chaos
+• steadicam-float: Ethereal floating glide - fantasy/dream
+
+═══════════════════════════════════════════════════════════════════════════════
+                         GENRE CAMERA RULES
+═══════════════════════════════════════════════════════════════════════════════
+
+HORROR: dutch-angle, worms-eye, canted-close, pov, overhead. Handheld, dolly-in, crane-reveal. Desaturated, high contrast shadows.
+
+ACTION: low-angle, worms-eye, pov. Handheld-intense, tracking, whip-pan, steadicam-follow. Fast pacing.
+
+EPIC: low-angle, worms-eye, gods-eye, extreme-wide. Crane-up, crane-reveal, arc. Golden hour, volumetric rays.
+
+ROMANCE: eye-level, three-quarter, profile. Steadicam-float, dolly-in, arc. Soft diffused light, warm.
+
+THRILLER: dutch-angle, pov, canted-close. Dolly-in, push-pull, handheld. High contrast, cool tones.
+
+DRAMA: eye-level, profile, over-shoulder. Static, dolly-in, steadicam-float, arc. Naturalistic lighting.
+
+DOCUMENTARY: eye-level, over-shoulder. Handheld, static. Natural available light.
+
+═══════════════════════════════════════════════════════════════════════════════
+                         SCENE TYPE MAPPING
+═══════════════════════════════════════════════════════════════════════════════
+
+For each scene type, use appropriate camera:
+• establishing → extreme-wide/wide + crane-reveal/dolly-out + eye-level/gods-eye
+• action → medium/full + handheld-intense/tracking + low-angle/pov
+• reaction → close-up/medium-close + static/dolly-in + eye-level
+• detail → extreme-close-up/insert + dolly-in/static + overhead
+• climax → medium-close/close-up + vertigo-effect/dolly-in + dutch-angle/low-angle
+• resolution → medium/wide + dolly-out/crane-up + eye-level/high-angle
+• dialogue → medium/over-shoulder + static/arc + eye-level/over-shoulder
+• chase → pov/tracking + handheld-intense/steadicam-follow + low-angle/pov
+• reveal → medium/wide + crane-reveal/dolly-out + low-angle
+• emotional → close-up/extreme-close-up + steadicam-float/arc + eye-level/profile
+
+═══════════════════════════════════════════════════════════════════════════════
+                         OUTPUT REQUIREMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
 CRITICAL REQUIREMENTS:
-1. MINIMUM 6 SHOTS - Never less. More if the story requires it (up to 24 for longer productions).
-2. SHOT DURATION: Each shot should be 4-8 seconds. Default to 6 seconds for cinematic flow.
-3. SEAMLESS PHYSICS-BASED TRANSITIONS: Every shot must flow into the next using motion, physics, and spatial continuity.
-4. SMART CAMERA ANGLES: Vary camera angles between shots for professional cinematic look.
-
-CAMERA ANGLE RULES (CRITICAL FOR PROFESSIONAL LOOK):
-- Vary cameraScale between shots: extreme-wide → wide → medium → close-up → extreme-close-up
-- Use angle-change transitions: Cut from eye-level to low-angle, or high-angle to eye-level
-- First shot should typically be "wide" or "extreme-wide" (establishing shot)
-- Action/climax shots use "low-angle" for power or "dutch-angle" for tension
-- Reaction shots use "close-up" or "extreme-close-up"
-- Never use the same cameraScale AND cameraAngle for consecutive shots
-
-PHYSICS & MOTION CONTINUITY (MANDATORY):
-Every transition must use one or more of these techniques:
-
-A) MOTION CONTINUITY:
-   - If shot ends with character reaching forward → next shot shows hand completing the reach
-   - Running/walking motion carries across cuts → matching stride phase
-   - Falling/rising motion → gravity continues realistically
-
-B) PHYSICS BRIDGES:
-   - Particles (dust, sparks, water droplets) drift across the cut
-   - Fabric/hair movement continues its arc
-   - Light beams shift direction consistently
-   - Objects in motion maintain momentum
-
-C) SPATIAL FLOW:
-   - Eye-line match: character looks right → next shot reveals what they see
-   - Over-shoulder to reverse → smooth 180-degree rule
-   - Push-in on detail → cut to wider showing same element
-
-D) VISUAL RHYTHM:
-   - Color temperature shifts smoothly (warm to cool or vice versa)
-   - Brightness/contrast flows naturally
-   - Shape echoes: round object → cut to another round element
+1. MINIMUM 6 SHOTS - Never less. More if story requires (up to 24).
+2. SHOT DURATION: 4-8 seconds. Default 6 for cinematic flow.
+3. NEVER repeat same cameraScale + cameraAngle + movementType consecutively.
+4. Use ADVANCED angles (dutch, worms-eye, arc, vertigo) at least 2x per project.
+5. Match camera choices to scene emotional content.
 
 For each shot, provide:
-- id: Shot identifier (format: "shot_001", "shot_002")
+- id: "shot_001", "shot_002", etc.
 - index: Zero-based index
-- title: Brief title for this moment
-- description: VISUAL description including:
-  * Character action and body mechanics (weight, momentum, tension)
-  * Physics elements (gravity, fabric flow, particle drift)
-  * Lighting and atmosphere
-  * TRANSITION BRIDGE: End each description with motion/element that continues into next shot
-- dialogue: Any narration/dialogue (empty string if none)
-- durationSeconds: 4-8 seconds (default 6 for cinematic flow, 4 for fast-paced, 8 for slow/emotional)
+- title: Brief moment title
+- description: VISUAL description with camera perspective woven in naturally
+- dialogue: Any narration (empty string if none)
+- durationSeconds: 4-8 seconds
 - mood: Emotional tone
-- cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
-- cameraScale: REQUIRED - One of: extreme-wide, wide, medium, close-up, extreme-close-up
-- cameraAngle: REQUIRED - One of: eye-level, low-angle, high-angle, dutch-angle, overhead, pov
-- movementType: One of: static, pan, tilt, dolly, tracking, crane, handheld
+- sceneType: establishing|action|reaction|detail|climax|resolution|dialogue|chase|reveal|emotional
+- cameraScale: REQUIRED from list above
+- cameraAngle: REQUIRED from list above (use advanced angles!)
+- movementType: REQUIRED from list above (use movement combos!)
+- cameraMovement: Legacy field for perspective (steady, approaching, retreating, rising, flowing)
 - transitionOut: Physics-based transition type
-- transitionBridge: Specific element/motion that carries across the cut (e.g., "hand reaching forward", "dust particles drifting right", "golden light shifting")
+- transitionBridge: Element carrying across cut
 - characters: Array of character names
 
 Return ONLY valid JSON:
 {
-  "scenes": [
-    {
-      "id": "shot_001",
-      "index": 0,
-      "title": "Opening moment",
-      "description": "Visual description with motion ending in transition bridge...",
-      "dialogue": "",
-      "durationSeconds": 4,
-      "mood": "calm",
-      "cameraScale": "wide",
-      "cameraAngle": "eye-level",
-      "movementType": "static",
-      "cameraMovement": "steady",
-      "transitionOut": "match-cut",
-      "transitionBridge": "element that continues into next shot",
-      "characters": []
-    }
-  ],
-  "totalDurationSeconds": 24
+  "scenes": [{
+    "id": "shot_001",
+    "index": 0,
+    "title": "Title",
+    "description": "Description with camera perspective...",
+    "dialogue": "",
+    "durationSeconds": 6,
+    "mood": "tense",
+    "sceneType": "establishing",
+    "cameraScale": "extreme-wide",
+    "cameraAngle": "gods-eye",
+    "movementType": "crane-reveal",
+    "cameraMovement": "rising",
+    "transitionOut": "match-cut",
+    "transitionBridge": "element continuing",
+    "characters": []
+  }],
+  "totalDurationSeconds": 36
 }
 
-MINIMUM 6 SHOTS IS MANDATORY. Expand shorter concepts into multiple angles/moments.`;
+MINIMUM 6 SHOTS with VARIED CAMERA WORK is MANDATORY.`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",

@@ -46,48 +46,48 @@ const PRO_FEATURES = [
     icon: Music,
     label: 'Music Sync',
     description: 'Emotional beats & dynamic tempo',
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10',
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10',
   },
   {
     id: 'colorGrading',
     icon: Palette,
     label: 'Color Grading',
     description: 'Hollywood color science',
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10',
   },
   {
     id: 'sfx',
     icon: Volume2,
     label: 'SFX Engine',
     description: 'Ambient & foley sounds',
-    color: 'text-cyan-500',
-    bgColor: 'bg-cyan-500/10',
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10',
   },
   {
     id: 'visualDebugger',
     icon: Eye,
     label: 'Visual Debugger',
     description: 'Auto-retry for quality',
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
+    colorClass: 'text-success',
+    bgClass: 'bg-success/10',
   },
   {
     id: 'multiCharacterBible',
     icon: Users,
     label: 'Character Bible',
     description: 'Multi-character consistency',
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-500/10',
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10',
   },
   {
     id: 'depthConsistency',
     icon: Zap,
     label: 'Depth Analysis',
     description: '3D consistency checks',
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
+    colorClass: 'text-primary',
+    bgClass: 'bg-primary/10',
   },
 ];
 
@@ -142,19 +142,19 @@ export function ProFeaturesPanel({
                       className={cn(
                         "relative p-3 rounded-lg border transition-all cursor-default",
                         status.enabled 
-                          ? `${feature.bgColor} border-current/20` 
+                          ? `${feature.bgClass} border-border` 
                           : "bg-muted/30 border-border/50 opacity-60"
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <div className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center",
-                          status.enabled ? feature.bgColor : "bg-muted"
+                          status.enabled ? feature.bgClass : "bg-muted"
                         )}>
                           {isRunning && !status.enabled ? (
-                            <Loader2 className={cn("w-4 h-4 animate-spin", feature.color)} />
+                            <Loader2 className={cn("w-4 h-4 animate-spin", feature.colorClass)} />
                           ) : status.enabled ? (
-                            <Icon className={cn("w-4 h-4", feature.color)} />
+                            <Icon className={cn("w-4 h-4", feature.colorClass)} />
                           ) : (
                             <Icon className="w-4 h-4 text-muted-foreground" />
                           )}

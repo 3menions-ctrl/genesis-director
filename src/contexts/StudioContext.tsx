@@ -3,8 +3,8 @@ import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
-
+import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
+import type { QualityTier } from '@/types/quality-tiers';
 const DEFAULT_CREDITS: UserCredits = {
   total: 50,
   used: 0,
@@ -330,12 +330,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     await refreshProfile();
   };
 
-  // Check if user can afford a number of shots with Iron-Clad pricing
-  const canAffordShots = (shotCount: number): boolean => {
-    const required = shotCount * CREDIT_COSTS.TOTAL_PER_SHOT;
+  // Check if user can afford a number of shots with tier-aware pricing
+  const canAffordShots = (shotCount: number, tier: QualityTier = 'standard'): boolean => {
+    const required = shotCount * TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
     return credits.remaining >= required;
   };
-
   return (
     <StudioContext.Provider
       value={{

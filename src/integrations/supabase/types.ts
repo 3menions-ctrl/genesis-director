@@ -571,7 +571,9 @@ export type Database = {
         Row: {
           color_profile: Json | null
           completed_at: string | null
+          corrective_prompts: string[] | null
           created_at: string
+          debug_attempts: number | null
           duration_seconds: number | null
           error_message: string | null
           id: string
@@ -579,6 +581,7 @@ export type Database = {
           motion_vectors: Json | null
           project_id: string
           prompt: string
+          quality_score: number | null
           retry_count: number | null
           shot_index: number
           status: string
@@ -590,7 +593,9 @@ export type Database = {
         Insert: {
           color_profile?: Json | null
           completed_at?: string | null
+          corrective_prompts?: string[] | null
           created_at?: string
+          debug_attempts?: number | null
           duration_seconds?: number | null
           error_message?: string | null
           id?: string
@@ -598,6 +603,7 @@ export type Database = {
           motion_vectors?: Json | null
           project_id: string
           prompt: string
+          quality_score?: number | null
           retry_count?: number | null
           shot_index: number
           status?: string
@@ -609,7 +615,9 @@ export type Database = {
         Update: {
           color_profile?: Json | null
           completed_at?: string | null
+          corrective_prompts?: string[] | null
           created_at?: string
+          debug_attempts?: number | null
           duration_seconds?: number | null
           error_message?: string | null
           id?: string
@@ -617,6 +625,7 @@ export type Database = {
           motion_vectors?: Json | null
           project_id?: string
           prompt?: string
+          quality_score?: number | null
           retry_count?: number | null
           shot_index?: number
           status?: string

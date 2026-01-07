@@ -12,7 +12,6 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -25,26 +24,6 @@ export default function Auth() {
       }
     }
   }, [user, profile, navigate]);
-
-  const handleDemoLogin = async () => {
-    setDemoLoading(true);
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { error } = await supabase.auth.signInWithPassword({
-        email: 'demo@aifilmstudio.com',
-        password: 'demo123456'
-      });
-      if (error) {
-        toast.error('Demo login failed. Please try again.');
-      } else {
-        toast.success('Welcome to the demo!');
-      }
-    } catch (err) {
-      toast.error('Something went wrong. Please try again.');
-    } finally {
-      setDemoLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,41 +178,6 @@ export default function Auth() {
             <p className="text-muted-foreground">
               {isLogin ? 'Sign in to continue to your studio' : 'Start your filmmaking journey today'}
             </p>
-          </div>
-
-          {/* Demo Login Button */}
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={demoLoading}
-            className="w-full mb-6 p-4 rounded-2xl bg-muted border border-border hover:border-foreground/20 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
-                  {demoLoading ? (
-                    <Loader2 className="w-5 h-5 text-background animate-spin" />
-                  ) : (
-                    <Play className="w-5 h-5 text-background" />
-                  )}
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-foreground">Try Demo Account</p>
-                  <p className="text-xs text-muted-foreground">Explore features without signing up</p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
-
-          {/* Divider */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-background text-muted-foreground">or continue with email</span>
-            </div>
           </div>
 
           {/* Form */}

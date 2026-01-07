@@ -700,7 +700,7 @@ export function UnifiedStudio() {
     setShowCostDialog(true);
   };
 
-  const runPipeline = async () => {
+  const runPipeline = async (projectName: string) => {
     setShowCostDialog(false);
     
     // Create abort controller
@@ -714,6 +714,7 @@ export function UnifiedStudio() {
     
     // Add initial log entries
     addPipelineLog(`Starting ${mode === 'ai' ? 'AI Hollywood' : 'Manual'} Pipeline`, 'info');
+    addPipelineLog(`Project: ${projectName}`, 'info');
     addPipelineLog(`Configuration: ${clipCount} clips × ${CLIP_DURATION}s = ${clipCount * CLIP_DURATION}s`, 'info');
     if (referenceImageAnalysis) {
       addPipelineLog('Reference image loaded', 'info');
@@ -733,6 +734,7 @@ export function UnifiedStudio() {
 
       const requestBody: any = {
         userId: user!.id,
+        projectName,
         genre,
         mood,
         colorGrading,
@@ -1290,6 +1292,7 @@ export function UnifiedStudio() {
         includeMusic={includeMusic}
         qualityTier={qualityTier}
         userCredits={userCredits}
+        defaultProjectName={mode === 'ai' && concept ? concept.slice(0, 50) : ''}
       />
     </div>
   );

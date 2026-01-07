@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,6 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Coins, 
   Film, 
@@ -18,7 +21,8 @@ import {
   Sparkles, 
   Clock,
   Zap,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,7 +37,7 @@ interface CostBreakdown {
 interface CostConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (projectName: string) => void;
   mode: 'ai' | 'manual';
   clipCount: number;
   totalDuration: number;
@@ -41,6 +45,7 @@ interface CostConfirmationDialogProps {
   includeMusic: boolean;
   qualityTier: 'standard' | 'professional';
   userCredits?: number;
+  defaultProjectName?: string;
 }
 
 function calculateCosts(
@@ -77,9 +82,25 @@ export function CostConfirmationDialog({
   includeMusic,
   qualityTier,
   userCredits = 0,
+  defaultProjectName = '',
 }: CostConfirmationDialogProps) {
+  const [projectName, setProjectName] = useState(defaultProjectName);
   const costs = calculateCosts(mode, clipCount, includeVoice, includeMusic, qualityTier);
   const hasEnoughCredits = userCredits >= costs.total;
+  const hasValidName = projectName.trim().length > 0;
+
+  // Reset project name when dialog opens
+  useEffect(() => {
+    if (open) {
+      setProjectName(defaultProjectName);
+    }
+  }, [open, defaultProjectName]);
+
+  const handleConfirm = () => {
+    if (hasValidName && hasEnoughCredits) {
+      onConfirm(projectName.trim());
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,9 +113,28 @@ export function CostConfirmationDialog({
             Confirm Generation
           </DialogTitle>
           <DialogDescription>
-            Review the estimated cost before starting your video
+            Name your project and review the cost
           </DialogDescription>
         </DialogHeader>
+
+        {/* Project Name Input */}
+        <div className="space-y-2">
+          <Label htmlFor="project-name" className="text-sm font-medium flex items-center gap-2">
+            <Pencil className="w-3.5 h-3.5" />
+            Project Name
+          </Label>
+          <Input
+            id="project-name"
+            placeholder="My Awesome Video"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="h-11"
+            autoFocus
+          />
+          {!hasValidName && projectName !== '' && (
+            <p className="text-xs text-destructive">Please enter a project name</p>
+          )}
+        </div>
 
         {/* Video Summary */}
         <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border">
@@ -206,8 +246,8 @@ export function CostConfirmationDialog({
             Cancel
           </Button>
           <Button 
-            onClick={onConfirm} 
-            disabled={!hasEnoughCredits}
+            onClick={handleConfirm} 
+            disabled={!hasEnoughCredits || !hasValidName}
             className="gap-2"
           >
             <Sparkles className="w-4 h-4" />

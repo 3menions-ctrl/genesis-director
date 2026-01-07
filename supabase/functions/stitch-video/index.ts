@@ -31,8 +31,11 @@ interface StitchRequest {
   clips: ShotClip[];
   audioMixMode: 'full' | 'dialogue-only' | 'music-only' | 'mute';
   backgroundMusicUrl?: string;
+  voiceTrackUrl?: string;
   outputFormat?: 'mp4' | 'webm';
-  forceMvpMode?: boolean; // Skip Cloud Run and use manifest fallback
+  forceMvpMode?: boolean;
+  transitionType?: 'fade' | 'fadeblack' | 'fadewhite' | 'dissolve' | 'wipeleft' | 'wiperight' | 'circlecrop';
+  transitionDuration?: number; // 0.3 - 1.0 seconds recommended
 }
 
 interface StitchResult {

@@ -775,6 +775,21 @@ export function UnifiedStudio() {
           isLoading={isGeneratingStory}
           isBreakingDown={isBreakingDownStory}
         />
+        
+        {/* Cost Confirmation Dialog - must be included here too */}
+        <CostConfirmationDialog
+          open={showCostDialog}
+          onOpenChange={setShowCostDialog}
+          onConfirm={runPipeline}
+          mode={mode}
+          clipCount={clipCount}
+          totalDuration={totalDuration}
+          includeVoice={includeVoice}
+          includeMusic={includeMusic}
+          qualityTier={qualityTier}
+          userCredits={userCredits}
+          defaultProjectName={storyTitle || concept.substring(0, 50) || 'AI Video'}
+        />
       </div>
     );
   }

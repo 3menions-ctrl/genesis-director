@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 
 interface ScriptShot {
   id: string;
@@ -116,7 +117,7 @@ export default function ScriptReview() {
         setProjectTitle(project.title);
 
         // Extract script from pending_video_tasks or generated_script
-        const tasks = project.pending_video_tasks as any;
+        const tasks = parsePendingVideoTasks(project.pending_video_tasks);
         let scriptData = tasks?.script?.shots;
         
         if (!scriptData && project.generated_script) {

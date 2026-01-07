@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 
 interface StageStatus {
   name: string;
@@ -157,7 +158,7 @@ export default function Production() {
         }
 
         // Parse pending_video_tasks for current state
-        const tasks = project.pending_video_tasks as any;
+        const tasks = parsePendingVideoTasks(project.pending_video_tasks);
         
         // Check for orphaned projects (status is active but no pending tasks)
         const isOrphanedProject = ['producing', 'generating', 'rendering'].includes(project.status) 
@@ -250,12 +251,12 @@ export default function Production() {
           filter: `id=eq.${projectId}`,
         },
         (payload) => {
-          const project = payload.new as any;
+          const project = payload.new as Record<string, unknown>;
           if (!project) return;
 
-          setProjectStatus(project.status);
+          setProjectStatus(project.status as string);
           
-          const tasks = project.pending_video_tasks;
+          const tasks = parsePendingVideoTasks(project.pending_video_tasks);
           if (!tasks) return;
 
           // Update progress
@@ -342,7 +343,7 @@ export default function Production() {
           }
 
           // Handle status changes
-          if (project.status === 'completed' && project.video_url) {
+          if (project.status === 'completed' && typeof project.video_url === 'string') {
             setFinalVideoUrl(project.video_url);
             setProgress(100);
           }

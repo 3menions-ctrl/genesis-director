@@ -56,6 +56,7 @@ import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDial
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
+import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
 import { cn } from '@/lib/utils';
 
 type PipelineMode = 'ai' | 'manual';
@@ -223,7 +224,7 @@ export function UnifiedStudio() {
         
         if (projects && projects.length > 0) {
           const project = projects[0];
-          const tasks = project.pending_video_tasks as any;
+          const tasks = parsePendingVideoTasks(project.pending_video_tasks);
           
           console.log('[Studio] Found active project:', project.id, 'status:', project.status);
           
@@ -334,10 +335,10 @@ export function UnifiedStudio() {
           filter: `id=eq.${activeProjectId}`,
         },
         (payload) => {
-          const project = payload.new as any;
+          const project = payload.new as Record<string, unknown>;
           if (!project) return;
           
-          const tasks = project.pending_video_tasks;
+          const tasks = parsePendingVideoTasks(project.pending_video_tasks);
           if (!tasks) return;
           
           // Update progress from background task
@@ -474,7 +475,7 @@ export function UnifiedStudio() {
           }
           
           // Handle status change to completed
-          if (project.status === 'completed' && project.video_url) {
+          if (project.status === 'completed' && typeof project.video_url === 'string') {
             setFinalVideoUrl(project.video_url);
             setCurrentStage('complete');
           }

@@ -179,8 +179,8 @@ export default function Projects() {
     navigate('/pipeline/scripting');
   };
 
-  const handlePlayVideo = (project: Project, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePlayVideo = (project: Project, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (project.video_clips?.length || project.video_url) {
       setSelectedProject(project);
       setVideoModalOpen(true);
@@ -526,7 +526,7 @@ export default function Projects() {
                           {hasVideo && (
                             <>
                               <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handlePlayVideo(project, e as any); }}
+                                onClick={(e) => { e.stopPropagation(); handlePlayVideo(project); }}
                                 className="gap-2 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-lg py-2 px-3"
                               >
                                 <Play className="w-3.5 h-3.5" />

@@ -16,7 +16,8 @@ import {
   RotateCcw,
   Layers,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ interface ClipResult {
   status: 'pending' | 'generating' | 'completed' | 'failed';
   videoUrl?: string;
   error?: string;
+  id?: string;
 }
 
 interface PipelineLog {
@@ -74,6 +76,29 @@ export default function Production() {
   const [startTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
   const [completedClips, setCompletedClips] = useState(0);
+  const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
+
+  // Load actual video clips from database
+  const loadVideoClips = useCallback(async () => {
+    if (!projectId || !user) return;
+    
+    const { data: clips, error: clipsError } = await supabase
+      .from('video_clips')
+      .select('id, shot_index, status, video_url, error_message')
+      .eq('project_id', projectId)
+      .order('shot_index');
+    
+    if (!clipsError && clips) {
+      setClipResults(clips.map(clip => ({
+        index: clip.shot_index,
+        status: clip.status as ClipResult['status'],
+        videoUrl: clip.video_url || undefined,
+        error: clip.error_message || undefined,
+        id: clip.id,
+      })));
+      setCompletedClips(clips.filter(c => c.status === 'completed').length);
+    }
+  }, [projectId, user]);
 
   // Add log entry helper
   const addLog = useCallback((message: string, type: PipelineLog['type'] = 'info') => {
@@ -205,7 +230,8 @@ export default function Production() {
     };
 
     loadProject();
-  }, [projectId, user, navigate, addLog]);
+    loadVideoClips();
+  }, [projectId, user, navigate, addLog, loadVideoClips]);
 
   // Real-time subscription for pipeline updates
   useEffect(() => {
@@ -467,13 +493,26 @@ export default function Production() {
         {clipResults.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Film className="w-5 h-5" />
-                Video Clips ({clipResults.filter(c => c.status === 'completed').length}/{clipResults.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Film className="w-5 h-5" />
+                  Video Clips ({clipResults.filter(c => c.status === 'completed').length}/{clipResults.length})
+                </CardTitle>
+                {clipResults.some(c => c.status === 'completed') && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => navigate(`/clips?projectId=${projectId}`)}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View All Clips
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                 {clipResults.map((clip, index) => (
                   <motion.div
                     key={index}
@@ -481,19 +520,43 @@ export default function Production() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: index * 0.02 }}
                     className={cn(
-                      "aspect-video rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-all",
+                      "aspect-video rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-all overflow-hidden relative group",
+                      clip.status === 'completed' && clip.videoUrl && "cursor-pointer hover:ring-2 hover:ring-primary",
                       clip.status === 'completed' && "bg-green-500/20 border-green-500 text-green-600",
                       clip.status === 'generating' && "bg-primary/20 border-primary text-primary animate-pulse",
                       clip.status === 'failed' && "bg-destructive/20 border-destructive text-destructive",
                       clip.status === 'pending' && "bg-muted/30 border-border text-muted-foreground"
                     )}
+                    onClick={() => {
+                      if (clip.status === 'completed' && clip.videoUrl) {
+                        setSelectedClipUrl(clip.videoUrl);
+                      }
+                    }}
                   >
-                    {clip.status === 'generating' ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                    {clip.status === 'completed' && clip.videoUrl ? (
+                      <>
+                        <video 
+                          src={clip.videoUrl} 
+                          className="absolute inset-0 w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                          onLoadedData={(e) => {
+                            (e.target as HTMLVideoElement).currentTime = 1;
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="w-6 h-6 text-white fill-white" />
+                        </div>
+                        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                          {index + 1}
+                        </div>
+                      </>
+                    ) : clip.status === 'generating' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : clip.status === 'completed' ? (
-                      <CheckCircle2 className="w-3 h-3" />
+                      <CheckCircle2 className="w-4 h-4" />
                     ) : clip.status === 'failed' ? (
-                      <XCircle className="w-3 h-3" />
+                      <XCircle className="w-4 h-4" />
                     ) : (
                       index + 1
                     )}
@@ -709,6 +772,55 @@ export default function Production() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Clip Video Modal */}
+        {selectedClipUrl && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setSelectedClipUrl(null)}
+          >
+            <div 
+              className="relative max-w-4xl w-full aspect-video"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <video
+                src={selectedClipUrl}
+                controls
+                autoPlay
+                className="w-full h-full rounded-xl"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                onClick={() => setSelectedClipUrl(null)}
+              >
+                <XCircle className="w-5 h-5" />
+              </Button>
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="bg-black/50"
+                  onClick={() => window.open(selectedClipUrl, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open
+                </Button>
+                <Button 
+                  size="sm"
+                  className="bg-white text-black hover:bg-white/90"
+                  asChild
+                >
+                  <a href={selectedClipUrl} download>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

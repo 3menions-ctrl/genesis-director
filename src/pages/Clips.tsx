@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { 
   Film, Play, Download, MoreVertical, Trash2, 
@@ -35,17 +35,20 @@ interface VideoClip {
 export default function Clips() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const projectIdFilter = searchParams.get('projectId');
   const [clips, setClips] = useState<VideoClip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClip, setSelectedClip] = useState<VideoClip | null>(null);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [projectTitle, setProjectTitle] = useState<string | null>(null);
 
   useEffect(() => {
     const loadClips = async () => {
       if (!user) return;
       
-      // Get clips with project titles
-      const { data, error } = await supabase
+      // Build query
+      let query = supabase
         .from('video_clips')
         .select(`
           id, prompt, status, video_url, shot_index, duration_seconds, 
@@ -55,6 +58,13 @@ export default function Clips() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
+      
+      // Filter by project if specified
+      if (projectIdFilter) {
+        query = query.eq('project_id', projectIdFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error loading clips:', error);
@@ -65,12 +75,17 @@ export default function Clips() {
           project_title: clip.movie_projects?.title || 'Unknown Project'
         }));
         setClips(clipsWithTitles);
+        
+        // Set project title if filtering
+        if (projectIdFilter && clipsWithTitles.length > 0) {
+          setProjectTitle(clipsWithTitles[0].project_title);
+        }
       }
       setIsLoading(false);
     };
 
     loadClips();
-  }, [user]);
+  }, [user, projectIdFilter]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -176,7 +191,19 @@ export default function Clips() {
             <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
               <Film className="w-4.5 h-4.5 text-emerald-400" />
             </div>
-            <span className="text-base font-semibold text-white/90">Clips Gallery</span>
+            <div className="flex flex-col">
+              <span className="text-base font-semibold text-white/90">
+                {projectTitle ? `Clips: ${projectTitle}` : 'Clips Gallery'}
+              </span>
+              {projectIdFilter && (
+                <button 
+                  onClick={() => navigate('/clips')}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 text-left"
+                >
+                  ← View all clips
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-1">

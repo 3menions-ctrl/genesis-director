@@ -607,15 +607,15 @@ export default function Production() {
                           setError(null);
                           addLog('Resuming pipeline from checkpoint...', 'info');
                           try {
-                            const { data, error: resumeError } = await supabase.functions.invoke('hollywood-pipeline', {
+                            const { data, error: resumeError } = await supabase.functions.invoke('resume-pipeline', {
                               body: {
                                 userId: user?.id,
                                 projectId,
                                 resumeFrom: 'production',
-                                skipApproval: true,
                               },
                             });
                             if (resumeError) throw resumeError;
+                            if (!data?.success) throw new Error(data?.error || 'Resume failed');
                             addLog('Pipeline resumed successfully', 'success');
                             setProjectStatus('generating');
                           } catch (err: any) {

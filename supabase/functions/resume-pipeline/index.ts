@@ -9,13 +9,16 @@ const corsHeaders = {
 /**
  * RESUME PIPELINE
  * 
- * Resumes the Hollywood Pipeline after script approval.
- * Accepts optional shot edits and continues from quality gate stage.
+ * Resumes the Hollywood Pipeline from various stages:
+ * - After script approval (awaiting_approval -> qualitygate)
+ * - After production failure (failed/generating -> production)
+ * - After any interruption
  */
 
 interface ResumeRequest {
   projectId: string;
   userId: string;
+  resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
   approvedShots?: Array<{
     id: string;
     title: string;
@@ -56,12 +59,27 @@ serve(async (req) => {
     }
 
     const pendingTasks = project.pending_video_tasks || {};
+    const currentStage = pendingTasks.stage;
     
-    if (pendingTasks.stage !== 'awaiting_approval') {
-      throw new Error(`Project is not awaiting approval. Current stage: ${pendingTasks.stage}`);
+    // Determine resume stage based on current state and explicit request
+    let resumeFrom = request.resumeFrom;
+    
+    if (!resumeFrom) {
+      // Auto-detect based on current stage
+      if (currentStage === 'awaiting_approval') {
+        resumeFrom = 'qualitygate';
+      } else if (currentStage === 'production' || currentStage === 'error' || project.status === 'failed' || project.status === 'generating') {
+        resumeFrom = 'production';
+      } else if (currentStage === 'assets') {
+        resumeFrom = 'assets';
+      } else {
+        throw new Error(`Cannot resume from stage: ${currentStage}. Current status: ${project.status}`);
+      }
     }
+    
+    console.log(`[ResumePipeline] Resuming from stage: ${resumeFrom}`);
 
-    // Update shots if user made edits
+    // Update shots if user made edits (only for script approval)
     let script = pendingTasks.script;
     if (request.approvedShots && request.approvedShots.length > 0) {
       script = { shots: request.approvedShots };
@@ -72,23 +90,25 @@ serve(async (req) => {
     await supabase
       .from('movie_projects')
       .update({
+        status: 'generating',
         pending_video_tasks: {
           ...pendingTasks,
           stage: 'resuming',
-          progress: 30,
+          progress: resumeFrom === 'production' ? 75 : 30,
           script,
-          approvedAt: new Date().toISOString(),
+          resumedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.projectId);
 
-    // Call hollywood-pipeline to continue from quality gate
+    // Call hollywood-pipeline to continue
     const pipelineRequest = {
       userId: request.userId,
       projectId: request.projectId,
-      resumeFrom: 'qualitygate',
+      resumeFrom,
+      skipApproval: true,
       approvedScript: script,
       // Pass through original config from pending tasks
       includeVoice: pendingTasks.config?.includeVoice ?? true,
@@ -102,7 +122,7 @@ serve(async (req) => {
       extractedCharacters: pendingTasks.extractedCharacters,
     };
 
-    console.log("[ResumePipeline] Calling hollywood-pipeline with resume config");
+    console.log("[ResumePipeline] Calling hollywood-pipeline with resume config:", resumeFrom);
 
     const response = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
       method: 'POST',
@@ -124,8 +144,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Pipeline resumed successfully',
+        message: `Pipeline resumed from ${resumeFrom}`,
         projectId: request.projectId,
+        resumedFrom: resumeFrom,
         ...pipelineResult,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -67,23 +67,24 @@ function calculateCosts(
   return { preProduction, production, qualityInsurance, total, creditsPerShot };
 }
 
-export function CostConfirmationDialog({
-  open,
-  onOpenChange,
-  onConfirm,
-  mode,
-  clipCount,
-  totalDuration,
-  includeVoice,
-  includeMusic,
-  qualityTier,
-  userCredits = 0,
-  defaultProjectName = '',
-}: CostConfirmationDialogProps) {
-  const [projectName, setProjectName] = useState(defaultProjectName);
-  const costs = calculateCosts(clipCount, qualityTier);
-  const hasEnoughCredits = userCredits >= costs.total;
-  const hasValidName = projectName.trim().length > 0;
+export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmationDialogProps>(
+  function CostConfirmationDialog({
+    open,
+    onOpenChange,
+    onConfirm,
+    mode,
+    clipCount,
+    totalDuration,
+    includeVoice,
+    includeMusic,
+    qualityTier,
+    userCredits = 0,
+    defaultProjectName = '',
+  }, ref) {
+    const [projectName, setProjectName] = useState(defaultProjectName);
+    const costs = calculateCosts(clipCount, qualityTier);
+    const hasEnoughCredits = userCredits >= costs.total;
+    const hasValidName = projectName.trim().length > 0;
 
   // Reset project name when dialog opens
   useEffect(() => {
@@ -263,4 +264,4 @@ export function CostConfirmationDialog({
       </DialogContent>
     </Dialog>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -28,20 +29,21 @@ interface StickyGenerateBarProps {
   disabled?: boolean;
 }
 
-export function StickyGenerateBar({
-  isRunning,
-  isComplete,
-  isError,
-  progress,
-  totalDuration,
-  clipCount,
-  estimatedCredits,
-  elapsedTime,
-  completedClips,
-  onGenerate,
-  onCancel,
-  disabled,
-}: StickyGenerateBarProps) {
+export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarProps>(
+  function StickyGenerateBar({
+    isRunning,
+    isComplete,
+    isError,
+    progress,
+    totalDuration,
+    clipCount,
+    estimatedCredits,
+    elapsedTime,
+    completedClips,
+    onGenerate,
+    onCancel,
+    disabled,
+  }, ref) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -52,7 +54,7 @@ export function StickyGenerateBar({
   if (isComplete || isError) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+    <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
       {/* Progress bar at top of sticky bar */}
       {isRunning && (
         <div className="h-1 bg-muted">
@@ -136,4 +138,4 @@ export function StickyGenerateBar({
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,7 +53,6 @@ import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
 import { ProductionPipeline } from '@/components/studio/ProductionPipeline';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
-import { ScriptReviewPanel, type ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { cn } from '@/lib/utils';
@@ -114,6 +114,7 @@ const CLIP_DURATION = 4;
 
 export function UnifiedStudio() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // Pipeline mode and configuration
@@ -153,8 +154,8 @@ export function UnifiedStudio() {
   const [referenceExpanded, setReferenceExpanded] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
   const [pipelineLogs, setPipelineLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'warning' | 'error' }>>([]);
-  const [pendingScript, setPendingScript] = useState<ScriptShot[] | null>(null);
-  const [isResumingPipeline, setIsResumingPipeline] = useState(false);
+  const [awaitingApprovalProjectId, setAwaitingApprovalProjectId] = useState<string | null>(null);
+  const [awaitingApprovalShotCount, setAwaitingApprovalShotCount] = useState<number>(0);
   
   // Stage tracking
   const [stages, setStages] = useState<StageStatus[]>([
@@ -239,38 +240,20 @@ export function UnifiedStudio() {
           }
           
           if (scriptData && Array.isArray(scriptData)) {
-            console.log('[Studio] Loading script with', scriptData.length, 'shots');
+            console.log('[Studio] Found script with', scriptData.length, 'shots');
             
-            // Convert shots to ScriptShot format
-            const scriptShots: ScriptShot[] = scriptData.map((shot: any, index: number) => ({
-              id: shot.id || `shot_${index + 1}`,
-              index,
-              title: shot.title || `Shot ${index + 1}`,
-              description: shot.description || '',
-              durationSeconds: shot.durationSeconds || 4,
-              sceneType: shot.sceneType,
-              cameraScale: shot.cameraScale,
-              cameraAngle: shot.cameraAngle,
-              movementType: shot.movementType,
-              transitionOut: shot.transitionOut,
-              visualAnchors: shot.visualAnchors,
-              motionDirection: shot.motionDirection,
-              lightingHint: shot.lightingHint,
-              dialogue: shot.dialogue,
-              mood: shot.mood,
-            }));
-            
-            // Restore the awaiting approval state
+            // Store project info for navigation to review page
             setActiveProjectId(project.id);
-            setPendingScript(scriptShots);
+            setAwaitingApprovalProjectId(project.id);
+            setAwaitingApprovalShotCount(scriptData.length);
             setCurrentStage('awaiting_approval');
             setProgress(30);
-            setClipCount(scriptShots.length);
+            setClipCount(scriptData.length);
             
             // Update stages
             setStages(prev => {
               const updated = [...prev];
-              updated[0] = { ...updated[0], status: 'complete', details: `${scriptShots.length} shots` };
+              updated[0] = { ...updated[0], status: 'complete', details: `${scriptData.length} shots` };
               return updated;
             });
             
@@ -460,36 +443,19 @@ export function UnifiedStudio() {
             toast.success('Video generated successfully!');
           }
           
-          // Handle awaiting_approval stage - show script for review
-          // Only process if we don't already have a pending script to avoid duplicate updates
-          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots && !pendingScript) {
+          // Handle awaiting_approval stage - store project ID for navigation
+          // Only process if we don't already have an awaiting project to avoid duplicate updates
+          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots && !awaitingApprovalProjectId) {
             console.log('[Studio] Script ready for approval:', tasks.script.shots.length, 'shots');
             setCurrentStage('awaiting_approval');
             setProgress(30);
             updateStageStatus(0, 'complete', `${tasks.script.shots.length} shots`);
             addPipelineLog('Script generated! Awaiting your approval...', 'success');
             
-            // Convert shots to ScriptShot format
-            const scriptShots: ScriptShot[] = tasks.script.shots.map((shot: any, index: number) => ({
-              id: shot.id || `shot_${index + 1}`,
-              index,
-              title: shot.title || `Shot ${index + 1}`,
-              description: shot.description || '',
-              durationSeconds: shot.durationSeconds || 4,
-              sceneType: shot.sceneType,
-              cameraScale: shot.cameraScale,
-              cameraAngle: shot.cameraAngle,
-              movementType: shot.movementType,
-              transitionOut: shot.transitionOut,
-              visualAnchors: shot.visualAnchors,
-              motionDirection: shot.motionDirection,
-              lightingHint: shot.lightingHint,
-              dialogue: shot.dialogue,
-              mood: shot.mood,
-            }));
-            
-            setPendingScript(scriptShots);
-            toast.info('Script ready! Please review and approve to continue.');
+            // Store project info for navigation
+            setAwaitingApprovalProjectId(activeProjectId);
+            setAwaitingApprovalShotCount(tasks.script.shots.length);
+            toast.info('Script ready! Click "Review Script" to approve.');
           }
           
           // Handle error
@@ -517,7 +483,7 @@ export function UnifiedStudio() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog, pendingScript]);
+  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog, awaitingApprovalProjectId]);
 
   const resetState = () => {
     setCurrentStage('idle');
@@ -533,135 +499,31 @@ export function UnifiedStudio() {
     setStartTime(null);
     setElapsedTime(0);
     setPipelineLogs([]);
-    setPendingScript(null);
-    setIsResumingPipeline(false);
+    setAwaitingApprovalProjectId(null);
+    setAwaitingApprovalShotCount(0);
     setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
     abortControllerRef.current = null;
   };
 
-  // Handle script approval - resume pipeline with approved/edited shots
-  const handleScriptApprove = async (approvedShots: ScriptShot[]) => {
-    if (!activeProjectId || !user) {
-      toast.error('Missing project or user information');
-      return;
-    }
-
-    setIsResumingPipeline(true);
-    addPipelineLog('Script approved! Resuming pipeline...', 'success');
-    toast.info('Resuming video production pipeline...');
-
-    try {
-      const { data, error: funcError } = await supabase.functions.invoke('resume-pipeline', {
-        body: {
-          projectId: activeProjectId,
-          userId: user.id,
-          approvedShots: approvedShots.map(shot => ({
-            id: shot.id,
-            title: shot.title,
-            description: shot.description,
-            durationSeconds: shot.durationSeconds,
-            sceneType: shot.sceneType,
-            cameraScale: shot.cameraScale,
-            cameraAngle: shot.cameraAngle,
-            movementType: shot.movementType,
-            transitionOut: shot.transitionOut,
-            visualAnchors: shot.visualAnchors,
-            motionDirection: shot.motionDirection,
-            lightingHint: shot.lightingHint,
-            dialogue: shot.dialogue,
-            mood: shot.mood,
-          })),
-        },
-      });
-
-      if (funcError) throw funcError;
-
-      if (data?.success) {
-        setPendingScript(null);
-        setCurrentStage('qualitygate');
-        updateStageStatus(0, 'complete', `${approvedShots.length} shots`);
-        updateStageStatus(2, 'active', 'Auditing...');
-        addPipelineLog('Pipeline resumed! Starting quality audit...', 'info');
-      } else {
-        throw new Error(data?.error || 'Failed to resume pipeline');
-      }
-    } catch (err) {
-      console.error('Resume pipeline error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to resume pipeline';
-      setError(message);
-      addPipelineLog(`Error: ${message}`, 'error');
-      toast.error(message);
-    } finally {
-      setIsResumingPipeline(false);
+  // Navigate to script review page
+  const handleReviewScript = () => {
+    if (awaitingApprovalProjectId) {
+      navigate(`/script-review?projectId=${awaitingApprovalProjectId}`);
     }
   };
 
-  // Handle script regeneration
-  const handleScriptRegenerate = async () => {
-    if (!activeProjectId || !user) {
-      toast.error('Missing project or user information');
-      return;
+  // Handle canceling awaiting approval
+  const handleCancelAwaitingApproval = async () => {
+    if (awaitingApprovalProjectId) {
+      try {
+        await supabase
+          .from('movie_projects')
+          .update({ status: 'draft' })
+          .eq('id', awaitingApprovalProjectId);
+      } catch (err) {
+        console.error('Error canceling:', err);
+      }
     }
-
-    setPendingScript(null);
-    setIsResumingPipeline(true);
-    addPipelineLog('Regenerating script...', 'info');
-    toast.info('Regenerating script...');
-
-    try {
-      // Reset to preproduction and call pipeline again
-      setCurrentStage('preproduction');
-      updateStageStatus(0, 'active', 'Regenerating...');
-
-      const requestBody: any = {
-        userId: user.id,
-        projectId: activeProjectId,
-        clipCount,
-        totalDuration: clipCount * CLIP_DURATION,
-        includeVoice,
-        includeMusic,
-        genre,
-        mood,
-        colorGrading,
-        qualityTier,
-      };
-
-      if (mode === 'ai') {
-        requestBody.concept = concept;
-      } else {
-        requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
-      }
-
-      if (referenceImageAnalysis) {
-        requestBody.referenceImageAnalysis = referenceImageAnalysis;
-      }
-
-      const { data, error: funcError } = await supabase.functions.invoke('hollywood-pipeline', {
-        body: requestBody,
-      });
-
-      if (funcError) throw funcError;
-
-      if (data?.success) {
-        addPipelineLog('Script regeneration started...', 'info');
-      } else {
-        throw new Error(data?.error || 'Failed to regenerate script');
-      }
-    } catch (err) {
-      console.error('Regenerate script error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to regenerate script';
-      setError(message);
-      setCurrentStage('error');
-      addPipelineLog(`Error: ${message}`, 'error');
-      toast.error(message);
-    } finally {
-      setIsResumingPipeline(false);
-    }
-  };
-
-  // Handle canceling script review
-  const handleScriptCancel = () => {
-    setPendingScript(null);
     resetState();
     toast.info('Pipeline cancelled');
   };
@@ -1230,18 +1092,35 @@ export function UnifiedStudio() {
           </Card>
         </Collapsible>
 
-        {/* Script Review Panel - Show when awaiting approval */}
-        {isAwaitingApproval && pendingScript && (
-          <Card className="border-primary/30 bg-primary/5">
+        {/* Script Review Button - Show when awaiting approval */}
+        {isAwaitingApproval && awaitingApprovalProjectId && (
+          <Card className="border-green-500/50 bg-green-500/10">
             <CardContent className="p-6">
-              <ScriptReviewPanel
-                shots={pendingScript}
-                onApprove={handleScriptApprove}
-                onRegenerate={handleScriptRegenerate}
-                onCancel={handleScriptCancel}
-                isLoading={isResumingPipeline}
-                totalDuration={clipCount * CLIP_DURATION}
-              />
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center">
+                    <FileText className="w-7 h-7 text-green-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-green-600">Script Ready for Review</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {awaitingApprovalShotCount} shots generated • Review and approve to continue
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={handleCancelAwaitingApproval}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleReviewScript}
+                    className="bg-green-600 hover:bg-green-700 text-white min-w-[160px]"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Review Script
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

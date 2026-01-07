@@ -18,6 +18,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
 import LongVideo from "./pages/LongVideo";
+import ScriptReview from "./pages/ScriptReview";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,13 @@ const App = () => (
               <Route path="/create" element={
                 <ProtectedRoute>
                   <StudioLayout><LongVideo /></StudioLayout>
+                </ProtectedRoute>
+              } />
+              
+              {/* Script Review Route */}
+              <Route path="/script-review" element={
+                <ProtectedRoute>
+                  <ScriptReview />
                 </ProtectedRoute>
               } />
               

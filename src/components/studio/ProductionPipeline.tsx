@@ -20,7 +20,9 @@ import {
   Volume2,
   Music,
   Palette,
-  Layers
+  Layers,
+  Video,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -29,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FullscreenVideoPlayer } from './FullscreenVideoPlayer';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StageStatus {
   name: string;
@@ -51,6 +54,17 @@ interface ProductionPipelineProps {
   identityBibleViews?: { front?: string; side?: string; threeQuarter?: string } | null;
   onCancel?: () => void;
   className?: string;
+  projectId?: string;
+}
+
+interface DatabaseClip {
+  id: string;
+  shot_index: number;
+  prompt: string;
+  status: string;
+  video_url: string | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 const STAGE_ICONS = [FileText, Users, Shield, Wand2, Film, Sparkles];
@@ -106,11 +120,43 @@ export function ProductionPipeline({
   sceneImages = [],
   identityBibleViews,
   onCancel,
-  className
+  className,
+  projectId
 }: ProductionPipelineProps) {
   const [selectedStage, setSelectedStage] = useState<number | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [pulseIndex, setPulseIndex] = useState(0);
+  const [showClipsDialog, setShowClipsDialog] = useState(false);
+  const [databaseClips, setDatabaseClips] = useState<DatabaseClip[]>([]);
+  const [loadingClips, setLoadingClips] = useState(false);
+  const [playingClipUrl, setPlayingClipUrl] = useState<string | null>(null);
+
+  // Fetch clips from database when dialog opens
+  const fetchClipsFromDatabase = useCallback(async () => {
+    if (!projectId) return;
+    
+    setLoadingClips(true);
+    try {
+      const { data, error } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, prompt, status, video_url, error_message, created_at')
+        .eq('project_id', projectId)
+        .order('shot_index', { ascending: true });
+      
+      if (error) throw error;
+      setDatabaseClips(data || []);
+    } catch (err) {
+      console.error('Failed to fetch clips:', err);
+    } finally {
+      setLoadingClips(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (showClipsDialog) {
+      fetchClipsFromDatabase();
+    }
+  }, [showClipsDialog, fetchClipsFromDatabase]);
 
   // Animated pulse effect for active stages
   useEffect(() => {
@@ -149,12 +195,26 @@ export function ProductionPipeline({
           </div>
         </div>
         
-        {isRunning && onCancel && (
-          <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground hover:text-destructive">
-            <X className="w-4 h-4 mr-2" />
-            Cancel
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {projectId && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowClipsDialog(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Video className="w-4 h-4 mr-2" />
+              View Clips
+            </Button>
+          )}
+          
+          {isRunning && onCancel && (
+            <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground hover:text-destructive">
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+          )}
+        </div>
       </motion.div>
 
       {/* Main Pipeline Visualization */}
@@ -624,6 +684,169 @@ export function ProductionPipeline({
           />
         </div>
       )}
+
+      {/* Playing individual clip */}
+      {playingClipUrl && (
+        <div className="fixed inset-0 z-50">
+          <FullscreenVideoPlayer
+            clips={[playingClipUrl]}
+            title="Clip Preview"
+            onClose={() => setPlayingClipUrl(null)}
+          />
+        </div>
+      )}
+
+      {/* View Clips Dialog */}
+      <Dialog open={showClipsDialog} onOpenChange={setShowClipsDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              Generated Clips
+            </DialogTitle>
+            <DialogDescription>
+              {databaseClips.length > 0 
+                ? `${databaseClips.filter(c => c.video_url).length} of ${databaseClips.length} clips generated`
+                : 'No clips found for this project'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="h-[60vh] pr-4">
+            {loadingClips ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : databaseClips.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Video className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground">No clips have been generated yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {databaseClips.map((clip) => (
+                  <motion.div
+                    key={clip.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "rounded-xl border overflow-hidden",
+                      clip.status === 'completed' && clip.video_url && "border-success/30 bg-success/5",
+                      clip.status === 'generating' && "border-primary/30 bg-primary/5",
+                      clip.status === 'pending' && "border-border bg-muted/30",
+                      clip.status === 'failed' && "border-destructive/30 bg-destructive/5"
+                    )}
+                  >
+                    {/* Video preview or placeholder */}
+                    <div className="relative aspect-video bg-black/20">
+                      {clip.video_url ? (
+                        <>
+                          <video
+                            src={clip.video_url}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            muted
+                            playsInline
+                            onMouseEnter={(e) => e.currentTarget.play()}
+                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          
+                          {/* Play button overlay */}
+                          <button
+                            onClick={() => setPlayingClipUrl(clip.video_url!)}
+                            className="absolute inset-0 flex items-center justify-center group"
+                          >
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <Play className="w-5 h-5 text-primary fill-primary ml-0.5" />
+                            </div>
+                          </button>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {clip.status === 'generating' ? (
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          ) : clip.status === 'failed' ? (
+                            <XCircle className="w-8 h-8 text-destructive" />
+                          ) : (
+                            <Film className="w-8 h-8 text-muted-foreground/50" />
+                          )}
+                        </div>
+                      )}
+
+                      {/* Shot number badge */}
+                      <Badge 
+                        className="absolute top-2 left-2"
+                        variant={clip.status === 'completed' ? 'default' : 'secondary'}
+                      >
+                        Shot {clip.shot_index + 1}
+                      </Badge>
+
+                      {/* Status badge */}
+                      <Badge 
+                        className={cn(
+                          "absolute top-2 right-2",
+                          clip.status === 'completed' && "bg-success text-success-foreground",
+                          clip.status === 'generating' && "bg-primary text-primary-foreground",
+                          clip.status === 'failed' && "bg-destructive text-destructive-foreground"
+                        )}
+                        variant="secondary"
+                      >
+                        {clip.status === 'completed' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                        {clip.status === 'generating' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                        {clip.status === 'failed' && <XCircle className="w-3 h-3 mr-1" />}
+                        {clip.status}
+                      </Badge>
+                    </div>
+
+                    {/* Clip info */}
+                    <div className="p-3 space-y-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {clip.prompt}
+                      </p>
+                      
+                      {clip.error_message && (
+                        <p className="text-xs text-destructive line-clamp-2">
+                          Error: {clip.error_message}
+                        </p>
+                      )}
+
+                      {clip.video_url && (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="flex-1"
+                            onClick={() => setPlayingClipUrl(clip.video_url!)}
+                          >
+                            <Play className="w-3 h-3 mr-1" />
+                            Play
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.open(clip.video_url!, '_blank')}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {databaseClips.filter(c => c.video_url).length} completed clips
+            </div>
+            <Button variant="outline" onClick={() => fetchClipsFromDatabase()}>
+              <Loader2 className={cn("w-4 h-4 mr-2", loadingClips && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

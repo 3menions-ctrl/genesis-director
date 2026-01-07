@@ -194,7 +194,12 @@ export function UnifiedStudio() {
   // Check for projects awaiting approval on mount
   useEffect(() => {
     const checkForAwaitingApproval = async () => {
-      if (!user || currentStage !== 'idle') return;
+      console.log('[Studio] Checking for awaiting approval, user:', !!user, 'stage:', currentStage);
+      if (!user) return;
+      if (currentStage !== 'idle') {
+        console.log('[Studio] Skipping check - not idle');
+        return;
+      }
       
       try {
         // Find projects that are awaiting approval
@@ -206,6 +211,8 @@ export function UnifiedStudio() {
           .order('updated_at', { ascending: false })
           .limit(1);
         
+        console.log('[Studio] Awaiting approval query result:', projects?.length, error);
+        
         if (error) {
           console.error('Error checking for awaiting approval:', error);
           return;
@@ -215,6 +222,8 @@ export function UnifiedStudio() {
           const project = projects[0];
           const tasks = project.pending_video_tasks as any;
           
+          console.log('[Studio] Found awaiting project:', project.id, 'tasks:', !!tasks?.script?.shots);
+          
           // Check if there's a script to review (either in tasks or generated_script)
           let scriptData = tasks?.script?.shots;
           if (!scriptData && project.generated_script) {
@@ -223,13 +232,14 @@ export function UnifiedStudio() {
                 ? JSON.parse(project.generated_script) 
                 : project.generated_script;
               scriptData = parsed?.shots;
+              console.log('[Studio] Parsed generated_script, shots:', scriptData?.length);
             } catch (e) {
               console.error('Failed to parse generated_script:', e);
             }
           }
           
           if (scriptData && Array.isArray(scriptData)) {
-            console.log('[Studio] Found project awaiting approval:', project.id);
+            console.log('[Studio] Loading script with', scriptData.length, 'shots');
             
             // Convert shots to ScriptShot format
             const scriptShots: ScriptShot[] = scriptData.map((shot: any, index: number) => ({
@@ -264,7 +274,6 @@ export function UnifiedStudio() {
               return updated;
             });
             
-            addPipelineLog('Found pending script approval. Please review and approve.', 'info');
             toast.info('You have a script waiting for approval!');
           }
         }
@@ -274,7 +283,7 @@ export function UnifiedStudio() {
     };
     
     checkForAwaitingApproval();
-  }, [user, currentStage, addPipelineLog]);
+  }, [user]);
 
   const updatePrompt = (index: number, value: string) => {
     setManualPrompts(prev => {

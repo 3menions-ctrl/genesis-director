@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.generate-multi-character-bible]
 verify_jwt = false
+
+[functions.analyze-depth-consistency]
+verify_jwt = false

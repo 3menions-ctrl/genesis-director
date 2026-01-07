@@ -479,9 +479,62 @@ async function runQualityGate(
     };
   }
   
+  // 2b. Run Depth Consistency Analysis for professional tier
+  if (request.qualityTier === 'professional' && state.auditResult?.optimizedShots) {
+    console.log(`[Hollywood] Running Depth Consistency Analysis...`);
+    
+    try {
+      // Use scene images or reference image for depth analysis
+      const shotsForAnalysis = state.auditResult.optimizedShots.slice(0, 6).map((shot, i) => ({
+        id: shot.shotId,
+        frameUrl: state.assets?.sceneImages?.[i]?.imageUrl || request.referenceImageUrl || '',
+        description: shot.optimizedDescription,
+        previousShotId: i > 0 ? state.auditResult!.optimizedShots[i - 1].shotId : undefined,
+      })).filter(s => s.frameUrl);
+      
+      if (shotsForAnalysis.length > 0) {
+        const depthResult = await callEdgeFunction('analyze-depth-consistency', {
+          projectId: state.projectId,
+          shots: shotsForAnalysis,
+          knownObjects: state.extractedCharacters?.map(c => ({
+            name: c.name,
+            type: 'character',
+            isPersistent: true,
+          })) || [],
+          strictness: 'normal',
+        });
+        
+        if (depthResult.success) {
+          (state as any).depthConsistency = {
+            overallScore: depthResult.state?.overallScore || 0,
+            violations: depthResult.violations || [],
+            correctivePrompts: depthResult.correctivePrompts || [],
+          };
+          
+          console.log(`[Hollywood] Depth Consistency Score: ${depthResult.state?.overallScore || 0}/100`);
+          console.log(`[Hollywood] Found ${depthResult.violations?.length || 0} spatial violations`);
+          
+          // Apply corrective prompts to optimized shots
+          if (depthResult.correctivePrompts?.length > 0) {
+            for (const correction of depthResult.correctivePrompts) {
+              const shotIdx = state.auditResult!.optimizedShots.findIndex(s => s.shotId === correction.shotId);
+              if (shotIdx >= 0) {
+                state.auditResult!.optimizedShots[shotIdx].optimizedDescription = correction.correctedPrompt;
+                console.log(`[Hollywood] Applied depth corrections to ${correction.shotId}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Depth Consistency Analysis failed:`, err);
+    }
+  }
+  
   state.progress = 45;
   await updateProjectProgress(supabase, state.projectId, 'qualitygate', 45, {
     auditScore: state.auditResult?.overallScore || 0,
+    depthScore: (state as any).depthConsistency?.overallScore,
   });
   
   return state;

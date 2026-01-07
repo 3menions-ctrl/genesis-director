@@ -192,10 +192,10 @@ export function UnifiedStudio() {
     fetchCredits();
   }, [user]);
 
-  // Check for projects awaiting approval on mount
+  // Check for projects awaiting approval OR in-progress on mount
   useEffect(() => {
-    const checkForAwaitingApproval = async () => {
-      console.log('[Studio] Checking for awaiting approval, user:', !!user, 'stage:', currentStage);
+    const checkForActiveProjects = async () => {
+      console.log('[Studio] Checking for active projects, user:', !!user, 'stage:', currentStage);
       if (!user) return;
       if (currentStage !== 'idle') {
         console.log('[Studio] Skipping check - not idle');
@@ -203,19 +203,19 @@ export function UnifiedStudio() {
       }
       
       try {
-        // Find projects that are awaiting approval
+        // Find projects that are awaiting approval OR actively producing
         const { data: projects, error } = await supabase
           .from('movie_projects')
-          .select('id, pending_video_tasks, generated_script, status')
+          .select('id, pending_video_tasks, generated_script, status, title')
           .eq('user_id', user.id)
-          .eq('status', 'awaiting_approval')
+          .in('status', ['awaiting_approval', 'producing', 'generating', 'rendering'])
           .order('updated_at', { ascending: false })
           .limit(1);
         
-        console.log('[Studio] Awaiting approval query result:', projects?.length, error);
+        console.log('[Studio] Active project query result:', projects?.length, error);
         
         if (error) {
-          console.error('Error checking for awaiting approval:', error);
+          console.error('Error checking for active projects:', error);
           return;
         }
         
@@ -223,49 +223,96 @@ export function UnifiedStudio() {
           const project = projects[0];
           const tasks = project.pending_video_tasks as any;
           
-          console.log('[Studio] Found awaiting project:', project.id, 'tasks:', !!tasks?.script?.shots);
+          console.log('[Studio] Found active project:', project.id, 'status:', project.status);
           
-          // Check if there's a script to review (either in tasks or generated_script)
-          let scriptData = tasks?.script?.shots;
-          if (!scriptData && project.generated_script) {
-            try {
-              const parsed = typeof project.generated_script === 'string' 
-                ? JSON.parse(project.generated_script) 
-                : project.generated_script;
-              scriptData = parsed?.shots;
-              console.log('[Studio] Parsed generated_script, shots:', scriptData?.length);
-            } catch (e) {
-              console.error('Failed to parse generated_script:', e);
+          // Handle awaiting_approval status
+          if (project.status === 'awaiting_approval') {
+            let scriptData = tasks?.script?.shots;
+            if (!scriptData && project.generated_script) {
+              try {
+                const parsed = typeof project.generated_script === 'string' 
+                  ? JSON.parse(project.generated_script) 
+                  : project.generated_script;
+                scriptData = parsed?.shots;
+              } catch (e) {
+                console.error('Failed to parse generated_script:', e);
+              }
             }
-          }
-          
-          if (scriptData && Array.isArray(scriptData)) {
-            console.log('[Studio] Found script with', scriptData.length, 'shots');
             
-            // Store project info for navigation to review page
+            if (scriptData && Array.isArray(scriptData)) {
+              console.log('[Studio] Found script with', scriptData.length, 'shots - awaiting approval');
+              setActiveProjectId(project.id);
+              setAwaitingApprovalProjectId(project.id);
+              setAwaitingApprovalShotCount(scriptData.length);
+              setCurrentStage('awaiting_approval');
+              setProgress(30);
+              setClipCount(scriptData.length);
+              
+              setStages(prev => {
+                const updated = [...prev];
+                updated[0] = { ...updated[0], status: 'complete', details: `${scriptData.length} shots` };
+                return updated;
+              });
+              
+              toast.info('You have a script waiting for approval!');
+            }
+          } 
+          // Handle in-progress statuses (producing, generating, rendering)
+          else if (['producing', 'generating', 'rendering'].includes(project.status)) {
+            console.log('[Studio] Restoring in-progress pipeline:', project.id);
             setActiveProjectId(project.id);
-            setAwaitingApprovalProjectId(project.id);
-            setAwaitingApprovalShotCount(scriptData.length);
-            setCurrentStage('awaiting_approval');
-            setProgress(30);
-            setClipCount(scriptData.length);
             
-            // Update stages
+            // Determine current stage based on tasks
+            const stage = tasks?.stage || 'production';
+            const progress = tasks?.progress || 50;
+            
+            // Map backend stage to UI stage
+            const stageMap: Record<string, PipelineStage> = {
+              'preproduction': 'preproduction',
+              'qualitygate': 'qualitygate',
+              'assets': 'assets',
+              'production': 'production',
+              'postproduction': 'postproduction',
+            };
+            
+            setCurrentStage(stageMap[stage] || 'production');
+            setProgress(progress);
+            setStartTime(Date.now() - (tasks?.elapsedSeconds || 0) * 1000);
+            
+            // Update clip count from tasks if available
+            if (tasks?.clipCount) {
+              setClipCount(tasks.clipCount);
+            }
+            
+            // Restore clip results if available
+            if (tasks?.clipsCompleted !== undefined) {
+              const clipCount = tasks.clipCount || 6;
+              setClipResults(Array(clipCount).fill(null).map((_, i) => ({
+                index: i,
+                status: i < tasks.clipsCompleted ? 'completed' : (i === tasks.clipsCompleted ? 'generating' : 'pending'),
+              })));
+            }
+            
+            // Update stage statuses
+            const stageIndex = ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'].indexOf(stage);
             setStages(prev => {
               const updated = [...prev];
-              updated[0] = { ...updated[0], status: 'complete', details: `${scriptData.length} shots` };
+              for (let i = 0; i <= stageIndex; i++) {
+                updated[i] = { ...updated[i], status: i < stageIndex ? 'complete' : 'active' };
+              }
               return updated;
             });
             
-            toast.info('You have a script waiting for approval!');
+            addPipelineLog(`Reconnected to pipeline: ${project.title}`, 'info');
+            toast.info('Reconnected to your video pipeline!');
           }
         }
       } catch (err) {
-        console.error('Error checking awaiting approval:', err);
+        console.error('Error checking active projects:', err);
       }
     };
     
-    checkForAwaitingApproval();
+    checkForActiveProjects();
   }, [user]);
 
   const updatePrompt = (index: number, value: string) => {

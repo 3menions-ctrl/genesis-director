@@ -144,6 +144,7 @@ export function ProductionPipeline({
   const [databaseClips, setDatabaseClips] = useState<DatabaseClip[]>([]);
   const [loadingClips, setLoadingClips] = useState(false);
   const [playingClipUrl, setPlayingClipUrl] = useState<string | null>(null);
+  const [liveProFeaturesData, setLiveProFeaturesData] = useState<ProFeaturesData>({});
 
   // Fetch clips from database when dialog opens
   const fetchClipsFromDatabase = useCallback(async () => {
@@ -165,6 +166,82 @@ export function ProductionPipeline({
       setLoadingClips(false);
     }
   }, [projectId]);
+
+  // Fetch pro features data from project's pending_video_tasks
+  useEffect(() => {
+    if (!projectId || qualityTier !== 'professional') return;
+    
+    const fetchProFeatures = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('movie_projects')
+          .select('pending_video_tasks, pro_features_data')
+          .eq('id', projectId)
+          .single();
+        
+        if (error) throw error;
+        
+        // Extract pro features from pending_video_tasks or pro_features_data
+        const tasks = data?.pending_video_tasks as Record<string, unknown> | null;
+        const proData = data?.pro_features_data as ProFeaturesData | null;
+        
+        if (proData) {
+          setLiveProFeaturesData(proData);
+        } else if (tasks?.proFeaturesUsed) {
+          const pfu = tasks.proFeaturesUsed as Record<string, unknown>;
+          setLiveProFeaturesData({
+            musicSync: { enabled: !!pfu.musicSync, count: typeof pfu.musicSync === 'number' ? pfu.musicSync : undefined },
+            colorGrading: { enabled: !!pfu.colorGrading, details: typeof pfu.colorGrading === 'string' ? pfu.colorGrading : undefined },
+            sfx: { enabled: !!pfu.sfxCues, count: typeof pfu.sfxCues === 'number' ? pfu.sfxCues : undefined },
+            visualDebugger: { enabled: true },
+            multiCharacterBible: { enabled: !!pfu.multiCharacterBible },
+            depthConsistency: { enabled: !!pfu.depthConsistency, score: typeof pfu.depthConsistency === 'number' ? pfu.depthConsistency : undefined },
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch pro features:', err);
+      }
+    };
+    
+    fetchProFeatures();
+    
+    // Subscribe to realtime updates for pro features
+    const channel = supabase
+      .channel(`pro_features_${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'movie_projects',
+          filter: `id=eq.${projectId}`,
+        },
+        (payload) => {
+          const project = payload.new as Record<string, unknown>;
+          const tasks = project?.pending_video_tasks as Record<string, unknown> | null;
+          const proData = project?.pro_features_data as ProFeaturesData | null;
+          
+          if (proData) {
+            setLiveProFeaturesData(proData);
+          } else if (tasks?.proFeaturesUsed) {
+            const pfu = tasks.proFeaturesUsed as Record<string, unknown>;
+            setLiveProFeaturesData({
+              musicSync: { enabled: !!pfu.musicSync, count: typeof pfu.musicSync === 'number' ? pfu.musicSync : undefined },
+              colorGrading: { enabled: !!pfu.colorGrading, details: typeof pfu.colorGrading === 'string' ? pfu.colorGrading : undefined },
+              sfx: { enabled: !!pfu.sfxCues, count: typeof pfu.sfxCues === 'number' ? pfu.sfxCues : undefined },
+              visualDebugger: { enabled: true },
+              multiCharacterBible: { enabled: !!pfu.multiCharacterBible },
+              depthConsistency: { enabled: !!pfu.depthConsistency, score: typeof pfu.depthConsistency === 'number' ? pfu.depthConsistency : undefined },
+            });
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, qualityTier]);
 
   useEffect(() => {
     if (showClipsDialog) {
@@ -189,6 +266,9 @@ export function ProductionPipeline({
   const lineProgress = completedCount > 0 
     ? ((completedCount - 0.5) / (stages.length - 1)) * 100
     : 0;
+  
+  // Merge passed proFeaturesData with live data
+  const mergedProFeaturesData = { ...proFeaturesData, ...liveProFeaturesData };
 
   return (
     <div className={cn("w-full", className)}>
@@ -448,7 +528,7 @@ export function ProductionPipeline({
       {qualityTier === 'professional' && (
         <ProFeaturesPanel
           qualityTier={qualityTier}
-          proFeaturesData={proFeaturesData}
+          proFeaturesData={mergedProFeaturesData}
           isRunning={isRunning}
           className="mt-6"
         />

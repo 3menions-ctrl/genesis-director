@@ -1127,6 +1127,10 @@ async function runProduction(
           maxBridgeClips: 3,
           targetFormat: '1080p',
           qualityTier: 'professional',
+          // Pass pro features for intelligent audio-visual sync
+          musicSyncPlan: (state as any).musicSyncPlan,
+          colorGradingFilter: (state as any).colorGrading?.masterFilter,
+          sfxPlan: (state as any).sfxPlan,
         });
         
         if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
@@ -1363,11 +1367,45 @@ async function executePipelineInBackground(
       });
     }
     
+    // Build pro_features_data for database storage
+    const proFeaturesData = request.qualityTier === 'professional' ? {
+      musicSync: { 
+        enabled: !!(state as any).musicSyncPlan, 
+        count: (state as any).musicSyncPlan?.emotionalBeats?.length || 0 
+      },
+      colorGrading: { 
+        enabled: !!(state as any).colorGrading, 
+        details: (state as any).colorGrading?.masterPreset,
+        score: (state as any).colorGrading?.consistencyScore 
+      },
+      sfx: { 
+        enabled: !!(state as any).sfxPlan, 
+        count: (state as any).sfxPlan?.sfxCues?.length || 0 
+      },
+      visualDebugger: { 
+        enabled: state.production?.clipResults?.some((c: any) => c.visualDebugResult),
+        retriesUsed: state.production?.clipResults?.reduce((sum: number, c: any) => sum + (c.visualDebugResult?.retriesUsed || 0), 0) || 0,
+        avgScore: state.production?.clipResults?.filter((c: any) => c.visualDebugResult)
+          .reduce((sum: number, c: any, _, arr) => sum + (c.visualDebugResult?.score || 0) / arr.length, 0) || 0
+      },
+      multiCharacterBible: { 
+        enabled: !!(state as any).multiCharacterBible,
+        count: (state as any).multiCharacterBible?.characters?.length || 0
+      },
+      depthConsistency: { 
+        enabled: !!(state as any).depthConsistency, 
+        score: (state as any).depthConsistency?.overallScore 
+      },
+    } : null;
+    
     // Update project as completed
     await supabase
       .from('movie_projects')
       .update({
         video_url: state.finalVideoUrl,
+        music_url: state.assets?.musicUrl,
+        quality_tier: request.qualityTier || 'standard',
+        pro_features_data: proFeaturesData,
         status: state.finalVideoUrl ? 'completed' : 'failed',
         generated_script: state.script ? JSON.stringify(state.script) : null,
         scene_images: state.assets?.sceneImages || null,
@@ -1394,6 +1432,7 @@ async function executePipelineInBackground(
               clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
             },
           },
+          proFeaturesUsed: proFeaturesData,
           creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
         },
         updated_at: new Date().toISOString(),

@@ -61,6 +61,7 @@ export default function Production() {
   const { user } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isResuming, setIsResuming] = useState(false);
   const [projectTitle, setProjectTitle] = useState('');
   const [projectStatus, setProjectStatus] = useState('');
   const [stages, setStages] = useState<StageStatus[]>(INITIAL_STAGES);
@@ -72,6 +73,7 @@ export default function Production() {
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState<number>(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [completedClips, setCompletedClips] = useState(0);
 
   // Add log entry helper
   const addLog = useCallback((message: string, type: PipelineLog['type'] = 'info') => {
@@ -138,6 +140,7 @@ export default function Production() {
           // Restore clip results
           const clipCount = tasks.clipCount || 6;
           if (tasks.clipsCompleted !== undefined) {
+            setCompletedClips(tasks.clipsCompleted);
             setClipResults(Array(clipCount).fill(null).map((_, i) => ({
               index: i,
               status: i < tasks.clipsCompleted ? 'completed' : (i === tasks.clipsCompleted ? 'generating' : 'pending'),
@@ -268,6 +271,7 @@ export default function Production() {
 
           if (tasks.clipsCompleted !== undefined) {
             const clipCount = tasks.clipCount || clipResults.length || 6;
+            setCompletedClips(tasks.clipsCompleted);
             setClipResults(prev => {
               const updated = [...prev];
               for (let i = 0; i < clipCount; i++) {
@@ -585,18 +589,59 @@ export default function Production() {
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
                 <AlertCircle className="w-6 h-6 text-destructive shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <h3 className="font-semibold text-destructive">Pipeline Error</h3>
                   <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => navigate('/create')}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Start New Project
-                  </Button>
+                  {error.includes('WORKER_LIMIT') && completedClips > 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {completedClips} clips were generated before the timeout. You can resume to continue from where it left off.
+                    </p>
+                  )}
+                  <div className="flex gap-3 mt-4">
+                    {completedClips > 0 && (
+                      <Button 
+                        size="sm"
+                        disabled={isResuming}
+                        onClick={async () => {
+                          setIsResuming(true);
+                          setError(null);
+                          addLog('Resuming pipeline from checkpoint...', 'info');
+                          try {
+                            const { data, error: resumeError } = await supabase.functions.invoke('hollywood-pipeline', {
+                              body: {
+                                userId: user?.id,
+                                projectId,
+                                resumeFrom: 'production',
+                                skipApproval: true,
+                              },
+                            });
+                            if (resumeError) throw resumeError;
+                            addLog('Pipeline resumed successfully', 'success');
+                            setProjectStatus('generating');
+                          } catch (err: any) {
+                            setError(err.message || 'Failed to resume');
+                            addLog(`Resume failed: ${err.message}`, 'error');
+                          } finally {
+                            setIsResuming(false);
+                          }
+                        }}
+                      >
+                        {isResuming ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                        )}
+                        Resume from Clip {completedClips + 1}
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => navigate('/create')}
+                    >
+                      Start New Project
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

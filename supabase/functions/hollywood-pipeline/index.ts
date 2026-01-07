@@ -443,8 +443,8 @@ async function runPreProduction(
     }
   }
   
-  // 1e. Generate Multi-Character Identity Bible for professional tier (2+ characters)
-  if (request.qualityTier === 'professional' && (state.extractedCharacters?.length || 0) >= 2) {
+  // 1e. Generate Multi-Character Identity Bible (ALWAYS for 2+ characters, all tiers)
+  if ((state.extractedCharacters?.length || 0) >= 2) {
     console.log(`[Hollywood] Generating Multi-Character Identity Bible for ${state.extractedCharacters?.length} characters...`);
     
     try {
@@ -467,7 +467,6 @@ async function runPreProduction(
         (state as any).multiCharacterBible = multiCharResult.bible;
         console.log(`[Hollywood] Multi-Character Bible complete: ${multiCharResult.bible.characters?.length || 0} characters with ${multiCharResult.bible.shotPresence?.length || 0} shot mappings`);
         
-        // Merge character consistency prompts
         const multiCharPrompts = multiCharResult.bible.characters
           ?.map((c: any) => c.consistencyPrompt)
           .filter(Boolean)
@@ -476,10 +475,14 @@ async function runPreProduction(
         if (multiCharPrompts && state.identityBible) {
           state.identityBible.consistencyPrompt = `${state.identityBible.consistencyPrompt || ''}. CHARACTERS: ${multiCharPrompts}`;
         }
+      } else {
+        console.error(`[Hollywood] Multi-Character Bible returned no bible`);
       }
     } catch (err) {
-      console.warn(`[Hollywood] Multi-Character Bible generation failed:`, err);
+      console.error(`[Hollywood] Multi-Character Bible generation FAILED:`, err);
     }
+  } else {
+    console.log(`[Hollywood] Skipping Multi-Character Bible (only ${state.extractedCharacters?.length || 0} characters)`);
   }
   
   state.progress = 30;
@@ -675,10 +678,10 @@ async function runAssetCreation(
   
   state.assets = {};
   
-  // 3a. Generate scene reference images
-  if (state.script?.shots && !request.referenceImageUrl && !request.referenceImageAnalysis) {
-    console.log(`[Hollywood] Generating scene reference images...`);
-    
+  // 3a. Generate scene reference images (ALWAYS generate, even if reference exists)
+  console.log(`[Hollywood] Generating scene reference images...`);
+  
+  if (state.script?.shots) {
     try {
       const scenes = state.script.shots.slice(0, 3).map((shot, i) => ({
         sceneNumber: i + 1,
@@ -696,94 +699,99 @@ async function runAssetCreation(
       if (imageResult.images) {
         state.assets.sceneImages = imageResult.images;
         console.log(`[Hollywood] Generated ${imageResult.images.length} scene images`);
+      } else {
+        console.error(`[Hollywood] Scene image generation returned no images`);
       }
     } catch (err) {
-      console.warn(`[Hollywood] Scene image generation failed:`, err);
+      console.error(`[Hollywood] Scene image generation FAILED:`, err);
     }
+  } else {
+    console.error(`[Hollywood] No script shots available for scene images`);
   }
   
   state.progress = 55;
   await updateProjectProgress(supabase, state.projectId, 'assets', 55);
   
-  // 3b. Generate voice narration (if requested)
-  if (request.includeVoice !== false) {
-    console.log(`[Hollywood] Generating voice narration...`);
+  // 3b. Generate voice narration (ALWAYS - no optional flag)
+  console.log(`[Hollywood] Generating voice narration...`);
+  
+  try {
+    const narrationText = state.script?.shots
+      ?.map(shot => shot.dialogue || shot.description)
+      .join(' ')
+      .substring(0, 2000) || '';
     
-    try {
-      const narrationText = state.script?.shots
-        ?.map(shot => shot.dialogue || shot.description)
-        .join(' ')
-        .substring(0, 2000) || '';
+    if (narrationText && narrationText.length > 50) {
+      const voiceResult = await callEdgeFunction('generate-voice', {
+        text: narrationText,
+        voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
+        projectId: state.projectId,
+      });
       
-      if (narrationText && narrationText.length > 50) {
-        const voiceResult = await callEdgeFunction('generate-voice', {
-          text: narrationText,
-          voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
-          projectId: state.projectId,
-        });
-        
-        if (voiceResult.audioUrl) {
-          state.assets.voiceUrl = voiceResult.audioUrl;
-          state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
-          console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
-        }
+      if (voiceResult.audioUrl) {
+        state.assets.voiceUrl = voiceResult.audioUrl;
+        state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
+        console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
+      } else {
+        console.error(`[Hollywood] Voice generation returned no URL`);
       }
-    } catch (err) {
-      console.warn(`[Hollywood] Voice generation failed:`, err);
+    } else {
+      console.warn(`[Hollywood] No narration text available (${narrationText?.length || 0} chars)`);
     }
+  } catch (err) {
+    console.error(`[Hollywood] Voice generation FAILED:`, err);
   }
   
   state.progress = 60;
   await updateProjectProgress(supabase, state.projectId, 'assets', 60, { hasVoice: !!state.assets.voiceUrl });
   
-  // 3c. Generate background music with scene synchronization (if requested)
-  if (request.includeMusic !== false) {
-    console.log(`[Hollywood] Generating synchronized background music...`);
+  // 3c. Generate background music with scene synchronization (ALWAYS - no optional flag)
+  console.log(`[Hollywood] Generating synchronized background music...`);
+  
+  try {
+    // ALWAYS use music sync engine for all tiers
+    console.log(`[Hollywood] Using Music Sync Engine...`);
     
-    try {
-      // For professional tier, use music sync engine
-      if (request.qualityTier === 'professional' && state.script?.shots) {
-        console.log(`[Hollywood] Using Music Sync Engine for professional tier...`);
+    if (state.script?.shots) {
+      const syncResult = await callEdgeFunction('sync-music-to-scenes', {
+        projectId: state.projectId,
+        shots: state.script.shots.map(s => ({
+          id: s.id,
+          description: s.description,
+          dialogue: s.dialogue,
+          durationSeconds: s.durationSeconds,
+          mood: s.mood,
+        })),
+        totalDuration: state.clipCount * state.clipDuration,
+        overallMood: request.musicMood || request.mood || 'dramatic',
+        tempoPreference: 'dynamic',
+        includeDialogueDucking: true,
+      });
+      
+      if (syncResult.success && syncResult.plan) {
+        (state as any).musicSyncPlan = syncResult.plan;
+        console.log(`[Hollywood] Music sync plan created with ${syncResult.plan.musicCues?.length || 0} cues`);
+        console.log(`[Hollywood] Detected ${syncResult.plan.emotionalBeats?.length || 0} emotional beats`);
+        console.log(`[Hollywood] Created ${syncResult.plan.timingMarkers?.length || 0} timing markers`);
         
-        const syncResult = await callEdgeFunction('sync-music-to-scenes', {
+        const musicResult = await callEdgeFunction('generate-music', {
+          prompt: syncResult.musicPrompt,
+          mood: request.musicMood || request.mood || 'cinematic',
+          genre: 'hybrid',
+          duration: state.clipCount * state.clipDuration + 2,
           projectId: state.projectId,
-          shots: state.script.shots.map(s => ({
-            id: s.id,
-            description: s.description,
-            dialogue: s.dialogue,
-            durationSeconds: s.durationSeconds,
-            mood: s.mood,
-          })),
-          totalDuration: state.clipCount * state.clipDuration,
-          overallMood: request.musicMood || request.mood || 'dramatic',
-          tempoPreference: 'dynamic',
-          includeDialogueDucking: true,
         });
         
-        if (syncResult.success && syncResult.plan) {
-          // Store the music sync plan for post-production
-          (state as any).musicSyncPlan = syncResult.plan;
-          console.log(`[Hollywood] Music sync plan created with ${syncResult.plan.musicCues?.length || 0} cues`);
-          console.log(`[Hollywood] Detected ${syncResult.plan.emotionalBeats?.length || 0} emotional beats`);
-          console.log(`[Hollywood] Created ${syncResult.plan.timingMarkers?.length || 0} timing markers`);
-          
-          // Use the optimized music prompt from sync engine
-          const musicResult = await callEdgeFunction('generate-music', {
-            prompt: syncResult.musicPrompt,
-            mood: request.musicMood || request.mood || 'cinematic',
-            genre: 'hybrid',
-            duration: state.clipCount * state.clipDuration + 2,
-            projectId: state.projectId,
-          });
-          
-          if (musicResult.musicUrl) {
-            state.assets.musicUrl = musicResult.musicUrl;
-            state.assets.musicDuration = musicResult.durationSeconds;
-            console.log(`[Hollywood] Synchronized music generated: ${state.assets.musicUrl}`);
-          }
+        if (musicResult.musicUrl) {
+          state.assets.musicUrl = musicResult.musicUrl;
+          state.assets.musicDuration = musicResult.durationSeconds;
+          console.log(`[Hollywood] Synchronized music generated: ${state.assets.musicUrl}`);
+        } else {
+          console.error(`[Hollywood] Music generation returned no URL`);
         }
       } else {
-        // Standard tier: basic music generation
+        console.error(`[Hollywood] Music sync failed, trying direct generation...`);
+        // Fallback to direct music generation
         const musicResult = await callEdgeFunction('generate-music', {
           mood: request.musicMood || request.mood || 'cinematic',
           genre: 'hybrid',
@@ -794,12 +802,12 @@ async function runAssetCreation(
         if (musicResult.musicUrl) {
           state.assets.musicUrl = musicResult.musicUrl;
           state.assets.musicDuration = musicResult.durationSeconds;
-          console.log(`[Hollywood] Music generated: ${state.assets.musicUrl}`);
+          console.log(`[Hollywood] Music generated (fallback): ${state.assets.musicUrl}`);
         }
       }
-    } catch (err) {
-      console.warn(`[Hollywood] Music generation failed:`, err);
     }
+  } catch (err) {
+    console.error(`[Hollywood] Music generation FAILED:`, err);
   }
   
   state.progress = 65;

@@ -51,7 +51,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
-import { ProductionPipeline } from '@/components/studio/ProductionPipeline';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
@@ -257,54 +256,11 @@ export function UnifiedStudio() {
               toast.info('You have a script waiting for approval!');
             }
           } 
-          // Handle in-progress statuses (producing, generating, rendering)
+          // Handle in-progress statuses - redirect to production page
           else if (['producing', 'generating', 'rendering'].includes(project.status)) {
-            console.log('[Studio] Restoring in-progress pipeline:', project.id);
-            setActiveProjectId(project.id);
-            
-            // Determine current stage based on tasks
-            const stage = tasks?.stage || 'production';
-            const progress = tasks?.progress || 50;
-            
-            // Map backend stage to UI stage
-            const stageMap: Record<string, PipelineStage> = {
-              'preproduction': 'preproduction',
-              'qualitygate': 'qualitygate',
-              'assets': 'assets',
-              'production': 'production',
-              'postproduction': 'postproduction',
-            };
-            
-            setCurrentStage(stageMap[stage] || 'production');
-            setProgress(progress);
-            setStartTime(Date.now() - (tasks?.elapsedSeconds || 0) * 1000);
-            
-            // Update clip count from tasks if available
-            if (tasks?.clipCount) {
-              setClipCount(tasks.clipCount);
-            }
-            
-            // Restore clip results if available
-            if (tasks?.clipsCompleted !== undefined) {
-              const clipCount = tasks.clipCount || 6;
-              setClipResults(Array(clipCount).fill(null).map((_, i) => ({
-                index: i,
-                status: i < tasks.clipsCompleted ? 'completed' : (i === tasks.clipsCompleted ? 'generating' : 'pending'),
-              })));
-            }
-            
-            // Update stage statuses
-            const stageIndex = ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'].indexOf(stage);
-            setStages(prev => {
-              const updated = [...prev];
-              for (let i = 0; i <= stageIndex; i++) {
-                updated[i] = { ...updated[i], status: i < stageIndex ? 'complete' : 'active' };
-              }
-              return updated;
-            });
-            
-            addPipelineLog(`Reconnected to pipeline: ${project.title}`, 'info');
-            toast.info('Reconnected to your video pipeline!');
+            console.log('[Studio] Found in-progress pipeline, redirecting to production page:', project.id);
+            toast.info('You have a video in production!');
+            navigate(`/production?projectId=${project.id}`);
           }
         }
       } catch (err) {
@@ -1172,22 +1128,37 @@ export function UnifiedStudio() {
           </Card>
         )}
 
-        {/* Premium Production Pipeline - Show when running (not awaiting approval) */}
-        {currentStage !== 'idle' && !isAwaitingApproval && (
-          <ProductionPipeline
-            stages={stages}
-            progress={progress}
-            elapsedTime={elapsedTime}
-            isRunning={isRunning}
-            finalVideoUrl={finalVideoUrl}
-            pipelineLogs={pipelineLogs}
-            clipResults={clipResults}
-            auditScore={auditScore}
-            sceneImages={sceneImages}
-            identityBibleViews={identityBibleViews}
-            onCancel={handleCancel}
-            projectId={activeProjectId || undefined}
-          />
+        {/* Pipeline Running - Show link to production page */}
+        {currentStage !== 'idle' && !isAwaitingApproval && activeProjectId && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
+                    <Film className="w-7 h-7 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Pipeline Running</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Video generation in progress • {Math.round(progress)}% complete
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => navigate(`/production?projectId=${activeProjectId}`)}
+                    className="min-w-[160px]"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    View Progress
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 

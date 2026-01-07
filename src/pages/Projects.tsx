@@ -33,6 +33,21 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 
+// Helper to check if URL is a manifest
+const isManifestUrl = (url: string): boolean => url?.endsWith('.json');
+
+// Helper to fetch clip URLs from manifest
+const fetchClipsFromManifest = async (manifestUrl: string): Promise<string[]> => {
+  try {
+    const response = await fetch(manifestUrl);
+    if (!response.ok) throw new Error('Failed to fetch manifest');
+    const manifest = await response.json();
+    return manifest.clips?.map((clip: { videoUrl: string }) => clip.videoUrl) || [];
+  } catch (err) {
+    return [];
+  }
+};
+
 // Simple paused video component - shows video frame instead of thumbnail
 function SmartVideoPlayer({ 
   src, 
@@ -108,7 +123,8 @@ export default function Projects() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [projectToRename, setProjectToRename] = useState<Project | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
-
+  const [resolvedClips, setResolvedClips] = useState<string[]>([]);
+  const [isLoadingClips, setIsLoadingClips] = useState(false);
   const handleRenameProject = (project: Project) => {
     setProjectToRename(project);
     setNewProjectName(project.name);
@@ -179,10 +195,26 @@ export default function Projects() {
     navigate('/pipeline/scripting');
   };
 
-  const handlePlayVideo = (project: Project, e?: React.MouseEvent) => {
+  const handlePlayVideo = async (project: Project, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (project.video_clips?.length || project.video_url) {
       setSelectedProject(project);
+      setIsLoadingClips(true);
+      
+      // Resolve clips - check if video_url is a manifest
+      let clips: string[] = [];
+      if (project.video_clips?.length) {
+        clips = project.video_clips;
+      } else if (project.video_url) {
+        if (isManifestUrl(project.video_url)) {
+          clips = await fetchClipsFromManifest(project.video_url);
+        } else {
+          clips = [project.video_url];
+        }
+      }
+      
+      setResolvedClips(clips);
+      setIsLoadingClips(false);
       setVideoModalOpen(true);
     }
   };
@@ -626,22 +658,35 @@ export default function Projects() {
       </main>
 
       {/* Fullscreen Video Player */}
-      {videoModalOpen && selectedProject && (
+      {videoModalOpen && selectedProject && !isLoadingClips && resolvedClips.length > 0 && (
         <FullscreenVideoPlayer
-          clips={getVideoClips(selectedProject)}
+          clips={resolvedClips}
           title={selectedProject.name}
-          onClose={() => setVideoModalOpen(false)}
+          onClose={() => {
+            setVideoModalOpen(false);
+            setResolvedClips([]);
+          }}
           onDownload={() => handleDownloadAll(selectedProject)}
           onOpenExternal={() => {
-            const clips = getVideoClips(selectedProject);
-            if (clips[0]) window.open(clips[0], '_blank');
+            if (resolvedClips[0]) window.open(resolvedClips[0], '_blank');
           }}
           onEdit={() => {
             setVideoModalOpen(false);
+            setResolvedClips([]);
             setActiveProjectId(selectedProject.id);
             navigate('/pipeline/production');
           }}
         />
+      )}
+
+      {/* Loading clips overlay */}
+      {isLoadingClips && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-white" />
+            <p className="text-white/70">Loading video...</p>
+          </div>
+        </div>
       )}
 
       {/* Rename Dialog */}

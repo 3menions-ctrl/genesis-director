@@ -412,6 +412,36 @@ serve(async (req) => {
       ? Math.round(validComparisons.reduce((sum, t) => sum + t.comparison.overallScore, 0) / validComparisons.length)
       : 0;
 
+    // Log API cost for stitching (after overallConsistency is calculated)
+    try {
+      const creditsCharged = 5; // Stitching cost
+      const realCostCents = 2; // Minimal compute cost
+      
+      await supabase.rpc('log_api_cost', {
+        p_user_id: null,
+        p_project_id: projectId,
+        p_shot_id: 'final_stitch',
+        p_service: 'cloud_run_stitcher',
+        p_operation: 'intelligent_stitch',
+        p_credits_charged: creditsCharged,
+        p_real_cost_cents: realCostCents,
+        p_duration_seconds: clips.length * 4,
+        p_status: finalVideoUrl ? 'completed' : 'failed',
+        p_metadata: JSON.stringify({
+          clipCount: clips.length,
+          bridgeClipsGenerated,
+          overallConsistency,
+          hasMusicSync: !!musicSyncPlan,
+          hasColorGrading: !!colorGradingFilter,
+          hasSfx: !!sfxPlan,
+          totalProcessingTimeMs,
+        }),
+      });
+      console.log(`[Intelligent Stitch] API cost logged: ${creditsCharged} credits`);
+    } catch (costError) {
+      console.warn("[Intelligent Stitch] Failed to log API cost:", costError);
+    }
+
     console.log(`[Intelligent Stitch] Complete in ${totalProcessingTimeMs}ms. Final video: ${finalVideoUrl || 'PENDING'}`);
 
     return new Response(

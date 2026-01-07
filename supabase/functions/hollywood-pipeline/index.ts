@@ -542,8 +542,8 @@ async function runQualityGate(
     };
   }
   
-  // 2b. Run Depth Consistency Analysis for professional tier
-  if (request.qualityTier === 'professional' && state.auditResult?.optimizedShots) {
+  // 2b. Run Depth Consistency Analysis for all tiers (enhanced for professional)
+  if (state.auditResult?.optimizedShots) {
     console.log(`[Hollywood] Running Depth Consistency Analysis...`);
     
     try {
@@ -594,8 +594,8 @@ async function runQualityGate(
     }
   }
   
-  // 2c. Run Lip Sync Analysis for professional tier with dialogue
-  if (request.qualityTier === 'professional' && state.auditResult?.optimizedShots) {
+  // 2c. Run Lip Sync Analysis for shots with dialogue (all tiers)
+  if (state.auditResult?.optimizedShots) {
     const shotsWithDialogue = state.script?.shots?.filter(s => s.dialogue && s.dialogue.trim().length > 0) || [];
     
     if (shotsWithDialogue.length > 0) {
@@ -804,8 +804,8 @@ async function runAssetCreation(
   
   state.progress = 65;
   
-  // 3d. Generate Sound Effects (professional tier only)
-  if (request.qualityTier === 'professional' && state.script?.shots) {
+  // 3d. Generate Sound Effects (all tiers now)
+  if (state.script?.shots) {
     console.log(`[Hollywood] Generating SFX analysis...`);
     
     try {
@@ -834,8 +834,8 @@ async function runAssetCreation(
     }
   }
   
-  // 3e. Run Color Grading Analysis (professional tier only)
-  if (request.qualityTier === 'professional' && state.script?.shots) {
+  // 3e. Run Color Grading Analysis (all tiers now)
+  if (state.script?.shots) {
     console.log(`[Hollywood] Running color grading analysis...`);
     
     try {
@@ -1034,8 +1034,8 @@ async function runProduction(
       
       let result = clipResult.clipResult;
       
-      // Visual Debugger Loop (professional tier only) - check quality and retry if needed
-      if (request.qualityTier === 'professional' && result.videoUrl) {
+      // Visual Debugger Loop (all tiers) - check quality and retry if needed
+      if (result.videoUrl) {
         console.log(`[Hollywood] Running Visual Debugger on clip ${i + 1}...`);
         
         const maxRetries = 2;
@@ -1152,43 +1152,40 @@ async function runProduction(
     
     try {
       const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
-      const isProfessional = request.qualityTier === 'professional';
       
-      // Use intelligent-stitch for professional tier, fallback to direct stitch for standard
-      if (isProfessional) {
-        const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
-          projectId: state.projectId,
-          clips: completedClips.map((c, idx) => ({
-            shotId: `clip_${c.index}`,
-            videoUrl: c.videoUrl,
-            firstFrameUrl: idx === 0 ? request.referenceImageUrl : undefined,
-            lastFrameUrl: c.lastFrameUrl,
-          })),
-          voiceAudioUrl: state.assets?.voiceUrl,
-          musicAudioUrl: state.assets?.musicUrl,
-          autoGenerateBridges: true,
-          strictnessLevel: 'normal',
-          maxBridgeClips: 3,
-          targetFormat: '1080p',
-          qualityTier: 'professional',
-          // Pass pro features for intelligent audio-visual sync
-          musicSyncPlan: (state as any).musicSyncPlan,
-          colorGradingFilter: (state as any).colorGrading?.masterFilter,
-          sfxPlan: (state as any).sfxPlan,
-        });
-        
-        if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
-          state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
-          console.log(`[Hollywood] Intelligent stitch complete: ${state.finalVideoUrl}`);
-          console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
-          console.log(`[Hollywood] Bridge clips generated: ${intelligentStitchResult.bridgeClipsGenerated || 0}`);
-        } else {
-          console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to direct stitch`);
-          // Fall through to direct stitch
-        }
+      // Use intelligent-stitch for ALL tiers now
+      console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier`);
+      const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
+        projectId: state.projectId,
+        clips: completedClips.map((c, idx) => ({
+          shotId: `clip_${c.index}`,
+          videoUrl: c.videoUrl,
+          firstFrameUrl: idx === 0 ? request.referenceImageUrl : undefined,
+          lastFrameUrl: c.lastFrameUrl,
+        })),
+        voiceAudioUrl: state.assets?.voiceUrl,
+        musicAudioUrl: state.assets?.musicUrl,
+        autoGenerateBridges: request.qualityTier === 'professional', // Bridge clips only for pro
+        strictnessLevel: 'normal',
+        maxBridgeClips: 3,
+        targetFormat: '1080p',
+        qualityTier: request.qualityTier || 'standard',
+        // Pass pro features for intelligent audio-visual sync
+        musicSyncPlan: (state as any).musicSyncPlan,
+        colorGradingFilter: (state as any).colorGrading?.masterFilter,
+        sfxPlan: (state as any).sfxPlan,
+      });
+      
+      if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
+        state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
+        console.log(`[Hollywood] Intelligent stitch complete: ${state.finalVideoUrl}`);
+        console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
+        console.log(`[Hollywood] Bridge clips generated: ${intelligentStitchResult.bridgeClipsGenerated || 0}`);
+      } else {
+        console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to direct stitch`);
       }
       
-      // Standard tier OR fallback: Direct Cloud Run stitch
+      // Fallback: Direct Cloud Run stitch if intelligent stitch failed
       if (!state.finalVideoUrl) {
         const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
         if (stitcherUrl) {
@@ -1411,8 +1408,9 @@ async function executePipelineInBackground(
       });
     }
     
-    // Build pro_features_data for database storage
-    const proFeaturesData = request.qualityTier === 'professional' ? {
+    // Build pro_features_data for database storage (now tracks all tiers)
+    const proFeaturesData = {
+      tier: request.qualityTier || 'standard',
       musicSync: { 
         enabled: !!(state as any).musicSyncPlan, 
         count: (state as any).musicSyncPlan?.emotionalBeats?.length || 0 
@@ -1440,7 +1438,23 @@ async function executePipelineInBackground(
         enabled: !!(state as any).depthConsistency, 
         score: (state as any).depthConsistency?.overallScore 
       },
-    } : null;
+      lipSync: {
+        enabled: !!(state as any).lipSyncData,
+        count: Object.keys((state as any).lipSyncData || {}).length
+      },
+      voice: {
+        enabled: !!state.assets?.voiceUrl,
+        url: state.assets?.voiceUrl
+      },
+      music: {
+        enabled: !!state.assets?.musicUrl,
+        url: state.assets?.musicUrl
+      },
+      intelligentStitch: {
+        enabled: !!state.finalVideoUrl,
+        url: state.finalVideoUrl
+      },
+    };
     
     // Update project as completed
     await supabase

@@ -146,6 +146,32 @@ serve(async (req) => {
 
         console.log(`[generate-music] Uploaded to storage: ${publicUrl}`);
 
+        // Log API cost for music generation
+        try {
+          const creditsCharged = 3; // Music generation cost
+          const realCostCents = Math.ceil(duration * 0.5); // ElevenLabs music ~$0.005 per second
+          
+          await supabase.rpc('log_api_cost', {
+            p_user_id: null,
+            p_project_id: projectId || null,
+            p_shot_id: 'background_music',
+            p_service: 'elevenlabs',
+            p_operation: 'music_generation',
+            p_credits_charged: creditsCharged,
+            p_real_cost_cents: realCostCents,
+            p_duration_seconds: duration,
+            p_status: 'completed',
+            p_metadata: JSON.stringify({
+              mood,
+              genre,
+              promptLength: finalPrompt.length,
+            }),
+          });
+          console.log(`[generate-music] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
+        } catch (costError) {
+          console.warn("[generate-music] Failed to log API cost:", costError);
+        }
+
         return new Response(
           JSON.stringify({
             success: true,

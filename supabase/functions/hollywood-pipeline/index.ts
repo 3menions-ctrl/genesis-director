@@ -33,6 +33,11 @@ interface PipelineRequest {
   clipCount?: number;
   qualityTier?: 'standard' | 'professional';
   skipCreditDeduction?: boolean;
+  // Resume support
+  resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
+  approvedScript?: { shots: any[] };
+  identityBible?: any;
+  extractedCharacters?: any[];
 }
 
 interface ExtractedCharacter {
@@ -849,15 +854,19 @@ serve(async (req) => {
       throw new Error("userId is required");
     }
     
-    if (!request.concept && !request.manualPrompts) {
+    // For resume requests, we need approvedScript instead of concept/manualPrompts
+    const isResuming = !!request.resumeFrom && !!request.approvedScript;
+    
+    if (!isResuming && !request.concept && !request.manualPrompts) {
       throw new Error("Either 'concept' or 'manualPrompts' is required");
     }
     
     const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request);
     
     console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s, ${totalCredits} credits`);
+    console.log(`[Hollywood] Is resuming: ${isResuming}, resumeFrom: ${request.resumeFrom}`);
     
-    if (request.manualPrompts && request.manualPrompts.length < 2) {
+    if (!isResuming && request.manualPrompts && request.manualPrompts.length < 2) {
       throw new Error(`At least 2 prompts are required`);
     }
 

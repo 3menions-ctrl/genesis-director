@@ -84,7 +84,7 @@ export type Database = {
           name: string
           personality: string | null
           universe_id: string | null
-          user_id: string | null
+          user_id: string
           voice_id: string | null
         }
         Insert: {
@@ -96,7 +96,7 @@ export type Database = {
           name: string
           personality?: string | null
           universe_id?: string | null
-          user_id?: string | null
+          user_id: string
           voice_id?: string | null
         }
         Update: {
@@ -108,7 +108,7 @@ export type Database = {
           name?: string
           personality?: string | null
           universe_id?: string | null
-          user_id?: string | null
+          user_id?: string
           voice_id?: string | null
         }
         Relationships: [
@@ -232,7 +232,7 @@ export type Database = {
           title: string
           universe_id: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
           video_clips: string[] | null
           video_url: string | null
           voice_audio_url: string | null
@@ -263,7 +263,7 @@ export type Database = {
           title: string
           universe_id?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
           video_clips?: string[] | null
           video_url?: string | null
           voice_audio_url?: string | null
@@ -294,7 +294,7 @@ export type Database = {
           title?: string
           universe_id?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
           video_clips?: string[] | null
           video_url?: string | null
           voice_audio_url?: string | null
@@ -503,7 +503,7 @@ export type Database = {
           name: string
           sample_script: string | null
           story_structure: Database["public"]["Enums"]["story_structure"] | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -515,7 +515,7 @@ export type Database = {
           story_structure?:
             | Database["public"]["Enums"]["story_structure"]
             | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -527,7 +527,7 @@ export type Database = {
           story_structure?:
             | Database["public"]["Enums"]["story_structure"]
             | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -541,7 +541,7 @@ export type Database = {
           setting: string | null
           time_period: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -552,7 +552,7 @@ export type Database = {
           setting?: string | null
           time_period?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -563,7 +563,7 @@ export type Database = {
           setting?: string | null
           time_period?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }

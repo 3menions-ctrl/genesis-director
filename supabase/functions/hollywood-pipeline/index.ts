@@ -552,17 +552,18 @@ async function runAssetCreation(
   return state;
 }
 
-// Stage 4: PRODUCTION
+// Stage 4: PRODUCTION (Sequential Single-Clip Generation)
 async function runProduction(
   request: PipelineRequest,
   state: PipelineState,
   supabase: any
 ): Promise<PipelineState> {
-  console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation - ${state.clipCount} clips)`);
+  console.log(`[Hollywood] Stage 4: PRODUCTION (Video Generation - ${state.clipCount} clips, one at a time)`);
   state.stage = 'production';
   state.progress = 75;
   await updateProjectProgress(supabase, state.projectId, 'production', 75);
   
+  // Build character identity prompt
   const characterIdentityPrompt = state.extractedCharacters?.length 
     ? state.extractedCharacters.map(c => {
         const parts = [`${c.name}`];
@@ -574,8 +575,9 @@ async function runProduction(
       }).join('; ')
     : null;
   
-  console.log(`[Hollywood] Character identity prompt: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
+  console.log(`[Hollywood] Character identity: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
   
+  // Build clip prompts from optimized shots
   const clips = state.auditResult?.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
     let finalPrompt = opt.optimizedDescription;
     
@@ -591,27 +593,13 @@ async function runProduction(
       finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
     }
     
-    if (i > 0 && state.auditResult?.velocityVectors) {
-      const prevVector = state.auditResult.velocityVectors[i - 1];
-      if (prevVector?.endFrameMotion?.continuityPrompt) {
-        finalPrompt = `[MOTION: ${prevVector.endFrameMotion.continuityPrompt}] ${finalPrompt}`;
-      }
-    }
-    
     return {
       index: i,
       prompt: finalPrompt,
-      sceneContext: {
-        clipIndex: i,
-        totalClips: state.clipCount,
-        environment: state.referenceAnalysis?.environment?.setting,
-        lightingStyle: state.referenceAnalysis?.lighting?.style,
-        colorPalette: state.referenceAnalysis?.colorPalette?.dominant?.join(', '),
-        characters: state.extractedCharacters?.map(c => c.name) || [],
-      },
     };
   }) || [];
   
+  // Determine first frame reference
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
     || request.referenceImageUrl
     || request.referenceImageAnalysis?.imageUrl;
@@ -619,39 +607,176 @@ async function runProduction(
     referenceImageUrl = state.assets.sceneImages[0].imageUrl;
   }
   
-  console.log(`[Hollywood] First frame reference: ${referenceImageUrl ? 'using identity bible front view' : 'none'}`);
-  console.log(`[Hollywood] Calling generate-long-video with ${clips.length} optimized clips`);
+  console.log(`[Hollywood] First frame reference: ${referenceImageUrl ? 'available' : 'none'}`);
+  console.log(`[Hollywood] Generating ${clips.length} clips sequentially...`);
   
-  const productionResult = await callEdgeFunction('generate-long-video', {
-    userId: request.userId,
-    projectId: state.projectId,
-    clips,
-    clipCount: state.clipCount,
-    referenceImageUrl,
-    colorGrading: request.colorGrading || 'cinematic',
-    identityBible: state.identityBible,
-    voiceTrackUrl: state.assets?.voiceUrl,
-    musicTrackUrl: state.assets?.musicUrl,
-    qualityTier: request.qualityTier || 'standard',
-    maxRetries: 2,
-    skipCreditDeduction: true,
-  });
+  // Check for checkpoint - resume from last completed clip
+  const { data: checkpoint } = await supabase
+    .rpc('get_generation_checkpoint', { p_project_id: state.projectId });
   
-  if (!productionResult.success) {
-    throw new Error(productionResult.error || 'Video production failed');
+  let startIndex = 0;
+  let previousLastFrameUrl = referenceImageUrl;
+  let previousMotionVectors: { endVelocity?: string; endDirection?: string; cameraMomentum?: string } | undefined;
+  
+  if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
+    startIndex = checkpoint[0].last_completed_index + 1;
+    previousLastFrameUrl = checkpoint[0].last_frame_url || referenceImageUrl;
+    console.log(`[Hollywood] Resuming from clip ${startIndex + 1}, using frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+    
+    // Load existing completed clips
+    const { data: existingClips } = await supabase
+      .from('video_clips')
+      .select('*')
+      .eq('project_id', state.projectId)
+      .eq('status', 'completed')
+      .order('shot_index', { ascending: true });
+    
+    if (existingClips && existingClips.length > 0) {
+      state.production = {
+        clipResults: existingClips.map((clip: any) => ({
+          index: clip.shot_index,
+          videoUrl: clip.video_url,
+          status: 'completed',
+          lastFrameUrl: clip.last_frame_url,
+        })),
+      };
+      
+      // Get motion vectors from last completed clip
+      const lastClip = existingClips[existingClips.length - 1];
+      if (lastClip.motion_vectors) {
+        try {
+          previousMotionVectors = typeof lastClip.motion_vectors === 'string' 
+            ? JSON.parse(lastClip.motion_vectors) 
+            : lastClip.motion_vectors;
+        } catch (e) {
+          console.warn(`[Hollywood] Failed to parse motion vectors`);
+        }
+      }
+    }
   }
   
-  state.production = {
-    clipResults: productionResult.clipResults || [],
-  };
+  if (!state.production) {
+    state.production = { clipResults: [] };
+  }
   
-  if (productionResult.finalVideoUrl) {
-    state.finalVideoUrl = productionResult.finalVideoUrl;
+  // Generate clips one at a time
+  for (let i = startIndex; i < clips.length; i++) {
+    const clip = clips[i];
+    const progressPercent = 75 + Math.floor((i / clips.length) * 15);
+    
+    console.log(`[Hollywood] Generating clip ${i + 1}/${clips.length}...`);
+    
+    await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
+      clipsCompleted: i,
+      clipCount: clips.length,
+    });
+    
+    try {
+      const clipResult = await callEdgeFunction('generate-single-clip', {
+        userId: request.userId,
+        projectId: state.projectId,
+        clipIndex: i,
+        prompt: clip.prompt,
+        totalClips: clips.length,
+        startImageUrl: previousLastFrameUrl,
+        previousMotionVectors,
+        identityBible: state.identityBible,
+        colorGrading: request.colorGrading || 'cinematic',
+        qualityTier: request.qualityTier || 'standard',
+        referenceImageUrl,
+      });
+      
+      if (!clipResult.success) {
+        throw new Error(clipResult.error || 'Clip generation failed');
+      }
+      
+      const result = clipResult.clipResult;
+      state.production.clipResults.push({
+        index: result.index,
+        videoUrl: result.videoUrl,
+        status: 'completed',
+        lastFrameUrl: result.lastFrameUrl,
+      });
+      
+      // Update for next clip's continuity
+      previousLastFrameUrl = result.lastFrameUrl || previousLastFrameUrl;
+      previousMotionVectors = result.motionVectors;
+      
+      console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
+      
+    } catch (error) {
+      console.error(`[Hollywood] Clip ${i + 1} failed:`, error);
+      
+      // Mark clip as failed in DB
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: state.projectId,
+        p_user_id: request.userId,
+        p_shot_index: i,
+        p_prompt: clip.prompt,
+        p_status: 'failed',
+        p_error_message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      
+      state.production.clipResults.push({
+        index: i,
+        videoUrl: '',
+        status: 'failed',
+      });
+      
+      // Continue with remaining clips
+    }
+  }
+  
+  const completedClips = state.production.clipResults.filter(c => c.status === 'completed');
+  console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips`);
+  
+  // Request final assembly from stitcher
+  if (completedClips.length > 0) {
+    const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+    if (stitcherUrl) {
+      console.log(`[Hollywood] Requesting final assembly...`);
+      
+      try {
+        const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
+        
+        const response = await fetch(`${stitcherUrl}/stitch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: state.projectId,
+            projectTitle: `Video - ${state.projectId}`,
+            clips: completedClips.map(c => ({
+              shotId: `clip_${c.index}`,
+              videoUrl: c.videoUrl,
+              durationSeconds: DEFAULT_CLIP_DURATION,
+              transitionOut: 'continuous',
+            })),
+            audioMixMode: hasAudioTracks ? 'full' : 'mute',
+            outputFormat: 'mp4',
+            colorGrading: request.colorGrading || 'cinematic',
+            isFinalAssembly: true,
+            voiceTrackUrl: state.assets?.voiceUrl,
+            backgroundMusicUrl: state.assets?.musicUrl,
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.finalVideoUrl) {
+            state.finalVideoUrl = result.finalVideoUrl;
+            console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
+          }
+        }
+      } catch (stitchError) {
+        console.error(`[Hollywood] Stitching failed:`, stitchError);
+      }
+    }
   }
   
   state.progress = 90;
   await updateProjectProgress(supabase, state.projectId, 'production', 90, {
-    clipsCompleted: state.production.clipResults.filter(c => c.status === 'completed').length,
+    clipsCompleted: completedClips.length,
+    clipCount: clips.length,
   });
   
   return state;

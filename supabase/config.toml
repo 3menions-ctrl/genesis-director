@@ -3,6 +3,9 @@ project_id = "ahlikyhgcqvrdvbtkghh"
 [functions.generate-script]
 verify_jwt = false
 
+[functions.generate-story]
+verify_jwt = false
+
 [functions.generate-voice]
 verify_jwt = false
 

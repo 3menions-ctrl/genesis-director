@@ -39,6 +39,9 @@ interface PipelineRequest {
   approvedScript?: { shots: any[] };
   identityBible?: any;
   extractedCharacters?: any[];
+  // Story-first flow
+  approvedStory?: string;
+  storyTitle?: string;
 }
 
 interface ExtractedCharacter {
@@ -226,8 +229,49 @@ async function runPreProduction(
   state.progress = 10;
   await updateProjectProgress(supabase, state.projectId, 'preproduction', 10);
   
-  // 1a. Generate script from concept
-  if (request.concept && !request.manualPrompts) {
+  // 1a. Generate script - use approved story if available (story-first flow)
+  if (request.approvedStory) {
+    console.log(`[Hollywood] Breaking down approved story into shots...`);
+    
+    try {
+      const scriptResult = await callEdgeFunction('smart-script-generator', {
+        topic: request.storyTitle || 'Video',
+        approvedStory: request.approvedStory,
+        genre: request.genre || 'cinematic',
+        pacingStyle: 'moderate',
+        targetDurationSeconds: state.clipCount * state.clipDuration,
+        clipCount: state.clipCount,
+      });
+      
+      if (scriptResult.shots) {
+        const shots = scriptResult.shots.slice(0, state.clipCount);
+        while (shots.length < state.clipCount) {
+          shots.push({
+            id: `shot_${shots.length + 1}`,
+            title: `Scene ${shots.length + 1}`,
+            description: `Continuation of the story. Scene ${shots.length + 1}.`,
+            durationSeconds: state.clipDuration,
+            mood: request.mood || 'cinematic',
+          });
+        }
+        state.script = { shots };
+        console.log(`[Hollywood] Story broken down into ${state.script.shots.length} shots`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Story breakdown failed, using fallback:`, err);
+      // Fallback: Split story into roughly equal parts
+      const storyParts = request.approvedStory.split('\n\n').filter(p => p.trim());
+      state.script = {
+        shots: Array.from({ length: state.clipCount }, (_, i) => ({
+          id: `shot_${i + 1}`,
+          title: `Scene ${i + 1}`,
+          description: storyParts[i % storyParts.length] || `Scene ${i + 1} of the story.`,
+          durationSeconds: state.clipDuration,
+          mood: request.mood || 'cinematic',
+        })),
+      };
+    }
+  } else if (request.concept && !request.manualPrompts) {
     console.log(`[Hollywood] Generating script from concept...`);
     
     try {

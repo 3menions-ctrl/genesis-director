@@ -54,6 +54,7 @@ import { Separator } from '@/components/ui/separator';
 import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
+import { StoryApprovalPanel } from '@/components/studio/StoryApprovalPanel';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
@@ -127,6 +128,14 @@ export function UnifiedStudio() {
   const [concept, setConcept] = useState('');
   const [mood, setMood] = useState('epic');
   const [genre, setGenre] = useState('cinematic');
+  
+  // Story-first flow state
+  const [storyFlowStage, setStoryFlowStage] = useState<'prompt' | 'story' | 'script'>('prompt');
+  const [generatedStory, setGeneratedStory] = useState<string>('');
+  const [storyTitle, setStoryTitle] = useState<string>('');
+  const [storyEstimatedScenes, setStoryEstimatedScenes] = useState<number>(6);
+  const [isGeneratingStory, setIsGeneratingStory] = useState(false);
+  const [isBreakingDownStory, setIsBreakingDownStory] = useState(false);
   
   // Manual Mode inputs
   const [manualPrompts, setManualPrompts] = useState<string[]>(
@@ -502,6 +511,71 @@ export function UnifiedStudio() {
     setAwaitingApprovalShotCount(0);
     setStages(prev => prev.map(s => ({ ...s, status: 'pending', details: undefined })));
     abortControllerRef.current = null;
+    // Reset story flow
+    setStoryFlowStage('prompt');
+    setGeneratedStory('');
+    setStoryTitle('');
+    setIsGeneratingStory(false);
+    setIsBreakingDownStory(false);
+  };
+
+  // Generate continuous story from concept
+  const handleGenerateStory = async () => {
+    if (!concept.trim()) {
+      toast.error('Please enter a story concept');
+      return;
+    }
+
+    setIsGeneratingStory(true);
+    addPipelineLog('Generating continuous story...', 'info');
+
+    try {
+      const { data, error: funcError } = await supabase.functions.invoke('generate-story', {
+        body: {
+          prompt: concept.trim(),
+          genre,
+          mood,
+          targetDurationSeconds: clipCount * CLIP_DURATION,
+        },
+      });
+
+      if (funcError) throw new Error(funcError.message);
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate story');
+
+      setGeneratedStory(data.story);
+      setStoryTitle(data.title || concept.substring(0, 50));
+      setStoryEstimatedScenes(data.estimatedScenes || clipCount);
+      setStoryFlowStage('story');
+      addPipelineLog('Story generated successfully!', 'success');
+      toast.success('Story generated! Review and approve to continue.');
+    } catch (err) {
+      console.error('Story generation error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to generate story';
+      toast.error(message);
+      addPipelineLog(`Error: ${message}`, 'error');
+    } finally {
+      setIsGeneratingStory(false);
+    }
+  };
+
+  // Approve story and proceed to cost confirmation
+  const handleApproveStory = (editedStory: string) => {
+    setGeneratedStory(editedStory);
+    setShowCostDialog(true);
+  };
+
+  // Regenerate story
+  const handleRegenerateStory = () => {
+    setGeneratedStory('');
+    setStoryTitle('');
+    setStoryFlowStage('prompt');
+  };
+
+  // Cancel story flow
+  const handleCancelStoryFlow = () => {
+    setStoryFlowStage('prompt');
+    setGeneratedStory('');
+    setStoryTitle('');
   };
 
   // Navigate to script review page
@@ -556,10 +630,13 @@ export function UnifiedStudio() {
         toast.error(`Please fill in all ${clipCount} scene prompts`);
         return;
       }
+      // Manual mode: skip story generation, go straight to cost dialog
+      setShowCostDialog(true);
+      return;
     }
 
-    // Show cost confirmation
-    setShowCostDialog(true);
+    // AI mode: Start story-first flow
+    handleGenerateStory();
   };
 
   const runPipeline = async (projectName: string) => {
@@ -611,6 +688,11 @@ export function UnifiedStudio() {
 
       if (mode === 'ai') {
         requestBody.concept = concept;
+        // Story-first flow: pass the approved story for shot breakdown
+        if (generatedStory) {
+          requestBody.approvedStory = generatedStory;
+          requestBody.storyTitle = storyTitle;
+        }
       } else {
         requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
       }
@@ -677,6 +759,25 @@ export function UnifiedStudio() {
   const completedClips = clipResults.filter(c => c.status === 'completed').length;
   const hasEmptyPrompts = mode === 'manual' && manualPrompts.slice(0, clipCount).some(p => !p.trim());
   const canGenerate = mode === 'ai' ? concept.trim().length > 0 : !hasEmptyPrompts;
+  const isInStoryFlow = mode === 'ai' && storyFlowStage === 'story' && generatedStory;
+
+  // Show Story Approval Panel when in story review stage
+  if (isInStoryFlow) {
+    return (
+      <div className="min-h-screen bg-background py-8 px-4">
+        <StoryApprovalPanel
+          story={generatedStory}
+          title={storyTitle}
+          estimatedScenes={storyEstimatedScenes}
+          onApprove={handleApproveStory}
+          onRegenerate={handleRegenerateStory}
+          onCancel={handleCancelStoryFlow}
+          isLoading={isGeneratingStory}
+          isBreakingDown={isBreakingDownStory}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">

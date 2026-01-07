@@ -25,6 +25,31 @@ interface ShotClip {
   transitionOut?: string;
 }
 
+// Music sync timing markers for audio ducking/swells
+interface MusicTimingMarker {
+  timestamp: number;
+  type: 'duck' | 'swell' | 'accent' | 'pause';
+  duration: number;
+  intensity: number;
+}
+
+// Music sync mixing instructions
+interface MusicMixingInstructions {
+  baseVolume: number;
+  duckingForDialogue: boolean;
+  duckingAmount: number;
+  fadeInDuration: number;
+  fadeOutDuration: number;
+}
+
+// Music sync plan from sync-music-to-scenes
+interface MusicSyncPlan {
+  timingMarkers?: MusicTimingMarker[];
+  mixingInstructions?: MusicMixingInstructions;
+  musicCues?: any[];
+  emotionalBeats?: any[];
+}
+
 interface StitchRequest {
   projectId: string;
   projectTitle: string;
@@ -36,6 +61,10 @@ interface StitchRequest {
   forceMvpMode?: boolean;
   transitionType?: 'fade' | 'fadeblack' | 'fadewhite' | 'dissolve' | 'wipeleft' | 'wiperight' | 'circlecrop';
   transitionDuration?: number; // 0.3 - 1.0 seconds recommended
+  // Music synchronization plan
+  musicSyncPlan?: MusicSyncPlan;
+  // Color grading filter
+  colorGradingFilter?: string;
 }
 
 interface StitchResult {
@@ -47,6 +76,8 @@ interface StitchResult {
   invalidClips?: Array<{ shotId: string; error: string }>;
   requiresRegeneration?: string[];
   mode?: 'cloud-run' | 'mvp-manifest';
+  musicSyncApplied?: boolean;
+  colorGradingApplied?: boolean;
   error?: string;
 }
 
@@ -91,6 +122,37 @@ async function createVideoManifest(
   return `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
 }
 
+// Build audio mixing parameters from music sync plan
+function buildAudioMixParams(musicSyncPlan?: MusicSyncPlan): {
+  musicVolume: number;
+  duckingEnabled: boolean;
+  duckingAmount: number;
+  fadeIn: number;
+  fadeOut: number;
+  timingMarkers?: MusicTimingMarker[];
+} {
+  if (!musicSyncPlan?.mixingInstructions) {
+    return {
+      musicVolume: 0.3,
+      duckingEnabled: true,
+      duckingAmount: 0.6,
+      fadeIn: 1,
+      fadeOut: 2,
+    };
+  }
+
+  const { mixingInstructions, timingMarkers } = musicSyncPlan;
+  
+  return {
+    musicVolume: mixingInstructions.baseVolume ?? 0.3,
+    duckingEnabled: mixingInstructions.duckingForDialogue ?? true,
+    duckingAmount: mixingInstructions.duckingAmount ?? 0.6,
+    fadeIn: mixingInstructions.fadeInDuration ?? 1,
+    fadeOut: mixingInstructions.fadeOutDuration ?? 2,
+    timingMarkers,
+  };
+}
+
 // Call Cloud Run FFmpeg service for production stitching
 async function callCloudRunStitcher(
   cloudRunUrl: string,
@@ -102,12 +164,24 @@ async function callCloudRunStitcher(
   
   console.log(`[Stitch] Calling Cloud Run FFmpeg service: ${stitchEndpoint}`);
   
+  // Build audio mix params from music sync plan
+  const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
+  
+  // Enhanced request with music sync params
+  const enhancedRequest = {
+    ...request,
+    audioMixParams,
+    colorGradingFilter: request.colorGradingFilter,
+  };
+  
+  console.log(`[Stitch] Music sync: volume=${audioMixParams.musicVolume}, ducking=${audioMixParams.duckingEnabled}, markers=${audioMixParams.timingMarkers?.length || 0}`);
+  
   const response = await fetch(stitchEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(request),
+    body: JSON.stringify(enhancedRequest),
   });
   
   // Handle non-JSON responses gracefully
@@ -140,6 +214,8 @@ async function callCloudRunStitcher(
   return {
     ...result,
     mode: 'cloud-run',
+    musicSyncApplied: !!request.musicSyncPlan,
+    colorGradingApplied: !!request.colorGradingFilter,
   };
 }
 

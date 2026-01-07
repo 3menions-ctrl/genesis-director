@@ -80,3 +80,9 @@ verify_jwt = false
 
 [functions.sync-music-to-scenes]
 verify_jwt = false
+
+[functions.apply-color-grading]
+verify_jwt = false
+
+[functions.generate-sfx]
+verify_jwt = false

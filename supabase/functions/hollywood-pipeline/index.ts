@@ -132,7 +132,22 @@ interface PipelineState {
 }
 
 const DEFAULT_CLIP_DURATION = 4;
-const CREDITS_PER_CLIP = 50;
+
+// Tier-aware credit costs (matches frontend useCreditBilling.ts)
+const TIER_CREDIT_COSTS = {
+  standard: {
+    PRE_PRODUCTION: 5,
+    PRODUCTION: 20,
+    QUALITY_INSURANCE: 0,
+    TOTAL_PER_SHOT: 25,
+  },
+  professional: {
+    PRE_PRODUCTION: 5,
+    PRODUCTION: 20,
+    QUALITY_INSURANCE: 25, // Audit + Visual Debugger + 4 retry buffer
+    TOTAL_PER_SHOT: 50,
+  },
+} as const;
 
 function calculatePipelineParams(request: PipelineRequest): { clipCount: number; clipDuration: number; totalCredits: number } {
   const clipDuration = DEFAULT_CLIP_DURATION;
@@ -149,7 +164,11 @@ function calculatePipelineParams(request: PipelineRequest): { clipCount: number;
   }
   
   clipCount = Math.max(2, Math.min(12, clipCount));
-  const totalCredits = clipCount * CREDITS_PER_CLIP;
+  
+  // Use tier-aware credit calculation
+  const tier = request.qualityTier || 'standard';
+  const creditsPerClip = TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
+  const totalCredits = clipCount * creditsPerClip;
   
   return { clipCount, clipDuration, totalCredits };
 }
@@ -989,6 +1008,8 @@ async function runProduction(
               isFinalAssembly: true,
               voiceTrackUrl: state.assets?.voiceUrl,
               backgroundMusicUrl: state.assets?.musicUrl,
+              // Pass music sync plan for intelligent audio mixing
+              musicSyncPlan: (state as any).musicSyncPlan,
             }),
           });
           

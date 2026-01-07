@@ -461,7 +461,8 @@ export function UnifiedStudio() {
           }
           
           // Handle awaiting_approval stage - show script for review
-          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
+          // Only process if we don't already have a pending script to avoid duplicate updates
+          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots && !pendingScript) {
             console.log('[Studio] Script ready for approval:', tasks.script.shots.length, 'shots');
             setCurrentStage('awaiting_approval');
             setProgress(30);
@@ -516,7 +517,7 @@ export function UnifiedStudio() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog]);
+  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog, pendingScript]);
 
   const resetState = () => {
     setCurrentStage('idle');

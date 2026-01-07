@@ -531,10 +531,69 @@ async function runQualityGate(
     }
   }
   
+  // 2c. Run Lip Sync Analysis for professional tier with dialogue
+  if (request.qualityTier === 'professional' && state.auditResult?.optimizedShots) {
+    const shotsWithDialogue = state.script?.shots?.filter(s => s.dialogue && s.dialogue.trim().length > 0) || [];
+    
+    if (shotsWithDialogue.length > 0) {
+      console.log(`[Hollywood] Running Lip Sync Analysis for ${shotsWithDialogue.length} dialogue shots...`);
+      
+      try {
+        const lipSyncPromises = shotsWithDialogue.map(async (shot) => {
+          // Find character speaking in this shot
+          const speakingCharacter = state.extractedCharacters?.find(c => 
+            shot.dialogue?.toLowerCase().includes(c.name.toLowerCase()) ||
+            shot.description?.toLowerCase().includes(c.name.toLowerCase())
+          );
+          
+          const result = await callEdgeFunction('analyze-lip-sync', {
+            shotId: shot.id,
+            dialogue: shot.dialogue,
+            characterId: speakingCharacter?.id || 'unknown',
+            characterName: speakingCharacter?.name || 'Character',
+            shotDuration: shot.durationSeconds || 5,
+            context: shot.description,
+          });
+          
+          return { shotId: shot.id, result };
+        });
+        
+        const lipSyncResults = await Promise.all(lipSyncPromises);
+        
+        // Store lip sync data and apply prompt enhancements
+        const lipSyncMap: Record<string, any> = {};
+        
+        for (const { shotId, result } of lipSyncResults) {
+          if (result.success && result.data) {
+            lipSyncMap[shotId] = result.data;
+            
+            // Apply lip sync prompt enhancement to optimized shot
+            if (result.data.lipSyncPromptEnhancement) {
+              const shotIdx = state.auditResult!.optimizedShots.findIndex(s => s.shotId === shotId);
+              if (shotIdx >= 0) {
+                const existingDesc = state.auditResult!.optimizedShots[shotIdx].optimizedDescription;
+                state.auditResult!.optimizedShots[shotIdx].optimizedDescription = 
+                  `${existingDesc}. [LIP SYNC: ${result.data.lipSyncPromptEnhancement}]`;
+                console.log(`[Hollywood] Applied lip sync enhancement to ${shotId}`);
+              }
+            }
+          }
+        }
+        
+        (state as any).lipSyncData = lipSyncMap;
+        console.log(`[Hollywood] Lip Sync Analysis complete for ${Object.keys(lipSyncMap).length} shots`);
+        
+      } catch (err) {
+        console.warn(`[Hollywood] Lip Sync Analysis failed:`, err);
+      }
+    }
+  }
+  
   state.progress = 45;
   await updateProjectProgress(supabase, state.projectId, 'qualitygate', 45, {
     auditScore: state.auditResult?.overallScore || 0,
     depthScore: (state as any).depthConsistency?.overallScore,
+    lipSyncEnabled: !!(state as any).lipSyncData,
   });
   
   return state;

@@ -4,7 +4,8 @@ import {
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   ArrowRight, X, Download, ExternalLink, Loader2, Zap,
   Clock, CheckCircle2, Circle, ImageIcon, Sparkles,
-  User, Coins, ChevronDown, LogOut, Settings, HelpCircle
+  User, Coins, ChevronDown, LogOut, Settings, HelpCircle,
+  Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +15,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -89,11 +100,30 @@ function SmartVideoPlayer({
 export default function Projects() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, refreshProjects } = useStudio();
+  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, updateProject, refreshProjects } = useStudio();
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hasTriedAutoThumbnails, setHasTriedAutoThumbnails] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [projectToRename, setProjectToRename] = useState<Project | null>(null);
+  const [newProjectName, setNewProjectName] = useState('');
+
+  const handleRenameProject = (project: Project) => {
+    setProjectToRename(project);
+    setNewProjectName(project.name);
+    setRenameDialogOpen(true);
+  };
+
+  const handleConfirmRename = async () => {
+    if (!projectToRename || !newProjectName.trim()) return;
+    
+    await updateProject(projectToRename.id, { name: newProjectName.trim() });
+    toast.success('Project renamed');
+    setRenameDialogOpen(false);
+    setProjectToRename(null);
+    setNewProjectName('');
+  };
 
   // Auto-generate thumbnails for projects that need them
   useEffect(() => {
@@ -525,6 +555,13 @@ export default function Projects() {
                             </>
                           )}
                           <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleRenameProject(project); }} 
+                            className="gap-2 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-lg py-2 px-3"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
                             onClick={(e) => { e.stopPropagation(); handleOpenProject(project.id); }} 
                             className="gap-2 text-sm text-white/70 focus:text-white focus:bg-white/10 rounded-lg py-2 px-3"
                           >
@@ -618,6 +655,57 @@ export default function Projects() {
           }}
         />
       )}
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-black/95 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Pencil className="w-4 h-4" />
+              Rename Project
+            </DialogTitle>
+            <DialogDescription className="text-white/60">
+              Enter a new name for your project
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-name" className="text-white/80">Project Name</Label>
+              <Input
+                id="project-name"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Enter project name"
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newProjectName.trim()) {
+                    handleConfirmRename();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setRenameDialogOpen(false)}
+              className="border-white/10 text-white/70 hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmRename}
+              disabled={!newProjectName.trim()}
+              className="bg-white text-black hover:bg-white/90"
+            >
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

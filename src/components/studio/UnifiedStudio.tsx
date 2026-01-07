@@ -32,7 +32,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
-  Eye
+  Eye,
+  FolderOpen
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -701,6 +702,15 @@ export function UnifiedStudio() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/projects')}
+                className="gap-1.5"
+              >
+                <FolderOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">My Projects</span>
+              </Button>
               <Badge variant="outline" className="hidden sm:flex gap-1.5">
                 <Clock className="w-3 h-3" />
                 {totalDuration}s

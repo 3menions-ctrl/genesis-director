@@ -545,13 +545,13 @@ async function runQualityGate(
     };
   }
   
-  // 2b. Run Depth Consistency Analysis for all tiers (enhanced for professional)
+  // 2b. Run Depth Consistency Analysis for ALL shots (removed slice limit)
   if (state.auditResult?.optimizedShots) {
-    console.log(`[Hollywood] Running Depth Consistency Analysis...`);
+    console.log(`[Hollywood] Running Depth Consistency Analysis for ALL ${state.auditResult.optimizedShots.length} shots...`);
     
     try {
-      // Use scene images or reference image for depth analysis
-      const shotsForAnalysis = state.auditResult.optimizedShots.slice(0, 6).map((shot, i) => ({
+      // Use scene images or reference image for depth analysis - NO LIMIT
+      const shotsForAnalysis = state.auditResult.optimizedShots.map((shot, i) => ({
         id: shot.shotId,
         frameUrl: state.assets?.sceneImages?.[i]?.imageUrl || request.referenceImageUrl || '',
         description: shot.optimizedDescription,
@@ -678,12 +678,13 @@ async function runAssetCreation(
   
   state.assets = {};
   
-  // 3a. Generate scene reference images (ALWAYS generate, even if reference exists)
-  console.log(`[Hollywood] Generating scene reference images...`);
+  // 3a. Generate scene reference images for ALL shots (removed slice limit)
+  console.log(`[Hollywood] Generating scene reference images for ALL shots...`);
   
   if (state.script?.shots) {
     try {
-      const scenes = state.script.shots.slice(0, 3).map((shot, i) => ({
+      // Generate images for ALL shots, not just first 3
+      const scenes = state.script.shots.map((shot, i) => ({
         sceneNumber: i + 1,
         title: shot.title,
         visualDescription: state.auditResult?.optimizedShots[i]?.optimizedDescription || shot.description,
@@ -698,7 +699,7 @@ async function runAssetCreation(
       
       if (imageResult.images) {
         state.assets.sceneImages = imageResult.images;
-        console.log(`[Hollywood] Generated ${imageResult.images.length} scene images`);
+        console.log(`[Hollywood] Generated ${imageResult.images.length} scene images for ALL shots`);
       } else {
         console.error(`[Hollywood] Scene image generation returned no images`);
       }
@@ -1044,9 +1045,26 @@ async function runProduction(
       
       // Visual Debugger Loop (all tiers) - check quality and retry if needed
       if (result.videoUrl) {
-        console.log(`[Hollywood] Running Visual Debugger on clip ${i + 1}...`);
+        console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
         
-        const maxRetries = 2;
+        // FIXED: Extract actual frame before Visual Debugger analysis
+        let frameForAnalysis = result.lastFrameUrl;
+        try {
+          const frameResult = await callEdgeFunction('extract-video-frame', {
+            videoUrl: result.videoUrl,
+            projectId: state.projectId,
+            shotId: `clip_${i}`,
+            position: 'last',
+          });
+          if (frameResult.success && frameResult.frameUrl) {
+            frameForAnalysis = frameResult.frameUrl;
+            console.log(`[Hollywood] Frame extracted for Visual Debugger`);
+          }
+        } catch (frameErr) {
+          console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
+        }
+        
+        const maxRetries = 3; // Increased from 2 to 3 retries
         let retryCount = 0;
         let debugResult = null;
         
@@ -1054,7 +1072,7 @@ async function runProduction(
           try {
             debugResult = await callEdgeFunction('visual-debugger', {
               videoUrl: result.videoUrl,
-              frameUrl: result.lastFrameUrl,
+              frameUrl: frameForAnalysis || result.videoUrl, // Use video URL if no frame (Gemini can analyze video)
               shotDescription: clip.prompt,
               shotId: `clip_${i}`,
               projectType: request.genre || 'cinematic',
@@ -1073,7 +1091,7 @@ async function runProduction(
               } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
                 // Quality check failed, retry with corrective prompt
                 console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
-                console.log(`[Hollywood] Retrying with corrective prompt...`);
+                console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
                 
                 const retryResult = await callEdgeFunction('generate-single-clip', {
                   userId: request.userId,
@@ -1085,7 +1103,7 @@ async function runProduction(
                   previousMotionVectors,
                   identityBible: state.identityBible,
                   colorGrading: request.colorGrading || 'cinematic',
-                  qualityTier: 'professional',
+                  qualityTier: request.qualityTier || 'standard',
                   referenceImageUrl,
                   isRetry: true,
                 });
@@ -1093,6 +1111,22 @@ async function runProduction(
                 if (retryResult.success && retryResult.clipResult) {
                   result = retryResult.clipResult;
                   retryCount++;
+                  
+                  // Re-extract frame for new clip
+                  try {
+                    const newFrameResult = await callEdgeFunction('extract-video-frame', {
+                      videoUrl: result.videoUrl,
+                      projectId: state.projectId,
+                      shotId: `clip_${i}_retry_${retryCount}`,
+                      position: 'last',
+                    });
+                    if (newFrameResult.success && newFrameResult.frameUrl) {
+                      frameForAnalysis = newFrameResult.frameUrl;
+                    }
+                  } catch (e) {
+                    console.warn(`[Hollywood] Retry frame extraction failed`);
+                  }
+                  
                   console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
                   continue; // Re-run visual debugger on new clip
                 }
@@ -1112,6 +1146,31 @@ async function runProduction(
             passed: debugResult.result.passed,
             retriesUsed: retryCount,
           };
+        }
+      }
+      
+      // FIXED: Analyze real motion vectors from the generated video
+      if (result.videoUrl) {
+        try {
+          const motionResult = await callEdgeFunction('analyze-motion-vectors', {
+            videoUrl: result.videoUrl,
+            frameUrl: result.lastFrameUrl,
+            shotId: `clip_${i}`,
+            promptDescription: clip.prompt,
+          });
+          
+          if (motionResult.success && motionResult.motionVectors) {
+            // Override text-based motion vectors with vision-analyzed ones
+            result.motionVectors = {
+              endVelocity: motionResult.motionVectors.subjectVelocity,
+              endDirection: motionResult.motionVectors.subjectDirection,
+              cameraMomentum: motionResult.motionVectors.cameraMomentum,
+              continuityPrompt: motionResult.motionVectors.continuityPrompt,
+            };
+            console.log(`[Hollywood] Real motion vectors analyzed: ${result.motionVectors.endVelocity} ${result.motionVectors.endDirection}`);
+          }
+        } catch (motionErr) {
+          console.warn(`[Hollywood] Motion vector analysis failed, using text-based fallback:`, motionErr);
         }
       }
       
@@ -1161,10 +1220,11 @@ async function runProduction(
     try {
       const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
       
-      // Use intelligent-stitch for ALL tiers now
-      console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier`);
+      // Use intelligent-stitch for ALL tiers with bridge clips enabled for all
+      console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier (bridge clips enabled for all)`);
       const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
         projectId: state.projectId,
+        userId: request.userId, // FIXED: Pass userId for proper cost logging
         clips: completedClips.map((c, idx) => ({
           shotId: `clip_${c.index}`,
           videoUrl: c.videoUrl,
@@ -1173,9 +1233,9 @@ async function runProduction(
         })),
         voiceAudioUrl: state.assets?.voiceUrl,
         musicAudioUrl: state.assets?.musicUrl,
-        autoGenerateBridges: request.qualityTier === 'professional', // Bridge clips only for pro
+        autoGenerateBridges: true, // FIXED: Bridge clips enabled for ALL tiers
         strictnessLevel: 'normal',
-        maxBridgeClips: 3,
+        maxBridgeClips: 5, // FIXED: Increased from 3 to 5
         targetFormat: '1080p',
         qualityTier: request.qualityTier || 'standard',
         // Pass pro features for intelligent audio-visual sync

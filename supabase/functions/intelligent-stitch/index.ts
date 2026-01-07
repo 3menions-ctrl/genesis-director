@@ -20,6 +20,7 @@ const corsHeaders = {
 
 interface StitchRequest {
   projectId: string;
+  userId?: string; // FIXED: Added userId for cost logging
   clips: {
     shotId: string;
     videoUrl: string;
@@ -261,7 +262,7 @@ serve(async (req) => {
     // ========================================
     let bridgeClipsGenerated = 0;
     
-    if (autoGenerateBridges && bridgesNeeded > 0 && qualityTier === 'professional') {
+    if (autoGenerateBridges && bridgesNeeded > 0) { // FIXED: Removed professional-only gate
       console.log("[Intelligent Stitch] Step 3: Generating bridge clips...");
       steps.push({ step: 'generate_bridges', status: 'running' });
       
@@ -418,7 +419,7 @@ serve(async (req) => {
       const realCostCents = 2; // Minimal compute cost
       
       await supabase.rpc('log_api_cost', {
-        p_user_id: null,
+        p_user_id: request.userId || null, // FIXED: Pass userId from request
         p_project_id: projectId,
         p_shot_id: 'final_stitch',
         p_service: 'cloud_run_stitcher',

@@ -198,10 +198,8 @@ export function UnifiedStudio() {
   // Check for projects awaiting approval OR in-progress on mount
   useEffect(() => {
     const checkForActiveProjects = async () => {
-      console.log('[Studio] Checking for active projects, user:', !!user, 'stage:', currentStage);
       if (!user) return;
       if (currentStage !== 'idle') {
-        console.log('[Studio] Skipping check - not idle');
         return;
       }
       
@@ -215,18 +213,13 @@ export function UnifiedStudio() {
           .order('updated_at', { ascending: false })
           .limit(1);
         
-        console.log('[Studio] Active project query result:', projects?.length, error);
-        
         if (error) {
-          console.error('Error checking for active projects:', error);
           return;
         }
         
         if (projects && projects.length > 0) {
           const project = projects[0];
           const tasks = parsePendingVideoTasks(project.pending_video_tasks);
-          
-          console.log('[Studio] Found active project:', project.id, 'status:', project.status);
           
           // Handle awaiting_approval status
           if (project.status === 'awaiting_approval') {
@@ -237,13 +230,12 @@ export function UnifiedStudio() {
                   ? JSON.parse(project.generated_script) 
                   : project.generated_script;
                 scriptData = parsed?.shots;
-              } catch (e) {
-                console.error('Failed to parse generated_script:', e);
+              } catch {
+                // Failed to parse generated_script - continue without it
               }
             }
             
             if (scriptData && Array.isArray(scriptData)) {
-              console.log('[Studio] Found script with', scriptData.length, 'shots - awaiting approval');
               setActiveProjectId(project.id);
               setAwaitingApprovalProjectId(project.id);
               setAwaitingApprovalShotCount(scriptData.length);
@@ -263,13 +255,12 @@ export function UnifiedStudio() {
           // Handle in-progress statuses - show info card instead of redirecting
           // User can click to view production if they want
           else if (['producing', 'generating', 'rendering'].includes(project.status)) {
-            console.log('[Studio] Found in-progress pipeline:', project.id);
             setActiveProjectId(project.id);
             setCurrentStage('production');
           }
         }
-      } catch (err) {
-        console.error('Error checking active projects:', err);
+      } catch {
+        // Error checking active projects - non-critical
       }
     };
     

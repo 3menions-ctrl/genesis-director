@@ -56,12 +56,7 @@ export function SmartVideo({
       if (container) {
         const containerAspect = container.clientWidth / container.clientHeight;
         // If container is landscape but video is extremely portrait,
-        // the video might be rotated 90 degrees
-        if (containerAspect > 1 && aspectRatio < 0.7) {
-          // Don't auto-rotate as this could be intentional portrait video
-          // Instead, let CSS object-fit handle it
-          console.log('Portrait video detected:', { videoWidth, videoHeight, aspectRatio });
-        }
+        // the video might be rotated 90 degrees - let CSS object-fit handle it
       }
     }
     

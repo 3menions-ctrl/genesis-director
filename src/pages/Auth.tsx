@@ -6,6 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from 'lucide-react';
+import { z } from 'zod';
+
+// Validation schemas
+const emailSchema = z.string()
+  .trim()
+  .min(1, 'Email is required')
+  .email('Please enter a valid email address')
+  .max(255, 'Email must be less than 255 characters');
+
+const passwordSchema = z.string()
+  .min(6, 'Password must be at least 6 characters')
+  .max(72, 'Password must be less than 72 characters');
+
+const authFormSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+});
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,6 +30,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -39,29 +57,40 @@ export default function Auth() {
       } else {
         toast.success('Welcome to the demo!');
       }
-    } catch (err) {
+    } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setDemoLoading(false);
     }
   };
 
+  const validateForm = (): boolean => {
+    const result = authFormSchema.safeParse({ email: email.trim(), password });
+    
+    if (!result.success) {
+      const fieldErrors: { email?: string; password?: string } = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as 'email' | 'password';
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      
+      // Show first error as toast
+      const firstError = result.error.errors[0];
+      toast.error(firstError.message);
+      return false;
+    }
+    
+    setErrors({});
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!validateForm()) {
       return;
     }
 
@@ -69,9 +98,13 @@ export default function Auth() {
 
     try {
       const { supabase } = await import('@/integrations/supabase/client');
+      const trimmedEmail = email.trim();
       
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ 
+          email: trimmedEmail, 
+          password 
+        });
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Invalid email or password');
@@ -84,7 +117,7 @@ export default function Auth() {
       } else {
         const redirectUrl = `${window.location.origin}/onboarding`;
         const { error } = await supabase.auth.signUp({
-          email,
+          email: trimmedEmail,
           password,
           options: {
             emailRedirectTo: redirectUrl
@@ -100,7 +133,7 @@ export default function Auth() {
           toast.success('Account created! Let\'s set up your profile.');
         }
       }
-    } catch (err) {
+    } catch {
       toast.error('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -249,9 +282,16 @@ export default function Auth() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 pl-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                  }}
+                  className={`h-12 pl-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.email ? 'border-destructive' : ''}`}
+                  maxLength={255}
                 />
+                {errors.email && (
+                  <p className="text-destructive text-xs mt-1">{errors.email}</p>
+                )}
               </div>
             </div>
 
@@ -273,9 +313,16 @@ export default function Auth() {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 pl-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                  }}
+                  className={`h-12 pl-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.password ? 'border-destructive' : ''}`}
+                  maxLength={72}
                 />
+                {errors.password && (
+                  <p className="text-destructive text-xs mt-1">{errors.password}</p>
+                )}
               </div>
             </div>
 

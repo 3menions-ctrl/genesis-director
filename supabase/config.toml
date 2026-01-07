@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.analyze-depth-consistency]
 verify_jwt = false
+
+[functions.analyze-lip-sync]
+verify_jwt = false

@@ -134,7 +134,14 @@ interface PipelineState {
   error?: string;
 }
 
-const DEFAULT_CLIP_DURATION = 4;
+// Avatar-quality: Configurable clip duration (4-8 seconds for Veo 3.1)
+const DEFAULT_CLIP_DURATION = 6; // 6 seconds for cinematic quality
+const MIN_CLIP_DURATION = 4;
+const MAX_CLIP_DURATION = 8;
+
+// Extended clip limits for longer productions
+const MAX_CLIPS_PER_PROJECT = 24;
+const MIN_CLIPS_PER_PROJECT = 2;
 
 // Tier-aware credit costs (matches frontend useCreditBilling.ts)
 const TIER_CREDIT_COSTS = {
@@ -153,7 +160,12 @@ const TIER_CREDIT_COSTS = {
 } as const;
 
 function calculatePipelineParams(request: PipelineRequest): { clipCount: number; clipDuration: number; totalCredits: number } {
-  const clipDuration = DEFAULT_CLIP_DURATION;
+  // Avatar-quality: Configurable clip duration (4-8 seconds)
+  let clipDuration = DEFAULT_CLIP_DURATION;
+  if ((request as any).clipDuration) {
+    clipDuration = Math.max(MIN_CLIP_DURATION, Math.min(MAX_CLIP_DURATION, (request as any).clipDuration));
+  }
+  
   let clipCount: number;
   
   if (request.clipCount) {
@@ -166,12 +178,15 @@ function calculatePipelineParams(request: PipelineRequest): { clipCount: number;
     clipCount = 6;
   }
   
-  clipCount = Math.max(2, Math.min(12, clipCount));
+  // Extended clip limit: 2-24 clips for Avatar-quality productions
+  clipCount = Math.max(MIN_CLIPS_PER_PROJECT, Math.min(MAX_CLIPS_PER_PROJECT, clipCount));
   
   // Use tier-aware credit calculation
   const tier = request.qualityTier || 'standard';
   const creditsPerClip = TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
   const totalCredits = clipCount * creditsPerClip;
+  
+  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total`);
   
   return { clipCount, clipDuration, totalCredits };
 }

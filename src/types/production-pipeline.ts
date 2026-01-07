@@ -159,9 +159,14 @@ export type AudioMixMode = 'full' | 'dialogue-only' | 'music-only' | 'mute';
 // Transition types for seamless shot connections
 export type TransitionType = 'continuous' | 'match-cut' | 'dissolve' | 'fade';
 
-// Zero-Waste Premium: Maximum video duration per shot (4-second units)
-export const MAX_SHOT_DURATION_SECONDS = 4;
+// Avatar-quality: Configurable clip duration (4-8 seconds)
+export const MAX_SHOT_DURATION_SECONDS = 8;
 export const MIN_SHOT_DURATION_SECONDS = 4;
+export const DEFAULT_SHOT_DURATION_SECONDS = 6; // 6 seconds for cinematic flow
+
+// Maximum clips per project (extended for longer productions)
+export const MAX_CLIPS_PER_PROJECT = 24;
+export const MIN_CLIPS_PER_PROJECT = 2;
 
 // Professional tier: Max auto-retries before user sees failure
 export const MAX_PROFESSIONAL_RETRIES = 4;

@@ -256,11 +256,12 @@ export function UnifiedStudio() {
               toast.info('You have a script waiting for approval!');
             }
           } 
-          // Handle in-progress statuses - redirect to production page
+          // Handle in-progress statuses - show info card instead of redirecting
+          // User can click to view production if they want
           else if (['producing', 'generating', 'rendering'].includes(project.status)) {
-            console.log('[Studio] Found in-progress pipeline, redirecting to production page:', project.id);
-            toast.info('You have a video in production!');
-            navigate(`/production?projectId=${project.id}`);
+            console.log('[Studio] Found in-progress pipeline:', project.id);
+            setActiveProjectId(project.id);
+            setCurrentStage('production');
           }
         }
       } catch (err) {

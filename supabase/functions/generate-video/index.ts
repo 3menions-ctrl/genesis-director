@@ -465,7 +465,7 @@ serve(async (req) => {
         durationSeconds: finalDuration,
         sampleCount: 1,
         negativePrompt: negativePrompt,
-        resolution: "720p", // 720p or 1080p
+        resolution: "1080p", // Upgraded to 1080p for Avatar-quality
         personGeneration: "allow_adult", // Allow person generation
       }
     };

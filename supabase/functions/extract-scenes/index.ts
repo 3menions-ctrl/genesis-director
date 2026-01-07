@@ -49,8 +49,8 @@ STYLE: ${projectTypeContext}
 TITLE: ${title || 'Untitled'}
 
 CRITICAL REQUIREMENTS:
-1. MINIMUM 6 SHOTS - Never less. More if the story requires it.
-2. FIXED 4-SECOND UNITS: Each shot MUST be exactly 4 seconds.
+1. MINIMUM 6 SHOTS - Never less. More if the story requires it (up to 24 for longer productions).
+2. SHOT DURATION: Each shot should be 4-8 seconds. Default to 6 seconds for cinematic flow.
 3. SEAMLESS PHYSICS-BASED TRANSITIONS: Every shot must flow into the next using motion, physics, and spatial continuity.
 4. SMART CAMERA ANGLES: Vary camera angles between shots for professional cinematic look.
 
@@ -96,7 +96,7 @@ For each shot, provide:
   * Lighting and atmosphere
   * TRANSITION BRIDGE: End each description with motion/element that continues into next shot
 - dialogue: Any narration/dialogue (empty string if none)
-- durationSeconds: EXACTLY 4 seconds (fixed unit)
+- durationSeconds: 4-8 seconds (default 6 for cinematic flow, 4 for fast-paced, 8 for slow/emotional)
 - mood: Emotional tone
 - cameraMovement: Perspective type (steady, approaching, retreating, rising, flowing)
 - cameraScale: REQUIRED - One of: extreme-wide, wide, medium, close-up, extreme-close-up

@@ -42,14 +42,67 @@ app.use((req, res, next) => {
 // Temp directory for processing
 const TEMP_DIR = '/tmp/stitcher';
 
-// Initialize Supabase client
-function getSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error('Missing Supabase credentials');
+// Supabase configuration - now only needs URL and anon key
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+
+// Get signed upload URL from edge function
+async function getSignedUploadUrl(projectId, filename) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-upload-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ projectId, filename })
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get upload URL: ${error}`);
   }
-  return createClient(url, key);
+  
+  return response.json();
+}
+
+// Finalize stitch by calling edge function
+async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcessed, status = 'completed', errorMessage = null) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/finalize-stitch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ projectId, videoUrl, durationSeconds, clipsProcessed, status, errorMessage })
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    console.warn(`[Stitch] Failed to finalize: ${error}`);
+    return { success: false, error };
+  }
+  
+  return response.json();
+}
+
+// Upload file to signed URL
+async function uploadToSignedUrl(signedUrl, fileBuffer, contentType = 'video/mp4') {
+  const response = await fetch(signedUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType
+    },
+    body: fileBuffer
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Upload failed: ${response.status} - ${error}`);
+  }
+  
+  return true;
 }
 
 // Download file from URL
@@ -598,59 +651,34 @@ async function stitchVideos(request) {
       console.log(`[Stitch] Audio mixing complete: ${mixInputs.length} tracks mixed`);
     }
     
-    // Step 5: Upload to Supabase Storage
-    console.log('[Stitch] Step 5: Uploading to Supabase Storage...');
+    // Step 5: Get signed upload URL from edge function
+    console.log('[Stitch] Step 5: Getting signed upload URL...');
     
-    const supabase = getSupabase();
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
+    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName);
     
+    if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
+      throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
+    }
+    
+    console.log(`[Stitch] Got signed URL, uploading ${finalFileName}...`);
+    
+    // Read the final video file
     const fileBuffer = await fs.readFile(finalPath);
     
-    // Ensure bucket exists (create if needed)
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(b => b.name === 'final-videos');
+    // Upload directly to signed URL
+    await uploadToSignedUrl(uploadUrlData.signedUrl, fileBuffer);
     
-    if (!bucketExists) {
-      await supabase.storage.createBucket('final-videos', { public: true });
-      console.log('[Stitch] Created final-videos bucket');
-    }
+    const finalVideoUrl = uploadUrlData.publicUrl;
+    console.log(`[Stitch] Upload complete: ${finalVideoUrl}`);
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('final-videos')
-      .upload(finalFileName, fileBuffer, {
-        contentType: 'video/mp4',
-        upsert: true
-      });
-    
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('final-videos')
-      .getPublicUrl(finalFileName);
-    
-    const finalVideoUrl = urlData.publicUrl;
-    
-    // Step 6: Update project in database
-    console.log('[Stitch] Step 6: Updating project dashboard...');
-    
-    const { error: updateError } = await supabase
-      .from('movie_projects')
-      .update({
-        video_url: finalVideoUrl,
-        status: 'completed',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', projectId);
-    
-    if (updateError) {
-      console.warn(`[Stitch] Failed to update project: ${updateError.message}`);
-    }
+    // Step 6: Finalize via edge function (updates database)
+    console.log('[Stitch] Step 6: Finalizing project...');
     
     // Calculate final duration
     const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);
+    
+    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length);
     
     // Cleanup
     await fs.rm(workDir, { recursive: true, force: true });

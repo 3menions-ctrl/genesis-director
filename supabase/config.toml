@@ -108,8 +108,8 @@ verify_jwt = false
 [functions.final-assembly]
 verify_jwt = false
 
-[functions.analyze-transition-gap]
+[functions.generate-upload-url]
 verify_jwt = false
 
-[functions.generate-bridge-clip]
+[functions.finalize-stitch]
 verify_jwt = false

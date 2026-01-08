@@ -95,3 +95,9 @@ verify_jwt = false
 
 [functions.analyze-motion-vectors]
 verify_jwt = false
+
+[functions.analyze-transition-gap]
+verify_jwt = false
+
+[functions.generate-bridge-clip]
+verify_jwt = false

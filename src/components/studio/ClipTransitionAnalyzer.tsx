@@ -127,15 +127,60 @@ export function ClipTransitionAnalyzer({ projectId, onBridgeGenerated }: ClipTra
         }
       }
       
-      // Step 2: Compare consecutive clips
-      setAnalyzingStep('Comparing transitions...');
+      // Step 2: Compare consecutive clips using vision AI
+      setAnalyzingStep('Analyzing transitions with vision AI...');
       const newTransitions: TransitionAnalysis[] = [];
       
       for (let i = 0; i < clips.length - 1; i++) {
-        setAnalyzingStep(`Comparing clip ${i + 1} → ${i + 2}...`);
+        setAnalyzingStep(`Analyzing transition ${i + 1} → ${i + 2}...`);
+        const clip1 = clips[i];
+        const clip2 = clips[i + 1];
         const anchor1 = anchors[i];
         const anchor2 = anchors[i + 1];
         
+        // Try the new vision-based gap analyzer first
+        try {
+          const { data: gapData, error: gapError } = await supabase.functions.invoke('analyze-transition-gap', {
+            body: {
+              fromClipUrl: clip1.video_url,
+              toClipUrl: clip2.video_url,
+              fromClipLastFrame: clip1.last_frame_url,
+              toClipFirstFrame: clip2.video_url, // Use video URL as Gemini can analyze it
+              fromClipDescription: clip1.prompt,
+              toClipDescription: clip2.prompt,
+              strictness: 'normal',
+            },
+          });
+          
+          if (gapData?.success && gapData.analysis) {
+            const analysis = gapData.analysis;
+            newTransitions.push({
+              fromIndex: i,
+              toIndex: i + 1,
+              lightingMatch: analysis.visualContinuity?.lightingMatch ? 90 : 50,
+              colorMatch: analysis.visualContinuity?.colorMatch ? 90 : 50,
+              depthMatch: analysis.visualContinuity?.compositionMatch ? 90 : 50,
+              objectMatch: analysis.semanticScore || 70,
+              motionMatch: analysis.motionScore || 70,
+              overallScore: analysis.overallScore,
+              isCompatible: analysis.overallScore >= 70,
+              gaps: analysis.visualContinuity?.issues?.map((issue: string) => ({
+                component: 'visual',
+                severity: analysis.gapType === 'severe' ? 'severe' : analysis.gapType === 'moderate' ? 'moderate' : 'minor',
+                description: issue,
+                bridgePrompt: analysis.bridgeClipPrompt || '',
+              })) || [],
+              recommendedTransition: analysis.recommendedTransition === 'bridge-clip' ? 'ai-bridge' : analysis.recommendedTransition,
+              bridgeClipNeeded: analysis.bridgeClipNeeded,
+              bridgeClipPrompt: analysis.bridgeClipPrompt,
+            });
+            continue;
+          }
+        } catch (gapErr) {
+          console.warn(`Vision gap analysis failed for transition ${i}, falling back to anchor comparison`);
+        }
+        
+        // Fallback to scene anchor comparison
         if (anchor1.error || anchor2.error) {
           newTransitions.push({
             fromIndex: i,
@@ -231,23 +276,25 @@ export function ClipTransitionAnalyzer({ projectId, onBridgeGenerated }: ClipTra
     
     try {
       const fromClip = clips[transition.fromIndex];
-      const toClip = clips[transition.toIndex];
       
-      toast.info('Generating bridge clip... This may take 30-60 seconds');
+      toast.info('Generating AI bridge clip... This may take 1-2 minutes');
       
-      const { data, error } = await supabase.functions.invoke('generate-video', {
+      // Use the dedicated bridge clip generator
+      const { data, error } = await supabase.functions.invoke('generate-bridge-clip', {
         body: {
-          prompt: transition.bridgeClipPrompt,
-          startFrameUrl: fromClip.last_frame_url || fromClip.video_url,
-          duration: 2, // 2-second bridge
-          aspectRatio: '16:9',
-          negativePrompt: 'jarring transition, sudden change, inconsistent lighting',
+          projectId,
+          fromClipLastFrame: fromClip.last_frame_url || fromClip.video_url,
+          bridgePrompt: transition.bridgeClipPrompt,
+          durationSeconds: 3,
+          sceneContext: {
+            environment: fromClip.prompt?.substring(0, 100),
+          },
         },
       });
       
       if (data?.success && data.videoUrl) {
-        setTransitions(prev => prev.map((t, i) => 
-          i === transitionIndex 
+        setTransitions(prev => prev.map((t, idx) =>
+          idx === transitionIndex
             ? { ...t, bridgeClipUrl: data.videoUrl, bridgeGenerating: false, bridgeClipNeeded: false }
             : t
         ));

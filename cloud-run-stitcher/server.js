@@ -21,6 +21,15 @@ const http = require('http');
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
+// Health check endpoint - must be first before any other logic
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'healthy', service: 'ffmpeg-stitcher' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', service: 'ffmpeg-stitcher' });
+});
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,10 +57,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Log startup info
 console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
-console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_KEY.length + ')' : 'MISSING');
+console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET');
 
 if (!SUPABASE_SERVICE_KEY) {
-  console.warn('[Startup] WARNING: SUPABASE_SERVICE_KEY not set - some features may not work');
+  console.warn('[Startup] WARNING: SUPABASE_SERVICE_KEY not set');
 }
 
 // Create Supabase client helper

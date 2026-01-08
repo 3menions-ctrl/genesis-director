@@ -27,6 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
+import { ClipTransitionAnalyzer } from '@/components/studio/ClipTransitionAnalyzer';
 
 interface StageStatus {
   name: string;
@@ -737,6 +738,17 @@ export default function Production() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Transition Analyzer - Show when clips are available */}
+        {completedClips >= 2 && projectId && (
+          <ClipTransitionAnalyzer 
+            projectId={projectId} 
+            onBridgeGenerated={() => {
+              loadVideoClips();
+              addLog('Bridge clip generated', 'success');
+            }}
+          />
         )}
 
         {/* Completed Video */}

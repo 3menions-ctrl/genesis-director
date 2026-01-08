@@ -190,57 +190,83 @@ serve(async (req) => {
     console.log(`[Intelligent Stitch] Extracted ${anchors.filter(a => !a.error).length}/${clips.length} anchors`);
 
     // ========================================
-    // STEP 2: Compare Consecutive Clips
+    // STEP 2: Analyze Transitions with Vision AI (Veed-Level)
     // ========================================
-    console.log("[Intelligent Stitch] Step 2: Analyzing transitions...");
+    console.log("[Intelligent Stitch] Step 2: Analyzing transitions with vision AI...");
     steps.push({ step: 'analyze_transitions', status: 'running' });
     
     const transitions: TransitionAnalysis[] = [];
     const compareStartTime = Date.now();
     
     for (let i = 0; i < clips.length - 1; i++) {
+      const clip1 = clips[i];
+      const clip2 = clips[i + 1];
       const anchor1 = anchors[i];
       const anchor2 = anchors[i + 1];
       
-      // Skip if either anchor failed
-      if (anchor1.error || anchor2.error) {
-        transitions.push({
-          fromIndex: i,
-          toIndex: i + 1,
-          comparison: null,
-          recommendedTransition: 'cut', // Default to cut if analysis failed
-          bridgeClipNeeded: false,
-        });
-        continue;
-      }
-      
       try {
-        const compareResult = await callEdgeFunction('compare-scene-anchors', {
-          anchor1,
-          anchor2,
+        // Use the new vision-based transition gap analyzer
+        const gapResult = await callEdgeFunction('analyze-transition-gap', {
+          fromClipUrl: clip1.videoUrl,
+          toClipUrl: clip2.videoUrl,
+          fromClipLastFrame: anchor1?.lastFrameUrl || clip1.lastFrameUrl,
+          toClipFirstFrame: anchor2?.firstFrameUrl || clip2.firstFrameUrl,
+          fromClipDescription: anchor1?.masterConsistencyPrompt,
+          toClipDescription: anchor2?.masterConsistencyPrompt,
           strictness: strictnessLevel,
         });
         
-        if (compareResult.success) {
+        if (gapResult.success && gapResult.analysis) {
+          const analysis = gapResult.analysis;
           transitions.push({
             fromIndex: i,
             toIndex: i + 1,
-            comparison: compareResult.comparison,
-            recommendedTransition: compareResult.comparison.recommendedTransition,
-            bridgeClipNeeded: compareResult.comparison.bridgeClipNeeded,
-            bridgeClipPrompt: compareResult.comparison.bridgeClipPrompt,
+            comparison: {
+              overallScore: analysis.overallScore,
+              motionScore: analysis.motionScore,
+              visualScore: analysis.visualScore,
+              gapType: analysis.gapType,
+              gapDescription: analysis.gapDescription,
+              motionContinuity: analysis.motionContinuity,
+              visualContinuity: analysis.visualContinuity,
+            },
+            recommendedTransition: analysis.recommendedTransition === 'bridge-clip' ? 'ai-bridge' : analysis.recommendedTransition,
+            bridgeClipNeeded: analysis.bridgeClipNeeded,
+            bridgeClipPrompt: analysis.bridgeClipPrompt,
           });
+          
+          console.log(`[Intelligent Stitch] Transition ${i}→${i+1}: Score ${analysis.overallScore}, Gap: ${analysis.gapType}, Rec: ${analysis.recommendedTransition}`);
         } else {
-          transitions.push({
-            fromIndex: i,
-            toIndex: i + 1,
-            comparison: null,
-            recommendedTransition: 'dissolve',
-            bridgeClipNeeded: false,
-          });
+          // Fallback to scene anchor comparison
+          if (!anchor1?.error && !anchor2?.error) {
+            const compareResult = await callEdgeFunction('compare-scene-anchors', {
+              anchor1,
+              anchor2,
+              strictness: strictnessLevel,
+            });
+            
+            if (compareResult.success) {
+              transitions.push({
+                fromIndex: i,
+                toIndex: i + 1,
+                comparison: compareResult.comparison,
+                recommendedTransition: compareResult.comparison.recommendedTransition,
+                bridgeClipNeeded: compareResult.comparison.bridgeClipNeeded,
+                bridgeClipPrompt: compareResult.comparison.bridgeClipPrompt,
+              });
+            }
+          } else {
+            transitions.push({
+              fromIndex: i,
+              toIndex: i + 1,
+              comparison: null,
+              recommendedTransition: 'dissolve',
+              bridgeClipNeeded: false,
+            });
+          }
         }
       } catch (error) {
-        console.error(`[Intelligent Stitch] Compare error for transition ${i}→${i+1}:`, error);
+        console.error(`[Intelligent Stitch] Transition analysis error ${i}→${i+1}:`, error);
         transitions.push({
           fromIndex: i,
           toIndex: i + 1,
@@ -262,8 +288,8 @@ serve(async (req) => {
     // ========================================
     let bridgeClipsGenerated = 0;
     
-    if (autoGenerateBridges && bridgesNeeded > 0) { // FIXED: Removed professional-only gate
-      console.log("[Intelligent Stitch] Step 3: Generating bridge clips...");
+    if (autoGenerateBridges && bridgesNeeded > 0) {
+      console.log("[Intelligent Stitch] Step 3: Generating bridge clips with dedicated generator...");
       steps.push({ step: 'generate_bridges', status: 'running' });
       
       const bridgeStartTime = Date.now();
@@ -276,28 +302,39 @@ serve(async (req) => {
         
         const fromAnchor = anchors[transition.fromIndex];
         const toAnchor = anchors[transition.toIndex];
+        const fromClip = clips[transition.fromIndex];
         
-        // Build bridge prompt with scene context
-        const bridgePrompt = `${transition.bridgeClipPrompt}. 
-          Maintain visual elements: ${fromAnchor.masterConsistencyPrompt || ''}
-          Transition towards: ${toAnchor.masterConsistencyPrompt || ''}`;
+        // Extract scene context for bridge generation
+        const sceneContext = {
+          lighting: fromAnchor?.lighting?.promptFragment,
+          colorPalette: fromAnchor?.colorPalette?.promptFragment,
+          environment: fromAnchor?.keyObjects?.settingDescription,
+          mood: fromAnchor?.motionSignature?.pacingTempo,
+        };
         
         try {
           console.log(`[Intelligent Stitch] Generating bridge for transition ${transition.fromIndex}→${transition.toIndex}`);
           
-          const generateResult = await callEdgeFunction('generate-video', {
-            prompt: bridgePrompt,
-            startFrameUrl: fromAnchor.lastFrameUrl,
-            duration: 2, // 2-second bridge clips
-            aspectRatio: '16:9',
-            negativePrompt: 'jarring transition, sudden change, inconsistent lighting',
+          // Use the dedicated bridge clip generator
+          const bridgeResult = await callEdgeFunction('generate-bridge-clip', {
+            projectId,
+            userId: request.userId,
+            fromClipLastFrame: fromAnchor?.lastFrameUrl || fromClip.lastFrameUrl || fromClip.videoUrl,
+            toClipFirstFrame: toAnchor?.firstFrameUrl,
+            bridgePrompt: transition.bridgeClipPrompt,
+            durationSeconds: 3,
+            sceneContext,
           });
           
-          if (generateResult.success && generateResult.videoUrl) {
-            transition.bridgeClipUrl = generateResult.videoUrl;
-            transition.recommendedTransition = 'cut'; // Now we can cut to the bridge
+          if (bridgeResult.success && bridgeResult.videoUrl) {
+            transition.bridgeClipUrl = bridgeResult.videoUrl;
+            transition.recommendedTransition = 'cut'; // Clean cut to/from bridge
             bridgeClipsGenerated++;
-            console.log(`[Intelligent Stitch] Bridge clip generated: ${generateResult.videoUrl}`);
+            console.log(`[Intelligent Stitch] Bridge clip generated: ${bridgeResult.videoUrl}`);
+          } else {
+            console.warn(`[Intelligent Stitch] Bridge generation returned no video, using dissolve`);
+            transition.recommendedTransition = 'dissolve';
+            transition.bridgeClipNeeded = false;
           }
         } catch (error) {
           console.error(`[Intelligent Stitch] Bridge generation failed:`, error);

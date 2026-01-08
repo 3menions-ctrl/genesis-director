@@ -42,17 +42,22 @@ app.use((req, res, next) => {
 // Temp directory for processing
 const TEMP_DIR = '/tmp/stitcher';
 
-// Supabase configuration - now only needs URL and anon key
+// Supabase configuration - uses service role key for backend operations
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobGlreWhnY3F2cmR2YnRrZ2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczMTMxNjcsImV4cCI6MjA4Mjg4OTE2N30.b2xtJ4D-zYFhNj5Df7w0_HQSEG_3vwZUaps8USRHjqQ';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Log startup info
 console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
-console.log('[Startup] SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'MISSING');
+console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_KEY.length + ')' : 'MISSING');
+
+if (!SUPABASE_SERVICE_KEY) {
+  console.error('[Startup] FATAL: SUPABASE_SERVICE_KEY is required');
+  process.exit(1);
+}
 
 // Create Supabase client helper
 function getSupabase() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
 // Get signed upload URL from edge function
@@ -61,8 +66,8 @@ async function getSignedUploadUrl(projectId, filename) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'apikey': SUPABASE_ANON_KEY
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'apikey': SUPABASE_SERVICE_KEY
     },
     body: JSON.stringify({ projectId, filename })
   });
@@ -81,8 +86,8 @@ async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcess
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'apikey': SUPABASE_ANON_KEY
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'apikey': SUPABASE_SERVICE_KEY
     },
     body: JSON.stringify({ projectId, videoUrl, durationSeconds, clipsProcessed, status, errorMessage })
   });

@@ -46,6 +46,11 @@ const TEMP_DIR = '/tmp/stitcher';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
+// Create Supabase client helper
+function getSupabase() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
 // Get signed upload URL from edge function
 async function getSignedUploadUrl(projectId, filename) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-upload-url`, {

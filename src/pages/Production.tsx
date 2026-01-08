@@ -774,7 +774,42 @@ export default function Production() {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {/* Re-stitch button for manifest mode - produces real MP4 */}
+                  {finalVideoUrl.endsWith('.json') && (
+                    <Button 
+                      onClick={async () => {
+                        toast.info('Starting AI-powered final assembly... This may take 2-5 minutes');
+                        try {
+                          const { data, error } = await supabase.functions.invoke('final-assembly', {
+                            body: {
+                              projectId,
+                              userId: user?.id,
+                              strictness: 'normal',
+                              maxBridgeClips: 5,
+                              outputQuality: '1080p',
+                            },
+                          });
+                          
+                          if (data?.success && data.finalVideoUrl) {
+                            setFinalVideoUrl(data.finalVideoUrl);
+                            toast.success('Final MP4 ready for download!');
+                            addLog(`Final assembly complete: ${data.bridgeClipsGenerated} bridge clips generated`, 'success');
+                          } else {
+                            throw new Error(data?.error || 'Assembly failed');
+                          }
+                        } catch (err: any) {
+                          toast.error(err.message || 'Failed to assemble final video');
+                          addLog(`Assembly failed: ${err.message}`, 'error');
+                        }
+                      }}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Downloadable MP4
+                    </Button>
+                  )}
+                  
                   {!finalVideoUrl.endsWith('.json') && (
                     <Button asChild className="bg-green-600 hover:bg-green-700">
                       <a href={finalVideoUrl} download target="_blank" rel="noopener noreferrer">
@@ -783,6 +818,41 @@ export default function Production() {
                       </a>
                     </Button>
                   )}
+                  
+                  {/* Re-stitch with AI bridges option */}
+                  {!finalVideoUrl.endsWith('.json') && completedClips >= 2 && (
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        toast.info('Re-assembling with AI bridge clips...');
+                        try {
+                          const { data, error } = await supabase.functions.invoke('final-assembly', {
+                            body: {
+                              projectId,
+                              userId: user?.id,
+                              forceReassemble: true,
+                              strictness: 'strict',
+                              maxBridgeClips: 5,
+                              outputQuality: '1080p',
+                            },
+                          });
+                          
+                          if (data?.success && data.finalVideoUrl) {
+                            setFinalVideoUrl(data.finalVideoUrl);
+                            toast.success(`Re-stitched with ${data.bridgeClipsGenerated} AI bridge clips!`);
+                          } else {
+                            throw new Error(data?.error || 'Re-assembly failed');
+                          }
+                        } catch (err: any) {
+                          toast.error(err.message || 'Failed to re-stitch');
+                        }
+                      }}
+                    >
+                      <Layers className="w-4 h-4 mr-2" />
+                      Re-Stitch with AI Bridges
+                    </Button>
+                  )}
+                  
                   <Button variant="outline" onClick={() => navigate('/projects')}>
                     View All Projects
                   </Button>

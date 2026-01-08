@@ -1,0 +1,413 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+/**
+ * Final Assembly - Professional Video Stitching Pipeline
+ * 
+ * Produces a complete, downloadable MP4 with:
+ * 1. Intelligent transition analysis (motion, visual, semantic)
+ * 2. AI bridge clip generation for gaps
+ * 3. Audio continuity (voice + music sync + SFX)
+ * 4. Color grading consistency
+ * 5. FFmpeg rendering via Cloud Run
+ * 
+ * This is the "Veed-level" stitching orchestrator.
+ */
+
+interface AssemblyRequest {
+  projectId: string;
+  userId?: string;
+  forceReassemble?: boolean;
+  strictness?: 'lenient' | 'normal' | 'strict';
+  maxBridgeClips?: number;
+  outputQuality?: '720p' | '1080p' | '4k';
+}
+
+interface ClipData {
+  id: string;
+  shotIndex: number;
+  videoUrl: string;
+  lastFrameUrl?: string;
+  durationSeconds: number;
+  prompt: string;
+}
+
+// Call another edge function
+async function callEdgeFunction(functionName: string, body: any): Promise<any> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`${functionName} failed: ${errorText}`);
+  }
+  
+  return response.json();
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+
+  try {
+    const request: AssemblyRequest = await req.json();
+    const { 
+      projectId, 
+      userId,
+      forceReassemble = false,
+      strictness = 'normal',
+      maxBridgeClips = 5,
+      outputQuality = '1080p'
+    } = request;
+
+    if (!projectId) {
+      throw new Error("projectId is required");
+    }
+
+    console.log(`[FinalAssembly] Starting assembly for project ${projectId}`);
+    console.log(`[FinalAssembly] Settings: strictness=${strictness}, maxBridges=${maxBridgeClips}, quality=${outputQuality}`);
+
+    // Initialize Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Update project status
+    await supabase
+      .from('movie_projects')
+      .update({ status: 'assembling' })
+      .eq('id', projectId);
+
+    // Step 1: Load all completed clips
+    console.log("[FinalAssembly] Step 1: Loading clips...");
+    
+    const { data: clips, error: clipsError } = await supabase
+      .from('video_clips')
+      .select('id, shot_index, video_url, last_frame_url, duration_seconds, prompt, status')
+      .eq('project_id', projectId)
+      .eq('status', 'completed')
+      .order('shot_index');
+
+    if (clipsError || !clips || clips.length === 0) {
+      throw new Error(`No completed clips found for project ${projectId}`);
+    }
+
+    console.log(`[FinalAssembly] Found ${clips.length} completed clips`);
+
+    // Step 2: Load project audio tracks
+    const { data: project, error: projectError } = await supabase
+      .from('movie_projects')
+      .select('voice_audio_url, music_url, pro_features_data, title')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      console.warn(`[FinalAssembly] Could not load project:`, projectError);
+    }
+
+    const voiceAudioUrl = project?.voice_audio_url;
+    const musicUrl = project?.music_url;
+    const proFeatures = project?.pro_features_data as any;
+
+    console.log(`[FinalAssembly] Audio: voice=${!!voiceAudioUrl}, music=${!!musicUrl}`);
+
+    // Step 3: Analyze transitions using vision AI
+    console.log("[FinalAssembly] Step 2: Analyzing transitions...");
+    
+    const transitions: Array<{
+      fromIndex: number;
+      toIndex: number;
+      score: number;
+      gapType: string;
+      recommendedTransition: string;
+      bridgeClipNeeded: boolean;
+      bridgeClipPrompt?: string;
+      bridgeClipUrl?: string;
+    }> = [];
+
+    for (let i = 0; i < clips.length - 1; i++) {
+      const clip1 = clips[i];
+      const clip2 = clips[i + 1];
+
+      try {
+        // Use vision AI to analyze the transition
+        const gapResult = await callEdgeFunction('analyze-transition-gap', {
+          fromClipUrl: clip1.video_url,
+          toClipUrl: clip2.video_url,
+          fromClipLastFrame: clip1.last_frame_url,
+          toClipFirstFrame: null, // Will use video URL
+          fromClipDescription: clip1.prompt,
+          toClipDescription: clip2.prompt,
+          strictness,
+        });
+
+        if (gapResult.success && gapResult.analysis) {
+          const analysis = gapResult.analysis;
+          transitions.push({
+            fromIndex: i,
+            toIndex: i + 1,
+            score: analysis.overallScore,
+            gapType: analysis.gapType,
+            recommendedTransition: analysis.recommendedTransition === 'bridge-clip' ? 'ai-bridge' : analysis.recommendedTransition,
+            bridgeClipNeeded: analysis.bridgeClipNeeded,
+            bridgeClipPrompt: analysis.bridgeClipPrompt,
+          });
+          
+          console.log(`[FinalAssembly] Transition ${i}→${i+1}: Score ${analysis.overallScore}, ${analysis.gapType}`);
+        } else {
+          // Default to dissolve if analysis fails
+          transitions.push({
+            fromIndex: i,
+            toIndex: i + 1,
+            score: 70,
+            gapType: 'unknown',
+            recommendedTransition: 'dissolve',
+            bridgeClipNeeded: false,
+          });
+        }
+      } catch (analysisError) {
+        console.warn(`[FinalAssembly] Transition ${i}→${i+1} analysis failed:`, analysisError);
+        transitions.push({
+          fromIndex: i,
+          toIndex: i + 1,
+          score: 60,
+          gapType: 'analysis_failed',
+          recommendedTransition: 'dissolve',
+          bridgeClipNeeded: false,
+        });
+      }
+    }
+
+    // Step 4: Generate bridge clips for severe gaps
+    const bridgesNeeded = transitions.filter(t => t.bridgeClipNeeded);
+    let bridgeClipsGenerated = 0;
+
+    if (bridgesNeeded.length > 0) {
+      console.log(`[FinalAssembly] Step 3: Generating ${Math.min(bridgesNeeded.length, maxBridgeClips)} bridge clips...`);
+      
+      const bridgesToGenerate = bridgesNeeded.slice(0, maxBridgeClips);
+      
+      for (const transition of bridgesToGenerate) {
+        if (!transition.bridgeClipPrompt) continue;
+        
+        const fromClip = clips[transition.fromIndex];
+        
+        try {
+          console.log(`[FinalAssembly] Generating bridge for transition ${transition.fromIndex}→${transition.toIndex}`);
+          
+          const bridgeResult = await callEdgeFunction('generate-bridge-clip', {
+            projectId,
+            userId,
+            fromClipLastFrame: fromClip.last_frame_url || fromClip.video_url,
+            bridgePrompt: transition.bridgeClipPrompt,
+            durationSeconds: 3,
+            sceneContext: {
+              environment: fromClip.prompt?.substring(0, 100),
+            },
+          });
+          
+          if (bridgeResult.success && bridgeResult.videoUrl) {
+            transition.bridgeClipUrl = bridgeResult.videoUrl;
+            transition.recommendedTransition = 'cut';
+            bridgeClipsGenerated++;
+            console.log(`[FinalAssembly] Bridge generated: ${bridgeResult.videoUrl}`);
+          } else {
+            transition.recommendedTransition = 'dissolve';
+            transition.bridgeClipNeeded = false;
+          }
+        } catch (bridgeError) {
+          console.error(`[FinalAssembly] Bridge generation failed:`, bridgeError);
+          transition.recommendedTransition = 'dissolve';
+          transition.bridgeClipNeeded = false;
+        }
+      }
+    }
+
+    // Step 5: Build final clip sequence with bridge clips
+    console.log("[FinalAssembly] Step 4: Building final sequence...");
+    
+    const finalSequence: Array<{
+      shotId: string;
+      videoUrl: string;
+      durationSeconds: number;
+      transitionOut: string;
+    }> = [];
+
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      const transition = transitions.find(t => t.fromIndex === i);
+      
+      // Add the clip
+      finalSequence.push({
+        shotId: clip.id,
+        videoUrl: clip.video_url,
+        durationSeconds: clip.duration_seconds || 4,
+        transitionOut: transition?.recommendedTransition === 'ai-bridge' 
+          ? 'cut' 
+          : (transition?.recommendedTransition || 'cut'),
+      });
+      
+      // Add bridge clip if generated
+      if (transition?.bridgeClipUrl) {
+        finalSequence.push({
+          shotId: `bridge_${i}_${i+1}`,
+          videoUrl: transition.bridgeClipUrl,
+          durationSeconds: 3,
+          transitionOut: 'cut',
+        });
+      }
+    }
+
+    console.log(`[FinalAssembly] Final sequence: ${finalSequence.length} clips (${clips.length} original + ${bridgeClipsGenerated} bridges)`);
+
+    // Step 6: Call Cloud Run FFmpeg for final assembly
+    console.log("[FinalAssembly] Step 5: Calling Cloud Run FFmpeg...");
+    
+    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+    
+    if (!cloudRunUrl) {
+      throw new Error("CLOUD_RUN_STITCHER_URL is not configured - cannot produce final MP4");
+    }
+
+    const resolution = outputQuality === '4k' ? '3840x2160' : outputQuality === '720p' ? '1280x720' : '1920x1080';
+
+    const stitchPayload = {
+      projectId,
+      projectTitle: project?.title || `Video ${projectId}`,
+      clips: finalSequence,
+      voiceTrackUrl: voiceAudioUrl,
+      backgroundMusicUrl: musicUrl,
+      audioMixMode: (voiceAudioUrl || musicUrl) ? 'full' : 'mute',
+      outputFormat: 'mp4',
+      colorGrading: 'cinematic',
+      transitionType: 'dissolve',
+      transitionDuration: 0.5,
+      // Pass any music sync data
+      musicSyncPlan: proFeatures?.musicSyncPlan,
+      sfxPlan: proFeatures?.sfxPlan,
+    };
+
+    console.log(`[FinalAssembly] Sending ${finalSequence.length} clips to Cloud Run...`);
+
+    const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
+    const stitchResponse = await fetch(`${normalizedUrl}/stitch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stitchPayload),
+    });
+
+    if (!stitchResponse.ok) {
+      const errorText = await stitchResponse.text();
+      console.error(`[FinalAssembly] Cloud Run error: ${errorText}`);
+      throw new Error(`Cloud Run stitching failed: ${stitchResponse.status}`);
+    }
+
+    const stitchResult = await stitchResponse.json();
+
+    if (!stitchResult.success || !stitchResult.finalVideoUrl) {
+      throw new Error(stitchResult.error || 'Cloud Run returned no video URL');
+    }
+
+    console.log(`[FinalAssembly] Final video URL: ${stitchResult.finalVideoUrl}`);
+
+    // Step 7: Update project with final video
+    const { error: updateError } = await supabase
+      .from('movie_projects')
+      .update({
+        video_url: stitchResult.finalVideoUrl,
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    if (updateError) {
+      console.warn(`[FinalAssembly] Failed to update project:`, updateError);
+    }
+
+    const totalProcessingTime = Date.now() - startTime;
+    console.log(`[FinalAssembly] Complete in ${(totalProcessingTime / 1000).toFixed(1)}s`);
+
+    // Log API cost
+    if (userId) {
+      try {
+        await supabase.rpc('log_api_cost', {
+          p_user_id: userId,
+          p_project_id: projectId,
+          p_shot_id: 'final_assembly',
+          p_service: 'cloud_run_stitcher',
+          p_operation: 'final_assembly',
+          p_credits_charged: 5 + (bridgeClipsGenerated * 10), // 5 base + 10 per bridge
+          p_real_cost_cents: 10 + (bridgeClipsGenerated * 50),
+          p_duration_seconds: Math.round(stitchResult.durationSeconds || 0),
+          p_status: 'completed',
+          p_metadata: JSON.stringify({
+            clipsCount: clips.length,
+            bridgeClipsGenerated,
+            transitionsAnalyzed: transitions.length,
+            processingTimeMs: totalProcessingTime,
+          }),
+        });
+      } catch (costError) {
+        console.warn('[FinalAssembly] Failed to log cost:', costError);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        projectId,
+        finalVideoUrl: stitchResult.finalVideoUrl,
+        durationSeconds: stitchResult.durationSeconds,
+        clipsProcessed: clips.length,
+        bridgeClipsGenerated,
+        transitionsAnalyzed: transitions.length,
+        processingTimeMs: totalProcessingTime,
+        downloadable: true,
+        format: 'mp4',
+        resolution,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[FinalAssembly] Error:", error);
+    
+    // Update project status to failed
+    try {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await supabase
+        .from('movie_projects')
+        .update({ status: 'assembly_failed' })
+        .eq('id', (await req.json()).projectId);
+    } catch {}
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        processingTimeMs: Date.now() - startTime,
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

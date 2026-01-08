@@ -1,5 +1,8 @@
 project_id = "ahlikyhgcqvrdvbtkghh"
 
+[functions.health-check-stitcher]
+verify_jwt = false
+
 [functions.generate-script]
 verify_jwt = false
 

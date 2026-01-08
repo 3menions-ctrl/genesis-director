@@ -51,8 +51,7 @@ console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
 console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_KEY.length + ')' : 'MISSING');
 
 if (!SUPABASE_SERVICE_KEY) {
-  console.error('[Startup] FATAL: SUPABASE_SERVICE_KEY is required');
-  process.exit(1);
+  console.warn('[Startup] WARNING: SUPABASE_SERVICE_KEY not set - some features may not work');
 }
 
 // Create Supabase client helper
@@ -869,9 +868,9 @@ app.post('/extract-frame', async (req, res) => {
   }
 });
 
-// Start server
+// Start server - bind to 0.0.0.0 for Cloud Run
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
   console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
 });

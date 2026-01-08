@@ -44,7 +44,11 @@ const TEMP_DIR = '/tmp/stitcher';
 
 // Supabase configuration - now only needs URL and anon key
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFobGlreWhnY3F2cmR2YnRrZ2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczMTMxNjcsImV4cCI6MjA4Mjg4OTE2N30.b2xtJ4D-zYFhNj5Df7w0_HQSEG_3vwZUaps8USRHjqQ';
+
+// Log startup info
+console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
+console.log('[Startup] SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'SET' : 'MISSING');
 
 // Create Supabase client helper
 function getSupabase() {

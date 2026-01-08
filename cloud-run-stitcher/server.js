@@ -697,9 +697,6 @@ async function stitchVideos(request) {
     // Step 6: Finalize via edge function (updates database)
     console.log('[Stitch] Step 6: Finalizing project...');
     
-    // Calculate final duration
-    const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);
-    
     await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length);
     
     // Cleanup

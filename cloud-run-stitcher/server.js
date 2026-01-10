@@ -14,6 +14,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { v4: uuidv4 } = require('uuid');
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
@@ -138,15 +139,18 @@ async function uploadToSignedUrl(signedUrl, fileBuffer, contentType = 'video/mp4
 async function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith('https') ? https : http;
-    const file = require('fs').createWriteStream(destPath);
+    const file = fsSync.createWriteStream(destPath);
     
     protocol.get(url, (response) => {
       if (response.statusCode === 301 || response.statusCode === 302) {
         // Follow redirect
+        file.close();
         return downloadFile(response.headers.location, destPath).then(resolve).catch(reject);
       }
       
       if (response.statusCode !== 200) {
+        file.close();
+        fsSync.unlink(destPath, () => {});
         reject(new Error(`Failed to download: ${response.statusCode}`));
         return;
       }
@@ -157,7 +161,8 @@ async function downloadFile(url, destPath) {
         resolve(destPath);
       });
     }).on('error', (err) => {
-      require('fs').unlink(destPath, () => {});
+      file.close();
+      fsSync.unlink(destPath, () => {});
       reject(err);
     });
   });

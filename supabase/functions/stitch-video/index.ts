@@ -7,14 +7,14 @@ const corsHeaders = {
 };
 
 /**
- * Video Stitcher Edge Function - Orchestrator
+ * Video Stitcher Edge Function - Orchestrator (v2)
  * 
- * Routes video stitching requests to Cloud Run FFmpeg service for production processing.
- * Falls back to manifest-based client-side stitching for MVP mode.
- * 
- * Processing Modes:
- * 1. Cloud Run (CLOUD_RUN_STITCHER_URL set): Full FFmpeg processing
- * 2. MVP Mode: Client-side sequential playback via manifest
+ * IMPROVEMENTS:
+ * 1. Health check before stitching
+ * 2. Retry logic with exponential backoff (max 3 retries)
+ * 3. Progress tracking via pending_video_tasks
+ * 4. Error propagation to database
+ * 5. Stalled pipeline detection support
  */
 
 interface ShotClip {
@@ -25,7 +25,6 @@ interface ShotClip {
   transitionOut?: string;
 }
 
-// Music sync timing markers for audio ducking/swells
 interface MusicTimingMarker {
   timestamp: number;
   type: 'duck' | 'swell' | 'accent' | 'pause';
@@ -33,7 +32,6 @@ interface MusicTimingMarker {
   intensity: number;
 }
 
-// Music sync mixing instructions
 interface MusicMixingInstructions {
   baseVolume: number;
   duckingForDialogue: boolean;
@@ -42,12 +40,11 @@ interface MusicMixingInstructions {
   fadeOutDuration: number;
 }
 
-// Music sync plan from sync-music-to-scenes
 interface MusicSyncPlan {
   timingMarkers?: MusicTimingMarker[];
   mixingInstructions?: MusicMixingInstructions;
-  musicCues?: any[];
-  emotionalBeats?: any[];
+  musicCues?: unknown[];
+  emotionalBeats?: unknown[];
 }
 
 interface StitchRequest {
@@ -60,11 +57,10 @@ interface StitchRequest {
   outputFormat?: 'mp4' | 'webm';
   forceMvpMode?: boolean;
   transitionType?: 'fade' | 'fadeblack' | 'fadewhite' | 'dissolve' | 'wipeleft' | 'wiperight' | 'circlecrop';
-  transitionDuration?: number; // 0.3 - 1.0 seconds recommended
-  // Music synchronization plan
+  transitionDuration?: number;
   musicSyncPlan?: MusicSyncPlan;
-  // Color grading filter
   colorGradingFilter?: string;
+  retryAttempt?: number;
 }
 
 interface StitchResult {
@@ -79,13 +75,108 @@ interface StitchResult {
   musicSyncApplied?: boolean;
   colorGradingApplied?: boolean;
   error?: string;
+  retryScheduled?: boolean;
 }
 
-// Create manifest for client-side sequential playback (MVP fallback)
+interface HealthCheckResult {
+  healthy: boolean;
+  latencyMs: number;
+  error?: string;
+}
+
+// deno-lint-ignore no-explicit-any
+type SupabaseClientAny = any;
+
+// ==================== HEALTH CHECK ====================
+
+async function checkCloudRunHealth(cloudRunUrl: string): Promise<HealthCheckResult> {
+  const startTime = Date.now();
+  const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    const response = await fetch(normalizedUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - startTime,
+        error: `Cloud Run returned ${response.status}`,
+      };
+    }
+    
+    const data = await response.json();
+    const isHealthy = data.status === 'healthy';
+    
+    return {
+      healthy: isHealthy,
+      latencyMs: Date.now() - startTime,
+      error: isHealthy ? undefined : 'Cloud Run not healthy',
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      latencyMs: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Health check failed',
+    };
+  }
+}
+
+// ==================== PROGRESS TRACKING ====================
+
+async function updatePipelineProgress(
+  supabase: SupabaseClientAny,
+  projectId: string,
+  stage: string,
+  progress: number,
+  error?: string
+): Promise<void> {
+  try {
+    const { data: project }: { data: any } = await supabase
+      .from('movie_projects')
+      .select('pending_video_tasks')
+      .eq('id', projectId)
+      .single();
+    
+    const currentTasks = (project?.pending_video_tasks as Record<string, unknown>) || {};
+    
+    const updatedTasks = {
+      ...currentTasks,
+      stage,
+      progress,
+      error: error || null,
+      lastUpdated: new Date().toISOString(),
+      stitchingStarted: currentTasks.stitchingStarted || new Date().toISOString(),
+    };
+    
+    await supabase
+      .from('movie_projects')
+      .update({ 
+        pending_video_tasks: updatedTasks,
+        updated_at: new Date().toISOString(),
+      } as Record<string, unknown>)
+      .eq('id', projectId);
+    
+    console.log(`[Stitch] Progress update: ${stage} - ${progress}%`);
+  } catch (err) {
+    console.error('[Stitch] Failed to update progress:', err);
+  }
+}
+
+// ==================== MANIFEST CREATION (MVP FALLBACK) ====================
+
 async function createVideoManifest(
   clips: ShotClip[],
   projectId: string,
-  supabase: any
+  supabase: SupabaseClientAny
 ): Promise<string> {
   const manifest = {
     version: "1.0",
@@ -122,7 +213,8 @@ async function createVideoManifest(
   return `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
 }
 
-// Build audio mixing parameters from music sync plan
+// ==================== AUDIO MIXING ====================
+
 function buildAudioMixParams(musicSyncPlan?: MusicSyncPlan): {
   musicVolume: number;
   duckingEnabled: boolean;
@@ -153,100 +245,8 @@ function buildAudioMixParams(musicSyncPlan?: MusicSyncPlan): {
   };
 }
 
-// Call Cloud Run FFmpeg service for production stitching
-// Uses a long timeout (5 minutes) since video processing takes time
-async function callCloudRunStitcher(
-  cloudRunUrl: string,
-  request: StitchRequest
-): Promise<StitchResult> {
-  // Normalize URL - remove trailing slash and append /stitch
-  const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
-  const stitchEndpoint = `${normalizedUrl}/stitch`;
-  
-  console.log(`[Stitch] Calling Cloud Run FFmpeg service: ${stitchEndpoint}`);
-  
-  // Build audio mix params from music sync plan
-  const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
-  
-  // Enhanced request with music sync params and callback URL for async notification
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const enhancedRequest = {
-    ...request,
-    audioMixParams,
-    colorGradingFilter: request.colorGradingFilter,
-    // Provide callback URL for async completion notification
-    callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
-  };
-  
-  console.log(`[Stitch] Music sync: volume=${audioMixParams.musicVolume}, ducking=${audioMixParams.duckingEnabled}, markers=${audioMixParams.timingMarkers?.length || 0}`);
-  
-  // Use a 5 minute timeout for video processing (stitching multiple clips takes time)
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
-  
-  let response: Response;
-  try {
-    response = await fetch(stitchEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(enhancedRequest),
-      signal: controller.signal,
-    });
-  } catch (fetchError: unknown) {
-    clearTimeout(timeoutId);
-    // Handle abort/timeout specifically
-    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-      console.log('[Stitch] Cloud Run request timed out after 5 minutes');
-      throw new Error('Cloud Run stitching timed out - video may still be processing');
-    }
-    throw fetchError;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  
-  // Handle non-JSON responses gracefully
-  const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    const textBody = await response.text();
-    console.error('[Stitch] Cloud Run returned non-JSON response:', textBody.substring(0, 500));
-    throw new Error(`Cloud Run returned unexpected response: ${response.status} - ${textBody.substring(0, 200)}`);
-  }
+// ==================== CLOUD RUN FIRE-AND-FORGET ====================
 
-  const result = await response.json();
-  
-  if (!response.ok) {
-    console.error('[Stitch] Cloud Run error:', result);
-    
-    // Check if clips need regeneration
-    if (result.requiresRegeneration) {
-      return {
-        success: false,
-        error: result.error,
-        invalidClips: result.invalidClips,
-        requiresRegeneration: result.requiresRegeneration,
-        mode: 'cloud-run',
-      };
-    }
-    
-    throw new Error(result.error || `Cloud Run returned ${response.status}`);
-  }
-
-  console.log(`[Stitch] Cloud Run success: ${result.videoUrl || result.finalVideoUrl || 'processing async'}`);
-
-  return {
-    ...result,
-    // Normalize the video URL field name
-    finalVideoUrl: result.videoUrl || result.finalVideoUrl,
-    mode: 'cloud-run',
-    musicSyncApplied: !!request.musicSyncPlan,
-    colorGradingApplied: !!request.colorGradingFilter,
-  };
-}
-
-// Fire Cloud Run request in true fire-and-forget mode
-// Cloud Run will call finalize-stitch when done
 function fireCloudRunStitcherAsync(
   cloudRunUrl: string,
   request: StitchRequest
@@ -263,37 +263,79 @@ function fireCloudRunStitcherAsync(
     ...request,
     audioMixParams,
     colorGradingFilter: request.colorGradingFilter,
-    // Cloud Run will call this when done
     callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+    retryAttempt: request.retryAttempt || 0,
+    maxRetries: 3,
   };
   
-  // Fire the request - we don't await or track it
-  // Cloud Run will process and call finalize-stitch when done
-  // Using no-cors mode to ensure the request is sent without waiting for response
   fetch(stitchEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(enhancedRequest),
-    // Don't wait for response - just send and forget
     keepalive: true,
   }).catch((error) => {
     console.error(`[Stitch] Cloud Run request error (may still succeed):`, error);
   });
   
-  console.log(`[Stitch] Request dispatched to Cloud Run (not awaiting response)`);
+  console.log(`[Stitch] Request dispatched to Cloud Run (retry: ${request.retryAttempt || 0})`);
 }
 
-// Main processing logic
+// ==================== RETRY SCHEDULER ====================
+
+async function scheduleRetry(
+  supabase: SupabaseClientAny,
+  projectId: string,
+  request: StitchRequest,
+  _cloudRunUrl: string,
+  retryCount: number
+): Promise<void> {
+  const delays = [30000, 60000, 120000];
+  const delay = delays[Math.min(retryCount, delays.length - 1)];
+  
+  console.log(`[Stitch] Scheduling retry ${retryCount + 1} in ${delay / 1000}s`);
+  
+  await updatePipelineProgress(
+    supabase,
+    projectId,
+    'stitching_retry_scheduled',
+    50,
+    `Retry ${retryCount + 1} scheduled in ${delay / 1000}s`
+  );
+  
+  const { data: project }: { data: any } = await supabase
+    .from('movie_projects')
+    .select('pending_video_tasks')
+    .eq('id', projectId)
+    .single();
+  
+  const currentTasks = (project?.pending_video_tasks as Record<string, unknown>) || {};
+  
+  await supabase
+    .from('movie_projects')
+    .update({
+      pending_video_tasks: {
+        ...currentTasks,
+        retryScheduled: true,
+        retryAttempt: retryCount + 1,
+        retryAfter: new Date(Date.now() + delay).toISOString(),
+        retryRequest: request,
+      },
+    } as Record<string, unknown>)
+    .eq('id', projectId);
+}
+
+// ==================== MAIN PROCESSING ====================
+
 async function processStitching(
   request: StitchRequest,
-  supabase: any
+  supabase: SupabaseClientAny
 ): Promise<StitchResult> {
   const startTime = Date.now();
+  const retryCount = request.retryAttempt || 0;
   
   try {
-    // Validate clips
     const validClips = request.clips.filter(c => c.videoUrl && c.videoUrl.startsWith('http'));
     
     if (validClips.length === 0) {
@@ -304,50 +346,77 @@ async function processStitching(
 
     const totalDuration = validClips.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Check for Cloud Run URL (production mode) - skip if forceMvpMode is set
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
     if (cloudRunUrl && !request.forceMvpMode) {
-      console.log("[Stitch] Using Cloud Run FFmpeg service (async mode)");
+      console.log("[Stitch] Step 1: Checking Cloud Run health...");
+      await updatePipelineProgress(supabase, request.projectId, 'health_check', 10);
       
-      // Update project status to 'stitching' 
-      await supabase
-        .from('movie_projects')
-        .update({ status: 'stitching' })
-        .eq('id', request.projectId);
+      const healthCheck = await checkCloudRunHealth(cloudRunUrl);
       
-      // Fire async request - Cloud Run will call finalize-stitch when done
-      // No need for waitUntil - we're just dispatching, not waiting
-      fireCloudRunStitcherAsync(cloudRunUrl, {
-        ...request,
-        clips: validClips,
-      });
+      if (!healthCheck.healthy) {
+        console.error(`[Stitch] Cloud Run unhealthy: ${healthCheck.error}`);
+        
+        if (retryCount < 3) {
+          await scheduleRetry(supabase, request.projectId, request, cloudRunUrl, retryCount);
+          
+          return {
+            success: false,
+            error: `Cloud Run unavailable: ${healthCheck.error}. Retry scheduled.`,
+            retryScheduled: true,
+            processingTimeMs: Date.now() - startTime,
+          };
+        }
+        
+        console.log("[Stitch] Max retries exceeded, falling back to MVP mode");
+        await updatePipelineProgress(supabase, request.projectId, 'fallback_mvp', 50, 'Cloud Run unavailable, using fallback');
+      } else {
+        console.log(`[Stitch] Cloud Run healthy (latency: ${healthCheck.latencyMs}ms)`);
+      }
       
-      // Return immediately with processing status
-      return {
-        success: true,
-        mode: 'cloud-run',
-        processingTimeMs: Date.now() - startTime,
-        clipsProcessed: validClips.length,
-        durationSeconds: totalDuration,
-        // Indicate async processing
-        finalVideoUrl: undefined,
-      };
+      if (healthCheck.healthy) {
+        console.log("[Stitch] Step 2: Dispatching to Cloud Run FFmpeg service");
+        await updatePipelineProgress(supabase, request.projectId, 'stitching', 25);
+        
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            status: 'stitching',
+            updated_at: new Date().toISOString(),
+          } as Record<string, unknown>)
+          .eq('id', request.projectId);
+        
+        fireCloudRunStitcherAsync(cloudRunUrl, {
+          ...request,
+          clips: validClips,
+        });
+        
+        return {
+          success: true,
+          mode: 'cloud-run',
+          processingTimeMs: Date.now() - startTime,
+          clipsProcessed: validClips.length,
+          durationSeconds: totalDuration,
+          finalVideoUrl: undefined,
+        };
+      }
     }
 
-    // MVP fallback: Manifest-based client-side sequential playback
     console.log("[Stitch] Using manifest-based client-side stitching (MVP mode)");
+    await updatePipelineProgress(supabase, request.projectId, 'creating_manifest', 75);
 
     const manifestUrl = await createVideoManifest(validClips, request.projectId, supabase);
     
-    // Update project with manifest URL
     await supabase
       .from('movie_projects')
       .update({ 
         status: 'completed',
-        video_url: manifestUrl 
-      })
+        video_url: manifestUrl,
+        updated_at: new Date().toISOString(),
+      } as Record<string, unknown>)
       .eq('id', request.projectId);
+    
+    await updatePipelineProgress(supabase, request.projectId, 'complete', 100);
 
     return {
       success: true,
@@ -360,6 +429,15 @@ async function processStitching(
 
   } catch (error) {
     console.error("[Stitch] Processing error:", error);
+    
+    await updatePipelineProgress(
+      supabase,
+      request.projectId,
+      'error',
+      0,
+      error instanceof Error ? error.message : "Stitching failed"
+    );
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : "Stitching failed",
@@ -368,10 +446,7 @@ async function processStitching(
   }
 }
 
-// Declare EdgeRuntime for TypeScript
-declare const EdgeRuntime: {
-  waitUntil(promise: Promise<any>): void;
-};
+// ==================== HTTP SERVER ====================
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -389,7 +464,6 @@ serve(async (req) => {
       throw new Error("Project ID is required");
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -397,13 +471,13 @@ serve(async (req) => {
     console.log(`[Stitch] Starting video stitching for project: ${request.projectId}`);
     console.log(`[Stitch] Clips to process: ${request.clips.length}`);
     console.log(`[Stitch] Audio mix mode: ${request.audioMixMode}`);
+    console.log(`[Stitch] Retry attempt: ${request.retryAttempt || 0}`);
     
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     console.log(`[Stitch] Mode: ${cloudRunUrl ? 'Cloud Run FFmpeg (async)' : 'MVP Manifest'}`);
 
     const result = await processStitching(request, supabase);
 
-    // If clips need regeneration, return 422 with details
     if (!result.success && result.requiresRegeneration) {
       return new Response(
         JSON.stringify(result),

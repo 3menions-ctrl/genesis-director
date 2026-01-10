@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.upscale-video]
 verify_jwt = false
+
+[functions.pipeline-watchdog]
+verify_jwt = false

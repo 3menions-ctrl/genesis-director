@@ -289,6 +289,10 @@ export default function Production() {
   const [retryingClipIndex, setRetryingClipIndex] = useState<number | null>(null);
   const [failedClipsNotified, setFailedClipsNotified] = useState<Set<number>>(new Set());
   const [showLogs, setShowLogs] = useState(false);
+  const [isStalled, setIsStalled] = useState(false);
+  const [lastProgressTime, setLastProgressTime] = useState<number>(Date.now());
+  const [autoResumeAttempted, setAutoResumeAttempted] = useState(false);
+  const [expectedClipCount, setExpectedClipCount] = useState(6);
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
@@ -439,6 +443,7 @@ export default function Production() {
           if (tasks.auditScore) setAuditScore(tasks.auditScore);
           
           const clipCount = tasks.clipCount || 6;
+          setExpectedClipCount(clipCount);
           if (tasks.clipsCompleted !== undefined) {
             setCompletedClips(tasks.clipsCompleted);
             setClipResults(Array(clipCount).fill(null).map((_, i) => ({
@@ -639,10 +644,72 @@ export default function Production() {
       )
       .subscribe();
 
+    // Also subscribe to video_clips table for real-time clip updates
+    const clipsChannel = supabase
+      .channel(`clips_${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_clips',
+          filter: `project_id=eq.${projectId}`,
+        },
+        (payload) => {
+          // Clip was updated or inserted
+          if (payload.new) {
+            const clip = payload.new as Record<string, unknown>;
+            if (clip.status === 'completed') {
+              setLastProgressTime(Date.now());
+              setIsStalled(false);
+              loadVideoClips();
+              addLog(`Clip ${(clip.shot_index as number) + 1} completed`, 'success');
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(clipsChannel);
     };
-  }, [projectId, projectStatus, stages, pipelineLogs, auditScore, clipResults.length, updateStageStatus, addLog, failedClipsNotified, handleRetryClip]);
+  }, [projectId, projectStatus, stages, pipelineLogs, auditScore, clipResults.length, updateStageStatus, addLog, failedClipsNotified, handleRetryClip, loadVideoClips]);
+
+  // Auto-resume handler
+  const handleResumePipeline = useCallback(async () => {
+    if (!projectId || !user || isResuming) return;
+    
+    setIsResuming(true);
+    setIsStalled(false);
+    setAutoResumeAttempted(true);
+    addLog('Resuming pipeline...', 'info');
+    
+    try {
+      const { data, error: resumeError } = await supabase.functions.invoke('resume-pipeline', {
+        body: {
+          userId: user.id,
+          projectId,
+          resumeFrom: 'production',
+        },
+      });
+      
+      if (resumeError) throw resumeError;
+      if (!data?.success) throw new Error(data?.error || 'Resume failed');
+      
+      addLog('Pipeline resumed successfully', 'success');
+      toast.success('Pipeline resumed - continuing generation');
+      setProjectStatus('generating');
+      setLastProgressTime(Date.now());
+    } catch (err: any) {
+      console.error('Resume failed:', err);
+      setError(err.message || 'Failed to resume pipeline');
+      addLog(`Resume failed: ${err.message}`, 'error');
+      toast.error('Failed to resume pipeline', { description: err.message });
+    } finally {
+      setIsResuming(false);
+    }
+  }, [projectId, user, isResuming, addLog]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -654,6 +721,54 @@ export default function Production() {
   const isComplete = projectStatus === 'completed';
   const isError = projectStatus === 'failed';
   const currentStageIndex = stages.findIndex(s => s.status === 'active');
+  const showResumeButton = isStalled && completedClips > 0 && completedClips < expectedClipCount && !isResuming;
+
+  // Stall detection - check if no progress for 90 seconds during generation
+  useEffect(() => {
+    if (!isRunning || projectStatus === 'awaiting_approval') return;
+    
+    const checkInterval = setInterval(async () => {
+      // Get actual completed clips from database
+      const { data: clips } = await supabase
+        .from('video_clips')
+        .select('id, status')
+        .eq('project_id', projectId)
+        .eq('status', 'completed');
+      
+      const actualCompleted = clips?.length || 0;
+      
+      // Check if we have more completed in DB than tracked
+      if (actualCompleted > completedClips) {
+        setCompletedClips(actualCompleted);
+        setLastProgressTime(Date.now());
+        setIsStalled(false);
+        loadVideoClips();
+      }
+      
+      // Check if generation is stalled (90 seconds no progress)
+      const timeSinceProgress = Date.now() - lastProgressTime;
+      const isGenerating = projectStatus === 'generating' || projectStatus === 'producing';
+      const hasIncompleteClips = actualCompleted < expectedClipCount;
+      
+      if (isGenerating && hasIncompleteClips && timeSinceProgress > 90000) {
+        setIsStalled(true);
+        addLog(`Pipeline stalled - no progress for ${Math.floor(timeSinceProgress / 1000)}s`, 'warning');
+        
+        // Auto-resume if not already attempted
+        if (!autoResumeAttempted && actualCompleted > 0) {
+          addLog('Attempting automatic resume...', 'info');
+          handleResumePipeline();
+        }
+      }
+    }, 15000); // Check every 15 seconds
+    
+    return () => clearInterval(checkInterval);
+  }, [projectId, projectStatus, completedClips, expectedClipCount, lastProgressTime, autoResumeAttempted, isRunning, addLog, handleResumePipeline, loadVideoClips]);
+
+  // Reset progress timer when clips complete
+  useEffect(() => {
+    setLastProgressTime(Date.now());
+  }, [completedClips]);
 
   if (isLoading) {
     return (
@@ -837,6 +952,55 @@ export default function Production() {
             </div>
           </div>
         </motion.section>
+
+        {/* Stalled Pipeline Warning + Resume Button */}
+        {(showResumeButton || isResuming) && (
+          <motion.section
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="p-6 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                {isResuming ? (
+                  <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                ) : (
+                  <AlertCircle className="w-6 h-6 text-amber-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-amber-400 mb-1">
+                  {isResuming ? 'Resuming Pipeline...' : 'Pipeline Stalled'}
+                </h3>
+                <p className="text-sm text-white/60 mb-4">
+                  {isResuming 
+                    ? 'Reconnecting to continue video generation. This may take a moment...'
+                    : `Generation paused after clip ${completedClips}. The backend timed out but your progress is saved.`
+                  }
+                </p>
+                {!isResuming && (
+                  <div className="flex flex-wrap gap-3">
+                    <Button 
+                      className="bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-full"
+                      onClick={handleResumePipeline}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Resume from Clip {completedClips + 1}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="rounded-full border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                      onClick={() => navigate(`/clips?projectId=${projectId}`)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Completed Clips
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.section>
+        )}
 
         {/* Pipeline Stages */}
         <motion.section

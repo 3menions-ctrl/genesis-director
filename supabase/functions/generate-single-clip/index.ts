@@ -405,27 +405,51 @@ serve(async (req) => {
       throw new Error("project_id not found in service account");
     }
 
-    // Build enhanced prompt with identity and motion continuity
+    // =====================================================
+    // ENHANCED CHARACTER CONSISTENCY: Inject FULL identity into EVERY clip
+    // This ensures clothing, appearance, and features stay consistent
+    // =====================================================
     let enhancedPrompt = request.prompt;
+    const identityParts: string[] = [];
     
-    if (request.identityBible?.consistencyPrompt) {
-      enhancedPrompt = `[IDENTITY: ${request.identityBible.consistencyPrompt}] ${enhancedPrompt}`;
-    }
-    
-    if (request.identityBible?.consistencyAnchors?.length) {
-      enhancedPrompt = `[ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}] ${enhancedPrompt}`;
-    }
-    
+    // Priority 1: Full character identity from identity bible
     if (request.identityBible?.characterIdentity) {
       const ci = request.identityBible.characterIdentity;
-      const identityParts = [
-        ci.description,
-        ci.clothing,
-        ci.distinctiveMarkers?.join(', ')
-      ].filter(Boolean).join('. ');
-      if (identityParts) {
-        enhancedPrompt = `${enhancedPrompt}. [CHARACTER: ${identityParts}]`;
+      
+      if (ci.description) {
+        identityParts.push(`PERSON: ${ci.description}`);
       }
+      if (ci.facialFeatures) {
+        identityParts.push(`FACE: ${ci.facialFeatures}`);
+      }
+      if (ci.bodyType) {
+        identityParts.push(`BUILD: ${ci.bodyType}`);
+      }
+      if (ci.clothing) {
+        identityParts.push(`WEARING: ${ci.clothing}`);
+      }
+      if (ci.distinctiveMarkers?.length) {
+        identityParts.push(`DETAILS: ${ci.distinctiveMarkers.join(', ')}`);
+      }
+    }
+    
+    // Priority 2: Consistency anchors (color, style, lighting)
+    if (request.identityBible?.consistencyAnchors?.length) {
+      identityParts.push(`ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}`);
+    }
+    
+    // Priority 3: Master consistency prompt
+    if (request.identityBible?.consistencyPrompt) {
+      identityParts.push(`CONSISTENCY: ${request.identityBible.consistencyPrompt}`);
+    }
+    
+    // INJECT: Put identity at START of prompt for strongest influence
+    if (identityParts.length > 0) {
+      const identityBlock = `[STRICT CHARACTER IDENTITY - MUST MATCH EXACTLY]\n${identityParts.join('\n')}\n[END IDENTITY]\n\n`;
+      enhancedPrompt = identityBlock + enhancedPrompt;
+      console.log(`[SingleClip] Injected ${identityParts.length} identity anchors for character consistency`);
+    } else {
+      console.log(`[SingleClip] No identity bible available - character may vary`);
     }
     
     // Inject velocity continuity from previous clip
@@ -478,30 +502,71 @@ serve(async (req) => {
     const storedUrl = await downloadToStorage(supabase, rawVideoUrl, request.projectId, request.clipIndex);
     console.log(`[SingleClip] Clip stored: ${storedUrl}`);
     
-    // Extract last frame for next clip's continuity
+    // =====================================================
+    // CRITICAL: Frame Extraction with MANDATORY Validation
+    // This is essential for clip-to-clip continuity
+    // =====================================================
     let lastFrameUrl: string | undefined;
     const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
+    const MAX_FRAME_RETRIES = 3;
+    let frameExtractionSuccess = false;
+    
     if (stitcherUrl) {
-      try {
-        const response = await fetch(`${stitcherUrl}/extract-frame`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clipUrl: storedUrl,
-            clipIndex: request.clipIndex,
-            projectId: request.projectId,
-          }),
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          lastFrameUrl = result.lastFrameUrl;
-          console.log(`[SingleClip] Frame extracted for chaining`);
+      for (let frameAttempt = 0; frameAttempt < MAX_FRAME_RETRIES; frameAttempt++) {
+        try {
+          console.log(`[SingleClip] Frame extraction attempt ${frameAttempt + 1}/${MAX_FRAME_RETRIES}...`);
+          
+          const response = await fetch(`${stitcherUrl}/extract-frame`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clipUrl: storedUrl,
+              clipIndex: request.clipIndex,
+              projectId: request.projectId,
+            }),
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.lastFrameUrl && result.lastFrameUrl.startsWith('http')) {
+              lastFrameUrl = result.lastFrameUrl;
+              frameExtractionSuccess = true;
+              console.log(`[SingleClip] ✓ Frame extracted successfully for chaining: ${lastFrameUrl?.substring(0, 60)}...`);
+              break;
+            } else {
+              console.warn(`[SingleClip] Frame extraction returned invalid URL, retrying...`);
+            }
+          } else {
+            const errorText = await response.text();
+            console.warn(`[SingleClip] Frame extraction HTTP ${response.status}: ${errorText}`);
+          }
+        } catch (frameError) {
+          console.warn(`[SingleClip] Frame extraction attempt ${frameAttempt + 1} failed:`, frameError);
         }
-      } catch (frameError) {
-        console.warn(`[SingleClip] Frame extraction failed:`, frameError);
+        
+        // Wait before retry
+        if (frameAttempt < MAX_FRAME_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
+      
+      // CRITICAL: Log frame extraction failure loudly
+      if (!frameExtractionSuccess) {
+        console.error(`[SingleClip] ⚠️ CRITICAL: Frame extraction FAILED after ${MAX_FRAME_RETRIES} attempts!`);
+        console.error(`[SingleClip] Next clip will NOT have frame continuity - expect visual jump`);
+        
+        // Store failure in metadata for debugging
+        await supabase
+          .from('video_clips')
+          .update({ 
+            error_message: `Frame extraction failed after ${MAX_FRAME_RETRIES} attempts - continuity broken` 
+          })
+          .eq('project_id', request.projectId)
+          .eq('shot_index', request.clipIndex);
+      }
+    } else {
+      console.warn(`[SingleClip] ⚠️ CLOUD_RUN_STITCHER_URL not configured - no frame chaining possible`);
     }
     
     // Extract motion vectors for next clip

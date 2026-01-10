@@ -205,13 +205,24 @@ THE APPROVED STORY (maintain this narrative exactly, just break it into visual s
 ${request.approvedStory}
 """
 
-CRITICAL REQUIREMENTS:
-1. PRESERVE the story's narrative continuity - each shot should flow naturally from the previous
-2. Break the story into ${shotCount} distinct visual moments
-3. Each shot must represent a specific part of the story in sequence
-4. Maintain character consistency and story progression
-5. Do NOT add new plot elements - only break down what's in the story
-6. Include dialogue/narration from the story in the appropriate shots
+CRITICAL STORY CONTINUITY REQUIREMENTS:
+1. PRESERVE the story's narrative continuity - each shot flows naturally from the previous
+2. Break the story into ${shotCount} distinct visual moments in EXACT SEQUENCE
+3. Each shot must represent a specific part of the story in the order it appears
+4. CHARACTER CONSISTENCY: The same character must look identical in all shots
+   - Copy the character description EXACTLY into each shot's visualAnchors
+   - Include clothing, hair, distinctive features in every shot
+5. SETTING CONSISTENCY: Same location = same lighting, same environment details
+6. EMOTIONAL PROGRESSION: Capture the building/changing emotions through the story
+7. Do NOT add new plot elements - only visualize what's in the story
+8. Do NOT skip any part of the story - every story beat needs a shot
+9. Include dialogue/narration from the story in the appropriate shots
+
+STORY BEAT TRACKING:
+- Shot 1-2: Opening/Setup (establish character and world)
+- Shot 3-4: Catalyst/Rising Action (conflict begins)
+- Shot ${Math.floor(shotCount * 0.6)}-${Math.floor(shotCount * 0.8)}: Climax (peak tension)
+- Final shots: Resolution (conclusion)
 
 SCENE DISTRIBUTION TO FOLLOW:
 ${sceneDistribution.map((type, i) => `Shot ${i + 1}: ${type}`).join('\n')}

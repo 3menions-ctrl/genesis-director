@@ -75,9 +75,16 @@ function CinematicVideoCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   
+  // Check if project has video - include both video_clips array and direct video_url
+  // For manifest URLs, we still consider it as having video (playback will resolve clips)
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
+  
+  // For preview/thumbnail purposes, prefer video_clips array, but also use video_url if it's a direct MP4
+  const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
   const videoClips = project.video_clips?.length ? project.video_clips : 
-    (project.video_url ? [project.video_url] : []);
+    (isDirectVideo ? [project.video_url] : []);
+  
+  // Use second clip for preview if available (often more interesting than the first)
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
 
   useEffect(() => {
@@ -541,8 +548,33 @@ export default function Projects() {
   };
 
   const handleDownloadAll = async (project: Project) => {
-    const clips = project.video_clips || (project.video_url ? [project.video_url] : []);
-    if (clips.length === 0) return;
+    // If video_url is a direct MP4, download that
+    if (project.video_url && !isManifestUrl(project.video_url)) {
+      toast.info('Downloading final video...');
+      try {
+        const response = await fetch(project.video_url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${project.name}-final.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Download complete!');
+      } catch (error) {
+        window.open(project.video_url, '_blank');
+      }
+      return;
+    }
+    
+    // Otherwise download individual clips
+    const clips = project.video_clips || [];
+    if (clips.length === 0) {
+      toast.error('No clips to download');
+      return;
+    }
 
     toast.info('Starting downloads...');
     for (let i = 0; i < clips.length; i++) {

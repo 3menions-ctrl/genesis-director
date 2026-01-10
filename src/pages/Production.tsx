@@ -474,6 +474,29 @@ export default function Production() {
           }
 
           addLog(`Connected to pipeline: ${project.title}`, 'info');
+          
+          // Check if pipeline is already stalled on load (based on updated_at)
+          const lastUpdate = new Date(project.updated_at).getTime();
+          const timeSinceUpdate = Date.now() - lastUpdate;
+          const isGenerating = ['generating', 'producing'].includes(project.status);
+          
+          if (isGenerating && tasks.stage === 'production' && timeSinceUpdate > 60000) {
+            // Pipeline hasn't updated in 60+ seconds, check actual clips
+            const { data: clips } = await supabase
+              .from('video_clips')
+              .select('id, status')
+              .eq('project_id', projectId)
+              .eq('status', 'completed');
+            
+            const actualCompleted = clips?.length || 0;
+            const expectedCount = tasks.clipCount || 6;
+            
+            if (actualCompleted > 0 && actualCompleted < expectedCount) {
+              setIsStalled(true);
+              setCompletedClips(actualCompleted);
+              addLog(`Pipeline stalled - ${actualCompleted}/${expectedCount} clips completed, last update ${Math.floor(timeSinceUpdate / 1000)}s ago`, 'warning');
+            }
+          }
         }
 
         if (project.status === 'completed') {
@@ -710,6 +733,17 @@ export default function Production() {
       setIsResuming(false);
     }
   }, [projectId, user, isResuming, addLog]);
+
+  // Auto-resume when stalled is detected (on page load or during monitoring)
+  useEffect(() => {
+    if (isStalled && !autoResumeAttempted && !isResuming && completedClips > 0) {
+      addLog('Auto-resuming stalled pipeline...', 'info');
+      const timer = setTimeout(() => {
+        handleResumePipeline();
+      }, 1500); // Small delay to show the UI first
+      return () => clearTimeout(timer);
+    }
+  }, [isStalled, autoResumeAttempted, isResuming, completedClips, addLog, handleResumePipeline]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

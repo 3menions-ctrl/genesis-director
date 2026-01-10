@@ -62,6 +62,16 @@ app.get('/health', (req, res) => {
 // Temp directory for processing
 const TEMP_DIR = '/tmp/stitcher';
 
+// Ensure temp directory exists at startup (synchronous)
+try {
+  if (!fsSync.existsSync(TEMP_DIR)) {
+    fsSync.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+  console.log('[Startup] Temp directory ready:', TEMP_DIR);
+} catch (err) {
+  console.error('[Startup] Failed to create temp directory:', err.message);
+}
+
 // Supabase configuration - uses service role key for backend operations
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
@@ -979,22 +989,42 @@ app.post('/extract-frame', async (req, res) => {
 });
 
 // Start server - bind to 0.0.0.0 for Cloud Run
-const PORT = process.env.PORT || 8080;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
-  console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
-  logStartup();
-});
+const PORT = parseInt(process.env.PORT, 10) || 8080;
 
-// Handle startup errors gracefully
-server.on('error', (err) => {
-  console.error('[Stitcher] Server error:', err);
-  process.exit(1);
-});
+// Wrap in async IIFE to handle any async startup issues
+(async () => {
+  try {
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
+      console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`[Stitcher] Node version: ${process.version}`);
+      logStartup();
+    });
+
+    // Handle startup errors gracefully
+    server.on('error', (err) => {
+      console.error('[Stitcher] Server error:', err);
+      process.exit(1);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('[Stitcher] SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('[Stitcher] Server closed');
+        process.exit(0);
+      });
+    });
+  } catch (err) {
+    console.error('[Stitcher] Failed to start server:', err);
+    process.exit(1);
+  }
+})();
 
 // Handle uncaught exceptions to prevent silent crashes
 process.on('uncaughtException', (err) => {
   console.error('[Stitcher] Uncaught exception:', err);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {

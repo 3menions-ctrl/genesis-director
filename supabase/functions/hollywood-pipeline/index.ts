@@ -338,8 +338,86 @@ async function runPreProduction(
     };
   }
   
+  // =====================================================
+  // MULTI-CAMERA ORCHESTRATOR: Add professional coverage
+  // =====================================================
+  if (state.script?.shots && state.script.shots.length > 0) {
+    console.log(`[Hollywood] Running Multi-Camera Orchestrator for ${state.script.shots.length} shots...`);
+    
+    try {
+      // Determine style based on genre
+      const styleMap: Record<string, string> = {
+        'cinematic': 'cinematic',
+        'documentary': 'documentary',
+        'ad': 'action',
+        'educational': 'dialogue-heavy',
+        'funny': 'action',
+        'motivational': 'contemplative',
+        'storytelling': 'cinematic',
+        'explainer': 'dialogue-heavy',
+        'vlog': 'documentary',
+      };
+      
+      const cameraStyle = styleMap[request.genre || 'cinematic'] || 'cinematic';
+      
+      const orchestrationResult = await callEdgeFunction('multi-camera-orchestrator', {
+        shots: state.script.shots.map(shot => ({
+          id: shot.id,
+          description: shot.description,
+          sceneType: (shot as any).sceneType || 'action',
+          dialogue: shot.dialogue,
+          durationSeconds: shot.durationSeconds,
+          mood: shot.mood,
+          characters: state.extractedCharacters?.map(c => c.name) || [],
+        })),
+        style: cameraStyle,
+        pacingPreference: 'moderate',
+        aspectRatio: '16:9',
+        enforceCoverage: true,
+      });
+      
+      if (orchestrationResult.success && orchestrationResult.orchestratedShots) {
+        // Update shots with camera-enhanced prompts
+        const enhancedShots = orchestrationResult.orchestratedShots;
+        
+        state.script.shots = state.script.shots.map((shot, idx) => {
+          const enhanced = enhancedShots[idx];
+          if (enhanced) {
+            return {
+              ...shot,
+              description: enhanced.enhancedPrompt,
+              cameraScale: enhanced.cameraSetup?.scale,
+              cameraAngle: enhanced.cameraSetup?.angle,
+              cameraMovement: enhanced.cameraSetup?.movement,
+              coverageType: enhanced.coverageType,
+            };
+          }
+          return shot;
+        });
+        
+        console.log(`[Hollywood] Multi-Camera Orchestration complete:`);
+        console.log(`  - Camera variety score: ${orchestrationResult.coverageSummary?.varietyScore || 0}%`);
+        console.log(`  - Scale distribution: ${JSON.stringify(orchestrationResult.coverageSummary?.scaleDistribution || {})}`);
+        console.log(`  - Coverage types: ${JSON.stringify(orchestrationResult.coverageSummary?.coverageTypes || {})}`);
+        
+        // Store orchestration data for later reference
+        (state as any).cameraOrchestration = {
+          style: cameraStyle,
+          varietyScore: orchestrationResult.coverageSummary?.varietyScore,
+          scaleDistribution: orchestrationResult.coverageSummary?.scaleDistribution,
+          coverageTypes: orchestrationResult.coverageSummary?.coverageTypes,
+        };
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Multi-Camera Orchestration failed, using original prompts:`, err);
+    }
+  }
+  
   state.progress = 20;
-  await updateProjectProgress(supabase, state.projectId, 'preproduction', 20, { scriptGenerated: true });
+  await updateProjectProgress(supabase, state.projectId, 'preproduction', 20, { 
+    scriptGenerated: true,
+    cameraOrchestration: !!(state as any).cameraOrchestration,
+  });
   
   // 1b. Use pre-analyzed reference image OR analyze reference image
   if (request.referenceImageAnalysis) {

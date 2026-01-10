@@ -119,3 +119,15 @@ verify_jwt = false
 
 [functions.retry-failed-clip]
 verify_jwt = false
+
+[functions.continuity-engine]
+verify_jwt = false
+
+[functions.multi-camera-orchestrator]
+verify_jwt = false
+
+[functions.lip-sync-service]
+verify_jwt = false
+
+[functions.upscale-video]
+verify_jwt = false

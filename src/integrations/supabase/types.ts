@@ -494,6 +494,90 @@ export type Database = {
           },
         ]
       }
+      project_templates: {
+        Row: {
+          aspect_ratio: string | null
+          category: string | null
+          character_templates: Json | null
+          clip_count: number | null
+          color_grading: string | null
+          created_at: string
+          description: string | null
+          environment_lock: Json | null
+          genre: string | null
+          id: string
+          include_sfx: boolean | null
+          is_public: boolean | null
+          mood: string | null
+          music_mood: string | null
+          name: string
+          pacing_style: string | null
+          quality_tier: string | null
+          shot_sequence: Json | null
+          style_anchor: Json | null
+          target_duration_minutes: number | null
+          thumbnail_url: string | null
+          updated_at: string
+          use_count: number | null
+          user_id: string
+          voice_id: string | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          category?: string | null
+          character_templates?: Json | null
+          clip_count?: number | null
+          color_grading?: string | null
+          created_at?: string
+          description?: string | null
+          environment_lock?: Json | null
+          genre?: string | null
+          id?: string
+          include_sfx?: boolean | null
+          is_public?: boolean | null
+          mood?: string | null
+          music_mood?: string | null
+          name: string
+          pacing_style?: string | null
+          quality_tier?: string | null
+          shot_sequence?: Json | null
+          style_anchor?: Json | null
+          target_duration_minutes?: number | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_count?: number | null
+          user_id: string
+          voice_id?: string | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          category?: string | null
+          character_templates?: Json | null
+          clip_count?: number | null
+          color_grading?: string | null
+          created_at?: string
+          description?: string | null
+          environment_lock?: Json | null
+          genre?: string | null
+          id?: string
+          include_sfx?: boolean | null
+          is_public?: boolean | null
+          mood?: string | null
+          music_mood?: string | null
+          name?: string
+          pacing_style?: string | null
+          quality_tier?: string | null
+          shot_sequence?: Json | null
+          style_anchor?: Json | null
+          target_duration_minutes?: number | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_count?: number | null
+          user_id?: string
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
       script_templates: {
         Row: {
           created_at: string

@@ -5,89 +5,61 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Duration modes
-type DurationMode = 'micro' | 'short' | 'medium' | 'long' | 'extended';
-type SmartTransitionType = 'angle-change' | 'motion-carry' | 'match-cut' | 'scene-jump' | 'whip-pan' | 'reveal' | 'follow-through' | 'parallel-action';
-type SceneType = 'establishing' | 'action' | 'reaction' | 'detail' | 'transition' | 'climax' | 'resolution' | 'buffer';
-
 interface SmartScriptRequest {
   topic: string;
   synopsis?: string;
   style?: string;
   genre?: string;
   targetDurationSeconds: number;
-  durationMode?: DurationMode;
-  preferredTransitions?: SmartTransitionType[];
-  sceneVariety?: 'low' | 'medium' | 'high';
-  pacingStyle?: 'fast' | 'moderate' | 'slow' | 'dynamic';
+  pacingStyle?: 'fast' | 'moderate' | 'slow';
   mainSubjects?: string[];
   environmentHints?: string[];
-  // NEW: Story-first flow - approved continuous narrative
-  approvedStory?: string;
-}
-
-// Get duration mode from seconds
-function getDurationMode(seconds: number): DurationMode {
-  if (seconds <= 10) return 'micro';
-  if (seconds <= 45) return 'short';
-  if (seconds <= 90) return 'medium';
-  if (seconds <= 180) return 'long';
-  return 'extended';
-}
-
-// Calculate optimal shot count based on duration and pacing
-function calculateShotConfig(targetSeconds: number, pacing: string): { shotCount: number; avgDuration: number } {
-  const avgDuration = pacing === 'fast' ? 4 : pacing === 'slow' ? 6 : 5;
-  const shotCount = Math.max(1, Math.min(60, Math.round(targetSeconds / avgDuration)));
-  return { shotCount, avgDuration };
-}
-
-// Get scene type distribution for the duration mode - now includes buffer shots for stitching
-function getSceneDistribution(mode: DurationMode, shotCount: number): SceneType[] {
-  // Updated patterns with 'buffer' shots for smooth AI video stitching
-  const patterns: Record<DurationMode, SceneType[]> = {
-    micro: ['action'],
-    short: ['establishing', 'action', 'buffer', 'detail', 'climax'],
-    medium: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'action', 'buffer', 'climax', 'resolution'],
-    long: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'transition', 'action', 'buffer', 'detail', 'climax', 'buffer', 'resolution'],
-    extended: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'action', 'buffer', 'transition', 'establishing', 'action', 'buffer', 'detail', 'reaction', 'climax', 'buffer', 'resolution'],
+  // Scene-based flow - approved continuous scene
+  approvedScene?: string;
+  // Character/environment lock for consistency
+  characterLock?: {
+    description: string;
+    clothing: string;
+    distinctiveFeatures: string[];
   };
-  
-  const pattern = patterns[mode];
-  const distribution: SceneType[] = [];
-  
-  for (let i = 0; i < shotCount; i++) {
-    distribution.push(pattern[i % pattern.length]);
-  }
-  
-  return distribution;
+  environmentLock?: {
+    location: string;
+    lighting: string;
+    keyObjects: string[];
+  };
 }
 
-// Get transition recommendations
-function getTransitionPlan(shotCount: number, pacing: string): SmartTransitionType[] {
-  const transitions: SmartTransitionType[] = [];
-  const transitionOptions: SmartTransitionType[] = [
-    'angle-change', 'motion-carry', 'match-cut', 'scene-jump', 
-    'whip-pan', 'reveal', 'follow-through', 'parallel-action'
-  ];
-  
-  for (let i = 0; i < shotCount - 1; i++) {
-    // Vary transitions based on position in sequence
-    if (i === 0) {
-      transitions.push('motion-carry'); // Start with flow
-    } else if (i === shotCount - 2) {
-      transitions.push('reveal'); // Build to climax
-    } else if (pacing === 'fast') {
-      transitions.push(i % 2 === 0 ? 'whip-pan' : 'motion-carry');
-    } else if (pacing === 'slow') {
-      transitions.push(i % 3 === 0 ? 'match-cut' : 'angle-change');
-    } else {
-      transitions.push(transitionOptions[i % transitionOptions.length]);
-    }
-  }
-  
-  return transitions;
+interface SceneClip {
+  id: string;
+  index: number;
+  title: string;
+  description: string;
+  durationSeconds: number;
+  // Continuity fields
+  actionPhase: 'establish' | 'initiate' | 'develop' | 'escalate' | 'peak' | 'settle';
+  previousAction: string;
+  currentAction: string;
+  nextAction: string;
+  // Visual consistency
+  characterDescription: string;
+  locationDescription: string;
+  lightingDescription: string;
+  // Camera
+  cameraScale: string;
+  cameraAngle: string;
+  movementType: string;
+  motionDirection: string;
+  // Transitions
+  transitionOut: {
+    type: string;
+    hint: string;
+  } | null;
+  // Dialogue/narration
+  dialogue: string;
+  mood: string;
 }
+
+const ACTION_PHASES = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -106,157 +78,149 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    // Validate and constrain duration (6 sec to 4 min = 240 sec)
-    const targetSeconds = Math.max(6, Math.min(240, request.targetDurationSeconds || 30));
-    const durationMode = request.durationMode || getDurationMode(targetSeconds);
-    const pacing = request.pacingStyle || 'moderate';
+    // Fixed: 6 clips per scene, ~4 seconds each
+    const CLIPS_PER_SCENE = 6;
+    const CLIP_DURATION = 4;
+    const targetSeconds = Math.max(20, Math.min(30, request.targetDurationSeconds || 24));
     
-    // Calculate shot configuration
-    const { shotCount, avgDuration } = calculateShotConfig(targetSeconds, pacing);
-    const sceneDistribution = getSceneDistribution(durationMode, shotCount);
-    const transitionPlan = getTransitionPlan(shotCount, pacing);
-    
-    console.log(`[SmartScript] Duration: ${targetSeconds}s, Mode: ${durationMode}, Shots: ${shotCount}, Pacing: ${pacing}`);
+    console.log(`[SmartScript] Generating ${CLIPS_PER_SCENE} clips for continuous scene`);
 
-    // Build the AI prompt with smart scripting instructions
-    const systemPrompt = `You are a CINEMATIC SCRIPT GENERATOR that creates smooth, professional video scripts optimized for AI video generation and stitching.
+    // Build the system prompt for CONTINUOUS SCENE breakdown
+    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into exactly 6 clips that flow seamlessly together.
+
+CRITICAL: CONTINUOUS SCENE BREAKDOWN
+Each scene = 6 clips showing PROGRESSIVE ACTION in the SAME location.
+The clips are NOT separate shots - they are SEQUENTIAL MOMENTS of ONE continuous action.
 
 OUTPUT FORMAT (STRICT JSON):
 {
-  "shots": [
+  "clips": [
     {
       "index": 0,
-      "title": "Shot title",
-      "description": "Rich visual description with motion, lighting, and physics",
-      "durationSeconds": 4-6,
-      "sceneType": "establishing|action|reaction|detail|transition|climax|resolution|buffer",
-      "cameraScale": "extreme-wide|wide|medium|close-up|extreme-close-up",
-      "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|pov",
-      "movementType": "static|pan|tilt|dolly|tracking|crane|handheld",
-      "transitionOut": "angle-change|motion-carry|match-cut|scene-jump|whip-pan|reveal|follow-through",
-      "transitionHint": "How this shot flows into the next",
-      "visualAnchors": ["key visual element 1", "element 2"],
-      "motionDirection": "left-to-right|right-to-left|toward-camera|away|up|down|circular",
-      "lightingHint": "lighting description for consistency",
-      "dialogue": "Optional narration or dialogue",
-      "mood": "emotional tone",
-      "isBufferShot": false
+      "title": "Clip title",
+      "description": "Detailed visual description for AI video generation",
+      "durationSeconds": 4,
+      "actionPhase": "establish|initiate|develop|escalate|peak|settle",
+      "previousAction": "What happened in previous clip (empty for clip 0)",
+      "currentAction": "What happens in this exact 4-second moment",
+      "nextAction": "What will happen in next clip (empty for clip 5)",
+      "characterDescription": "EXACT character description - SAME in all clips",
+      "locationDescription": "EXACT location description - SAME in all clips",
+      "lightingDescription": "EXACT lighting description - SAME in all clips",
+      "cameraScale": "wide|medium|close-up",
+      "cameraAngle": "eye-level|low-angle|high-angle",
+      "movementType": "static|pan|tracking|dolly",
+      "motionDirection": "The direction of action/movement",
+      "transitionHint": "How this moment connects to the next",
+      "dialogue": "Any narration or speech",
+      "mood": "Emotional tone of this moment"
     }
   ]
 }
 
-**CRITICAL: TRANSITION BUFFER SHOTS (for smooth AI video stitching)**
+ACTION PHASE REQUIREMENTS:
+- ESTABLISH (Clip 0): Wide shot. Character in environment. Initial state before action.
+- INITIATE (Clip 1): Action begins. First movement or change from initial state.
+- DEVELOP (Clip 2): Action continues. Building on the initiated action.
+- ESCALATE (Clip 3): Intensity increases. Action gains momentum.
+- PEAK (Clip 4): Highest point. Most dramatic moment of the scene.
+- SETTLE (Clip 5): Resolution. Action concludes. Sets up next scene.
 
-When transitioning between significantly different scenes or actions, include a BUFFER SHOT. Buffer shots serve as:
-1. CAMERA RESET: A neutral moment for the AI to reposition the "virtual camera"
-2. VISUAL BREATHING ROOM: Prevents jarring jumps from action to action
-3. SCENE ESTABLISHMENT: Allows new environment/lighting to be established
+CONTINUITY REQUIREMENTS (CRITICAL):
+1. CHARACTER LOCK: Copy the EXACT same character description to ALL 6 clips
+   - Same clothes, hair, face, body in every clip
+   - No outfit changes, no appearance drift
+   
+2. LOCATION LOCK: Copy the EXACT same location description to ALL 6 clips
+   - Same room, street, forest - never changes
+   - Same background elements visible
+   
+3. LIGHTING LOCK: Copy the EXACT same lighting to ALL 6 clips
+   - Same sun position, same shadows
+   - Same color temperature
+   
+4. ACTION CONTINUITY: Each clip picks up WHERE the previous ended
+   - Clip 1's "previousAction" = Clip 0's "currentAction"
+   - Clip 2's "previousAction" = Clip 1's "currentAction"
+   - Physical positions must connect (if hand is raised at end of clip 2, it's still raised at start of clip 3)
 
-WHEN TO INSERT BUFFER SHOTS:
-- Before major location changes (interior → exterior)
-- After intense action sequences (fight → calm)
-- When changing primary subjects (character A → character B)
-- Before/after dialogue scenes (to establish speaker in environment)
-- At emotional tone shifts (tense → peaceful)
+5. CAMERA LOGIC: Camera can move, but no impossible jumps
+   - Can go from wide to close-up over 2-3 clips
+   - No jumping from behind character to in front between clips
 
-BUFFER SHOT TYPES:
-1. ENVIRONMENTAL PAUSE: Wide establishing shot showing scene context (e.g., "Wide shot of the forest canopy, golden light filtering through leaves, birds gliding past")
-2. REACTION BEAT: Close-up of subject absorbing moment (e.g., "Close-up of protagonist's face, eyes scanning the horizon, wind gently moving hair")
-3. OBJECT DETAIL: Focus on significant prop or element (e.g., "Macro shot of raindrops on a leaf, camera slowly pulling back")
-4. TRANSITIONAL MOVEMENT: Camera movement that bridges locations (e.g., "Drone shot rising above rooftops, revealing the city skyline beyond")
+TRANSITION HINTS:
+Describe how each clip's END connects to the next clip's START:
+- "Character's hand reaches toward door handle" → "Hand grips the handle"
+- "Face turns toward the sound" → "Eyes widen seeing what made the sound"
+- "Steps forward into the light" → "Fully illuminated, takes in the view"`;
 
-TRANSITION RULES (CRITICAL FOR SMOOTH STITCHING):
-1. ANGLE-CHANGE: Same subject, different camera angle. End shot holds on subject, next shot shows from new angle.
-2. MOTION-CARRY: Movement CONTINUES across cut. If subject moves left, next shot shows continuation.
-3. MATCH-CUT: Visual similarity bridges scenes. End on a shape/color, start next with similar shape/color.
-4. SCENE-JUMP: Use with BUFFER SHOT. End with resolution, buffer establishes new context, then action.
-5. WHIP-PAN: Fast camera sweep creates blur transition. Both clips should have horizontal motion blur.
-6. REVEAL: Camera movement reveals new element. End moving toward obstruction, start revealing what's behind.
-7. FOLLOW-THROUGH: Action leads viewer forward. Subject exits frame, enters next frame.
-
-PACING RULES:
-- FAST pacing: 4-second shots, buffer shots every 3-4 action shots
-- MODERATE pacing: 5-second shots, buffer shots between major scene changes
-- SLOW pacing: 6-second shots, more buffer/establishing shots for contemplative mood
-
-VISUAL CONTINUITY (ESSENTIAL FOR AI STITCHING):
-- Maintain lighting direction across cuts
-- End shots with NEUTRAL POSITIONS when possible (subject centered, minimal motion blur)
-- Start shots with CLEAR VISUAL ANCHORS the AI can latch onto
-- For difficult transitions, use a buffer shot to reset the visual context
-- Describe END STATE of each shot and START STATE of next for smooth handoff
-
-PHYSICS & REALISM:
-- Describe natural motion (gravity, momentum, inertia)
-- Include environmental physics (wind, water, fabric movement)
-- Character body mechanics must be anatomically correct
-- For buffer shots: favor static or slow, predictable motion`;
-
-    // Build user prompt - different approach if we have an approved story
+    // Build user prompt
     let userPrompt: string;
     
-    if (request.approvedStory) {
-      // STORY-FIRST FLOW: Break down the approved continuous narrative into shots
-      console.log("[SmartScript] Using approved story for shot breakdown");
-      userPrompt = `Break down this APPROVED STORY into exactly ${shotCount} cinematic shots for a ${targetSeconds}-second ${request.genre || 'cinematic'} video.
+    if (request.approvedScene) {
+      // Scene has been written - break it into clips
+      userPrompt = `Break this APPROVED SCENE into exactly 6 continuous clips:
 
-THE APPROVED STORY (maintain this narrative exactly, just break it into visual shots):
+SCENE:
 """
-${request.approvedStory}
+${request.approvedScene}
 """
 
-CRITICAL STORY CONTINUITY REQUIREMENTS:
-1. PRESERVE the story's narrative continuity - each shot flows naturally from the previous
-2. Break the story into ${shotCount} distinct visual moments in EXACT SEQUENCE
-3. Each shot must represent a specific part of the story in the order it appears
-4. CHARACTER CONSISTENCY: The same character must look identical in all shots
-   - Copy the character description EXACTLY into each shot's visualAnchors
-   - Include clothing, hair, distinctive features in every shot
-5. SETTING CONSISTENCY: Same location = same lighting, same environment details
-6. EMOTIONAL PROGRESSION: Capture the building/changing emotions through the story
-7. Do NOT add new plot elements - only visualize what's in the story
-8. Do NOT skip any part of the story - every story beat needs a shot
-9. Include dialogue/narration from the story in the appropriate shots
+${request.characterLock ? `
+CHARACTER (use EXACTLY in all 6 clips):
+${request.characterLock.description}
+Wearing: ${request.characterLock.clothing}
+Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
+` : ''}
 
-STORY BEAT TRACKING:
-- Shot 1-2: Opening/Setup (establish character and world)
-- Shot 3-4: Catalyst/Rising Action (conflict begins)
-- Shot ${Math.floor(shotCount * 0.6)}-${Math.floor(shotCount * 0.8)}: Climax (peak tension)
-- Final shots: Resolution (conclusion)
+${request.environmentLock ? `
+LOCATION (use EXACTLY in all 6 clips):
+${request.environmentLock.location}
+Lighting: ${request.environmentLock.lighting}
+Key objects: ${request.environmentLock.keyObjects.join(', ')}
+` : ''}
 
-SCENE DISTRIBUTION TO FOLLOW:
-${sceneDistribution.map((type, i) => `Shot ${i + 1}: ${type}`).join('\n')}
+REQUIREMENTS:
+- Extract the 6 sequential moments from this scene
+- Each clip = 4 seconds of the continuous action
+- Maintain EXACT character/location/lighting consistency
+- Connect each clip's end to the next clip's start
+- Keep dialogue/narration in the appropriate clips
 
-TRANSITION PLAN (use these to connect story moments smoothly):
-${transitionPlan.map((t, i) => `Shot ${i + 1} → ${i + 2}: ${t}`).join('\n')}
-
-Break down the story into visual shots with SMOOTH TRANSITIONS and NARRATIVE CONTINUITY. Output ONLY valid JSON.`;
+Output ONLY valid JSON with exactly 6 clips.`;
     } else {
-      // LEGACY FLOW: Generate from topic/synopsis
-      userPrompt = `Generate a ${shotCount}-shot script for a ${targetSeconds}-second ${request.genre || 'cinematic'} video.
+      // Generate from topic - create a continuous scene
+      userPrompt = `Create a continuous scene broken into 6 clips for:
 
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
 ${request.style ? `STYLE: ${request.style}` : ''}
+${request.genre ? `GENRE: ${request.genre}` : ''}
 ${request.mainSubjects?.length ? `MAIN SUBJECTS: ${request.mainSubjects.join(', ')}` : ''}
-${request.environmentHints?.length ? `ENVIRONMENTS: ${request.environmentHints.join(', ')}` : ''}
+${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.join(', ')}` : ''}
 
-REQUIREMENTS:
-- Exactly ${shotCount} shots
-- Total duration: ~${targetSeconds} seconds
-- Pacing: ${pacing.toUpperCase()}
-- Scene variety: ${request.sceneVariety?.toUpperCase() || 'HIGH'}
+${request.characterLock ? `
+CHARACTER (use EXACTLY in all 6 clips):
+${request.characterLock.description}
+Wearing: ${request.characterLock.clothing}
+Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
+` : ''}
 
-SCENE DISTRIBUTION TO FOLLOW:
-${sceneDistribution.map((type, i) => `Shot ${i + 1}: ${type}`).join('\n')}
+${request.environmentLock ? `
+LOCATION (use EXACTLY in all 6 clips):
+${request.environmentLock.location}
+Lighting: ${request.environmentLock.lighting}
+Key objects: ${request.environmentLock.keyObjects.join(', ')}
+` : ''}
 
-TRANSITION PLAN:
-${transitionPlan.map((t, i) => `Shot ${i + 1} → ${i + 2}: ${t}`).join('\n')}
+Create ONE continuous scene with 6 progressive clips. Each clip = 4 seconds.
+All clips in SAME location with SAME character appearance.
+Show progressive action: establish → initiate → develop → escalate → peak → settle.
 
-Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY valid JSON.`;
+Output ONLY valid JSON with exactly 6 clips.`;
     }
 
-    console.log("[SmartScript] Calling OpenAI API...");
+    console.log("[SmartScript] Calling OpenAI API for scene breakdown...");
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -270,7 +234,8 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: Math.min(4000, shotCount * 300),
+        max_tokens: 3000,
+        temperature: 0.6,
       }),
     });
 
@@ -300,9 +265,8 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
     console.log("[SmartScript] Raw AI response length:", rawContent.length);
 
     // Parse the JSON response
-    let parsedShots;
+    let parsedClips;
     try {
-      // Extract JSON from potential markdown code blocks
       let jsonStr = rawContent;
       const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
@@ -310,65 +274,84 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
       }
       
       const parsed = JSON.parse(jsonStr);
-      parsedShots = parsed.shots || parsed;
+      parsedClips = parsed.clips || parsed;
     } catch (parseError) {
       console.error("[SmartScript] JSON parse error:", parseError);
       console.error("[SmartScript] Raw content:", rawContent.substring(0, 500));
-      
-      // Fallback: try to extract shot information manually
       throw new Error("Failed to parse AI response as JSON. Please try again.");
     }
 
-    // Validate and normalize shots
-    const normalizedShots = parsedShots.map((shot: any, index: number) => ({
-      id: `shot_${String(index + 1).padStart(3, '0')}`,
+    // Validate we have exactly 6 clips
+    if (!Array.isArray(parsedClips) || parsedClips.length !== 6) {
+      console.warn(`[SmartScript] Expected 6 clips, got ${parsedClips?.length}. Padding/trimming...`);
+      while (parsedClips.length < 6) {
+        parsedClips.push({
+          title: `Clip ${parsedClips.length + 1}`,
+          description: 'Scene continuation',
+          actionPhase: ACTION_PHASES[parsedClips.length],
+        });
+      }
+      parsedClips = parsedClips.slice(0, 6);
+    }
+
+    // Extract the character/location/lighting from first clip to enforce consistency
+    const lockFields = {
+      characterDescription: parsedClips[0].characterDescription || request.characterLock?.description || '',
+      locationDescription: parsedClips[0].locationDescription || request.environmentLock?.location || '',
+      lightingDescription: parsedClips[0].lightingDescription || request.environmentLock?.lighting || '',
+    };
+
+    // Normalize and ENFORCE CONSISTENCY across all clips
+    const normalizedClips: SceneClip[] = parsedClips.map((clip: any, index: number) => ({
+      id: `clip_${String(index + 1).padStart(2, '0')}`,
       index,
-      title: shot.title || `Shot ${index + 1}`,
-      description: shot.description || '',
-      durationSeconds: Math.max(4, Math.min(6, shot.durationSeconds || avgDuration)),
-      sceneType: shot.sceneType || sceneDistribution[index] || 'action',
-      cameraScale: shot.cameraScale || 'medium',
-      cameraAngle: shot.cameraAngle || 'eye-level',
-      movementType: shot.movementType || 'static',
-      transitionOut: index < parsedShots.length - 1 ? {
-        type: shot.transitionOut || transitionPlan[index] || 'motion-carry',
-        hint: shot.transitionHint || '',
+      title: clip.title || `Clip ${index + 1}`,
+      description: clip.description || '',
+      durationSeconds: CLIP_DURATION,
+      actionPhase: ACTION_PHASES[index],
+      previousAction: index > 0 ? (parsedClips[index - 1]?.currentAction || '') : '',
+      currentAction: clip.currentAction || clip.description?.substring(0, 100) || '',
+      nextAction: index < 5 ? (parsedClips[index + 1]?.currentAction || '') : '',
+      // ENFORCE CONSISTENCY - same values for all clips
+      characterDescription: lockFields.characterDescription,
+      locationDescription: lockFields.locationDescription,
+      lightingDescription: lockFields.lightingDescription,
+      // Camera
+      cameraScale: clip.cameraScale || 'medium',
+      cameraAngle: clip.cameraAngle || 'eye-level',
+      movementType: clip.movementType || 'static',
+      motionDirection: clip.motionDirection || '',
+      // Transition
+      transitionOut: index < 5 ? {
+        type: 'continuous',
+        hint: clip.transitionHint || `Continues into ${ACTION_PHASES[index + 1]} phase`,
       } : null,
-      visualAnchors: shot.visualAnchors || [],
-      motionDirection: shot.motionDirection || null,
-      lightingHint: shot.lightingHint || 'natural lighting',
-      dialogue: shot.dialogue || '',
-      mood: shot.mood || 'neutral',
+      // Content
+      dialogue: clip.dialogue || '',
+      mood: clip.mood || 'focused',
     }));
 
-    // Calculate actual total duration
-    const totalDuration = normalizedShots.reduce((sum: number, shot: any) => sum + shot.durationSeconds, 0);
+    // Calculate continuity score
+    const continuityScore = calculateContinuityScore(normalizedClips);
 
-    // Calculate diversity scores
-    const uniqueSceneTypes = new Set(normalizedShots.map((s: any) => s.sceneType)).size;
-    const uniqueScales = new Set(normalizedShots.map((s: any) => s.cameraScale)).size;
-    const uniqueAngles = new Set(normalizedShots.map((s: any) => s.cameraAngle)).size;
-    const uniqueTransitions = new Set(normalizedShots.filter((s: any) => s.transitionOut).map((s: any) => s.transitionOut.type)).size;
-
+    const totalDuration = normalizedClips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
     const generationTimeMs = Date.now() - startTime;
 
-    console.log(`[SmartScript] Generated ${normalizedShots.length} shots in ${generationTimeMs}ms`);
+    console.log(`[SmartScript] Generated ${normalizedClips.length} clips in ${generationTimeMs}ms. Continuity score: ${continuityScore}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        shots: normalizedShots,
+        shots: normalizedClips, // Keep 'shots' for backwards compatibility
+        clips: normalizedClips,
         totalDurationSeconds: totalDuration,
-        shotCount: normalizedShots.length,
-        durationMode,
-        transitionPlan: {
-          types: [...new Set(normalizedShots.filter((s: any) => s.transitionOut).map((s: any) => s.transitionOut.type))],
-          diversity: uniqueTransitions / 8, // 8 possible transition types
-        },
-        sceneDiversity: {
-          uniqueSceneTypes,
-          cameraVariety: (uniqueScales + uniqueAngles) / 10, // Normalized score
-          pacingScore: pacing === 'dynamic' ? 0.9 : pacing === 'fast' ? 0.7 : pacing === 'moderate' ? 0.5 : 0.3,
+        clipCount: normalizedClips.length,
+        sceneMode: 'continuous',
+        continuityScore,
+        consistency: {
+          character: lockFields.characterDescription,
+          location: lockFields.locationDescription,
+          lighting: lockFields.lightingDescription,
         },
         model: "gpt-4o-mini",
         generationTimeMs,
@@ -388,3 +371,34 @@ Generate the shots with SMOOTH TRANSITIONS and VISUAL CONTINUITY. Output ONLY va
     );
   }
 });
+
+function calculateContinuityScore(clips: SceneClip[]): number {
+  let score = 100;
+  
+  // Check character consistency
+  const characters = new Set(clips.map(c => c.characterDescription));
+  if (characters.size > 1) score -= 20;
+  
+  // Check location consistency
+  const locations = new Set(clips.map(c => c.locationDescription));
+  if (locations.size > 1) score -= 20;
+  
+  // Check lighting consistency
+  const lightings = new Set(clips.map(c => c.lightingDescription));
+  if (lightings.size > 1) score -= 15;
+  
+  // Check action flow
+  for (let i = 1; i < clips.length; i++) {
+    if (!clips[i].previousAction) score -= 5;
+    // Check if previous action matches current of previous clip
+    if (clips[i].previousAction !== clips[i-1].currentAction) score -= 3;
+  }
+  
+  // Check all phases present
+  const phases = clips.map(c => c.actionPhase);
+  const expectedPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'];
+  const missingPhases = expectedPhases.filter(p => !phases.includes(p as any));
+  score -= missingPhases.length * 3;
+  
+  return Math.max(0, Math.min(100, score));
+}

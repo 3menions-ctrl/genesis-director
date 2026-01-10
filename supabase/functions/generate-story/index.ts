@@ -40,6 +40,21 @@ interface StoryRequest {
   style?: string;
   targetDurationSeconds?: number;
   referenceAnalysis?: ReferenceAnalysis;
+  // NEW: Scene-based story generation
+  sceneMode?: 'single_scene' | 'multi_scene' | 'episode';
+  episodeNumber?: number;
+  previousSceneSummary?: string;
+  totalEpisodes?: number;
+}
+
+interface SceneDescription {
+  sceneNumber: number;
+  location: string;
+  timeOfDay: string;
+  characters: string[];
+  actionProgression: string[]; // 6 progressive actions for 6 clips
+  emotionalArc: string;
+  visualStyle: string;
 }
 
 interface StoryResponse {
@@ -48,6 +63,16 @@ interface StoryResponse {
   title?: string;
   synopsis?: string;
   estimatedScenes?: number;
+  // NEW: Scene-based data
+  sceneMode?: string;
+  sceneDescription?: SceneDescription;
+  episodeInfo?: {
+    episodeNumber: number;
+    totalEpisodes: number;
+    episodeTitle: string;
+    previousSummary?: string;
+    nextTeaser?: string;
+  };
   error?: string;
 }
 
@@ -71,69 +96,67 @@ serve(async (req) => {
       throw new Error("Please provide a story prompt");
     }
 
-    const targetDuration = request.targetDurationSeconds || 30;
-    const estimatedScenes = Math.max(2, Math.min(12, Math.ceil(targetDuration / 5)));
+    const targetDuration = request.targetDurationSeconds || 24;
+    const sceneMode = request.sceneMode || 'single_scene';
 
-    const systemPrompt = `You are a professional SCREENWRITER and STORYTELLER. Your job is to write a complete, CONTINUOUS NARRATIVE story that flows naturally from beginning to end.
+    // SCENE-BASED SYSTEM PROMPT
+    const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across 6 connected clips.
 
-STORY STRUCTURE (MANDATORY):
-1. OPENING HOOK (10%): Establish character and world immediately. First sentence grabs attention.
-2. SETUP (15%): Introduce the situation, stakes, and what the character wants.
-3. CATALYST (10%): An event that disrupts the status quo and sets the story in motion.
-4. RISING ACTION (30%): Character pursues goal, faces obstacles, tension builds.
-5. CLIMAX (15%): The decisive moment - highest tension, most important action.
-6. RESOLUTION (20%): Aftermath, character changed, satisfying conclusion.
+CRITICAL CONCEPT: SCENE vs STORY
+- A SCENE is ONE continuous moment in ONE location with ONE action sequence
+- A STORY spans multiple scenes/episodes
+- Each 24-second video = 1 SCENE = 6 clips of 4 seconds each
+- The 6 clips show PROGRESSIVE ACTION within the SAME moment
 
-NARRATIVE CONTINUITY RULES (CRITICAL):
-1. CHARACTER CONSISTENCY: The protagonist looks, acts, and feels the same throughout
-   - Describe their appearance ONCE clearly, then reference specific details
-   - Their clothing does NOT change unless the story requires it
-   - Their emotional state evolves logically based on events
+SCENE STRUCTURE (6 PROGRESSIVE CLIPS):
+Each clip must be a CONTINUATION of the previous clip, like frames in a movie:
+
+CLIP 1 - ESTABLISH: Set the scene. Character in location. Initial state.
+CLIP 2 - INITIATE: Action begins. First movement or change.
+CLIP 3 - DEVELOP: Action progresses. Continuation of movement.
+CLIP 4 - ESCALATE: Intensity increases. Action builds momentum.
+CLIP 5 - PEAK: Highest point of action in this scene.
+CLIP 6 - SETTLE: Action concludes for this scene. Holds for next scene.
+
+CRITICAL RULES FOR CONTINUOUS FLOW:
+
+1. SAME LOCATION: All 6 clips are in the EXACT same place
+   - NO location changes within a scene
+   - Same room, same street, same forest clearing
+   - Background elements stay consistent
    
-2. SETTING CONSISTENCY: Each location maintains its established characteristics
-   - Lighting, weather, and time of day stay consistent within a scene
-   - Environmental details mentioned early remain present later
+2. CONTINUOUS TIME: No time jumps within a scene
+   - Clip 2 starts where Clip 1 ends
+   - If character is mid-step in Clip 3, they complete the step in Clip 4
+   - Total time elapsed in scene: ~24 seconds of story time
    
-3. CAUSE & EFFECT: Every event follows logically from what came before
-   - Character actions have consequences shown in subsequent scenes
-   - No unexplained jumps or gaps in logic
+3. CONSISTENT LIGHTING: Same light throughout
+   - Sun position doesn't change
+   - Indoor lighting remains fixed
+   - Shadows stay consistent
    
-4. TEMPORAL FLOW: Time progresses naturally
-   - Use transitional phrases: "moments later", "as she", "then"
-   - Avoid jarring time skips without clear indication
-
-5. EMOTIONAL THREAD: The emotional journey is continuous
-   - Feelings build on previous feelings
-   - Reactions are proportional to events
-
-VISUAL STORYTELLING (FOR AI VIDEO):
-- Write in present tense, vivid prose with VISUAL descriptions
-- Include sensory details: what we SEE, HEAR, and FEEL
-- Describe character actions, expressions, and movements
-- Include environment and setting details
-- Each scene should flow naturally into the next - no abrupt jumps
-- The story should be CINEMATIC - think of it as describing what would appear on screen
+4. PROGRESSIVE ACTION: Each clip advances ONE beat
+   - Character walks toward door (1) → reaches for handle (2) → opens it (3) → steps through (4) → looks around (5) → sees something (6)
+   - NOT: walks (1) → arrives at destination (2) ← TOO BIG A JUMP
+   
+5. CONTINUOUS CHARACTER STATE:
+   - Same clothes, same hairstyle, same accessories
+   - Emotional state evolves smoothly
+   - Physical position connects between clips
 
 OUTPUT FORMAT:
-Write the story as flowing paragraphs. Use line breaks between major story beats.
-Each paragraph should represent a continuous visual moment.
-The story should be approximately ${Math.ceil(targetDuration / 5) * 50}-${Math.ceil(targetDuration / 5) * 80} words (${estimatedScenes} scenes worth of content).
+Write the scene as 6 connected paragraphs, each describing 4 seconds of continuous action.
+Label each: [CLIP 1], [CLIP 2], etc.
+End each clip at a moment that naturally flows into the next.
+Include: character description (consistent across all clips), exact location, lighting, and progressive action.
 
-DO NOT:
-- Use numbered shots or scene headers
-- Break into disconnected scenes
-- Use technical film terminology
-- Include camera directions
-- Write dialogue in script format
-- Change character appearance without explanation
-
-DO:
-- Write prose that reads like a short story
-- Use vivid, visual descriptions
-- Include natural dialogue woven into the narrative
-- Create emotional arcs with clear progression
-- Ensure visual and thematic continuity throughout
-- Make every sentence advance the story or reveal character`;
+${sceneMode === 'episode' ? `
+EPISODE MODE:
+This is Episode ${request.episodeNumber || 1} of ${request.totalEpisodes || 5}.
+${request.previousSceneSummary ? `Previous episode ended with: ${request.previousSceneSummary}` : 'This is the first episode.'}
+Start from where the previous episode left off.
+End with a moment that leads into the next episode.
+` : ''}`;
 
     // Build reference image context if available
     let referenceContext = '';
@@ -142,7 +165,7 @@ DO:
       const parts: string[] = [];
       
       if (ref.characterIdentity?.description) {
-        parts.push(`MAIN CHARACTER: ${ref.characterIdentity.description}`);
+        parts.push(`MAIN CHARACTER (use EXACTLY in all clips): ${ref.characterIdentity.description}`);
         if (ref.characterIdentity.clothing) parts.push(`Wearing: ${ref.characterIdentity.clothing}`);
         if (ref.characterIdentity.distinctiveMarkers?.length) {
           parts.push(`Distinctive features: ${ref.characterIdentity.distinctiveMarkers.join(', ')}`);
@@ -150,14 +173,14 @@ DO:
       }
       
       if (ref.environment?.setting) {
-        parts.push(`SETTING: ${ref.environment.setting}`);
+        parts.push(`LOCATION (same for all clips): ${ref.environment.setting}`);
         if (ref.environment.keyObjects?.length) {
           parts.push(`Key elements: ${ref.environment.keyObjects.join(', ')}`);
         }
       }
       
       if (ref.lighting?.style) {
-        parts.push(`LIGHTING: ${ref.lighting.style}${ref.lighting.timeOfDay ? ` (${ref.lighting.timeOfDay})` : ''}`);
+        parts.push(`LIGHTING (consistent): ${ref.lighting.style}${ref.lighting.timeOfDay ? ` (${ref.lighting.timeOfDay})` : ''}`);
       }
       
       if (ref.colorPalette?.mood) {
@@ -165,11 +188,11 @@ DO:
       }
       
       if (parts.length > 0) {
-        referenceContext = `\n\nVISUAL REFERENCE (incorporate these elements into the story):\n${parts.join('\n')}`;
+        referenceContext = `\n\nVISUAL REFERENCE (incorporate EXACTLY into ALL 6 clips):\n${parts.join('\n')}`;
       }
     }
 
-    const userPrompt = `Write a continuous, cinematic story based on this concept:
+    const userPrompt = `Write ONE CONTINUOUS SCENE based on this concept:
 
 "${request.prompt}"
 
@@ -177,12 +200,16 @@ ${request.genre ? `Genre: ${request.genre}` : ''}
 ${request.mood ? `Mood/Tone: ${request.mood}` : ''}
 ${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}
 
-The story should be suitable for a ${targetDuration}-second video (approximately ${estimatedScenes} visual scenes).
-${request.referenceAnalysis ? '\nIMPORTANT: The story MUST feature the character and setting described in the VISUAL REFERENCE above. Maintain consistency with their appearance throughout.' : ''}
+This scene will be a ${targetDuration}-second video made of 6 clips (4 seconds each).
+All 6 clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
 
-Write the complete story now:`;
+${sceneMode === 'episode' && request.previousSceneSummary ? `
+CONTINUE FROM: ${request.previousSceneSummary}
+` : ''}
 
-    console.log("[GenerateStory] Calling OpenAI API...");
+Write the scene now with [CLIP 1] through [CLIP 6] labels:`;
+
+    console.log("[GenerateStory] Calling OpenAI API for scene-based generation...");
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -197,7 +224,7 @@ Write the complete story now:`;
           { role: "user", content: userPrompt },
         ],
         max_tokens: 2000,
-        temperature: 0.8,
+        temperature: 0.7,
       }),
     });
 
@@ -225,10 +252,18 @@ Write the complete story now:`;
     const story = data.choices?.[0]?.message?.content || '';
 
     if (!story.trim()) {
-      throw new Error("Failed to generate story content");
+      throw new Error("Failed to generate scene content");
     }
 
-    // Generate a title from the story
+    // Extract clip descriptions for scene description
+    const clipMatches = story.matchAll(/\[CLIP (\d+)\]([\s\S]*?)(?=\[CLIP \d+\]|$)/g);
+    const actionProgression: string[] = [];
+    for (const match of clipMatches) {
+      const clipContent = match[2].trim().split('\n')[0].substring(0, 100);
+      actionProgression.push(clipContent);
+    }
+
+    // Generate a title from the scene
     const titleResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -238,7 +273,7 @@ Write the complete story now:`;
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "Generate a short, catchy title (3-6 words) for this story. Return ONLY the title, no quotes or extra text." },
+          { role: "system", content: "Generate a short, evocative title (3-6 words) for this scene. Return ONLY the title, no quotes." },
           { role: "user", content: story.substring(0, 500) },
         ],
         max_tokens: 20,
@@ -254,22 +289,51 @@ Write the complete story now:`;
       }
     }
 
+    // Create scene description
+    const sceneDescription: SceneDescription = {
+      sceneNumber: request.episodeNumber || 1,
+      location: request.referenceAnalysis?.environment?.setting || 'Extracted from scene',
+      timeOfDay: request.referenceAnalysis?.lighting?.timeOfDay || 'Extracted from scene',
+      characters: request.referenceAnalysis?.characterIdentity?.description 
+        ? [request.referenceAnalysis.characterIdentity.description]
+        : [],
+      actionProgression,
+      emotionalArc: request.mood || 'building tension',
+      visualStyle: request.style || 'cinematic',
+    };
+
     // Create a one-line synopsis
-    const synopsis = story.split('\n')[0].substring(0, 200) + (story.length > 200 ? '...' : '');
+    const synopsis = story.split('\n').find((line: string) => line.includes('[CLIP 1]'))?.replace('[CLIP 1]', '').trim().substring(0, 200) || story.substring(0, 200);
 
     const generationTimeMs = Date.now() - startTime;
-    console.log(`[GenerateStory] Generated story in ${generationTimeMs}ms, ${story.length} chars`);
+    console.log(`[GenerateStory] Generated scene in ${generationTimeMs}ms, ${story.length} chars, ${actionProgression.length} clips`);
+
+    const responseData: StoryResponse = {
+      success: true,
+      story,
+      title,
+      synopsis,
+      estimatedScenes: 6, // Always 6 clips per scene
+      sceneMode,
+      sceneDescription,
+    };
+
+    if (sceneMode === 'episode') {
+      responseData.episodeInfo = {
+        episodeNumber: request.episodeNumber || 1,
+        totalEpisodes: request.totalEpisodes || 5,
+        episodeTitle: title,
+        previousSummary: request.previousSceneSummary,
+        nextTeaser: actionProgression[5] || 'To be continued...',
+      };
+    }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        story,
-        title,
-        synopsis,
-        estimatedScenes,
+        ...responseData,
         generationTimeMs,
         usage: data.usage,
-      } as StoryResponse),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

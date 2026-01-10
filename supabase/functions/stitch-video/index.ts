@@ -154,6 +154,7 @@ function buildAudioMixParams(musicSyncPlan?: MusicSyncPlan): {
 }
 
 // Call Cloud Run FFmpeg service for production stitching
+// Uses a long timeout (5 minutes) since video processing takes time
 async function callCloudRunStitcher(
   cloudRunUrl: string,
   request: StitchRequest
@@ -167,18 +168,21 @@ async function callCloudRunStitcher(
   // Build audio mix params from music sync plan
   const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
   
-  // Enhanced request with music sync params
+  // Enhanced request with music sync params and callback URL for async notification
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const enhancedRequest = {
     ...request,
     audioMixParams,
     colorGradingFilter: request.colorGradingFilter,
+    // Provide callback URL for async completion notification
+    callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
   };
   
   console.log(`[Stitch] Music sync: volume=${audioMixParams.musicVolume}, ducking=${audioMixParams.duckingEnabled}, markers=${audioMixParams.timingMarkers?.length || 0}`);
   
-  // Add timeout for Cloud Run call (30 seconds)
+  // Use a 5 minute timeout for video processing (stitching multiple clips takes time)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
   
   let response: Response;
   try {
@@ -190,6 +194,14 @@ async function callCloudRunStitcher(
       body: JSON.stringify(enhancedRequest),
       signal: controller.signal,
     });
+  } catch (fetchError: unknown) {
+    clearTimeout(timeoutId);
+    // Handle abort/timeout specifically
+    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+      console.log('[Stitch] Cloud Run request timed out after 5 minutes');
+      throw new Error('Cloud Run stitching timed out - video may still be processing');
+    }
+    throw fetchError;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -221,12 +233,55 @@ async function callCloudRunStitcher(
     throw new Error(result.error || `Cloud Run returned ${response.status}`);
   }
 
+  console.log(`[Stitch] Cloud Run success: ${result.videoUrl || result.finalVideoUrl || 'processing async'}`);
+
   return {
     ...result,
+    // Normalize the video URL field name
+    finalVideoUrl: result.videoUrl || result.finalVideoUrl,
     mode: 'cloud-run',
     musicSyncApplied: !!request.musicSyncPlan,
     colorGradingApplied: !!request.colorGradingFilter,
   };
+}
+
+// Fire and forget Cloud Run call - returns immediately, Cloud Run calls finalize-stitch when done
+async function fireCloudRunStitcherAsync(
+  cloudRunUrl: string,
+  request: StitchRequest
+): Promise<void> {
+  const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
+  const stitchEndpoint = `${normalizedUrl}/stitch`;
+  
+  console.log(`[Stitch] Firing async Cloud Run request: ${stitchEndpoint}`);
+  
+  const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  
+  const enhancedRequest = {
+    ...request,
+    audioMixParams,
+    colorGradingFilter: request.colorGradingFilter,
+    // Cloud Run will call this when done
+    callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+  };
+  
+  // Fire request without waiting for response
+  fetch(stitchEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(enhancedRequest),
+  }).then(async (response) => {
+    console.log(`[Stitch] Cloud Run responded with status: ${response.status}`);
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`[Stitch] Cloud Run error: ${text}`);
+    }
+  }).catch((error) => {
+    console.error(`[Stitch] Cloud Run request failed:`, error);
+  });
 }
 
 // Main processing logic
@@ -252,28 +307,49 @@ async function processStitching(
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
     if (cloudRunUrl && !request.forceMvpMode) {
-      console.log("[Stitch] Using Cloud Run FFmpeg service (production mode)");
+      console.log("[Stitch] Using Cloud Run FFmpeg service (async mode)");
       
-      try {
-        const result = await callCloudRunStitcher(cloudRunUrl, {
-          ...request,
-          clips: validClips,
-        });
-        
-        return {
-          ...result,
-          processingTimeMs: Date.now() - startTime,
-        };
-      } catch (cloudRunError) {
-        console.error("[Stitch] Cloud Run failed, falling back to MVP mode:", cloudRunError);
-        // Fall through to MVP mode
-      }
+      // Update project status to 'stitching' 
+      await supabase
+        .from('movie_projects')
+        .update({ status: 'stitching' })
+        .eq('id', request.projectId);
+      
+      // Fire async request - Cloud Run will call finalize-stitch when done
+      // Use EdgeRuntime.waitUntil to keep the background task running
+      const asyncRequest = {
+        ...request,
+        clips: validClips,
+      };
+      
+      // Start the Cloud Run request in background
+      EdgeRuntime.waitUntil(fireCloudRunStitcherAsync(cloudRunUrl, asyncRequest));
+      
+      // Return immediately with processing status
+      return {
+        success: true,
+        mode: 'cloud-run',
+        processingTimeMs: Date.now() - startTime,
+        clipsProcessed: validClips.length,
+        durationSeconds: totalDuration,
+        // Indicate async processing
+        finalVideoUrl: undefined,
+      };
     }
 
     // MVP fallback: Manifest-based client-side sequential playback
     console.log("[Stitch] Using manifest-based client-side stitching (MVP mode)");
 
     const manifestUrl = await createVideoManifest(validClips, request.projectId, supabase);
+    
+    // Update project with manifest URL
+    await supabase
+      .from('movie_projects')
+      .update({ 
+        status: 'completed',
+        video_url: manifestUrl 
+      })
+      .eq('id', request.projectId);
 
     return {
       success: true,
@@ -293,6 +369,11 @@ async function processStitching(
     };
   }
 }
+
+// Declare EdgeRuntime for TypeScript
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<any>): void;
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -320,7 +401,7 @@ serve(async (req) => {
     console.log(`[Stitch] Audio mix mode: ${request.audioMixMode}`);
     
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-    console.log(`[Stitch] Mode: ${cloudRunUrl ? 'Cloud Run FFmpeg' : 'MVP Manifest'}`);
+    console.log(`[Stitch] Mode: ${cloudRunUrl ? 'Cloud Run FFmpeg (async)' : 'MVP Manifest'}`);
 
     const result = await processStitching(request, supabase);
 

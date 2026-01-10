@@ -1108,6 +1108,54 @@ export default function Production() {
           </motion.section>
         )}
 
+        {/* Stitching In Progress */}
+        {projectStatus === 'stitching' && (
+          <motion.section
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="p-6 rounded-3xl bg-gradient-to-br from-white/[0.06] to-transparent border-2 border-white/20"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 relative">
+                <div className="absolute inset-0 bg-white/20 rounded-2xl animate-ping" style={{ animationDuration: '2s' }} />
+                <Film className="relative w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-1">Final Assembly in Progress</h3>
+                <p className="text-sm text-white/60 mb-4">
+                  Cloud Run is stitching your {completedClips} clips together. This typically takes 1-3 minutes depending on video length.
+                </p>
+                
+                {/* Animated progress bar */}
+                <div className="relative h-2 rounded-full bg-white/10 overflow-hidden mb-4">
+                  <motion.div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-white/40 to-white/80 rounded-full"
+                    initial={{ width: '10%' }}
+                    animate={{ width: ['10%', '60%', '30%', '80%', '50%'] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-4 text-sm text-white/40">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Processing on Cloud Run</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Est. 1-3 min</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+        )}
+
         {/* Pipeline Stages */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}

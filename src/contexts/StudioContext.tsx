@@ -45,6 +45,8 @@ function mapDbStatus(dbStatus: string): ProjectStatus {
     case 'generating': return 'generating';
     case 'rendering': return 'rendering';
     case 'producing': return 'generating'; // Active production maps to generating
+    case 'stitching': return 'stitching';
+    case 'stitching_failed': return 'stitching_failed';
     default: return 'idle';
   }
 }

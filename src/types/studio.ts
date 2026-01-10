@@ -1,4 +1,4 @@
-export type ProjectStatus = 'idle' | 'generating' | 'rendering' | 'completed';
+export type ProjectStatus = 'idle' | 'generating' | 'rendering' | 'completed' | 'stitching' | 'stitching_failed';
 
 export interface Studio {
   id: string;

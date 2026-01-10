@@ -11,13 +11,16 @@
 
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+
+// Use built-in crypto.randomUUID() instead of uuid package
+const uuidv4 = () => crypto.randomUUID();
 
 // Node 20+ has fetch built-in, no import needed
 

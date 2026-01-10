@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // Build update object
+    // Build update object - only use columns that exist in movie_projects table
     const updateData: Record<string, unknown> = {
       status,
       updated_at: new Date().toISOString()
@@ -56,12 +56,12 @@ Deno.serve(async (req) => {
 
     if (status === 'completed' && videoUrl) {
       updateData.video_url = videoUrl;
-      updateData.current_stage = 'completed';
-      updateData.progress = 100;
     }
 
+    // Note: error_message column doesn't exist in movie_projects table
+    // Error info is logged but not stored in DB
     if (status === 'failed' && errorMessage) {
-      updateData.error_message = errorMessage;
+      console.log(`[FinalizeStitch] Project ${projectId} failed: ${errorMessage}`);
     }
 
     // Update the project

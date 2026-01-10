@@ -103,6 +103,30 @@ serve(async (req) => {
       })
       .eq('id', request.projectId);
 
+    // Build manual prompts from existing video clips or script
+    let manualPrompts: string[] = [];
+    
+    // Get existing video clips to build prompts for remaining clips
+    const { data: existingClips } = await supabase
+      .from('video_clips')
+      .select('shot_index, prompt, status')
+      .eq('project_id', request.projectId)
+      .order('shot_index');
+    
+    if (script?.shots && script.shots.length > 0) {
+      // Build prompts from script shots
+      manualPrompts = script.shots.map((shot: any) => shot.description || shot.title || 'Continue scene');
+    } else if (existingClips && existingClips.length > 0) {
+      // Build from existing clip prompts
+      manualPrompts = existingClips.map((c: any) => c.prompt);
+    }
+    
+    // Find where to resume from based on completed clips
+    const completedClips = existingClips?.filter((c: any) => c.status === 'completed') || [];
+    const resumeFromClipIndex = completedClips.length;
+    
+    console.log(`[ResumePipeline] Found ${completedClips.length} completed clips, resuming from clip ${resumeFromClipIndex + 1}`);
+
     // Call hollywood-pipeline to continue
     const pipelineRequest = {
       userId: request.userId,
@@ -110,16 +134,20 @@ serve(async (req) => {
       resumeFrom,
       skipApproval: true,
       approvedScript: script,
+      // CRITICAL: Include manualPrompts OR concept so hollywood-pipeline doesn't reject
+      manualPrompts: manualPrompts.length > 0 ? manualPrompts : undefined,
+      concept: project.synopsis || project.title || 'Continue video generation',
       // Pass through original config from pending tasks
-      includeVoice: pendingTasks.config?.includeVoice ?? true,
-      includeMusic: pendingTasks.config?.includeMusic ?? true,
-      genre: pendingTasks.config?.genre || 'cinematic',
-      mood: pendingTasks.config?.mood || 'epic',
+      includeVoice: pendingTasks.config?.includeVoice ?? false, // Don't regenerate voice on resume
+      includeMusic: pendingTasks.config?.includeMusic ?? false, // Don't regenerate music on resume
+      genre: pendingTasks.config?.genre || project.genre || 'cinematic',
+      mood: pendingTasks.config?.mood || project.mood || 'epic',
       colorGrading: pendingTasks.config?.colorGrading || 'cinematic',
       clipCount: script?.shots?.length || pendingTasks.clipCount || 6,
       referenceImageAnalysis: pendingTasks.referenceAnalysis,
       identityBible: pendingTasks.identityBible,
       extractedCharacters: pendingTasks.extractedCharacters,
+      resumeFromClipIndex, // Tell pipeline which clip to start from
     };
 
     console.log("[ResumePipeline] Calling hollywood-pipeline with resume config:", resumeFrom);

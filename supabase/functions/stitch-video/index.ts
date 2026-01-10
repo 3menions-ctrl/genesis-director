@@ -176,13 +176,23 @@ async function callCloudRunStitcher(
   
   console.log(`[Stitch] Music sync: volume=${audioMixParams.musicVolume}, ducking=${audioMixParams.duckingEnabled}, markers=${audioMixParams.timingMarkers?.length || 0}`);
   
-  const response = await fetch(stitchEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(enhancedRequest),
-  });
+  // Add timeout for Cloud Run call (30 seconds)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
+  let response: Response;
+  try {
+    response = await fetch(stitchEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(enhancedRequest),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
   
   // Handle non-JSON responses gracefully
   const contentType = response.headers.get('content-type') || '';

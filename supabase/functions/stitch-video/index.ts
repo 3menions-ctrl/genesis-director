@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// Declare EdgeRuntime for Deno Edge Function background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+} | undefined;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -245,12 +249,13 @@ function buildAudioMixParams(musicSyncPlan?: MusicSyncPlan): {
   };
 }
 
-// ==================== CLOUD RUN FIRE-AND-FORGET ====================
+// ==================== CLOUD RUN FIRE-AND-FORGET (WITH FAILURE HANDLING) ====================
 
-function fireCloudRunStitcherAsync(
+async function fireCloudRunStitcherAsync(
   cloudRunUrl: string,
-  request: StitchRequest
-): void {
+  request: StitchRequest,
+  supabase: SupabaseClientAny
+): Promise<void> {
   const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
   const stitchEndpoint = `${normalizedUrl}/stitch`;
   
@@ -268,16 +273,79 @@ function fireCloudRunStitcherAsync(
     maxRetries: 3,
   };
   
-  fetch(stitchEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(enhancedRequest),
-    keepalive: true,
-  }).catch((error) => {
-    console.error(`[Stitch] Cloud Run request error (may still succeed):`, error);
-  });
+  try {
+    // Use a longer timeout for the actual stitching request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+    
+    const response = await fetch(stitchEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(enhancedRequest),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Stitch] Cloud Run returned error: ${response.status} - ${errorText}`);
+      
+      // Update project status to failed if Cloud Run explicitly fails
+      await updatePipelineProgress(
+        supabase,
+        request.projectId,
+        'error',
+        0,
+        `Cloud Run error: ${response.status}`
+      );
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq('id', request.projectId);
+    } else {
+      console.log(`[Stitch] Cloud Run accepted request, processing async`);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Stitch] Cloud Run request failed: ${errorMessage}`);
+    
+    // Handle timeouts and network errors
+    if (errorMessage.includes('abort') || errorMessage.includes('timeout')) {
+      console.log(`[Stitch] Request timed out - Cloud Run may still be processing`);
+      // Don't mark as failed immediately - Cloud Run might still complete
+      await updatePipelineProgress(
+        supabase,
+        request.projectId,
+        'processing_async',
+        30,
+        'Request dispatched, awaiting completion'
+      );
+    } else {
+      // For other errors, mark as failed
+      await updatePipelineProgress(
+        supabase,
+        request.projectId,
+        'error',
+        0,
+        errorMessage
+      );
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq('id', request.projectId);
+    }
+  }
   
   console.log(`[Stitch] Request dispatched to Cloud Run (retry: ${request.retryAttempt || 0})`);
 }
@@ -383,13 +451,29 @@ async function processStitching(
           .update({ 
             status: 'stitching',
             updated_at: new Date().toISOString(),
+            pending_video_tasks: {
+              stage: 'stitching',
+              progress: 25,
+              stitchingStarted: new Date().toISOString(),
+              expectedCompletionTime: new Date(Date.now() + 300000).toISOString(), // 5 min timeout marker
+              lastUpdated: new Date().toISOString(),
+            },
           } as Record<string, unknown>)
           .eq('id', request.projectId);
         
-        fireCloudRunStitcherAsync(cloudRunUrl, {
+        // Use EdgeRuntime.waitUntil for background processing
+        const stitchPromise = fireCloudRunStitcherAsync(cloudRunUrl, {
           ...request,
           clips: validClips,
-        });
+        }, supabase);
+        
+        // Use waitUntil if available (Deno Edge Runtime feature)
+        if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+          EdgeRuntime.waitUntil(stitchPromise);
+        } else {
+          // Fallback: await the promise
+          await stitchPromise;
+        }
         
         return {
           success: true,

@@ -8,7 +8,7 @@ const corsHeaders = {
 // Duration modes
 type DurationMode = 'micro' | 'short' | 'medium' | 'long' | 'extended';
 type SmartTransitionType = 'angle-change' | 'motion-carry' | 'match-cut' | 'scene-jump' | 'whip-pan' | 'reveal' | 'follow-through' | 'parallel-action';
-type SceneType = 'establishing' | 'action' | 'reaction' | 'detail' | 'transition' | 'climax' | 'resolution';
+type SceneType = 'establishing' | 'action' | 'reaction' | 'detail' | 'transition' | 'climax' | 'resolution' | 'buffer';
 
 interface SmartScriptRequest {
   topic: string;
@@ -42,14 +42,15 @@ function calculateShotConfig(targetSeconds: number, pacing: string): { shotCount
   return { shotCount, avgDuration };
 }
 
-// Get scene type distribution for the duration mode
+// Get scene type distribution for the duration mode - now includes buffer shots for stitching
 function getSceneDistribution(mode: DurationMode, shotCount: number): SceneType[] {
+  // Updated patterns with 'buffer' shots for smooth AI video stitching
   const patterns: Record<DurationMode, SceneType[]> = {
     micro: ['action'],
-    short: ['establishing', 'action', 'detail', 'climax', 'action'],
-    medium: ['establishing', 'action', 'reaction', 'detail', 'action', 'climax', 'reaction', 'resolution'],
-    long: ['establishing', 'action', 'reaction', 'detail', 'transition', 'action', 'detail', 'climax', 'reaction', 'resolution'],
-    extended: ['establishing', 'action', 'reaction', 'detail', 'action', 'transition', 'establishing', 'action', 'detail', 'reaction', 'climax', 'reaction', 'action', 'resolution'],
+    short: ['establishing', 'action', 'buffer', 'detail', 'climax'],
+    medium: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'action', 'buffer', 'climax', 'resolution'],
+    long: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'transition', 'action', 'buffer', 'detail', 'climax', 'buffer', 'resolution'],
+    extended: ['establishing', 'action', 'reaction', 'buffer', 'detail', 'action', 'buffer', 'transition', 'establishing', 'action', 'buffer', 'detail', 'reaction', 'climax', 'buffer', 'resolution'],
   };
   
   const pattern = patterns[mode];
@@ -118,7 +119,7 @@ serve(async (req) => {
     console.log(`[SmartScript] Duration: ${targetSeconds}s, Mode: ${durationMode}, Shots: ${shotCount}, Pacing: ${pacing}`);
 
     // Build the AI prompt with smart scripting instructions
-    const systemPrompt = `You are a CINEMATIC SCRIPT GENERATOR that creates smooth, professional video scripts.
+    const systemPrompt = `You are a CINEMATIC SCRIPT GENERATOR that creates smooth, professional video scripts optimized for AI video generation and stitching.
 
 OUTPUT FORMAT (STRICT JSON):
 {
@@ -128,7 +129,7 @@ OUTPUT FORMAT (STRICT JSON):
       "title": "Shot title",
       "description": "Rich visual description with motion, lighting, and physics",
       "durationSeconds": 4-6,
-      "sceneType": "establishing|action|reaction|detail|transition|climax|resolution",
+      "sceneType": "establishing|action|reaction|detail|transition|climax|resolution|buffer",
       "cameraScale": "extreme-wide|wide|medium|close-up|extreme-close-up",
       "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|pov",
       "movementType": "static|pan|tilt|dolly|tracking|crane|handheld",
@@ -138,41 +139,58 @@ OUTPUT FORMAT (STRICT JSON):
       "motionDirection": "left-to-right|right-to-left|toward-camera|away|up|down|circular",
       "lightingHint": "lighting description for consistency",
       "dialogue": "Optional narration or dialogue",
-      "mood": "emotional tone"
+      "mood": "emotional tone",
+      "isBufferShot": false
     }
   ]
 }
 
-TRANSITION RULES (CRITICAL FOR SMOOTH PLAYBACK):
+**CRITICAL: TRANSITION BUFFER SHOTS (for smooth AI video stitching)**
+
+When transitioning between significantly different scenes or actions, include a BUFFER SHOT. Buffer shots serve as:
+1. CAMERA RESET: A neutral moment for the AI to reposition the "virtual camera"
+2. VISUAL BREATHING ROOM: Prevents jarring jumps from action to action
+3. SCENE ESTABLISHMENT: Allows new environment/lighting to be established
+
+WHEN TO INSERT BUFFER SHOTS:
+- Before major location changes (interior → exterior)
+- After intense action sequences (fight → calm)
+- When changing primary subjects (character A → character B)
+- Before/after dialogue scenes (to establish speaker in environment)
+- At emotional tone shifts (tense → peaceful)
+
+BUFFER SHOT TYPES:
+1. ENVIRONMENTAL PAUSE: Wide establishing shot showing scene context (e.g., "Wide shot of the forest canopy, golden light filtering through leaves, birds gliding past")
+2. REACTION BEAT: Close-up of subject absorbing moment (e.g., "Close-up of protagonist's face, eyes scanning the horizon, wind gently moving hair")
+3. OBJECT DETAIL: Focus on significant prop or element (e.g., "Macro shot of raindrops on a leaf, camera slowly pulling back")
+4. TRANSITIONAL MOVEMENT: Camera movement that bridges locations (e.g., "Drone shot rising above rooftops, revealing the city skyline beyond")
+
+TRANSITION RULES (CRITICAL FOR SMOOTH STITCHING):
 1. ANGLE-CHANGE: Same subject, different camera angle. End shot holds on subject, next shot shows from new angle.
 2. MOTION-CARRY: Movement CONTINUES across cut. If subject moves left, next shot shows continuation.
-3. MATCH-CUT: Visual similarity bridges scenes. End on a shape/color, start next with similar shape/color in new context.
-4. SCENE-JUMP: Clean cut to new location. End with resolution, start with establishing context.
-5. WHIP-PAN: Fast camera sweep creates blur transition. End/start with horizontal motion blur.
+3. MATCH-CUT: Visual similarity bridges scenes. End on a shape/color, start next with similar shape/color.
+4. SCENE-JUMP: Use with BUFFER SHOT. End with resolution, buffer establishes new context, then action.
+5. WHIP-PAN: Fast camera sweep creates blur transition. Both clips should have horizontal motion blur.
 6. REVEAL: Camera movement reveals new element. End moving toward obstruction, start revealing what's behind.
 7. FOLLOW-THROUGH: Action leads viewer forward. Subject exits frame, enters next frame.
 
 PACING RULES:
-- FAST pacing: 4-second shots, quick transitions (motion-carry, whip-pan)
-- MODERATE pacing: 5-second shots, varied transitions
-- SLOW pacing: 6-second shots, contemplative transitions (match-cut, reveal)
+- FAST pacing: 4-second shots, buffer shots every 3-4 action shots
+- MODERATE pacing: 5-second shots, buffer shots between major scene changes
+- SLOW pacing: 6-second shots, more buffer/establishing shots for contemplative mood
 
-SCENE DIVERSITY:
-- Vary camera scales (wide → close-up → medium → extreme-close-up)
-- Alternate camera angles for visual interest
-- Mix static and moving shots
-- Use scene types in narrative order: establishing → action → reaction → detail → climax → resolution
-
-VISUAL CONTINUITY:
+VISUAL CONTINUITY (ESSENTIAL FOR AI STITCHING):
 - Maintain lighting direction across cuts
-- Track subject position for 180-degree rule
-- Use visualAnchors to maintain identity across shots
-- motionDirection should flow naturally between shots
+- End shots with NEUTRAL POSITIONS when possible (subject centered, minimal motion blur)
+- Start shots with CLEAR VISUAL ANCHORS the AI can latch onto
+- For difficult transitions, use a buffer shot to reset the visual context
+- Describe END STATE of each shot and START STATE of next for smooth handoff
 
 PHYSICS & REALISM:
 - Describe natural motion (gravity, momentum, inertia)
 - Include environmental physics (wind, water, fabric movement)
-- Character body mechanics must be anatomically correct`;
+- Character body mechanics must be anatomically correct
+- For buffer shots: favor static or slow, predictable motion`;
 
     // Build user prompt - different approach if we have an approved story
     let userPrompt: string;

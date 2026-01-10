@@ -17,7 +17,8 @@ import {
   Layers,
   Sparkles,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,8 @@ export default function Production() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [completedClips, setCompletedClips] = useState(0);
   const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
+  const [retryingClipIndex, setRetryingClipIndex] = useState<number | null>(null);
+  const [failedClipsNotified, setFailedClipsNotified] = useState<Set<number>>(new Set());
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
@@ -118,7 +121,63 @@ export default function Production() {
     });
   }, []);
 
-  // Elapsed time tracker
+  // Handle retry of failed clip
+  const handleRetryClip = useCallback(async (clipIndex: number) => {
+    if (!projectId || !user) return;
+    
+    setRetryingClipIndex(clipIndex);
+    addLog(`Retrying clip ${clipIndex + 1}...`, 'info');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('retry-failed-clip', {
+        body: {
+          userId: user.id,
+          projectId,
+          clipIndex,
+        },
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast.success(`Clip ${clipIndex + 1} regenerated successfully!`);
+        addLog(`Clip ${clipIndex + 1} retry succeeded`, 'success');
+        
+        // Update local state
+        setClipResults(prev => {
+          const updated = [...prev];
+          updated[clipIndex] = {
+            ...updated[clipIndex],
+            status: 'completed',
+            videoUrl: data.videoUrl,
+            error: undefined,
+          };
+          return updated;
+        });
+        
+        // Remove from failed notifications
+        setFailedClipsNotified(prev => {
+          const updated = new Set(prev);
+          updated.delete(clipIndex);
+          return updated;
+        });
+        
+        // Reload clips from DB
+        await loadVideoClips();
+      } else {
+        throw new Error(data?.error || 'Retry failed');
+      }
+    } catch (err) {
+      console.error('Retry failed:', err);
+      toast.error(`Failed to retry clip ${clipIndex + 1}`, {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+      addLog(`Clip ${clipIndex + 1} retry failed: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+    } finally {
+      setRetryingClipIndex(null);
+    }
+  }, [projectId, user, addLog, loadVideoClips]);
+
   useEffect(() => {
     if (projectStatus === 'completed' || projectStatus === 'failed' || !projectId) {
       return;
@@ -326,6 +385,40 @@ export default function Production() {
             });
             updateStageStatus(4, 'active', `${tasks.clipsCompleted}/${clipCount} clips`);
             addLog(`Video clips: ${tasks.clipsCompleted}/${clipCount} completed`, 'info');
+          }
+
+          // Handle failed clips notification
+          const pendingTasksAny = tasks as any;
+          if (pendingTasksAny.failedClips && Array.isArray(pendingTasksAny.failedClips)) {
+            pendingTasksAny.failedClips.forEach((failedIndex: number) => {
+              if (!failedClipsNotified.has(failedIndex)) {
+                toast.error(`Clip ${failedIndex + 1} failed after auto-retry`, {
+                  description: pendingTasksAny.lastFailedError || 'Click to retry manually',
+                  action: {
+                    label: 'Retry',
+                    onClick: () => handleRetryClip(failedIndex),
+                  },
+                  duration: 10000,
+                });
+                setFailedClipsNotified(prev => new Set([...prev, failedIndex]));
+                addLog(`Clip ${failedIndex + 1} failed - manual retry available`, 'warning');
+              }
+            });
+            
+            // Update clip results with failed status
+            setClipResults(prev => {
+              const updated = [...prev];
+              pendingTasksAny.failedClips.forEach((failedIndex: number) => {
+                if (updated[failedIndex]) {
+                  updated[failedIndex] = { 
+                    ...updated[failedIndex], 
+                    status: 'failed',
+                    error: pendingTasksAny.lastFailedError,
+                  };
+                }
+              });
+              return updated;
+            });
           }
 
           // Handle completion
@@ -559,7 +652,22 @@ export default function Production() {
                     ) : clip.status === 'completed' ? (
                       <CheckCircle2 className="w-4 h-4" />
                     ) : clip.status === 'failed' ? (
-                      <XCircle className="w-4 h-4" />
+                      <div 
+                        className="flex flex-col items-center gap-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRetryClip(index);
+                        }}
+                      >
+                        {retryingClipIndex === index ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <RefreshCw className="w-3 h-3" />
+                            <span className="text-[8px]">Retry</span>
+                          </>
+                        )}
+                      </div>
                     ) : (
                       index + 1
                     )}

@@ -316,7 +316,6 @@ async function runFFmpeg(args, description) {
 // Color grading presets for visual consistency
 const COLOR_PRESETS = {
   cinematic: {
-    // Cinematic orange-teal look
     eq: 'gamma=1.1:contrast=1.05:saturation=1.1',
     colorbalance: 'rs=0.05:gs=-0.02:bs=-0.08:rm=0.03:gm=0.01:bm=-0.05',
   },
@@ -371,10 +370,7 @@ function buildMusicVolumeFilter(timingMarkers, totalDuration, baseVolume = 0.3) 
     return `volume=${baseVolume}`;
   }
 
-  // Sort markers by timestamp
   const sorted = [...timingMarkers].sort((a, b) => a.timestamp - b.timestamp);
-  
-  // Build volume expression with time-based adjustments
   let volumeExpr = '';
   
   for (let i = 0; i < sorted.length; i++) {
@@ -386,16 +382,16 @@ function buildMusicVolumeFilter(timingMarkers, totalDuration, baseVolume = 0.3) 
     
     switch (marker.type) {
       case 'duck':
-        targetVolume = baseVolume * (1 - marker.intensity * 0.7); // Duck down
+        targetVolume = baseVolume * (1 - marker.intensity * 0.7);
         break;
       case 'swell':
-        targetVolume = baseVolume * (1 + marker.intensity * 0.5); // Swell up
+        targetVolume = baseVolume * (1 + marker.intensity * 0.5);
         break;
       case 'accent':
-        targetVolume = baseVolume * (1 + marker.intensity * 0.3); // Slight boost
+        targetVolume = baseVolume * (1 + marker.intensity * 0.3);
         break;
       case 'pause':
-        targetVolume = baseVolume * 0.1; // Near silence
+        targetVolume = baseVolume * 0.1;
         break;
     }
     
@@ -416,7 +412,6 @@ async function downloadSFXFiles(sfxPlan, workDir) {
   
   if (!sfxPlan) return sfxTracks;
   
-  // Download SFX cues
   if (sfxPlan.cues && sfxPlan.cues.length > 0) {
     for (let i = 0; i < sfxPlan.cues.length; i++) {
       const cue = sfxPlan.cues[i];
@@ -441,7 +436,6 @@ async function downloadSFXFiles(sfxPlan, workDir) {
     }
   }
   
-  // Download ambient beds
   if (sfxPlan.ambientBeds && sfxPlan.ambientBeds.length > 0) {
     for (let i = 0; i < sfxPlan.ambientBeds.length; i++) {
       const ambient = sfxPlan.ambientBeds[i];
@@ -483,9 +477,8 @@ async function stitchVideos(request) {
     notifyOnError = true,
     colorGrading = 'cinematic',
     customColorProfile = null,
-    transitionType = 'fade',      // Default crossfade transition
-    transitionDuration = 0.5,     // Seconds for each transition
-    // NEW: Music sync and SFX parameters
+    transitionType = 'fade',
+    transitionDuration = 0.5,
     musicSyncPlan = null,
     sfxPlan = null,
     audioMixParams = null
@@ -499,13 +492,11 @@ async function stitchVideos(request) {
   console.log(`[Stitch] Color grading: ${colorGrading}`);
   
   try {
-    // Create work directory
     await fs.mkdir(workDir, { recursive: true });
     
     const validClips = [];
     const invalidClips = [];
     
-    // Step 1: Download and validate all clips
     console.log('[Stitch] Step 1: Downloading and validating clips...');
     
     for (let i = 0; i < clips.length; i++) {
@@ -521,7 +512,6 @@ async function stitchVideos(request) {
           throw new Error(validation.error || 'Invalid video');
         }
         
-        // Get actual duration from probe
         let duration = clip.durationSeconds || 4;
         if (validation.data?.streams) {
           const videoStream = validation.data.streams.find(s => s.codec_type === 'video');
@@ -548,7 +538,6 @@ async function stitchVideos(request) {
       }
     }
     
-    // Check for missing clips
     if (invalidClips.length > 0) {
       console.warn(`[Stitch] ${invalidClips.length} clips failed validation`);
       
@@ -567,10 +556,8 @@ async function stitchVideos(request) {
       throw new Error('No valid clips to stitch');
     }
     
-    // Sort clips by index
     validClips.sort((a, b) => a.index - b.index);
     
-    // Step 2: Normalize all clips to same resolution/fps for crossfade
     console.log('[Stitch] Step 2: Normalizing clips for smooth transitions...');
     
     const normalizedClips = [];
@@ -597,21 +584,18 @@ async function stitchVideos(request) {
       });
     }
     
-    // Step 3: Apply crossfade transitions between clips
     console.log(`[Stitch] Step 3: Applying ${transitionType} crossfades...`);
     
     const transition = TRANSITION_TYPES[transitionType] || 'fade';
-    const xfadeDuration = Math.min(transitionDuration, 1.0); // Cap at 1 second
+    const xfadeDuration = Math.min(transitionDuration, 1.0);
     
     let currentPath = normalizedClips[0].normalizedPath;
     let accumulatedOffset = normalizedClips[0].actualDuration - xfadeDuration;
     
-    // Chain xfade filters for each pair of clips
     for (let i = 1; i < normalizedClips.length; i++) {
       const nextClip = normalizedClips[i];
       const outputPath = path.join(workDir, `xfade_${i.toString().padStart(3, '0')}.mp4`);
       
-      // Calculate offset (where in the timeline the transition starts)
       const offset = accumulatedOffset;
       
       console.log(`[Stitch] Crossfading clip ${i} -> ${i + 1} at offset ${offset.toFixed(2)}s`);
@@ -632,11 +616,9 @@ async function stitchVideos(request) {
       ], `Crossfade transition ${i}/${normalizedClips.length - 1}`);
       
       currentPath = outputPath;
-      // Add duration of next clip minus overlap
       accumulatedOffset += nextClip.actualDuration - xfadeDuration;
     }
     
-    // Step 4: Apply color grading to final merged video
     console.log(`[Stitch] Step 4: Applying ${colorGrading} color grading...`);
     
     const concatenatedPath = path.join(workDir, 'concatenated.mp4');
@@ -655,25 +637,22 @@ async function stitchVideos(request) {
       concatenatedPath
     ], `Color grading with ${colorGrading}`);
     
-    // Step 4: Audio injection (voice + music if provided)
     let finalPath = concatenatedPath;
     const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);
     
     const hasVoice = voiceTrackUrl && audioMixMode !== 'mute';
     const hasMusic = backgroundMusicUrl && audioMixMode !== 'mute';
     
-    // Download SFX tracks
     const sfxTracks = await downloadSFXFiles(sfxPlan, workDir);
     const hasSFX = sfxTracks.length > 0;
     
     if (hasVoice || hasMusic || hasSFX) {
-      console.log('[Stitch] Step 4: Audio mixing with music sync and SFX...');
+      console.log('[Stitch] Step 5: Audio mixing with music sync and SFX...');
       console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}, SFX tracks: ${sfxTracks.length}`);
       
       const audioInputs = ['-i', concatenatedPath];
       let inputIndex = 1;
       
-      // Download and add voice track
       let voiceInputIdx = null;
       if (hasVoice) {
         const voicePath = path.join(workDir, 'voice_track.mp3');
@@ -682,7 +661,6 @@ async function stitchVideos(request) {
         voiceInputIdx = inputIndex++;
       }
       
-      // Download and add music track  
       let musicInputIdx = null;
       if (hasMusic) {
         const musicPath = path.join(workDir, 'background_music.mp3');
@@ -691,7 +669,6 @@ async function stitchVideos(request) {
         musicInputIdx = inputIndex++;
       }
       
-      // Add SFX inputs
       const sfxInputIndices = [];
       for (const sfx of sfxTracks) {
         audioInputs.push('-i', sfx.path);
@@ -701,17 +678,14 @@ async function stitchVideos(request) {
       const withAudioPath = path.join(workDir, 'final_with_audio.mp4');
       let ffmpegArgs = [...audioInputs, '-t', totalDuration.toString()];
       
-      // Build complex filter for mixing all audio tracks
       let filterParts = [];
       let mixInputs = [];
       
-      // Voice processing
       if (voiceInputIdx !== null) {
         filterParts.push(`[${voiceInputIdx}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=1.0[voice]`);
         mixInputs.push('[voice]');
       }
       
-      // Music processing with sync timing markers
       if (musicInputIdx !== null) {
         const baseVolume = audioMixParams?.musicVolume || 0.3;
         const timingMarkers = audioMixParams?.timingMarkers || musicSyncPlan?.timingMarkers;
@@ -726,7 +700,6 @@ async function stitchVideos(request) {
         console.log(`[Stitch] Applied music sync with ${timingMarkers?.length || 0} timing markers`);
       }
       
-      // SFX processing
       for (let i = 0; i < sfxInputIndices.length; i++) {
         const sfx = sfxInputIndices[i];
         const label = `sfx${i}`;
@@ -746,11 +719,9 @@ async function stitchVideos(request) {
         mixInputs.push(`[${label}]`);
       }
       
-      // Include original video audio
       filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
       mixInputs.unshift('[orig]');
       
-      // Mix all streams
       const mixFilter = `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first:dropout_transition=2[aout]`;
       filterParts.push(mixFilter);
       
@@ -771,8 +742,7 @@ async function stitchVideos(request) {
       console.log(`[Stitch] Audio mixing complete: ${mixInputs.length} tracks mixed`);
     }
     
-    // Step 5: Get signed upload URL from edge function
-    console.log('[Stitch] Step 5: Getting signed upload URL...');
+    console.log('[Stitch] Step 6: Getting signed upload URL...');
     
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
     const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName);
@@ -783,21 +753,17 @@ async function stitchVideos(request) {
     
     console.log(`[Stitch] Got signed URL, uploading ${finalFileName}...`);
     
-    // Read the final video file
     const fileBuffer = await fs.readFile(finalPath);
     
-    // Upload directly to signed URL
     await uploadToSignedUrl(uploadUrlData.signedUrl, fileBuffer);
     
     const finalVideoUrl = uploadUrlData.publicUrl;
     console.log(`[Stitch] Upload complete: ${finalVideoUrl}`);
     
-    // Step 6: Finalize via edge function (updates database)
-    console.log('[Stitch] Step 6: Finalizing project...');
+    console.log('[Stitch] Step 7: Finalizing project...');
     
     await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length);
     
-    // Cleanup
     await fs.rm(workDir, { recursive: true, force: true });
     
     console.log(`[Stitch] Job ${jobId} completed successfully!`);
@@ -813,7 +779,6 @@ async function stitchVideos(request) {
   } catch (error) {
     console.error(`[Stitch] Job ${jobId} failed:`, error);
     
-    // Cleanup on error
     try {
       await fs.rm(workDir, { recursive: true, force: true });
     } catch {}
@@ -830,7 +795,6 @@ app.post('/stitch', async (req, res) => {
   try {
     const { projectId, clips } = req.body;
     
-    // Validate required fields
     if (!projectId) {
       return res.status(400).json({ 
         success: false, 
@@ -845,7 +809,6 @@ app.post('/stitch', async (req, res) => {
       });
     }
     
-    // Validate each clip has required fields
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
       if (!clip.videoUrl) {
@@ -874,7 +837,7 @@ app.post('/stitch', async (req, res) => {
   }
 });
 
-// Validation-only endpoint (check clips without processing)
+// Validation-only endpoint
 app.post('/validate', async (req, res) => {
   const { clips } = req.body;
   
@@ -886,7 +849,6 @@ app.post('/validate', async (req, res) => {
   
   for (const clip of clips) {
     try {
-      // Just do a HEAD request to check availability
       const response = await fetch(clip.videoUrl, { method: 'HEAD' });
       results.push({
         shotId: clip.shotId,
@@ -909,7 +871,7 @@ app.post('/validate', async (req, res) => {
   });
 });
 
-// Frame extraction endpoint for long video chaining
+// Frame extraction endpoint
 app.post('/extract-frame', async (req, res) => {
   const { clipUrl, clipIndex, projectId } = req.body;
   
@@ -925,29 +887,25 @@ app.post('/extract-frame', async (req, res) => {
   try {
     await fs.mkdir(workDir, { recursive: true });
     
-    // Download the video clip
     const clipPath = path.join(workDir, 'input.mp4');
     await downloadFile(clipUrl, clipPath);
     
-    // Validate the video
     const validation = await validateVideo(clipPath);
     if (!validation.valid) {
       throw new Error('Invalid video file');
     }
     
-    // Extract the last frame using FFmpeg
     const framePath = path.join(workDir, 'last_frame.jpg');
     
     await runFFmpeg([
-      '-sseof', '-0.1',  // Seek to 0.1 seconds before end
+      '-sseof', '-0.1',
       '-i', clipPath,
-      '-frames:v', '1',  // Extract 1 frame
-      '-q:v', '2',       // High quality JPEG
-      '-y',              // Overwrite output
+      '-frames:v', '1',
+      '-q:v', '2',
+      '-y',
       framePath
     ], `Extract last frame from clip ${clipIndex}`);
     
-    // Upload frame to Supabase storage
     const supabase = getSupabase();
     const frameFileName = `frame_${projectId || 'unknown'}_clip_${clipIndex}_${Date.now()}.jpg`;
     
@@ -967,7 +925,6 @@ app.post('/extract-frame', async (req, res) => {
     const supabaseUrl = process.env.SUPABASE_URL;
     const lastFrameUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${frameFileName}`;
     
-    // Cleanup
     await fs.rm(workDir, { recursive: true, force: true });
     
     console.log(`[ExtractFrame] Frame extracted successfully: ${lastFrameUrl}`);
@@ -981,7 +938,6 @@ app.post('/extract-frame', async (req, res) => {
   } catch (error) {
     console.error(`[ExtractFrame] Error:`, error);
     
-    // Cleanup on error
     try {
       await fs.rm(workDir, { recursive: true, force: true });
     } catch {}
@@ -993,7 +949,7 @@ app.post('/extract-frame', async (req, res) => {
   }
 });
 
-// Start server - bind to 0.0.0.0 for Cloud Run (synchronous, no async wrapper)
+// Start server
 const PORT = parseInt(process.env.PORT, 10) || 8080;
 
 console.log(`[Stitcher] Starting server on port ${PORT}...`);
@@ -1005,13 +961,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   logStartup();
 });
 
-// Handle startup errors gracefully
 server.on('error', (err) => {
   console.error('[Stitcher] Server error:', err);
   process.exit(1);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[Stitcher] SIGTERM received, shutting down gracefully');
   server.close(() => {
@@ -1020,7 +974,6 @@ process.on('SIGTERM', () => {
   });
 });
 
-// Handle uncaught exceptions to prevent silent crashes
 process.on('uncaughtException', (err) => {
   console.error('[Stitcher] Uncaught exception:', err);
   process.exit(1);

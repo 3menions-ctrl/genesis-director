@@ -245,11 +245,12 @@ async function callCloudRunStitcher(
   };
 }
 
-// Fire and forget Cloud Run call - returns immediately, Cloud Run calls finalize-stitch when done
-async function fireCloudRunStitcherAsync(
+// Fire Cloud Run request in true fire-and-forget mode
+// Cloud Run will call finalize-stitch when done
+function fireCloudRunStitcherAsync(
   cloudRunUrl: string,
   request: StitchRequest
-): Promise<void> {
+): void {
   const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
   const stitchEndpoint = `${normalizedUrl}/stitch`;
   
@@ -266,22 +267,22 @@ async function fireCloudRunStitcherAsync(
     callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
   };
   
-  // Fire request without waiting for response
+  // Fire the request - we don't await or track it
+  // Cloud Run will process and call finalize-stitch when done
+  // Using no-cors mode to ensure the request is sent without waiting for response
   fetch(stitchEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(enhancedRequest),
-  }).then(async (response) => {
-    console.log(`[Stitch] Cloud Run responded with status: ${response.status}`);
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[Stitch] Cloud Run error: ${text}`);
-    }
+    // Don't wait for response - just send and forget
+    keepalive: true,
   }).catch((error) => {
-    console.error(`[Stitch] Cloud Run request failed:`, error);
+    console.error(`[Stitch] Cloud Run request error (may still succeed):`, error);
   });
+  
+  console.log(`[Stitch] Request dispatched to Cloud Run (not awaiting response)`);
 }
 
 // Main processing logic
@@ -316,14 +317,11 @@ async function processStitching(
         .eq('id', request.projectId);
       
       // Fire async request - Cloud Run will call finalize-stitch when done
-      // Use EdgeRuntime.waitUntil to keep the background task running
-      const asyncRequest = {
+      // No need for waitUntil - we're just dispatching, not waiting
+      fireCloudRunStitcherAsync(cloudRunUrl, {
         ...request,
         clips: validClips,
-      };
-      
-      // Start the Cloud Run request in background
-      EdgeRuntime.waitUntil(fireCloudRunStitcherAsync(cloudRunUrl, asyncRequest));
+      });
       
       // Return immediately with processing status
       return {

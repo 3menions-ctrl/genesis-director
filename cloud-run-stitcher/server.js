@@ -19,8 +19,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-// Ensure fetch is available (Node 20 has it built-in, but adding fallback for safety)
-const fetch = globalThis.fetch || require('node-fetch');
+// Node 20+ has fetch built-in, no import needed
 
 const app = express();
 

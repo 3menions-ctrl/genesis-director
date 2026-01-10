@@ -54,6 +54,16 @@ interface ExtractedCharacter {
   distinguishingFeatures?: string;
 }
 
+interface SceneContext {
+  actionPhase: 'establish' | 'initiate' | 'develop' | 'escalate' | 'peak' | 'settle';
+  previousAction: string;
+  currentAction: string;
+  nextAction: string;
+  characterDescription: string;
+  locationDescription: string;
+  lightingDescription: string;
+}
+
 interface PipelineState {
   projectId: string;
   stage: string;
@@ -70,7 +80,15 @@ interface PipelineState {
       durationSeconds: number;
       mood?: string;
       cameraMovement?: string;
+      // NEW: Scene context for continuous flow
+      sceneContext?: SceneContext;
     }>;
+  };
+  // NEW: Scene-level consistency locks
+  sceneConsistency?: {
+    character: string;
+    location: string;
+    lighting: string;
   };
   extractedCharacters?: ExtractedCharacter[];
   identityBible?: {
@@ -192,6 +210,33 @@ function calculatePipelineParams(request: PipelineRequest): { clipCount: number;
   return { clipCount, clipDuration, totalCredits };
 }
 
+// Build default scene context when not available from script
+function buildDefaultSceneContext(clipIndex: number, state: PipelineState): SceneContext {
+  const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
+  const phase = actionPhases[clipIndex % actionPhases.length];
+  
+  // Get descriptions from scene consistency if available
+  const character = state.sceneConsistency?.character || state.identityBible?.consistencyPrompt || '';
+  const location = state.sceneConsistency?.location || '';
+  const lighting = state.sceneConsistency?.lighting || '';
+  
+  // Get action from script shots if available
+  const shots = state.script?.shots || [];
+  const currentShot = shots[clipIndex];
+  const prevShot = clipIndex > 0 ? shots[clipIndex - 1] : null;
+  const nextShot = clipIndex < shots.length - 1 ? shots[clipIndex + 1] : null;
+  
+  return {
+    actionPhase: phase,
+    previousAction: prevShot?.description?.substring(0, 50) || '',
+    currentAction: currentShot?.description?.substring(0, 100) || `Clip ${clipIndex + 1} action`,
+    nextAction: nextShot?.description?.substring(0, 50) || '',
+    characterDescription: character,
+    locationDescription: location,
+    lightingDescription: lighting,
+  };
+}
+
 async function callEdgeFunction(
   functionName: string,
   body: any
@@ -252,43 +297,92 @@ async function runPreProduction(
     try {
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.storyTitle || 'Video',
-        approvedStory: request.approvedStory,
+        approvedScene: request.approvedStory, // Changed: approvedStory -> approvedScene for scene-based flow
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
-        clipCount: state.clipCount,
       });
       
-      if (scriptResult.shots) {
-        const shots = scriptResult.shots.slice(0, state.clipCount);
+      if (scriptResult.shots || scriptResult.clips) {
+        const rawShots = scriptResult.shots || scriptResult.clips;
+        const shots = rawShots.slice(0, state.clipCount).map((shot: any, i: number) => ({
+          id: shot.id || `shot_${i + 1}`,
+          title: shot.title || `Clip ${i + 1}`,
+          description: shot.description || '',
+          durationSeconds: shot.durationSeconds || state.clipDuration,
+          mood: shot.mood || request.mood || 'cinematic',
+          dialogue: shot.dialogue || '',
+          // NEW: Capture scene context for continuous flow
+          sceneContext: shot.actionPhase ? {
+            actionPhase: shot.actionPhase,
+            previousAction: shot.previousAction || '',
+            currentAction: shot.currentAction || shot.description?.substring(0, 100) || '',
+            nextAction: shot.nextAction || '',
+            characterDescription: shot.characterDescription || scriptResult.consistency?.character || '',
+            locationDescription: shot.locationDescription || scriptResult.consistency?.location || '',
+            lightingDescription: shot.lightingDescription || scriptResult.consistency?.lighting || '',
+          } : undefined,
+        }));
+        
+        // Pad if needed
         while (shots.length < state.clipCount) {
+          const prevShot = shots[shots.length - 1];
           shots.push({
             id: `shot_${shots.length + 1}`,
-            title: `Scene ${shots.length + 1}`,
-            description: `Continuation of the story. Scene ${shots.length + 1}.`,
+            title: `Clip ${shots.length + 1}`,
+            description: `Continuation of the scene. Clip ${shots.length + 1}.`,
             durationSeconds: state.clipDuration,
             mood: request.mood || 'cinematic',
+            sceneContext: prevShot?.sceneContext ? {
+              ...prevShot.sceneContext,
+              actionPhase: 'settle' as const,
+              previousAction: prevShot.sceneContext.currentAction,
+              currentAction: 'Scene continues',
+              nextAction: '',
+            } : undefined,
           });
         }
+        
         state.script = { shots };
-        console.log(`[Hollywood] Story broken down into ${state.script.shots.length} shots`);
+        
+        // Store scene-level consistency locks
+        if (scriptResult.consistency) {
+          state.sceneConsistency = {
+            character: scriptResult.consistency.character || '',
+            location: scriptResult.consistency.location || '',
+            lighting: scriptResult.consistency.lighting || '',
+          };
+          console.log(`[Hollywood] Scene consistency locks captured`);
+        }
+        
+        console.log(`[Hollywood] Story broken down into ${state.script.shots.length} shots with scene context`);
       }
     } catch (err) {
       console.warn(`[Hollywood] Story breakdown failed, using fallback:`, err);
-      // Fallback: Split story into roughly equal parts
-      const storyParts = request.approvedStory.split('\n\n').filter(p => p.trim());
+      // Fallback: Split story into roughly equal parts with action phases
+      const storyParts = request.approvedStory.split('\n\n').filter((p: string) => p.trim());
+      const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
       state.script = {
         shots: Array.from({ length: state.clipCount }, (_, i) => ({
           id: `shot_${i + 1}`,
-          title: `Scene ${i + 1}`,
+          title: `Clip ${i + 1}`,
           description: storyParts[i % storyParts.length] || `Scene ${i + 1} of the story.`,
           durationSeconds: state.clipDuration,
           mood: request.mood || 'cinematic',
+          sceneContext: {
+            actionPhase: actionPhases[i % actionPhases.length],
+            previousAction: i > 0 ? (storyParts[(i - 1) % storyParts.length]?.substring(0, 50) || '') : '',
+            currentAction: storyParts[i % storyParts.length]?.substring(0, 50) || '',
+            nextAction: i < state.clipCount - 1 ? (storyParts[(i + 1) % storyParts.length]?.substring(0, 50) || '') : '',
+            characterDescription: '',
+            locationDescription: '',
+            lightingDescription: '',
+          },
         })),
       };
     }
   } else if (request.concept && !request.manualPrompts) {
-    console.log(`[Hollywood] Generating script from concept...`);
+    console.log(`[Hollywood] Generating script from concept (scene-based)...`);
     
     try {
       const scriptResult = await callEdgeFunction('smart-script-generator', {
@@ -297,43 +391,103 @@ async function runPreProduction(
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
-        clipCount: state.clipCount,
       });
       
-      if (scriptResult.shots) {
-        const shots = scriptResult.shots.slice(0, state.clipCount);
+      if (scriptResult.shots || scriptResult.clips) {
+        const rawShots = scriptResult.shots || scriptResult.clips;
+        const shots = rawShots.slice(0, state.clipCount).map((shot: any, i: number) => ({
+          id: shot.id || `shot_${i + 1}`,
+          title: shot.title || `Clip ${i + 1}`,
+          description: shot.description || '',
+          durationSeconds: shot.durationSeconds || state.clipDuration,
+          mood: shot.mood || request.mood || 'cinematic',
+          dialogue: shot.dialogue || '',
+          // Capture scene context
+          sceneContext: shot.actionPhase ? {
+            actionPhase: shot.actionPhase,
+            previousAction: shot.previousAction || '',
+            currentAction: shot.currentAction || shot.description?.substring(0, 100) || '',
+            nextAction: shot.nextAction || '',
+            characterDescription: shot.characterDescription || scriptResult.consistency?.character || '',
+            locationDescription: shot.locationDescription || scriptResult.consistency?.location || '',
+            lightingDescription: shot.lightingDescription || scriptResult.consistency?.lighting || '',
+          } : undefined,
+        }));
+        
         while (shots.length < state.clipCount) {
+          const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
           shots.push({
             id: `shot_${shots.length + 1}`,
-            title: `Scene ${shots.length + 1}`,
-            description: `${request.concept}. Scene ${shots.length + 1} of ${state.clipCount}.`,
+            title: `Clip ${shots.length + 1}`,
+            description: `${request.concept}. Clip ${shots.length + 1} of ${state.clipCount}.`,
             durationSeconds: state.clipDuration,
             mood: request.mood || 'cinematic',
+            sceneContext: {
+              actionPhase: actionPhases[shots.length % actionPhases.length],
+              previousAction: '',
+              currentAction: '',
+              nextAction: '',
+              characterDescription: scriptResult.consistency?.character || '',
+              locationDescription: scriptResult.consistency?.location || '',
+              lightingDescription: scriptResult.consistency?.lighting || '',
+            },
           });
         }
+        
         state.script = { shots };
-        console.log(`[Hollywood] Script generated: ${state.script.shots.length} shots`);
+        
+        // Store scene-level consistency locks
+        if (scriptResult.consistency) {
+          state.sceneConsistency = {
+            character: scriptResult.consistency.character || '',
+            location: scriptResult.consistency.location || '',
+            lighting: scriptResult.consistency.lighting || '',
+          };
+        }
+        
+        console.log(`[Hollywood] Script generated: ${state.script.shots.length} shots with scene context`);
       }
     } catch (err) {
       console.warn(`[Hollywood] Script generation failed, using fallback:`, err);
+      const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
       state.script = {
         shots: Array.from({ length: state.clipCount }, (_, i) => ({
           id: `shot_${i + 1}`,
-          title: `Scene ${i + 1}`,
-          description: `${request.concept}. Scene ${i + 1} of ${state.clipCount}.`,
+          title: `Clip ${i + 1}`,
+          description: `${request.concept}. Clip ${i + 1} of ${state.clipCount}.`,
           durationSeconds: state.clipDuration,
           mood: request.mood || 'cinematic',
+          sceneContext: {
+            actionPhase: actionPhases[i % actionPhases.length],
+            previousAction: '',
+            currentAction: `${request.concept} - moment ${i + 1}`,
+            nextAction: '',
+            characterDescription: '',
+            locationDescription: '',
+            lightingDescription: '',
+          },
         })),
       };
     }
   } else if (request.manualPrompts) {
+    const actionPhases = ['establish', 'initiate', 'develop', 'escalate', 'peak', 'settle'] as const;
+    const prompts = request.manualPrompts;
     state.script = {
-      shots: request.manualPrompts.slice(0, state.clipCount).map((prompt, i) => ({
+      shots: prompts.slice(0, state.clipCount).map((prompt, i) => ({
         id: `shot_${i + 1}`,
-        title: `Scene ${i + 1}`,
+        title: `Clip ${i + 1}`,
         description: prompt,
         durationSeconds: state.clipDuration,
         mood: request.mood,
+        sceneContext: {
+          actionPhase: actionPhases[i % actionPhases.length],
+          previousAction: i > 0 ? (prompts[i - 1]?.substring(0, 50) || '') : '',
+          currentAction: prompt.substring(0, 100),
+          nextAction: i < prompts.length - 1 ? (prompts[i + 1]?.substring(0, 50) || '') : '',
+          characterDescription: '',
+          locationDescription: '',
+          lightingDescription: '',
+        },
       })),
     };
   }
@@ -1023,10 +1177,11 @@ async function runProduction(
   console.log(`[Hollywood] Character identity: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
   
   // Build clip prompts from optimized shots OR script (for resume)
-  let clips: Array<{ index: number; prompt: string }> = [];
+  // NEW: Include sceneContext for continuous flow
+  let clips: Array<{ index: number; prompt: string; sceneContext?: SceneContext }> = [];
   
   if (state.auditResult && state.auditResult.optimizedShots && state.auditResult.optimizedShots.length > 0) {
-    // Use optimized shots from audit
+    // Use optimized shots from audit - merge with script's sceneContext
     clips = state.auditResult.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
       let finalPrompt = opt.optimizedDescription;
       
@@ -1042,14 +1197,19 @@ async function runProduction(
         finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
       }
       
+      // Get sceneContext from original script shot
+      const scriptShot = state.script?.shots?.[i];
+      const sceneContext = scriptShot?.sceneContext || buildDefaultSceneContext(i, state);
+      
       return {
         index: i,
         prompt: finalPrompt,
+        sceneContext,
       };
     });
   } else if (state.script && state.script.shots && state.script.shots.length > 0) {
-    // Fallback: Use script shots directly (for resume scenarios)
-    console.log(`[Hollywood] Building clips from script (${state.script.shots.length} shots)`);
+    // Use script shots directly (for resume scenarios)
+    console.log(`[Hollywood] Building clips from script (${state.script.shots.length} shots) with scene context`);
     clips = state.script.shots.slice(0, state.clipCount).map((shot: any, i: number) => {
       let finalPrompt = shot.description || shot.title || 'Continue scene';
       
@@ -1060,6 +1220,7 @@ async function runProduction(
       return {
         index: i,
         prompt: finalPrompt,
+        sceneContext: shot.sceneContext || buildDefaultSceneContext(i, state),
       };
     });
   } else {
@@ -1072,14 +1233,15 @@ async function runProduction(
       .order('shot_index');
     
     if (existingClipPrompts && existingClipPrompts.length > 0) {
-      clips = existingClipPrompts.map((c: any) => ({
+      clips = existingClipPrompts.map((c: any, i: number) => ({
         index: c.shot_index,
         prompt: c.prompt,
+        sceneContext: buildDefaultSceneContext(i, state),
       }));
     }
   }
   
-  console.log(`[Hollywood] Built ${clips.length} clip prompts`);
+  console.log(`[Hollywood] Built ${clips.length} clip prompts with scene context`);
   
   // Determine first frame reference
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
@@ -1199,6 +1361,8 @@ async function runProduction(
           qualityTier: request.qualityTier || 'standard',
           referenceImageUrl, // Still passed for character description extraction
           isRetry,
+          // NEW: Pass scene context for continuous flow
+          sceneContext: clip.sceneContext,
         });
         
         if (!clipResult.success) {

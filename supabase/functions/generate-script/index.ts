@@ -58,33 +58,46 @@ serve(async (req) => {
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
     
     if (isFullMovieMode) {
-      // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions
-      systemPrompt = `You write cinematic scripts for AI video generation. MINIMUM 6 shots, each 4 seconds.
+      // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions and buffer shots
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. MINIMUM 6 shots, each 4 seconds.
 
 FORMAT (use exactly this):
 [SHOT 1] Visual description with motion and physics.
 [SHOT 2] Visual description continuing the motion seamlessly.
 ...continue for all shots...
 
+CRITICAL: BUFFER SHOTS FOR SMOOTH STITCHING
+When transitioning between significantly different scenes, include BUFFER SHOTS:
+- ENVIRONMENTAL PAUSE: Wide establishing shot before new location
+- REACTION BEAT: Close-up of subject processing the moment
+- OBJECT DETAIL: Focus on prop/element to bridge scenes
+- TRANSITIONAL MOVEMENT: Camera movement that bridges locations
+
+INSERT BUFFER SHOTS:
+- Before major location changes (interior → exterior)
+- After intense action sequences (fight → calm moment)
+- When changing primary subjects
+- At emotional tone shifts
+
 CINEMATIC TRANSITION RULES (CRITICAL):
-1. PHYSICS CONTINUITY: If shot ends with motion (falling, running, reaching), next shot MUST continue that momentum
-2. SPATIAL FLOW: Camera perspective flows naturally - if ending on a close-up, next starts wide or continues movement
+1. PHYSICS CONTINUITY: If shot ends with motion (falling, running, reaching), next shot MUST continue that momentum OR use buffer shot
+2. SPATIAL FLOW: Camera perspective flows naturally - if ending on a close-up, use a buffer to reset OR continue movement
 3. MATCH-ACTION: Character's gesture/movement at end of one shot continues at start of next
-4. LIGHTING BRIDGE: Maintain consistent light direction across cuts
-5. GAZE DIRECTION: If character looks left at end, next shot shows what they see or continues their eyeline
+4. LIGHTING BRIDGE: Maintain consistent light direction across cuts, or use buffer to establish new lighting
+5. GAZE DIRECTION: If character looks left at end, next shot shows what they see OR buffer establishes new POV
 
 MOTION REQUIREMENTS:
 - Every shot includes visible movement (character action, physics motion, or camera drift)
-- End each shot with momentum that carries into the next
-- Use natural physics: objects fall, fabric flows, light shifts, particles move
+- End each shot with momentum that carries into the next OR with a neutral "safe" position
+- For difficult transitions, use a BUFFER SHOT with establishing/detail content
 - Describe body mechanics: weight shifts, reach, tension, release
 
 RULES:
-- MINIMUM 6 shots (can be more for longer stories)
+- MINIMUM 6 shots (add buffer shots as needed for smooth flow)
 - Each shot is EXACTLY 4 seconds
 - Rich visual descriptions with motion and physics
-- Every transition must be seamless - no jarring cuts
-- NO static scenes - always movement`;
+- Every transition must be seamless - use buffer shots for major scene changes
+- NO static scenes - always movement (even buffer shots have subtle motion)`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
@@ -93,13 +106,16 @@ RULES:
           ).join(', ')
         : '';
 
-      userPrompt = `Write MINIMUM 6 shots (more if needed) for: "${requestData.title}"
+      userPrompt = `Write MINIMUM 6 shots (more if needed, include buffer shots for smooth stitching) for: "${requestData.title}"
 Genre: ${requestData.genre || 'Drama'}
 ${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
 
-CRITICAL: Each shot must transition SMOOTHLY into the next using physics, motion, and spatial continuity.
-MINIMUM 6 SHOTS. Rich visual descriptions with movement. Go:`;
+CRITICAL: 
+- Each shot must transition SMOOTHLY into the next
+- Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
+- This will be stitched by AI, so ensure visual continuity
+MINIMUM 6 SHOTS. Rich visual descriptions. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests

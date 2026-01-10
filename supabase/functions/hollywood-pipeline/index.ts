@@ -1634,12 +1634,107 @@ async function runPostProduction(
   state.progress = 92;
   await updateProjectProgress(supabase, state.projectId, 'postproduction', 92);
   
-  const completedClips = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+  const completedClipsList = state.production?.clipResults?.filter(c => c.status === 'completed') || [];
+  const completedClips = completedClipsList.length;
   const failedClips = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
   
   // Post-production summary logging
   console.log(`[Hollywood] Production summary: ${completedClips} completed, ${failedClips} failed`);
   console.log(`[Hollywood] Assets: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
+  
+  // =====================================================
+  // LIP SYNC SERVICE: Apply lip sync to dialogue clips
+  // =====================================================
+  if (state.assets?.voiceUrl && completedClipsList.length > 0) {
+    console.log(`[Hollywood] Running Lip Sync Service for dialogue clips...`);
+    
+    // Initialize lip sync data storage
+    if (!(state as any).lipSyncData) {
+      (state as any).lipSyncData = {};
+    }
+    
+    // Identify clips with dialogue that could benefit from lip sync
+    const dialogueClips = state.script?.shots
+      ?.map((shot, idx) => ({
+        index: idx,
+        shotId: shot.id,
+        dialogue: shot.dialogue,
+        hasDialogue: !!(shot.dialogue && shot.dialogue.trim().length > 20),
+        clip: completedClipsList.find(c => c.index === idx),
+      }))
+      .filter(item => item.hasDialogue && item.clip?.videoUrl) || [];
+    
+    if (dialogueClips.length > 0) {
+      console.log(`[Hollywood] Found ${dialogueClips.length} dialogue clips for lip sync processing`);
+      
+      // Process lip sync for each dialogue clip (in parallel with limit)
+      const lipSyncPromises = dialogueClips.slice(0, 6).map(async (item) => {
+        try {
+          console.log(`[Hollywood] Processing lip sync for clip ${item.index + 1} (${item.dialogue?.substring(0, 30)}...)`);
+          
+          const lipSyncResult = await callEdgeFunction('lip-sync-service', {
+            projectId: state.projectId,
+            userId: request.userId,
+            videoUrl: item.clip!.videoUrl,
+            audioUrl: state.assets!.voiceUrl,
+            shotId: item.shotId,
+            quality: request.qualityTier === 'professional' ? 'high' : 'balanced',
+            faceEnhance: request.qualityTier === 'professional',
+          });
+          
+          if (lipSyncResult.success && lipSyncResult.outputVideoUrl) {
+            console.log(`[Hollywood] Lip sync applied to clip ${item.index + 1} in ${lipSyncResult.processingTimeMs}ms`);
+            
+            // Store lip sync result
+            (state as any).lipSyncData[item.shotId] = {
+              originalUrl: item.clip!.videoUrl,
+              lipSyncedUrl: lipSyncResult.outputVideoUrl,
+              processingTimeMs: lipSyncResult.processingTimeMs,
+              model: lipSyncResult.model,
+            };
+            
+            // Update the clip result with lip-synced video
+            const clipResult = state.production?.clipResults?.find(c => c.index === item.index);
+            if (clipResult) {
+              (clipResult as any).originalVideoUrl = clipResult.videoUrl;
+              clipResult.videoUrl = lipSyncResult.outputVideoUrl;
+              (clipResult as any).lipSynced = true;
+            }
+            
+            return {
+              index: item.index,
+              success: true,
+              outputUrl: lipSyncResult.outputVideoUrl,
+            };
+          } else if (lipSyncResult.error) {
+            console.warn(`[Hollywood] Lip sync for clip ${item.index + 1} returned with note: ${lipSyncResult.error}`);
+            return { index: item.index, success: false, error: lipSyncResult.error };
+          }
+        } catch (lipSyncErr) {
+          console.warn(`[Hollywood] Lip sync failed for clip ${item.index + 1}:`, lipSyncErr);
+          return { index: item.index, success: false, error: String(lipSyncErr) };
+        }
+        return { index: item.index, success: false };
+      });
+      
+      const lipSyncResults = await Promise.all(lipSyncPromises);
+      const successfulLipSyncs = lipSyncResults.filter(r => r.success).length;
+      
+      console.log(`[Hollywood] Lip sync complete: ${successfulLipSyncs}/${dialogueClips.length} clips processed`);
+      
+      // Update progress with lip sync status
+      await updateProjectProgress(supabase, state.projectId, 'postproduction', 94, {
+        lipSyncProcessed: successfulLipSyncs,
+        lipSyncTotal: dialogueClips.length,
+      });
+    } else {
+      console.log(`[Hollywood] No dialogue clips found for lip sync processing`);
+    }
+  } else {
+    console.log(`[Hollywood] Skipping lip sync: voice=${!!state.assets?.voiceUrl}, clips=${completedClipsList.length}`);
+  }
+  
+  state.progress = 95;
   
   // Professional tier: Log enhanced features used
   if (request.qualityTier === 'professional') {

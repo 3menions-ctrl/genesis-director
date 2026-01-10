@@ -988,38 +988,32 @@ app.post('/extract-frame', async (req, res) => {
   }
 });
 
-// Start server - bind to 0.0.0.0 for Cloud Run
+// Start server - bind to 0.0.0.0 for Cloud Run (synchronous, no async wrapper)
 const PORT = parseInt(process.env.PORT, 10) || 8080;
 
-// Wrap in async IIFE to handle any async startup issues
-(async () => {
-  try {
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
-      console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`[Stitcher] Node version: ${process.version}`);
-      logStartup();
-    });
+console.log(`[Stitcher] Starting server on port ${PORT}...`);
 
-    // Handle startup errors gracefully
-    server.on('error', (err) => {
-      console.error('[Stitcher] Server error:', err);
-      process.exit(1);
-    });
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
+  console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[Stitcher] Node version: ${process.version}`);
+  logStartup();
+});
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('[Stitcher] SIGTERM received, shutting down gracefully');
-      server.close(() => {
-        console.log('[Stitcher] Server closed');
-        process.exit(0);
-      });
-    });
-  } catch (err) {
-    console.error('[Stitcher] Failed to start server:', err);
-    process.exit(1);
-  }
-})();
+// Handle startup errors gracefully
+server.on('error', (err) => {
+  console.error('[Stitcher] Server error:', err);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('[Stitcher] SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('[Stitcher] Server closed');
+    process.exit(0);
+  });
+});
 
 // Handle uncaught exceptions to prevent silent crashes
 process.on('uncaughtException', (err) => {

@@ -1180,18 +1180,24 @@ async function runProduction(
           });
         }
         
+        // FIX: Clip 1 should NOT use reference image as startImageUrl (causes flash)
+        // Clips 2+ use previous clip's last frame for continuity
+        const useStartImage = i === 0 ? undefined : previousLastFrameUrl;
+        
+        console.log(`[Hollywood] Clip ${i + 1}: ${i === 0 ? 'TEXT-TO-VIDEO (no start image)' : 'FRAME-CHAINED from previous clip'}`);
+        
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,
           projectId: state.projectId,
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,
-          startImageUrl: previousLastFrameUrl,
+          startImageUrl: useStartImage,
           previousMotionVectors,
           identityBible: state.identityBible,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
-          referenceImageUrl,
+          referenceImageUrl, // Still passed for character description extraction
           isRetry,
         });
         
@@ -1347,13 +1353,16 @@ async function runProduction(
                 correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
               }
               
+              // FIX: Same logic for retries - clip 1 never uses startImage
+              const retryStartImage = i === 0 ? undefined : previousLastFrameUrl;
+              
               const retryResult = await callEdgeFunction('generate-single-clip', {
                 userId: request.userId,
                 projectId: state.projectId,
                 clipIndex: i,
                 prompt: correctedPrompt,
                 totalClips: clips.length,
-                startImageUrl: previousLastFrameUrl,
+                startImageUrl: retryStartImage,
                 previousMotionVectors,
                 identityBible: state.identityBible,
                 colorGrading: request.colorGrading || 'cinematic',

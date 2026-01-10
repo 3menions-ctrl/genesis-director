@@ -26,6 +26,7 @@ interface AssemblyRequest {
   strictness?: 'lenient' | 'normal' | 'strict';
   maxBridgeClips?: number;
   outputQuality?: '720p' | '1080p' | '4k';
+  bridgeThreshold?: number; // Force bridges for transitions scoring below this
 }
 
 interface ClipData {
@@ -72,9 +73,11 @@ serve(async (req) => {
       projectId, 
       userId,
       forceReassemble = false,
-      strictness = 'normal',
-      maxBridgeClips = 5,
-      outputQuality = '1080p'
+      strictness = 'strict', // CHANGED: Default to strict for guaranteed results
+      maxBridgeClips = 10,   // INCREASED: Allow more bridge clips for better continuity
+      outputQuality = '1080p',
+      // NEW: Force bridge generation for all transitions below this score
+      bridgeThreshold = 75   // Any transition scoring below 75% gets a bridge clip
     } = request;
 
     if (!projectId) {
@@ -195,13 +198,32 @@ serve(async (req) => {
       }
     }
 
-    // Step 4: Generate bridge clips for severe gaps
+    // =====================================================
+    // MANDATORY BRIDGE CLIP GENERATION
+    // Force bridges for ALL transitions below threshold score
+    // This guarantees smooth visual continuity
+    // =====================================================
+    
+    // Step 4a: Force bridge clips for low-score transitions
+    const threshold = bridgeThreshold ?? 75;
+    for (const transition of transitions) {
+      if (transition.score < threshold) {
+        transition.bridgeClipNeeded = true;
+        if (!transition.bridgeClipPrompt) {
+          const fromClip = clips[transition.fromIndex];
+          const toClip = clips[transition.toIndex];
+          transition.bridgeClipPrompt = `Smooth cinematic transition from ${fromClip.prompt?.substring(0, 50)} to ${toClip.prompt?.substring(0, 50)}. Maintain visual continuity.`;
+        }
+        console.log(`[FinalAssembly] Transition ${transition.fromIndex}→${transition.toIndex} score ${transition.score} < ${threshold} - FORCING bridge clip`);
+      }
+    }
+    
     const bridgesNeeded = transitions.filter(t => t.bridgeClipNeeded);
     let bridgeClipsGenerated = 0;
 
+    console.log(`[FinalAssembly] Step 3: Generating ${bridgesNeeded.length} bridge clips (mandatory for scores < threshold)...`);
+
     if (bridgesNeeded.length > 0) {
-      console.log(`[FinalAssembly] Step 3: Generating ${Math.min(bridgesNeeded.length, maxBridgeClips)} bridge clips...`);
-      
       const bridgesToGenerate = bridgesNeeded.slice(0, maxBridgeClips);
       
       for (const transition of bridgesToGenerate) {
@@ -210,7 +232,7 @@ serve(async (req) => {
         const fromClip = clips[transition.fromIndex];
         
         try {
-          console.log(`[FinalAssembly] Generating bridge for transition ${transition.fromIndex}→${transition.toIndex}`);
+          console.log(`[FinalAssembly] Generating MANDATORY bridge for transition ${transition.fromIndex}→${transition.toIndex} (score: ${transition.score})`);
           
           const bridgeResult = await callEdgeFunction('generate-bridge-clip', {
             projectId,
@@ -227,8 +249,9 @@ serve(async (req) => {
             transition.bridgeClipUrl = bridgeResult.videoUrl;
             transition.recommendedTransition = 'cut';
             bridgeClipsGenerated++;
-            console.log(`[FinalAssembly] Bridge generated: ${bridgeResult.videoUrl}`);
+            console.log(`[FinalAssembly] ✓ Bridge generated: ${bridgeResult.videoUrl}`);
           } else {
+            console.warn(`[FinalAssembly] ⚠️ Bridge generation returned no video, using dissolve fallback`);
             transition.recommendedTransition = 'dissolve';
             transition.bridgeClipNeeded = false;
           }
@@ -238,6 +261,8 @@ serve(async (req) => {
           transition.bridgeClipNeeded = false;
         }
       }
+      
+      console.log(`[FinalAssembly] Generated ${bridgeClipsGenerated}/${bridgesNeeded.length} bridge clips`);
     }
 
     // Step 5: Build final clip sequence with bridge clips

@@ -725,15 +725,25 @@ export default function Projects() {
   // Only show projects with real Google-stitched MP4s (not manifests)
   const status = (p: Project) => p.status as string;
   
+  // Helper to check if project has actual video content
+  const hasVideoContent = (p: Project): boolean => {
+    // Has real stitched MP4
+    if (isStitchedMp4(p.video_url)) return true;
+    // Has manifest URL (clips in video_clips table)
+    if (p.video_url && isManifestUrl(p.video_url)) return true;
+    // Has video_clips array with actual URLs
+    if (p.video_clips && p.video_clips.length > 0) return true;
+    return false;
+  };
+  
   // Projects with real stitched videos (from Google Cloud Run)
   const stitchedProjects = projects.filter(p => 
     isStitchedMp4(p.video_url)
   );
   
-  // Projects that need stitching (have clips but no stitched video or manifest-only)
+  // Projects that need stitching (have clips but no stitched video)
   const needsStitching = projects.filter(p => {
-    const hasClips = (p.video_clips?.length ?? 0) > 0 || 
-      (p.video_url && isManifestUrl(p.video_url));
+    const hasClips = hasVideoContent(p);
     const hasStitchedVideo = isStitchedMp4(p.video_url);
     const isProcessing = status(p) === 'stitching';
     return hasClips && !hasStitchedVideo && !isProcessing;
@@ -741,6 +751,9 @@ export default function Projects() {
   
   // Projects currently being stitched
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
+  
+  // All displayable projects (those with any video content)
+  const allDisplayableProjects = projects.filter(hasVideoContent);
   
   const recentStitchedProjects = [...stitchedProjects].sort((a, b) => 
     new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
@@ -880,7 +893,7 @@ export default function Projects() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {stitchedProjects.length === 0 && needsStitching.length === 0 ? (
+        {allDisplayableProjects.length === 0 && stitchingProjects.length === 0 ? (
           /* ========== EMPTY STATE ========== */
           <motion.div 
             initial={{ opacity: 0, y: 40 }}

@@ -20,25 +20,14 @@ const https = require('https');
 const http = require('http');
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
 
-// Health check endpoint - must be first before any other logic
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'healthy', service: 'ffmpeg-stitcher' });
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', service: 'ffmpeg-stitcher' });
-});
-
-// CORS headers
+// CORS headers - must be BEFORE routes
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// Apply CORS to all routes
 app.use((req, res, next) => {
   Object.entries(corsHeaders).forEach(([key, value]) => {
     res.header(key, value);
@@ -47,6 +36,27 @@ app.use((req, res, next) => {
     return res.sendStatus(200);
   }
   next();
+});
+
+// Parse JSON bodies
+app.use(express.json({ limit: '10mb' }));
+
+// Health check endpoints - MUST be first
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    service: 'ffmpeg-stitcher',
+    version: '1.0.1',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    service: 'ffmpeg-stitcher',
+    version: '1.0.1'
+  });
 });
 
 // Temp directory for processing
@@ -136,65 +146,126 @@ async function uploadToSignedUrl(signedUrl, fileBuffer, contentType = 'video/mp4
 }
 
 // Download file from URL
-async function downloadFile(url, destPath) {
+async function downloadFile(url, destPath, timeoutMs = 120000) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith('https') ? https : http;
-    const file = fsSync.createWriteStream(destPath);
+    let file = null;
+    let timeout = null;
+    let resolved = false;
     
-    protocol.get(url, (response) => {
-      if (response.statusCode === 301 || response.statusCode === 302) {
-        // Follow redirect
-        file.close();
-        return downloadFile(response.headers.location, destPath).then(resolve).catch(reject);
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      if (file) {
+        try { file.close(); } catch {}
       }
-      
-      if (response.statusCode !== 200) {
-        file.close();
-        fsSync.unlink(destPath, () => {});
-        reject(new Error(`Failed to download: ${response.statusCode}`));
-        return;
-      }
-      
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve(destPath);
-      });
-    }).on('error', (err) => {
-      file.close();
+    };
+    
+    const handleError = (err) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
       fsSync.unlink(destPath, () => {});
       reject(err);
-    });
+    };
+    
+    try {
+      file = fsSync.createWriteStream(destPath);
+      
+      file.on('error', handleError);
+      
+      timeout = setTimeout(() => {
+        handleError(new Error(`Download timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+      
+      const request = protocol.get(url, (response) => {
+        if (response.statusCode === 301 || response.statusCode === 302) {
+          cleanup();
+          resolved = true;
+          return downloadFile(response.headers.location, destPath, timeoutMs).then(resolve).catch(reject);
+        }
+        
+        if (response.statusCode !== 200) {
+          handleError(new Error(`Failed to download: ${response.statusCode}`));
+          return;
+        }
+        
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          if (resolved) return;
+          resolved = true;
+          cleanup();
+          resolve(destPath);
+        });
+      });
+      
+      request.on('error', handleError);
+      request.on('timeout', () => handleError(new Error('Request timeout')));
+      
+    } catch (err) {
+      handleError(err);
+    }
   });
 }
 
 // Validate video file with FFprobe
 async function validateVideo(filePath) {
   return new Promise((resolve) => {
-    const ffprobe = spawn('ffprobe', [
-      '-v', 'error',
-      '-show_entries', 'stream=codec_type,duration',
-      '-of', 'json',
-      filePath
-    ]);
-    
-    let output = '';
-    ffprobe.stdout.on('data', (data) => output += data);
-    
-    ffprobe.on('close', (code) => {
-      if (code !== 0) {
-        resolve({ valid: false, error: 'FFprobe failed' });
-        return;
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve({ valid: false, error: 'FFprobe timeout' });
       }
+    }, 30000);
+    
+    try {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-show_entries', 'stream=codec_type,duration',
+        '-of', 'json',
+        filePath
+      ]);
       
-      try {
-        const data = JSON.parse(output);
-        const hasVideo = data.streams?.some(s => s.codec_type === 'video');
-        resolve({ valid: hasVideo, data });
-      } catch {
-        resolve({ valid: false, error: 'Invalid FFprobe output' });
+      let output = '';
+      let stderr = '';
+      
+      ffprobe.stdout.on('data', (data) => output += data);
+      ffprobe.stderr.on('data', (data) => stderr += data);
+      
+      ffprobe.on('error', (err) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ valid: false, error: `FFprobe spawn error: ${err.message}` });
+        }
+      });
+      
+      ffprobe.on('close', (code) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        
+        if (code !== 0) {
+          resolve({ valid: false, error: `FFprobe failed with code ${code}` });
+          return;
+        }
+        
+        try {
+          const data = JSON.parse(output);
+          const hasVideo = data.streams?.some(s => s.codec_type === 'video');
+          resolve({ valid: hasVideo, data });
+        } catch {
+          resolve({ valid: false, error: 'Invalid FFprobe output' });
+        }
+      });
+    } catch (err) {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        resolve({ valid: false, error: `FFprobe error: ${err.message}` });
       }
-    });
+    }
   });
 }
 
@@ -739,18 +810,39 @@ async function stitchVideos(request) {
   }
 }
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    service: 'cloud-run-ffmpeg-stitcher',
-    version: '1.0.0'
-  });
-});
-
-// Main stitch endpoint
+// Main stitch endpoint with validation
 app.post('/stitch', async (req, res) => {
   try {
+    const { projectId, clips } = req.body;
+    
+    // Validate required fields
+    if (!projectId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'projectId is required' 
+      });
+    }
+    
+    if (!clips || !Array.isArray(clips) || clips.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'clips array is required and must not be empty' 
+      });
+    }
+    
+    // Validate each clip has required fields
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      if (!clip.videoUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Clip ${i} is missing videoUrl` 
+        });
+      }
+    }
+    
+    console.log(`[Stitch] Received request for project ${projectId} with ${clips.length} clips`);
+    
     const result = await stitchVideos(req.body);
     
     if (result.success) {

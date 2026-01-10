@@ -53,18 +53,25 @@ const TEMP_DIR = '/tmp/stitcher';
 
 // Supabase configuration - uses service role key for backend operations
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
-// Log startup info
-console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
-console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET');
-
-if (!SUPABASE_SERVICE_KEY) {
-  console.warn('[Startup] WARNING: SUPABASE_SERVICE_KEY not set');
+// Defer logging until after server starts
+let startupLogged = false;
+function logStartup() {
+  if (startupLogged) return;
+  startupLogged = true;
+  console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
+  console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_KEY.length + ')' : 'NOT SET');
+  if (!SUPABASE_SERVICE_KEY) {
+    console.warn('[Startup] WARNING: SUPABASE_SERVICE_KEY not set - stitch operations will fail');
+  }
 }
 
-// Create Supabase client helper
+// Create Supabase client helper - only when needed
 function getSupabase() {
+  if (!SUPABASE_SERVICE_KEY) {
+    throw new Error('SUPABASE_SERVICE_KEY not configured');
+  }
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
@@ -876,7 +883,23 @@ app.post('/extract-frame', async (req, res) => {
 
 // Start server - bind to 0.0.0.0 for Cloud Run
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Stitcher] Cloud Run FFmpeg Stitcher listening on 0.0.0.0:${PORT}`);
   console.log(`[Stitcher] Environment: ${process.env.NODE_ENV || 'development'}`);
+  logStartup();
+});
+
+// Handle startup errors gracefully
+server.on('error', (err) => {
+  console.error('[Stitcher] Server error:', err);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions to prevent silent crashes
+process.on('uncaughtException', (err) => {
+  console.error('[Stitcher] Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Stitcher] Unhandled rejection at:', promise, 'reason:', reason);
 });

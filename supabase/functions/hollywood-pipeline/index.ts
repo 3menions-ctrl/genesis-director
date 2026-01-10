@@ -88,6 +88,7 @@ interface PipelineState {
       threeQuarterViewUrl: string;
     };
     consistencyAnchors?: string[];
+    styleAnchor?: any; // Added for auto-extracted style anchor when no reference image
   };
   referenceAnalysis?: {
     environment?: any;
@@ -1025,6 +1026,10 @@ async function runProduction(
     state.production = { clipResults: [] };
   }
   
+  // Style anchor for consistency when no reference image
+  let styleAnchor: any = null;
+  const hasReferenceImage = !!referenceImageUrl || !!request.referenceImageUrl || !!state.identityBible?.consistencyPrompt;
+  
   // Generate clips one at a time
   for (let i = startIndex; i < clips.length; i++) {
     const clip = clips[i];
@@ -1037,183 +1042,83 @@ async function runProduction(
       clipCount: clips.length,
     });
     
-    try {
-      const clipResult = await callEdgeFunction('generate-single-clip', {
-        userId: request.userId,
-        projectId: state.projectId,
-        clipIndex: i,
-        prompt: clip.prompt,
-        totalClips: clips.length,
-        startImageUrl: previousLastFrameUrl,
-        previousMotionVectors,
-        identityBible: state.identityBible,
-        colorGrading: request.colorGrading || 'cinematic',
-        qualityTier: request.qualityTier || 'standard',
-        referenceImageUrl,
-      });
-      
-      if (!clipResult.success) {
-        throw new Error(clipResult.error || 'Clip generation failed');
-      }
-      
-      let result = clipResult.clipResult;
-      
-      // Visual Debugger Loop (all tiers) - check quality and retry if needed
-      if (result.videoUrl) {
-        console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
-        
-        // FIXED: Extract actual frame before Visual Debugger analysis
-        let frameForAnalysis = result.lastFrameUrl;
-        try {
-          const frameResult = await callEdgeFunction('extract-video-frame', {
-            videoUrl: result.videoUrl,
-            projectId: state.projectId,
-            shotId: `clip_${i}`,
-            position: 'last',
+    // Build prompt with style anchor injection (when available)
+    let finalPrompt = clip.prompt;
+    if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
+      finalPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${finalPrompt}`;
+      console.log(`[Hollywood] Injected style anchor into clip ${i + 1} prompt`);
+    }
+    
+    // Auto-retry logic: try once, then retry once on failure
+    let lastError: Error | null = null;
+    let result: any = null;
+    
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const isRetry = attempt > 0;
+        if (isRetry) {
+          console.log(`[Hollywood] Auto-retry attempt for clip ${i + 1}...`);
+          await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
+            clipsCompleted: i,
+            clipCount: clips.length,
+            retryingClip: i,
           });
-          if (frameResult.success && frameResult.frameUrl) {
-            frameForAnalysis = frameResult.frameUrl;
-            console.log(`[Hollywood] Frame extracted for Visual Debugger`);
-          }
-        } catch (frameErr) {
-          console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
         }
         
-        const maxRetries = 3; // Increased from 2 to 3 retries
-        let retryCount = 0;
-        let debugResult = null;
+        const clipResult = await callEdgeFunction('generate-single-clip', {
+          userId: request.userId,
+          projectId: state.projectId,
+          clipIndex: i,
+          prompt: finalPrompt,
+          totalClips: clips.length,
+          startImageUrl: previousLastFrameUrl,
+          previousMotionVectors,
+          identityBible: state.identityBible,
+          colorGrading: request.colorGrading || 'cinematic',
+          qualityTier: request.qualityTier || 'standard',
+          referenceImageUrl,
+          isRetry,
+        });
         
-        while (retryCount < maxRetries) {
-          try {
-            debugResult = await callEdgeFunction('visual-debugger', {
-              videoUrl: result.videoUrl,
-              frameUrl: frameForAnalysis || result.videoUrl, // Use video URL if no frame (Gemini can analyze video)
-              shotDescription: clip.prompt,
-              shotId: `clip_${i}`,
-              projectType: request.genre || 'cinematic',
-              referenceImageUrl,
-              referenceAnalysis: state.referenceAnalysis,
-            });
-            
-            if (debugResult.success && debugResult.result) {
-              const verdict = debugResult.result;
-              console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
-              
-              if (verdict.passed || verdict.score >= 70) {
-                // Quality check passed
-                console.log(`[Hollywood] Clip ${i + 1} passed quality check`);
-                break;
-              } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
-                // Quality check failed, retry with corrective prompt
-                console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
-                console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
-                
-                const retryResult = await callEdgeFunction('generate-single-clip', {
-                  userId: request.userId,
-                  projectId: state.projectId,
-                  clipIndex: i,
-                  prompt: verdict.correctivePrompt,
-                  totalClips: clips.length,
-                  startImageUrl: previousLastFrameUrl,
-                  previousMotionVectors,
-                  identityBible: state.identityBible,
-                  colorGrading: request.colorGrading || 'cinematic',
-                  qualityTier: request.qualityTier || 'standard',
-                  referenceImageUrl,
-                  isRetry: true,
-                });
-                
-                if (retryResult.success && retryResult.clipResult) {
-                  result = retryResult.clipResult;
-                  retryCount++;
-                  
-                  // Re-extract frame for new clip
-                  try {
-                    const newFrameResult = await callEdgeFunction('extract-video-frame', {
-                      videoUrl: result.videoUrl,
-                      projectId: state.projectId,
-                      shotId: `clip_${i}_retry_${retryCount}`,
-                      position: 'last',
-                    });
-                    if (newFrameResult.success && newFrameResult.frameUrl) {
-                      frameForAnalysis = newFrameResult.frameUrl;
-                    }
-                  } catch (e) {
-                    console.warn(`[Hollywood] Retry frame extraction failed`);
-                  }
-                  
-                  console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
-                  continue; // Re-run visual debugger on new clip
-                }
-              }
-            }
-            break; // Exit loop if no retry needed
-          } catch (debugError) {
-            console.warn(`[Hollywood] Visual Debugger failed:`, debugError);
-            break; // Continue without visual debugging
-          }
+        if (!clipResult.success) {
+          throw new Error(clipResult.error || 'Clip generation failed');
         }
         
-        // Store debug results
-        if (debugResult?.result) {
-          (result as any).visualDebugResult = {
-            score: debugResult.result.score,
-            passed: debugResult.result.passed,
-            retriesUsed: retryCount,
-          };
+        result = clipResult.clipResult;
+        lastError = null;
+        break; // Success, exit retry loop
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(`[Hollywood] Clip ${i + 1} attempt ${attempt + 1} failed:`, lastError.message);
+        
+        if (attempt === 0) {
+          // Wait a bit before retry
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
+    }
+    
+    // If all attempts failed, mark as failed and notify
+    if (lastError || !result) {
+      console.error(`[Hollywood] Clip ${i + 1} failed after auto-retry:`, lastError?.message);
       
-      // FIXED: Analyze real motion vectors from the generated video
-      if (result.videoUrl) {
-        try {
-          const motionResult = await callEdgeFunction('analyze-motion-vectors', {
-            videoUrl: result.videoUrl,
-            frameUrl: result.lastFrameUrl,
-            shotId: `clip_${i}`,
-            promptDescription: clip.prompt,
-          });
-          
-          if (motionResult.success && motionResult.motionVectors) {
-            // Override text-based motion vectors with vision-analyzed ones
-            result.motionVectors = {
-              endVelocity: motionResult.motionVectors.subjectVelocity,
-              endDirection: motionResult.motionVectors.subjectDirection,
-              cameraMomentum: motionResult.motionVectors.cameraMomentum,
-              continuityPrompt: motionResult.motionVectors.continuityPrompt,
-            };
-            console.log(`[Hollywood] Real motion vectors analyzed: ${result.motionVectors.endVelocity} ${result.motionVectors.endDirection}`);
-          }
-        } catch (motionErr) {
-          console.warn(`[Hollywood] Motion vector analysis failed, using text-based fallback:`, motionErr);
-        }
-      }
-      
-      state.production.clipResults.push({
-        index: result.index,
-        videoUrl: result.videoUrl,
-        status: 'completed',
-        lastFrameUrl: result.lastFrameUrl,
-      });
-      
-      // Update for next clip's continuity
-      previousLastFrameUrl = result.lastFrameUrl || previousLastFrameUrl;
-      previousMotionVectors = result.motionVectors;
-      
-      console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
-      
-    } catch (error) {
-      console.error(`[Hollywood] Clip ${i + 1} failed:`, error);
-      
-      // Mark clip as failed in DB
+      // Mark clip as failed in DB with retry_count
       await supabase.rpc('upsert_video_clip', {
         p_project_id: state.projectId,
         p_user_id: request.userId,
         p_shot_index: i,
-        p_prompt: clip.prompt,
+        p_prompt: finalPrompt,
         p_status: 'failed',
-        p_error_message: error instanceof Error ? error.message : 'Unknown error',
+        p_error_message: `Auto-retry exhausted: ${lastError?.message || 'Unknown error'}`,
       });
+      
+      // Update retry count
+      await supabase
+        .from('video_clips')
+        .update({ retry_count: 1 })
+        .eq('project_id', state.projectId)
+        .eq('shot_index', i);
       
       state.production.clipResults.push({
         index: i,
@@ -1221,8 +1126,205 @@ async function runProduction(
         status: 'failed',
       });
       
+      // Update progress to show failure (for UI notification)
+      await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
+        clipsCompleted: state.production.clipResults.filter(c => c.status === 'completed').length,
+        clipCount: clips.length,
+        failedClips: state.production.clipResults.filter(c => c.status === 'failed').map(c => c.index),
+        lastFailedClip: i,
+        lastFailedError: lastError?.message,
+      });
+      
       // Continue with remaining clips
+      continue;
     }
+    
+    // Visual Debugger Loop (all tiers) - check quality and retry if needed
+    if (result.videoUrl) {
+      console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
+      
+      // FIXED: Extract actual frame before Visual Debugger analysis
+      let frameForAnalysis = result.lastFrameUrl;
+      try {
+        const frameResult = await callEdgeFunction('extract-video-frame', {
+          videoUrl: result.videoUrl,
+          projectId: state.projectId,
+          shotId: `clip_${i}`,
+          position: 'last',
+        });
+        if (frameResult.success && frameResult.frameUrl) {
+          frameForAnalysis = frameResult.frameUrl;
+          console.log(`[Hollywood] Frame extracted for Visual Debugger`);
+        }
+      } catch (frameErr) {
+        console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
+      }
+      
+      // STYLE ANCHOR EXTRACTION: After first clip, extract visual DNA if no reference image
+      if (i === 0 && !hasReferenceImage && frameForAnalysis) {
+        console.log(`[Hollywood] Extracting style anchor from first clip (no reference image provided)...`);
+        try {
+          const styleAnchorResult = await callEdgeFunction('extract-style-anchor', {
+            frameUrl: frameForAnalysis,
+            shotDescription: clip.prompt,
+            projectId: state.projectId,
+          });
+          
+          if (styleAnchorResult.success && styleAnchorResult.styleAnchor) {
+            styleAnchor = styleAnchorResult.styleAnchor;
+            console.log(`[Hollywood] Style anchor extracted: ${styleAnchor.anchors?.length || 0} visual anchors`);
+            console.log(`[Hollywood] Consistency prompt: ${styleAnchor.consistencyPrompt?.substring(0, 60)}...`);
+            
+            // Store in identity bible for persistence
+            if (!state.identityBible) {
+              state.identityBible = {};
+            }
+            state.identityBible.styleAnchor = styleAnchor;
+            state.identityBible.consistencyAnchors = styleAnchor.anchors || [];
+            
+            // Update project with style anchor
+            await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
+              clipsCompleted: 1,
+              clipCount: clips.length,
+              styleAnchorExtracted: true,
+              styleAnchorAnchors: styleAnchor.anchors?.length || 0,
+            });
+          }
+        } catch (styleErr) {
+          console.warn(`[Hollywood] Style anchor extraction failed:`, styleErr);
+        }
+      }
+      
+      const maxRetries = 3; // Increased from 2 to 3 retries
+      let retryCount = 0;
+      let debugResult = null;
+      
+      while (retryCount < maxRetries) {
+        try {
+          debugResult = await callEdgeFunction('visual-debugger', {
+            videoUrl: result.videoUrl,
+            frameUrl: frameForAnalysis || result.videoUrl, // Use video URL if no frame (Gemini can analyze video)
+            shotDescription: clip.prompt,
+            shotId: `clip_${i}`,
+            projectType: request.genre || 'cinematic',
+            referenceImageUrl,
+            referenceAnalysis: state.referenceAnalysis,
+            // Pass style anchor for consistency checking
+            styleAnchor: styleAnchor,
+          });
+          
+          if (debugResult.success && debugResult.result) {
+            const verdict = debugResult.result;
+            console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
+            
+            if (verdict.passed || verdict.score >= 70) {
+              // Quality check passed
+              console.log(`[Hollywood] Clip ${i + 1} passed quality check`);
+              break;
+            } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
+              // Quality check failed, retry with corrective prompt
+              console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
+              console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
+              
+              // Add style anchor to corrective prompt if available
+              let correctedPrompt = verdict.correctivePrompt;
+              if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
+                correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
+              }
+              
+              const retryResult = await callEdgeFunction('generate-single-clip', {
+                userId: request.userId,
+                projectId: state.projectId,
+                clipIndex: i,
+                prompt: correctedPrompt,
+                totalClips: clips.length,
+                startImageUrl: previousLastFrameUrl,
+                previousMotionVectors,
+                identityBible: state.identityBible,
+                colorGrading: request.colorGrading || 'cinematic',
+                qualityTier: request.qualityTier || 'standard',
+                referenceImageUrl,
+                isRetry: true,
+              });
+              
+              if (retryResult.success && retryResult.clipResult) {
+                result = retryResult.clipResult;
+                retryCount++;
+                
+                // Re-extract frame for new clip
+                try {
+                  const newFrameResult = await callEdgeFunction('extract-video-frame', {
+                    videoUrl: result.videoUrl,
+                    projectId: state.projectId,
+                    shotId: `clip_${i}_retry_${retryCount}`,
+                    position: 'last',
+                  });
+                  if (newFrameResult.success && newFrameResult.frameUrl) {
+                    frameForAnalysis = newFrameResult.frameUrl;
+                  }
+                } catch (e) {
+                  console.warn(`[Hollywood] Retry frame extraction failed`);
+                }
+                
+                console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
+                continue; // Re-run visual debugger on new clip
+              }
+            }
+          }
+          break; // Exit loop if no retry needed
+        } catch (debugError) {
+          console.warn(`[Hollywood] Visual Debugger failed:`, debugError);
+          break; // Continue without visual debugging
+        }
+      }
+      
+      // Store debug results
+      if (debugResult?.result) {
+        (result as any).visualDebugResult = {
+          score: debugResult.result.score,
+          passed: debugResult.result.passed,
+          retriesUsed: retryCount,
+        };
+      }
+    }
+    
+    // FIXED: Analyze real motion vectors from the generated video
+    if (result.videoUrl) {
+      try {
+        const motionResult = await callEdgeFunction('analyze-motion-vectors', {
+          videoUrl: result.videoUrl,
+          frameUrl: result.lastFrameUrl,
+          shotId: `clip_${i}`,
+          promptDescription: clip.prompt,
+        });
+        
+        if (motionResult.success && motionResult.motionVectors) {
+          // Override text-based motion vectors with vision-analyzed ones
+          result.motionVectors = {
+            endVelocity: motionResult.motionVectors.subjectVelocity,
+            endDirection: motionResult.motionVectors.subjectDirection,
+            cameraMomentum: motionResult.motionVectors.cameraMomentum,
+            continuityPrompt: motionResult.motionVectors.continuityPrompt,
+          };
+          console.log(`[Hollywood] Real motion vectors analyzed: ${result.motionVectors.endVelocity} ${result.motionVectors.endDirection}`);
+        }
+      } catch (motionErr) {
+        console.warn(`[Hollywood] Motion vector analysis failed, using text-based fallback:`, motionErr);
+      }
+    }
+    
+    state.production.clipResults.push({
+      index: result.index,
+      videoUrl: result.videoUrl,
+      status: 'completed',
+      lastFrameUrl: result.lastFrameUrl,
+    });
+    
+    // Update for next clip's continuity
+    previousLastFrameUrl = result.lastFrameUrl || previousLastFrameUrl;
+    previousMotionVectors = result.motionVectors;
+    
+    console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
   }
   
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');

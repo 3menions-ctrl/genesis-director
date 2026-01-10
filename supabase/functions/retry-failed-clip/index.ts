@@ -1,0 +1,219 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+/**
+ * RETRY FAILED CLIP
+ * 
+ * Allows manual retry of a failed clip from the Production page.
+ * Uses the existing generate-single-clip function with the same parameters.
+ */
+
+interface RetryRequest {
+  userId: string;
+  projectId: string;
+  clipIndex: number;
+}
+
+async function callEdgeFunction(functionName: string, body: any): Promise<any> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`${functionName} failed: ${error}`);
+  }
+  
+  return response.json();
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  try {
+    const request: RetryRequest = await req.json();
+    
+    if (!request.userId || !request.projectId || request.clipIndex === undefined) {
+      throw new Error("userId, projectId, and clipIndex are required");
+    }
+    
+    console.log(`[RetryClip] Retrying clip ${request.clipIndex} for project ${request.projectId}`);
+    
+    // 1. Get the failed clip details
+    const { data: failedClip, error: clipError } = await supabase
+      .from('video_clips')
+      .select('*')
+      .eq('project_id', request.projectId)
+      .eq('shot_index', request.clipIndex)
+      .single();
+    
+    if (clipError || !failedClip) {
+      throw new Error(`Clip not found: ${clipError?.message}`);
+    }
+    
+    if (failedClip.status !== 'failed') {
+      throw new Error(`Clip is not in failed state: ${failedClip.status}`);
+    }
+    
+    // 2. Get project details for context
+    const { data: project, error: projectError } = await supabase
+      .from('movie_projects')
+      .select('*')
+      .eq('id', request.projectId)
+      .single();
+    
+    if (projectError || !project) {
+      throw new Error(`Project not found: ${projectError?.message}`);
+    }
+    
+    // 3. Get previous clip's last frame for continuity
+    let startImageUrl: string | undefined;
+    let previousMotionVectors: any;
+    
+    if (request.clipIndex > 0) {
+      const { data: prevClip } = await supabase
+        .from('video_clips')
+        .select('last_frame_url, motion_vectors')
+        .eq('project_id', request.projectId)
+        .eq('shot_index', request.clipIndex - 1)
+        .eq('status', 'completed')
+        .single();
+      
+      if (prevClip) {
+        startImageUrl = prevClip.last_frame_url || undefined;
+        previousMotionVectors = prevClip.motion_vectors;
+      }
+    }
+    
+    // 4. Get total clip count
+    const { count: totalClips } = await supabase
+      .from('video_clips')
+      .select('*', { count: 'exact', head: true })
+      .eq('project_id', request.projectId);
+    
+    // 5. Parse identity bible from project's pending_video_tasks or pro_features_data
+    let identityBible: any;
+    const pendingTasks = project.pending_video_tasks as any;
+    const proFeatures = project.pro_features_data as any;
+    
+    if (proFeatures?.identityBible) {
+      identityBible = proFeatures.identityBible;
+    } else if (pendingTasks?.identityBible) {
+      identityBible = pendingTasks.identityBible;
+    }
+    
+    // 6. Mark clip as retrying
+    await supabase
+      .from('video_clips')
+      .update({
+        status: 'generating',
+        error_message: null,
+        retry_count: (failedClip.retry_count || 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', failedClip.id);
+    
+    // 7. Update project progress to show retry in progress
+    const currentTasks = project.pending_video_tasks || {};
+    await supabase
+      .from('movie_projects')
+      .update({
+        pending_video_tasks: {
+          ...currentTasks,
+          retryingClip: request.clipIndex,
+          updatedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', request.projectId);
+    
+    console.log(`[RetryClip] Calling generate-single-clip for clip ${request.clipIndex}...`);
+    
+    // 8. Call generate-single-clip
+    const clipResult = await callEdgeFunction('generate-single-clip', {
+      userId: request.userId,
+      projectId: request.projectId,
+      clipIndex: request.clipIndex,
+      prompt: failedClip.prompt,
+      totalClips: totalClips || 6,
+      startImageUrl,
+      previousMotionVectors,
+      identityBible,
+      qualityTier: project.quality_tier || 'standard',
+      isRetry: true,
+    });
+    
+    if (!clipResult.success) {
+      // Mark as failed again
+      await supabase
+        .from('video_clips')
+        .update({
+          status: 'failed',
+          error_message: clipResult.error || 'Retry failed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', failedClip.id);
+      
+      throw new Error(clipResult.error || 'Clip generation failed on retry');
+    }
+    
+    console.log(`[RetryClip] Clip ${request.clipIndex} retry succeeded!`);
+    
+    // 9. Clear retry state from project
+    await supabase
+      .from('movie_projects')
+      .update({
+        pending_video_tasks: {
+          ...currentTasks,
+          retryingClip: null,
+          updatedAt: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', request.projectId);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        clipIndex: request.clipIndex,
+        videoUrl: clipResult.clipResult?.videoUrl,
+        message: `Clip ${request.clipIndex + 1} regenerated successfully`,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+    
+  } catch (error) {
+    console.error("[RetryClip] Error:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});

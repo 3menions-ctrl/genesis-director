@@ -113,3 +113,9 @@ verify_jwt = false
 
 [functions.finalize-stitch]
 verify_jwt = false
+
+[functions.extract-style-anchor]
+verify_jwt = false
+
+[functions.retry-failed-clip]
+verify_jwt = false

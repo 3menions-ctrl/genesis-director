@@ -30,7 +30,6 @@ interface GenerateSingleClipRequest {
     };
     consistencyPrompt?: string;
     consistencyAnchors?: string[];
-    // NEW: Story context for narrative continuity
     storyContext?: {
       fullStory?: string;
       currentBeat?: string;
@@ -42,9 +41,18 @@ interface GenerateSingleClipRequest {
   colorGrading?: string;
   qualityTier?: 'standard' | 'professional';
   referenceImageUrl?: string;
-  // Aspect ratio from reference image orientation
   aspectRatio?: '16:9' | '9:16' | '1:1';
-  // NEW: Story continuity context
+  // Scene continuity (NEW)
+  sceneContext?: {
+    actionPhase: 'establish' | 'initiate' | 'develop' | 'escalate' | 'peak' | 'settle';
+    previousAction: string;
+    currentAction: string;
+    nextAction: string;
+    characterDescription: string;
+    locationDescription: string;
+    lightingDescription: string;
+  };
+  // Legacy story position
   storyPosition?: 'opening' | 'setup' | 'catalyst' | 'rising' | 'climax' | 'resolution';
   previousClipSummary?: string;
   isRetry?: boolean;
@@ -418,86 +426,118 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // ENHANCED CHARACTER CONSISTENCY: Inject FULL identity into EVERY clip
-    // This ensures clothing, appearance, and features stay consistent
+    // SCENE-BASED CONTINUOUS FLOW: Inject scene context for clip continuity
     // =====================================================
     let enhancedPrompt = request.prompt;
-    const identityParts: string[] = [];
+    const continuityParts: string[] = [];
     
-    // Priority 1: Full character identity from identity bible
-    if (request.identityBible?.characterIdentity) {
+    // NEW: Scene context for continuous flow (takes priority)
+    if (request.sceneContext) {
+      const sc = request.sceneContext;
+      
+      // LOCKED: Character, Location, Lighting - same for all clips
+      continuityParts.push(`[SCENE LOCK - THESE ARE CONSTANT FOR ALL CLIPS]`);
+      if (sc.characterDescription) {
+        continuityParts.push(`CHARACTER: ${sc.characterDescription}`);
+      }
+      if (sc.locationDescription) {
+        continuityParts.push(`LOCATION: ${sc.locationDescription}`);
+      }
+      if (sc.lightingDescription) {
+        continuityParts.push(`LIGHTING: ${sc.lightingDescription}`);
+      }
+      continuityParts.push(`[END SCENE LOCK]`);
+      
+      // Action phase context
+      const phaseHints: Record<string, string> = {
+        'establish': 'ESTABLISH phase: Wide shot, character in environment, initial calm state',
+        'initiate': 'INITIATE phase: Action begins, first movement or change from initial state',
+        'develop': 'DEVELOP phase: Action continues, building on initiated movement',
+        'escalate': 'ESCALATE phase: Intensity increases, action gains momentum',
+        'peak': 'PEAK phase: Highest point, most dramatic moment',
+        'settle': 'SETTLE phase: Action concludes, resolution, prepares for next scene',
+      };
+      continuityParts.push(`\n[ACTION PHASE: ${phaseHints[sc.actionPhase] || sc.actionPhase}]`);
+      
+      // Continuity chain
+      if (sc.previousAction) {
+        continuityParts.push(`CONTINUES FROM: ${sc.previousAction}`);
+      }
+      continuityParts.push(`THIS MOMENT: ${sc.currentAction}`);
+      if (sc.nextAction) {
+        continuityParts.push(`LEADS INTO: ${sc.nextAction}`);
+      }
+      
+      console.log(`[SingleClip] Scene continuity injected: ${sc.actionPhase} phase`);
+    } 
+    // Fallback: Use identity bible for character consistency
+    else if (request.identityBible?.characterIdentity) {
       const ci = request.identityBible.characterIdentity;
       
       if (ci.description) {
-        identityParts.push(`PERSON: ${ci.description}`);
+        continuityParts.push(`PERSON: ${ci.description}`);
       }
       if (ci.facialFeatures) {
-        identityParts.push(`FACE: ${ci.facialFeatures}`);
+        continuityParts.push(`FACE: ${ci.facialFeatures}`);
       }
       if (ci.bodyType) {
-        identityParts.push(`BUILD: ${ci.bodyType}`);
+        continuityParts.push(`BUILD: ${ci.bodyType}`);
       }
       if (ci.clothing) {
-        identityParts.push(`WEARING: ${ci.clothing}`);
+        continuityParts.push(`WEARING: ${ci.clothing}`);
       }
       if (ci.distinctiveMarkers?.length) {
-        identityParts.push(`DETAILS: ${ci.distinctiveMarkers.join(', ')}`);
+        continuityParts.push(`DETAILS: ${ci.distinctiveMarkers.join(', ')}`);
       }
     }
     
-    // Priority 2: Consistency anchors (color, style, lighting)
+    // Consistency anchors
     if (request.identityBible?.consistencyAnchors?.length) {
-      identityParts.push(`ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}`);
+      continuityParts.push(`ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}`);
     }
     
-    // Priority 3: Master consistency prompt
     if (request.identityBible?.consistencyPrompt) {
-      identityParts.push(`CONSISTENCY: ${request.identityBible.consistencyPrompt}`);
+      continuityParts.push(`CONSISTENCY: ${request.identityBible.consistencyPrompt}`);
     }
     
-    // INJECT: Put identity at START of prompt for strongest influence
-    if (identityParts.length > 0) {
-      const identityBlock = `[STRICT CHARACTER IDENTITY - MUST MATCH EXACTLY]\n${identityParts.join('\n')}\n[END IDENTITY]\n\n`;
-      enhancedPrompt = identityBlock + enhancedPrompt;
-      console.log(`[SingleClip] Injected ${identityParts.length} identity anchors for character consistency`);
+    // INJECT: Put continuity at START of prompt
+    if (continuityParts.length > 0) {
+      const continuityBlock = `${continuityParts.join('\n')}\n\n`;
+      enhancedPrompt = continuityBlock + enhancedPrompt;
+      console.log(`[SingleClip] Injected ${continuityParts.length} continuity elements`);
     } else {
-      console.log(`[SingleClip] No identity bible available - character may vary`);
+      console.log(`[SingleClip] No scene context or identity bible - continuity may vary`);
     }
     
-    // NEW: Inject story context for narrative continuity
+    // Legacy story position support
     if (request.storyPosition || request.previousClipSummary) {
       const storyParts: string[] = [];
       
       if (request.storyPosition) {
         const positionHints: Record<string, string> = {
-          'opening': 'This is the OPENING - establish character and world, create intrigue',
-          'setup': 'This is the SETUP - show the situation and stakes',
-          'catalyst': 'This is the CATALYST - something changes, story kicks into motion',
-          'rising': 'This is RISING ACTION - tension builds, obstacles appear',
-          'climax': 'This is the CLIMAX - highest tension, most important moment',
-          'resolution': 'This is the RESOLUTION - aftermath, conclusion, emotional payoff',
+          'opening': 'OPENING - establish character and world',
+          'setup': 'SETUP - show situation and stakes',
+          'catalyst': 'CATALYST - something changes',
+          'rising': 'RISING ACTION - tension builds',
+          'climax': 'CLIMAX - highest tension',
+          'resolution': 'RESOLUTION - conclusion',
         };
         storyParts.push(positionHints[request.storyPosition] || '');
       }
       
-      if (request.previousClipSummary) {
+      if (request.previousClipSummary && !request.sceneContext?.previousAction) {
         storyParts.push(`CONTINUES FROM: ${request.previousClipSummary}`);
       }
       
-      if (request.identityBible?.storyContext?.emotionalState) {
-        storyParts.push(`EMOTIONAL STATE: ${request.identityBible.storyContext.emotionalState}`);
-      }
-      
-      if (storyParts.length > 0) {
-        enhancedPrompt = `[STORY CONTEXT: ${storyParts.join(' | ')}]\n\n${enhancedPrompt}`;
-        console.log(`[SingleClip] Story context injected: ${request.storyPosition || 'custom'}`);
+      if (storyParts.length > 0 && !request.sceneContext) {
+        enhancedPrompt = `[STORY: ${storyParts.join(' | ')}]\n\n${enhancedPrompt}`;
       }
     }
     
     // Inject velocity continuity from previous clip
     const velocityAwarePrompt = injectVelocityContinuity(enhancedPrompt, request.previousMotionVectors);
     
-    console.log(`[SingleClip] Enhanced prompt: ${velocityAwarePrompt.substring(0, 150)}...`);
+    console.log(`[SingleClip] Enhanced prompt: ${velocityAwarePrompt.substring(0, 200)}...`);
 
     // Mark clip as generating
     await supabase.rpc('upsert_video_clip', {

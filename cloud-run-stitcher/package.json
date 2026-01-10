@@ -2,6 +2,7 @@
   "name": "cloud-run-ffmpeg-stitcher",
   "version": "1.0.0",
   "description": "Production-grade video stitcher using FFmpeg for lossless concatenation",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

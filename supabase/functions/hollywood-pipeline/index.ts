@@ -1022,27 +1022,64 @@ async function runProduction(
   
   console.log(`[Hollywood] Character identity: ${characterIdentityPrompt?.substring(0, 100) || 'none'}...`);
   
-  // Build clip prompts from optimized shots
-  const clips = state.auditResult?.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
-    let finalPrompt = opt.optimizedDescription;
+  // Build clip prompts from optimized shots OR script (for resume)
+  let clips: Array<{ index: number; prompt: string }> = [];
+  
+  if (state.auditResult && state.auditResult.optimizedShots && state.auditResult.optimizedShots.length > 0) {
+    // Use optimized shots from audit
+    clips = state.auditResult.optimizedShots.slice(0, state.clipCount).map((opt, i) => {
+      let finalPrompt = opt.optimizedDescription;
+      
+      if (characterIdentityPrompt) {
+        finalPrompt = `[CHARACTERS: ${characterIdentityPrompt}] ${finalPrompt}`;
+      }
+      
+      if (opt.identityAnchors?.length > 0) {
+        finalPrompt = `[IDENTITY: ${opt.identityAnchors.join(', ')}] ${finalPrompt}`;
+      }
+      
+      if (opt.physicsGuards?.length > 0) {
+        finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
+      }
+      
+      return {
+        index: i,
+        prompt: finalPrompt,
+      };
+    });
+  } else if (state.script && state.script.shots && state.script.shots.length > 0) {
+    // Fallback: Use script shots directly (for resume scenarios)
+    console.log(`[Hollywood] Building clips from script (${state.script.shots.length} shots)`);
+    clips = state.script.shots.slice(0, state.clipCount).map((shot: any, i: number) => {
+      let finalPrompt = shot.description || shot.title || 'Continue scene';
+      
+      if (characterIdentityPrompt) {
+        finalPrompt = `[CHARACTERS: ${characterIdentityPrompt}] ${finalPrompt}`;
+      }
+      
+      return {
+        index: i,
+        prompt: finalPrompt,
+      };
+    });
+  } else {
+    // Try to load from existing video_clips table
+    console.log(`[Hollywood] No shots available, loading prompts from existing clips`);
+    const { data: existingClipPrompts } = await supabase
+      .from('video_clips')
+      .select('shot_index, prompt')
+      .eq('project_id', state.projectId)
+      .order('shot_index');
     
-    if (characterIdentityPrompt) {
-      finalPrompt = `[CHARACTERS: ${characterIdentityPrompt}] ${finalPrompt}`;
+    if (existingClipPrompts && existingClipPrompts.length > 0) {
+      clips = existingClipPrompts.map((c: any) => ({
+        index: c.shot_index,
+        prompt: c.prompt,
+      }));
     }
-    
-    if (opt.identityAnchors?.length > 0) {
-      finalPrompt = `[IDENTITY: ${opt.identityAnchors.join(', ')}] ${finalPrompt}`;
-    }
-    
-    if (opt.physicsGuards?.length > 0) {
-      finalPrompt = `${finalPrompt}. [PHYSICS: ${opt.physicsGuards.join(', ')}]`;
-    }
-    
-    return {
-      index: i,
-      prompt: finalPrompt,
-    };
-  }) || [];
+  }
+  
+  console.log(`[Hollywood] Built ${clips.length} clip prompts`);
   
   // Determine first frame reference
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
@@ -1811,16 +1848,48 @@ async function executePipelineInBackground(
     // Check if we're resuming from a specific stage
     const resumeFrom = (request as any).resumeFrom;
     const approvedScript = (request as any).approvedScript;
+    const resumeFromClipIndex = (request as any).resumeFromClipIndex || 0;
     
-    if (resumeFrom === 'qualitygate' && approvedScript) {
-      // Resuming after script approval - use the approved script
-      console.log(`[Hollywood] Resuming from ${resumeFrom} with approved script`);
-      state.script = approvedScript;
-      state.extractedCharacters = (request as any).extractedCharacters;
-      state.identityBible = (request as any).identityBible;
-      state.referenceAnalysis = (request as any).referenceImageAnalysis;
-      state.progress = 30;
-    } else if (stages.includes('preproduction')) {
+    // Determine which stages to skip based on resumeFrom
+    const stageOrder = ['preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
+    const resumeStageIndex = resumeFrom ? stageOrder.indexOf(resumeFrom) : -1;
+    
+    console.log(`[Hollywood] Resume config: resumeFrom=${resumeFrom}, resumeStageIndex=${resumeStageIndex}, resumeFromClipIndex=${resumeFromClipIndex}`);
+    
+    // Load existing state from project if resuming
+    if (resumeFrom) {
+      const { data: project } = await supabase
+        .from('movie_projects')
+        .select('pending_video_tasks, generated_script')
+        .eq('id', projectId)
+        .single();
+      
+      if (project?.pending_video_tasks) {
+        const tasks = project.pending_video_tasks;
+        state.script = approvedScript || tasks.script;
+        state.extractedCharacters = (request as any).extractedCharacters || tasks.extractedCharacters;
+        state.identityBible = (request as any).identityBible || tasks.identityBible;
+        state.referenceAnalysis = (request as any).referenceImageAnalysis || tasks.referenceAnalysis;
+        state.clipCount = tasks.clipCount || state.clipCount;
+        state.clipDuration = tasks.clipDuration || state.clipDuration;
+        console.log(`[Hollywood] Loaded existing state: ${state.script?.shots?.length || 0} shots, clipCount=${state.clipCount}`);
+      }
+      
+      // Also try to parse generated_script if script not in pending_video_tasks
+      if (!state.script?.shots && project?.generated_script) {
+        try {
+          state.script = JSON.parse(project.generated_script);
+          console.log(`[Hollywood] Loaded script from generated_script field: ${state.script?.shots?.length || 0} shots`);
+        } catch (e) {
+          console.warn(`[Hollywood] Failed to parse generated_script`);
+        }
+      }
+      
+      state.progress = resumeStageIndex >= 3 ? 75 : 30; // Start at 75% if resuming production
+    }
+    
+    // Only run preproduction if not resuming past it
+    if (stages.includes('preproduction') && resumeStageIndex < 0) {
       state = await runPreProduction(request, state, supabase);
       
       // PAUSE FOR SCRIPT APPROVAL (unless resuming or skipApproval flag is set)
@@ -1860,15 +1929,20 @@ async function executePipelineInBackground(
       }
     }
     
-    if (stages.includes('qualitygate') && (!resumeFrom || resumeFrom === 'qualitygate')) {
+    // Run qualitygate if not resuming past it
+    if (stages.includes('qualitygate') && resumeStageIndex < 1) {
       state = await runQualityGate(request, state, supabase);
     }
     
-    if (stages.includes('assets')) {
+    // Run assets if not resuming past it
+    if (stages.includes('assets') && resumeStageIndex < 2) {
       state = await runAssetCreation(request, state, supabase);
     }
     
+    // Run production (always if in stages, but pass resumeFromClipIndex to skip completed clips)
     if (stages.includes('production')) {
+      // Pass the resume clip index to production
+      (request as any)._resumeFromClipIndex = resumeFromClipIndex;
       state = await runProduction(request, state, supabase);
     }
     

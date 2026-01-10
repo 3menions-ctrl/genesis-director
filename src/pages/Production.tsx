@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Film, 
   Loader2, 
@@ -18,12 +18,22 @@ import {
   Sparkles,
   AlertCircle,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Pause,
+  ChevronRight,
+  Zap,
+  Eye,
+  X,
+  FileText,
+  Users,
+  Shield,
+  Wand2,
+  Volume2,
+  Music
 } from 'lucide-react';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -51,6 +61,8 @@ interface PipelineLog {
   type: 'info' | 'success' | 'warning' | 'error';
 }
 
+const STAGE_ICONS = [FileText, Users, Shield, Wand2, Film, Sparkles];
+
 const INITIAL_STAGES: StageStatus[] = [
   { name: 'Script Generation', shortName: 'Script', status: 'pending' },
   { name: 'Identity Analysis', shortName: 'Identity', status: 'pending' },
@@ -59,6 +71,199 @@ const INITIAL_STAGES: StageStatus[] = [
   { name: 'Video Production', shortName: 'Production', status: 'pending' },
   { name: 'Final Assembly', shortName: 'Assembly', status: 'pending' },
 ];
+
+// Cinematic Stage Card Component
+function StageCard({ 
+  stage, 
+  index, 
+  isActive, 
+  isComplete, 
+  isPending 
+}: { 
+  stage: StageStatus; 
+  index: number; 
+  isActive: boolean; 
+  isComplete: boolean; 
+  isPending: boolean;
+}) {
+  const Icon = STAGE_ICONS[index];
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className={cn(
+        "relative group",
+        "p-4 rounded-2xl border transition-all duration-500",
+        isComplete && "bg-emerald-500/10 border-emerald-500/30",
+        isActive && "bg-white/[0.08] border-white/30 shadow-lg shadow-white/5",
+        isPending && "bg-white/[0.02] border-white/[0.06]",
+        stage.status === 'error' && "bg-red-500/10 border-red-500/30"
+      )}
+    >
+      {/* Active glow effect */}
+      {isActive && (
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-shimmer-bg" />
+      )}
+      
+      {/* Connection line */}
+      {index < 5 && (
+        <div className={cn(
+          "hidden lg:block absolute top-1/2 -right-[calc(50%-8px)] w-[calc(100%-16px)] h-px",
+          isComplete ? "bg-emerald-500/50" : "bg-white/[0.08]"
+        )} />
+      )}
+      
+      <div className="relative flex flex-col items-center text-center">
+        {/* Icon container */}
+        <div className={cn(
+          "w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300",
+          isComplete && "bg-emerald-500/20",
+          isActive && "bg-white/10",
+          isPending && "bg-white/[0.04]",
+          stage.status === 'error' && "bg-red-500/20"
+        )}>
+          {isActive ? (
+            <Loader2 className="w-5 h-5 text-white animate-spin" />
+          ) : isComplete ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          ) : stage.status === 'error' ? (
+            <XCircle className="w-5 h-5 text-red-400" />
+          ) : (
+            <Icon className={cn(
+              "w-5 h-5 transition-colors",
+              isPending ? "text-white/30" : "text-white/70"
+            )} />
+          )}
+        </div>
+        
+        {/* Stage info */}
+        <h3 className={cn(
+          "text-sm font-semibold transition-colors mb-1",
+          isComplete && "text-emerald-400",
+          isActive && "text-white",
+          isPending && "text-white/40",
+          stage.status === 'error' && "text-red-400"
+        )}>
+          {stage.shortName}
+        </h3>
+        
+        {stage.details && (
+          <span className={cn(
+            "text-[10px] font-medium px-2 py-0.5 rounded-full",
+            isComplete && "bg-emerald-500/20 text-emerald-400",
+            isActive && "bg-white/10 text-white/70"
+          )}>
+            {stage.details}
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Clip Grid Item Component
+function ClipGridItem({ 
+  clip, 
+  index, 
+  onPlay, 
+  onRetry, 
+  isRetrying 
+}: { 
+  clip: ClipResult; 
+  index: number; 
+  onPlay: () => void; 
+  onRetry: () => void; 
+  isRetrying: boolean;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.03, duration: 0.4 }}
+      className={cn(
+        "relative aspect-video rounded-xl overflow-hidden cursor-pointer transition-all duration-300",
+        "border-2",
+        clip.status === 'completed' && "border-emerald-500/50 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10",
+        clip.status === 'generating' && "border-white/30",
+        clip.status === 'failed' && "border-red-500/50 hover:border-red-400",
+        clip.status === 'pending' && "border-white/[0.08]"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => {
+        if (clip.status === 'completed' && clip.videoUrl) {
+          onPlay();
+        } else if (clip.status === 'failed') {
+          onRetry();
+        }
+      }}
+    >
+      {/* Video preview for completed clips */}
+      {clip.status === 'completed' && clip.videoUrl ? (
+        <>
+          <video
+            src={clip.videoUrl}
+            className="absolute inset-0 w-full h-full object-cover"
+            muted
+            preload="metadata"
+            onLoadedData={(e) => {
+              (e.target as HTMLVideoElement).currentTime = 1;
+            }}
+          />
+          {/* Hover overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 1 : 0 }}
+            className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30">
+              <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+            </div>
+          </motion.div>
+        </>
+      ) : clip.status === 'generating' ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white/[0.08] to-transparent">
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse" />
+            <Loader2 className="relative w-6 h-6 text-white animate-spin" />
+          </div>
+          <span className="text-[10px] text-white/50 mt-2 font-medium">Generating...</span>
+        </div>
+      ) : clip.status === 'failed' ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-red-500/10 to-transparent">
+          {isRetrying ? (
+            <Loader2 className="w-5 h-5 text-red-400 animate-spin" />
+          ) : (
+            <>
+              <RefreshCw className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] text-red-400 mt-1 font-medium">Click to Retry</span>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.02] to-transparent">
+          <span className="text-lg font-bold text-white/20">{index + 1}</span>
+        </div>
+      )}
+      
+      {/* Index badge */}
+      <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
+        <span className="text-[10px] font-bold text-white">{index + 1}</span>
+      </div>
+      
+      {/* Status indicator */}
+      {clip.status === 'completed' && (
+        <div className="absolute top-1.5 right-1.5">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 drop-shadow-lg" />
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 export default function Production() {
   const navigate = useNavigate();
@@ -83,6 +288,7 @@ export default function Production() {
   const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
   const [retryingClipIndex, setRetryingClipIndex] = useState<number | null>(null);
   const [failedClipsNotified, setFailedClipsNotified] = useState<Set<number>>(new Set());
+  const [showLogs, setShowLogs] = useState(false);
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
@@ -143,7 +349,6 @@ export default function Production() {
         toast.success(`Clip ${clipIndex + 1} regenerated successfully!`);
         addLog(`Clip ${clipIndex + 1} retry succeeded`, 'success');
         
-        // Update local state
         setClipResults(prev => {
           const updated = [...prev];
           updated[clipIndex] = {
@@ -155,14 +360,12 @@ export default function Production() {
           return updated;
         });
         
-        // Remove from failed notifications
         setFailedClipsNotified(prev => {
           const updated = new Set(prev);
           updated.delete(clipIndex);
           return updated;
         });
         
-        // Reload clips from DB
         await loadVideoClips();
       } else {
         throw new Error(data?.error || 'Retry failed');
@@ -178,6 +381,7 @@ export default function Production() {
     }
   }, [projectId, user, addLog, loadVideoClips]);
 
+  // Timer effect
   useEffect(() => {
     if (projectStatus === 'completed' || projectStatus === 'failed' || !projectId) {
       return;
@@ -218,10 +422,8 @@ export default function Production() {
           setFinalVideoUrl(project.video_url);
         }
 
-        // Parse pending_video_tasks for current state
         const tasks = parsePendingVideoTasks(project.pending_video_tasks);
         
-        // Check for orphaned projects (status is active but no pending tasks)
         const isOrphanedProject = ['producing', 'generating', 'rendering'].includes(project.status) 
           && (!tasks || Object.keys(tasks).length === 0 || Array.isArray(tasks));
         
@@ -236,7 +438,6 @@ export default function Production() {
           if (tasks.progress) setProgress(tasks.progress);
           if (tasks.auditScore) setAuditScore(tasks.auditScore);
           
-          // Restore clip results
           const clipCount = tasks.clipCount || 6;
           if (tasks.clipsCompleted !== undefined) {
             setCompletedClips(tasks.clipsCompleted);
@@ -251,7 +452,6 @@ export default function Production() {
             })));
           }
 
-          // Restore stage statuses based on current stage
           const stageMap: Record<string, number> = {
             'preproduction': 0,
             'qualitygate': 2,
@@ -268,11 +468,9 @@ export default function Production() {
             })));
           }
 
-          // Add initial log
           addLog(`Connected to pipeline: ${project.title}`, 'info');
         }
 
-        // Handle completed or failed status
         if (project.status === 'completed') {
           setProgress(100);
           setStages(prev => prev.map(s => ({ ...s, status: 'complete' })));
@@ -320,12 +518,10 @@ export default function Production() {
           const tasks = parsePendingVideoTasks(project.pending_video_tasks);
           if (!tasks) return;
 
-          // Update progress
           if (tasks.progress) {
             setProgress(tasks.progress);
           }
 
-          // Map stage names to indices
           const stageMap: Record<string, number> = {
             'preproduction': 0,
             'qualitygate': 2,
@@ -334,7 +530,6 @@ export default function Production() {
             'postproduction': 5,
           };
 
-          // Update stages based on current stage
           if (tasks.stage && stageMap[tasks.stage] !== undefined) {
             const currentIdx = stageMap[tasks.stage];
             for (let i = 0; i < currentIdx; i++) {
@@ -345,7 +540,6 @@ export default function Production() {
             updateStageStatus(currentIdx, 'active');
           }
 
-          // Log and update specific details
           if (tasks.scriptGenerated && !pipelineLogs.some(l => l.message.includes('Script generated'))) {
             addLog('Script generated successfully', 'success');
             updateStageStatus(0, 'complete', `${tasks.shotCount || '?'} shots`);
@@ -387,7 +581,6 @@ export default function Production() {
             addLog(`Video clips: ${tasks.clipsCompleted}/${clipCount} completed`, 'info');
           }
 
-          // Handle failed clips notification
           const pendingTasksAny = tasks as any;
           if (pendingTasksAny.failedClips && Array.isArray(pendingTasksAny.failedClips)) {
             pendingTasksAny.failedClips.forEach((failedIndex: number) => {
@@ -405,7 +598,6 @@ export default function Production() {
               }
             });
             
-            // Update clip results with failed status
             setClipResults(prev => {
               const updated = [...prev];
               pendingTasksAny.failedClips.forEach((failedIndex: number) => {
@@ -421,7 +613,6 @@ export default function Production() {
             });
           }
 
-          // Handle completion
           if (tasks.stage === 'complete' && tasks.finalVideoUrl) {
             setFinalVideoUrl(tasks.finalVideoUrl);
             setProgress(100);
@@ -430,14 +621,12 @@ export default function Production() {
             toast.success('Video generated successfully!');
           }
 
-          // Handle error
           if (tasks.stage === 'error') {
             setError(tasks.error || 'Pipeline failed');
             addLog(`Error: ${tasks.error || 'Pipeline failed'}`, 'error');
             toast.error(tasks.error || 'Pipeline failed');
           }
 
-          // Handle status changes
           if (project.status === 'completed' && typeof project.video_url === 'string') {
             setFinalVideoUrl(project.video_url);
             setProgress(100);
@@ -453,7 +642,7 @@ export default function Production() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, projectStatus, stages, pipelineLogs, auditScore, clipResults.length, updateStageStatus, addLog]);
+  }, [projectId, projectStatus, stages, pipelineLogs, auditScore, clipResults.length, updateStageStatus, addLog, failedClipsNotified, handleRetryClip]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -464,391 +653,426 @@ export default function Production() {
   const isRunning = !['completed', 'failed', 'draft'].includes(projectStatus);
   const isComplete = projectStatus === 'completed';
   const isError = projectStatus === 'failed';
+  const currentStageIndex = stages.findIndex(s => s.status === 'active');
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading pipeline...</p>
-        </div>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/10 rounded-full blur-2xl animate-pulse" />
+            <Loader2 className="relative w-12 h-12 animate-spin text-white" />
+          </div>
+          <p className="text-white/60 font-medium">Loading pipeline...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#050505] relative overflow-hidden">
+      {/* Dramatic ambient background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.015] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-white/[0.01] to-transparent blur-[180px]" />
+        
+        {/* Film grain */}
+        <div 
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          }}
+        />
+      </div>
+
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate('/create');
-                }}
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center">
-                <Film className="w-6 h-6 text-background" />
+      <nav className="sticky top-0 z-50">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="bg-black/60 backdrop-blur-2xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="h-16 flex items-center justify-between">
+              {/* Left: Back + Title */}
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-white/60 hover:text-white hover:bg-white/10"
+                  onClick={() => navigate('/create')}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {isRunning && (
+                      <div className="absolute inset-0 bg-white/20 rounded-xl blur-lg animate-pulse" />
+                    )}
+                    <div className={cn(
+                      "relative w-10 h-10 rounded-xl flex items-center justify-center",
+                      isComplete ? "bg-emerald-500/20" : isError ? "bg-red-500/20" : "bg-white/10"
+                    )}>
+                      <Film className={cn(
+                        "w-5 h-5",
+                        isComplete ? "text-emerald-400" : isError ? "text-red-400" : "text-white"
+                      )} />
+                    </div>
+                  </div>
+                  <div>
+                    <h1 className="text-base font-bold text-white">Production Pipeline</h1>
+                    <p className="text-xs text-white/40 truncate max-w-[200px] sm:max-w-none">
+                      {projectTitle}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold">Production Pipeline</h1>
-                <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                  {projectTitle}
-                </p>
+
+              {/* Right: Status + Time */}
+              <div className="flex items-center gap-3">
+                {isRunning && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.08] border border-white/10"
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-white/30 rounded-full animate-ping" />
+                      <div className="relative w-2 h-2 rounded-full bg-white" />
+                    </div>
+                    <span className="text-xs font-medium text-white">Processing</span>
+                  </motion.div>
+                )}
+                
+                {isComplete && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400">Complete</span>
+                  </motion.div>
+                )}
+                
+                {isError && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30"
+                  >
+                    <XCircle className="w-4 h-4 text-red-400" />
+                    <span className="text-xs font-semibold text-red-400">Failed</span>
+                  </motion.div>
+                )}
+                
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                  <Clock className="w-4 h-4 text-white/50" />
+                  <span className="text-xs font-mono font-medium text-white">{formatTime(elapsedTime)}</span>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {isRunning && (
-                <Badge variant="outline" className="gap-1.5 animate-pulse">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Processing
-                </Badge>
-              )}
-              {isComplete && (
-                <Badge className="bg-green-500/20 text-green-500 border-green-500/30 gap-1.5">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Complete
-                </Badge>
-              )}
-              {isError && (
-                <Badge variant="destructive" className="gap-1.5">
-                  <XCircle className="w-3 h-3" />
-                  Failed
-                </Badge>
-              )}
-              <Badge variant="outline" className="gap-1.5">
-                <Clock className="w-3 h-3" />
-                {formatTime(elapsedTime)}
-              </Badge>
             </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Overall Progress */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Overall Progress</h2>
-              <span className="text-2xl font-bold">{Math.round(progress)}%</span>
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Progress Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative"
+        >
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06]">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1">
+                  {isComplete ? 'Production Complete!' : isError ? 'Production Failed' : 'Production in Progress'}
+                </h2>
+                <p className="text-white/40">
+                  {isComplete 
+                    ? 'Your video is ready for download'
+                    : isError 
+                      ? 'Something went wrong during production'
+                      : `Stage ${currentStageIndex + 1} of ${stages.length}`
+                  }
+                </p>
+              </div>
+              <div className="text-right">
+                <span className={cn(
+                  "text-5xl font-bold",
+                  isComplete ? "text-emerald-400" : isError ? "text-red-400" : "text-white"
+                )}>
+                  {Math.round(progress)}%
+                </span>
+              </div>
             </div>
-            <Progress value={progress} className="h-3" />
-          </CardContent>
-        </Card>
-
-        {/* Stages */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Layers className="w-5 h-5" />
-              Pipeline Stages
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {stages.map((stage, index) => (
+            
+            {/* Progress bar */}
+            <div className="relative h-3 rounded-full bg-white/[0.05] overflow-hidden">
+              <motion.div
+                className={cn(
+                  "absolute inset-y-0 left-0 rounded-full",
+                  isComplete 
+                    ? "bg-gradient-to-r from-emerald-500 to-emerald-400" 
+                    : isError 
+                      ? "bg-gradient-to-r from-red-500 to-red-400"
+                      : "bg-gradient-to-r from-white/80 to-white"
+                )}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+              {isRunning && (
                 <motion.div
-                  key={stage.name}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={cn(
-                    "p-3 rounded-xl border text-center transition-all",
-                    stage.status === 'complete' && "bg-green-500/10 border-green-500/30",
-                    stage.status === 'active' && "bg-primary/10 border-primary/30 ring-2 ring-primary/20",
-                    stage.status === 'error' && "bg-destructive/10 border-destructive/30",
-                    stage.status === 'pending' && "bg-muted/30 border-border/50"
-                  )}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                />
+              )}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Pipeline Stages */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <Layers className="w-5 h-5 text-white/60" />
+            <h2 className="text-lg font-bold text-white">Pipeline Stages</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {stages.map((stage, index) => (
+              <StageCard
+                key={stage.name}
+                stage={stage}
+                index={index}
+                isActive={stage.status === 'active'}
+                isComplete={stage.status === 'complete'}
+                isPending={stage.status === 'pending'}
+              />
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Video Clips Grid */}
+        {clipResults.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <Film className="w-5 h-5 text-white/60" />
+                <h2 className="text-lg font-bold text-white">
+                  Video Clips 
+                  <span className="ml-2 text-sm font-normal text-white/40">
+                    {clipResults.filter(c => c.status === 'completed').length}/{clipResults.length}
+                  </span>
+                </h2>
+              </div>
+              
+              {clipResults.some(c => c.status === 'completed') && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={() => navigate(`/clips?projectId=${projectId}`)}
                 >
-                  <div className="flex justify-center mb-2">
-                    {stage.status === 'complete' && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                    {stage.status === 'active' && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
-                    {stage.status === 'error' && <XCircle className="w-5 h-5 text-destructive" />}
-                    {stage.status === 'pending' && <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />}
-                  </div>
-                  <p className="text-xs font-medium truncate">{stage.shortName}</p>
-                  {stage.details && (
-                    <p className="text-[10px] text-muted-foreground truncate mt-1">{stage.details}</p>
-                  )}
-                </motion.div>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View All
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+              {clipResults.map((clip, index) => (
+                <ClipGridItem
+                  key={index}
+                  clip={clip}
+                  index={index}
+                  onPlay={() => setSelectedClipUrl(clip.videoUrl || null)}
+                  onRetry={() => handleRetryClip(index)}
+                  isRetrying={retryingClipIndex === index}
+                />
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Clip Progress */}
-        {clipResults.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Film className="w-5 h-5" />
-                  Video Clips ({clipResults.filter(c => c.status === 'completed').length}/{clipResults.length})
-                </CardTitle>
-                {clipResults.some(c => c.status === 'completed') && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => navigate(`/clips?projectId=${projectId}`)}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    View All Clips
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {clipResults.map((clip, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: index * 0.02 }}
-                    className={cn(
-                      "aspect-video rounded-lg border-2 flex items-center justify-center text-xs font-bold transition-all overflow-hidden relative group",
-                      clip.status === 'completed' && clip.videoUrl && "cursor-pointer hover:ring-2 hover:ring-primary",
-                      clip.status === 'completed' && "bg-green-500/20 border-green-500 text-green-600",
-                      clip.status === 'generating' && "bg-primary/20 border-primary text-primary animate-pulse",
-                      clip.status === 'failed' && "bg-destructive/20 border-destructive text-destructive",
-                      clip.status === 'pending' && "bg-muted/30 border-border text-muted-foreground"
-                    )}
-                    onClick={() => {
-                      if (clip.status === 'completed' && clip.videoUrl) {
-                        setSelectedClipUrl(clip.videoUrl);
-                      }
-                    }}
-                  >
-                    {clip.status === 'completed' && clip.videoUrl ? (
-                      <>
-                        <video 
-                          src={clip.videoUrl} 
-                          className="absolute inset-0 w-full h-full object-cover"
-                          muted
-                          preload="metadata"
-                          onLoadedData={(e) => {
-                            (e.target as HTMLVideoElement).currentTime = 1;
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Play className="w-6 h-6 text-white fill-white" />
-                        </div>
-                        <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                          {index + 1}
-                        </div>
-                      </>
-                    ) : clip.status === 'generating' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : clip.status === 'completed' ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : clip.status === 'failed' ? (
-                      <div 
-                        className="flex flex-col items-center gap-1 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRetryClip(index);
-                        }}
-                      >
-                        {retryingClipIndex === index ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <RefreshCw className="w-3 h-3" />
-                            <span className="text-[8px]">Retry</span>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      index + 1
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          </motion.section>
         )}
 
-        {/* Audit Score */}
+        {/* Quality Score */}
         {auditScore !== null && (
-          <Card className={cn(
-            "border-2",
-            auditScore >= 80 ? "border-green-500/30 bg-green-500/5" :
-            auditScore >= 60 ? "border-yellow-500/30 bg-yellow-500/5" :
-            "border-red-500/30 bg-red-500/5"
-          )}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className={cn(
-                    "w-6 h-6",
-                    auditScore >= 80 ? "text-green-500" :
-                    auditScore >= 60 ? "text-yellow-500" :
-                    "text-red-500"
-                  )} />
-                  <div>
-                    <p className="font-semibold">Quality Audit Score</p>
-                    <p className="text-sm text-muted-foreground">Script coherence and visual consistency</p>
-                  </div>
-                </div>
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className={cn(
+              "p-6 rounded-3xl border-2 transition-colors",
+              auditScore >= 80 
+                ? "bg-emerald-500/5 border-emerald-500/30" 
+                : auditScore >= 60 
+                  ? "bg-amber-500/5 border-amber-500/30"
+                  : "bg-red-500/5 border-red-500/30"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <div className={cn(
-                  "text-4xl font-bold",
-                  auditScore >= 80 ? "text-green-500" :
-                  auditScore >= 60 ? "text-yellow-500" :
-                  "text-red-500"
+                  "w-14 h-14 rounded-2xl flex items-center justify-center",
+                  auditScore >= 80 
+                    ? "bg-emerald-500/20" 
+                    : auditScore >= 60 
+                      ? "bg-amber-500/20"
+                      : "bg-red-500/20"
                 )}>
-                  {auditScore}%
+                  <Sparkles className={cn(
+                    "w-7 h-7",
+                    auditScore >= 80 
+                      ? "text-emerald-400" 
+                      : auditScore >= 60 
+                        ? "text-amber-400"
+                        : "text-red-400"
+                  )} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Quality Audit Score</h3>
+                  <p className="text-sm text-white/40">Script coherence and visual consistency</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pipeline Logs */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Pipeline Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-1 font-mono text-xs">
-                {pipelineLogs.length === 0 ? (
-                  <p className="text-muted-foreground">Waiting for pipeline events...</p>
-                ) : (
-                  pipelineLogs.map((log, index) => (
-                    <div key={index} className="flex gap-2">
-                      <span className="text-muted-foreground shrink-0">[{log.time}]</span>
-                      <span className={cn(
-                        log.type === 'success' && "text-green-500",
-                        log.type === 'error' && "text-destructive",
-                        log.type === 'warning' && "text-yellow-500",
-                        log.type === 'info' && "text-foreground"
-                      )}>
-                        {log.message}
-                      </span>
-                    </div>
-                  ))
-                )}
+              <div className={cn(
+                "text-5xl font-bold",
+                auditScore >= 80 
+                  ? "text-emerald-400" 
+                  : auditScore >= 60 
+                    ? "text-amber-400"
+                    : "text-red-400"
+              )}>
+                {auditScore}%
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            </div>
+          </motion.section>
+        )}
 
         {/* Script Approval Required */}
         {projectStatus === 'awaiting_approval' && (
-          <Card className="border-amber-500/50 bg-amber-500/5">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <AlertCircle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-amber-600">Script Approval Required</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    The script has been generated and is ready for your review. Approve it to continue with video production.
-                  </p>
-                  <div className="flex gap-3 mt-4">
-                    <Button 
-                      className="bg-amber-500 hover:bg-amber-600 text-white"
-                      onClick={() => navigate(`/script-review?projectId=${projectId}`)}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Review & Approve Script
-                    </Button>
-                  </div>
-                </div>
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 text-amber-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-amber-400 mb-1">Script Approval Required</h3>
+                <p className="text-sm text-white/60 mb-4">
+                  The script has been generated and is ready for your review. Approve it to continue with video production.
+                </p>
+                <Button 
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-full"
+                  onClick={() => navigate(`/script-review?projectId=${projectId}`)}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Review & Approve Script
+                </Button>
+              </div>
+            </div>
+          </motion.section>
         )}
 
         {/* Error Display */}
         {error && (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <AlertCircle className="w-6 h-6 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-destructive">Pipeline Error</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                  {error.includes('WORKER_LIMIT') && completedClips > 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {completedClips} clips were generated before the timeout. You can resume to continue from where it left off.
-                    </p>
-                  )}
-                  <div className="flex gap-3 mt-4">
-                    {completedClips > 0 && (
-                      <Button 
-                        size="sm"
-                        disabled={isResuming}
-                        onClick={async () => {
-                          setIsResuming(true);
-                          setError(null);
-                          addLog('Resuming pipeline from checkpoint...', 'info');
-                          try {
-                            const { data, error: resumeError } = await supabase.functions.invoke('resume-pipeline', {
-                              body: {
-                                userId: user?.id,
-                                projectId,
-                                resumeFrom: 'production',
-                              },
-                            });
-                            if (resumeError) throw resumeError;
-                            if (!data?.success) throw new Error(data?.error || 'Resume failed');
-                            addLog('Pipeline resumed successfully', 'success');
-                            setProjectStatus('generating');
-                          } catch (err: any) {
-                            setError(err.message || 'Failed to resume');
-                            addLog(`Resume failed: ${err.message}`, 'error');
-                          } finally {
-                            setIsResuming(false);
-                          }
-                        }}
-                      >
-                        {isResuming ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                        )}
-                        Resume from Clip {completedClips + 1}
-                      </Button>
-                    )}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 rounded-3xl bg-red-500/10 border-2 border-red-500/30"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-red-400 mb-1">Pipeline Error</h3>
+                <p className="text-sm text-white/60 mb-4">{error}</p>
+                {error.includes('WORKER_LIMIT') && completedClips > 0 && (
+                  <p className="text-sm text-white/40 mb-4">
+                    {completedClips} clips were generated before the timeout. You can resume to continue from where it left off.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  {completedClips > 0 && (
                     <Button 
-                      variant="outline" 
-                      size="sm" 
+                      disabled={isResuming}
+                      className="bg-white text-black hover:bg-white/90 rounded-full font-semibold"
                       onClick={async () => {
-                        // Reset project to draft so it can be restarted
-                        await supabase
-                          .from('movie_projects')
-                          .update({ status: 'draft', pending_video_tasks: null })
-                          .eq('id', projectId);
-                        navigate('/create');
+                        setIsResuming(true);
+                        setError(null);
+                        addLog('Resuming pipeline from checkpoint...', 'info');
+                        try {
+                          const { data, error: resumeError } = await supabase.functions.invoke('resume-pipeline', {
+                            body: {
+                              userId: user?.id,
+                              projectId,
+                              resumeFrom: 'production',
+                            },
+                          });
+                          if (resumeError) throw resumeError;
+                          if (!data?.success) throw new Error(data?.error || 'Resume failed');
+                          addLog('Pipeline resumed successfully', 'success');
+                          setProjectStatus('generating');
+                        } catch (err: any) {
+                          setError(err.message || 'Failed to resume');
+                          addLog(`Resume failed: ${err.message}`, 'error');
+                        } finally {
+                          setIsResuming(false);
+                        }
                       }}
                     >
-                      Restart This Project
+                      {isResuming ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                      )}
+                      Resume from Clip {completedClips + 1}
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => navigate('/create')}
-                    >
-                      Start New Project
-                    </Button>
-                  </div>
+                  )}
+                  <Button 
+                    variant="outline"
+                    className="rounded-full border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={async () => {
+                      await supabase
+                        .from('movie_projects')
+                        .update({ status: 'draft', pending_video_tasks: null })
+                        .eq('id', projectId);
+                      navigate('/create');
+                    }}
+                  >
+                    Restart Project
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    className="rounded-full text-white/50 hover:text-white"
+                    onClick={() => navigate('/create')}
+                  >
+                    Start New
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </motion.section>
         )}
 
-        {/* Transition Analyzer - Show when clips are available */}
+        {/* Transition Analyzer */}
         {completedClips >= 2 && projectId && (
           <ClipTransitionAnalyzer 
             projectId={projectId} 
@@ -861,147 +1085,226 @@ export default function Production() {
 
         {/* Completed Video */}
         {finalVideoUrl && (
-          <Card className="border-green-500/50 bg-green-500/5">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-8 h-8 text-green-500" />
-                  <h2 className="text-2xl font-bold text-green-600">Video Complete!</h2>
+          <motion.section
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="p-8 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-transparent border-2 border-emerald-500/30"
+          >
+            <div className="flex flex-col items-center gap-8">
+              {/* Success header */}
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-500/30 rounded-full blur-xl animate-pulse" />
+                  <CheckCircle2 className="relative w-10 h-10 text-emerald-400" />
                 </div>
-                
-                {/* Detect if URL is a manifest (JSON) or actual video */}
-                <div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden border border-green-500/30">
-                  {finalVideoUrl.endsWith('.json') ? (
-                    <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
-                  ) : (
-                    <video
-                      src={finalVideoUrl}
-                      controls
-                      className="w-full h-full object-contain bg-black"
-                    />
-                  )}
-                </div>
-                
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  {/* Re-stitch button for manifest mode - produces real MP4 */}
-                  {finalVideoUrl.endsWith('.json') && (
-                    <Button 
-                      onClick={async () => {
-                        toast.info('Starting AI-powered final assembly... This may take 2-5 minutes');
-                        try {
-                          const { data, error } = await supabase.functions.invoke('final-assembly', {
-                            body: {
-                              projectId,
-                              userId: user?.id,
-                              strictness: 'normal',
-                              maxBridgeClips: 5,
-                              outputQuality: '1080p',
-                            },
-                          });
-                          
-                          if (data?.success && data.finalVideoUrl) {
-                            setFinalVideoUrl(data.finalVideoUrl);
-                            toast.success('Final MP4 ready for download!');
-                            addLog(`Final assembly complete: ${data.bridgeClipsGenerated} bridge clips generated`, 'success');
-                          } else {
-                            throw new Error(data?.error || 'Assembly failed');
-                          }
-                        } catch (err: any) {
-                          toast.error(err.message || 'Failed to assemble final video');
-                          addLog(`Assembly failed: ${err.message}`, 'error');
-                        }
-                      }}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Downloadable MP4
-                    </Button>
-                  )}
-                  
-                  {!finalVideoUrl.endsWith('.json') && (
-                    <Button asChild className="bg-green-600 hover:bg-green-700">
-                      <a href={finalVideoUrl} download target="_blank" rel="noopener noreferrer">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Video
-                      </a>
-                    </Button>
-                  )}
-                  
-                  {/* Re-stitch with AI bridges option */}
-                  {!finalVideoUrl.endsWith('.json') && completedClips >= 2 && (
-                    <Button 
-                      variant="outline"
-                      onClick={async () => {
-                        toast.info('Re-assembling with AI bridge clips...');
-                        try {
-                          const { data, error } = await supabase.functions.invoke('final-assembly', {
-                            body: {
-                              projectId,
-                              userId: user?.id,
-                              forceReassemble: true,
-                              strictness: 'strict',
-                              maxBridgeClips: 5,
-                              outputQuality: '1080p',
-                            },
-                          });
-                          
-                          if (data?.success && data.finalVideoUrl) {
-                            setFinalVideoUrl(data.finalVideoUrl);
-                            toast.success(`Re-stitched with ${data.bridgeClipsGenerated} AI bridge clips!`);
-                          } else {
-                            throw new Error(data?.error || 'Re-assembly failed');
-                          }
-                        } catch (err: any) {
-                          toast.error(err.message || 'Failed to re-stitch');
-                        }
-                      }}
-                    >
-                      <Layers className="w-4 h-4 mr-2" />
-                      Re-Stitch with AI Bridges
-                    </Button>
-                  )}
-                  
-                  <Button variant="outline" onClick={() => navigate('/projects')}>
-                    View All Projects
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate('/create')}>
-                    Create Another
-                  </Button>
-                </div>
+                <h2 className="text-3xl font-bold text-white">Your Video is Ready!</h2>
               </div>
-            </CardContent>
-          </Card>
+              
+              {/* Video player */}
+              <div className="w-full max-w-4xl aspect-video rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl shadow-emerald-500/10">
+                {finalVideoUrl.endsWith('.json') ? (
+                  <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
+                ) : (
+                  <video
+                    src={finalVideoUrl}
+                    controls
+                    className="w-full h-full object-contain bg-black"
+                  />
+                )}
+              </div>
+              
+              {/* Actions */}
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                {finalVideoUrl.endsWith('.json') && (
+                  <Button 
+                    size="lg"
+                    className="bg-white text-black hover:bg-white/90 rounded-full font-bold shadow-lg shadow-white/10"
+                    onClick={async () => {
+                      toast.info('Starting AI-powered final assembly... This may take 2-5 minutes');
+                      try {
+                        const { data, error } = await supabase.functions.invoke('final-assembly', {
+                          body: {
+                            projectId,
+                            userId: user?.id,
+                            strictness: 'normal',
+                            maxBridgeClips: 5,
+                            outputQuality: '1080p',
+                          },
+                        });
+                        
+                        if (data?.success && data.finalVideoUrl) {
+                          setFinalVideoUrl(data.finalVideoUrl);
+                          toast.success('Final MP4 ready for download!');
+                          addLog(`Final assembly complete: ${data.bridgeClipsGenerated} bridge clips generated`, 'success');
+                        } else {
+                          throw new Error(data?.error || 'Assembly failed');
+                        }
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to assemble final video');
+                        addLog(`Assembly failed: ${err.message}`, 'error');
+                      }
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Generate Downloadable MP4
+                  </Button>
+                )}
+                
+                {!finalVideoUrl.endsWith('.json') && (
+                  <Button 
+                    size="lg"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-bold shadow-lg"
+                    asChild
+                  >
+                    <a href={finalVideoUrl} download target="_blank" rel="noopener noreferrer">
+                      <Download className="w-5 h-5 mr-2" />
+                      Download Video
+                    </a>
+                  </Button>
+                )}
+                
+                {!finalVideoUrl.endsWith('.json') && completedClips >= 2 && (
+                  <Button 
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full border-white/20 text-white hover:bg-white/10"
+                    onClick={async () => {
+                      toast.info('Re-assembling with AI bridge clips...');
+                      try {
+                        const { data, error } = await supabase.functions.invoke('final-assembly', {
+                          body: {
+                            projectId,
+                            userId: user?.id,
+                            forceReassemble: true,
+                            strictness: 'strict',
+                            maxBridgeClips: 5,
+                            outputQuality: '1080p',
+                          },
+                        });
+                        
+                        if (data?.success && data.finalVideoUrl) {
+                          setFinalVideoUrl(data.finalVideoUrl);
+                          toast.success(`Re-stitched with ${data.bridgeClipsGenerated} AI bridge clips!`);
+                        } else {
+                          throw new Error(data?.error || 'Re-assembly failed');
+                        }
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to re-stitch');
+                      }
+                    }}
+                  >
+                    <Layers className="w-5 h-5 mr-2" />
+                    Re-Stitch with AI Bridges
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="ghost"
+                  size="lg"
+                  className="rounded-full text-white/60 hover:text-white"
+                  onClick={() => navigate('/projects')}
+                >
+                  View All Projects
+                </Button>
+              </div>
+            </div>
+          </motion.section>
         )}
 
-        {/* Clip Video Modal */}
+        {/* Pipeline Logs - Collapsible */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="flex items-center gap-3 mb-4 group"
+          >
+            <ChevronRight className={cn(
+              "w-4 h-4 text-white/40 transition-transform",
+              showLogs && "rotate-90"
+            )} />
+            <span className="text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">
+              Pipeline Logs
+            </span>
+            <span className="text-xs text-white/30">({pipelineLogs.length} entries)</span>
+          </button>
+          
+          <AnimatePresence>
+            {showLogs && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-1 font-mono text-xs">
+                      {pipelineLogs.length === 0 ? (
+                        <p className="text-white/30">Waiting for pipeline events...</p>
+                      ) : (
+                        pipelineLogs.map((log, index) => (
+                          <div key={index} className="flex gap-3">
+                            <span className="text-white/30 shrink-0">[{log.time}]</span>
+                            <span className={cn(
+                              log.type === 'success' && "text-emerald-400",
+                              log.type === 'error' && "text-red-400",
+                              log.type === 'warning' && "text-amber-400",
+                              log.type === 'info' && "text-white/60"
+                            )}>
+                              {log.message}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      </main>
+
+      {/* Clip Video Modal */}
+      <AnimatePresence>
         {selectedClipUrl && (
-          <div 
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
             onClick={() => setSelectedClipUrl(null)}
           >
-            <div 
-              className="relative max-w-4xl w-full aspect-video"
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-5xl w-full aspect-video"
               onClick={(e) => e.stopPropagation()}
             >
               <video
                 src={selectedClipUrl}
                 controls
                 autoPlay
-                className="w-full h-full rounded-xl"
+                className="w-full h-full rounded-2xl"
               />
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full"
                 onClick={() => setSelectedClipUrl(null)}
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </Button>
-              <div className="absolute bottom-4 right-4 flex gap-2">
+              <div className="absolute bottom-6 right-6 flex gap-3">
                 <Button 
                   size="sm" 
                   variant="outline"
-                  className="bg-black/50"
+                  className="rounded-full bg-black/50 border-white/20 text-white"
                   onClick={() => window.open(selectedClipUrl, '_blank')}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
@@ -1009,7 +1312,7 @@ export default function Production() {
                 </Button>
                 <Button 
                   size="sm"
-                  className="bg-white text-black hover:bg-white/90"
+                  className="rounded-full bg-white text-black hover:bg-white/90"
                   asChild
                 >
                   <a href={selectedClipUrl} download>
@@ -1018,10 +1321,10 @@ export default function Production() {
                   </a>
                 </Button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

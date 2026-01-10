@@ -5,7 +5,7 @@ import {
   Download, Loader2, Zap, Clock, Sparkles,
   User, Coins, ChevronDown, LogOut, Settings, HelpCircle,
   Pencil, Star, TrendingUp, Grid3X3, LayoutGrid, ChevronRight,
-  Eye, Heart, Share2
+  Eye, Heart, Share2, RefreshCw, AlertCircle, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,7 +58,9 @@ function CinematicVideoCard({
   onRename,
   onDelete,
   onDownload,
+  onRetryStitch,
   isActive,
+  isRetrying = false,
   size = 'normal'
 }: {
   project: Project;
@@ -68,12 +70,17 @@ function CinematicVideoCard({
   onRename: () => void;
   onDelete: () => void;
   onDownload: () => void;
+  onRetryStitch?: () => void;
   isActive: boolean;
+  isRetrying?: boolean;
   size?: 'featured' | 'normal' | 'compact';
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  
+  // Cast status to string to handle all possible database statuses
+  const status = project.status as string;
   
   // Check if project has video - include both video_clips array and direct video_url
   // For manifest URLs, we still consider it as having video (playback will resolve clips)
@@ -178,10 +185,16 @@ function CinematicVideoCard({
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
-            {project.status === 'generating' || project.status === 'rendering' ? (
+            {status === 'generating' || status === 'rendering' || status === 'stitching' ? (
               <div className="relative">
                 <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse scale-150" />
                 <Loader2 className="relative w-10 h-10 text-amber-400/70 animate-spin" strokeWidth={1} />
+              </div>
+            ) : status === 'stitching_failed' ? (
+              <div className="relative flex flex-col items-center gap-2">
+                <div className="absolute inset-0 bg-amber-500/10 rounded-full blur-2xl scale-150" />
+                <Layers className="relative w-10 h-10 text-amber-400/70" strokeWidth={1} />
+                <span className="text-[10px] text-amber-400/70 font-medium">Clips Ready</span>
               </div>
             ) : (
               <Film className="w-12 h-12 text-white/10" strokeWidth={1} />
@@ -241,13 +254,46 @@ function CinematicVideoCard({
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Ready</span>
               </span>
-            ) : project.status === 'generating' || project.status === 'rendering' ? (
+            ) : status === 'stitching_failed' ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
+                <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitch Failed</span>
+              </span>
+            ) : status === 'stitching' ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
+                <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitching</span>
+              </span>
+            ) : status === 'generating' || status === 'rendering' ? (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
                 <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
                 <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Processing</span>
               </span>
             ) : null}
           </motion.div>
+
+          {/* Retry Stitch button for failed stitches */}
+          {status === 'stitching_failed' && onRetryStitch && (
+            <motion.button
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: isHovered ? 1 : 0.8, y: 0 }}
+              onClick={(e) => { e.stopPropagation(); onRetryStitch(); }}
+              disabled={isRetrying}
+              className={cn(
+                "mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
+                isRetrying 
+                  ? "bg-white/10 text-white/50 cursor-not-allowed"
+                  : "bg-amber-500 text-black hover:bg-amber-400"
+              )}
+            >
+              {isRetrying ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3 h-3" />
+              )}
+              {isRetrying ? 'Stitching...' : 'Retry Stitch'}
+            </motion.button>
+          )}
 
           {/* Title with reveal animation */}
           <motion.h3
@@ -468,6 +514,69 @@ export default function Projects() {
   const [resolvedClips, setResolvedClips] = useState<string[]>([]);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid');
+  const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
+
+  // Handle simple stitch retry (bypasses vision analysis)
+  const handleRetryStitch = async (projectId: string) => {
+    if (retryingProjectId) return;
+    
+    setRetryingProjectId(projectId);
+    toast.info('Starting simple stitch...', { description: 'Concatenating clips without AI analysis' });
+    
+    try {
+      // Get all completed clips from database
+      const { data: clips, error: clipsError } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, video_url, duration_seconds')
+        .eq('project_id', projectId)
+        .eq('status', 'completed')
+        .order('shot_index');
+      
+      if (clipsError) throw clipsError;
+      if (!clips || clips.length === 0) throw new Error('No completed clips found');
+      
+      // Get project title
+      const { data: project } = await supabase
+        .from('movie_projects')
+        .select('title')
+        .eq('id', projectId)
+        .single();
+      
+      // Call stitch-video with forceMvpMode to bypass intelligent-stitch
+      const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
+        body: {
+          projectId,
+          projectTitle: project?.title || 'Video',
+          clips: clips.map(clip => ({
+            shotId: clip.id,
+            videoUrl: clip.video_url,
+            durationSeconds: clip.duration_seconds || 4,
+            transitionOut: 'continuous',
+          })),
+          audioMixMode: 'mute',
+          forceMvpMode: true, // Bypass Cloud Run, use manifest mode
+        },
+      });
+      
+      if (stitchError) throw stitchError;
+      
+      if (data?.success && data?.finalVideoUrl) {
+        toast.success('Video stitched successfully!');
+        await refreshProjects();
+      } else if (data?.success && data?.mode === 'cloud-run') {
+        toast.info('Stitching in progress...', { description: 'This may take a few minutes' });
+        // Set up polling or wait for realtime update
+        setTimeout(() => refreshProjects(), 5000);
+      } else {
+        throw new Error(data?.error || 'Stitch returned no video URL');
+      }
+    } catch (err: any) {
+      console.error('Simple stitch failed:', err);
+      toast.error('Stitch failed', { description: err.message });
+    } finally {
+      setRetryingProjectId(null);
+    }
+  };
 
   const handleRenameProject = (project: Project) => {
     setProjectToRename(project);
@@ -603,9 +712,12 @@ export default function Projects() {
     toast.success('Signed out successfully');
   };
 
-  // Only show completed projects
-  const completedProjects = projects.filter(p => p.status === 'completed');
-  const recentProjects = [...completedProjects].sort((a, b) => 
+  // Show completed and stitching_failed projects (stitching_failed have clips ready)
+  const status = (p: Project) => p.status as string;
+  const visibleProjects = projects.filter(p => 
+    status(p) === 'completed' || status(p) === 'stitching_failed'
+  );
+  const recentProjects = [...visibleProjects].sort((a, b) => 
     new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   );
   const featuredProject = recentProjects[0];
@@ -743,7 +855,7 @@ export default function Projects() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {completedProjects.length === 0 ? (
+        {visibleProjects.length === 0 ? (
           /* ========== EMPTY STATE ========== */
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
@@ -815,7 +927,7 @@ export default function Projects() {
                   transition={{ delay: 0.1 }}
                   className="text-white/40 text-lg"
                 >
-                  {completedProjects.length} completed {completedProjects.length === 1 ? 'project' : 'projects'}
+                  {visibleProjects.length} {visibleProjects.length === 1 ? 'project' : 'projects'}
                 </motion.p>
               </div>
               
@@ -871,7 +983,9 @@ export default function Projects() {
                       onRename={() => handleRenameProject(featuredProject)}
                       onDelete={() => deleteProject(featuredProject.id)}
                       onDownload={() => handleDownloadAll(featuredProject)}
+                      onRetryStitch={() => handleRetryStitch(featuredProject.id)}
                       isActive={activeProjectId === featuredProject.id}
+                      isRetrying={retryingProjectId === featuredProject.id}
                     />
                   </div>
                   
@@ -883,7 +997,7 @@ export default function Projects() {
                           <TrendingUp className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-white">{completedProjects.length}</p>
+                          <p className="text-2xl font-bold text-white">{visibleProjects.length}</p>
                           <p className="text-xs text-white/40">Completed</p>
                         </div>
                       </div>
@@ -896,7 +1010,7 @@ export default function Projects() {
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-white">
-                            {completedProjects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0)}
+                            {visibleProjects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0)}
                           </p>
                           <p className="text-xs text-white/40">Total Clips</p>
                         </div>
@@ -945,7 +1059,9 @@ export default function Projects() {
                     onRename={() => handleRenameProject(project)}
                     onDelete={() => deleteProject(project.id)}
                     onDownload={() => handleDownloadAll(project)}
+                    onRetryStitch={() => handleRetryStitch(project.id)}
                     isActive={activeProjectId === project.id}
+                    isRetrying={retryingProjectId === project.id}
                   />
                 ))}
                 

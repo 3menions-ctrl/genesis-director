@@ -293,6 +293,7 @@ export default function Production() {
   const [lastProgressTime, setLastProgressTime] = useState<number>(Date.now());
   const [autoResumeAttempted, setAutoResumeAttempted] = useState(false);
   const [expectedClipCount, setExpectedClipCount] = useState(6);
+  const [isSimpleStitching, setIsSimpleStitching] = useState(false);
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
@@ -384,6 +385,77 @@ export default function Production() {
       setRetryingClipIndex(null);
     }
   }, [projectId, user, addLog, loadVideoClips]);
+
+  // Handle simple stitch retry (bypasses vision analysis)
+  const handleSimpleStitchRetry = useCallback(async () => {
+    if (!projectId || !user || isSimpleStitching) return;
+    
+    setIsSimpleStitching(true);
+    addLog('Starting simple stitch (bypassing AI analysis)...', 'info');
+    toast.info('Starting simple stitch...', { description: 'Concatenating clips without AI transition analysis' });
+    
+    try {
+      // Get all completed clips from database
+      const { data: clips, error: clipsError } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, video_url, duration_seconds')
+        .eq('project_id', projectId)
+        .eq('status', 'completed')
+        .order('shot_index');
+      
+      if (clipsError) throw clipsError;
+      if (!clips || clips.length === 0) throw new Error('No completed clips found');
+      
+      addLog(`Found ${clips.length} completed clips`, 'info');
+      
+      // Get project title
+      const { data: project } = await supabase
+        .from('movie_projects')
+        .select('title')
+        .eq('id', projectId)
+        .single();
+      
+      // Call stitch-video with forceMvpMode to bypass intelligent-stitch
+      const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
+        body: {
+          projectId,
+          projectTitle: project?.title || 'Video',
+          clips: clips.map(clip => ({
+            shotId: clip.id,
+            videoUrl: clip.video_url,
+            durationSeconds: clip.duration_seconds || 4,
+            transitionOut: 'continuous',
+          })),
+          audioMixMode: 'mute',
+          forceMvpMode: true, // Bypass Cloud Run, use manifest mode
+        },
+      });
+      
+      if (stitchError) throw stitchError;
+      
+      if (data?.success && data?.finalVideoUrl) {
+        setFinalVideoUrl(data.finalVideoUrl);
+        setProjectStatus('completed');
+        setProgress(100);
+        toast.success('Video stitched successfully!');
+        addLog('Simple stitch completed!', 'success');
+      } else if (data?.success && data?.mode === 'cloud-run') {
+        // Cloud Run async mode - wait for callback
+        setProjectStatus('stitching');
+        addLog('Stitch dispatched to Cloud Run, waiting for completion...', 'info');
+        toast.info('Stitching in progress...', { description: 'This may take a few minutes' });
+      } else {
+        throw new Error(data?.error || 'Stitch returned no video URL');
+      }
+    } catch (err: any) {
+      console.error('Simple stitch failed:', err);
+      setError(err.message || 'Simple stitch failed');
+      addLog(`Simple stitch failed: ${err.message}`, 'error');
+      toast.error('Stitch failed', { description: err.message });
+    } finally {
+      setIsSimpleStitching(false);
+    }
+  }, [projectId, user, isSimpleStitching, addLog]);
 
   // Timer effect
   useEffect(() => {
@@ -1263,6 +1335,57 @@ export default function Production() {
                     onClick={() => navigate('/create')}
                   >
                     Start New
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Stitching Failed - Retry Options */}
+        {projectStatus === 'stitching_failed' && completedClips > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                {isSimpleStitching ? (
+                  <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                ) : (
+                  <Layers className="w-6 h-6 text-amber-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-amber-400 mb-1">Stitching Failed</h3>
+                <p className="text-sm text-white/60 mb-2">
+                  All {completedClips} video clips were generated successfully, but the final assembly failed 
+                  (likely due to Vision API quota limits for transition analysis).
+                </p>
+                <p className="text-sm text-white/40 mb-4">
+                  You can retry with simple stitching which bypasses AI analysis and directly concatenates clips.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button 
+                    disabled={isSimpleStitching}
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-full"
+                    onClick={handleSimpleStitchRetry}
+                  >
+                    {isSimpleStitching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4 mr-2" />
+                    )}
+                    Retry Simple Stitch
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="rounded-full border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => navigate(`/clips?projectId=${projectId}`)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View All Clips
                   </Button>
                 </div>
               </div>

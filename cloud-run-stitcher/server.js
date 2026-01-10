@@ -783,6 +783,16 @@ async function stitchVideos(request) {
       await fs.rm(workDir, { recursive: true, force: true });
     } catch {}
     
+    // CRITICAL FIX: Notify the Edge Function about the failure so it can update the project status
+    try {
+      console.log(`[Stitch] Calling finalizeStitch with failure status for project ${projectId}`);
+      const retryAttempt = request.retryAttempt || 0;
+      await finalizeStitch(projectId, null, null, null, 'failed', error.message);
+      console.log(`[Stitch] Failure notification sent successfully`);
+    } catch (notifyError) {
+      console.error(`[Stitch] Failed to notify about failure:`, notifyError.message);
+    }
+    
     return {
       success: false,
       error: error.message

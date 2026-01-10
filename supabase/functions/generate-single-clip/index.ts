@@ -30,12 +30,24 @@ interface GenerateSingleClipRequest {
     };
     consistencyPrompt?: string;
     consistencyAnchors?: string[];
+    // NEW: Story context for narrative continuity
+    storyContext?: {
+      fullStory?: string;
+      currentBeat?: string;
+      emotionalState?: string;
+      previousAction?: string;
+      nextAction?: string;
+    };
   };
   colorGrading?: string;
   qualityTier?: 'standard' | 'professional';
   referenceImageUrl?: string;
-  // NEW: Aspect ratio from reference image orientation
+  // Aspect ratio from reference image orientation
   aspectRatio?: '16:9' | '9:16' | '1:1';
+  // NEW: Story continuity context
+  storyPosition?: 'opening' | 'setup' | 'catalyst' | 'rising' | 'climax' | 'resolution';
+  previousClipSummary?: string;
+  isRetry?: boolean;
 }
 
 interface ClipResult {
@@ -452,10 +464,40 @@ serve(async (req) => {
       console.log(`[SingleClip] No identity bible available - character may vary`);
     }
     
+    // NEW: Inject story context for narrative continuity
+    if (request.storyPosition || request.previousClipSummary) {
+      const storyParts: string[] = [];
+      
+      if (request.storyPosition) {
+        const positionHints: Record<string, string> = {
+          'opening': 'This is the OPENING - establish character and world, create intrigue',
+          'setup': 'This is the SETUP - show the situation and stakes',
+          'catalyst': 'This is the CATALYST - something changes, story kicks into motion',
+          'rising': 'This is RISING ACTION - tension builds, obstacles appear',
+          'climax': 'This is the CLIMAX - highest tension, most important moment',
+          'resolution': 'This is the RESOLUTION - aftermath, conclusion, emotional payoff',
+        };
+        storyParts.push(positionHints[request.storyPosition] || '');
+      }
+      
+      if (request.previousClipSummary) {
+        storyParts.push(`CONTINUES FROM: ${request.previousClipSummary}`);
+      }
+      
+      if (request.identityBible?.storyContext?.emotionalState) {
+        storyParts.push(`EMOTIONAL STATE: ${request.identityBible.storyContext.emotionalState}`);
+      }
+      
+      if (storyParts.length > 0) {
+        enhancedPrompt = `[STORY CONTEXT: ${storyParts.join(' | ')}]\n\n${enhancedPrompt}`;
+        console.log(`[SingleClip] Story context injected: ${request.storyPosition || 'custom'}`);
+      }
+    }
+    
     // Inject velocity continuity from previous clip
     const velocityAwarePrompt = injectVelocityContinuity(enhancedPrompt, request.previousMotionVectors);
     
-    console.log(`[SingleClip] Enhanced prompt: ${velocityAwarePrompt.substring(0, 100)}...`);
+    console.log(`[SingleClip] Enhanced prompt: ${velocityAwarePrompt.substring(0, 150)}...`);
 
     // Mark clip as generating
     await supabase.rpc('upsert_video_clip', {

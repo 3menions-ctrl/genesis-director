@@ -1330,42 +1330,165 @@ async function runProduction(
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');
   console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips`);
   
-  // Request final assembly from intelligent stitcher (uses scene anchors + gap detection)
+  // =====================================================
+  // CONTINUITY ENGINE: Analyze gaps and generate bridges
+  // =====================================================
+  let continuityPlan: any = null;
+  let bridgeClipUrls: string[] = [];
+  
+  if (completedClips.length >= 2) {
+    console.log(`[Hollywood] Running Continuity Engine for ${completedClips.length} clips...`);
+    
+    try {
+      // Step 1: Analyze all transitions and build continuity plan
+      const continuityResult = await callEdgeFunction('continuity-engine', {
+        projectId: state.projectId,
+        userId: request.userId,
+        clips: completedClips.map((c, idx) => ({
+          index: c.index,
+          videoUrl: c.videoUrl,
+          lastFrameUrl: c.lastFrameUrl,
+          prompt: clips[c.index]?.prompt || '',
+          motionVectors: undefined, // Will be retrieved from DB if needed
+          sceneType: (state.script?.shots?.[c.index] as any)?.sceneType || 'action',
+        })),
+        environmentLock: {
+          lighting: (state as any).colorGrading?.masterPrompt?.match(/lighting[^,]*/i)?.[0] || 'natural',
+          colorPalette: (state as any).colorGrading?.masterPreset || 'cinematic',
+          timeOfDay: 'day',
+          weather: 'clear',
+        },
+        gapThreshold: 70,
+        maxBridgeClips: 5,
+        strictness: 'normal',
+      });
+      
+      if (continuityResult.success && continuityResult.plan) {
+        continuityPlan = continuityResult.plan;
+        console.log(`[Hollywood] Continuity analysis complete:`);
+        console.log(`  - Overall score: ${continuityPlan.overallContinuityScore}/100`);
+        console.log(`  - Bridge clips needed: ${continuityPlan.bridgeClipsNeeded}`);
+        console.log(`  - Scene groups: ${continuityPlan.sceneGroups?.length || 0}`);
+        
+        // Store continuity plan in state for post-production reporting
+        (state as any).continuityPlan = continuityPlan;
+        
+        // Step 2: Generate bridge clips where needed
+        if (continuityPlan.bridgeClipsNeeded > 0) {
+          console.log(`[Hollywood] Generating ${continuityPlan.bridgeClipsNeeded} bridge clips...`);
+          
+          const bridgePromises = continuityPlan.transitions
+            .filter((t: any) => t.bridgeClip)
+            .slice(0, 5) // Max 5 bridges
+            .map(async (transition: any) => {
+              const fromClip = completedClips.find(c => c.index === transition.fromIndex);
+              if (!fromClip?.lastFrameUrl) {
+                console.warn(`[Hollywood] No last frame for bridge after clip ${transition.fromIndex}`);
+                return null;
+              }
+              
+              try {
+                const bridgeResult = await callEdgeFunction('generate-bridge-clip', {
+                  projectId: state.projectId,
+                  userId: request.userId,
+                  fromClipLastFrame: fromClip.lastFrameUrl,
+                  bridgePrompt: transition.bridgeClip.prompt,
+                  durationSeconds: transition.bridgeClip.durationSeconds || 3,
+                  sceneContext: {
+                    lighting: continuityPlan.environmentLock?.lighting,
+                    colorPalette: continuityPlan.environmentLock?.colorPalette,
+                    environment: state.script?.shots?.[transition.fromIndex]?.description?.substring(0, 100),
+                    mood: state.script?.shots?.[transition.fromIndex]?.mood,
+                  },
+                });
+                
+                if (bridgeResult.success && bridgeResult.videoUrl) {
+                  console.log(`[Hollywood] Bridge clip generated for ${transition.fromIndex} → ${transition.toIndex}`);
+                  return {
+                    insertAfterIndex: transition.bridgeClip.insertAfterIndex,
+                    videoUrl: bridgeResult.videoUrl,
+                  };
+                }
+              } catch (bridgeErr) {
+                console.warn(`[Hollywood] Bridge clip generation failed:`, bridgeErr);
+              }
+              return null;
+            });
+          
+          const bridgeResults = await Promise.all(bridgePromises);
+          bridgeClipUrls = bridgeResults.filter(Boolean) as any[];
+          console.log(`[Hollywood] Generated ${bridgeClipUrls.length} bridge clips successfully`);
+        }
+      }
+    } catch (continuityErr) {
+      console.warn(`[Hollywood] Continuity Engine failed, proceeding without bridges:`, continuityErr);
+    }
+  }
+  
+  // =====================================================
+  // FINAL ASSEMBLY: Stitch with bridge clips integrated
+  // =====================================================
   if (completedClips.length > 0) {
     console.log(`[Hollywood] Requesting intelligent stitching with scene anchor analysis...`);
     
     try {
       const hasAudioTracks = state.assets?.voiceUrl || state.assets?.musicUrl;
       
+      // Build clip sequence with bridge clips inserted
+      let clipSequence = completedClips.map((c, idx) => ({
+        shotId: `clip_${c.index}`,
+        videoUrl: c.videoUrl,
+        firstFrameUrl: idx === 0 ? request.referenceImageUrl : undefined,
+        lastFrameUrl: c.lastFrameUrl,
+        isBridge: false,
+      }));
+      
+      // Insert bridge clips at correct positions
+      if (bridgeClipUrls.length > 0) {
+        // Sort by insertAfterIndex descending to insert from end (avoid index shifting)
+        const sortedBridges = [...bridgeClipUrls].sort((a: any, b: any) => b.insertAfterIndex - a.insertAfterIndex);
+        
+        for (const bridge of sortedBridges as any[]) {
+          const insertIdx = clipSequence.findIndex(c => c.shotId === `clip_${bridge.insertAfterIndex}`);
+          if (insertIdx >= 0) {
+            clipSequence.splice(insertIdx + 1, 0, {
+              shotId: `bridge_after_${bridge.insertAfterIndex}`,
+              videoUrl: bridge.videoUrl,
+              firstFrameUrl: undefined,
+              lastFrameUrl: undefined,
+              isBridge: true,
+            });
+          }
+        }
+        console.log(`[Hollywood] Clip sequence now has ${clipSequence.length} items (${bridgeClipUrls.length} bridges)`);
+      }
+      
       // Use intelligent-stitch for ALL tiers with bridge clips enabled for all
       console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier (bridge clips enabled for all)`);
       const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
         projectId: state.projectId,
-        userId: request.userId, // FIXED: Pass userId for proper cost logging
-        clips: completedClips.map((c, idx) => ({
-          shotId: `clip_${c.index}`,
-          videoUrl: c.videoUrl,
-          firstFrameUrl: idx === 0 ? request.referenceImageUrl : undefined,
-          lastFrameUrl: c.lastFrameUrl,
-        })),
+        userId: request.userId,
+        clips: clipSequence,
         voiceAudioUrl: state.assets?.voiceUrl,
         musicAudioUrl: state.assets?.musicUrl,
-        autoGenerateBridges: true, // FIXED: Bridge clips enabled for ALL tiers
+        autoGenerateBridges: bridgeClipUrls.length === 0, // Only auto-generate if we didn't already
         strictnessLevel: 'normal',
-        maxBridgeClips: 5, // FIXED: Increased from 3 to 5
+        maxBridgeClips: Math.max(0, 5 - bridgeClipUrls.length), // Subtract already generated
         targetFormat: '1080p',
         qualityTier: request.qualityTier || 'standard',
         // Pass pro features for intelligent audio-visual sync
         musicSyncPlan: (state as any).musicSyncPlan,
         colorGradingFilter: (state as any).colorGrading?.masterFilter,
         sfxPlan: (state as any).sfxPlan,
+        // Pass continuity plan for transition timing
+        continuityPlan: continuityPlan,
       });
       
       if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
         state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
         console.log(`[Hollywood] Intelligent stitch complete: ${state.finalVideoUrl}`);
         console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
-        console.log(`[Hollywood] Bridge clips generated: ${intelligentStitchResult.bridgeClipsGenerated || 0}`);
+        console.log(`[Hollywood] Total bridge clips: ${bridgeClipUrls.length + (intelligentStitchResult.bridgeClipsGenerated || 0)}`);
       } else {
         console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to direct stitch`);
       }
@@ -1380,10 +1503,10 @@ async function runProduction(
             body: JSON.stringify({
               projectId: state.projectId,
               projectTitle: `Video - ${state.projectId}`,
-              clips: completedClips.map(c => ({
-                shotId: `clip_${c.index}`,
+              clips: clipSequence.map(c => ({
+                shotId: c.shotId,
                 videoUrl: c.videoUrl,
-                durationSeconds: DEFAULT_CLIP_DURATION,
+                durationSeconds: c.isBridge ? 3 : DEFAULT_CLIP_DURATION,
                 transitionOut: 'continuous',
               })),
               audioMixMode: hasAudioTracks ? 'full' : 'mute',

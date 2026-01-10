@@ -34,8 +34,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Helper to check if URL is a manifest
+// Helper to check if URL is a manifest (not a real stitched video)
 const isManifestUrl = (url: string): boolean => url?.endsWith('.json');
+
+// Helper to check if URL is a real stitched MP4 from Google Cloud Run
+const isStitchedMp4 = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.includes('/final-videos/') && url.endsWith('.mp4');
+};
 
 // Helper to fetch clip URLs from manifest
 const fetchClipsFromManifest = async (manifestUrl: string): Promise<string[]> => {
@@ -516,12 +522,12 @@ export default function Projects() {
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid');
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
 
-  // Handle simple stitch retry (bypasses vision analysis)
-  const handleRetryStitch = async (projectId: string) => {
+  // Handle Google Cloud Run stitch (real video stitching, not manifest)
+  const handleGoogleStitch = async (projectId: string) => {
     if (retryingProjectId) return;
     
     setRetryingProjectId(projectId);
-    toast.info('Starting simple stitch...', { description: 'Concatenating clips without AI analysis' });
+    toast.info('Starting Google Cloud stitch...', { description: 'Processing with FFmpeg - this may take 2-3 minutes' });
     
     try {
       // Get all completed clips from database
@@ -542,7 +548,7 @@ export default function Projects() {
         .eq('id', projectId)
         .single();
       
-      // Call stitch-video with forceMvpMode to bypass intelligent-stitch
+      // Call stitch-video WITHOUT forceMvpMode to use Cloud Run
       const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
         body: {
           projectId,
@@ -551,27 +557,31 @@ export default function Projects() {
             shotId: clip.id,
             videoUrl: clip.video_url,
             durationSeconds: clip.duration_seconds || 4,
-            transitionOut: 'continuous',
+            transitionOut: 'cut',
           })),
           audioMixMode: 'mute',
-          forceMvpMode: true, // Bypass Cloud Run, use manifest mode
+          // NO forceMvpMode - use Google Cloud Run stitcher
         },
       });
       
       if (stitchError) throw stitchError;
       
-      if (data?.success && data?.finalVideoUrl) {
+      if (data?.success && data?.mode === 'cloud-run') {
+        toast.success('Stitching started!', { description: 'Video will appear when ready (2-3 min)' });
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          await refreshProjects();
+        }, 10000);
+        // Stop polling after 5 minutes
+        setTimeout(() => clearInterval(pollInterval), 300000);
+      } else if (data?.success && data?.finalVideoUrl) {
         toast.success('Video stitched successfully!');
         await refreshProjects();
-      } else if (data?.success && data?.mode === 'cloud-run') {
-        toast.info('Stitching in progress...', { description: 'This may take a few minutes' });
-        // Set up polling or wait for realtime update
-        setTimeout(() => refreshProjects(), 5000);
       } else {
-        throw new Error(data?.error || 'Stitch returned no video URL');
+        throw new Error(data?.error || 'Stitch failed to start');
       }
     } catch (err: any) {
-      console.error('Simple stitch failed:', err);
+      console.error('Google stitch failed:', err);
       toast.error('Stitch failed', { description: err.message });
     } finally {
       setRetryingProjectId(null);
@@ -712,16 +722,31 @@ export default function Projects() {
     toast.success('Signed out successfully');
   };
 
-  // Show completed and stitching_failed projects (stitching_failed have clips ready)
+  // Only show projects with real Google-stitched MP4s (not manifests)
   const status = (p: Project) => p.status as string;
-  const visibleProjects = projects.filter(p => 
-    status(p) === 'completed' || status(p) === 'stitching_failed'
+  
+  // Projects with real stitched videos (from Google Cloud Run)
+  const stitchedProjects = projects.filter(p => 
+    isStitchedMp4(p.video_url)
   );
-  const recentProjects = [...visibleProjects].sort((a, b) => 
+  
+  // Projects that need stitching (have clips but no stitched video or manifest-only)
+  const needsStitching = projects.filter(p => {
+    const hasClips = (p.video_clips?.length ?? 0) > 0 || 
+      (p.video_url && isManifestUrl(p.video_url));
+    const hasStitchedVideo = isStitchedMp4(p.video_url);
+    const isProcessing = status(p) === 'stitching';
+    return hasClips && !hasStitchedVideo && !isProcessing;
+  });
+  
+  // Projects currently being stitched
+  const stitchingProjects = projects.filter(p => status(p) === 'stitching');
+  
+  const recentStitchedProjects = [...stitchedProjects].sort((a, b) => 
     new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   );
-  const featuredProject = recentProjects[0];
-  const otherProjects = recentProjects.slice(1);
+  const featuredProject = recentStitchedProjects[0];
+  const otherProjects = recentStitchedProjects.slice(1);
 
   return (
     <div className="min-h-screen bg-[#050505] relative overflow-x-hidden">
@@ -855,7 +880,7 @@ export default function Projects() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {visibleProjects.length === 0 ? (
+        {stitchedProjects.length === 0 && needsStitching.length === 0 ? (
           /* ========== EMPTY STATE ========== */
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
@@ -927,7 +952,7 @@ export default function Projects() {
                   transition={{ delay: 0.1 }}
                   className="text-white/40 text-lg"
                 >
-                  {visibleProjects.length} {visibleProjects.length === 1 ? 'project' : 'projects'}
+                  {stitchedProjects.length} {stitchedProjects.length === 1 ? 'video' : 'videos'}
                 </motion.p>
               </div>
               
@@ -959,6 +984,81 @@ export default function Projects() {
               </motion.div>
             </div>
 
+            {/* ========== NEEDS STITCHING SECTION ========== */}
+            {(needsStitching.length > 0 || stitchingProjects.length > 0) && (
+              <motion.section 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mb-12"
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <Layers className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-xl font-bold text-white">Ready to Stitch</h2>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
+                    {needsStitching.length + stitchingProjects.length}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {/* Processing projects */}
+                  {stitchingProjects.map((project, index) => (
+                    <div 
+                      key={project.id}
+                      className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+                        <span className="text-sm font-medium text-white truncate">{project.name}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-amber-500"
+                          initial={{ width: '10%' }}
+                          animate={{ width: '60%' }}
+                          transition={{ duration: 60, ease: 'linear' }}
+                        />
+                      </div>
+                      <p className="text-xs text-white/40 mt-2">Processing with Google FFmpeg...</p>
+                    </div>
+                  ))}
+                  
+                  {/* Projects needing stitching */}
+                  {needsStitching.map((project, index) => (
+                    <div 
+                      key={project.id}
+                      className="p-4 rounded-xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] hover:border-white/15 transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-white truncate flex-1 mr-2">{project.name}</span>
+                        <span className="text-xs text-white/40 shrink-0">
+                          {project.video_clips?.length || '?'} clips
+                        </span>
+                      </div>
+                      <Button
+                        onClick={() => handleGoogleStitch(project.id)}
+                        disabled={retryingProjectId === project.id}
+                        size="sm"
+                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+                      >
+                        {retryingProjectId === project.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                            Stitching...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-3 h-3 mr-2" />
+                            Stitch with Google
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
+            )}
+
             {/* ========== FEATURED PROJECT ========== */}
             {featuredProject && viewMode === 'gallery' && (
               <motion.section 
@@ -983,7 +1083,7 @@ export default function Projects() {
                       onRename={() => handleRenameProject(featuredProject)}
                       onDelete={() => deleteProject(featuredProject.id)}
                       onDownload={() => handleDownloadAll(featuredProject)}
-                      onRetryStitch={() => handleRetryStitch(featuredProject.id)}
+                      onRetryStitch={() => handleGoogleStitch(featuredProject.id)}
                       isActive={activeProjectId === featuredProject.id}
                       isRetrying={retryingProjectId === featuredProject.id}
                     />
@@ -997,7 +1097,7 @@ export default function Projects() {
                           <TrendingUp className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-white">{visibleProjects.length}</p>
+                          <p className="text-2xl font-bold text-white">{stitchedProjects.length}</p>
                           <p className="text-xs text-white/40">Completed</p>
                         </div>
                       </div>
@@ -1010,7 +1110,7 @@ export default function Projects() {
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-white">
-                            {visibleProjects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0)}
+                            {stitchedProjects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0)}
                           </p>
                           <p className="text-xs text-white/40">Total Clips</p>
                         </div>
@@ -1048,7 +1148,7 @@ export default function Projects() {
                   ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                   : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
               )}>
-                {(viewMode === 'gallery' ? otherProjects : recentProjects).map((project, index) => (
+                {(viewMode === 'gallery' ? otherProjects : recentStitchedProjects).map((project, index) => (
                   <CinematicVideoCard
                     key={project.id}
                     project={project}
@@ -1059,7 +1159,7 @@ export default function Projects() {
                     onRename={() => handleRenameProject(project)}
                     onDelete={() => deleteProject(project.id)}
                     onDownload={() => handleDownloadAll(project)}
-                    onRetryStitch={() => handleRetryStitch(project.id)}
+                    onRetryStitch={() => handleGoogleStitch(project.id)}
                     isActive={activeProjectId === project.id}
                     isRetrying={retryingProjectId === project.id}
                   />
@@ -1068,7 +1168,7 @@ export default function Projects() {
                 {/* Create new project card */}
                 <CreateProjectCard 
                   onClick={handleCreateProject} 
-                  delay={Math.min((viewMode === 'gallery' ? otherProjects : recentProjects).length * 0.08, 0.5)} 
+                  delay={Math.min((viewMode === 'gallery' ? otherProjects : recentStitchedProjects).length * 0.08, 0.5)} 
                 />
               </div>
             </motion.section>

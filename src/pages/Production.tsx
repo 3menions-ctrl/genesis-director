@@ -513,6 +513,7 @@ export default function Production() {
   const [scriptShots, setScriptShots] = useState<ScriptShot[] | null>(null);
   const [isApprovingScript, setIsApprovingScript] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -935,6 +936,50 @@ export default function Production() {
     }
   };
 
+  const handleCancelPipeline = async () => {
+    if (!projectId || !user || isCancelling) return;
+    
+    // Confirm cancellation
+    if (!window.confirm('Are you sure you want to cancel this production? Any generated clips will be preserved, but the pipeline will stop.')) {
+      return;
+    }
+    
+    setIsCancelling(true);
+    
+    try {
+      addLog('Cancelling pipeline...', 'warning');
+      
+      // Update project status to draft/cancelled
+      const { error: updateError } = await supabase
+        .from('movie_projects')
+        .update({ status: 'draft' })
+        .eq('id', projectId)
+        .eq('user_id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      // Update any generating clips to pending
+      await supabase
+        .from('video_clips')
+        .update({ status: 'pending' })
+        .eq('project_id', projectId)
+        .eq('status', 'generating');
+      
+      setProjectStatus('draft');
+      toast.success('Pipeline cancelled');
+      addLog('Pipeline cancelled', 'warning');
+      
+      // Navigate back to projects
+      navigate('/projects');
+    } catch (err: any) {
+      console.error('Failed to cancel pipeline:', err);
+      toast.error(err.message || 'Failed to cancel pipeline');
+      addLog(`Cancel failed: ${err.message}`, 'error');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handleApproveScript = async (approvedShots: ScriptShot[]) => {
     if (!projectId || !user || isApprovingScript) return;
     setIsApprovingScript(true);
@@ -1092,8 +1137,22 @@ export default function Production() {
               
               <div className="h-5 w-px bg-white/[0.06]" />
               
+              {/* Cancel Button - show when pipeline is running */}
+              {isRunning && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-full"
+                  onClick={handleCancelPipeline}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <X className="w-3 h-3 mr-1" />}
+                  Cancel
+                </Button>
+              )}
+              
               {/* Resume Button - show when there are clips and pipeline might be stalled */}
-              {clipResults.length > 0 && !isComplete && (
+              {clipResults.length > 0 && !isComplete && !isRunning && (
                 <Button
                   size="sm"
                   variant="outline"

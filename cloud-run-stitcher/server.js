@@ -143,20 +143,27 @@ async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcess
 }
 
 // Upload file to signed URL
+// CRITICAL: Must include x-upsert header for Supabase storage signed upload URLs
 async function uploadToSignedUrl(signedUrl, fileBuffer, contentType = 'video/mp4') {
+  console.log(`[Upload] Uploading ${fileBuffer.length} bytes to signed URL...`);
+  
   const response = await fetch(signedUrl, {
     method: 'PUT',
     headers: {
-      'Content-Type': contentType
+      'Content-Type': contentType,
+      'x-upsert': 'true', // Required by Supabase - allows overwrite and prevents "signature verification failed"
+      'cache-control': 'max-age=31536000'
     },
     body: fileBuffer
   });
   
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Upload failed: ${response.status} - ${error}`);
+    console.error(`[Upload] Failed: ${response.status} - ${error}`);
+    throw new Error(`Storage upload failed: ${error}`);
   }
   
+  console.log(`[Upload] Success!`);
   return true;
 }
 

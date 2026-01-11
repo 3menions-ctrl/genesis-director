@@ -264,6 +264,10 @@ async function fireCloudRunStitcherAsync(
   const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   
+  // CRITICAL: Pass Supabase credentials dynamically so Cloud Run always uses the correct URL
+  // This prevents issues when Supabase URL changes but Cloud Run env vars are stale
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
   const enhancedRequest = {
     ...request,
     audioMixParams,
@@ -271,6 +275,9 @@ async function fireCloudRunStitcherAsync(
     callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
     retryAttempt: request.retryAttempt || 0,
     maxRetries: 3,
+    // Dynamic Supabase config - overrides Cloud Run env vars
+    supabaseUrl,
+    supabaseServiceKey,
   };
   
   try {

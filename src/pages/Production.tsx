@@ -15,9 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
+import { parsePendingVideoTasks, PendingVideoTasksScript } from '@/types/pending-video-tasks';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 
 // ============= TYPES =============
 
@@ -509,6 +510,9 @@ export default function Production() {
   const [isSimpleStitching, setIsSimpleStitching] = useState(false);
   const [autoStitchAttempted, setAutoStitchAttempted] = useState(false);
   const [allProductionProjects, setAllProductionProjects] = useState<ProductionProject[]>([]);
+  const [scriptShots, setScriptShots] = useState<ScriptShot[] | null>(null);
+  const [isApprovingScript, setIsApprovingScript] = useState(false);
+  const [pipelineStage, setPipelineStage] = useState<string | null>(null);
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -644,10 +648,34 @@ export default function Production() {
         if (tasks.progress) setProgress(tasks.progress);
         if (tasks.clipCount) setExpectedClipCount(tasks.clipCount);
         if (tasks.auditScore) setAuditScore(tasks.auditScore);
+        if (tasks.stage) setPipelineStage(tasks.stage);
+        
+        // Check for script awaiting approval
+        if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
+          const shots: ScriptShot[] = tasks.script.shots.map((shot, idx) => ({
+            id: shot.id || `shot-${idx}`,
+            index: idx,
+            title: shot.title,
+            description: shot.description,
+            durationSeconds: shot.durationSeconds,
+            sceneType: shot.sceneType,
+            cameraScale: shot.cameraScale,
+            cameraAngle: shot.cameraAngle,
+            movementType: shot.movementType,
+            transitionOut: shot.transitionOut,
+            visualAnchors: shot.visualAnchors,
+            motionDirection: shot.motionDirection,
+            lightingHint: shot.lightingHint,
+            dialogue: shot.dialogue,
+            mood: shot.mood,
+          }));
+          setScriptShots(shots);
+          addLog('Script ready for approval', 'info');
+        }
         
         if (tasks.stage) {
           const stageMap: Record<string, number> = {
-            'preproduction': 0, 'qualitygate': 2, 'assets': 3,
+            'preproduction': 0, 'awaiting_approval': 0, 'qualitygate': 2, 'assets': 3,
             'production': 4, 'postproduction': 5, 'complete': 5,
           };
           const idx = stageMap[tasks.stage];
@@ -692,9 +720,11 @@ export default function Production() {
             setProgress(tasks.progress);
             springProgress.set(tasks.progress);
           }
+          
+          if (tasks.stage) setPipelineStage(tasks.stage);
 
           const stageMap: Record<string, number> = {
-            'preproduction': 0, 'qualitygate': 2, 'assets': 3,
+            'preproduction': 0, 'awaiting_approval': 0, 'qualitygate': 2, 'assets': 3,
             'production': 4, 'postproduction': 5,
           };
 
@@ -704,6 +734,30 @@ export default function Production() {
               if (stages[i]?.status !== 'complete') updateStageStatus(i, 'complete');
             }
             updateStageStatus(idx, 'active');
+          }
+          
+          // Check for script awaiting approval (realtime update)
+          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots && !scriptShots) {
+            const shots: ScriptShot[] = tasks.script.shots.map((shot, idx) => ({
+              id: shot.id || `shot-${idx}`,
+              index: idx,
+              title: shot.title,
+              description: shot.description,
+              durationSeconds: shot.durationSeconds,
+              sceneType: shot.sceneType,
+              cameraScale: shot.cameraScale,
+              cameraAngle: shot.cameraAngle,
+              movementType: shot.movementType,
+              transitionOut: shot.transitionOut,
+              visualAnchors: shot.visualAnchors,
+              motionDirection: shot.motionDirection,
+              lightingHint: shot.lightingHint,
+              dialogue: shot.dialogue,
+              mood: shot.mood,
+            }));
+            setScriptShots(shots);
+            addLog('Script ready for approval', 'info');
+            toast.info('Script ready! Review and approve to continue.');
           }
 
           if (tasks.scriptGenerated && !pipelineLogs.some(l => l.message.includes('Script'))) {
@@ -881,6 +935,89 @@ export default function Production() {
     }
   };
 
+  const handleApproveScript = async (approvedShots: ScriptShot[]) => {
+    if (!projectId || !user || isApprovingScript) return;
+    setIsApprovingScript(true);
+    
+    try {
+      addLog('Approving script...', 'info');
+      
+      // Call the hollywood-pipeline to continue with approved script
+      const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
+        body: {
+          userId: user.id,
+          projectId,
+          action: 'approve_script',
+          approvedShots: approvedShots.map(shot => ({
+            id: shot.id,
+            title: shot.title,
+            description: shot.description,
+            durationSeconds: shot.durationSeconds,
+            sceneType: shot.sceneType,
+            cameraScale: shot.cameraScale,
+            cameraAngle: shot.cameraAngle,
+            movementType: shot.movementType,
+            transitionOut: shot.transitionOut,
+            visualAnchors: shot.visualAnchors,
+            motionDirection: shot.motionDirection,
+            lightingHint: shot.lightingHint,
+            dialogue: shot.dialogue,
+            mood: shot.mood,
+          })),
+        },
+      });
+      
+      if (error) throw error;
+      if (data?.success) {
+        toast.success('Script approved! Production starting...');
+        setScriptShots(null);
+        setPipelineStage('qualitygate');
+        updateStageStatus(0, 'complete');
+        updateStageStatus(1, 'active');
+        addLog('Script approved, continuing pipeline', 'success');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      console.error('Failed to approve script:', err);
+      toast.error(err.message || 'Failed to approve script');
+      addLog(`Script approval failed: ${err.message}`, 'error');
+    } finally {
+      setIsApprovingScript(false);
+    }
+  };
+
+  const handleRegenerateScript = async () => {
+    if (!projectId || !user) return;
+    
+    try {
+      addLog('Regenerating script...', 'info');
+      toast.info('Regenerating script...');
+      
+      const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
+        body: {
+          userId: user.id,
+          projectId,
+          action: 'regenerate_script',
+        },
+      });
+      
+      if (error) throw error;
+      if (data?.success) {
+        setScriptShots(null);
+        toast.success('Script regeneration started');
+        addLog('Script regeneration started', 'success');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to regenerate script');
+      addLog(`Script regeneration failed: ${err.message}`, 'error');
+    }
+  };
+
+  const handleCancelScript = () => {
+    navigate('/projects');
+  };
+
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   const isRunning = !['completed', 'failed', 'draft'].includes(projectStatus);
@@ -1000,6 +1137,25 @@ export default function Production() {
               
               {/* Main Column */}
               <div className="col-span-12 lg:col-span-8 space-y-4">
+                
+                {/* Script Review Panel - Show when awaiting approval */}
+                {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20"
+                  >
+                    <ScriptReviewPanel
+                      shots={scriptShots}
+                      onApprove={handleApproveScript}
+                      onRegenerate={handleRegenerateScript}
+                      onCancel={handleCancelScript}
+                      isLoading={isApprovingScript}
+                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 4), 0)}
+                      projectTitle={projectTitle}
+                    />
+                  </motion.div>
+                )}
                 
                 {/* Final Video - Show at top when complete */}
                 {finalVideoUrl && (

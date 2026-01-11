@@ -1230,7 +1230,10 @@ serve(async (req) => {
     const motionVectors = extractMotionVectors(request.prompt);
     console.log(`[SingleClip] Motion vectors:`, motionVectors);
     
-    // Mark clip as completed
+    // IMPORTANT: Use 6-second duration as the standard for all clips
+    const clipDurationSeconds = 6;
+    
+    // Mark clip as completed with correct duration
     await supabase.rpc('upsert_video_clip', {
       p_project_id: request.projectId,
       p_user_id: request.userId,
@@ -1240,6 +1243,7 @@ serve(async (req) => {
       p_video_url: storedUrl,
       p_last_frame_url: lastFrameUrl,
       p_motion_vectors: JSON.stringify(motionVectors),
+      p_duration_seconds: clipDurationSeconds,
     });
 
     // Log API cost for this video generation

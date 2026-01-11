@@ -11,7 +11,7 @@ import {
   ChevronRight, Loader2, Zap, 
   Brain, Layers, Eye, Stars
 } from 'lucide-react';
-import apexLogo from '@/assets/apex-logo.png';
+
 import { cn } from '@/lib/utils';
 import ExamplesGallery from '@/components/landing/ExamplesGallery';
 import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
@@ -127,8 +127,8 @@ export default function Landing() {
               <div className="flex items-center gap-2.5">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl bg-foreground/20 blur-lg" />
-                  <div className="relative w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian overflow-hidden">
-                    <img src={apexLogo} alt="Apex Studio" className="w-8 h-8 object-contain" />
+                  <div className="relative w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian">
+                    <span className="text-lg font-bold text-white">AS</span>
                   </div>
                 </div>
                 <span className="text-xl font-bold text-foreground">Apex Studio</span>

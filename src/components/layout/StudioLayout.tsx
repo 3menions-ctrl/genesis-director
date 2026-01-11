@@ -7,7 +7,7 @@ import {
   Home, Activity, TrendingUp, Video,
   LayoutTemplate, Clock, Plus, Sparkles
 } from 'lucide-react';
-import apexLogo from '@/assets/apex-logo.png';
+
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -159,8 +159,8 @@ function StudioSidebar() {
                   className="relative shrink-0 group"
                 >
                   <div className="absolute inset-0 bg-white/20 rounded-lg blur-md opacity-0 group-hover:opacity-40 transition-opacity" />
-                  <div className="relative w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-lg shadow-white/10 overflow-hidden">
-                    <img src={apexLogo} alt="Apex Studio" className="w-7 h-7 object-contain" />
+                  <div className="relative w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-lg shadow-white/10">
+                    <span className="text-base font-bold text-black">AS</span>
                   </div>
                 </button>
               </TooltipTrigger>

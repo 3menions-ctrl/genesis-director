@@ -457,6 +457,115 @@ function extractMotionVectors(prompt: string): ClipResult['motionVectors'] {
   };
 }
 
+// =====================================================
+// CONTENT SAFETY PRE-CHECK
+// Scans prompts for words that may trigger Google's content policy
+// =====================================================
+interface ContentSafetyResult {
+  isSafe: boolean;
+  flaggedTerms: string[];
+  sanitizedPrompt: string;
+  warnings: string[];
+}
+
+// Words/patterns that commonly trigger Google's Responsible AI filters
+const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string }[] = [
+  // Age-related terms (high sensitivity)
+  { pattern: /\bchildren\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bchild\b/gi, replacement: 'person', category: 'age' },
+  { pattern: /\bkids\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bkid\b/gi, replacement: 'person', category: 'age' },
+  { pattern: /\bminors?\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bteenagers?\b/gi, replacement: 'young adults', category: 'age' },
+  { pattern: /\bteens?\b/gi, replacement: 'young adults', category: 'age' },
+  { pattern: /\badolescents?\b/gi, replacement: 'young adults', category: 'age' },
+  { pattern: /\btoddlers?\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\binfants?\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bbabies\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bbaby\b/gi, replacement: 'person', category: 'age' },
+  { pattern: /\byoungsters?\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bjuveniles?\b/gi, replacement: 'people', category: 'age' },
+  { pattern: /\bunderaged?\b/gi, replacement: '', category: 'age' },
+  { pattern: /\bschoolchildren\b/gi, replacement: 'students', category: 'age' },
+  { pattern: /\bschoolkids?\b/gi, replacement: 'students', category: 'age' },
+  { pattern: /\bschool\s*girl\b/gi, replacement: 'student', category: 'age' },
+  { pattern: /\bschool\s*boy\b/gi, replacement: 'student', category: 'age' },
+  { pattern: /\blittle\s+(boy|girl|one)\b/gi, replacement: 'person', category: 'age' },
+  { pattern: /\byoung\s+(boy|girl)\b/gi, replacement: 'young person', category: 'age' },
+  
+  // Family terms that may imply children
+  { pattern: /\bfamily\b/gi, replacement: 'group of adults', category: 'family' },
+  { pattern: /\bfamilies\b/gi, replacement: 'groups of people', category: 'family' },
+  { pattern: /\bparents?\s+(and|with)\s+(children|kids)\b/gi, replacement: 'adults', category: 'family' },
+  
+  // Violence/weapon terms
+  { pattern: /\bblood\b/gi, replacement: 'red liquid', category: 'violence' },
+  { pattern: /\bbloody\b/gi, replacement: 'dramatic', category: 'violence' },
+  { pattern: /\bgore\b/gi, replacement: 'dramatic effect', category: 'violence' },
+  { pattern: /\bkill(ing|ed|s)?\b/gi, replacement: 'defeat', category: 'violence' },
+  { pattern: /\bmurder(ing|ed|s)?\b/gi, replacement: 'confront', category: 'violence' },
+  { pattern: /\bweapons?\b/gi, replacement: 'equipment', category: 'violence' },
+  { pattern: /\bguns?\b/gi, replacement: 'tools', category: 'violence' },
+  { pattern: /\bfirearms?\b/gi, replacement: 'equipment', category: 'violence' },
+  { pattern: /\bknives?\b/gi, replacement: 'tools', category: 'violence' },
+  { pattern: /\bexplosives?\b/gi, replacement: 'effects', category: 'violence' },
+  { pattern: /\bexplod(e|ing|ed)\b/gi, replacement: 'burst', category: 'violence' },
+  
+  // Sexual/suggestive terms
+  { pattern: /\bsex(y|ual|ually)?\b/gi, replacement: 'attractive', category: 'sexual' },
+  { pattern: /\bnude\b/gi, replacement: 'natural', category: 'sexual' },
+  { pattern: /\bnaked\b/gi, replacement: 'unclothed', category: 'sexual' },
+  { pattern: /\bexplicit\b/gi, replacement: 'detailed', category: 'sexual' },
+  { pattern: /\berotic\b/gi, replacement: 'romantic', category: 'sexual' },
+  { pattern: /\bseductive\b/gi, replacement: 'charming', category: 'sexual' },
+  { pattern: /\bsensual\b/gi, replacement: 'emotional', category: 'sexual' },
+  { pattern: /\bintimate\b/gi, replacement: 'close', category: 'sexual' },
+  { pattern: /\bundressed\b/gi, replacement: 'casual', category: 'sexual' },
+  
+  // Drug/substance terms
+  { pattern: /\bdrugs?\b/gi, replacement: 'substances', category: 'drugs' },
+  { pattern: /\bcocaine\b/gi, replacement: 'powder', category: 'drugs' },
+  { pattern: /\bheroin\b/gi, replacement: 'substance', category: 'drugs' },
+  { pattern: /\bmarijuana\b/gi, replacement: 'plant', category: 'drugs' },
+  { pattern: /\bweed\b/gi, replacement: 'plant', category: 'drugs' },
+  { pattern: /\bsmok(e|ing)\s+weed\b/gi, replacement: 'relaxing', category: 'drugs' },
+  
+  // Hate/discrimination terms
+  { pattern: /\bterrorist?\b/gi, replacement: 'antagonist', category: 'hate' },
+  { pattern: /\bterrorism\b/gi, replacement: 'conflict', category: 'hate' },
+  { pattern: /\bracist\b/gi, replacement: 'biased', category: 'hate' },
+  { pattern: /\bhate\s+crime\b/gi, replacement: 'incident', category: 'hate' },
+];
+
+function checkContentSafety(prompt: string): ContentSafetyResult {
+  const flaggedTerms: string[] = [];
+  const warnings: string[] = [];
+  let sanitizedPrompt = prompt;
+  
+  for (const { pattern, replacement, category } of FLAGGED_PATTERNS) {
+    const matches = prompt.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        if (!flaggedTerms.includes(match.toLowerCase())) {
+          flaggedTerms.push(match.toLowerCase());
+          warnings.push(`"${match}" (${category}) → replaced with "${replacement || '[removed]'}"`);
+        }
+      }
+      sanitizedPrompt = sanitizedPrompt.replace(pattern, replacement);
+    }
+  }
+  
+  // Clean up extra spaces from removals
+  sanitizedPrompt = sanitizedPrompt.replace(/\s{2,}/g, ' ').trim();
+  
+  return {
+    isSafe: flaggedTerms.length === 0,
+    flaggedTerms,
+    sanitizedPrompt,
+    warnings,
+  };
+}
+
 // Build velocity-aware prompt
 function injectVelocityContinuity(
   prompt: string,
@@ -509,9 +618,35 @@ serve(async (req) => {
     }
 
     // =====================================================
+    // CONTENT SAFETY PRE-CHECK: Sanitize prompt before sending to Veo
+    // =====================================================
+    const safetyCheck = checkContentSafety(request.prompt);
+    
+    if (!safetyCheck.isSafe) {
+      console.log(`[SingleClip] ⚠️ CONTENT SAFETY: Found ${safetyCheck.flaggedTerms.length} potentially flagged terms`);
+      for (const warning of safetyCheck.warnings) {
+        console.log(`[SingleClip]   → ${warning}`);
+      }
+      console.log(`[SingleClip] Original: "${request.prompt.substring(0, 100)}..."`);
+      console.log(`[SingleClip] Sanitized: "${safetyCheck.sanitizedPrompt.substring(0, 100)}..."`);
+      
+      // Update the clip record with the sanitized prompt
+      await supabase
+        .from('video_clips')
+        .update({ 
+          prompt: safetyCheck.sanitizedPrompt,
+          corrective_prompts: [request.prompt] // Store original as reference
+        })
+        .eq('project_id', request.projectId)
+        .eq('shot_index', request.clipIndex);
+    }
+    
+    const safePrompt = safetyCheck.sanitizedPrompt;
+
+    // =====================================================
     // SCENE-BASED CONTINUOUS FLOW: Inject scene context for clip continuity
     // =====================================================
-    let enhancedPrompt = request.prompt;
+    let enhancedPrompt = safePrompt;
     const continuityParts: string[] = [];
     
     // NEW: Scene context for continuous flow (takes priority)

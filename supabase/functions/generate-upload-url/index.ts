@@ -44,9 +44,10 @@ Deno.serve(async (req) => {
     const filePath = finalFilename;
 
     // Create a signed upload URL (valid for 1 hour)
+    // CRITICAL: upsert: true prevents "signature verification failed" errors on re-uploads
     const { data, error } = await supabase.storage
       .from(bucket)
-      .createSignedUploadUrl(filePath);
+      .createSignedUploadUrl(filePath, { upsert: true });
 
     if (error) {
       console.error('[GenerateUploadUrl] Error creating signed URL:', error);

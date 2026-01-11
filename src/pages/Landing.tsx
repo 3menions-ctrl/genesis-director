@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import ExamplesGallery from '@/components/landing/ExamplesGallery';
 import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
+import CreatorShowcase from '@/components/landing/CreatorShowcase';
 
 
 const CAPABILITIES = [
@@ -381,6 +382,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Creator Showcase - Real Videos */}
+      <CreatorShowcase />
 
       {/* CTA Section with glossy black */}
       <section className="relative z-10 py-24 px-4 lg:px-8">

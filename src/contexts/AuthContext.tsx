@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let refreshInterval: NodeJS.Timeout | null = null;
     
     // Critical: Set loading to true at start
     setLoading(true);
@@ -126,9 +127,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     initSession();
 
+    // Proactive session refresh every 10 minutes to prevent timeout
+    // This ensures long-running video generation doesn't get interrupted
+    refreshInterval = setInterval(async () => {
+      if (!mounted) return;
+      
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession) {
+        // Check if token expires in less than 15 minutes
+        const expiresAt = currentSession.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+        
+        if (timeUntilExpiry < 15 * 60) {
+          console.log('[AuthContext] Proactively refreshing session (expires in', Math.round(timeUntilExpiry / 60), 'min)');
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error('[AuthContext] Session refresh failed:', error);
+          } else if (data.session) {
+            console.log('[AuthContext] Session refreshed successfully');
+          }
+        }
+      }
+    }, 10 * 60 * 1000); // Check every 10 minutes
+
+    // Also refresh on window focus (user returns to tab)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && mounted) {
+        console.log('[AuthContext] Tab became visible, checking session...');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          const expiresAt = currentSession.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+          
+          // If less than 30 minutes until expiry, refresh
+          if (timeUntilExpiry < 30 * 60) {
+            console.log('[AuthContext] Refreshing session on tab focus');
+            await supabase.auth.refreshSession();
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (refreshInterval) clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

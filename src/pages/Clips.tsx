@@ -685,100 +685,101 @@ export default function Clips() {
         ) : (
           /* Grid View - Grouped by Project */
           <div className="space-y-4">
-            <AnimatePresence>
-              {projectGroups.map((group, groupIndex) => (
-                <motion.div
-                  key={group.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: groupIndex * 0.05 }}
-                >
-                  <Collapsible 
-                    open={expandedProjects.has(group.id)}
-                    onOpenChange={() => toggleProject(group.id)}
+            {projectGroups.map((group, groupIndex) => (
+              <motion.div
+                key={group.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: groupIndex * 0.05 }}
+              >
+                <Collapsible 
+                  open={expandedProjects.has(group.id)}
+                  onOpenChange={() => toggleProject(group.id)}
                   >
                     {/* Project Header */}
-                    <CollapsibleTrigger className="w-full">
-                      <div className={cn(
-                        "flex items-center gap-4 p-4 rounded-xl transition-all",
-                        "bg-white/[0.02] border border-white/10 hover:border-white/20",
-                        expandedProjects.has(group.id) && "border-white/20 bg-white/[0.04]"
-                      )}>
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center transition-transform",
-                          expandedProjects.has(group.id) && "bg-white/10"
-                        )}>
-                          {expandedProjects.has(group.id) ? (
-                            <ChevronDown className="w-4 h-4 text-white" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-white/50" />
-                          )}
-                        </div>
-
-                        {/* Thumbnail */}
-                        <div className="w-14 h-9 rounded-lg overflow-hidden bg-black/50 flex-shrink-0">
-                          {group.clips[0]?.video_url ? (
-                            <video 
-                              src={group.clips[0].video_url}
-                              className="w-full h-full object-cover"
-                              muted
-                              playsInline
-                              preload="metadata"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Film className="w-4 h-4 text-white/20" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 text-left min-w-0">
-                          <h3 className="font-medium text-white truncate">{group.title}</h3>
-                          <div className="flex items-center gap-3 text-xs text-white/40 mt-0.5">
-                            <span>{group.clips.length} clips</span>
-                            <span>•</span>
-                            <span>{formatDuration(group.totalDuration)}</span>
-                            <span>•</span>
-                            <span>{formatRelativeDate(group.latestUpdate)}</span>
+                    <div className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl transition-all",
+                      "bg-white/[0.02] border border-white/10 hover:border-white/20",
+                      expandedProjects.has(group.id) && "border-white/20 bg-white/[0.04]"
+                    )}>
+                      <CollapsibleTrigger asChild>
+                        <button className="flex items-center gap-4 flex-1 text-left min-w-0">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center transition-transform flex-shrink-0",
+                            expandedProjects.has(group.id) && "bg-white/10"
+                          )}>
+                            {expandedProjects.has(group.id) ? (
+                              <ChevronDown className="w-4 h-4 text-white" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-white/50" />
+                            )}
                           </div>
-                        </div>
 
-                        {/* Status Pills */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {group.completedCount > 0 && (
-                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              {group.completedCount}
-                            </Badge>
-                          )}
-                          {group.pendingCount > 0 && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {group.pendingCount}
-                            </Badge>
-                          )}
-                          {group.failedCount > 0 && (
-                            <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 gap-1">
-                              <XCircle className="w-3 h-3" />
-                              {group.failedCount}
-                            </Badge>
-                          )}
-                        </div>
+                          {/* Thumbnail */}
+                          <div className="w-14 h-9 rounded-lg overflow-hidden bg-black/50 flex-shrink-0">
+                            {group.clips[0]?.video_url ? (
+                              <video 
+                                src={group.clips[0].video_url}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Film className="w-4 h-4 text-white/20" />
+                              </div>
+                            )}
+                          </div>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/projects`);
-                          }}
-                          className="text-white/40 hover:text-white"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-white truncate">{group.title}</h3>
+                            <div className="flex items-center gap-3 text-xs text-white/40 mt-0.5">
+                              <span>{group.clips.length} clips</span>
+                              <span>•</span>
+                              <span>{formatDuration(group.totalDuration)}</span>
+                              <span>•</span>
+                              <span>{formatRelativeDate(group.latestUpdate)}</span>
+                            </div>
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+
+                      {/* Status Pills */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {group.completedCount > 0 && (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {group.completedCount}
+                          </Badge>
+                        )}
+                        {group.pendingCount > 0 && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            {group.pendingCount}
+                          </Badge>
+                        )}
+                        {group.failedCount > 0 && (
+                          <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 gap-1">
+                            <XCircle className="w-3 h-3" />
+                            {group.failedCount}
+                          </Badge>
+                        )}
                       </div>
-                    </CollapsibleTrigger>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/projects`);
+                        }}
+                        className="text-white/40 hover:text-white"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
 
                     {/* Clips Grid */}
                     <CollapsibleContent>
@@ -881,7 +882,6 @@ export default function Clips() {
                   </Collapsible>
                 </motion.div>
               ))}
-            </AnimatePresence>
           </div>
         )}
       </main>

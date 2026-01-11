@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-// Curated showcase videos from generated projects
+// Curated showcase videos from latest generated clips
 const SHOWCASE_VIDEOS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596471199-c94lc.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596635855-7jnlfu.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600585125-0g9aex.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767597195370-5ui9ma.mp4',
-  // Additional variety
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596471199-c94lc.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767600530682-zjy8m.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767597195370-5ui9ma.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_0_1768112363329.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1_1768112430744.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_2_1768112494766.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_3_1768112557902.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_4_1768112816505.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_5_1768112879346.mp4',
 ];
 
 interface HeroVideoBackgroundProps {

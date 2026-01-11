@@ -1307,7 +1307,13 @@ async function runProduction(
   let styleAnchor: any = null;
   const hasReferenceImage = !!referenceImageUrl || !!request.referenceImageUrl || !!state.identityBible?.consistencyPrompt;
   
-  // Generate clips one at a time
+  // =====================================================
+  // SCENE ANCHOR ACCUMULATOR: Track visual DNA across clips for maximum consistency
+  // =====================================================
+  let accumulatedAnchors: any[] = [];
+  let masterSceneAnchor: any = null;
+  
+  // Generate clips one at a time with proper frame chaining
   for (let i = startIndex; i < clips.length; i++) {
     const clip = clips[i];
     const progressPercent = 75 + Math.floor((i / clips.length) * 15);
@@ -1319,11 +1325,22 @@ async function runProduction(
       clipCount: clips.length,
     });
     
-    // Build prompt with style anchor injection (when available)
+    // Build prompt with accumulated scene anchors for maximum consistency
     let finalPrompt = clip.prompt;
+    
+    // Inject style anchor if available (from first clip analysis)
     if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
       finalPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${finalPrompt}`;
       console.log(`[Hollywood] Injected style anchor into clip ${i + 1} prompt`);
+    }
+    
+    // Inject master scene anchor for clips 2+ (accumulated visual DNA)
+    if (i > 0 && masterSceneAnchor) {
+      const anchorPrompt = masterSceneAnchor.masterConsistencyPrompt || '';
+      if (anchorPrompt) {
+        finalPrompt = `[SCENE DNA: ${anchorPrompt}] ${finalPrompt}`;
+        console.log(`[Hollywood] Injected accumulated scene DNA into clip ${i + 1}`);
+      }
     }
     
     // Auto-retry logic: try once, then retry once on failure
@@ -1342,11 +1359,29 @@ async function runProduction(
           });
         }
         
-        // FIX: Clip 1 should NOT use reference image as startImageUrl (causes flash)
-        // Clips 2+ use previous clip's last frame for continuity
-        const useStartImage = i === 0 ? undefined : previousLastFrameUrl;
+        // =====================================================
+        // CORRECT FRAME CHAINING LOGIC:
+        // - Clip 1: Uses REFERENCE IMAGE as startImageUrl (establishes visual world)
+        // - Clip 2+: Uses LAST FRAME from previous clip (maintains continuity)
+        // =====================================================
+        let useStartImage: string | undefined;
         
-        console.log(`[Hollywood] Clip ${i + 1}: ${i === 0 ? 'TEXT-TO-VIDEO (no start image)' : 'FRAME-CHAINED from previous clip'}`);
+        if (i === 0) {
+          // CLIP 1: Use reference image to establish the visual world
+          useStartImage = referenceImageUrl;
+          console.log(`[Hollywood] Clip 1: IMAGE-TO-VIDEO using reference image: ${referenceImageUrl?.substring(0, 60)}...`);
+        } else {
+          // CLIP 2+: Use previous clip's extracted last frame for continuity
+          useStartImage = previousLastFrameUrl;
+          console.log(`[Hollywood] Clip ${i + 1}: FRAME-CHAINED from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
+          
+          // CRITICAL: Warn if we don't have a proper frame
+          if (!previousLastFrameUrl) {
+            console.error(`[Hollywood] ⚠️ CRITICAL: No last frame available for clip ${i + 1}! Continuity will be broken.`);
+          } else if (previousLastFrameUrl === referenceImageUrl) {
+            console.error(`[Hollywood] ⚠️ WARNING: Still using reference image for clip ${i + 1} - frame extraction may have failed!`);
+          }
+        }
         
         const clipResult = await callEdgeFunction('generate-single-clip', {
           userId: request.userId,
@@ -1359,10 +1394,12 @@ async function runProduction(
           identityBible: state.identityBible,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
-          referenceImageUrl, // Still passed for character description extraction
+          referenceImageUrl, // Still passed for character identity reference
           isRetry,
-          // NEW: Pass scene context for continuous flow
+          // Pass scene context for continuous action flow
           sceneContext: clip.sceneContext,
+          // NEW: Pass accumulated anchors for visual consistency
+          accumulatedAnchors: accumulatedAnchors.slice(-3), // Last 3 anchors
         });
         
         if (!clipResult.success) {
@@ -1445,8 +1482,55 @@ async function runProduction(
         console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
       }
       
-      // STYLE ANCHOR EXTRACTION: After first clip, extract visual DNA if no reference image
-      if (i === 0 && !hasReferenceImage && frameForAnalysis) {
+      // =====================================================
+      // ENHANCED SCENE ANCHOR EXTRACTION: Extract from EVERY clip for maximum consistency
+      // =====================================================
+      if (frameForAnalysis) {
+        console.log(`[Hollywood] Extracting scene anchor from clip ${i + 1}...`);
+        try {
+          const sceneAnchorResult = await callEdgeFunction('extract-scene-anchor', {
+            frameUrl: frameForAnalysis,
+            shotId: `clip_${i}`,
+            projectId: state.projectId,
+          });
+          
+          if (sceneAnchorResult.success && sceneAnchorResult.anchor) {
+            const newAnchor = sceneAnchorResult.anchor;
+            accumulatedAnchors.push(newAnchor);
+            
+            console.log(`[Hollywood] Scene anchor extracted for clip ${i + 1}:`);
+            console.log(`  - Lighting: ${newAnchor.lighting?.timeOfDay || 'unknown'}, ${newAnchor.lighting?.keyLightIntensity || 'unknown'}`);
+            console.log(`  - Color: ${newAnchor.colorPalette?.temperature || 'unknown'}, ${newAnchor.colorPalette?.gradeStyle || 'unknown'}`);
+            console.log(`  - Environment: ${newAnchor.keyObjects?.environmentType || 'unknown'}`);
+            
+            // Build/update master scene anchor (weighted average of all anchors)
+            if (!masterSceneAnchor) {
+              masterSceneAnchor = newAnchor;
+            } else {
+              // Merge new anchor into master (combine prompts)
+              const combinedPrompt = [
+                masterSceneAnchor.masterConsistencyPrompt,
+                newAnchor.lighting?.promptFragment,
+                newAnchor.colorPalette?.promptFragment,
+              ].filter(Boolean).join('. ');
+              
+              masterSceneAnchor = {
+                ...masterSceneAnchor,
+                masterConsistencyPrompt: combinedPrompt.substring(0, 500), // Cap length
+                lighting: newAnchor.lighting, // Use latest lighting
+                colorPalette: newAnchor.colorPalette, // Use latest colors
+              };
+            }
+            
+            console.log(`[Hollywood] Master scene anchor updated with ${accumulatedAnchors.length} total anchors`);
+          }
+        } catch (anchorErr) {
+          console.warn(`[Hollywood] Scene anchor extraction failed for clip ${i + 1}:`, anchorErr);
+        }
+      }
+      
+      // STYLE ANCHOR EXTRACTION: After first clip (fallback for when no reference image)
+      if (i === 0 && !hasReferenceImage && frameForAnalysis && !styleAnchor) {
         console.log(`[Hollywood] Extracting style anchor from first clip (no reference image provided)...`);
         try {
           const styleAnchorResult = await callEdgeFunction('extract-style-anchor', {
@@ -1517,8 +1601,9 @@ async function runProduction(
                 correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
               }
               
-              // FIX: Same logic for retries - clip 1 never uses startImage
-              const retryStartImage = i === 0 ? undefined : previousLastFrameUrl;
+              // FIXED: Clip 1 uses reference image, Clip 2+ uses previous frame
+              const retryStartImage = i === 0 ? referenceImageUrl : previousLastFrameUrl;
+              console.log(`[Hollywood] Retry using ${i === 0 ? 'reference image' : 'previous frame'}: ${retryStartImage?.substring(0, 50)}...`);
               
               const retryResult = await callEdgeFunction('generate-single-clip', {
                 userId: request.userId,
@@ -1608,11 +1693,21 @@ async function runProduction(
       lastFrameUrl: result.lastFrameUrl,
     });
     
-    // Update for next clip's continuity
-    previousLastFrameUrl = result.lastFrameUrl || previousLastFrameUrl;
+    // =====================================================
+    // CRITICAL: Update frame for next clip's continuity
+    // =====================================================
+    if (result.lastFrameUrl) {
+      previousLastFrameUrl = result.lastFrameUrl;
+      console.log(`[Hollywood] ✓ Frame chain updated: Clip ${i + 2} will use clip ${i + 1}'s last frame`);
+    } else {
+      console.error(`[Hollywood] ⚠️ CRITICAL: Clip ${i + 1} has NO last frame URL! Frame chain broken.`);
+      console.error(`[Hollywood] Next clip will use stale frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+    }
+    
     previousMotionVectors = result.motionVectors;
     
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
+    console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors ready' : 'no motion vectors'}`);
   }
   
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');

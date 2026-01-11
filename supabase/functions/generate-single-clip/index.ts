@@ -166,29 +166,57 @@ async function generateClip(
 
   if (startImageUrl) {
     try {
-      console.log(`[SingleClip] Fetching start image for frame-chaining...`);
+      console.log(`[SingleClip] Fetching start image for frame-chaining: ${startImageUrl.substring(0, 100)}...`);
       const imageResponse = await fetch(startImageUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const uint8Array = new Uint8Array(imageBuffer);
       
-      let binary = '';
-      const chunkSize = 32768;
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      // Check if fetch was successful
+      if (!imageResponse.ok) {
+        console.error(`[SingleClip] Failed to fetch start image: HTTP ${imageResponse.status} - ${imageResponse.statusText}`);
+        console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to image fetch failure`);
+      } else {
+        const contentType = imageResponse.headers.get('content-type') || '';
+        console.log(`[SingleClip] Image response content-type: ${contentType}`);
+        
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const uint8Array = new Uint8Array(imageBuffer);
+        
+        // Validate image size
+        if (uint8Array.length < 1000) {
+          console.error(`[SingleClip] Image too small (${uint8Array.length} bytes) - likely invalid or error page`);
+          console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to invalid image`);
+        } else {
+          console.log(`[SingleClip] Image size: ${uint8Array.length} bytes`);
+          
+          let binary = '';
+          const chunkSize = 32768;
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          const base64Image = btoa(binary);
+          
+          // Determine mime type from content-type header or URL
+          let mimeType = 'image/jpeg';
+          if (contentType.includes('png')) {
+            mimeType = 'image/png';
+          } else if (contentType.includes('webp')) {
+            mimeType = 'image/webp';
+          } else if (startImageUrl.includes('.png')) {
+            mimeType = 'image/png';
+          } else if (startImageUrl.includes('.webp')) {
+            mimeType = 'image/webp';
+          }
+          
+          instance.image = {
+            bytesBase64Encoded: base64Image,
+            mimeType: mimeType
+          };
+          console.log(`[SingleClip] Added start image for frame-chaining (${mimeType}, ${base64Image.length} base64 chars)`);
+        }
       }
-      const base64Image = btoa(binary);
-      
-      const mimeType = startImageUrl.includes('.png') ? 'image/png' : 
-                      startImageUrl.includes('.webp') ? 'image/webp' : 'image/jpeg';
-      
-      instance.image = {
-        bytesBase64Encoded: base64Image,
-        mimeType: mimeType
-      };
-      console.log(`[SingleClip] Added start image for frame-chaining`);
     } catch (imgError) {
       console.error("[SingleClip] Failed to fetch start image:", imgError);
+      console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to error`);
     }
   }
 

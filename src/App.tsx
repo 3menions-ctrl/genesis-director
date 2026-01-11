@@ -23,6 +23,7 @@ import ScriptReview from "./pages/ScriptReview";
 import Production from "./pages/Production";
 import Studio from "./pages/Studio";
 import Clips from "./pages/Clips";
+import HelpCenter from "./pages/HelpCenter";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/help" element={<HelpCenter />} />
               
               {/* Onboarding - protected but no layout */}
               <Route path="/onboarding" element={

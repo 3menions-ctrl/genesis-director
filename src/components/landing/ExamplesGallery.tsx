@@ -6,7 +6,17 @@ import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'luc
 const SHOWCASE_VIDEOS = [
   // Newest videos first
   {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768156700246.mp4',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
+    title: 'Soaring Above Snowy Serenity',
+    description: 'A breathtaking aerial journey through pristine winter landscapes',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
+    title: 'Haunted Whispers of the Past',
+    description: 'A chilling exploration of forgotten places and lost memories',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     title: 'Whimsical Chocolate Adventures',
     description: 'A delightful journey through a world of sweet confections',
   },
@@ -19,6 +29,16 @@ const SHOWCASE_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
     title: 'Illuminated Conversations',
     description: 'Light and shadow dance in meaningful dialogue',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
+    title: 'Silent Vigil in Ruined Valor',
+    description: 'An epic tale of courage standing against the test of time',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
+    title: 'Skyward Over Fiery Majesty',
+    description: 'Drone cinematography capturing volcanic power from above',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
@@ -34,16 +54,6 @@ const SHOWCASE_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
     title: 'Shadows of the Predator',
     description: "A thrilling wildlife documentary capturing nature's fierce beauty",
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
-    title: "Jungle Guardian's Vigil",
-    description: 'The silent watchman of the forest stands eternal guard',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
-    title: 'Volcanic Forces',
-    description: 'Breathtaking drone footage capturing the raw power of nature',
   },
 ];
 
@@ -217,7 +227,7 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
         {/* Thumbnail strip at bottom */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
           <div className="flex items-center gap-3 p-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
-            {SHOWCASE_VIDEOS.map((video, i) => (
+            {SHOWCASE_VIDEOS.slice(0, 8).map((video, i) => (
               <button
                 key={i}
                 onClick={() => {
@@ -244,13 +254,6 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Counter */}
-        <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10">
-          <span className="text-sm font-medium text-white/60">
-            <span className="text-white">{currentIndex + 1}</span> / {SHOWCASE_VIDEOS.length}
-          </span>
         </div>
       </DialogContent>
     </Dialog>

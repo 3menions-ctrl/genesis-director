@@ -3,7 +3,9 @@ import { cn } from '@/lib/utils';
 
 // Curated showcase videos - Cloud Run stitched final videos only
 const SHOWCASE_VIDEOS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768156700246.mp4', // Whimsical Chocolate Adventures
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4', // Soaring Above Snowy Serenity (NEWEST)
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4', // Haunted Whispers of the Past
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4', // Whimsical Chocolate Adventures
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4', // Echoes of Desolation
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4', // Illuminated Conversations
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4', // Silent Vigil in Ruined Valor
@@ -57,10 +59,10 @@ export default function HeroVideoBackground({
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('ended', handleVideoEnd);
 
-    // Fallback: if video is longer than 8 seconds, transition anyway
+    // Fallback: if video is longer than 10 seconds, transition anyway
     const fallbackTimer = setTimeout(() => {
       handleVideoEnd();
-    }, 8000);
+    }, 10000);
 
     return () => {
       video.removeEventListener('canplay', handleCanPlay);

@@ -9,12 +9,13 @@ const corsHeaders = {
 /**
  * Pipeline Watchdog Edge Function
  * 
- * Detects and recovers stalled pipelines:
- * 1. Finds projects stuck in 'stitching' or 'rendering' status for too long
- * 2. Processes scheduled retries when their time is due
- * 3. Optionally notifies users of failed projects
+ * Detects and AUTO-RECOVERS stalled pipelines:
+ * 1. Finds projects stuck in 'generating' status with incomplete clips
+ * 2. Finds projects stuck in 'stitching' or 'rendering' status for too long
+ * 3. Auto-resumes production when clips are missing
+ * 4. Processes scheduled retries when their time is due
  * 
- * Should be called periodically (e.g., every 5 minutes via cron)
+ * Should be called every 2 minutes via cron
  */
 
 interface StalledProject {
@@ -24,6 +25,7 @@ interface StalledProject {
   updated_at: string;
   pending_video_tasks: Record<string, unknown> | null;
   user_id: string;
+  generated_script: string | null;
 }
 
 interface WatchdogResult {
@@ -31,6 +33,7 @@ interface WatchdogResult {
   retriesProcessed: number;
   projectsRecovered: number;
   projectsMarkedFailed: number;
+  productionResumed: number;
   details: Array<{
     projectId: string;
     action: string;
@@ -38,11 +41,11 @@ interface WatchdogResult {
   }>;
 }
 
-// Stale timeout: 10 minutes for stitching
-const STALE_TIMEOUT_MS = 10 * 60 * 1000;
+// Stale timeout: 3 minutes for generating/stitching (edge functions timeout at ~60s)
+const STALE_TIMEOUT_MS = 3 * 60 * 1000;
 
-// Max age before marking as failed: 30 minutes
-const MAX_AGE_MS = 30 * 60 * 1000;
+// Max age before marking as failed: 45 minutes
+const MAX_AGE_MS = 45 * 60 * 1000;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -62,6 +65,7 @@ serve(async (req) => {
       retriesProcessed: 0,
       projectsRecovered: 0,
       projectsMarkedFailed: 0,
+      productionResumed: 0,
       details: [],
     };
 
@@ -72,10 +76,11 @@ serve(async (req) => {
     const cutoffTime = new Date(Date.now() - STALE_TIMEOUT_MS).toISOString();
     const maxAgeTime = new Date(Date.now() - MAX_AGE_MS).toISOString();
     
+    // Include 'generating' status - this is the key fix!
     const { data: stalledProjects, error: stalledError } = await supabase
       .from('movie_projects')
-      .select('id, title, status, updated_at, pending_video_tasks, user_id')
-      .in('status', ['stitching', 'rendering', 'retry_scheduled'])
+      .select('id, title, status, updated_at, pending_video_tasks, user_id, generated_script')
+      .in('status', ['generating', 'stitching', 'rendering', 'retry_scheduled', 'assembling'])
       .lt('updated_at', cutoffTime)
       .limit(20);
     
@@ -93,17 +98,16 @@ serve(async (req) => {
       const tasks = project.pending_video_tasks || {};
       const projectAge = Date.now() - new Date(project.updated_at).getTime();
       
-      console.log(`[Watchdog] Processing project ${project.id} (status: ${project.status}, age: ${Math.round(projectAge / 1000)}s)`);
+      console.log(`[Watchdog] Processing project ${project.id} (status: ${project.status}, stage: ${(tasks as any).stage}, age: ${Math.round(projectAge / 1000)}s)`);
 
       // Check if this is a scheduled retry that's ready
-      if (project.status === 'retry_scheduled' && tasks.retryAfter) {
-        const retryTime = new Date(tasks.retryAfter as string).getTime();
+      if (project.status === 'retry_scheduled' && (tasks as any).retryAfter) {
+        const retryTime = new Date((tasks as any).retryAfter as string).getTime();
         
         if (Date.now() >= retryTime) {
           console.log(`[Watchdog] Retry time reached for project ${project.id}`);
           
-          // Trigger the retry by calling stitch-video again
-          const retryAttempt = (tasks.retryAttempt as number) || 1;
+          const retryAttempt = ((tasks as any).retryAttempt as number) || 1;
           
           if (retryAttempt <= 3) {
             try {
@@ -114,7 +118,7 @@ serve(async (req) => {
                   'Authorization': `Bearer ${supabaseKey}`,
                 },
                 body: JSON.stringify({
-                  ...(tasks.retryRequest || {}),
+                  ...((tasks as any).retryRequest || {}),
                   projectId: project.id,
                   retryAttempt,
                 }),
@@ -134,11 +138,10 @@ serve(async (req) => {
             }
           }
         } else {
-          // Retry not yet due, skip
           result.details.push({
             projectId: project.id,
             action: 'retry_pending',
-            result: `Retry scheduled for ${tasks.retryAfter}`,
+            result: `Retry scheduled for ${(tasks as any).retryAfter}`,
           });
           continue;
         }
@@ -155,7 +158,7 @@ serve(async (req) => {
             pending_video_tasks: {
               ...tasks,
               stage: 'error',
-              error: 'Pipeline stalled - exceeded maximum processing time',
+              error: 'Pipeline stalled - exceeded maximum processing time (45 min)',
               watchdogRecovery: true,
               recoveredAt: new Date().toISOString(),
             },
@@ -167,16 +170,142 @@ serve(async (req) => {
         result.details.push({
           projectId: project.id,
           action: 'marked_failed',
-          result: 'Exceeded max processing time (30 min)',
+          result: 'Exceeded max processing time (45 min)',
         });
         continue;
       }
 
-      // Try to recover by re-triggering stitching
-      if (project.status === 'stitching') {
+      // ==================== NEW: Handle stalled 'generating' projects ====================
+      if (project.status === 'generating') {
+        console.log(`[Watchdog] Checking clip completion for stalled generating project ${project.id}`);
+        
+        // Parse script to get expected clip count
+        let expectedClipCount = (tasks as any).clipCount || 6;
+        
+        if (project.generated_script) {
+          try {
+            const script = JSON.parse(project.generated_script);
+            if (script.shots && Array.isArray(script.shots)) {
+              expectedClipCount = script.shots.length;
+            }
+          } catch (e) {
+            console.log(`[Watchdog] Could not parse script, using default clip count`);
+          }
+        }
+        
+        // Get clip status
+        const { data: clips, error: clipsError } = await supabase
+          .from('video_clips')
+          .select('id, shot_index, status, video_url')
+          .eq('project_id', project.id)
+          .order('shot_index');
+        
+        if (clipsError) {
+          console.error(`[Watchdog] Error fetching clips for ${project.id}:`, clipsError);
+          continue;
+        }
+        
+        const completedClips = clips?.filter(c => c.status === 'completed' && c.video_url) || [];
+        const pendingClips = clips?.filter(c => c.status === 'pending' || c.status === 'generating') || [];
+        const failedClips = clips?.filter(c => c.status === 'failed') || [];
+        
+        console.log(`[Watchdog] Project ${project.id}: ${completedClips.length}/${expectedClipCount} clips completed, ${pendingClips.length} pending, ${failedClips.length} failed`);
+        
+        // If we have incomplete clips and the pipeline stalled, resume it
+        if (completedClips.length < expectedClipCount && completedClips.length > 0) {
+          console.log(`[Watchdog] Auto-resuming production for project ${project.id} from clip ${completedClips.length + 1}`);
+          
+          try {
+            const resumeResponse = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+                userId: project.user_id,
+                resumeFrom: 'production',
+              }),
+            });
+            
+            if (resumeResponse.ok) {
+              result.productionResumed++;
+              result.details.push({
+                projectId: project.id,
+                action: 'production_resumed',
+                result: `Auto-resumed from clip ${completedClips.length + 1}/${expectedClipCount}`,
+              });
+              console.log(`[Watchdog] ✓ Successfully resumed production for ${project.id}`);
+            } else {
+              const errorText = await resumeResponse.text();
+              console.error(`[Watchdog] Failed to resume production for ${project.id}:`, errorText);
+              result.details.push({
+                projectId: project.id,
+                action: 'resume_failed',
+                result: `Resume failed: ${resumeResponse.status}`,
+              });
+            }
+          } catch (resumeError) {
+            console.error(`[Watchdog] Resume error for ${project.id}:`, resumeError);
+            result.details.push({
+              projectId: project.id,
+              action: 'resume_error',
+              result: resumeError instanceof Error ? resumeError.message : 'Unknown error',
+            });
+          }
+          continue;
+        }
+        
+        // If all clips are complete but project is still 'generating', trigger stitching
+        if (completedClips.length >= expectedClipCount) {
+          console.log(`[Watchdog] All ${completedClips.length} clips complete for ${project.id}, triggering stitch`);
+          
+          try {
+            // Get project audio info
+            const { data: projectData } = await supabase
+              .from('movie_projects')
+              .select('voice_audio_url, music_url')
+              .eq('id', project.id)
+              .single();
+            
+            const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+              }),
+            });
+            
+            if (stitchResponse.ok) {
+              result.projectsRecovered++;
+              result.details.push({
+                projectId: project.id,
+                action: 'stitch_triggered',
+                result: `All ${completedClips.length} clips ready, stitch started`,
+              });
+              console.log(`[Watchdog] ✓ Triggered stitch for ${project.id}`);
+            } else {
+              result.details.push({
+                projectId: project.id,
+                action: 'stitch_failed',
+                result: `Stitch trigger failed: ${stitchResponse.status}`,
+              });
+            }
+          } catch (stitchError) {
+            console.error(`[Watchdog] Stitch error for ${project.id}:`, stitchError);
+          }
+          continue;
+        }
+      }
+
+      // Handle stalled stitching
+      if (project.status === 'stitching' || project.status === 'assembling') {
         console.log(`[Watchdog] Attempting to recover stalled stitching for ${project.id}`);
         
-        // Get clips from video_clips table
         const { data: clips } = await supabase
           .from('video_clips')
           .select('id, video_url, duration_seconds, shot_index')
@@ -186,7 +315,7 @@ serve(async (req) => {
         
         if (clips && clips.length > 0) {
           try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/stitch-video`, {
+            const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -194,14 +323,6 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 projectId: project.id,
-                projectTitle: project.title,
-                clips: clips.map(c => ({
-                  shotId: c.id,
-                  videoUrl: c.video_url,
-                  durationSeconds: c.duration_seconds || 6,
-                })),
-                audioMixMode: 'full',
-                retryAttempt: ((tasks.retryAttempt as number) || 0) + 1,
               }),
             });
             
@@ -209,13 +330,13 @@ serve(async (req) => {
               result.projectsRecovered++;
               result.details.push({
                 projectId: project.id,
-                action: 'recovery_triggered',
+                action: 'stitch_recovery_triggered',
                 result: 'Stitch re-triggered',
               });
             } else {
               result.details.push({
                 projectId: project.id,
-                action: 'recovery_failed',
+                action: 'stitch_recovery_failed',
                 result: `Stitch trigger failed: ${response.status}`,
               });
             }
@@ -228,7 +349,6 @@ serve(async (req) => {
             });
           }
         } else {
-          // No clips to stitch
           result.details.push({
             projectId: project.id,
             action: 'no_clips',
@@ -238,7 +358,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[Watchdog] Complete: ${result.projectsRecovered} recovered, ${result.projectsMarkedFailed} marked failed`);
+    console.log(`[Watchdog] Complete: ${result.productionResumed} production resumed, ${result.projectsRecovered} recovered, ${result.projectsMarkedFailed} marked failed`);
 
     return new Response(
       JSON.stringify({

@@ -20,7 +20,7 @@ const Privacy = () => {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">1. Introduction</h2>
             <p>
-              Saga Studio ("we," "our," or "us") is committed to protecting your privacy. This Privacy 
+              Apex Studio ("we," "our," or "us") is committed to protecting your privacy. This Privacy 
               Policy explains how we collect, use, disclose, and safeguard your information when you 
               use our AI-powered video generation service.
             </p>
@@ -123,8 +123,8 @@ const Privacy = () => {
             </ul>
             <p className="mt-4">
               To exercise these rights, please contact us at{' '}
-              <a href="mailto:privacy@sagastudio.ai" className="text-foreground hover:underline">
-                privacy@sagastudio.ai
+              <a href="mailto:privacy@apexstudio.ai" className="text-foreground hover:underline">
+                privacy@apexstudio.ai
               </a>
             </p>
           </section>
@@ -169,8 +169,8 @@ const Privacy = () => {
               For questions about this Privacy Policy or our data practices, please contact us at:
             </p>
             <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-              <p><strong className="text-foreground">Email:</strong> privacy@sagastudio.ai</p>
-              <p><strong className="text-foreground">Address:</strong> Saga Studio, Privacy Team</p>
+              <p><strong className="text-foreground">Email:</strong> privacy@apexstudio.ai</p>
+              <p><strong className="text-foreground">Address:</strong> Apex Studio, Privacy Team, San Francisco, CA</p>
             </div>
           </section>
         </div>

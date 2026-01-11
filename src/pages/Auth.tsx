@@ -32,18 +32,27 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { user, profile, signIn } = useAuth();
+  const [hasRedirected, setHasRedirected] = useState(false);
+  const { user, profile, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect authenticated users - only once to prevent blinking
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    // Only redirect once
+    if (hasRedirected) return;
+    
     if (user && profile) {
+      setHasRedirected(true);
       if (!profile.onboarding_completed) {
-        navigate('/onboarding');
+        navigate('/onboarding', { replace: true });
       } else {
-        navigate('/projects');
+        navigate('/projects', { replace: true });
       }
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, authLoading, hasRedirected, navigate]);
 
   const handleDemoLogin = async () => {
     setDemoLoading(true);

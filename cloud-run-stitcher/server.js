@@ -128,14 +128,21 @@ async function getSignedUploadUrl(projectId, filename, supabaseUrl, serviceKey) 
 }
 
 // Finalize stitch by calling edge function
-// CRITICAL: Uses dynamic credentials to ensure correct Supabase URL is used
-async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcessed, status = 'completed', errorMessage = null, supabaseUrl, serviceKey) {
-  const effectiveUrl = supabaseUrl || SUPABASE_URL;
+// CRITICAL FIX: Use explicit callbackUrl if provided, otherwise construct from supabaseUrl
+// The callbackUrl should point to Lovable Cloud where the edge functions actually live
+async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcessed, status = 'completed', errorMessage = null, callbackUrl = null, serviceKey = null) {
+  // Priority: 1. Explicit callbackUrl, 2. Constructed from SUPABASE_URL
+  const effectiveUrl = callbackUrl || `${SUPABASE_URL}/functions/v1/finalize-stitch`;
   const effectiveKey = serviceKey || SUPABASE_SERVICE_ROLE_KEY;
   
-  console.log(`[Finalize] Calling: ${effectiveUrl}/functions/v1/finalize-stitch`);
+  // Ensure we have a full URL
+  const finalUrl = effectiveUrl.includes('/functions/v1/finalize-stitch') 
+    ? effectiveUrl 
+    : `${effectiveUrl}/functions/v1/finalize-stitch`;
   
-  const response = await fetch(`${effectiveUrl}/functions/v1/finalize-stitch`, {
+  console.log(`[Finalize] Calling callback URL: ${finalUrl}`);
+  
+  const response = await fetch(finalUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -501,21 +508,32 @@ async function stitchVideos(request) {
     musicSyncPlan = null,
     sfxPlan = null,
     audioMixParams = null,
-    // CRITICAL: Dynamic Supabase credentials passed from edge function
-    // This ensures we always use the correct URL even if Cloud Run env vars are stale
+    // CRITICAL FIX: Separate credentials for storage vs callback
+    // callbackUrl points to Lovable Cloud where edge functions live
+    // callbackServiceKey authenticates against Lovable Cloud
+    // supabaseUrl/supabaseServiceKey for storage operations (external Supabase)
+    callbackUrl,
+    callbackServiceKey,
     supabaseUrl: dynamicSupabaseUrl,
     supabaseServiceKey: dynamicSupabaseServiceKey
   } = request;
   
-  // Use dynamic credentials if provided, otherwise fall back to env vars
+  // Storage operations use external Supabase credentials
   const effectiveSupabaseUrl = dynamicSupabaseUrl || SUPABASE_URL;
-  const effectiveServiceKey = dynamicSupabaseServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+  const effectiveStorageKey = dynamicSupabaseServiceKey || SUPABASE_SERVICE_ROLE_KEY;
   
+  // CRITICAL FIX: Callback uses Lovable Cloud credentials
+  // The callbackServiceKey should be the Lovable Cloud service role key
+  const effectiveCallbackUrl = callbackUrl || `${SUPABASE_URL}/functions/v1/finalize-stitch`;
+  const effectiveCallbackKey = callbackServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+  
+  console.log(`[Stitch] Callback URL for finalize: ${effectiveCallbackUrl}`);
+  console.log(`[Stitch] Callback key present: ${!!effectiveCallbackKey}`);
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, jobId);
   
   console.log(`[Stitch] Starting job ${jobId} for project ${projectId}`);
-  console.log(`[Stitch] Using Supabase URL: ${effectiveSupabaseUrl}`);
+  console.log(`[Stitch] Using storage Supabase URL: ${effectiveSupabaseUrl}`);
   console.log(`[Stitch] Processing ${clips.length} clips with ${transitionType} transitions (${transitionDuration}s)`);
   console.log(`[Stitch] Color grading: ${colorGrading}`);
   
@@ -773,8 +791,8 @@ async function stitchVideos(request) {
     console.log('[Stitch] Step 6: Getting signed upload URL...');
     
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
-    // Pass dynamic credentials to ensure correct Supabase URL is used
-    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, effectiveSupabaseUrl, effectiveServiceKey);
+    // Use storage Supabase credentials for upload operations
+    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, effectiveSupabaseUrl, effectiveStorageKey);
     
     if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
       throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
@@ -791,8 +809,8 @@ async function stitchVideos(request) {
     
     console.log('[Stitch] Step 7: Finalizing project...');
     
-    // Pass dynamic credentials to ensure correct Supabase URL is used
-    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length, 'completed', null, effectiveSupabaseUrl, effectiveServiceKey);
+    // CRITICAL FIX: Use callbackUrl + callbackKey (Lovable Cloud) for finalize-stitch
+    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length, 'completed', null, effectiveCallbackUrl, effectiveCallbackKey);
     
     await fs.rm(workDir, { recursive: true, force: true });
     
@@ -816,9 +834,8 @@ async function stitchVideos(request) {
     // CRITICAL FIX: Notify the Edge Function about the failure so it can update the project status
     try {
       console.log(`[Stitch] Calling finalizeStitch with failure status for project ${projectId}`);
-      const retryAttempt = request.retryAttempt || 0;
-      // Pass dynamic credentials to ensure correct Supabase URL is used
-      await finalizeStitch(projectId, null, null, null, 'failed', error.message, effectiveSupabaseUrl, effectiveServiceKey);
+      // CRITICAL FIX: Use callbackUrl + callbackKey (Lovable Cloud) for finalize-stitch
+      await finalizeStitch(projectId, null, null, null, 'failed', error.message, effectiveCallbackUrl, effectiveCallbackKey);
       console.log(`[Stitch] Failure notification sent successfully`);
     } catch (notifyError) {
       console.error(`[Stitch] Failed to notify about failure:`, notifyError.message);

@@ -276,11 +276,15 @@ async function fireCloudRunStitcherAsync(
   console.log(`[Stitch] Using Supabase URL: ${supabaseUrl}`);
   console.log(`[Stitch] External Supabase configured: ${!!externalSupabaseUrl}`);
   
+  // CRITICAL: callbackUrl must use Lovable Cloud (SUPABASE_URL) where edge functions live,
+  // NOT the external Supabase which is only used for storage
+  const lovableCloudUrl = Deno.env.get("SUPABASE_URL")!;
+  
   const enhancedRequest = {
     ...request,
     audioMixParams,
     colorGradingFilter: request.colorGradingFilter,
-    callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+    callbackUrl: `${lovableCloudUrl}/functions/v1/finalize-stitch`,
     retryAttempt: request.retryAttempt || 0,
     maxRetries: 3,
     // Dynamic Supabase config - Cloud Run uses these instead of its env vars

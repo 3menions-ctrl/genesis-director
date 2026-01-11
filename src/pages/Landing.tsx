@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import ExamplesGallery from '@/components/landing/ExamplesGallery';
 import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
 import CreatorShowcase from '@/components/landing/CreatorShowcase';
-
+import PricingSection from '@/components/landing/PricingSection';
 
 const CAPABILITIES = [
   'Text to Video',
@@ -387,6 +387,9 @@ export default function Landing() {
       {/* Creator Showcase - Real Videos */}
       <CreatorShowcase />
 
+      {/* Pricing Section */}
+      <PricingSection />
+
       {/* CTA Section with glossy black */}
       <section className="relative z-10 py-24 px-4 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -415,11 +418,11 @@ export default function Landing() {
               <div className="flex items-center justify-center gap-6 mt-8 text-sm text-white/50">
                 <span className="flex items-center gap-2">
                   <Check className="w-4 h-4" />
-                  No credit card required
+                  50 free credits included
                 </span>
                 <span className="flex items-center gap-2">
                   <Check className="w-4 h-4" />
-                  Free forever plan
+                  No credit card required
                 </span>
               </div>
             </div>

@@ -21,7 +21,7 @@ import Contact from "./pages/Contact";
 import LongVideo from "./pages/LongVideo";
 import ScriptReview from "./pages/ScriptReview";
 import Production from "./pages/Production";
-import Studio from "./pages/Studio";
+
 import Clips from "./pages/Clips";
 import HelpCenter from "./pages/HelpCenter";
 
@@ -89,12 +89,8 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* Studio - In Progress & Failed */}
-              <Route path="/studio" element={
-                <ProtectedRoute>
-                  <Studio />
-                </ProtectedRoute>
-              } />
+              {/* Legacy studio route redirects to production */}
+              <Route path="/studio" element={<Navigate to="/production" replace />} />
               
               {/* Clips Gallery */}
               <Route path="/clips" element={

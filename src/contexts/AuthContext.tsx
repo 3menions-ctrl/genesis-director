@@ -39,8 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSessionVerified, setIsSessionVerified] = useState(false);
 
   const fetchProfile = async (userId: string) => {
+    // Always verify session before profile fetch to avoid RLS issues
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession) {
+      console.warn('[AuthContext] fetchProfile: No valid session');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -62,16 +70,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
+    // Critical: Set loading to true at start
+    setLoading(true);
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, newSession) => {
+        if (!mounted) return;
+        
+        console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsSessionVerified(true);
 
         // Defer profile fetch with setTimeout to avoid deadlock
-        if (session?.user) {
+        if (newSession?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id).then(setProfile);
+            if (mounted) {
+              fetchProfile(newSession.user.id).then((p) => {
+                if (mounted) setProfile(p);
+              });
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -80,20 +102,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).then((p) => {
-          setProfile(p);
+    const initSession = async () => {
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      
+      if (!mounted) return;
+      
+      console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
+      
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+      setIsSessionVerified(true);
+      
+      if (existingSession?.user) {
+        const profileData = await fetchProfile(existingSession.user.id);
+        if (mounted) {
+          setProfile(profileData);
           setLoading(false);
-        });
+        }
       } else {
         setLoading(false);
       }
-    });
+    };
+    
+    initSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

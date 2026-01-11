@@ -509,7 +509,7 @@ function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: num
 export default function Projects() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, updateProject, refreshProjects } = useStudio();
+  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, updateProject, refreshProjects, isLoading: isLoadingProjects, hasLoadedOnce } = useStudio();
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -897,7 +897,20 @@ export default function Projects() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {allDisplayableProjects.length === 0 && stitchingProjects.length === 0 ? (
+        {/* Show loading state while projects are being fetched */}
+        {(isLoadingProjects && !hasLoadedOnce) ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-32 sm:py-48 px-4"
+          >
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-white/5 rounded-full blur-3xl scale-150 animate-pulse" />
+              <Loader2 className="relative w-12 h-12 text-white/50 animate-spin" />
+            </div>
+            <p className="text-white/40 text-lg">Loading your projects...</p>
+          </motion.div>
+        ) : allDisplayableProjects.length === 0 && stitchingProjects.length === 0 ? (
           /* ========== EMPTY STATE ========== */
           <motion.div 
             initial={{ opacity: 0, y: 40 }}

@@ -301,12 +301,20 @@ export default function Production() {
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
-    if (!projectId || !user) return;
+    if (!projectId) return;
+    
+    // CRITICAL: Always verify session before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      console.log('[Production] loadVideoClips: No session, skipping');
+      return;
+    }
     
     const { data: clips, error: clipsError } = await supabase
       .from('video_clips')
       .select('id, shot_index, status, video_url, error_message')
       .eq('project_id', projectId)
+      .eq('user_id', session.user.id) // Explicit user filter
       .order('shot_index');
     
     if (!clipsError && clips) {
@@ -319,7 +327,7 @@ export default function Production() {
       })));
       setCompletedClips(clips.filter(c => c.status === 'completed').length);
     }
-  }, [projectId, user]);
+  }, [projectId]);
 
   // Add log entry helper
   const addLog = useCallback((message: string, type: PipelineLog['type'] = 'info') => {

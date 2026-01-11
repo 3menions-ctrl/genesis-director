@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.simple-stitch]
 verify_jwt = false
+
+[functions.auto-stitch-trigger]
+verify_jwt = false

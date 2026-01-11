@@ -33,7 +33,6 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  FolderOpen,
   Volume2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +54,7 @@ import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
 import { StoryApprovalPanel } from '@/components/studio/StoryApprovalPanel';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
@@ -785,9 +785,11 @@ export function UnifiedStudio() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Compact Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+      <AppHeader showCreate={false} />
+      
+      {/* Project Info Bar */}
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-lg border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-foreground">
@@ -802,15 +804,6 @@ export function UnifiedStudio() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/projects')}
-                className="gap-1.5"
-              >
-                <FolderOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">My Projects</span>
-              </Button>
               <Badge variant="outline" className="hidden sm:flex gap-1.5">
                 <Clock className="w-3 h-3" />
                 {totalDuration}s
@@ -828,7 +821,7 @@ export function UnifiedStudio() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
         {/* Mode Selection - Compact */}
         <Card className="overflow-hidden border-border">
           <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">

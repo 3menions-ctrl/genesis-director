@@ -2,8 +2,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { 
   Film, Play, Download, MoreVertical, Trash2, 
-  Loader2, CheckCircle2, XCircle, Clock, ExternalLink
+  Loader2, CheckCircle2, XCircle, Clock, ExternalLink, ArrowLeft
 } from 'lucide-react';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -184,55 +185,31 @@ export default function Clips() {
         <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-bl from-emerald-500/[0.03] to-transparent blur-[120px]" />
       </div>
 
-      {/* Header */}
-      <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-2xl border-b border-white/[0.05]">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Film className="w-4.5 h-4.5 text-emerald-400" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-semibold text-white/90">
-                {projectTitle ? `Clips: ${projectTitle}` : 'Clips Gallery'}
-              </span>
-              {projectIdFilter && (
-                <button 
-                  onClick={() => navigate('/clips')}
-                  className="text-xs text-emerald-400 hover:text-emerald-300 text-left"
-                >
-                  ← View all clips
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {[
-              { label: 'Projects', path: '/projects' },
-              { label: 'Studio', path: '/studio' },
-              { label: 'Clips', path: '/clips', active: true },
-              { label: 'Create', path: '/create' },
-            ].map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-all",
-                  item.active 
-                    ? "text-white bg-white/[0.08]" 
-                    : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]"
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
+      <AppHeader />
+      
+      {/* Page-specific sub-header */}
+      {projectIdFilter && (
+        <div className="sticky top-16 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/clips')}
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              All Clips
+            </button>
+            <span className="text-white/20">/</span>
+            <span className="text-sm font-medium text-white truncate">{projectTitle}</span>
           </div>
         </div>
-      </nav>
+      )}
 
       {/* Stats */}
-      <div className="sticky top-14 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className={cn(
+        "sticky z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]",
+        projectIdFilter ? "top-28" : "top-16"
+      )}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
           <div className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span className="text-sm font-medium text-white">{completedCount}</span>
@@ -252,7 +229,7 @@ export default function Clips() {
       </div>
 
       {/* Content */}
-      <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-white/50" />

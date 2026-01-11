@@ -4,6 +4,7 @@ import {
   Film, Play, MoreVertical, Trash2, RotateCcw, 
   Loader2, XCircle, Clock, AlertTriangle, ArrowRight
 } from 'lucide-react';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -180,43 +181,11 @@ export default function Studio() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-red-500/[0.02] to-transparent blur-[150px]" />
       </div>
 
-      {/* Header */}
-      <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-2xl border-b border-white/[0.05]">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-              <Loader2 className="w-4.5 h-4.5 text-amber-400" />
-            </div>
-            <span className="text-base font-semibold text-white/90">Studio</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {[
-              { label: 'Projects', path: '/projects' },
-              { label: 'Studio', path: '/studio', active: true },
-              { label: 'Clips', path: '/clips' },
-              { label: 'Create', path: '/create' },
-            ].map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-lg transition-all",
-                  item.active 
-                    ? "text-white bg-white/[0.08]" 
-                    : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]"
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
+      <AppHeader />
 
       {/* Stats */}
-      <div className="sticky top-14 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-16 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
           <div className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
             <span className="text-sm font-medium text-white">{inProgressCount}</span>
@@ -236,7 +205,7 @@ export default function Studio() {
       </div>
 
       {/* Content */}
-      <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-white/50" />

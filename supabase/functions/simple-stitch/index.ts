@@ -248,22 +248,17 @@ serve(async (req) => {
       );
     }
 
-    // Step 7: Call Cloud Run directly
+    // Step 7: Call Cloud Run directly - BUT with short timeout and manifest fallback
     console.log("[SimpleStitch] Step 3: Dispatching to Cloud Run...");
     
     // CRITICAL: Use the correct Supabase URLs
-    // - Edge functions live on Lovable Cloud (SUPABASE_URL)
-    // - Storage may be on external Supabase
-    const lovableCloudUrl = supabaseUrl; // This is where finalize-stitch lives
+    const lovableCloudUrl = supabaseUrl;
     const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
     const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
-    
-    // For storage operations, use external if configured
     const storageSupabaseUrl = externalSupabaseUrl || supabaseUrl;
     const storageSupabaseKey = externalSupabaseKey || supabaseKey;
     
     console.log(`[SimpleStitch] Callback URL: ${lovableCloudUrl}/functions/v1/finalize-stitch`);
-    console.log(`[SimpleStitch] Storage URL: ${storageSupabaseUrl}`);
 
     const stitchRequest = {
       projectId,
@@ -273,9 +268,7 @@ serve(async (req) => {
       transitionType: 'fade',
       transitionDuration: 0.3,
       colorGrading: 'cinematic',
-      // CRITICAL: Callback must go to Lovable Cloud where edge functions live
       callbackUrl: `${lovableCloudUrl}/functions/v1/finalize-stitch`,
-      // Storage operations use external Supabase if configured
       supabaseUrl: storageSupabaseUrl,
       supabaseServiceKey: storageSupabaseKey,
     };
@@ -295,9 +288,9 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
-    // Fire and wait for response (with timeout)
+    // Try Cloud Run with a SHORT timeout - if it fails, use manifest immediately
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout (not 5 min)
     
     try {
       const stitchResponse = await fetch(`${cloudRunUrl}/stitch`, {
@@ -311,14 +304,15 @@ serve(async (req) => {
       
       if (!stitchResponse.ok) {
         const errorText = await stitchResponse.text();
-        throw new Error(`Cloud Run returned ${stitchResponse.status}: ${errorText}`);
+        console.error(`[SimpleStitch] Cloud Run error: ${stitchResponse.status} - ${errorText}`);
+        throw new Error(`Cloud Run returned ${stitchResponse.status}`);
       }
       
       const stitchResult = await stitchResponse.json();
-      console.log(`[SimpleStitch] Cloud Run response:`, stitchResult);
+      console.log(`[SimpleStitch] Cloud Run response:`, JSON.stringify(stitchResult).substring(0, 200));
       
       if (stitchResult.success && stitchResult.finalVideoUrl) {
-        // Cloud Run completed synchronously
+        // Cloud Run completed synchronously - great!
         await supabase
           .from('movie_projects')
           .update({
@@ -347,40 +341,79 @@ serve(async (req) => {
         );
       }
       
-      // Cloud Run accepted but processing async
-      return new Response(
-        JSON.stringify({
-          success: true,
-          mode: 'simple_cloud_run_async',
-          message: 'Cloud Run processing, will callback when complete',
-          clipsProcessed: clips.length,
-          processingTimeMs: Date.now() - startTime,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Cloud Run accepted but didn't return video - it will callback
+      // But we also create a manifest as backup
+      console.log("[SimpleStitch] Cloud Run async mode - creating manifest backup...");
       
     } catch (fetchError) {
       clearTimeout(timeoutId);
       
       const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
-      console.error(`[SimpleStitch] Cloud Run fetch failed: ${errorMessage}`);
-      
-      // If it's a timeout, Cloud Run might still complete
-      if (errorMessage.includes('abort')) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            mode: 'simple_cloud_run_timeout',
-            message: 'Request timed out but Cloud Run may still complete. Check back in a few minutes.',
-            clipsProcessed: clips.length,
-            processingTimeMs: Date.now() - startTime,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw fetchError;
+      console.warn(`[SimpleStitch] Cloud Run fetch failed: ${errorMessage} - falling back to manifest`);
     }
+    
+    // FALLBACK: Always create a manifest for client-side playback
+    console.log("[SimpleStitch] Creating manifest for client-side playback...");
+    
+    const manifest = {
+      version: "1.0",
+      projectId,
+      mode: "client_side_concat",
+      createdAt: new Date().toISOString(),
+      clips: clipData.map((clip, index) => ({
+        index,
+        shotId: clip.shotId,
+        videoUrl: clip.videoUrl,
+        duration: clip.durationSeconds,
+        startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
+      })),
+      totalDuration: clipData.reduce((sum, c) => sum + c.durationSeconds, 0),
+      voiceUrl: project?.voice_audio_url || null,
+      musicUrl: project?.music_url || null,
+    };
+
+    const fileName = `manifest_${projectId}_${Date.now()}.json`;
+    const manifestJson = JSON.stringify(manifest, null, 2);
+    const bytes = new TextEncoder().encode(manifestJson);
+
+    await supabase.storage
+      .from('temp-frames')
+      .upload(fileName, bytes, { contentType: 'application/json', upsert: true });
+
+    const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+
+    // Update project with manifest URL (allows immediate playback)
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'completed',
+        video_url: manifestUrl,
+        pending_video_tasks: {
+          stage: 'complete',
+          progress: 100,
+          mode: 'manifest_playback',
+          manifestUrl: manifestUrl,
+          clipCount: clips.length,
+          totalDuration: manifest.totalDuration,
+          completedAt: new Date().toISOString(),
+          note: 'Using client-side manifest playback. Cloud Run may complete later.',
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        mode: 'manifest_playback',
+        finalVideoUrl: manifestUrl,
+        clipsProcessed: clips.length,
+        totalDuration: manifest.totalDuration,
+        processingTimeMs: Date.now() - startTime,
+        note: 'Video ready for playback via manifest. A stitched MP4 may be available later.',
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
   } catch (error) {
     console.error("[SimpleStitch] Error:", error);

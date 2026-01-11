@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { 
-  Film, Play, MoreVertical, Trash2, RotateCcw, 
-  Loader2, XCircle, Clock, AlertTriangle, ArrowRight
+  Film, MoreVertical, Trash2, RotateCcw, 
+  Loader2, XCircle, Clock, AlertTriangle, ArrowRight,
+  Sparkles, Play, Zap, Timer
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { motion } from 'framer-motion';
 
 interface StudioProject {
   id: string;
@@ -38,17 +40,13 @@ export default function Studio() {
     const loadProjects = async () => {
       if (!user) return;
       
-      // CRITICAL: Verify Supabase client has valid session before querying
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('Studio: No valid session yet, skipping load');
-        return;
-      }
+      if (!session) return;
       
       const { data, error } = await supabase
         .from('movie_projects')
         .select('id, title, status, created_at, updated_at, thumbnail_url, pending_video_tasks')
-        .eq('user_id', session.user.id) // Use session user ID
+        .eq('user_id', session.user.id)
         .in('status', ['draft', 'awaiting_approval', 'producing', 'generating', 'rendering', 'failed'])
         .order('updated_at', { ascending: false });
 
@@ -63,7 +61,6 @@ export default function Studio() {
 
     loadProjects();
 
-    // Subscribe to realtime updates
     const channel = supabase
       .channel('studio_projects')
       .on(
@@ -106,32 +103,28 @@ export default function Studio() {
         return { 
           label: 'In Progress', 
           icon: Loader2, 
-          color: 'text-amber-400', 
-          bgColor: 'bg-amber-500/20',
+          className: 'bg-warning/10 text-warning border-warning/20',
           animate: true 
         };
       case 'awaiting_approval':
         return { 
           label: 'Awaiting Review', 
           icon: Clock, 
-          color: 'text-blue-400', 
-          bgColor: 'bg-blue-500/20',
+          className: 'bg-info/10 text-info border-info/20',
           animate: false 
         };
       case 'failed':
         return { 
           label: 'Failed', 
           icon: XCircle, 
-          color: 'text-red-400', 
-          bgColor: 'bg-red-500/20',
+          className: 'bg-destructive/10 text-destructive border-destructive/20',
           animate: false 
         };
       default:
         return { 
           label: 'Draft', 
           icon: Film, 
-          color: 'text-white/50', 
-          bgColor: 'bg-white/10',
+          className: 'bg-muted text-muted-foreground',
           animate: false 
         };
     }
@@ -148,7 +141,6 @@ export default function Studio() {
   };
 
   const handleRetry = async (project: StudioProject) => {
-    // Reset project status to allow retry
     const { error } = await supabase
       .from('movie_projects')
       .update({ status: 'draft' })
@@ -181,113 +173,168 @@ export default function Studio() {
   const awaitingCount = projects.filter(p => p.status === 'awaiting_approval').length;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-amber-500/[0.03] to-transparent blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-red-500/[0.02] to-transparent blur-[150px]" />
-      </div>
-
+    <div className="min-h-screen bg-background">
       <AppHeader />
 
-      {/* Stats */}
-      <div className="sticky top-16 z-40 bg-black/60 backdrop-blur-xl border-b border-white/[0.04]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
-            <span className="text-sm font-medium text-white">{inProgressCount}</span>
-            <span className="text-xs text-white/30">In Progress</span>
-          </div>
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-white">{awaitingCount}</span>
-            <span className="text-xs text-white/30">Awaiting</span>
-          </div>
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
-            <XCircle className="w-4 h-4 text-red-400" />
-            <span className="text-sm font-medium text-white">{failedCount}</span>
-            <span className="text-xs text-white/30">Failed</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-white/50" />
-          </div>
-        ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-6">
-              <Film className="w-8 h-8 text-white/20" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Studio</h1>
+              <p className="text-muted-foreground mt-1">
+                Track your in-progress and pending projects
+              </p>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3">No active projects</h2>
-            <p className="text-white/40 text-base mb-8 text-center max-w-md">
-              All your projects have been completed or you haven't started any yet.
-            </p>
-            <Button onClick={() => navigate('/create')} className="bg-white text-black hover:bg-white/90">
-              Start Creating
+
+            <Button onClick={() => navigate('/create')} size="lg">
+              <Sparkles className="w-4 h-4 mr-2" />
+              New Project
             </Button>
           </div>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-3 gap-4 mb-8"
+        >
+          <div className="p-4 rounded-xl bg-card border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{inProgressCount}</p>
+                <p className="text-sm text-muted-foreground">In Progress</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-xl bg-card border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <Timer className="w-5 h-5 text-info" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{awaitingCount}</p>
+                <p className="text-sm text-muted-foreground">Awaiting</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 rounded-xl bg-card border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-destructive" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{failedCount}</p>
+                <p className="text-sm text-muted-foreground">Failed</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Projects */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-32">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : projects.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-24 px-4"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mb-6">
+              <Film className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-semibold text-foreground mb-2">No active projects</h2>
+            <p className="text-muted-foreground mb-6 text-center max-w-md">
+              All your projects have been completed or you haven't started any yet.
+            </p>
+            <Button onClick={() => navigate('/create')} size="lg">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Start Creating
+            </Button>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projects.map((project) => {
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            {projects.map((project, index) => {
               const statusConfig = getStatusConfig(project.status);
               const StatusIcon = statusConfig.icon;
 
               return (
-                <div
+                <motion.div
                   key={project.id}
-                  className="group relative bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.12] transition-all"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group bg-card border rounded-xl overflow-hidden hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   {/* Thumbnail */}
-                  <div className="aspect-video bg-black/50 relative">
+                  <div className="aspect-video bg-muted relative overflow-hidden">
                     {project.thumbnail_url ? (
                       <img 
                         src={project.thumbnail_url} 
                         alt={project.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Film className="w-10 h-10 text-white/10" />
+                        <Film className="w-12 h-12 text-muted-foreground/30" />
                       </div>
                     )}
                     
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
+                      </div>
+                    </div>
+                    
                     {/* Status Badge */}
                     <div className="absolute top-3 left-3">
-                      <Badge className={cn("gap-1.5", statusConfig.bgColor, statusConfig.color, "border-0")}>
+                      <Badge variant="outline" className={cn("gap-1.5 backdrop-blur-sm bg-background/80", statusConfig.className)}>
                         <StatusIcon className={cn("w-3 h-3", statusConfig.animate && "animate-spin")} />
                         {statusConfig.label}
                       </Badge>
                     </div>
 
                     {/* Actions */}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button 
-                            variant="ghost" 
+                            variant="secondary" 
                             size="icon"
-                            className="w-8 h-8 bg-black/50 hover:bg-black/70 text-white/70"
+                            className="w-8 h-8"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-black/95 border-white/10">
+                        <DropdownMenuContent align="end">
                           {project.status === 'failed' && (
-                            <DropdownMenuItem 
-                              onClick={() => handleRetry(project)}
-                              className="text-white/70 hover:text-white"
-                            >
+                            <DropdownMenuItem onClick={() => handleRetry(project)}>
                               <RotateCcw className="w-4 h-4 mr-2" />
                               Retry
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
                             onClick={() => handleDelete(project.id)}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
@@ -299,31 +346,31 @@ export default function Studio() {
 
                   {/* Info */}
                   <div className="p-4">
-                    <h3 className="font-semibold text-white truncate mb-1">{project.title}</h3>
-                    <p className="text-xs text-white/40">{formatDate(project.updated_at)}</p>
+                    <h3 className="font-semibold text-foreground truncate mb-1">{project.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-4">{formatDate(project.updated_at)}</p>
                     
                     <Button 
                       onClick={() => handleContinue(project)}
-                      className="w-full mt-4 gap-2"
+                      className="w-full"
                       variant={project.status === 'failed' ? 'destructive' : 'default'}
                     >
                       {project.status === 'failed' ? (
                         <>
-                          <AlertTriangle className="w-4 h-4" />
+                          <AlertTriangle className="w-4 h-4 mr-2" />
                           View Error
                         </>
                       ) : (
                         <>
-                          <ArrowRight className="w-4 h-4" />
+                          <ArrowRight className="w-4 h-4 mr-2" />
                           Continue
                         </>
                       )}
                     </Button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </main>
     </div>

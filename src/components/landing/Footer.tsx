@@ -48,95 +48,80 @@ const SOCIAL_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 border-t border-border/30">
-      {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-16">
-        <div className="grid lg:grid-cols-6 gap-12 lg:gap-8">
-          {/* Brand Column */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian overflow-hidden">
-                <img src={apexLogo} alt="Apex Studio" className="w-8 h-8 object-contain" />
+    <footer className="relative z-10">
+      <div className="bg-black/90 backdrop-blur-sm border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+            {/* Brand Column */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-6 lg:gap-8">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+                  <img src={apexLogo} alt="Apex Studio" className="w-6 h-6 object-contain" />
+                </div>
+                <span className="text-lg font-bold text-white">Apex Studio</span>
               </div>
-              <span className="text-xl font-bold text-foreground">Apex Studio</span>
-            </div>
-            <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-xs">
-              The AI-powered video creation platform that transforms your ideas into cinematic content in minutes.
-            </p>
-            
-            {/* Contact Info */}
-            <div className="space-y-2 mb-6">
-              <a 
-                href="mailto:hello@apexstudio.ai" 
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                hello@apexstudio.ai
-              </a>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                San Francisco, CA
+              
+              {/* Social Links */}
+              <div className="flex items-center gap-2">
+                {SOCIAL_LINKS.map((social) => {
+                  const Icon = social.icon;
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      aria-label={social.label}
+                      className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
-            
-            {/* Social Links */}
-            <div className="flex items-center gap-3">
-              {SOCIAL_LINKS.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    aria-label={social.label}
-                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all border border-white/5"
-                  >
-                    <Icon className="w-4 h-4" />
-                  </a>
-                );
-              })}
+
+            {/* Link Columns - Horizontal on larger screens */}
+            <div className="flex flex-wrap gap-x-12 gap-y-4">
+              {Object.entries(FOOTER_LINKS).map(([category, links]) => (
+                <div key={category} className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-white/40 uppercase tracking-wider">{category}:</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {links.slice(0, 3).map((link, idx) => (
+                      <span key={link.label} className="flex items-center gap-3">
+                        {link.href.startsWith('/') ? (
+                          <Link
+                            to={link.href}
+                            className="text-sm text-white/60 hover:text-white transition-colors"
+                          >
+                            {link.label}
+                          </Link>
+                        ) : (
+                          <a
+                            href={link.href}
+                            className="text-sm text-white/60 hover:text-white transition-colors"
+                          >
+                            {link.label}
+                          </a>
+                        )}
+                        {idx < 2 && <span className="text-white/20">·</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Link Columns */}
-          {Object.entries(FOOTER_LINKS).map(([category, links]) => (
-            <div key={category}>
-              <h3 className="font-semibold text-foreground mb-4">{category}</h3>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    {link.href.startsWith('/') ? (
-                      <Link
-                        to={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a
-                        href={link.href}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-border/30">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Apex Studio. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              <span className="text-sm text-muted-foreground">
-                Made with ❤️ for creators everywhere
+          {/* Bottom Bar */}
+          <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/40">
+            <p>© {new Date().getFullYear()} Apex Studio. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <a href="mailto:hello@apexstudio.ai" className="hover:text-white/60 transition-colors flex items-center gap-1.5">
+                <Mail className="w-3 h-3" />
+                hello@apexstudio.ai
+              </a>
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3 h-3" />
+                San Francisco, CA
               </span>
             </div>
           </div>

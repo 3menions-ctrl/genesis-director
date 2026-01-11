@@ -88,6 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setIsSessionVerified(true);
+        // Critical: Set loading to false on auth state changes to prevent route blink
+        setLoading(false);
 
         // Defer profile fetch with setTimeout to avoid deadlock
         if (newSession?.user) {

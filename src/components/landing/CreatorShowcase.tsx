@@ -6,18 +6,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Featured creator videos from actual completed projects
 const CREATOR_VIDEOS = [
   {
+    id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
+    title: 'Silent Vigil in Ruined Valor',
+    creator: 'Valor Studios',
+    genre: 'Cinematic',
+  },
+  {
+    id: '7434c756-78d3-4f68-8107-b205930027c4',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
+    title: 'Skyward Over Fiery Majesty',
+    creator: 'Drone Vision',
+    genre: 'Cinematic',
+  },
+  {
     id: '171d8bf6-2911-4c6a-b715-6ed0e93ff226',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
     title: 'Editing Dreams in Motion',
     creator: 'Studio Pro',
     genre: 'Ad',
-  },
-  {
-    id: '3f39ac52-a254-4b4a-9914-e2ed50457177',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_3f39ac52-a254-4b4a-9914-e2ed50457177_1768118160259.mp4',
-    title: 'Whispers of the Starry Night',
-    creator: 'Night Owl Films',
-    genre: 'Cinematic',
   },
   {
     id: '9ee134ca-5526-4e7f-9c10-1345f7b7b01f',
@@ -38,13 +45,6 @@ const CREATOR_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
     title: "Jungle Guardian's Vigil",
     creator: 'Epic Studios',
-    genre: 'Cinematic',
-  },
-  {
-    id: 'df957e60-7589-46be-b044-d6d52e342316',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
-    title: 'Volcanic Forces',
-    creator: 'Drone Vision',
     genre: 'Cinematic',
   },
 ];

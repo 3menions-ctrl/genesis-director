@@ -1,4 +1,5 @@
-import { Film, Download, Share2, Menu, Bell, Settings, User } from 'lucide-react';
+import { Download, Share2, Menu, Bell, Settings, User } from 'lucide-react';
+import apexLogo from '@/assets/apex-logo.png';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,8 +38,8 @@ export function Header({ projectName, status, onExport, onShare, onMenuClick }: 
 
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shadow-lg">
-              <Film className="w-5 h-5 text-background" />
+            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shadow-lg overflow-hidden">
+              <img src={apexLogo} alt="Apex Studio" className="w-8 h-8 object-contain" />
             </div>
           </div>
           

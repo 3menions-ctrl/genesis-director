@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
-  Film, ArrowRight, 
+  ArrowRight, 
   Video, Mic, Image,
   Check, 
   ChevronRight, Loader2, Zap, 
   Brain, Layers, Eye, Stars
 } from 'lucide-react';
+import apexLogo from '@/assets/apex-logo.png';
 import { cn } from '@/lib/utils';
 import ExamplesGallery from '@/components/landing/ExamplesGallery';
 import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
@@ -121,8 +122,8 @@ export default function Landing() {
               <div className="flex items-center gap-2.5">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-xl bg-foreground/20 blur-lg" />
-                  <div className="relative w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian">
-                    <Film className="w-5 h-5 text-white" />
+                  <div className="relative w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian overflow-hidden">
+                    <img src={apexLogo} alt="Apex Studio" className="w-8 h-8 object-contain" />
                   </div>
                 </div>
                 <span className="text-xl font-bold text-foreground">Apex Studio</span>
@@ -431,8 +432,8 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-glossy-black flex items-center justify-center shadow-obsidian">
-                <Film className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-glossy-black flex items-center justify-center shadow-obsidian overflow-hidden">
+                <img src={apexLogo} alt="Apex Studio" className="w-6 h-6 object-contain" />
               </div>
               <span className="font-semibold text-foreground">Apex Studio</span>
             </div>

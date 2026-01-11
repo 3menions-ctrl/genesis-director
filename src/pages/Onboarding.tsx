@@ -140,13 +140,11 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{
-      background: 'linear-gradient(135deg, hsl(262 35% 15%) 0%, hsl(262 40% 8%) 100%)'
-    }}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       {/* Decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-violet-500/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-purple-500/10 blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/5 blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-lg">
@@ -157,7 +155,7 @@ export default function Onboarding() {
               key={s}
               className={cn(
                 "h-1.5 rounded-full transition-all duration-300",
-                s === step ? "w-12 bg-violet-500" : s < step ? "w-8 bg-violet-500/50" : "w-8 bg-white/10"
+                s === step ? "w-12 bg-primary" : s < step ? "w-8 bg-primary/50" : "w-8 bg-muted"
               )}
             />
           ))}
@@ -165,15 +163,15 @@ export default function Onboarding() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 mb-4 shadow-xl shadow-violet-500/25">
-            <Film className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-xl shadow-primary/25">
+            <Film className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-white mb-2">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-2">
             {step === 1 && "Welcome! Let's get to know you"}
             {step === 2 && "How will you be using Apex Studio?"}
             {step === 3 && "What will you create?"}
           </h1>
-          <p className="text-violet-300/70 text-sm">
+          <p className="text-muted-foreground text-sm">
             {step === 1 && "This helps us personalize your experience"}
             {step === 2 && "Select what best describes you"}
             {step === 3 && "Choose your primary use case"}
@@ -181,12 +179,12 @@ export default function Onboarding() {
         </div>
 
         {/* Form Card */}
-        <div className="card-dark p-8">
+        <div className="p-8 rounded-2xl bg-card border border-border">
           {/* Step 1: Name */}
           {step === 1 && (
             <div className="space-y-6 animate-fade-in">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-violet-200 text-sm">
+                <Label htmlFor="fullName" className="text-foreground text-sm">
                   What's your name?
                 </Label>
                 <Input
@@ -195,17 +193,17 @@ export default function Onboarding() {
                   placeholder="John Smith"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="h-12 bg-white/5 border-white/10 text-white placeholder:text-violet-400/50 focus:border-violet-500 focus:ring-violet-500/20"
+                  className="h-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20"
                   maxLength={100}
                 />
                 {errors.fullName && (
-                  <p className="text-red-400 text-xs">{errors.fullName}</p>
+                  <p className="text-destructive text-xs">{errors.fullName}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company" className="text-violet-200 text-sm">
-                  Company or brand <span className="text-violet-400/50">(optional)</span>
+                <Label htmlFor="company" className="text-foreground text-sm">
+                  Company or brand <span className="text-muted-foreground">(optional)</span>
                 </Label>
                 <Input
                   id="company"
@@ -213,7 +211,7 @@ export default function Onboarding() {
                   placeholder="Acme Studios"
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="h-12 bg-white/5 border-white/10 text-white placeholder:text-violet-400/50 focus:border-violet-500 focus:ring-violet-500/20"
+                  className="h-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20"
                   maxLength={100}
                 />
               </div>
@@ -233,26 +231,26 @@ export default function Onboarding() {
                   className={cn(
                     "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
                     formData.role === role.id
-                      ? "border-violet-500 bg-violet-500/10"
-                      : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
                   )}
                 >
                   <div className={cn(
                     "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
                     formData.role === role.id 
-                      ? "bg-violet-500 text-white" 
-                      : "bg-white/10 text-violet-300"
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
                   )}>
                     <role.icon className="w-5 h-5" />
                   </div>
-                  <span className="font-medium text-white">{role.label}</span>
+                  <span className="font-medium text-foreground">{role.label}</span>
                   {formData.role === role.id && (
-                    <Check className="w-5 h-5 text-violet-400 ml-auto" />
+                    <Check className="w-5 h-5 text-primary ml-auto" />
                   )}
                 </button>
               ))}
               {errors.role && (
-                <p className="text-red-400 text-xs">{errors.role}</p>
+                <p className="text-destructive text-xs">{errors.role}</p>
               )}
             </div>
           )}
@@ -270,36 +268,36 @@ export default function Onboarding() {
                   className={cn(
                     "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center",
                     formData.useCase === useCase.id
-                      ? "border-violet-500 bg-violet-500/10"
-                      : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
                   )}
                 >
                   <div className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
                     formData.useCase === useCase.id 
-                      ? "bg-violet-500 text-white" 
-                      : "bg-white/10 text-violet-300"
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
                   )}>
                     <useCase.icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-medium text-white text-sm">{useCase.label}</p>
-                    <p className="text-violet-400/60 text-xs">{useCase.description}</p>
+                    <p className="font-medium text-foreground text-sm">{useCase.label}</p>
+                    <p className="text-muted-foreground text-xs">{useCase.description}</p>
                   </div>
                 </button>
               ))}
               {errors.useCase && (
-                <p className="text-red-400 text-xs col-span-2">{errors.useCase}</p>
+                <p className="text-destructive text-xs col-span-2">{errors.useCase}</p>
               )}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/10">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
             <button
               onClick={handleSkip}
               disabled={loading}
-              className="text-sm text-violet-400/60 hover:text-violet-300 transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Skip for now
             </button>
@@ -307,7 +305,7 @@ export default function Onboarding() {
             {step < 3 ? (
               <Button
                 onClick={handleNext}
-                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />
@@ -316,10 +314,10 @@ export default function Onboarding() {
               <Button
                 onClick={handleComplete}
                 disabled={loading || !formData.useCase}
-                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-medium gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
               >
                 {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />

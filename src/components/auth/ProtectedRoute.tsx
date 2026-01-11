@@ -30,14 +30,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-950 via-slate-900 to-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center animate-pulse">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
+              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
             </div>
           </div>
-          <p className="text-violet-300/70 text-sm">Loading...</p>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );

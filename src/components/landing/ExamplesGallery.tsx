@@ -4,16 +4,26 @@ import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 const SHOWCASE_VIDEOS = [
-  // Real creator videos from completed projects
+  // Newest videos first
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768156700246.mp4',
+    title: 'Whimsical Chocolate Adventures',
+    description: 'A delightful journey through a world of sweet confections',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
+    title: 'Echoes of Desolation',
+    description: 'A haunting exploration of abandoned landscapes and forgotten memories',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
+    title: 'Illuminated Conversations',
+    description: 'Light and shadow dance in meaningful dialogue',
+  },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
     title: 'Editing Dreams in Motion',
     description: 'A cinematic ad showcasing creative video editing possibilities',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_3f39ac52-a254-4b4a-9914-e2ed50457177_1768118160259.mp4',
-    title: 'Whispers of the Starry Night',
-    description: 'An epic cinematic journey through the cosmos and starlit skies',
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
@@ -23,7 +33,7 @@ const SHOWCASE_VIDEOS = [
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
     title: 'Shadows of the Predator',
-    description: 'A thrilling wildlife documentary capturing nature\'s fierce beauty',
+    description: "A thrilling wildlife documentary capturing nature's fierce beauty",
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
@@ -34,17 +44,6 @@ const SHOWCASE_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
     title: 'Volcanic Forces',
     description: 'Breathtaking drone footage capturing the raw power of nature',
-  },
-  // Original showcase clips
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596471199-c94lc.mp4',
-    title: 'Ethereal Ascension',
-    description: 'A soul rises through clouds of light into heavenly realms',
-  },
-  {
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/character-references/generated-videos/veo-1767596635855-7jnlfu.mp4',
-    title: 'Divine Gateway',
-    description: 'Golden gates open to reveal paradise beyond',
   },
 ];
 

@@ -6,6 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Featured creator videos from actual completed projects
 const CREATOR_VIDEOS = [
   {
+    id: 'ed88401a-7a11-404c-acbc-55e375aee05d',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768165500178.mp4',
+    title: 'Haunted Whispers of the Past',
+    creator: 'Apex Creator',
+    genre: 'Cinematic',
+  },
+  {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768156700246.mp4',
     title: 'Whimsical Chocolate Adventures',

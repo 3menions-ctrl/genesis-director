@@ -118,30 +118,18 @@ function StatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06] hover:border-white/[0.12] transition-all duration-500"
+      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative p-3 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300"
     >
-      {/* Hover glow */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">{label}</p>
-          <p className="text-3xl font-bold text-white tracking-tight">{value}</p>
-          {trend && (
-            <div className={cn(
-              "flex items-center gap-1 mt-2 text-xs font-medium",
-              trend.isPositive ? "text-emerald-400" : "text-red-400"
-            )}>
-              <TrendingUp className={cn("w-3 h-3", !trend.isPositive && "rotate-180")} />
-              <span>{trend.isPositive ? '+' : ''}{trend.value}% this week</span>
-            </div>
-          )}
+      <div className="relative flex items-center gap-3">
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", colorClasses[color])}>
+          <Icon className="w-4 h-4" />
         </div>
-        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", colorClasses[color])}>
-          <Icon className="w-5 h-5" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium text-white/40 uppercase tracking-wider">{label}</p>
+          <p className="text-lg font-bold text-white tracking-tight">{value}</p>
         </div>
       </div>
     </motion.div>
@@ -1304,7 +1292,7 @@ export default function Projects() {
                         isPinned={pinnedProjects.has(project.id)}
                       />
                     ))}
-                    <CreateProjectCard onClick={handleCreateProject} delay={Math.min(filteredProjects.length * 0.03, 0.4)} />
+                    
                   </div>
                 )}
               </motion.div>

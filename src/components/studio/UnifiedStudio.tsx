@@ -784,93 +784,99 @@ export function UnifiedStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-32">
-      {/* Single Unified Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left - Logo & Title */}
-            <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-[#0a0a0a] pb-32 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-500/[0.03] to-transparent blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-blue-500/[0.02] to-transparent blur-[150px]" />
+      </div>
+      {/* Professional Dark Header */}
+      <header className="sticky top-0 z-50">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="h-16 flex items-center justify-between">
+              {/* Left - Logo & Branding */}
               <button 
                 onClick={() => navigate('/projects')} 
                 className="flex items-center gap-3 group"
               >
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                    <Film className="w-5 h-5 text-background" />
+                  <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-10 h-10 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
+                    <Film className="w-5 h-5 text-white/80" />
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-background" />
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold tracking-tight">Create</h1>
-                  <p className="text-xs text-muted-foreground -mt-0.5">AI Video Studio</p>
+                  <span className="text-lg font-bold text-white tracking-tight">Create</span>
+                  <p className="text-[11px] text-white/40 -mt-0.5">AI Video Studio</p>
                 </div>
               </button>
-            </div>
-            
-            {/* Center - Stats Pills */}
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 text-sm">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium">{totalDuration}s</span>
+              
+              {/* Center - Stats Pills */}
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm">
+                  <Clock className="w-3.5 h-3.5 text-white/50" />
+                  <span className="font-medium text-white/80">{totalDuration}s</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm">
+                  <Layers className="w-3.5 h-3.5 text-white/50" />
+                  <span className="font-medium text-white/80">{clipCount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-black text-sm font-semibold shadow-lg shadow-white/10">
+                  <Coins className="w-3.5 h-3.5" />
+                  <span>~{estimatedCredits}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 text-sm">
-                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium">{clipCount} clips</span>
+              
+              {/* Right - Navigation */}
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate('/projects')}
+                  className="h-9 px-4 text-white/60 hover:text-white hover:bg-white/[0.06] rounded-full text-sm font-medium"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Library
+                </Button>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground text-background text-sm font-medium shadow-lg">
-                <Coins className="w-3.5 h-3.5" />
-                <span>~{estimatedCredits} credits</span>
-              </div>
-            </div>
-            
-            {/* Right - User Actions */}
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/projects')}
-                className="hidden sm:flex gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <Eye className="w-4 h-4" />
-                Projects
-              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Hero Section - Mode Selection */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Hero Section */}
         <div className="text-center space-y-3 mb-8">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-clip-text">
-            What will you create today?
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+            What will you create?
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-white/50 max-w-xl mx-auto">
             Transform your ideas into stunning videos with AI-powered production
           </p>
         </div>
 
         {/* Mode Selection Tabs */}
-        <Card className="overflow-hidden border-border/50 shadow-xl bg-card/80 backdrop-blur-sm">
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden backdrop-blur-sm">
           <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-            <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 p-3">
-              <TabsList className="grid w-full grid-cols-2 h-12 bg-background/60 backdrop-blur-sm p-1 rounded-xl">
+            <div className="border-b border-white/[0.06] bg-white/[0.02] p-3">
+              <TabsList className="grid w-full grid-cols-2 h-12 bg-white/[0.03] p-1 rounded-xl border border-white/[0.05]">
                 <TabsTrigger 
                   value="ai" 
                   disabled={isRunning}
-                  className="gap-2.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-lg transition-all duration-300"
+                  className="gap-2.5 rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300"
                 >
                   <Zap className="w-4 h-4" />
                   <span className="font-semibold">AI Hollywood</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 hidden sm:flex bg-success/20 text-success border-0 font-medium">
+                  <Badge className="text-[10px] px-1.5 py-0 h-4 hidden sm:flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
                     PRO
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="manual" 
                   disabled={isRunning}
-                  className="gap-2.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-lg transition-all duration-300"
+                  className="gap-2.5 rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300"
                 >
                   <Clapperboard className="w-4 h-4" />
                   <span className="font-semibold">Manual Mode</span>
@@ -879,11 +885,11 @@ export function UnifiedStudio() {
             </div>
 
             {/* AI Mode */}
-            <TabsContent value="ai" className="m-0 p-5 sm:p-6 space-y-6">
+            <TabsContent value="ai" className="m-0 p-5 sm:p-6 space-y-6 bg-white/[0.01]">
               {/* Concept Input - Hero Section */}
               <div className="space-y-3">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                <Label className="text-sm font-semibold flex items-center gap-2 text-white/90">
+                  <Sparkles className="w-4 h-4 text-violet-400" />
                   Story Concept
                 </Label>
                 <div className="relative">
@@ -893,10 +899,10 @@ export function UnifiedStudio() {
                     placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins."
                     rows={4}
                     disabled={isRunning}
-                    className="resize-none text-base leading-relaxed pr-4 focus:ring-2 focus:ring-primary/20 border-border/50 bg-background/50"
+                    className="resize-none text-base leading-relaxed pr-4 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-2 focus:ring-white/10"
                   />
                   {concept.length > 0 && (
-                    <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
+                    <div className="absolute bottom-3 right-3 text-xs text-white/40">
                       {concept.length} chars
                     </div>
                   )}
@@ -906,14 +912,14 @@ export function UnifiedStudio() {
               {/* Creative Options Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mood</Label>
+                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Mood</Label>
                   <Select value={mood} onValueChange={setMood} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
+                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
                       {MOOD_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">
                           <span className="flex items-center gap-2">
                             <span>{opt.icon}</span>
                             <span>{opt.label}</span>
@@ -925,46 +931,46 @@ export function UnifiedStudio() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Genre</Label>
+                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Genre</Label>
                   <Select value={genre} onValueChange={setGenre} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
+                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
                       {GENRE_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Color</Label>
+                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Color</Label>
                   <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
+                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
                       {COLOR_PRESETS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Clips</Label>
+                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Clips</Label>
                   <Select 
                     value={clipCount.toString()} 
                     onValueChange={(v) => setClipCount(parseInt(v))} 
                     disabled={isRunning}
                   >
-                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
+                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
                       {[4, 6, 8, 10, 12].map(n => (
-                        <SelectItem key={n} value={n.toString()}>
+                        <SelectItem key={n} value={n.toString()} className="text-white/80 focus:bg-white/10 focus:text-white">
                           {n} clips ({n * CLIP_DURATION}s)
                         </SelectItem>
                       ))}
@@ -976,10 +982,10 @@ export function UnifiedStudio() {
               {/* Feature Toggles */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   includeVoice 
-                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-white/[0.08] border-white/20" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
                 >
@@ -990,17 +996,17 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="voice" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="voice" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Mic className="w-4 h-4" />
                     Narration
                   </Label>
                 </div>
                 
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   includeMusic 
-                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-white/[0.08] border-white/20" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
                 >
@@ -1011,7 +1017,7 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="music" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="music" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Music className="w-4 h-4" />
                     Music
                   </Label>
@@ -1019,10 +1025,10 @@ export function UnifiedStudio() {
 
                 {qualityTier === 'professional' && (
                   <div className={cn(
-                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                     includeSfx 
-                      ? "bg-info/10 border-info/30 shadow-sm" 
-                      : "bg-muted/30 border-border/30 hover:border-border/50"
+                      ? "bg-cyan-500/20 border-cyan-500/40" 
+                      : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                   )}
                   onClick={() => !isRunning && setIncludeSfx(!includeSfx)}
                   >
@@ -1033,7 +1039,7 @@ export function UnifiedStudio() {
                       disabled={isRunning}
                       className="scale-90"
                     />
-                    <Label htmlFor="sfx" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Label htmlFor="sfx" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                       <Volume2 className="w-4 h-4" />
                       SFX
                     </Label>
@@ -1043,10 +1049,10 @@ export function UnifiedStudio() {
                 <div className="flex-1" />
                 
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   qualityTier === 'professional' 
-                    ? "bg-success/10 border-success/40 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-emerald-500/20 border-emerald-500/40" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => {
                   if (!isRunning) {
@@ -1066,7 +1072,7 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="proTier" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="proTier" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Shield className="w-4 h-4" />
                     Pro Quality
                   </Label>
@@ -1075,16 +1081,16 @@ export function UnifiedStudio() {
             </TabsContent>
 
             {/* Manual Mode */}
-            <TabsContent value="manual" className="m-0 p-5 sm:p-6 space-y-6">
+            <TabsContent value="manual" className="m-0 p-5 sm:p-6 space-y-6 bg-white/[0.01]">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Clapperboard className="w-4 h-4 text-primary" />
+                  <Label className="text-sm font-semibold flex items-center gap-2 text-white/90">
+                    <Clapperboard className="w-4 h-4 text-amber-400" />
                     Scene Prompts
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-white/50 mt-1">
                     {CLIP_DURATION}s per scene • {hasEmptyPrompts && (
-                      <span className="text-destructive font-medium">Fill all scenes to continue</span>
+                      <span className="text-red-400 font-medium">Fill all scenes to continue</span>
                     )}
                   </p>
                 </div>
@@ -1093,7 +1099,7 @@ export function UnifiedStudio() {
                   size="sm"
                   onClick={addPrompt}
                   disabled={isRunning || clipCount >= 12}
-                  className="gap-2 h-9 px-4"
+                  className="gap-2 h-9 px-4 bg-white/[0.03] border-white/[0.1] text-white/80 hover:bg-white/[0.08] hover:text-white"
                 >
                   <Plus className="w-4 h-4" />
                   Add Scene
@@ -1111,20 +1117,20 @@ export function UnifiedStudio() {
                         key={index} 
                         className={cn(
                           "group relative flex gap-3 items-start p-3 rounded-xl border transition-all",
-                          isEmpty && "border-destructive/30 bg-destructive/5",
-                          !isEmpty && "border-border/50 bg-muted/20 hover:border-border",
-                          clipStatus === 'completed' && "border-success/30 bg-success/5",
-                          clipStatus === 'generating' && "border-primary/30 bg-primary/5",
-                          clipStatus === 'failed' && "border-destructive/30 bg-destructive/5"
+                          isEmpty && "border-red-500/30 bg-red-500/5",
+                          !isEmpty && "border-white/[0.08] bg-white/[0.02] hover:border-white/15",
+                          clipStatus === 'completed' && "border-emerald-500/30 bg-emerald-500/10",
+                          clipStatus === 'generating' && "border-blue-500/30 bg-blue-500/10",
+                          clipStatus === 'failed' && "border-red-500/30 bg-red-500/10"
                         )}
                       >
                         <div className={cn(
                           "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0",
-                          clipStatus === 'completed' && "bg-success/20 text-success",
-                          clipStatus === 'generating' && "bg-primary/20 text-primary",
-                          clipStatus === 'failed' && "bg-destructive/20 text-destructive",
-                          !clipStatus && isEmpty && "bg-destructive/10 text-destructive",
-                          !clipStatus && !isEmpty && "bg-muted text-muted-foreground"
+                          clipStatus === 'completed' && "bg-emerald-500/20 text-emerald-400",
+                          clipStatus === 'generating' && "bg-blue-500/20 text-blue-400",
+                          clipStatus === 'failed' && "bg-red-500/20 text-red-400",
+                          !clipStatus && isEmpty && "bg-red-500/10 text-red-400",
+                          !clipStatus && !isEmpty && "bg-white/10 text-white/60"
                         )}>
                           {clipStatus === 'completed' ? (
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1145,8 +1151,8 @@ export function UnifiedStudio() {
                             rows={2}
                             disabled={isRunning}
                             className={cn(
-                              "resize-none text-sm bg-transparent border-0 p-0 focus-visible:ring-0 shadow-none min-h-[52px]",
-                              isEmpty && "placeholder:text-destructive/50"
+                              "resize-none text-sm bg-transparent border-0 p-0 focus-visible:ring-0 shadow-none min-h-[52px] text-white/90 placeholder:text-white/30",
+                              isEmpty && "placeholder:text-red-400/50"
                             )}
                           />
                         </div>
@@ -1155,11 +1161,11 @@ export function UnifiedStudio() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-white/40 hover:text-white/80 hover:bg-white/10"
                             onClick={() => removePrompt(index)}
                             disabled={isRunning}
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         )}
                       </div>
@@ -1169,15 +1175,15 @@ export function UnifiedStudio() {
               </ScrollArea>
 
               {/* Manual Mode Options */}
-              <Separator className="my-4" />
+              <Separator className="my-4 bg-white/[0.06]" />
               
               {/* Feature Toggles */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   includeVoice 
-                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-white/[0.08] border-white/20" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
                 >
@@ -1188,17 +1194,17 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="voiceManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="voiceManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Mic className="w-4 h-4" />
                     Narration
                   </Label>
                 </div>
                 
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   includeMusic 
-                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-white/[0.08] border-white/20" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
                 >
@@ -1209,7 +1215,7 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="musicManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="musicManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Music className="w-4 h-4" />
                     Music
                   </Label>
@@ -1218,10 +1224,10 @@ export function UnifiedStudio() {
                 <div className="flex-1" />
                 
                 <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
                   qualityTier === 'professional' 
-                    ? "bg-success/10 border-success/40 shadow-sm" 
-                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                    ? "bg-emerald-500/20 border-emerald-500/40" 
+                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
                 )}
                 onClick={() => !isRunning && setQualityTier(qualityTier === 'professional' ? 'standard' : 'professional')}
                 >
@@ -1232,7 +1238,7 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="proTierManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Label htmlFor="proTierManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
                     <Shield className="w-4 h-4" />
                     Pro Quality
                   </Label>
@@ -1240,53 +1246,53 @@ export function UnifiedStudio() {
               </div>
             </TabsContent>
           </Tabs>
-        </Card>
+        </div>
 
         {/* Reference Image - Collapsible */}
         <Collapsible open={referenceExpanded} onOpenChange={setReferenceExpanded}>
-          <Card className="overflow-hidden border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
             <CollapsibleTrigger asChild>
-              <CardHeader className="py-4 px-5 cursor-pointer hover:bg-muted/20 transition-colors">
+              <div className="py-4 px-5 cursor-pointer hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-muted to-muted/50 border border-border/50">
-                      <Image className="w-5 h-5 text-muted-foreground" />
+                    <div className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+                      <Image className="w-5 h-5 text-white/60" />
                     </div>
                     <div>
-                      <CardTitle className="text-base font-semibold">Reference Image</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-0.5">
+                      <h3 className="text-base font-semibold text-white/90">Reference Image</h3>
+                      <p className="text-sm text-white/50 mt-0.5">
                         {referenceImageAnalysis ? 'Character consistency ready' : 'Optional: Upload for visual consistency'}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {referenceImageAnalysis && (
-                      <Badge className="bg-success/15 text-success border border-success/30 text-xs font-medium">
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                         Analyzed
                       </Badge>
                     )}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/50">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.05]">
                       {referenceExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                        <ChevronUp className="w-4 h-4 text-white/50" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <ChevronDown className="w-4 h-4 text-white/50" />
                       )}
                     </div>
                   </div>
                 </div>
-              </CardHeader>
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0 pb-5 px-5">
+              <div className="pt-0 pb-5 px-5">
                 <ReferenceImageUpload
                   onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
                   onClear={() => setReferenceImageAnalysis(undefined)}
                   existingAnalysis={referenceImageAnalysis}
                 />
-              </CardContent>
+              </div>
             </CollapsibleContent>
-          </Card>
+          </div>
         </Collapsible>
 
         {/* Script Review Button - Show when awaiting approval */}

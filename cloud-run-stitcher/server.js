@@ -527,7 +527,14 @@ async function stitchVideos(request) {
   const effectiveCallbackUrl = callbackUrl || `${SUPABASE_URL}/functions/v1/finalize-stitch`;
   const effectiveCallbackKey = callbackServiceKey || SUPABASE_SERVICE_ROLE_KEY;
   
+  // CRITICAL FIX: Edge functions (generate-upload-url, finalize-stitch) live on Lovable Cloud
+  // Extract the base URL from callbackUrl for edge function calls
+  const lovableCloudBaseUrl = callbackUrl 
+    ? callbackUrl.replace('/functions/v1/finalize-stitch', '') 
+    : SUPABASE_URL;
+  
   console.log(`[Stitch] Callback URL for finalize: ${effectiveCallbackUrl}`);
+  console.log(`[Stitch] Lovable Cloud base URL: ${lovableCloudBaseUrl}`);
   console.log(`[Stitch] Callback key present: ${!!effectiveCallbackKey}`);
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, jobId);
@@ -792,8 +799,9 @@ async function stitchVideos(request) {
     console.log('[Stitch] Step 6: Getting signed upload URL...');
     
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
-    // Use storage Supabase credentials for upload operations
-    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, effectiveSupabaseUrl, effectiveStorageKey);
+    // CRITICAL FIX: Use Lovable Cloud URL for generate-upload-url edge function
+    // The edge function lives on Lovable Cloud, not external Supabase
+    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, lovableCloudBaseUrl, effectiveCallbackKey);
     
     if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
       throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);

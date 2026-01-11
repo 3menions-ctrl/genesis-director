@@ -76,7 +76,8 @@ serve(async (req) => {
     };
 
     // ============================================================
-    // METHOD 1: Cloud Run FFmpeg (BEST - pixel-perfect extraction)
+    // METHOD 1: Cloud Run FFmpeg with HYBRID BASE64 ARCHITECTURE
+    // Cloud Run returns base64, we upload to Lovable Cloud storage
     // ============================================================
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
@@ -85,7 +86,7 @@ serve(async (req) => {
         const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
         const extractEndpoint = `${normalizedUrl}/extract-frame`;
         
-        console.log(`[ExtractFrame] METHOD 1: Trying Cloud Run FFmpeg...`);
+        console.log(`[ExtractFrame] METHOD 1: Trying Cloud Run FFmpeg (hybrid base64)...`);
         
         const response = await fetch(extractEndpoint, {
           method: 'POST',
@@ -95,16 +96,54 @@ serve(async (req) => {
             clipIndex: shotId,
             projectId,
             position,
+            returnBase64: true, // HYBRID: Request base64 instead of direct upload
           }),
         });
 
         if (response.ok) {
           const result = await response.json();
-          const frameUrl = result.lastFrameUrl || result.frameUrl;
           
-          // Validate it's actually an image URL
+          // HYBRID ARCHITECTURE: Cloud Run returns base64, we upload to Lovable storage
+          if (result.frameBase64) {
+            console.log(`[ExtractFrame] Got base64 from Cloud Run, uploading to Lovable storage...`);
+            
+            const base64Data = result.frameBase64.replace(/^data:image\/\w+;base64,/, '');
+            const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            const filename = `${projectId}/frame-${shotId}-${position}-${Date.now()}.jpg`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('temp-frames')
+              .upload(filename, binaryData, {
+                contentType: 'image/jpeg',
+                upsert: true
+              });
+
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage
+                .from('temp-frames')
+                .getPublicUrl(filename);
+              
+              const frameUrl = urlData.publicUrl;
+              console.log(`[ExtractFrame] ✓ METHOD 1 SUCCESS (Cloud Run hybrid): ${frameUrl.substring(0, 80)}...`);
+              
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  frameUrl,
+                  position: String(position),
+                  method: 'cloud-run-ffmpeg',
+                }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            } else {
+              console.warn(`[ExtractFrame] Storage upload failed:`, uploadError.message);
+            }
+          }
+          
+          // LEGACY: Cloud Run uploaded directly and returned URL
+          const frameUrl = result.lastFrameUrl || result.frameUrl;
           if (frameUrl && !frameUrl.endsWith('.mp4') && !frameUrl.includes('video/')) {
-            console.log(`[ExtractFrame] ✓ METHOD 1 SUCCESS (Cloud Run): ${frameUrl.substring(0, 80)}...`);
+            console.log(`[ExtractFrame] ✓ METHOD 1 SUCCESS (Cloud Run direct): ${frameUrl.substring(0, 80)}...`);
             
             return new Response(
               JSON.stringify({

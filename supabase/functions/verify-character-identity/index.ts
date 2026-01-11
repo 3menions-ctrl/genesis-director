@@ -64,6 +64,11 @@ interface VerificationResult {
   shouldRegenerate: boolean;
   regenerationHints: string[];
   analysisDetails: string;
+  // Added for pipeline integration
+  driftDetected: boolean;
+  driftAreas: string[];
+  correctivePrompt: string;
+  detectedPose?: 'front' | 'side' | 'back' | 'three-quarter' | 'occluded';
 }
 
 // Extract frames from video URL (using Cloud Run service or fallback)
@@ -149,6 +154,10 @@ async function analyzeIdentityConsistency(
       shouldRegenerate: false,
       regenerationHints: [],
       analysisDetails: 'Verification skipped - API key not configured',
+      driftDetected: false,
+      driftAreas: [],
+      correctivePrompt: '',
+      detectedPose: 'front',
     };
   }
   
@@ -279,6 +288,22 @@ Return ONLY valid JSON:
     const hasSevereIssues = analysis.issues?.some((i: any) => i.severity === 'severe') || false;
     const hasModerateIssues = analysis.issues?.filter((i: any) => i.severity === 'moderate').length >= 2;
     
+    // Build drift areas from issues
+    const driftAreas = (analysis.issues || [])
+      .filter((i: any) => i.severity === 'severe' || i.severity === 'moderate')
+      .map((i: any) => i.type);
+    
+    // Determine if drift occurred
+    const driftDetected = overallScore < 70 || hasSevereIssues || hasModerateIssues;
+    
+    // Build corrective prompt from hints
+    const correctivePrompt = (analysis.regenerationHints || []).join('. ');
+    
+    // Detect pose from analysis
+    const detectedPose = analysis.faceVisible 
+      ? (analysis.detectedPose || 'front') 
+      : (analysis.detectedPose || 'back');
+    
     return {
       passed: overallScore >= 70 && !hasSevereIssues,
       overallScore,
@@ -292,6 +317,10 @@ Return ONLY valid JSON:
       shouldRegenerate: overallScore < 65 || hasSevereIssues || hasModerateIssues,
       regenerationHints: analysis.regenerationHints || [],
       analysisDetails: analysis.analysisDetails || 'Analysis complete',
+      driftDetected,
+      driftAreas,
+      correctivePrompt,
+      detectedPose,
     };
     
   } catch (err) {
@@ -310,6 +339,10 @@ Return ONLY valid JSON:
       shouldRegenerate: false,
       regenerationHints: [],
       analysisDetails: `Analysis error: ${err instanceof Error ? err.message : 'Unknown'}`,
+      driftDetected: false,
+      driftAreas: [],
+      correctivePrompt: '',
+      detectedPose: 'front',
     };
   }
 }

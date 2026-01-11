@@ -638,6 +638,9 @@ async function runPreProduction(
         }),
         callEdgeFunction('generate-identity-bible', {
           imageUrl: request.referenceImageUrl,
+          // Enable 5-view system with back view and silhouette
+          generateBackView: true,
+          generateSilhouette: true,
         }).catch(err => {
           console.warn(`[Hollywood] Identity Bible generation failed:`, err);
           return null;
@@ -653,18 +656,40 @@ async function runPreProduction(
       };
       
       if (identityResult?.success) {
+        // Enhanced 5-view system (v2.0)
         state.identityBible.multiViewUrls = {
-          frontViewUrl: identityResult.frontViewUrl,
-          sideViewUrl: identityResult.sideViewUrl,
-          threeQuarterViewUrl: identityResult.threeQuarterViewUrl,
+          frontViewUrl: identityResult.views?.front?.imageUrl || identityResult.frontViewUrl,
+          sideViewUrl: identityResult.views?.side?.imageUrl || identityResult.sideViewUrl,
+          threeQuarterViewUrl: identityResult.views?.threeQuarter?.imageUrl || identityResult.threeQuarterViewUrl,
+          backViewUrl: identityResult.views?.back?.imageUrl,
+          silhouetteUrl: identityResult.views?.silhouette?.imageUrl,
         };
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
         
-        if (identityResult.characterDescription) {
-          state.identityBible.consistencyPrompt = identityResult.characterDescription;
+        // NEW: Non-facial anchors for occlusion handling
+        if (identityResult.nonFacialAnchors) {
+          state.identityBible.nonFacialAnchors = {
+            bodyType: identityResult.nonFacialAnchors.bodyType,
+            clothingSignature: identityResult.nonFacialAnchors.clothingDescription || identityResult.nonFacialAnchors.clothingDistinctive,
+            hairFromBehind: identityResult.nonFacialAnchors.hairFromBehind,
+            silhouetteDescription: identityResult.nonFacialAnchors.overallSilhouette,
+            gait: identityResult.nonFacialAnchors.gait,
+            posture: identityResult.nonFacialAnchors.posture,
+          };
+          console.log(`[Hollywood] Non-facial anchors extracted: bodyType=${identityResult.nonFacialAnchors.bodyType}`);
         }
         
-        console.log(`[Hollywood] Identity Bible generated with 3-point views`);
+        // NEW: Occlusion negatives for anti-morphing
+        if (identityResult.occlusionNegatives) {
+          state.identityBible.occlusionNegatives = identityResult.occlusionNegatives;
+          console.log(`[Hollywood] Occlusion negatives: ${identityResult.occlusionNegatives.length} anti-morphing prompts`);
+        }
+        
+        if (identityResult.characterDescription || identityResult.enhancedConsistencyPrompt) {
+          state.identityBible.consistencyPrompt = identityResult.enhancedConsistencyPrompt || identityResult.characterDescription;
+        }
+        
+        console.log(`[Hollywood] Identity Bible v2.0 generated: ${identityResult.viewCount || 3} views, non-facial anchors=${!!identityResult.nonFacialAnchors}`);
       }
       
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);

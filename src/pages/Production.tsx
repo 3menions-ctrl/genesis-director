@@ -598,6 +598,19 @@ export default function Production() {
   }, [startTime]);
 
   useEffect(() => {
+    // Reset all project-specific state when projectId changes
+    setScriptShots(null);
+    setClipResults([]);
+    setFinalVideoUrl(null);
+    setProgress(0);
+    setCompletedClips(0);
+    setAuditScore(null);
+    setPipelineStage(null);
+    setError(null);
+    setAutoStitchAttempted(false);
+    setStages(STAGE_CONFIG.map(s => ({ ...s, status: 'pending' as const })));
+    setPipelineLogs([]);
+    
     const loadProject = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -644,6 +657,8 @@ export default function Production() {
       setProjectStatus(project.status);
       if (project.video_url) setFinalVideoUrl(project.video_url);
 
+      let scriptLoaded = false;
+      
       const tasks = parsePendingVideoTasks(project.pending_video_tasks);
       if (tasks) {
         if (tasks.progress) setProgress(tasks.progress);
@@ -671,6 +686,7 @@ export default function Production() {
             mood: shot.mood,
           }));
           setScriptShots(shots);
+          scriptLoaded = true;
           if (tasks.stage === 'awaiting_approval') {
             addLog('Script ready for approval', 'info');
           }
@@ -690,8 +706,8 @@ export default function Production() {
         }
       }
       
-      // Also try to load script from generated_script field if not in pending_video_tasks
-      if (!scriptShots && project.generated_script) {
+      // Also try to load script from generated_script field if not loaded from pending_video_tasks
+      if (!scriptLoaded && project.generated_script) {
         try {
           const scriptData = JSON.parse(project.generated_script);
           if (scriptData?.shots && Array.isArray(scriptData.shots)) {

@@ -80,8 +80,8 @@ serve(async (req) => {
 
     // Fixed: 6 clips per scene, ~4 seconds each
     const CLIPS_PER_SCENE = 6;
-    const CLIP_DURATION = 4;
-    const targetSeconds = Math.max(20, Math.min(30, request.targetDurationSeconds || 24));
+    const CLIP_DURATION = 6;
+    const targetSeconds = Math.max(30, Math.min(45, request.targetDurationSeconds || 36));
     
     console.log(`[SmartScript] Generating ${CLIPS_PER_SCENE} clips for continuous scene`);
 
@@ -99,10 +99,10 @@ OUTPUT FORMAT (STRICT JSON):
       "index": 0,
       "title": "Clip title",
       "description": "Detailed visual description for AI video generation",
-      "durationSeconds": 4,
+      "durationSeconds": 6,
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "What happened in previous clip (empty for clip 0)",
-      "currentAction": "What happens in this exact 4-second moment",
+      "currentAction": "What happens in this exact 6-second moment",
       "nextAction": "What will happen in next clip (empty for clip 5)",
       "characterDescription": "EXACT character description - SAME in all clips",
       "locationDescription": "EXACT location description - SAME in all clips",

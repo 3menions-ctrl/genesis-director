@@ -123,10 +123,10 @@ const Contact = () => {
                     For general inquiries and support
                   </p>
                   <a 
-                    href="mailto:support@sagastudio.ai" 
+                    href="mailto:support@apexstudio.ai" 
                     className="text-primary hover:underline"
                   >
-                    support@sagastudio.ai
+                    support@apexstudio.ai
                   </a>
                 </div>
               </div>
@@ -141,10 +141,10 @@ const Contact = () => {
                     For partnerships and enterprise solutions
                   </p>
                   <a 
-                    href="mailto:business@sagastudio.ai" 
+                    href="mailto:business@apexstudio.ai" 
                     className="text-primary hover:underline"
                   >
-                    business@sagastudio.ai
+                    business@apexstudio.ai
                   </a>
                 </div>
               </div>

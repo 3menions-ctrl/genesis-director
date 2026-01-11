@@ -20,7 +20,7 @@ const Terms = () => {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">1. Acceptance of Terms</h2>
             <p>
-              By accessing and using Saga Studio ("Service"), you accept and agree to be bound by the terms 
+              By accessing and using Apex Studio ("Service"), you accept and agree to be bound by the terms 
               and provision of this agreement. If you do not agree to abide by these terms, please do not 
               use this Service.
             </p>
@@ -29,7 +29,7 @@ const Terms = () => {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">2. Description of Service</h2>
             <p>
-              Saga Studio provides an AI-powered video generation platform that allows users to create, 
+              Apex Studio provides an AI-powered video generation platform that allows users to create, 
               edit, and produce video content using artificial intelligence technology. The Service includes 
               script generation, scene creation, video synthesis, and related features.
             </p>
@@ -88,7 +88,7 @@ const Terms = () => {
             <h2 className="text-xl font-semibold text-foreground mb-4">7. Intellectual Property</h2>
             <p>
               The Service, including its original content, features, and functionality, is owned by 
-              Saga Studio and is protected by international copyright, trademark, and other intellectual 
+              Apex Studio and is protected by international copyright, trademark, and other intellectual 
               property laws. Our AI models and technology remain our exclusive property.
             </p>
           </section>
@@ -105,7 +105,7 @@ const Terms = () => {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">9. Limitation of Liability</h2>
             <p>
-              To the maximum extent permitted by law, Saga Studio shall not be liable for any indirect, 
+              To the maximum extent permitted by law, Apex Studio shall not be liable for any indirect, 
               incidental, special, consequential, or punitive damages resulting from your use of the Service.
             </p>
           </section>
@@ -139,8 +139,8 @@ const Terms = () => {
             <h2 className="text-xl font-semibold text-foreground mb-4">13. Contact</h2>
             <p>
               For questions about these Terms, please contact us at{' '}
-              <a href="mailto:legal@sagastudio.ai" className="text-foreground hover:underline">
-                legal@sagastudio.ai
+              <a href="mailto:legal@apexstudio.ai" className="text-foreground hover:underline">
+                legal@apexstudio.ai
               </a>
             </p>
           </section>

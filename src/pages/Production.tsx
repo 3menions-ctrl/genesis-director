@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { ClipTransitionAnalyzer } from '@/components/studio/ClipTransitionAnalyzer';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
+import { useRetryStitch } from '@/hooks/useRetryStitch';
 
 interface StageStatus {
   name: string;

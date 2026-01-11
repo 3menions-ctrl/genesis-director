@@ -1278,16 +1278,41 @@ async function runProduction(
   
   console.log(`[Hollywood] Built ${clips.length} clip prompts with scene context`);
   
-  // Determine first frame reference
+  // =====================================================
+  // BULLETPROOF FRAME CHAINING: Build scene image lookup for guaranteed fallback
+  // =====================================================
+  const sceneImageLookup: Record<number, string> = {};
+  if (state.assets?.sceneImages) {
+    for (const img of state.assets.sceneImages) {
+      if (img.imageUrl) {
+        // sceneNumber is 1-indexed, shotIndex is 0-indexed
+        sceneImageLookup[img.sceneNumber - 1] = img.imageUrl;
+      }
+    }
+    console.log(`[Hollywood] Scene image lookup built: ${Object.keys(sceneImageLookup).length} images available`);
+  }
+  
+  // Determine first frame reference (REQUIRED for Clip 1)
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
     || request.referenceImageUrl
     || request.referenceImageAnalysis?.imageUrl;
-  if (!referenceImageUrl && state.assets?.sceneImages?.[0]?.imageUrl) {
-    referenceImageUrl = state.assets.sceneImages[0].imageUrl;
+  
+  // Priority: explicit reference > scene image for clip 1
+  if (!referenceImageUrl && sceneImageLookup[0]) {
+    referenceImageUrl = sceneImageLookup[0];
+    console.log(`[Hollywood] Using scene image 1 as Clip 1 starting frame`);
   }
   
-  console.log(`[Hollywood] First frame reference: ${referenceImageUrl ? 'available' : 'none'}`);
-  console.log(`[Hollywood] Generating ${clips.length} clips sequentially...`);
+  // CRITICAL: Clip 1 MUST have a starting image for visual continuity
+  if (!referenceImageUrl) {
+    console.error(`[Hollywood] ⚠️ CRITICAL: No starting image for Clip 1! Frame chaining will be suboptimal.`);
+    console.error(`[Hollywood] Generate scene images first or provide a reference image.`);
+    // Don't halt - proceed with text-to-video for clip 1, but log prominently
+  } else {
+    console.log(`[Hollywood] ✓ Clip 1 starting frame: ${referenceImageUrl.substring(0, 60)}...`);
+  }
+  
+  console.log(`[Hollywood] Generating ${clips.length} clips with BULLETPROOF frame chaining...`);
   
   // Check for checkpoint - resume from last completed clip
   const { data: checkpoint } = await supabase
@@ -1308,15 +1333,19 @@ async function runProduction(
   if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
     startIndex = checkpoint[0].last_completed_index + 1;
     
-    // Use checkpoint's last frame, fall back to reference only if truly needed
+    // Use checkpoint's last frame, fall back to scene image if needed
     if (checkpoint[0].last_frame_url) {
       previousLastFrameUrl = checkpoint[0].last_frame_url;
       console.log(`[Hollywood] Resuming from clip ${startIndex + 1}, using REAL last frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
     } else {
-      // WARNING: No frame from checkpoint - frame chain is broken
-      console.error(`[Hollywood] ⚠️ WARNING: Resuming but checkpoint has NO last_frame_url! Frame chain may be broken.`);
-      // Fall back to reference image only for the immediate next clip
-      previousLastFrameUrl = referenceImageUrl;
+      // WARNING: No frame from checkpoint - use scene image as fallback
+      const sceneImageFallback = sceneImageLookup[startIndex - 1] || sceneImageLookup[startIndex] || referenceImageUrl;
+      if (sceneImageFallback) {
+        previousLastFrameUrl = sceneImageFallback;
+        console.warn(`[Hollywood] ⚠️ Checkpoint missing frame, using scene image fallback: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      } else {
+        console.error(`[Hollywood] ⚠️ CRITICAL: No frame available for resume! Frame chain broken.`);
+      }
     }
     
     // Load existing completed clips
@@ -1573,41 +1602,65 @@ async function runProduction(
     if (result.videoUrl) {
       console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
       
-      // Extract frame for Visual Debugger analysis AND frame-chaining
+      // =====================================================
+      // BULLETPROOF FRAME EXTRACTION: Use new extract-last-frame with scene fallback
+      // =====================================================
       let frameForAnalysis = result.lastFrameUrl;
+      
+      // Get scene image for this clip as fallback (guaranteed to exist if assets were generated)
+      const sceneImageFallback = sceneImageLookup[i] || sceneImageLookup[i - 1] || sceneImageLookup[0];
+      
       try {
-        const frameResult = await callEdgeFunction('extract-video-frame', {
+        const frameResult = await callEdgeFunction('extract-last-frame', {
           videoUrl: result.videoUrl,
           projectId: state.projectId,
-          shotId: `clip_${i}`,
+          shotIndex: i,
+          shotPrompt: clip.prompt,
+          sceneImageUrl: sceneImageFallback, // Guaranteed fallback
           position: 'last',
         });
         
         if (frameResult.success && frameResult.frameUrl) {
           // CRITICAL: Validate that we got an actual IMAGE, not the video URL back
           const frameUrl = frameResult.frameUrl;
-          const isVideoUrl = frameUrl.endsWith('.mp4') || frameUrl.includes('video/mp4');
+          const isVideoUrl = frameUrl.endsWith('.mp4') || frameUrl.includes('video/mp4') || frameUrl.includes('/video-clips/');
           
           if (isVideoUrl) {
-            console.error(`[Hollywood] ⚠️ Frame extraction returned VIDEO URL instead of image! Ignoring.`);
+            console.error(`[Hollywood] ⚠️ Frame extraction returned VIDEO URL instead of image!`);
             console.error(`[Hollywood] Invalid frame URL: ${frameUrl.substring(0, 80)}...`);
-            // Do NOT update lastFrameUrl - keep it undefined to prevent passing video to Veo
+            // Use scene image fallback
+            if (sceneImageFallback) {
+              result.lastFrameUrl = sceneImageFallback;
+              frameForAnalysis = sceneImageFallback;
+              console.log(`[Hollywood] Using scene image fallback: ${sceneImageFallback.substring(0, 60)}...`);
+            }
           } else {
             frameForAnalysis = frameUrl;
-            // CRITICAL: Update result's lastFrameUrl with actual extracted frame IMAGE
             result.lastFrameUrl = frameUrl;
-            console.log(`[Hollywood] ✓ Frame extracted (IMAGE): ${frameForAnalysis.substring(0, 80)}...`);
-            console.log(`[Hollywood] Method: ${frameResult.method || 'unknown'}`);
+            console.log(`[Hollywood] ✓ Frame extracted via ${frameResult.method}: ${frameForAnalysis.substring(0, 80)}...`);
           }
         } else {
           console.warn(`[Hollywood] Frame extraction failed: ${frameResult.error || 'unknown error'}`);
-          // CRITICAL: Clear lastFrameUrl to prevent broken frame chain
-          result.lastFrameUrl = undefined;
+          // Use scene image fallback
+          if (sceneImageFallback) {
+            result.lastFrameUrl = sceneImageFallback;
+            frameForAnalysis = sceneImageFallback;
+            console.log(`[Hollywood] Using scene image fallback: ${sceneImageFallback.substring(0, 60)}...`);
+          } else {
+            console.error(`[Hollywood] ⚠️ CRITICAL: No fallback available! Frame chain broken.`);
+            result.lastFrameUrl = undefined;
+          }
         }
       } catch (frameErr) {
         console.error(`[Hollywood] Frame extraction error:`, frameErr);
-        // CRITICAL: Clear lastFrameUrl to prevent broken frame chain
-        result.lastFrameUrl = undefined;
+        // Use scene image fallback
+        if (sceneImageFallback) {
+          result.lastFrameUrl = sceneImageFallback;
+          frameForAnalysis = sceneImageFallback;
+          console.log(`[Hollywood] Using scene image fallback after error: ${sceneImageFallback.substring(0, 60)}...`);
+        } else {
+          result.lastFrameUrl = undefined;
+        }
       }
       
       // STYLE ANCHOR EXTRACTION: After first clip (fallback for when no reference image)
@@ -1698,21 +1751,30 @@ async function runProduction(
                 result = retryResult.clipResult;
                 retryCount++;
                 
-                // Re-extract frame for new clip
+                // Re-extract frame for new clip using bulletproof function
                 try {
-                  const newFrameResult = await callEdgeFunction('extract-video-frame', {
+                  const newFrameResult = await callEdgeFunction('extract-last-frame', {
                     videoUrl: result.videoUrl,
                     projectId: state.projectId,
-                    shotId: `clip_${i}_retry_${retryCount}`,
+                    shotIndex: i,
+                    shotPrompt: correctedPrompt,
+                    sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
                     position: 'last',
                   });
                   if (newFrameResult.success && newFrameResult.frameUrl) {
-                    frameForAnalysis = newFrameResult.frameUrl;
-                    result.lastFrameUrl = newFrameResult.frameUrl;
-                    console.log(`[Hollywood] Retry frame extracted: ${frameForAnalysis.substring(0, 60)}...`);
+                    const isVideoUrl = newFrameResult.frameUrl.endsWith('.mp4') || newFrameResult.frameUrl.includes('/video-clips/');
+                    if (!isVideoUrl) {
+                      frameForAnalysis = newFrameResult.frameUrl;
+                      result.lastFrameUrl = newFrameResult.frameUrl;
+                      console.log(`[Hollywood] Retry frame extracted via ${newFrameResult.method}: ${frameForAnalysis.substring(0, 60)}...`);
+                    }
                   }
                 } catch (e) {
-                  console.warn(`[Hollywood] Retry frame extraction failed`);
+                  console.warn(`[Hollywood] Retry frame extraction failed, using scene fallback`);
+                  if (sceneImageLookup[i]) {
+                    result.lastFrameUrl = sceneImageLookup[i];
+                    frameForAnalysis = sceneImageLookup[i];
+                  }
                 }
                 
                 console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
@@ -1821,14 +1883,22 @@ async function runProduction(
     });
     
     // =====================================================
-    // CRITICAL: Update frame for next clip's continuity
+    // BULLETPROOF FRAME CHAIN: Update frame for next clip's continuity
     // =====================================================
     if (result.lastFrameUrl) {
       previousLastFrameUrl = result.lastFrameUrl;
       console.log(`[Hollywood] ✓ Frame chain updated: Clip ${i + 2} will use clip ${i + 1}'s last frame`);
     } else {
-      console.error(`[Hollywood] ⚠️ CRITICAL: Clip ${i + 1} has NO last frame URL! Frame chain broken.`);
-      console.error(`[Hollywood] Next clip will use stale frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      // FALLBACK: Use next clip's scene image to maintain continuity
+      const nextSceneImage = sceneImageLookup[i + 1] || sceneImageLookup[i] || sceneImageLookup[0];
+      if (nextSceneImage) {
+        previousLastFrameUrl = nextSceneImage;
+        console.warn(`[Hollywood] ⚠️ Frame extraction failed - using scene image ${i + 2} as fallback for continuity`);
+      } else {
+        console.error(`[Hollywood] ⚠️ CRITICAL: No frame or fallback for clip ${i + 2}! Frame chain broken.`);
+        // Keep previous frame as last resort
+        console.error(`[Hollywood] Keeping stale frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      }
     }
     
     previousMotionVectors = result.motionVectors;

@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.pipeline-watchdog]
 verify_jwt = false
+
+[functions.extract-last-frame]
+verify_jwt = false

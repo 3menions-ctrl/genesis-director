@@ -442,16 +442,18 @@ serve(async (req) => {
 
     // For image-to-video, Veo 3.1 only supports [4, 6, 8] seconds
     // For text-to-video, it supports [5, 6, 7, 8] seconds
+    // DEFAULT TO 6 SECONDS for cinematic quality
     let finalDuration = duration;
     if (isImageToVideo) {
       // Snap to nearest valid duration for image-to-video: 4, 6, or 8
-      if (duration <= 4) finalDuration = 4;
-      else if (duration <= 5) finalDuration = 4;
-      else if (duration <= 6) finalDuration = 6;
+      // PREFER 6 SECONDS as default for cinematic quality
+      if (duration <= 4) finalDuration = 6; // Changed: was 4, now 6 for better quality
+      else if (duration <= 5) finalDuration = 6; // Changed: was 4, now 6
+      else if (duration <= 7) finalDuration = 6;
       else finalDuration = 8;
     } else {
-      // Text-to-video: clamp to 5-8
-      finalDuration = Math.min(Math.max(duration, 5), 8);
+      // Text-to-video: clamp to 5-8, prefer 6
+      finalDuration = Math.min(Math.max(duration, 6), 8);
     }
 
     // Validate and use the aspect ratio from request

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,12 +21,25 @@ export function AccountSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    display_name: profile?.display_name || '',
-    full_name: profile?.full_name || '',
-    company: profile?.company || '',
-    role: profile?.role || '',
-    use_case: profile?.use_case || '',
+    display_name: '',
+    full_name: '',
+    company: '',
+    role: '',
+    use_case: '',
   });
+
+  // Sync form data with profile when profile loads or changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name || '',
+        full_name: profile.full_name || '',
+        company: profile.company || '',
+        role: profile.role || '',
+        use_case: profile.use_case || '',
+      });
+    }
+  }, [profile]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -49,18 +62,17 @@ export function AccountSettings() {
     setIsUploadingAvatar(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       const { error: updateError } = await supabase
         .from('profiles')
@@ -136,7 +148,19 @@ export function AccountSettings() {
         ) : (
           <div className="flex gap-2">
             <Button
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false);
+                // Reset form data to profile values
+                if (profile) {
+                  setFormData({
+                    display_name: profile.display_name || '',
+                    full_name: profile.full_name || '',
+                    company: profile.company || '',
+                    role: profile.role || '',
+                    use_case: profile.use_case || '',
+                  });
+                }
+              }}
               variant="ghost"
               className="text-white/60 hover:text-white"
             >

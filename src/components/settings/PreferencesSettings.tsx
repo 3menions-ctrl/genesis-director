@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -30,6 +31,17 @@ interface UserPreferences {
   compactMode: boolean;
 }
 
+const DEFAULT_PREFERENCES: UserPreferences = {
+  defaultQualityTier: 'standard',
+  defaultGenre: 'cinematic',
+  theme: 'dark',
+  autoplayVideos: true,
+  defaultPlaybackSpeed: 1,
+  defaultVolume: 80,
+  showTutorialHints: true,
+  compactMode: false,
+};
+
 const QUALITY_TIERS = [
   { value: 'standard', label: 'Standard', desc: 'Fast generation, good quality' },
   { value: 'pro', label: 'Pro', desc: 'Higher quality, more details' },
@@ -49,32 +61,23 @@ const GENRES = [
 ];
 
 export function PreferencesSettings() {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    defaultQualityTier: 'standard',
-    defaultGenre: 'cinematic',
-    theme: 'dark',
-    autoplayVideos: true,
-    defaultPlaybackSpeed: 1,
-    defaultVolume: 80,
-    showTutorialHints: true,
-    compactMode: false,
-  });
+  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
 
-  // Load preferences from localStorage on mount
+  // Load preferences from database on mount
   useEffect(() => {
-    const saved = localStorage.getItem('user_preferences');
-    if (saved) {
-      try {
-        setPreferences(JSON.parse(saved));
-      } catch (e) {
-        console.error('Error loading preferences:', e);
+    if (profile) {
+      const savedPrefs = profile.preferences as unknown as UserPreferences | null;
+      if (savedPrefs) {
+        setPreferences({ ...DEFAULT_PREFERENCES, ...savedPrefs });
       }
+      setIsLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   const updatePreference = <K extends keyof UserPreferences>(
     key: K, 
@@ -85,18 +88,35 @@ export function PreferencesSettings() {
   };
 
   const handleSave = async () => {
+    if (!user) return;
+    
     setIsSaving(true);
     try {
-      // Save to localStorage
-      localStorage.setItem('user_preferences', JSON.stringify(preferences));
-      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferences: preferences as any })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
       // Apply theme
       if (preferences.theme === 'dark') {
         document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
       } else if (preferences.theme === 'light') {
         document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        // System theme
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
       }
 
+      await refreshProfile();
       setHasChanges(false);
       toast.success('Preferences saved');
     } catch (error) {
@@ -106,6 +126,14 @@ export function PreferencesSettings() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

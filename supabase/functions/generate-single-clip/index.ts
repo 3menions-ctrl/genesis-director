@@ -37,6 +37,23 @@ interface GenerateSingleClipRequest {
       previousAction?: string;
       nextAction?: string;
     };
+    // Enhanced identity bible v2.0 fields
+    multiViewUrls?: {
+      frontViewUrl?: string;
+      sideViewUrl?: string;
+      threeQuarterViewUrl?: string;
+      backViewUrl?: string;
+      silhouetteUrl?: string;
+    };
+    nonFacialAnchors?: {
+      bodyType?: string;
+      clothingSignature?: string;
+      hairFromBehind?: string;
+      silhouetteDescription?: string;
+      gait?: string;
+      posture?: string;
+    };
+    occlusionNegatives?: string[];
   };
   colorGrading?: string;
   qualityTier?: 'standard' | 'professional';
@@ -154,7 +171,8 @@ async function generateClip(
   projectId: string,
   prompt: string,
   startImageUrl?: string,
-  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9'
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  occlusionNegatives?: string[]
 ): Promise<{ operationName: string }> {
   const location = "us-central1";
   const model = "veo-3.1-generate-001";
@@ -239,13 +257,24 @@ async function generateClip(
     }
   }
 
+  // Build negative prompt with occlusion negatives
+  const baseNegatives = "blurry, low quality, distorted, artifacts, watermark, text overlay, glitch, jittery motion";
+  const identityNegatives = occlusionNegatives && occlusionNegatives.length > 0
+    ? `, ${occlusionNegatives.slice(0, 10).join(', ')}`
+    : '';
+  const fullNegativePrompt = baseNegatives + identityNegatives;
+  
+  if (occlusionNegatives && occlusionNegatives.length > 0) {
+    console.log(`[SingleClip] Added ${Math.min(occlusionNegatives.length, 10)} occlusion negatives to prevent identity drift`);
+  }
+
   const requestBody = {
     instances: [instance],
     parameters: {
       aspectRatio: aspectRatio, // Dynamic based on reference image orientation
       durationSeconds: DEFAULT_CLIP_DURATION,
       sampleCount: 1,
-      negativePrompt: "blurry, low quality, distorted, artifacts, watermark, text overlay, glitch, jittery motion",
+      negativePrompt: fullNegativePrompt,
       resolution: "720p",
       personGeneration: "allow_adult",
     }
@@ -555,6 +584,28 @@ serve(async (req) => {
     }
     
     // =====================================================
+    // NON-FACIAL ANCHORS: Critical for occlusion handling (v2.0)
+    // =====================================================
+    if (request.identityBible?.nonFacialAnchors) {
+      const nfa = request.identityBible.nonFacialAnchors;
+      const nfaParts: string[] = [];
+      
+      if (nfa.bodyType) nfaParts.push(`BODY: ${nfa.bodyType}`);
+      if (nfa.clothingSignature) nfaParts.push(`CLOTHING SIGNATURE: ${nfa.clothingSignature}`);
+      if (nfa.hairFromBehind) nfaParts.push(`HAIR (from behind): ${nfa.hairFromBehind}`);
+      if (nfa.silhouetteDescription) nfaParts.push(`SILHOUETTE: ${nfa.silhouetteDescription}`);
+      if (nfa.posture) nfaParts.push(`POSTURE: ${nfa.posture}`);
+      if (nfa.gait) nfaParts.push(`GAIT: ${nfa.gait}`);
+      
+      if (nfaParts.length > 0) {
+        continuityParts.push(`[NON-FACIAL IDENTITY - MUST MAINTAIN WHEN FACE NOT VISIBLE]`);
+        continuityParts.push(...nfaParts);
+        continuityParts.push(`[END NON-FACIAL IDENTITY]`);
+        console.log(`[SingleClip] Injected ${nfaParts.length} non-facial anchors for occlusion handling`);
+      }
+    }
+    
+    // =====================================================
     // ACCUMULATED SCENE ANCHORS: Visual DNA from previous clips
     // =====================================================
     if (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) {
@@ -641,7 +692,8 @@ serve(async (req) => {
       gcpProjectId,
       velocityAwarePrompt,
       request.startImageUrl,
-      aspectRatio
+      aspectRatio,
+      request.identityBible?.occlusionNegatives
     );
     
     console.log(`[SingleClip] Operation started: ${operationName}`);

@@ -6,15 +6,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Featured creator videos from actual completed projects
 const CREATOR_VIDEOS = [
   {
+    id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
+    title: 'Soaring Above Snowy Serenity',
+    creator: 'Mountain Vision',
+    genre: 'Motivational',
+  },
+  {
     id: 'ed88401a-7a11-404c-acbc-55e375aee05d',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768165500178.mp4',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
     title: 'Haunted Whispers of the Past',
-    creator: 'Apex Creator',
+    creator: 'Dark Horizons',
     genre: 'Cinematic',
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768156700246.mp4',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     title: 'Whimsical Chocolate Adventures',
     creator: 'Sweet Dreams Studio',
     genre: 'Storytelling',
@@ -23,7 +30,7 @@ const CREATOR_VIDEOS = [
     id: '2e3503b6-a687-4d3e-bd97-9a1c264a7af2',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
     title: 'Echoes of Desolation',
-    creator: 'Dark Horizons',
+    creator: 'Noir Films',
     genre: 'Cinematic',
   },
   {
@@ -31,7 +38,7 @@ const CREATOR_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
     title: 'Illuminated Conversations',
     creator: 'Light & Shadow',
-    genre: 'Documentary',
+    genre: 'Explainer',
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
@@ -66,6 +73,20 @@ const CREATOR_VIDEOS = [
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
     title: 'Shadows of the Predator',
     creator: 'Wild Lens',
+    genre: 'Cinematic',
+  },
+  {
+    id: 'f47e40c4-26cd-4746-8f98-144d830e2303',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
+    title: "Jungle Guardian's Vigil",
+    creator: 'Nature Visuals',
+    genre: 'Cinematic',
+  },
+  {
+    id: 'df957e60-7589-46be-b044-d6d52e342316',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
+    title: 'Volcanic Forces',
+    creator: 'Earth Dynamics',
     genre: 'Cinematic',
   },
 ];
@@ -254,7 +275,7 @@ export default function CreatorShowcase() {
         {/* Thumbnail carousel */}
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {CREATOR_VIDEOS.map((video, index) => (
+            {CREATOR_VIDEOS.slice(0, 6).map((video, index) => (
               <VideoCard
                 key={video.id}
                 video={video}
@@ -268,7 +289,7 @@ export default function CreatorShowcase() {
         {/* Counter */}
         <div className="flex justify-center mt-6">
           <div className="flex items-center gap-2">
-            {CREATOR_VIDEOS.map((_, index) => (
+            {CREATOR_VIDEOS.slice(0, 12).map((_, index) => (
               <button
                 key={index}
                 onClick={() => setActiveIndex(index)}

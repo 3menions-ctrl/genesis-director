@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,7 +32,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { user, profile } = useAuth();
+  const { user, profile, signIn } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,11 +48,7 @@ export default function Auth() {
   const handleDemoLogin = async () => {
     setDemoLoading(true);
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { error } = await supabase.auth.signInWithPassword({
-        email: 'demo@aifilmstudio.com',
-        password: 'demo123456'
-      });
+      const { error } = await signIn('demo@aifilmstudio.com', 'demo123456');
       if (error) {
         toast.error('Demo login failed. Please try again.');
       } else {
@@ -97,7 +94,6 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
       const trimmedEmail = email.trim();
       
       if (isLogin) {
@@ -301,9 +297,12 @@ export default function Auth() {
                   Password
                 </Label>
                 {isLogin && (
-                  <button type="button" className="text-sm text-muted-foreground hover:text-foreground font-medium">
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-sm text-muted-foreground hover:text-foreground font-medium transition-colors"
+                  >
                     Forgot password?
-                  </button>
+                  </Link>
                 )}
               </div>
               <div className="relative">

@@ -34,8 +34,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // Show loading only during initial auth check
-  if (loading || !isSessionVerified) {
+  // CRITICAL FIX: If we already have a session in state, don't show loading
+  // This prevents the blink when navigating between protected routes
+  const hasSessionInState = !!session || !!user;
+  
+  // Only show loading during INITIAL auth check (no session data yet)
+  // Once we have session data, trust it and render children immediately
+  if ((loading || !isSessionVerified) && !hasSessionInState) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -51,7 +56,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // No user after loading = will redirect (don't render children)
-  if (!user) {
+  if (!user && !session) {
     return null;
   }
 

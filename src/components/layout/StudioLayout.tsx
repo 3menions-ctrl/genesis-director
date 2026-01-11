@@ -679,7 +679,6 @@ export function StudioLayout({ children }: { children: ReactNode }) {
 
         {/* Main content area - flex-1 ensures it takes remaining space */}
         <div className="flex-1 flex flex-col min-h-screen min-w-0 relative z-10">
-          <StudioHeader />
           <main className="flex-1 overflow-auto relative">
             {children}
           </main>

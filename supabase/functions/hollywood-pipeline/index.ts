@@ -119,6 +119,8 @@ interface PipelineState {
       posture?: string;
     };
     occlusionNegatives?: string[];
+    // Scene DNA for visual consistency propagation
+    masterSceneAnchor?: any;
   };
   referenceAnalysis?: {
     environment?: any;
@@ -1837,11 +1839,15 @@ async function runProduction(
       
       // =====================================================
       // SCENE ANCHOR EXTRACTION: Extract from FINAL clip (after any retries)
-      // This ensures we get the visual DNA from the actual clip that will be used
+      // CRITICAL: For Clip 1, this establishes the MASTER SCENE DNA
+      // that propagates lighting/color/environment to ALL subsequent clips
       // =====================================================
       const finalFrameUrl = result.lastFrameUrl || frameForAnalysis;
       if (finalFrameUrl) {
-        console.log(`[Hollywood] Extracting scene anchor from FINAL clip ${i + 1}...`);
+        // Clip 1: MANDATORY extraction - this sets the visual DNA for the entire project
+        const isClipOne = i === 0;
+        console.log(`[Hollywood] ${isClipOne ? '🎬 MASTER' : ''} Scene anchor extraction for clip ${i + 1}...`);
+        
         try {
           const sceneAnchorResult = await callEdgeFunction('extract-scene-anchor', {
             frameUrl: finalFrameUrl,
@@ -1854,37 +1860,89 @@ async function runProduction(
             accumulatedAnchors.push(newAnchor);
             
             console.log(`[Hollywood] Scene anchor extracted for clip ${i + 1}:`);
-            console.log(`  - Lighting: ${newAnchor.lighting?.timeOfDay || 'unknown'}, ${newAnchor.lighting?.keyLightIntensity || 'unknown'}`);
-            console.log(`  - Color: ${newAnchor.colorPalette?.temperature || 'unknown'}, ${newAnchor.colorPalette?.gradeStyle || 'unknown'}`);
-            console.log(`  - Environment: ${newAnchor.keyObjects?.environmentType || 'unknown'}`);
+            console.log(`  - Lighting: ${newAnchor.lighting?.timeOfDay || 'unknown'}, ${newAnchor.lighting?.keyLightIntensity || 'unknown'} ${newAnchor.lighting?.keyLightDirection || ''}`);
+            console.log(`  - Color: ${newAnchor.colorPalette?.temperature || 'unknown'}, ${newAnchor.colorPalette?.saturation || ''}, ${newAnchor.colorPalette?.gradeStyle || 'unknown'}`);
+            console.log(`  - Depth: ${newAnchor.depthCues?.dofStyle || 'unknown'} DOF, ${newAnchor.depthCues?.fogHaze || 'none'} haze`);
+            console.log(`  - Environment: ${newAnchor.keyObjects?.environmentType || 'unknown'} - ${newAnchor.keyObjects?.settingDescription?.substring(0, 50) || ''}`);
             
             // Build/update master scene anchor
-            if (!masterSceneAnchor) {
-              masterSceneAnchor = newAnchor;
+            if (isClipOne) {
+              // CLIP 1: Establish the MASTER scene anchor - this is the source of truth
+              masterSceneAnchor = {
+                ...newAnchor,
+                ismaster: true,
+                establishedAt: Date.now(),
+              };
+              
+              // Build comprehensive master consistency prompt for clip 2+
+              const masterPromptParts = [
+                '[SCENE DNA - MANDATORY VISUAL CONSISTENCY]',
+                newAnchor.lighting?.promptFragment ? `Lighting: ${newAnchor.lighting.promptFragment}` : '',
+                newAnchor.colorPalette?.promptFragment ? `Colors: ${newAnchor.colorPalette.promptFragment}` : '',
+                newAnchor.depthCues?.promptFragment ? `Depth: ${newAnchor.depthCues.promptFragment}` : '',
+                newAnchor.keyObjects?.promptFragment ? `Environment: ${newAnchor.keyObjects.promptFragment}` : '',
+              ].filter(Boolean);
+              
+              masterSceneAnchor.masterConsistencyPrompt = masterPromptParts.join('. ');
+              
+              console.log(`[Hollywood] 🎬 MASTER SCENE DNA ESTABLISHED from Clip 1:`);
+              console.log(`[Hollywood]   Master prompt: ${masterSceneAnchor.masterConsistencyPrompt.substring(0, 200)}...`);
+              
+              // Store in project state for persistence
+              if (!state.identityBible) {
+                state.identityBible = {};
+              }
+              state.identityBible.masterSceneAnchor = masterSceneAnchor;
+              
             } else {
-              // Merge: prioritize latest lighting/color but keep accumulated environment info
-              const combinedPrompt = [
-                newAnchor.lighting?.promptFragment,
-                newAnchor.colorPalette?.promptFragment,
-                masterSceneAnchor.keyObjects?.promptFragment,
+              // CLIP 2+: Merge new anchor data but preserve master DNA
+              // Only update if significant drift detected (allows natural scene evolution)
+              const mergedPrompt = [
+                masterSceneAnchor?.lighting?.promptFragment || newAnchor.lighting?.promptFragment,
+                masterSceneAnchor?.colorPalette?.promptFragment || newAnchor.colorPalette?.promptFragment,
+                newAnchor.keyObjects?.promptFragment, // Allow environment to evolve
               ].filter(Boolean).join('. ');
               
               masterSceneAnchor = {
                 ...masterSceneAnchor,
-                masterConsistencyPrompt: combinedPrompt.substring(0, 500),
-                lighting: newAnchor.lighting,
-                colorPalette: newAnchor.colorPalette,
+                masterConsistencyPrompt: mergedPrompt.substring(0, 600),
+                // Update motion signature (can change between clips)
+                motionSignature: newAnchor.motionSignature,
+                // Keep original lighting/color from Clip 1 for consistency
               };
             }
             
-            console.log(`[Hollywood] Master scene anchor updated: ${accumulatedAnchors.length} total anchors`);
+            console.log(`[Hollywood] Scene anchors accumulated: ${accumulatedAnchors.length} total`);
+            
+            // Update project with scene anchor data (for debugging/monitoring)
+            try {
+              await supabase
+                .from('movie_projects')
+                .update({
+                  pro_features_data: {
+                    ...(state as any).proFeaturesData,
+                    sceneAnchors: {
+                      count: accumulatedAnchors.length,
+                      masterPrompt: masterSceneAnchor?.masterConsistencyPrompt?.substring(0, 300),
+                      lastUpdated: new Date().toISOString(),
+                    },
+                  },
+                })
+                .eq('id', state.projectId);
+            } catch (updateErr) {
+              console.warn(`[Hollywood] Failed to persist scene anchor data:`, updateErr);
+            }
           }
         } catch (anchorErr) {
           console.warn(`[Hollywood] Scene anchor extraction failed for clip ${i + 1}:`, anchorErr);
+          // For Clip 1, this is more critical - log prominently
+          if (isClipOne) {
+            console.error(`[Hollywood] ⚠️ CRITICAL: Master scene anchor extraction failed! Visual consistency may be degraded.`);
+          }
         }
       }
-      }
-      
+    } // Close if (result.videoUrl) block
+    
       // =====================================================
       // CHARACTER IDENTITY VERIFICATION: Detect and fix identity drift
       // =====================================================

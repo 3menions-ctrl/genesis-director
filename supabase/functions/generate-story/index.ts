@@ -105,7 +105,7 @@ serve(async (req) => {
 CRITICAL CONCEPT: SCENE vs STORY
 - A SCENE is ONE continuous moment in ONE location with ONE action sequence
 - A STORY spans multiple scenes/episodes
-- Each 24-second video = 1 SCENE = 6 clips of 4 seconds each
+- Each 36-second video = 1 SCENE = 6 clips of 6 seconds each
 - The 6 clips show PROGRESSIVE ACTION within the SAME moment
 
 SCENE STRUCTURE (6 PROGRESSIVE CLIPS):
@@ -128,7 +128,7 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
 2. CONTINUOUS TIME: No time jumps within a scene
    - Clip 2 starts where Clip 1 ends
    - If character is mid-step in Clip 3, they complete the step in Clip 4
-   - Total time elapsed in scene: ~24 seconds of story time
+   - Total time elapsed in scene: ~36 seconds of story time
    
 3. CONSISTENT LIGHTING: Same light throughout
    - Sun position doesn't change
@@ -145,7 +145,7 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
    - Physical position connects between clips
 
 OUTPUT FORMAT:
-Write the scene as 6 connected paragraphs, each describing 4 seconds of continuous action.
+Write the scene as 6 connected paragraphs, each describing 6 seconds of continuous action.
 Label each: [CLIP 1], [CLIP 2], etc.
 End each clip at a moment that naturally flows into the next.
 Include: character description (consistent across all clips), exact location, lighting, and progressive action.
@@ -200,7 +200,7 @@ ${request.genre ? `Genre: ${request.genre}` : ''}
 ${request.mood ? `Mood/Tone: ${request.mood}` : ''}
 ${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}
 
-This scene will be a ${targetDuration}-second video made of 6 clips (4 seconds each).
+This scene will be a ${targetDuration}-second video made of 6 clips (6 seconds each).
 All 6 clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
 
 ${sceneMode === 'episode' && request.previousSceneSummary ? `

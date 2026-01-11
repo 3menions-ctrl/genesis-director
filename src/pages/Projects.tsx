@@ -898,7 +898,7 @@ export default function Projects() {
           clips: clips.map(clip => ({
             shotId: clip.id,
             videoUrl: clip.video_url,
-            durationSeconds: clip.duration_seconds || 4,
+            durationSeconds: clip.duration_seconds || 6,
             transitionOut: 'cut',
           })),
           audioMixMode: 'mute',

@@ -113,7 +113,7 @@ const GENRE_OPTIONS = [
   { value: 'vlog', label: 'Vlog' },
 ];
 
-const CLIP_DURATION = 4;
+const CLIP_DURATION = 6;
 
 export function UnifiedStudio() {
   const { user, profile } = useAuth();

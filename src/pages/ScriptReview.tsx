@@ -150,7 +150,7 @@ export default function ScriptReview() {
           index,
           title: shot.title || `Shot ${index + 1}`,
           description: shot.description || '',
-          durationSeconds: shot.durationSeconds || 4,
+          durationSeconds: shot.durationSeconds || 6,
           sceneType: shot.sceneType,
           cameraScale: shot.cameraScale,
           cameraAngle: shot.cameraAngle,
@@ -286,7 +286,7 @@ export default function ScriptReview() {
     navigate('/create');
   };
 
-  const calculatedDuration = shots.reduce((sum, shot) => sum + (shot.durationSeconds || 4), 0);
+  const calculatedDuration = shots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0);
 
   if (isLoading) {
     return (

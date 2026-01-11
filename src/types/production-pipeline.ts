@@ -159,7 +159,7 @@ export type AudioMixMode = 'full' | 'dialogue-only' | 'music-only' | 'mute';
 // Transition types for seamless shot connections
 export type TransitionType = 'continuous' | 'match-cut' | 'dissolve' | 'fade';
 
-// Avatar-quality: Configurable clip duration (4-8 seconds)
+// Avatar-quality: Configurable clip duration (6-8 seconds)
 export const MAX_SHOT_DURATION_SECONDS = 8;
 export const MIN_SHOT_DURATION_SECONDS = 4;
 export const DEFAULT_SHOT_DURATION_SECONDS = 6; // 6 seconds for cinematic flow

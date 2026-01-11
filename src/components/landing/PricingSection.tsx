@@ -95,7 +95,7 @@ export default function PricingSection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative z-10 py-24 px-4 lg:px-8">
+    <section id="pricing" className="relative z-10 py-24 px-4 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">

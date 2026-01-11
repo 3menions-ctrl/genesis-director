@@ -50,7 +50,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="relative z-10 py-24 px-4 lg:px-8">
+    <section id="faq" className="relative z-10 py-24 px-4 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">

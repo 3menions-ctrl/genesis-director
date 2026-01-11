@@ -129,12 +129,21 @@ export default function Landing() {
               </div>
 
               <div className="hidden lg:flex items-center">
-                {['Product', 'Features', 'Pricing', 'Company'].map((item) => (
+                {[
+                  { label: 'Product', target: 'how-it-works' },
+                  { label: 'Features', target: 'features' },
+                  { label: 'Pricing', target: 'pricing' },
+                  { label: 'Company', target: 'faq' },
+                ].map((item) => (
                   <button 
-                    key={item}
+                    key={item.label}
+                    onClick={() => {
+                      const element = document.getElementById(item.target);
+                      element?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                     className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-muted/50"
                   >
-                    {item}
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -299,7 +308,7 @@ export default function Landing() {
       </section>
 
       {/* Features Section - Modern Bento Grid */}
-      <section className="relative z-10 py-24 px-4 lg:px-8">
+      <section id="features" className="relative z-10 py-24 px-4 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">

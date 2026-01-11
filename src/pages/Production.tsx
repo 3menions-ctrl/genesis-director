@@ -267,17 +267,19 @@ function ActivityLog({ logs, isLive }: { logs: PipelineLog[]; isLive: boolean })
 function ProjectSidebar({ 
   projects, 
   activeProjectId, 
-  onSelect,
   isCollapsed,
   onToggle
 }: { 
   projects: ProductionProject[];
   activeProjectId: string | null;
-  onSelect: (id: string) => void;
   isCollapsed: boolean;
   onToggle: () => void;
 }) {
   const navigate = useNavigate();
+  
+  const handleSelectProject = (id: string) => {
+    navigate(`/production?projectId=${id}`);
+  };
   
   return (
     <motion.aside
@@ -313,7 +315,7 @@ function ProjectSidebar({
                 key={project.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                onClick={() => onSelect(project.id)}
+                onClick={() => handleSelectProject(project.id)}
                 className={cn(
                   "w-full flex items-center gap-2 rounded-lg transition-all duration-200",
                   isCollapsed ? "p-2 justify-center" : "p-2",
@@ -814,7 +816,6 @@ export default function Production() {
         <ProjectSidebar
           projects={allProductionProjects}
           activeProjectId={projectId}
-          onSelect={(id) => navigate(`/production?projectId=${id}`)}
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />

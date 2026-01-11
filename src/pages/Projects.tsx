@@ -118,18 +118,18 @@ function StatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative p-3 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300"
+      transition={{ duration: 0.3, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative p-2 rounded-lg bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300"
     >
-      <div className="relative flex items-center gap-3">
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", colorClasses[color])}>
-          <Icon className="w-4 h-4" />
+      <div className="relative flex items-center gap-2">
+        <div className={cn("w-6 h-6 rounded-md flex items-center justify-center shrink-0", colorClasses[color])}>
+          <Icon className="w-3 h-3" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-medium text-white/40 uppercase tracking-wider">{label}</p>
-          <p className="text-lg font-bold text-white tracking-tight">{value}</p>
+          <p className="text-[9px] font-medium text-white/40 uppercase tracking-wider leading-none">{label}</p>
+          <p className="text-sm font-bold text-white tracking-tight">{value}</p>
         </div>
       </div>
     </motion.div>
@@ -549,76 +549,6 @@ function ProjectCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ============= CREATE PROJECT CARD =============
-
-function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: number }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={onClick}
-    >
-      <div className={cn(
-        "relative overflow-hidden rounded-2xl aspect-video transition-all duration-500",
-        "border-2 border-dashed",
-        isHovered 
-          ? "border-white/30 bg-white/[0.04] scale-[1.02]" 
-          : "border-white/[0.08] bg-white/[0.02]"
-      )}>
-        <motion.div
-          className="absolute inset-0"
-          animate={{
-            background: isHovered 
-              ? 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 70%)'
-              : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 70%)'
-          }}
-        />
-
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.div
-            animate={{ 
-              scale: isHovered ? 1.1 : 1,
-              rotate: isHovered ? 90 : 0
-            }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors duration-300",
-              isHovered 
-                ? "bg-white text-black" 
-                : "bg-white/10 text-white/40 border border-white/10"
-            )}
-          >
-            <Plus className="w-6 h-6" strokeWidth={1.5} />
-          </motion.div>
-          
-          <motion.span
-            animate={{ opacity: isHovered ? 1 : 0.6 }}
-            className="text-sm font-medium text-white/70"
-          >
-            Create New Project
-          </motion.span>
-        </div>
-
-        {/* Corner accents on hover */}
-        <motion.div
-          className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white/30 rounded-tl-2xl"
-          animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white/30 rounded-br-2xl"
-          animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
-        />
       </div>
     </motion.div>
   );
@@ -1068,12 +998,12 @@ export default function Projects() {
             {/* Stats Dashboard */}
             <motion.div 
               style={{ opacity: headerOpacity }}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+              className="grid grid-cols-4 gap-2 mb-6"
             >
-              <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="white" delay={0} />
-              <StatCard icon={Check} label="Completed" value={stats.completed} color="emerald" delay={0.05} />
-              <StatCard icon={Activity} label="Processing" value={stats.processing} color="amber" delay={0.1} />
-              <StatCard icon={Film} label="Total Clips" value={stats.totalClips} color="blue" delay={0.15} />
+              <StatCard icon={FolderOpen} label="Projects" value={stats.total} color="white" delay={0} />
+              <StatCard icon={Check} label="Done" value={stats.completed} color="emerald" delay={0.03} />
+              <StatCard icon={Activity} label="Active" value={stats.processing} color="amber" delay={0.06} />
+              <StatCard icon={Film} label="Clips" value={stats.totalClips} color="blue" delay={0.09} />
             </motion.div>
 
             {/* Search, Filter & View Controls */}

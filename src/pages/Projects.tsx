@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   Download, Loader2, Zap, Clock, Sparkles,
-  User, Coins, ChevronDown, LogOut, Settings, HelpCircle,
   Pencil, Star, TrendingUp, Grid3X3, LayoutGrid, ChevronRight,
   Eye, Heart, Share2, RefreshCw, AlertCircle, Layers
 } from 'lucide-react';
@@ -32,6 +31,7 @@ import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper to check if URL is a manifest (not a real stitched video)
@@ -782,113 +782,7 @@ export default function Projects() {
       </div>
 
       {/* Premium Navigation */}
-      <nav className="sticky top-0 z-50">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="bg-black/60 backdrop-blur-2xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="h-16 flex items-center justify-between">
-              {/* Logo */}
-              <button 
-                onClick={() => navigate('/projects')}
-                className="flex items-center gap-3 group"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative w-10 h-10 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
-                    <Film className="w-5 h-5 text-white/80" />
-                  </div>
-                </div>
-                <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex Studio</span>
-              </button>
-
-              {/* Center Navigation */}
-              <div className="hidden md:flex items-center gap-1 bg-white/[0.03] rounded-full p-1 border border-white/[0.05]">
-                {[
-                  { label: 'Library', path: '/projects', active: true },
-                  { label: 'Studio', path: '/studio' },
-                  { label: 'Clips', path: '/clips' },
-                ].map((item) => (
-                  <button
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    className={cn(
-                      "px-5 py-2 text-sm font-medium rounded-full transition-all duration-300",
-                      item.active 
-                        ? "text-white bg-white/[0.1]" 
-                        : "text-white/50 hover:text-white hover:bg-white/[0.05]"
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Right Actions */}
-              <div className="flex items-center gap-3">
-                <Button 
-                  onClick={handleCreateProject}
-                  size="sm"
-                  className="h-10 px-5 text-sm bg-white text-black hover:bg-white/90 font-semibold rounded-full shadow-lg shadow-white/10"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Create</span>
-                </Button>
-
-                {/* Credits pill */}
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/15 transition-all"
-                >
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <Coins className="w-3 h-3 text-white" />
-                  </div>
-                  <span className="text-sm font-bold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
-                </button>
-
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-white/[0.05] transition-colors">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-                        {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <User className="w-4 h-4 text-white/60" />
-                        )}
-                      </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52 bg-black/95 backdrop-blur-2xl border-white/10 rounded-xl p-1.5">
-                    <div className="px-3 py-3 border-b border-white/[0.06]">
-                      <p className="text-sm font-semibold text-white truncate">{profile?.display_name || profile?.full_name || 'Creator'}</p>
-                      <p className="text-xs text-white/40 truncate">{profile?.email}</p>
-                    </div>
-                    <div className="py-1.5">
-                      <DropdownMenuItem onClick={() => navigate('/profile')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
-                        <User className="w-4 h-4" />
-                        Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
-                        <HelpCircle className="w-4 h-4" />
-                        Help Center
-                      </DropdownMenuItem>
-                    </div>
-                    <DropdownMenuSeparator className="bg-white/[0.06]" />
-                    <DropdownMenuItem onClick={handleSignOut} className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5">
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <AppHeader onCreateClick={handleCreateProject} />
 
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

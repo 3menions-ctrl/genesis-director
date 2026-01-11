@@ -561,14 +561,25 @@ export default function Clips() {
                         </div>
 
                         {/* Project Thumbnail */}
-                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-black/50 flex-shrink-0">
+                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-white/[0.05] to-black/50 flex-shrink-0 relative group/thumb">
                           {group.clips[0]?.video_url ? (
-                            <video 
-                              src={group.clips[0].video_url}
-                              className="w-full h-full object-cover"
-                              muted
-                              preload="metadata"
-                            />
+                            <>
+                              <video 
+                                src={group.clips[0].video_url}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                preload="auto"
+                                onLoadedData={(e) => {
+                                  const video = e.target as HTMLVideoElement;
+                                  video.currentTime = 1;
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Play className="w-4 h-4 text-white/60 group-hover/thumb:text-white transition-colors" fill="currentColor" />
+                              </div>
+                            </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <Film className="w-5 h-5 text-white/20" />
@@ -649,7 +660,7 @@ export default function Clips() {
                               >
                                 {/* Thumbnail */}
                                 <div 
-                                  className="w-24 h-14 rounded-lg overflow-hidden bg-black/50 flex-shrink-0 cursor-pointer relative"
+                                  className="w-24 h-14 rounded-lg overflow-hidden bg-black/50 flex-shrink-0 cursor-pointer relative group/thumb"
                                   onClick={() => clip.video_url && handlePlayClip(clip)}
                                 >
                                   {clip.video_url ? (
@@ -658,10 +669,18 @@ export default function Clips() {
                                         src={clip.video_url}
                                         className="w-full h-full object-cover"
                                         muted
-                                        preload="metadata"
+                                        playsInline
+                                        preload="auto"
+                                        onLoadedData={(e) => {
+                                          const video = e.target as HTMLVideoElement;
+                                          video.currentTime = 1;
+                                        }}
                                       />
-                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <Play className="w-5 h-5 text-white" fill="white" />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-all duration-300">
+                                        <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 scale-90 group-hover/thumb:scale-100 transition-transform">
+                                          <Play className="w-4 h-4 text-white ml-0.5" fill="white" />
+                                        </div>
                                       </div>
                                     </>
                                   ) : (
@@ -718,35 +737,55 @@ export default function Clips() {
                             >
                               {/* Video Thumbnail */}
                               <div 
-                                className="aspect-video bg-black/50 relative cursor-pointer"
+                                className="aspect-video bg-gradient-to-br from-white/[0.03] to-black/50 relative cursor-pointer overflow-hidden group/card"
                                 onClick={() => clip.video_url && handlePlayClip(clip)}
                               >
                                 {clip.video_url ? (
-                                  <video 
-                                    src={clip.video_url} 
-                                    className="w-full h-full object-cover"
-                                    muted
-                                    preload="metadata"
-                                    onLoadedData={(e) => {
-                                      (e.target as HTMLVideoElement).currentTime = 1;
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    {clip.status === 'generating' ? (
-                                      <Loader2 className="w-6 h-6 text-amber-400/50 animate-spin" />
-                                    ) : (
-                                      <Film className="w-6 h-6 text-white/10" />
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {/* Play overlay */}
-                                {clip.video_url && (
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                                      <Play className="w-4 h-4 text-white fill-white" />
+                                  <>
+                                    <video 
+                                      src={clip.video_url} 
+                                      className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-105"
+                                      muted
+                                      playsInline
+                                      preload="auto"
+                                      onLoadedData={(e) => {
+                                        const video = e.target as HTMLVideoElement;
+                                        video.currentTime = 1;
+                                      }}
+                                    />
+                                    {/* Gradient overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover/card:opacity-80 transition-opacity" />
+                                    
+                                    {/* Play button - always visible but subtle, becomes prominent on hover */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className={cn(
+                                        "relative transition-all duration-300",
+                                        "opacity-70 group-hover/card:opacity-100",
+                                        "scale-90 group-hover/card:scale-100"
+                                      )}>
+                                        {/* Pulse ring */}
+                                        <div className="absolute inset-[-4px] rounded-full border border-white/20 opacity-0 group-hover/card:opacity-100 group-hover/card:animate-ping" style={{ animationDuration: '2s' }} />
+                                        <div className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/30 group-hover/card:bg-white/20 transition-colors">
+                                          <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                                        </div>
+                                      </div>
                                     </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
+                                    {clip.status === 'generating' ? (
+                                      <div className="relative">
+                                        <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl animate-pulse" />
+                                        <Loader2 className="relative w-8 h-8 text-amber-400/60 animate-spin" />
+                                      </div>
+                                    ) : clip.status === 'pending' ? (
+                                      <div className="flex flex-col items-center gap-2">
+                                        <Clock className="w-6 h-6 text-white/20" />
+                                        <span className="text-[10px] text-white/30">Queued</span>
+                                      </div>
+                                    ) : (
+                                      <Film className="w-8 h-8 text-white/10" />
+                                    )}
                                   </div>
                                 )}
                                 

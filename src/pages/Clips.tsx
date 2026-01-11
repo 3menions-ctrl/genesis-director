@@ -4,7 +4,7 @@ import {
   Film, Play, Download, MoreVertical, Trash2, 
   Loader2, CheckCircle2, XCircle, Clock, ExternalLink, ArrowLeft,
   ChevronDown, ChevronRight, Folder, Grid3X3, List, Search,
-  Filter, SortDesc, Sparkles, Eye, Layers
+  Filter, SortDesc, Sparkles, Eye, Layers, RefreshCw, Zap
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRetryStitch } from '@/hooks/useRetryStitch';
 
 interface VideoClip {
   id: string;
@@ -69,6 +70,23 @@ export default function Clips() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'duration'>('recent');
+  const [projectStatus, setProjectStatus] = useState<string | null>(null);
+
+  // Retry stitch hook for when viewing a project with stitching_failed status
+  const { retryStitch, isRetrying: isRetryingStitch } = useRetryStitch({
+    projectId: projectIdFilter,
+    userId: user?.id,
+    onSuccess: (videoUrl) => {
+      toast.success('Video stitched successfully!', {
+        action: {
+          label: 'View',
+          onClick: () => navigate(`/projects`),
+        },
+      });
+      setProjectStatus('completed');
+    },
+    onStatusChange: (status) => setProjectStatus(status),
+  });
 
   useEffect(() => {
     const loadClips = async () => {
@@ -87,6 +105,17 @@ export default function Clips() {
       
       if (projectIdFilter) {
         query = query.eq('project_id', projectIdFilter);
+        
+        // Also fetch project status for retry functionality
+        const { data: projectData } = await supabase
+          .from('movie_projects')
+          .select('status')
+          .eq('id', projectIdFilter)
+          .maybeSingle();
+        
+        if (projectData) {
+          setProjectStatus(projectData.status);
+        }
       }
 
       const { data, error } = await query;
@@ -375,8 +404,33 @@ export default function Clips() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-wrap"
             >
+              {/* Retry Stitch Button - shown when project has stitching_failed status */}
+              {projectIdFilter && projectStatus === 'stitching_failed' && completedCount > 0 && (
+                <Button
+                  onClick={retryStitch}
+                  disabled={isRetryingStitch}
+                  size="sm"
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-full mr-2"
+                >
+                  {isRetryingStitch ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Retry Stitch
+                </Button>
+              )}
+              
+              {/* Stitching in progress indicator */}
+              {projectIdFilter && projectStatus === 'stitching' && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 border border-white/20 mr-2">
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <span className="text-sm font-medium text-white">Stitching...</span>
+                </div>
+              )}
+              
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-white">{completedCount}</span>

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,39 +8,34 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading, session } = useAuth();
+  const { user, profile, loading, session, isSessionVerified } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const hasCheckedAuth = useRef(false);
 
-  // Only redirect on initial load when we confirm there's no session
+  // Redirect to auth only when we're certain there's no session
+  // This runs after loading is complete AND session verification is done
   useEffect(() => {
-    // Wait for initial auth check to complete
-    if (loading) return;
-    
-    // Only check once per mount to prevent redirect loops
-    if (hasCheckedAuth.current) return;
-    hasCheckedAuth.current = true;
+    // Wait for auth to fully initialize
+    if (loading || !isSessionVerified) return;
 
-    // If no session after loading completes, redirect to auth
+    // Only redirect if definitively no session after full verification
     if (!session && !user) {
-      console.log('[ProtectedRoute] No session, redirecting to auth');
+      console.log('[ProtectedRoute] No session after verification, redirecting to auth');
       navigate('/auth', { replace: true });
     }
-  }, [loading, session, user, navigate]);
+  }, [loading, isSessionVerified, session, user, navigate]);
 
   // Handle onboarding redirect separately
   useEffect(() => {
-    if (!loading && user && profile && !profile.onboarding_completed) {
+    if (!loading && isSessionVerified && user && profile && !profile.onboarding_completed) {
       if (location.pathname !== '/onboarding') {
         navigate('/onboarding', { replace: true });
       }
     }
-  }, [user, profile, loading, navigate, location.pathname]);
+  }, [user, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // Only show loading on initial cold start (first app load)
-  // After that, trust the session and render immediately
-  if (loading) {
+  // Show loading only during initial auth check
+  if (loading || !isSessionVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

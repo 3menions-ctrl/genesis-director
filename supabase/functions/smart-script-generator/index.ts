@@ -78,7 +78,7 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    // Fixed: 6 clips per scene, ~4 seconds each
+    // Fixed: 6 clips per scene, ~6 seconds each
     const CLIPS_PER_SCENE = 6;
     const CLIP_DURATION = 6;
     const targetSeconds = Math.max(30, Math.min(45, request.targetDurationSeconds || 36));
@@ -182,7 +182,7 @@ Key objects: ${request.environmentLock.keyObjects.join(', ')}
 
 REQUIREMENTS:
 - Extract the 6 sequential moments from this scene
-- Each clip = 4 seconds of the continuous action
+- Each clip = 6 seconds of the continuous action
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 - Keep dialogue/narration in the appropriate clips
@@ -213,7 +213,7 @@ Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
 ` : ''}
 
-Create ONE continuous scene with 6 progressive clips. Each clip = 4 seconds.
+Create ONE continuous scene with 6 progressive clips. Each clip = 6 seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
 

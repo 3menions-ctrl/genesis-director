@@ -896,7 +896,7 @@ export default function Production() {
       const { data, error } = await supabase.functions.invoke('simple-stitch', {
         body: {
           projectId,
-          clips: clips.map(c => ({ shotId: c.id, videoUrl: c.video_url, durationSeconds: c.duration_seconds || 4 })),
+          clips: clips.map(c => ({ shotId: c.id, videoUrl: c.video_url, durationSeconds: c.duration_seconds || 6 })),
         },
       });
 
@@ -1210,7 +1210,7 @@ export default function Production() {
                       onRegenerate={handleRegenerateScript}
                       onCancel={handleCancelScript}
                       isLoading={isApprovingScript}
-                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 4), 0)}
+                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
                       projectTitle={projectTitle}
                     />
                   </motion.div>

@@ -59,7 +59,7 @@ serve(async (req) => {
     
     if (isFullMovieMode) {
       // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions and buffer shots
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. MINIMUM 6 shots, each 4 seconds.
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. MINIMUM 6 shots, each 6 seconds.
 
 FORMAT (use exactly this):
 [SHOT 1] Visual description with motion and physics.
@@ -94,7 +94,7 @@ MOTION REQUIREMENTS:
 
 RULES:
 - MINIMUM 6 shots (add buffer shots as needed for smooth flow)
-- Each shot is EXACTLY 4 seconds
+- Each shot is EXACTLY 6 seconds
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
 - NO static scenes - always movement (even buffer shots have subtle motion)`;

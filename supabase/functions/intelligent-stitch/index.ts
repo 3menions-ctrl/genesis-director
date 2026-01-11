@@ -463,7 +463,7 @@ serve(async (req) => {
         p_operation: 'intelligent_stitch',
         p_credits_charged: creditsCharged,
         p_real_cost_cents: realCostCents,
-        p_duration_seconds: clips.length * 4,
+        p_duration_seconds: clips.length * 6,
         p_status: finalVideoUrl ? 'completed' : 'failed',
         p_metadata: JSON.stringify({
           clipCount: clips.length,

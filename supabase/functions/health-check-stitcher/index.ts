@@ -113,8 +113,11 @@ serve(async (req) => {
 
     // Overall status
     const allPassed = results.checks.healthEndpoint?.status && results.checks.validateEndpoint?.status;
+    const latencyMs = results.checks.healthEndpoint?.latencyMs || Date.now() - startTime;
     
     results.success = allPassed;
+    results.healthy = allPassed;
+    results.latencyMs = latencyMs;
     results.overallStatus = allPassed ? "Cloud Run Stitcher is ONLINE ✓" : "Cloud Run Stitcher has issues";
     results.totalLatencyMs = Date.now() - startTime;
 

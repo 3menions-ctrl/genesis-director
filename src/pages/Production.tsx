@@ -39,6 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { ClipTransitionAnalyzer } from '@/components/studio/ClipTransitionAnalyzer';
+import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 
 interface StageStatus {
   name: string;
@@ -1439,6 +1440,30 @@ export default function Production() {
               </div>
             </div>
           </motion.section>
+        )}
+
+        {/* Stitching Troubleshooter - Always visible when clips exist */}
+        {completedClips > 0 && projectId && (
+          <StitchingTroubleshooter
+            projectId={projectId}
+            projectStatus={projectStatus}
+            completedClips={completedClips}
+            totalClips={expectedClipCount}
+            onStitchComplete={(videoUrl) => {
+              setFinalVideoUrl(videoUrl);
+              setProjectStatus('completed');
+              setProgress(100);
+              addLog('Final video ready!', 'success');
+            }}
+            onStatusChange={(status) => {
+              setProjectStatus(status);
+              if (status === 'stitching') {
+                updateStageStatus(5, 'active', 'Stitching...');
+              } else if (status === 'completed') {
+                updateStageStatus(5, 'complete');
+              }
+            }}
+          />
         )}
 
         {/* Transition Analyzer */}

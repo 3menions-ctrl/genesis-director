@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.extract-last-frame]
 verify_jwt = false
+
+[functions.simple-stitch]
+verify_jwt = false

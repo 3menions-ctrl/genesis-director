@@ -290,6 +290,39 @@ async function runPreProduction(
   state.progress = 10;
   await updateProjectProgress(supabase, state.projectId, 'preproduction', 10);
   
+  // Build characterLock from extractedCharacters or referenceImageAnalysis if available
+  const buildCharacterLock = () => {
+    // Priority 1: Extracted characters from resume flow
+    if (request.extractedCharacters && request.extractedCharacters.length > 0) {
+      const mainChar = request.extractedCharacters[0];
+      console.log(`[Hollywood] Using extracted character for script generation: ${mainChar.name}`);
+      return {
+        description: mainChar.appearance || mainChar.name,
+        clothing: mainChar.clothing || '',
+        distinctiveFeatures: [
+          mainChar.distinguishingFeatures,
+          mainChar.age ? `${mainChar.age}` : '',
+          mainChar.gender || '',
+        ].filter(Boolean),
+      };
+    }
+    
+    // Priority 2: Pre-analyzed reference image
+    if (request.referenceImageAnalysis?.characterIdentity) {
+      const charId = request.referenceImageAnalysis.characterIdentity;
+      console.log(`[Hollywood] Using reference image character for script generation`);
+      return {
+        description: charId.description || request.referenceImageAnalysis.consistencyPrompt || '',
+        clothing: charId.clothing || '',
+        distinctiveFeatures: charId.distinctiveMarkers || [],
+      };
+    }
+    
+    return undefined;
+  };
+  
+  const characterLock = buildCharacterLock();
+  
   // 1a. Generate script - use approved story if available (story-first flow)
   if (request.approvedStory) {
     console.log(`[Hollywood] Breaking down approved story into shots...`);
@@ -297,10 +330,11 @@ async function runPreProduction(
     try {
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.storyTitle || 'Video',
-        approvedScene: request.approvedStory, // Changed: approvedStory -> approvedScene for scene-based flow
+        approvedScene: request.approvedStory,
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
+        characterLock, // Pass character lock for consistency
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -391,6 +425,7 @@ async function runPreProduction(
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
+        characterLock, // Pass character lock for consistency
       });
       
       if (scriptResult.shots || scriptResult.clips) {

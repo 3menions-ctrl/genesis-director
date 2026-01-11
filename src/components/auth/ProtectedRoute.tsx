@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,47 +8,39 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading, isSessionVerified, getValidSession } = useAuth();
+  const { user, profile, loading, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const hasCheckedAuth = useRef(false);
 
-  // Double-check session on mount to catch stale state
+  // Only redirect on initial load when we confirm there's no session
   useEffect(() => {
-    let mounted = true;
+    // Wait for initial auth check to complete
+    if (loading) return;
     
-    const verifySession = async () => {
-      // Wait for initial auth state to settle
-      if (loading) return;
-      
-      // Get fresh session from Supabase to avoid stale React state
-      const session = await getValidSession();
-      
-      if (!mounted) return;
-      
-      if (!session) {
-        console.log('[ProtectedRoute] No valid session, redirecting to auth');
-        navigate('/auth', { replace: true });
-      }
-      setSessionChecked(true);
-    };
+    // Only check once per mount to prevent redirect loops
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
 
-    verifySession();
-    
-    return () => { mounted = false; };
-  }, [loading, getValidSession, navigate]);
+    // If no session after loading completes, redirect to auth
+    if (!session && !user) {
+      console.log('[ProtectedRoute] No session, redirecting to auth');
+      navigate('/auth', { replace: true });
+    }
+  }, [loading, session, user, navigate]);
 
-  // Redirect to onboarding if not completed
+  // Handle onboarding redirect separately
   useEffect(() => {
-    if (!loading && sessionChecked && user && profile && !profile.onboarding_completed) {
+    if (!loading && user && profile && !profile.onboarding_completed) {
       if (location.pathname !== '/onboarding') {
         navigate('/onboarding', { replace: true });
       }
     }
-  }, [user, profile, loading, sessionChecked, navigate, location.pathname]);
+  }, [user, profile, loading, navigate, location.pathname]);
 
-  // Show loading until session is verified
-  if (loading || !isSessionVerified || !sessionChecked) {
+  // Only show loading on initial cold start (first app load)
+  // After that, trust the session and render immediately
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -57,17 +49,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
               <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
             </div>
           </div>
-          <p className="text-muted-foreground text-sm">Verifying session...</p>
+          <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
+  // No user after loading = will redirect (don't render children)
   if (!user) {
     return null;
   }
 
-  // If onboarding not completed, don't render children (will redirect)
+  // If onboarding not completed, don't render (will redirect)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return null;
   }

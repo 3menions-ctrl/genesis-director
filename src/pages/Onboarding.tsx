@@ -170,7 +170,7 @@ export default function Onboarding() {
           </div>
           <h1 className="text-2xl font-display font-bold text-white mb-2">
             {step === 1 && "Welcome! Let's get to know you"}
-            {step === 2 && "How will you be using Apex?"}
+            {step === 2 && "How will you be using Apex Studio?"}
             {step === 3 && "What will you create?"}
           </h1>
           <p className="text-violet-300/70 text-sm">

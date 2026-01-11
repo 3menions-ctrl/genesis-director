@@ -125,7 +125,7 @@ export default function Landing() {
                     <Film className="w-5 h-5 text-white" />
                   </div>
                 </div>
-                <span className="text-xl font-bold text-foreground">apex</span>
+                <span className="text-xl font-bold text-foreground">Apex Studio</span>
               </div>
 
               <div className="hidden lg:flex items-center">
@@ -434,7 +434,7 @@ export default function Landing() {
               <div className="w-8 h-8 rounded-lg bg-glossy-black flex items-center justify-center shadow-obsidian">
                 <Film className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold text-foreground">apex</span>
+              <span className="font-semibold text-foreground">Apex Studio</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
@@ -442,7 +442,7 @@ export default function Landing() {
               <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2025 Apex. All rights reserved.
+              © 2025 Apex Studio. All rights reserved.
             </p>
           </div>
         </div>

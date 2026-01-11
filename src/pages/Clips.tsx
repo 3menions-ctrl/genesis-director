@@ -104,10 +104,7 @@ export default function Clips() {
         if (projectIdFilter && clipsWithTitles.length > 0) {
           setProjectTitle(clipsWithTitles[0].project_title);
         }
-        
-        // Auto-expand all projects initially
-        const projectIds = new Set(clipsWithTitles.map((c: VideoClip) => c.project_id));
-        setExpandedProjects(projectIds);
+        // Projects are collapsed by default - user clicks to expand
       }
       setIsLoading(false);
     };

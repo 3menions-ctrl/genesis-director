@@ -525,7 +525,7 @@ function UserMenu() {
         
         <DropdownMenuSeparator className="bg-border my-1" />
         
-        <DropdownMenuItem className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted">
+        <DropdownMenuItem onClick={() => navigate('/help')} className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-foreground hover:bg-muted">
           <HelpCircle className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm">Help & Support</span>
         </DropdownMenuItem>

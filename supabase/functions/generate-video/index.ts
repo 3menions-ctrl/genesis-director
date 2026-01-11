@@ -338,7 +338,7 @@ serve(async (req) => {
   try {
     const {
       prompt,
-      duration = 8,
+      duration = 6,
       sceneContext,
       referenceImageUrl,
       startImage,

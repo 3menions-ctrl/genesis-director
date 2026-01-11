@@ -283,7 +283,7 @@ serve(async (req) => {
       finalSequence.push({
         shotId: clip.id,
         videoUrl: clip.video_url,
-        durationSeconds: clip.duration_seconds || 4,
+        durationSeconds: clip.duration_seconds || 6,
         transitionOut: transition?.recommendedTransition === 'ai-bridge' 
           ? 'cut' 
           : (transition?.recommendedTransition || 'cut'),

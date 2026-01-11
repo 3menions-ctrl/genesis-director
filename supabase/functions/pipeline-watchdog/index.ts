@@ -198,7 +198,7 @@ serve(async (req) => {
                 clips: clips.map(c => ({
                   shotId: c.id,
                   videoUrl: c.video_url,
-                  durationSeconds: c.duration_seconds || 4,
+                  durationSeconds: c.duration_seconds || 6,
                 })),
                 audioMixMode: 'full',
                 retryAttempt: ((tasks.retryAttempt as number) || 0) + 1,

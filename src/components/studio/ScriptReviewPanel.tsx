@@ -108,7 +108,7 @@ export function ScriptReviewPanel({
     setEditValue('');
   };
 
-  const calculatedDuration = shots.reduce((sum, shot) => sum + (shot.durationSeconds || 4), 0);
+  const calculatedDuration = shots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0);
 
   return (
     <motion.div

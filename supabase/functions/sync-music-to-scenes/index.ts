@@ -422,7 +422,7 @@ serve(async (req) => {
 
     // Calculate total duration if not provided
     const totalDuration = request.totalDuration || 
-      request.shots.reduce((sum, s) => sum + (s.durationSeconds || 4), 0);
+      request.shots.reduce((sum, s) => sum + (s.durationSeconds || 6), 0);
 
     const syncPlan = analyzeScenesForMusic({
       ...request,

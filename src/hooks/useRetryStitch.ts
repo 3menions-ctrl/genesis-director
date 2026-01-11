@@ -62,7 +62,7 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
           projectTitle: project?.title || 'Untitled',
           clips: clips.map(c => ({
             url: c.video_url,
-            duration: c.duration_seconds || 4,
+            duration: c.duration_seconds || 6,
           })),
         },
       });

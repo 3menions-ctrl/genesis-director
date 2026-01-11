@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,7 +77,7 @@ function mapDbProject(dbProject: any): Project {
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, session, profile, refreshProfile, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
@@ -104,8 +104,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
 
-  // Internal function that loads and returns projects
-  const loadProjects = async (): Promise<Project[]> => {
+  // Internal function that loads and returns projects - only call when session is valid
+  const loadProjects = useCallback(async (): Promise<Project[]> => {
+    // Double-check we have a valid session before querying
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession) {
+      console.log('No valid session, skipping project load');
+      setIsLoading(false);
+      return [];
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -134,16 +143,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeProjectId]);
 
   // Public function that doesn't return projects
   const refreshProjects = async (): Promise<void> => {
     await loadProjects();
   };
 
-  // Load projects when user is authenticated
+  // Load projects when session is established (not just user object)
   useEffect(() => {
-    if (user) {
+    // Wait for auth to finish loading AND have a valid session
+    if (authLoading) return;
+    
+    if (session && user) {
       loadProjects();
     } else {
       // Clear projects when user logs out
@@ -151,7 +163,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setActiveProjectId(null);
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [session?.access_token, user?.id, authLoading, loadProjects]);
 
   // Sync credits from auth profile
   useEffect(() => {
@@ -167,7 +179,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [profile]);
 
   const createProject = async () => {
-    if (!user) {
+    // Verify we have a valid session before creating
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession?.user) {
       toast.error('Please sign in to create a project');
       return;
     }
@@ -179,7 +194,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           title: `Untitled Project ${projects.length + 1}`,
           status: 'draft',
           target_duration_minutes: 1,
-          user_id: user.id,
+          user_id: currentSession.user.id, // Use session user ID directly
         })
         .select()
         .single();
@@ -197,6 +212,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteProject = async (projectId: string) => {
+    // Verify session before deleting
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession) {
+      toast.error('Session expired. Please sign in again.');
+      return;
+    }
+    
     try {
       // Find the project to get its video URLs before deletion
       const projectToDelete = projects.find(p => p.id === projectId);
@@ -272,6 +294,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
     );
+
+    // Verify session before updating
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession) {
+      console.error('No valid session for update');
+      await refreshProjects(); // Revert local state
+      return;
+    }
 
     // Prepare database update
     const dbUpdates: Record<string, any> = {

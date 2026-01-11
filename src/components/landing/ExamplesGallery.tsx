@@ -150,10 +150,10 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
         <button 
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 z-[9999] cursor-pointer p-4 group bg-transparent border-0"
+          className="absolute top-6 right-6 z-[9999] cursor-pointer w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group hover:bg-white/20 transition-all"
           aria-label="Close gallery"
         >
-          <X className="w-8 h-8 text-white/70 group-hover:text-white transition-colors drop-shadow-lg" strokeWidth={1.5} />
+          <X className="w-7 h-7 text-white group-hover:scale-110 transition-transform" strokeWidth={2} />
         </button>
 
         {/* Counter */}

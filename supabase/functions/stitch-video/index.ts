@@ -269,28 +269,31 @@ async function fireCloudRunStitcherAsync(
   const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
   const externalSupabaseServiceKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
   
-  // Fall back to primary Supabase if external not configured
-  const supabaseUrl = externalSupabaseUrl || Deno.env.get("SUPABASE_URL")!;
-  const supabaseServiceKey = externalSupabaseServiceKey || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // Storage operations use external Supabase (where video-clips bucket lives)
+  const storageSupabaseUrl = externalSupabaseUrl || Deno.env.get("SUPABASE_URL")!;
+  const storageSupabaseServiceKey = externalSupabaseServiceKey || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   
-  console.log(`[Stitch] Using Supabase URL: ${supabaseUrl}`);
-  console.log(`[Stitch] External Supabase configured: ${!!externalSupabaseUrl}`);
-  
-  // CRITICAL: callbackUrl must use Lovable Cloud (SUPABASE_URL) where edge functions live,
-  // NOT the external Supabase which is only used for storage
+  // CRITICAL: Lovable Cloud credentials for callback (where edge functions live)
   const lovableCloudUrl = Deno.env.get("SUPABASE_URL")!;
-  console.log(`[Stitch] Callback URL will use: ${lovableCloudUrl}`);
+  const lovableCloudServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  console.log(`[Stitch] Storage Supabase URL: ${storageSupabaseUrl}`);
+  console.log(`[Stitch] External Supabase configured: ${!!externalSupabaseUrl}`);
+  console.log(`[Stitch] Callback URL will use: ${lovableCloudUrl}/functions/v1/finalize-stitch`);
   
   const enhancedRequest = {
     ...request,
     audioMixParams,
     colorGradingFilter: request.colorGradingFilter,
+    // CRITICAL FIX: callbackUrl points to Lovable Cloud where finalize-stitch edge function lives
     callbackUrl: `${lovableCloudUrl}/functions/v1/finalize-stitch`,
+    // Service key for callback must be Lovable Cloud's key to authenticate against Lovable Cloud edge functions
+    callbackServiceKey: lovableCloudServiceKey,
     retryAttempt: request.retryAttempt || 0,
     maxRetries: 3,
-    // Dynamic Supabase config - Cloud Run uses these instead of its env vars
-    supabaseUrl,
-    supabaseServiceKey,
+    // Storage operations use external Supabase config
+    supabaseUrl: storageSupabaseUrl,
+    supabaseServiceKey: storageSupabaseServiceKey,
   };
   
   try {

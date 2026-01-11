@@ -951,6 +951,49 @@ export default function Production() {
 
                 {/* Status Cards */}
                 <AnimatePresence mode="wait">
+                  {/* Stalled/Paused Pipeline - Always show resume option */}
+                  {!isRunning && !isComplete && projectId && clipResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20"
+                    >
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-amber-400">Pipeline Paused</p>
+                          <p className="text-xs text-white/50 mt-0.5">
+                            {completedClips} of {expectedClipCount} clips completed
+                          </p>
+                          <div className="flex gap-2 mt-3">
+                            <Button 
+                              size="sm" 
+                              className="h-8 text-xs bg-amber-500 hover:bg-amber-400 text-black rounded-full font-medium" 
+                              onClick={handleResume} 
+                              disabled={isResuming}
+                            >
+                              {isResuming ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+                              Resume Pipeline
+                            </Button>
+                            {completedClips === expectedClipCount && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="h-8 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 rounded-full" 
+                                onClick={handleSimpleStitch} 
+                                disabled={isSimpleStitching}
+                              >
+                                {isSimpleStitching ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                Quick Stitch
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {projectStatus === 'stitching' && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -980,14 +1023,6 @@ export default function Production() {
                         <div className="flex-1">
                           <p className="text-sm font-medium text-red-400">Error</p>
                           <p className="text-xs text-white/50 mt-0.5">{error}</p>
-                          <div className="flex gap-2 mt-2">
-                            {completedClips > 0 && (
-                              <Button size="sm" className="h-7 text-xs bg-white text-black rounded-full" onClick={handleResume} disabled={isResuming}>
-                                {isResuming ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                                <span className="ml-1">Resume</span>
-                              </Button>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </motion.div>

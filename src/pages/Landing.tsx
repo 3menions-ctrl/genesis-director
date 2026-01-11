@@ -67,12 +67,6 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: '847K', label: 'Videos Generated' },
-  { value: '23K', label: 'Active Creators' },
-  { value: '4.7', label: 'User Rating' },
-  { value: '45s', label: 'Avg Generation' },
-];
 
 export default function Landing() {
   const { user } = useAuth();
@@ -300,27 +294,6 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section with enhanced cards */}
-      <section className="relative z-10 py-20 px-4 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {STATS.map((stat, i) => (
-              <div 
-                key={i}
-                className="group relative p-8 text-center animate-fade-in rounded-2xl glass-card hover:border-foreground/10 transition-all"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="absolute inset-0 rounded-2xl bg-foreground/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative">
-                  <div className="text-4xl lg:text-5xl font-bold text-foreground mb-2">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

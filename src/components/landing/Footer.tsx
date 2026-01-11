@@ -7,7 +7,7 @@ import {
   Mail,
   MapPin
 } from 'lucide-react';
-import apexLogo from '@/assets/apex-logo.png';
+
 
 const FOOTER_LINKS = {
   Product: [
@@ -55,8 +55,8 @@ export default function Footer() {
             {/* Brand Column */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 lg:gap-8">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
-                  <img src={apexLogo} alt="Apex Studio" className="w-6 h-6 object-contain" />
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">AS</span>
                 </div>
                 <span className="text-lg font-bold text-white">Apex Studio</span>
               </div>

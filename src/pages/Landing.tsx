@@ -17,6 +17,11 @@ import ExamplesGallery from '@/components/landing/ExamplesGallery';
 import HeroVideoBackground from '@/components/landing/HeroVideoBackground';
 import CreatorShowcase from '@/components/landing/CreatorShowcase';
 import PricingSection from '@/components/landing/PricingSection';
+import HowItWorksSection from '@/components/landing/HowItWorksSection';
+import UseCasesSection from '@/components/landing/UseCasesSection';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import FAQSection from '@/components/landing/FAQSection';
+import Footer from '@/components/landing/Footer';
 
 const CAPABILITIES = [
   'Text to Video',
@@ -384,11 +389,23 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <HowItWorksSection />
+
+      {/* Use Cases Section */}
+      <UseCasesSection />
+
       {/* Creator Showcase - Real Videos */}
       <CreatorShowcase />
 
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
       {/* Pricing Section */}
       <PricingSection />
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* CTA Section with glossy black */}
       <section className="relative z-10 py-24 px-4 lg:px-8">
@@ -430,27 +447,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer with refined styling */}
-      <footer className="relative z-10 py-12 px-4 lg:px-8 border-t border-border/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-glossy-black flex items-center justify-center shadow-obsidian overflow-hidden">
-                <img src={apexLogo} alt="Apex Studio" className="w-6 h-6 object-contain" />
-              </div>
-              <span className="font-semibold text-foreground">Apex Studio</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
-              <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
-              <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2025 Apex Studio. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Comprehensive Footer */}
+      <Footer />
     </div>
   );
 }

@@ -1721,8 +1721,10 @@ async function runProduction(
             endDirection: motionResult.motionVectors.subjectDirection,
             cameraMomentum: motionResult.motionVectors.cameraMomentum,
             continuityPrompt: motionResult.motionVectors.continuityPrompt,
+            actionContinuity: motionResult.motionVectors.actionContinuity, // FIX: Was missing!
           };
-          console.log(`[Hollywood] Real motion vectors analyzed: ${result.motionVectors.endVelocity} ${result.motionVectors.endDirection}`);
+          console.log(`[Hollywood] Real motion vectors analyzed: velocity=${result.motionVectors.endVelocity}, direction=${result.motionVectors.endDirection}`);
+          console.log(`[Hollywood] Continuity prompt: ${result.motionVectors.continuityPrompt?.substring(0, 80)}...`);
         }
       } catch (motionErr) {
         console.warn(`[Hollywood] Motion vector analysis failed, using text-based fallback:`, motionErr);

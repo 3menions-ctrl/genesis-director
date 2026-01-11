@@ -666,22 +666,93 @@ serve(async (req) => {
         }
       }
       
+      // CRITICAL: If Cloud Run failed, try edge function fallback
+      if (!frameExtractionSuccess) {
+        console.log(`[SingleClip] Cloud Run frame extraction failed, trying edge function fallback...`);
+        
+        try {
+          // Call the extract-video-frame edge function as fallback
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          
+          const fallbackResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              videoUrl: storedUrl,
+              projectId: request.projectId,
+              shotId: `clip_${request.clipIndex}`,
+              position: 'last',
+            }),
+          });
+          
+          if (fallbackResponse.ok) {
+            const fallbackResult = await fallbackResponse.json();
+            if (fallbackResult.success && fallbackResult.frameUrl) {
+              lastFrameUrl = fallbackResult.frameUrl;
+              frameExtractionSuccess = true;
+              console.log(`[SingleClip] ✓ Frame extracted via edge function fallback: ${lastFrameUrl?.substring(0, 60)}...`);
+            }
+          }
+        } catch (fallbackError) {
+          console.warn(`[SingleClip] Edge function fallback also failed:`, fallbackError);
+        }
+      }
+      
       // CRITICAL: Log frame extraction failure loudly
       if (!frameExtractionSuccess) {
-        console.error(`[SingleClip] ⚠️ CRITICAL: Frame extraction FAILED after ${MAX_FRAME_RETRIES} attempts!`);
+        console.error(`[SingleClip] ⚠️ CRITICAL: Frame extraction FAILED after all attempts!`);
         console.error(`[SingleClip] Next clip will NOT have frame continuity - expect visual jump`);
         
         // Store failure in metadata for debugging
         await supabase
           .from('video_clips')
           .update({ 
-            error_message: `Frame extraction failed after ${MAX_FRAME_RETRIES} attempts - continuity broken` 
+            error_message: `Frame extraction failed - continuity broken` 
           })
           .eq('project_id', request.projectId)
           .eq('shot_index', request.clipIndex);
       }
     } else {
-      console.warn(`[SingleClip] ⚠️ CLOUD_RUN_STITCHER_URL not configured - no frame chaining possible`);
+      // No Cloud Run URL configured - use edge function directly
+      console.log(`[SingleClip] CLOUD_RUN_STITCHER_URL not configured, using edge function for frame extraction...`);
+      
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        
+        const directResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            videoUrl: storedUrl,
+            projectId: request.projectId,
+            shotId: `clip_${request.clipIndex}`,
+            position: 'last',
+          }),
+        });
+        
+        if (directResponse.ok) {
+          const directResult = await directResponse.json();
+          if (directResult.success && directResult.frameUrl) {
+            lastFrameUrl = directResult.frameUrl;
+            frameExtractionSuccess = true;
+            console.log(`[SingleClip] ✓ Frame extracted via edge function: ${lastFrameUrl?.substring(0, 60)}...`);
+          }
+        }
+      } catch (directError) {
+        console.error(`[SingleClip] Edge function frame extraction failed:`, directError);
+      }
+      
+      if (!frameExtractionSuccess) {
+        console.error(`[SingleClip] ⚠️ CRITICAL: No frame extraction available - continuity will be broken`);
+      }
     }
     
     // Extract motion vectors for next clip

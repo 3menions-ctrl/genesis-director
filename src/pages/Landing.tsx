@@ -111,7 +111,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background overflow-hidden relative">
       {/* Premium Video Background */}
-      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.82} />
+      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.88} />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4">

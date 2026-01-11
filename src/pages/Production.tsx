@@ -502,14 +502,31 @@ export default function Production() {
 
   useEffect(() => {
     const loadProject = async () => {
-      if (!projectId) {
-        setIsLoading(false);
-        return;
-      }
-      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         navigate('/auth');
+        return;
+      }
+
+      // If no projectId, auto-select the most recently active project
+      if (!projectId) {
+        const { data: recentProject } = await supabase
+          .from('movie_projects')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'completed'])
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (recentProject) {
+          navigate(`/production?projectId=${recentProject.id}`, { replace: true });
+          return;
+        }
+        
+        // No production projects found, just load sidebar
+        await loadAllProductionProjects();
+        setIsLoading(false);
         return;
       }
 

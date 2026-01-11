@@ -54,7 +54,7 @@ import { ReferenceImageUpload } from '@/components/studio/ReferenceImageUpload';
 import { CostConfirmationDialog } from '@/components/studio/CostConfirmationDialog';
 import { StickyGenerateBar } from '@/components/studio/StickyGenerateBar';
 import { StoryApprovalPanel } from '@/components/studio/StoryApprovalPanel';
-import { AppHeader } from '@/components/layout/AppHeader';
+
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
@@ -784,95 +784,131 @@ export function UnifiedStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <AppHeader showCreate={false} />
-      
-      {/* Project Info Bar */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-foreground">
-                <Film className="w-5 h-5 text-background" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-32">
+      {/* Single Unified Header */}
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left - Logo & Title */}
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => navigate('/projects')} 
+                className="flex items-center gap-3 group"
+              >
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                    <Film className="w-5 h-5 text-background" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success border-2 border-background" />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold tracking-tight">Create</h1>
+                  <p className="text-xs text-muted-foreground -mt-0.5">AI Video Studio</p>
+                </div>
+              </button>
+            </div>
+            
+            {/* Center - Stats Pills */}
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 text-sm">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium">{totalDuration}s</span>
               </div>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight">Video Studio</h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  Create AI-powered videos
-                </p>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50 text-sm">
+                <Layers className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="font-medium">{clipCount} clips</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground text-background text-sm font-medium shadow-lg">
+                <Coins className="w-3.5 h-3.5" />
+                <span>~{estimatedCredits} credits</span>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="hidden sm:flex gap-1.5">
-                <Clock className="w-3 h-3" />
-                {totalDuration}s
-              </Badge>
-              <Badge variant="outline" className="gap-1.5">
-                <Layers className="w-3 h-3" />
-                {clipCount}
-              </Badge>
-              <Badge className="bg-foreground text-background gap-1.5">
-                <Coins className="w-3 h-3" />
-                ~{estimatedCredits}
-              </Badge>
+            {/* Right - User Actions */}
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/projects')}
+                className="hidden sm:flex gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Eye className="w-4 h-4" />
+                Projects
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
-        {/* Mode Selection - Compact */}
-        <Card className="overflow-hidden border-border">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Hero Section - Mode Selection */}
+        <div className="text-center space-y-3 mb-8">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-clip-text">
+            What will you create today?
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Transform your ideas into stunning videos with AI-powered production
+          </p>
+        </div>
+
+        {/* Mode Selection Tabs */}
+        <Card className="overflow-hidden border-border/50 shadow-xl bg-card/80 backdrop-blur-sm">
           <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-            <div className="border-b border-border bg-muted/30 p-2">
-              <TabsList className="grid w-full grid-cols-2 h-11 bg-background/50">
+            <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 p-3">
+              <TabsList className="grid w-full grid-cols-2 h-12 bg-background/60 backdrop-blur-sm p-1 rounded-xl">
                 <TabsTrigger 
                   value="ai" 
                   disabled={isRunning}
-                  className="gap-2 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all"
+                  className="gap-2.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-lg transition-all duration-300"
                 >
                   <Zap className="w-4 h-4" />
-                  <span className="font-medium">AI Hollywood</span>
-                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 hidden sm:flex bg-success/20 text-success border-0">
+                  <span className="font-semibold">AI Hollywood</span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 hidden sm:flex bg-success/20 text-success border-0 font-medium">
                     PRO
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="manual" 
                   disabled={isRunning}
-                  className="gap-2 data-[state=active]:bg-foreground data-[state=active]:text-background transition-all"
+                  className="gap-2.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-lg transition-all duration-300"
                 >
                   <Clapperboard className="w-4 h-4" />
-                  <span className="font-medium">Manual Mode</span>
+                  <span className="font-semibold">Manual Mode</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* AI Mode */}
-            <TabsContent value="ai" className="m-0 p-4 space-y-4">
-              {/* Concept Input */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-muted-foreground" />
+            <TabsContent value="ai" className="m-0 p-5 sm:p-6 space-y-6">
+              {/* Concept Input - Hero Section */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
                   Story Concept
                 </Label>
-                <Textarea
-                  value={concept}
-                  onChange={(e) => setConcept(e.target.value)}
-                  placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars."
-                  rows={3}
-                  disabled={isRunning}
-                  className="resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    value={concept}
+                    onChange={(e) => setConcept(e.target.value)}
+                    placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins."
+                    rows={4}
+                    disabled={isRunning}
+                    className="resize-none text-base leading-relaxed pr-4 focus:ring-2 focus:ring-primary/20 border-border/50 bg-background/50"
+                  />
+                  {concept.length > 0 && (
+                    <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
+                      {concept.length} chars
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Compact Options Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Mood</Label>
+              {/* Creative Options Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mood</Label>
                   <Select value={mood} onValueChange={setMood} disabled={isRunning}>
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -888,10 +924,10 @@ export function UnifiedStudio() {
                   </Select>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Genre</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Genre</Label>
                   <Select value={genre} onValueChange={setGenre} disabled={isRunning}>
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -902,10 +938,10 @@ export function UnifiedStudio() {
                   </Select>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Color</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Color</Label>
                   <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -916,20 +952,20 @@ export function UnifiedStudio() {
                   </Select>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Clips</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Clips</Label>
                   <Select 
                     value={clipCount.toString()} 
                     onValueChange={(v) => setClipCount(parseInt(v))} 
                     disabled={isRunning}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="h-10 bg-background/50 border-border/50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {[4, 6, 8, 10, 12].map(n => (
                         <SelectItem key={n} value={n.toString()}>
-                          {n} ({n * CLIP_DURATION}s)
+                          {n} clips ({n * CLIP_DURATION}s)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -937,12 +973,16 @@ export function UnifiedStudio() {
                 </div>
               </div>
 
-              {/* Feature Toggles - Inline */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Feature Toggles */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
-                  includeVoice ? "bg-foreground/5 border-foreground/20" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  includeVoice 
+                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
+                >
                   <Switch
                     id="voice"
                     checked={includeVoice}
@@ -950,16 +990,20 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="voice" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Mic className="w-3.5 h-3.5" />
-                    Voice
+                  <Label htmlFor="voice" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Mic className="w-4 h-4" />
+                    Narration
                   </Label>
                 </div>
                 
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
-                  includeMusic ? "bg-foreground/5 border-foreground/20" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  includeMusic 
+                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
+                >
                   <Switch
                     id="music"
                     checked={includeMusic}
@@ -967,18 +1011,21 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="music" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Music className="w-3.5 h-3.5" />
+                  <Label htmlFor="music" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Music className="w-4 h-4" />
                     Music
                   </Label>
                 </div>
 
-                {/* SFX Toggle - Pro feature */}
                 {qualityTier === 'professional' && (
                   <div className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
-                    includeSfx ? "bg-cyan-500/10 border-cyan-500/30" : "bg-muted/30 border-border/50"
-                  )}>
+                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                    includeSfx 
+                      ? "bg-info/10 border-info/30 shadow-sm" 
+                      : "bg-muted/30 border-border/30 hover:border-border/50"
+                  )}
+                  onClick={() => !isRunning && setIncludeSfx(!includeSfx)}
+                  >
                     <Switch
                       id="sfx"
                       checked={includeSfx}
@@ -986,44 +1033,58 @@ export function UnifiedStudio() {
                       disabled={isRunning}
                       className="scale-90"
                     />
-                    <Label htmlFor="sfx" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <Volume2 className="w-3.5 h-3.5" />
+                    <Label htmlFor="sfx" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <Volume2 className="w-4 h-4" />
                       SFX
                     </Label>
                   </div>
                 )}
                 
+                <div className="flex-1" />
+                
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ml-auto",
-                  qualityTier === 'professional' ? "bg-success/10 border-success/30" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  qualityTier === 'professional' 
+                    ? "bg-success/10 border-success/40 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => {
+                  if (!isRunning) {
+                    const newTier = qualityTier === 'professional' ? 'standard' : 'professional';
+                    setQualityTier(newTier);
+                    if (newTier === 'professional') setIncludeSfx(true);
+                  }
+                }}
+                >
                   <Switch
                     id="proTier"
                     checked={qualityTier === 'professional'}
                     onCheckedChange={(checked) => {
                       setQualityTier(checked ? 'professional' : 'standard');
-                      // Auto-enable SFX when switching to pro
                       if (checked) setIncludeSfx(true);
                     }}
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="proTier" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Shield className="w-3.5 h-3.5" />
-                    Pro QA
+                  <Label htmlFor="proTier" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Shield className="w-4 h-4" />
+                    Pro Quality
                   </Label>
                 </div>
               </div>
             </TabsContent>
 
             {/* Manual Mode */}
-            <TabsContent value="manual" className="m-0 p-4 space-y-4">
+            <TabsContent value="manual" className="m-0 p-5 sm:p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-sm font-medium">Scene Prompts</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Clapperboard className="w-4 h-4 text-primary" />
+                    Scene Prompts
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {CLIP_DURATION}s per scene • {hasEmptyPrompts && (
-                      <span className="text-destructive">Fill all scenes to continue</span>
+                      <span className="text-destructive font-medium">Fill all scenes to continue</span>
                     )}
                   </p>
                 </div>
@@ -1032,14 +1093,14 @@ export function UnifiedStudio() {
                   size="sm"
                   onClick={addPrompt}
                   disabled={isRunning || clipCount >= 12}
-                  className="gap-1.5 h-8"
+                  className="gap-2 h-9 px-4"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add
+                  <Plus className="w-4 h-4" />
+                  Add Scene
                 </Button>
               </div>
               
-              <ScrollArea className="h-[320px] pr-3">
+              <ScrollArea className="h-[360px] pr-3">
                 <div className="space-y-3">
                   {manualPrompts.slice(0, clipCount).map((prompt, index) => {
                     const isEmpty = !prompt.trim();
@@ -1108,25 +1169,18 @@ export function UnifiedStudio() {
               </ScrollArea>
 
               {/* Manual Mode Options */}
-              <Separator />
-              <div className="flex flex-wrap items-center gap-2">
-                <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
-                  <SelectTrigger className="w-[140px] h-9 text-sm">
-                    <Palette className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COLOR_PRESETS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Voice & Music toggles for Manual Mode */}
+              <Separator className="my-4" />
+              
+              {/* Feature Toggles */}
+              <div className="flex flex-wrap items-center gap-3">
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
-                  includeVoice ? "bg-foreground/5 border-foreground/20" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  includeVoice 
+                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
+                >
                   <Switch
                     id="voiceManual"
                     checked={includeVoice}
@@ -1134,16 +1188,20 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="voiceManual" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Mic className="w-3.5 h-3.5" />
-                    Voice
+                  <Label htmlFor="voiceManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Mic className="w-4 h-4" />
+                    Narration
                   </Label>
                 </div>
                 
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors",
-                  includeMusic ? "bg-foreground/5 border-foreground/20" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  includeMusic 
+                    ? "bg-foreground/5 border-foreground/30 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
+                >
                   <Switch
                     id="musicManual"
                     checked={includeMusic}
@@ -1151,16 +1209,22 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="musicManual" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Music className="w-3.5 h-3.5" />
+                  <Label htmlFor="musicManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Music className="w-4 h-4" />
                     Music
                   </Label>
                 </div>
                 
+                <div className="flex-1" />
+                
                 <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ml-auto",
-                  qualityTier === 'professional' ? "bg-success/10 border-success/30" : "bg-muted/30 border-border/50"
-                )}>
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  qualityTier === 'professional' 
+                    ? "bg-success/10 border-success/40 shadow-sm" 
+                    : "bg-muted/30 border-border/30 hover:border-border/50"
+                )}
+                onClick={() => !isRunning && setQualityTier(qualityTier === 'professional' ? 'standard' : 'professional')}
+                >
                   <Switch
                     id="proTierManual"
                     checked={qualityTier === 'professional'}
@@ -1168,9 +1232,9 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="scale-90"
                   />
-                  <Label htmlFor="proTierManual" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <Shield className="w-3.5 h-3.5" />
-                    Pro
+                  <Label htmlFor="proTierManual" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Shield className="w-4 h-4" />
+                    Pro Quality
                   </Label>
                 </div>
               </div>
@@ -1180,39 +1244,41 @@ export function UnifiedStudio() {
 
         {/* Reference Image - Collapsible */}
         <Collapsible open={referenceExpanded} onOpenChange={setReferenceExpanded}>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
             <CollapsibleTrigger asChild>
-              <CardHeader className="py-3 px-4 cursor-pointer hover:bg-muted/30 transition-colors">
+              <CardHeader className="py-4 px-5 cursor-pointer hover:bg-muted/20 transition-colors">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-lg bg-muted">
-                      <Upload className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center gap-4">
+                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-muted to-muted/50 border border-border/50">
+                      <Image className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <CardTitle className="text-sm font-medium">Reference Image</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {referenceImageAnalysis ? 'Character analyzed' : 'Optional: Upload for consistency'}
+                      <CardTitle className="text-base font-semibold">Reference Image</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {referenceImageAnalysis ? 'Character consistency ready' : 'Optional: Upload for visual consistency'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {referenceImageAnalysis && (
-                      <Badge variant="secondary" className="bg-success/10 text-success border-0 text-xs">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Ready
+                      <Badge className="bg-success/15 text-success border border-success/30 text-xs font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                        Analyzed
                       </Badge>
                     )}
-                    {referenceExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/50">
+                      {referenceExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0 pb-4 px-4">
+              <CardContent className="pt-0 pb-5 px-5">
                 <ReferenceImageUpload
                   onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
                   onClear={() => setReferenceImageAnalysis(undefined)}
@@ -1225,27 +1291,27 @@ export function UnifiedStudio() {
 
         {/* Script Review Button - Show when awaiting approval */}
         {isAwaitingApproval && awaitingApprovalProjectId && (
-          <Card className="border-green-500/50 bg-green-500/10">
+          <Card className="border-success/40 bg-gradient-to-r from-success/10 via-success/5 to-transparent shadow-lg overflow-hidden">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-green-500/20 flex items-center justify-center">
-                    <FileText className="w-7 h-7 text-green-500" />
+                  <div className="w-14 h-14 rounded-2xl bg-success/20 border border-success/30 flex items-center justify-center shadow-lg">
+                    <FileText className="w-7 h-7 text-success" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-green-600">Script Ready for Review</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="text-lg font-bold text-success">Script Ready for Review</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {awaitingApprovalShotCount} shots generated • Review and approve to continue
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" onClick={handleCancelAwaitingApproval}>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button variant="outline" onClick={handleCancelAwaitingApproval} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleReviewScript}
-                    className="bg-green-600 hover:bg-green-700 text-white min-w-[160px]"
+                    className="flex-1 sm:flex-none bg-success hover:bg-success/90 text-success-foreground min-w-[160px] shadow-lg"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Review Script
@@ -1258,27 +1324,28 @@ export function UnifiedStudio() {
 
         {/* Pipeline Running - Show link to production page */}
         {currentStage !== 'idle' && !isAwaitingApproval && activeProjectId && (
-          <Card className="border-primary/50 bg-primary/5">
+          <Card className="border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent shadow-lg overflow-hidden">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
-                    <Film className="w-7 h-7 text-primary animate-pulse" />
+                  <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shadow-lg relative">
+                    <Film className="w-7 h-7 text-primary" />
+                    <div className="absolute inset-0 rounded-2xl animate-pulse-ring bg-primary/20" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold">Pipeline Running</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Video generation in progress • {Math.round(progress)}% complete
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Video generation in progress • <span className="font-semibold text-primary">{Math.round(progress)}%</span> complete
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" onClick={handleCancel}>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button variant="outline" onClick={handleCancel} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
                   <Button 
                     onClick={() => navigate(`/production?projectId=${activeProjectId}`)}
-                    className="min-w-[160px]"
+                    className="flex-1 sm:flex-none min-w-[160px] shadow-lg"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     View Progress

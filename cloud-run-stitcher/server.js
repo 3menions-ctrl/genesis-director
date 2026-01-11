@@ -78,9 +78,8 @@ try {
 }
 
 // Supabase configuration - uses service role key for backend operations
-// Supports both SUPABASE_SERVICE_ROLE_KEY (from docs) and SUPABASE_SERVICE_KEY (legacy)
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ahlikyhgcqvrdvbtkghh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Defer logging until after server starts
 let startupLogged = false;
@@ -88,20 +87,18 @@ function logStartup() {
   if (startupLogged) return;
   startupLogged = true;
   console.log('[Startup] SUPABASE_URL:', SUPABASE_URL);
-  console.log('[Startup] SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_KEY.length + ')' : 'NOT SET');
-  console.log('[Startup] Env vars checked: SUPABASE_SERVICE_ROLE_KEY=', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET');
-  console.log('[Startup] Env vars checked: SUPABASE_SERVICE_KEY=', process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET');
-  if (!SUPABASE_SERVICE_KEY) {
-    console.warn('[Startup] WARNING: Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_SERVICE_KEY is set - operations will fail');
+  console.log('[Startup] SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? 'SET (length: ' + SUPABASE_SERVICE_ROLE_KEY.length + ')' : 'NOT SET');
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('[Startup] WARNING: SUPABASE_SERVICE_ROLE_KEY not set - operations will fail');
   }
 }
 
 // Create Supabase client helper - only when needed
 function getSupabase() {
-  if (!SUPABASE_SERVICE_KEY) {
-    throw new Error('SUPABASE_SERVICE_KEY not configured');
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
   }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
 // Get signed upload URL from edge function
@@ -110,8 +107,8 @@ async function getSignedUploadUrl(projectId, filename) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'apikey': SUPABASE_SERVICE_KEY
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'apikey': SUPABASE_SERVICE_ROLE_KEY
     },
     body: JSON.stringify({ projectId, filename })
   });
@@ -130,8 +127,8 @@ async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcess
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-      'apikey': SUPABASE_SERVICE_KEY
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'apikey': SUPABASE_SERVICE_ROLE_KEY
     },
     body: JSON.stringify({ projectId, videoUrl, durationSeconds, clipsProcessed, status, errorMessage })
   });

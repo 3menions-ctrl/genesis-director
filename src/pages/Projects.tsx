@@ -1158,7 +1158,7 @@ export default function Projects() {
             )}
 
             {/* Main Grid/List */}
-            <div className="flex gap-8">
+            <div className="flex gap-6 xl:gap-8">
               {/* Projects Grid */}
               <motion.div 
                 initial={{ opacity: 0 }}
@@ -1194,7 +1194,7 @@ export default function Projects() {
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-5">
                     {filteredProjects.map((project, index) => (
                       <ProjectCard
                         key={project.id}
@@ -1223,7 +1223,7 @@ export default function Projects() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
-                className="hidden xl:block w-64 shrink-0"
+                className="hidden 2xl:block w-60 shrink-0"
               >
                 <div className="sticky top-24 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
                   <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">

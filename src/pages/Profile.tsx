@@ -658,6 +658,13 @@ export default function Profile() {
                   <span className="text-lg font-bold">{profile?.credits_balance?.toLocaleString() || 0}</span>
                 </Button>
                 <Button
+                  onClick={() => navigate('/settings')}
+                  variant="ghost"
+                  className="h-12 w-12 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+                <Button
                   onClick={handleSignOut}
                   variant="ghost"
                   className="h-12 w-12 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5"

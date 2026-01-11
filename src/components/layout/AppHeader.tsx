@@ -165,7 +165,7 @@ export function AppHeader({
                       <User className="w-4 h-4" />
                       Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
+                    <DropdownMenuItem onClick={() => navigate('/settings')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
                       <Settings className="w-4 h-4" />
                       Settings
                     </DropdownMenuItem>

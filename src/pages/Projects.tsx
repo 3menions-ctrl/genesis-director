@@ -722,31 +722,41 @@ export default function Projects() {
     toast.success('Signed out successfully');
   };
 
-  // Only show projects with real Google-stitched MP4s (not manifests)
+  // Get project status as string
   const status = (p: Project) => p.status as string;
   
-  // Helper to check if project has actual video content
+  // Helper to check if project has actual video content (playable)
   const hasVideoContent = (p: Project): boolean => {
     // Has real stitched MP4
     if (isStitchedMp4(p.video_url)) return true;
-    // Has manifest URL (clips in video_clips table)
+    // Has manifest URL (clips in video_clips table) - also playable!
     if (p.video_url && isManifestUrl(p.video_url)) return true;
     // Has video_clips array with actual URLs
     if (p.video_clips && p.video_clips.length > 0) return true;
     return false;
   };
   
-  // Projects with real stitched videos (from Google Cloud Run)
-  const stitchedProjects = projects.filter(p => 
-    isStitchedMp4(p.video_url)
-  );
+  // Helper to check if project is ready for display in Library
+  // (either stitched MP4 OR manifest-based playback)
+  const isPlayableProject = (p: Project): boolean => {
+    // Real stitched MP4
+    if (isStitchedMp4(p.video_url)) return true;
+    // Manifest URL is also playable (sequential clip playback)
+    if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
+    return false;
+  };
   
-  // Projects that need stitching (have clips but no stitched video)
+  // Projects ready for playback (stitched MP4s OR completed manifests)
+  const stitchedProjects = projects.filter(isPlayableProject);
+  
+  // Projects that need stitching (have clips but not yet stitched AND not completed with manifest)
   const needsStitching = projects.filter(p => {
     const hasClips = hasVideoContent(p);
-    const hasStitchedVideo = isStitchedMp4(p.video_url);
+    const isPlayable = isPlayableProject(p);
     const isProcessing = status(p) === 'stitching';
-    return hasClips && !hasStitchedVideo && !isProcessing;
+    const isStitchFailed = status(p) === 'stitching_failed';
+    // Show failed stitches as needing retry
+    return (hasClips && !isPlayable && !isProcessing) || isStitchFailed;
   });
   
   // Projects currently being stitched

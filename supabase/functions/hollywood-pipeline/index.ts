@@ -1407,23 +1407,52 @@ async function runProduction(
         // CORRECT FRAME CHAINING LOGIC:
         // - Clip 1: Uses REFERENCE IMAGE as startImageUrl (establishes visual world)
         // - Clip 2+: Uses LAST FRAME from previous clip (maintains continuity)
+        // CRITICAL: Never pass video URLs - only valid image URLs!
         // =====================================================
         let useStartImage: string | undefined;
         
+        // Helper to validate URL is an image, not a video
+        const isValidImageUrl = (url: string | undefined): boolean => {
+          if (!url) return false;
+          const lowerUrl = url.toLowerCase();
+          // Reject video files
+          if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov')) {
+            return false;
+          }
+          // Accept common image formats and base64 images
+          if (lowerUrl.endsWith('.png') || lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg') || 
+              lowerUrl.endsWith('.webp') || lowerUrl.startsWith('data:image/')) {
+            return true;
+          }
+          // For URLs without extensions, check content-type hints in URL
+          if (lowerUrl.includes('video/') || lowerUrl.includes('.mp4')) {
+            return false;
+          }
+          // Assume valid if no video indicators
+          return true;
+        };
+        
         if (i === 0) {
           // CLIP 1: Use reference image to establish the visual world
-          useStartImage = referenceImageUrl;
-          console.log(`[Hollywood] Clip 1: IMAGE-TO-VIDEO using reference image: ${referenceImageUrl?.substring(0, 60)}...`);
+          if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+            useStartImage = referenceImageUrl;
+            console.log(`[Hollywood] Clip 1: IMAGE-TO-VIDEO using reference image: ${referenceImageUrl?.substring(0, 60)}...`);
+          } else {
+            console.log(`[Hollywood] Clip 1: TEXT-TO-VIDEO (no valid reference image)`);
+          }
         } else {
           // CLIP 2+: Use previous clip's extracted last frame for continuity
-          useStartImage = previousLastFrameUrl;
-          console.log(`[Hollywood] Clip ${i + 1}: FRAME-CHAINED from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
-          
-          // CRITICAL: Warn if we don't have a proper frame
-          if (!previousLastFrameUrl) {
-            console.error(`[Hollywood] ⚠️ CRITICAL: No last frame available for clip ${i + 1}! Continuity will be broken.`);
-          } else if (previousLastFrameUrl === referenceImageUrl) {
-            console.error(`[Hollywood] ⚠️ WARNING: Still using reference image for clip ${i + 1} - frame extraction may have failed!`);
+          if (previousLastFrameUrl && isValidImageUrl(previousLastFrameUrl)) {
+            useStartImage = previousLastFrameUrl;
+            console.log(`[Hollywood] Clip ${i + 1}: FRAME-CHAINED from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
+          } else {
+            // CRITICAL: No valid frame - proceed without frame chaining
+            console.error(`[Hollywood] ⚠️ CRITICAL: No valid image frame for clip ${i + 1}! Proceeding WITHOUT frame-chaining.`);
+            if (previousLastFrameUrl) {
+              console.error(`[Hollywood] Invalid URL (likely video): ${previousLastFrameUrl.substring(0, 80)}...`);
+            }
+            // Do NOT use video URL - better to skip frame-chaining than crash Veo
+            useStartImage = undefined;
           }
         }
         
@@ -1509,7 +1538,7 @@ async function runProduction(
     if (result.videoUrl) {
       console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
       
-      // Extract frame for Visual Debugger analysis
+      // Extract frame for Visual Debugger analysis AND frame-chaining
       let frameForAnalysis = result.lastFrameUrl;
       try {
         const frameResult = await callEdgeFunction('extract-video-frame', {
@@ -1518,14 +1547,32 @@ async function runProduction(
           shotId: `clip_${i}`,
           position: 'last',
         });
+        
         if (frameResult.success && frameResult.frameUrl) {
-          frameForAnalysis = frameResult.frameUrl;
-          // CRITICAL: Update result's lastFrameUrl with actual extracted frame
-          result.lastFrameUrl = frameResult.frameUrl;
-          console.log(`[Hollywood] Frame extracted for Visual Debugger: ${frameForAnalysis.substring(0, 60)}...`);
+          // CRITICAL: Validate that we got an actual IMAGE, not the video URL back
+          const frameUrl = frameResult.frameUrl;
+          const isVideoUrl = frameUrl.endsWith('.mp4') || frameUrl.includes('video/mp4');
+          
+          if (isVideoUrl) {
+            console.error(`[Hollywood] ⚠️ Frame extraction returned VIDEO URL instead of image! Ignoring.`);
+            console.error(`[Hollywood] Invalid frame URL: ${frameUrl.substring(0, 80)}...`);
+            // Do NOT update lastFrameUrl - keep it undefined to prevent passing video to Veo
+          } else {
+            frameForAnalysis = frameUrl;
+            // CRITICAL: Update result's lastFrameUrl with actual extracted frame IMAGE
+            result.lastFrameUrl = frameUrl;
+            console.log(`[Hollywood] ✓ Frame extracted (IMAGE): ${frameForAnalysis.substring(0, 80)}...`);
+            console.log(`[Hollywood] Method: ${frameResult.method || 'unknown'}`);
+          }
+        } else {
+          console.warn(`[Hollywood] Frame extraction failed: ${frameResult.error || 'unknown error'}`);
+          // CRITICAL: Clear lastFrameUrl to prevent broken frame chain
+          result.lastFrameUrl = undefined;
         }
       } catch (frameErr) {
-        console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
+        console.error(`[Hollywood] Frame extraction error:`, frameErr);
+        // CRITICAL: Clear lastFrameUrl to prevent broken frame chain
+        result.lastFrameUrl = undefined;
       }
       
       // STYLE ANCHOR EXTRACTION: After first clip (fallback for when no reference image)

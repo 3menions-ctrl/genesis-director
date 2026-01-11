@@ -56,6 +56,13 @@ interface GenerateSingleClipRequest {
   storyPosition?: 'opening' | 'setup' | 'catalyst' | 'rising' | 'climax' | 'resolution';
   previousClipSummary?: string;
   isRetry?: boolean;
+  // Accumulated scene anchors for visual consistency
+  accumulatedAnchors?: {
+    lighting?: { promptFragment?: string; timeOfDay?: string };
+    colorPalette?: { promptFragment?: string; temperature?: string };
+    keyObjects?: { promptFragment?: string; environmentType?: string };
+    masterConsistencyPrompt?: string;
+  }[];
 }
 
 interface ClipResult {
@@ -491,7 +498,7 @@ serve(async (req) => {
       }
     }
     
-    // Consistency anchors
+    // Consistency anchors from identity bible
     if (request.identityBible?.consistencyAnchors?.length) {
       continuityParts.push(`ANCHORS: ${request.identityBible.consistencyAnchors.join(', ')}`);
     }
@@ -500,11 +507,37 @@ serve(async (req) => {
       continuityParts.push(`CONSISTENCY: ${request.identityBible.consistencyPrompt}`);
     }
     
+    // =====================================================
+    // ACCUMULATED SCENE ANCHORS: Visual DNA from previous clips
+    // =====================================================
+    if (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) {
+      const anchorParts: string[] = [];
+      
+      // Use the most recent anchor's consistency prompt (freshest visual DNA)
+      const latestAnchor = request.accumulatedAnchors[request.accumulatedAnchors.length - 1];
+      if (latestAnchor.lighting?.promptFragment) {
+        anchorParts.push(`LIGHTING: ${latestAnchor.lighting.promptFragment}`);
+      }
+      if (latestAnchor.colorPalette?.promptFragment) {
+        anchorParts.push(`COLORS: ${latestAnchor.colorPalette.promptFragment}`);
+      }
+      if (latestAnchor.keyObjects?.promptFragment) {
+        anchorParts.push(`ENVIRONMENT: ${latestAnchor.keyObjects.promptFragment}`);
+      }
+      
+      if (anchorParts.length > 0) {
+        continuityParts.push(`[VISUAL DNA FROM PREVIOUS CLIPS]`);
+        continuityParts.push(...anchorParts);
+        continuityParts.push(`[END VISUAL DNA]`);
+        console.log(`[SingleClip] Injected ${anchorParts.length} scene anchor elements from ${request.accumulatedAnchors.length} previous clips`);
+      }
+    }
+    
     // INJECT: Put continuity at START of prompt
     if (continuityParts.length > 0) {
       const continuityBlock = `${continuityParts.join('\n')}\n\n`;
       enhancedPrompt = continuityBlock + enhancedPrompt;
-      console.log(`[SingleClip] Injected ${continuityParts.length} continuity elements`);
+      console.log(`[SingleClip] Injected ${continuityParts.length} total continuity elements`);
     } else {
       console.log(`[SingleClip] No scene context or identity bible - continuity may vary`);
     }

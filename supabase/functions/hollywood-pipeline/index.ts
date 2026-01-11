@@ -1259,13 +1259,24 @@ async function runProduction(
     .rpc('get_generation_checkpoint', { p_project_id: state.projectId });
   
   let startIndex = 0;
-  let previousLastFrameUrl = referenceImageUrl;
+  // CRITICAL: Initialize to undefined, NOT referenceImageUrl
+  // This ensures we detect broken frame chains on resume
+  let previousLastFrameUrl: string | undefined = undefined;
   let previousMotionVectors: { endVelocity?: string; endDirection?: string; cameraMomentum?: string } | undefined;
   
   if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
     startIndex = checkpoint[0].last_completed_index + 1;
-    previousLastFrameUrl = checkpoint[0].last_frame_url || referenceImageUrl;
-    console.log(`[Hollywood] Resuming from clip ${startIndex + 1}, using frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+    
+    // Use checkpoint's last frame, fall back to reference only if truly needed
+    if (checkpoint[0].last_frame_url) {
+      previousLastFrameUrl = checkpoint[0].last_frame_url;
+      console.log(`[Hollywood] Resuming from clip ${startIndex + 1}, using REAL last frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+    } else {
+      // WARNING: No frame from checkpoint - frame chain is broken
+      console.error(`[Hollywood] ⚠️ WARNING: Resuming but checkpoint has NO last_frame_url! Frame chain may be broken.`);
+      // Fall back to reference image only for the immediate next clip
+      previousLastFrameUrl = referenceImageUrl;
+    }
     
     // Load existing completed clips
     const { data: existingClips } = await supabase
@@ -1465,7 +1476,7 @@ async function runProduction(
     if (result.videoUrl) {
       console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
       
-      // FIXED: Extract actual frame before Visual Debugger analysis
+      // Extract frame for Visual Debugger analysis
       let frameForAnalysis = result.lastFrameUrl;
       try {
         const frameResult = await callEdgeFunction('extract-video-frame', {
@@ -1476,57 +1487,12 @@ async function runProduction(
         });
         if (frameResult.success && frameResult.frameUrl) {
           frameForAnalysis = frameResult.frameUrl;
-          console.log(`[Hollywood] Frame extracted for Visual Debugger`);
+          // CRITICAL: Update result's lastFrameUrl with actual extracted frame
+          result.lastFrameUrl = frameResult.frameUrl;
+          console.log(`[Hollywood] Frame extracted for Visual Debugger: ${frameForAnalysis.substring(0, 60)}...`);
         }
       } catch (frameErr) {
         console.warn(`[Hollywood] Frame extraction failed, using fallback:`, frameErr);
-      }
-      
-      // =====================================================
-      // ENHANCED SCENE ANCHOR EXTRACTION: Extract from EVERY clip for maximum consistency
-      // =====================================================
-      if (frameForAnalysis) {
-        console.log(`[Hollywood] Extracting scene anchor from clip ${i + 1}...`);
-        try {
-          const sceneAnchorResult = await callEdgeFunction('extract-scene-anchor', {
-            frameUrl: frameForAnalysis,
-            shotId: `clip_${i}`,
-            projectId: state.projectId,
-          });
-          
-          if (sceneAnchorResult.success && sceneAnchorResult.anchor) {
-            const newAnchor = sceneAnchorResult.anchor;
-            accumulatedAnchors.push(newAnchor);
-            
-            console.log(`[Hollywood] Scene anchor extracted for clip ${i + 1}:`);
-            console.log(`  - Lighting: ${newAnchor.lighting?.timeOfDay || 'unknown'}, ${newAnchor.lighting?.keyLightIntensity || 'unknown'}`);
-            console.log(`  - Color: ${newAnchor.colorPalette?.temperature || 'unknown'}, ${newAnchor.colorPalette?.gradeStyle || 'unknown'}`);
-            console.log(`  - Environment: ${newAnchor.keyObjects?.environmentType || 'unknown'}`);
-            
-            // Build/update master scene anchor (weighted average of all anchors)
-            if (!masterSceneAnchor) {
-              masterSceneAnchor = newAnchor;
-            } else {
-              // Merge new anchor into master (combine prompts)
-              const combinedPrompt = [
-                masterSceneAnchor.masterConsistencyPrompt,
-                newAnchor.lighting?.promptFragment,
-                newAnchor.colorPalette?.promptFragment,
-              ].filter(Boolean).join('. ');
-              
-              masterSceneAnchor = {
-                ...masterSceneAnchor,
-                masterConsistencyPrompt: combinedPrompt.substring(0, 500), // Cap length
-                lighting: newAnchor.lighting, // Use latest lighting
-                colorPalette: newAnchor.colorPalette, // Use latest colors
-              };
-            }
-            
-            console.log(`[Hollywood] Master scene anchor updated with ${accumulatedAnchors.length} total anchors`);
-          }
-        } catch (anchorErr) {
-          console.warn(`[Hollywood] Scene anchor extraction failed for clip ${i + 1}:`, anchorErr);
-        }
       }
       
       // STYLE ANCHOR EXTRACTION: After first clip (fallback for when no reference image)
@@ -1542,7 +1508,6 @@ async function runProduction(
           if (styleAnchorResult.success && styleAnchorResult.styleAnchor) {
             styleAnchor = styleAnchorResult.styleAnchor;
             console.log(`[Hollywood] Style anchor extracted: ${styleAnchor.anchors?.length || 0} visual anchors`);
-            console.log(`[Hollywood] Consistency prompt: ${styleAnchor.consistencyPrompt?.substring(0, 60)}...`);
             
             // Store in identity bible for persistence
             if (!state.identityBible) {
@@ -1550,21 +1515,13 @@ async function runProduction(
             }
             state.identityBible.styleAnchor = styleAnchor;
             state.identityBible.consistencyAnchors = styleAnchor.anchors || [];
-            
-            // Update project with style anchor
-            await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
-              clipsCompleted: 1,
-              clipCount: clips.length,
-              styleAnchorExtracted: true,
-              styleAnchorAnchors: styleAnchor.anchors?.length || 0,
-            });
           }
         } catch (styleErr) {
           console.warn(`[Hollywood] Style anchor extraction failed:`, styleErr);
         }
       }
       
-      const maxRetries = 3; // Increased from 2 to 3 retries
+      const maxRetries = 3;
       let retryCount = 0;
       let debugResult = null;
       
@@ -1572,14 +1529,15 @@ async function runProduction(
         try {
           debugResult = await callEdgeFunction('visual-debugger', {
             videoUrl: result.videoUrl,
-            frameUrl: frameForAnalysis || result.videoUrl, // Use video URL if no frame (Gemini can analyze video)
+            frameUrl: frameForAnalysis || result.videoUrl,
             shotDescription: clip.prompt,
             shotId: `clip_${i}`,
             projectType: request.genre || 'cinematic',
             referenceImageUrl,
             referenceAnalysis: state.referenceAnalysis,
-            // Pass style anchor for consistency checking
             styleAnchor: styleAnchor,
+            // Pass accumulated anchors for consistency checking
+            accumulatedAnchors: accumulatedAnchors.slice(-3),
           });
           
           if (debugResult.success && debugResult.result) {
@@ -1587,18 +1545,18 @@ async function runProduction(
             console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
             
             if (verdict.passed || verdict.score >= 70) {
-              // Quality check passed
               console.log(`[Hollywood] Clip ${i + 1} passed quality check`);
               break;
             } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
-              // Quality check failed, retry with corrective prompt
               console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
               console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
               
-              // Add style anchor to corrective prompt if available
               let correctedPrompt = verdict.correctivePrompt;
               if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
                 correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
+              }
+              if (masterSceneAnchor?.masterConsistencyPrompt) {
+                correctedPrompt = `[SCENE DNA: ${masterSceneAnchor.masterConsistencyPrompt}] ${correctedPrompt}`;
               }
               
               // FIXED: Clip 1 uses reference image, Clip 2+ uses previous frame
@@ -1618,6 +1576,7 @@ async function runProduction(
                 qualityTier: request.qualityTier || 'standard',
                 referenceImageUrl,
                 isRetry: true,
+                sceneContext: clip.sceneContext,
               });
               
               if (retryResult.success && retryResult.clipResult) {
@@ -1634,20 +1593,22 @@ async function runProduction(
                   });
                   if (newFrameResult.success && newFrameResult.frameUrl) {
                     frameForAnalysis = newFrameResult.frameUrl;
+                    result.lastFrameUrl = newFrameResult.frameUrl;
+                    console.log(`[Hollywood] Retry frame extracted: ${frameForAnalysis.substring(0, 60)}...`);
                   }
                 } catch (e) {
                   console.warn(`[Hollywood] Retry frame extraction failed`);
                 }
                 
                 console.log(`[Hollywood] Retry ${retryCount} generated, re-checking quality...`);
-                continue; // Re-run visual debugger on new clip
+                continue;
               }
             }
           }
-          break; // Exit loop if no retry needed
+          break;
         } catch (debugError) {
           console.warn(`[Hollywood] Visual Debugger failed:`, debugError);
-          break; // Continue without visual debugging
+          break;
         }
       }
       
@@ -1658,6 +1619,55 @@ async function runProduction(
           passed: debugResult.result.passed,
           retriesUsed: retryCount,
         };
+      }
+      
+      // =====================================================
+      // SCENE ANCHOR EXTRACTION: Extract from FINAL clip (after any retries)
+      // This ensures we get the visual DNA from the actual clip that will be used
+      // =====================================================
+      const finalFrameUrl = result.lastFrameUrl || frameForAnalysis;
+      if (finalFrameUrl) {
+        console.log(`[Hollywood] Extracting scene anchor from FINAL clip ${i + 1}...`);
+        try {
+          const sceneAnchorResult = await callEdgeFunction('extract-scene-anchor', {
+            frameUrl: finalFrameUrl,
+            shotId: `clip_${i}_final`,
+            projectId: state.projectId,
+          });
+          
+          if (sceneAnchorResult.success && sceneAnchorResult.anchor) {
+            const newAnchor = sceneAnchorResult.anchor;
+            accumulatedAnchors.push(newAnchor);
+            
+            console.log(`[Hollywood] Scene anchor extracted for clip ${i + 1}:`);
+            console.log(`  - Lighting: ${newAnchor.lighting?.timeOfDay || 'unknown'}, ${newAnchor.lighting?.keyLightIntensity || 'unknown'}`);
+            console.log(`  - Color: ${newAnchor.colorPalette?.temperature || 'unknown'}, ${newAnchor.colorPalette?.gradeStyle || 'unknown'}`);
+            console.log(`  - Environment: ${newAnchor.keyObjects?.environmentType || 'unknown'}`);
+            
+            // Build/update master scene anchor
+            if (!masterSceneAnchor) {
+              masterSceneAnchor = newAnchor;
+            } else {
+              // Merge: prioritize latest lighting/color but keep accumulated environment info
+              const combinedPrompt = [
+                newAnchor.lighting?.promptFragment,
+                newAnchor.colorPalette?.promptFragment,
+                masterSceneAnchor.keyObjects?.promptFragment,
+              ].filter(Boolean).join('. ');
+              
+              masterSceneAnchor = {
+                ...masterSceneAnchor,
+                masterConsistencyPrompt: combinedPrompt.substring(0, 500),
+                lighting: newAnchor.lighting,
+                colorPalette: newAnchor.colorPalette,
+              };
+            }
+            
+            console.log(`[Hollywood] Master scene anchor updated: ${accumulatedAnchors.length} total anchors`);
+          }
+        } catch (anchorErr) {
+          console.warn(`[Hollywood] Scene anchor extraction failed for clip ${i + 1}:`, anchorErr);
+        }
       }
     }
     

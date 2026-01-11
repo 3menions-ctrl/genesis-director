@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.verify-character-identity]
 verify_jwt = false
+
+[functions.spatial-action-lock]
+verify_jwt = false

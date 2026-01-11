@@ -113,6 +113,103 @@ function buildCharacterSpecificNegatives(nonFacialAnchors?: any): string[] {
   return negatives;
 }
 
+// =====================================================
+// SPATIAL-ACTION LOCK ENGINE (Embedded)
+// Detects chase/pursuit/follow relationships and enforces positioning
+// =====================================================
+
+interface SpatialLockResult {
+  detected: boolean;
+  actionType: string;
+  characters: { name: string; role: string; relativePosition: string }[];
+  spatialLockPrompt: string;
+  negativePrompts: string[];
+}
+
+function analyzeSpatialRelationships(prompt: string): SpatialLockResult {
+  const chasePatterns = [
+    { regex: /(\w+)\s+(?:is\s+)?chasing\s+(?:a\s+|the\s+)?(\w+)/i, type: 'chase' },
+    { regex: /(\w+)\s+(?:is\s+)?pursuing\s+(?:a\s+|the\s+)?(\w+)/i, type: 'pursuit' },
+    { regex: /(\w+)\s+(?:is\s+)?following\s+(?:a\s+|the\s+)?(\w+)/i, type: 'follow' },
+    { regex: /(\w+)\s+(?:is\s+)?hunting\s+(?:a\s+|the\s+)?(\w+)/i, type: 'hunt' },
+    { regex: /(\w+)\s+(?:is\s+)?stalking\s+(?:a\s+|the\s+)?(\w+)/i, type: 'stalk' },
+    { regex: /(\w+)\s+(?:is\s+)?fleeing\s+from\s+(?:a\s+|the\s+)?(\w+)/i, type: 'flee' },
+    { regex: /(\w+)\s+(?:is\s+)?escaping\s+(?:a\s+|the\s+)?(\w+)/i, type: 'escape' },
+    { regex: /(\w+)\s+(?:is\s+)?running\s+from\s+(?:a\s+|the\s+)?(\w+)/i, type: 'flee' },
+    { regex: /(\w+)\s+(?:is\s+)?leading\s+(?:a\s+|the\s+)?(\w+)/i, type: 'lead' },
+    { regex: /(\w+)\s+(?:is\s+)?after\s+(?:a\s+|the\s+)?(\w+)/i, type: 'chase' },
+  ];
+  
+  for (const { regex, type } of chasePatterns) {
+    const match = prompt.match(regex);
+    if (match) {
+      let pursuer: string, target: string;
+      const actor1 = match[1].toLowerCase();
+      const actor2 = match[2].toLowerCase();
+      
+      // Determine roles based on action type
+      if (['flee', 'escape'].includes(type)) {
+        pursuer = actor2; target = actor1;
+      } else if (type === 'lead') {
+        pursuer = actor2; target = actor1;
+      } else {
+        pursuer = actor1; target = actor2;
+      }
+      
+      const pursuerCap = pursuer.charAt(0).toUpperCase() + pursuer.slice(1);
+      const targetCap = target.charAt(0).toUpperCase() + target.slice(1);
+      const isLeadFollow = type === 'lead' || type === 'follow';
+      
+      const spatialLockPrompt = isLeadFollow
+        ? `[SPATIAL LOCK - MANDATORY POSITIONS]
+${targetCap} is AHEAD, leading the movement, positioned in the FRONT HALF of the frame.
+${pursuerCap} is BEHIND, following, positioned in the BACK HALF of the frame.
+DISTANCE: ${pursuerCap} maintains consistent following distance behind ${targetCap}.
+DIRECTION: Both moving in the SAME direction.
+CRITICAL: ${pursuerCap} must NEVER be ahead of ${targetCap}.`
+        : `[SPATIAL LOCK - MANDATORY CHASE POSITIONS]
+${targetCap} is AHEAD, fleeing, positioned in the FRONT/LEADING portion of the frame.
+${pursuerCap} is BEHIND, pursuing, positioned in the BACK/TRAILING portion of the frame.
+DISTANCE: ${pursuerCap} is pursuing but has NOT caught ${targetCap}. Gap remains.
+DIRECTION: Both moving in the SAME direction - ${targetCap} fleeing, ${pursuerCap} chasing.
+CRITICAL: ${pursuerCap} must NEVER be ahead of, beside, or passing ${targetCap}.`;
+      
+      const negativePrompts = isLeadFollow
+        ? [
+            `${pursuer} ahead of ${target}`, `${pursuer} leading ${target}`,
+            `${target} behind ${pursuer}`, `${pursuer} in front`,
+            'wrong character order', 'reversed positions',
+          ]
+        : [
+            `${pursuer} ahead of ${target}`, `${pursuer} in front of ${target}`,
+            `${pursuer} passing ${target}`, `${pursuer} beside ${target}`,
+            `${pursuer} catching ${target}`, `${pursuer} overtaking ${target}`,
+            `${target} behind ${pursuer}`, `${pursuer} caught ${target}`,
+            'chase over', 'wrong character order', 'reversed chase positions',
+          ];
+      
+      return {
+        detected: true,
+        actionType: type,
+        characters: [
+          { name: pursuer, role: isLeadFollow ? 'follower' : 'pursuer', relativePosition: 'behind' },
+          { name: target, role: isLeadFollow ? 'leader' : 'target', relativePosition: 'ahead' },
+        ],
+        spatialLockPrompt,
+        negativePrompts,
+      };
+    }
+  }
+  
+  return {
+    detected: false,
+    actionType: 'none',
+    characters: [],
+    spatialLockPrompt: '',
+    negativePrompts: [],
+  };
+}
+
 interface GenerateSingleClipRequest {
   userId: string;
   projectId: string;
@@ -749,10 +846,35 @@ serve(async (req) => {
     const safePrompt = safetyCheck.sanitizedPrompt;
 
     // =====================================================
+    // SPATIAL-ACTION LOCK: Detect and enforce multi-character positioning
+    // Solves "lion passing gazelle" problem
+    // =====================================================
+    let spatialLockPrompt = '';
+    let spatialNegatives: string[] = [];
+    
+    try {
+      const spatialResult = await analyzeSpatialRelationships(safePrompt);
+      if (spatialResult.detected) {
+        spatialLockPrompt = spatialResult.spatialLockPrompt;
+        spatialNegatives = spatialResult.negativePrompts;
+        console.log(`[SingleClip] 🔒 SPATIAL LOCK: ${spatialResult.actionType} detected`);
+        console.log(`[SingleClip]   Characters: ${spatialResult.characters.map((c: any) => `${c.name} (${c.role}: ${c.relativePosition})`).join(', ')}`);
+        console.log(`[SingleClip]   Negatives: ${spatialNegatives.slice(0, 3).join(', ')}...`);
+      }
+    } catch (spatialErr) {
+      console.warn(`[SingleClip] Spatial analysis skipped:`, spatialErr);
+    }
+
+    // =====================================================
     // SCENE-BASED CONTINUOUS FLOW: Inject scene context for clip continuity
     // =====================================================
     let enhancedPrompt = safePrompt;
     const continuityParts: string[] = [];
+    
+    // INJECT SPATIAL LOCK FIRST (highest priority for multi-character scenes)
+    if (spatialLockPrompt) {
+      continuityParts.push(spatialLockPrompt);
+    }
     
     // NEW: Scene context for continuous flow (takes priority)
     if (request.sceneContext) {
@@ -927,13 +1049,23 @@ serve(async (req) => {
     const aspectRatio = request.aspectRatio || '16:9';
     console.log(`[SingleClip] Using aspect ratio from request: ${aspectRatio}`);
     
+    // Merge all negative prompts: occlusion negatives + spatial negatives
+    const allNegatives = [
+      ...(request.identityBible?.occlusionNegatives || []),
+      ...spatialNegatives,
+    ];
+    
+    if (allNegatives.length > 0) {
+      console.log(`[SingleClip] Negative prompts: ${allNegatives.length} total (${spatialNegatives.length} spatial)`);
+    }
+    
     const { operationName } = await generateClip(
       accessToken,
       gcpProjectId,
       velocityAwarePrompt,
       request.startImageUrl,
       aspectRatio,
-      request.identityBible?.occlusionNegatives
+      allNegatives.length > 0 ? allNegatives : undefined
     );
     
     console.log(`[SingleClip] Operation started: ${operationName}`);

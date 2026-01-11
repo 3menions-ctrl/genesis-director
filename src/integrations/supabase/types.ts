@@ -822,21 +822,38 @@ export type Database = {
         }
         Returns: Json
       }
-      upsert_video_clip: {
-        Args: {
-          p_error_message?: string
-          p_last_frame_url?: string
-          p_motion_vectors?: Json
-          p_project_id: string
-          p_prompt: string
-          p_shot_index: number
-          p_status?: string
-          p_user_id: string
-          p_veo_operation_name?: string
-          p_video_url?: string
-        }
-        Returns: string
-      }
+      upsert_video_clip:
+        | {
+            Args: {
+              p_error_message?: string
+              p_last_frame_url?: string
+              p_motion_vectors?: Json
+              p_project_id: string
+              p_prompt: string
+              p_shot_index: number
+              p_status?: string
+              p_user_id: string
+              p_veo_operation_name?: string
+              p_video_url?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_duration_seconds?: number
+              p_error_message?: string
+              p_last_frame_url?: string
+              p_motion_vectors?: Json
+              p_project_id: string
+              p_prompt: string
+              p_shot_index: number
+              p_status?: string
+              p_user_id: string
+              p_veo_operation_name?: string
+              p_video_url?: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       movie_genre:

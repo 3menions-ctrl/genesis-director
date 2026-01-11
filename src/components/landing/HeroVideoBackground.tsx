@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-// Curated showcase videos from latest generated clips
+// Curated showcase videos from latest generated clips (Warrior of a Fallen World)
 const SHOWCASE_VIDEOS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_0_1768112363329.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1_1768112430744.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_2_1768112494766.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_3_1768112557902.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_4_1768112816505.mp4',
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_171d8bf6-2911-4c6a-b715-6ed0e93ff226_5_1768112879346.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_0_1768120725278.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_1_1768120786496.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_2_1768120849054.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_3_1768120946395.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_4_1768121005486.mp4',
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-clips/clip_d3cd5c16-808f-4538-b236-551d411e102b_5_1768121426753.mp4',
 ];
 
 interface HeroVideoBackgroundProps {

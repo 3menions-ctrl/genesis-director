@@ -141,12 +141,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     await loadProjects();
   };
 
-  // Load projects on mount
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  // Reload projects when user changes (login/logout)
+  // Load projects when user is authenticated
   useEffect(() => {
     if (user) {
       loadProjects();
@@ -154,6 +149,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       // Clear projects when user logs out
       setProjects([]);
       setActiveProjectId(null);
+      setIsLoading(false);
     }
   }, [user?.id]);
 

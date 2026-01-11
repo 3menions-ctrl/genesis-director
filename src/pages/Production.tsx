@@ -559,20 +559,23 @@ export default function Production() {
 
     const { data: projects } = await supabase
       .from('movie_projects')
-      .select('id, title, status, pending_video_tasks, thumbnail_url, updated_at')
+      .select('id, title, status, pending_video_tasks, thumbnail_url, updated_at, video_url')
       .eq('user_id', session.user.id)
-      .in('status', ['generating', 'producing', 'rendering', 'stitching', 'completed'])
+      .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed'])
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(30);
 
     if (projects) {
       setAllProductionProjects(projects.map(p => {
         const tasks = parsePendingVideoTasks(p.pending_video_tasks);
+        const hasVideo = !!p.video_url;
+        // Only show 100% if actually completed with video
+        const progress = hasVideo ? 100 : (p.status === 'stitching_failed' ? 90 : (tasks?.progress || 0));
         return {
           id: p.id,
           title: p.title,
           status: p.status,
-          progress: p.status === 'completed' ? 100 : (tasks?.progress || 0),
+          progress,
           clipsCompleted: tasks?.clipsCompleted || 0,
           totalClips: tasks?.clipCount || 6,
           thumbnail: p.thumbnail_url || undefined,
@@ -603,10 +606,10 @@ export default function Production() {
           .from('movie_projects')
           .select('id')
           .eq('user_id', session.user.id)
-          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'completed'])
+          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed'])
           .order('updated_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (recentProject) {
           navigate(`/production?projectId=${recentProject.id}`, { replace: true });

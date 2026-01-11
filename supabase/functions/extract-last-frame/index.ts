@@ -114,27 +114,24 @@ serve(async (req) => {
           if (result.frameBase64) {
             console.log(`[ExtractLastFrame] Got base64 frame from Cloud Run, uploading to storage...`);
             
-            // Decode base64 and upload to appropriate storage
+            // Decode base64 and upload to LOVABLE CLOUD storage
+            // (temp-frames bucket exists on Lovable Cloud, not external)
             const base64Data = result.frameBase64.replace(/^data:image\/\w+;base64,/, '');
             const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             const filename = `${projectId}/shot-${shotIndex}-lastframe-${Date.now()}.jpg`;
             
-            // Try external storage first, fall back to Lovable Cloud storage
-            const storageClient = externalSupabase || lovableSupabase;
-            const storageBucket = 'temp-frames';
+            console.log(`[ExtractLastFrame] Uploading to LOVABLE CLOUD storage (temp-frames)...`);
             
-            console.log(`[ExtractLastFrame] Uploading to ${externalSupabase ? 'EXTERNAL' : 'LOVABLE'} storage...`);
-            
-            const { error: uploadError } = await storageClient.storage
-              .from(storageBucket)
+            const { error: uploadError } = await lovableSupabase.storage
+              .from('temp-frames')
               .upload(filename, binaryData, {
                 contentType: 'image/jpeg',
                 upsert: true
               });
 
             if (!uploadError) {
-              const { data: urlData } = storageClient.storage
-                .from(storageBucket)
+              const { data: urlData } = lovableSupabase.storage
+                .from('temp-frames')
                 .getPublicUrl(filename);
               
               const frameUrl = urlData.publicUrl;

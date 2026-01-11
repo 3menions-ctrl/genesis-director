@@ -987,12 +987,12 @@ export default function Production() {
     try {
       addLog('Approving script...', 'info');
       
-      // Call the hollywood-pipeline to continue with approved script
-      const { data, error } = await supabase.functions.invoke('hollywood-pipeline', {
+      // Call resume-pipeline to continue with approved script
+      const { data, error } = await supabase.functions.invoke('resume-pipeline', {
         body: {
-          userId: user.id,
           projectId,
-          action: 'approve_script',
+          userId: user.id,
+          resumeFrom: 'qualitygate',
           approvedShots: approvedShots.map(shot => ({
             id: shot.id,
             title: shot.title,

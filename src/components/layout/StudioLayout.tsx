@@ -172,7 +172,7 @@ function StudioSidebar() {
           </TooltipProvider>
           {!isCollapsed && (
             <span className="text-sm font-semibold text-white tracking-tight">
-              Apex<span className="text-white/50"> Studio</span>
+              Apex Studio
             </span>
           )}
         </div>

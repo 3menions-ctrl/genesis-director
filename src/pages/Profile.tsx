@@ -200,10 +200,14 @@ export default function Profile() {
   const fetchGenreData = async () => {
     if (!user) return;
     
+    // Verify session before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
     const { data } = await supabase
       .from('movie_projects')
       .select('genre')
-      .eq('user_id', user.id);
+      .eq('user_id', session.user.id);
 
     const genreCounts: Record<string, number> = {};
     (data || []).forEach(p => {
@@ -225,15 +229,19 @@ export default function Profile() {
     if (!user) return;
     
     try {
+      // Verify session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
       const { data: projects } = await supabase
         .from('movie_projects')
         .select('id, status, genre, created_at, video_clips')
-        .eq('user_id', user.id);
+        .eq('user_id', session.user.id);
 
       const { data: allTransactions } = await supabase
         .from('credit_transactions')
         .select('amount, clip_duration_seconds, created_at, transaction_type')
-        .eq('user_id', user.id);
+        .eq('user_id', session.user.id);
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -378,11 +386,18 @@ export default function Profile() {
     if (!user) return;
     setLoadingVideos(true);
     
+    // Verify session before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setLoadingVideos(false);
+      return;
+    }
+    
     try {
       const { data: projects } = await supabase
         .from('movie_projects')
         .select('video_clips, video_url')
-        .eq('user_id', user.id);
+        .eq('user_id', session.user.id);
       
       const allClips: string[] = [];
       projects?.forEach(p => {

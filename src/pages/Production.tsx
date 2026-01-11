@@ -543,12 +543,19 @@ export default function Production() {
         return;
       }
 
+      // CRITICAL: Verify Supabase client has valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('Production: No valid session yet, skipping load');
+        return;
+      }
+
       try {
         const { data: project, error: fetchError } = await supabase
           .from('movie_projects')
           .select('*')
           .eq('id', projectId)
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id) // Use session user ID
           .single();
 
         if (fetchError || !project) {

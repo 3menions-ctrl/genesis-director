@@ -109,25 +109,32 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     // Double-check we have a valid session before querying
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     
+    console.log('[StudioContext] loadProjects called, session:', currentSession ? 'VALID' : 'NULL', 
+                'userId:', currentSession?.user?.id?.slice(0, 8) + '...');
+    
     if (!currentSession) {
-      console.log('No valid session, skipping project load');
+      console.log('[StudioContext] No valid session, skipping project load');
       setIsLoading(false);
       return [];
     }
 
     try {
       setIsLoading(true);
+      console.log('[StudioContext] Fetching projects from database...');
+      
       const { data, error } = await supabase
         .from('movie_projects')
         .select('*')
         .order('updated_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading projects:', error);
+        console.error('[StudioContext] Error loading projects:', error);
         toast.error('Failed to load projects');
         return [];
       }
 
+      console.log('[StudioContext] Loaded', data?.length || 0, 'projects');
+      
       const mappedProjects = (data || []).map(mapDbProject);
       setProjects(mappedProjects);
       
@@ -138,7 +145,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       
       return mappedProjects;
     } catch (err) {
-      console.error('Error loading projects:', err);
+      console.error('[StudioContext] Error loading projects:', err);
       return [];
     } finally {
       setIsLoading(false);

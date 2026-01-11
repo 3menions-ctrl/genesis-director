@@ -172,6 +172,10 @@ export function ProductionPipeline({
     if (!projectId || qualityTier !== 'professional') return;
     
     const fetchProFeatures = async () => {
+      // Verify session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
       try {
         const { data, error } = await supabase
           .from('movie_projects')

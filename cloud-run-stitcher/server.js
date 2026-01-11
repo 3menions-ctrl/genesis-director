@@ -779,6 +779,7 @@ async function stitchVideos(request) {
         '-c:a', 'aac',
         '-b:a', '192k',
         '-movflags', '+faststart',
+        '-y',
         withAudioPath
       );
       

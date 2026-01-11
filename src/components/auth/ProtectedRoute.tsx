@@ -60,6 +60,23 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return null;
   }
 
+  // Wait for profile to load before checking onboarding status
+  // This prevents white screen while profile is being fetched
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
+              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
+            </div>
+          </div>
+          <p className="text-muted-foreground text-sm">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   // If onboarding not completed, don't render (will redirect)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return null;

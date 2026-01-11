@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Film, Plus, Coins, User, Settings, HelpCircle, LogOut, 
+  Plus, Coins, User, Settings, HelpCircle, LogOut, 
   Menu, X
 } from 'lucide-react';
+import apexLogo from '@/assets/apex-logo.png';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -79,8 +80,8 @@ export function AppHeader({
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-10 h-10 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
-                  <Film className="w-5 h-5 text-white/80" />
+                <div className="relative w-10 h-10 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all overflow-hidden">
+                  <img src={apexLogo} alt="Apex Studio" className="w-8 h-8 object-contain" />
                 </div>
               </div>
               <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex Studio</span>

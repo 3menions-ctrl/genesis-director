@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.auto-stitch-trigger]
 verify_jwt = false
+
+[functions.verify-character-identity]
+verify_jwt = false

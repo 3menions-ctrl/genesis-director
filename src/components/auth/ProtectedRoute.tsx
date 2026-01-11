@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,27 +8,47 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isSessionVerified, getValidSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sessionChecked, setSessionChecked] = useState(false);
 
+  // Double-check session on mount to catch stale state
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
+    let mounted = true;
+    
+    const verifySession = async () => {
+      // Wait for initial auth state to settle
+      if (loading) return;
+      
+      // Get fresh session from Supabase to avoid stale React state
+      const session = await getValidSession();
+      
+      if (!mounted) return;
+      
+      if (!session) {
+        console.log('[ProtectedRoute] No valid session, redirecting to auth');
+        navigate('/auth', { replace: true });
+      }
+      setSessionChecked(true);
+    };
 
-  // Redirect to onboarding if not completed (but not if already on a route we want to allow)
+    verifySession();
+    
+    return () => { mounted = false; };
+  }, [loading, getValidSession, navigate]);
+
+  // Redirect to onboarding if not completed
   useEffect(() => {
-    if (!loading && user && profile && !profile.onboarding_completed) {
-      // Only redirect if not already on onboarding
+    if (!loading && sessionChecked && user && profile && !profile.onboarding_completed) {
       if (location.pathname !== '/onboarding') {
-        navigate('/onboarding');
+        navigate('/onboarding', { replace: true });
       }
     }
-  }, [user, profile, loading, navigate, location.pathname]);
+  }, [user, profile, loading, sessionChecked, navigate, location.pathname]);
 
-  if (loading) {
+  // Show loading until session is verified
+  if (loading || !isSessionVerified || !sessionChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -37,7 +57,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
               <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
             </div>
           </div>
-          <p className="text-muted-foreground text-sm">Loading...</p>
+          <p className="text-muted-foreground text-sm">Verifying session...</p>
         </div>
       </div>
     );

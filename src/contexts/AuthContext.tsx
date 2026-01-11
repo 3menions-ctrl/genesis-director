@@ -26,10 +26,12 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   loading: boolean;
+  isSessionVerified: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  getValidSession: () => Promise<Session | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -204,16 +206,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   };
 
+  /**
+   * Get a verified valid session directly from Supabase.
+   * Use this before any critical operation to avoid stale React state.
+   */
+  const getValidSession = async (): Promise<Session | null> => {
+    const { data: { session: freshSession } } = await supabase.auth.getSession();
+    return freshSession;
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
       profile,
       loading,
+      isSessionVerified,
       signIn,
       signUp,
       signOut,
-      refreshProfile
+      refreshProfile,
+      getValidSession,
     }}>
       {children}
     </AuthContext.Provider>

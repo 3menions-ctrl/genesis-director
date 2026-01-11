@@ -104,9 +104,21 @@ interface PipelineState {
       frontViewUrl: string;
       sideViewUrl: string;
       threeQuarterViewUrl: string;
+      backViewUrl?: string;
+      silhouetteUrl?: string;
     };
     consistencyAnchors?: string[];
-    styleAnchor?: any; // Added for auto-extracted style anchor when no reference image
+    styleAnchor?: any;
+    // Enhanced identity bible fields (5-layer system)
+    nonFacialAnchors?: {
+      bodyType?: string;
+      clothingSignature?: string;
+      hairFromBehind?: string;
+      silhouetteDescription?: string;
+      gait?: string;
+      posture?: string;
+    };
+    occlusionNegatives?: string[];
   };
   referenceAnalysis?: {
     environment?: any;
@@ -1846,10 +1858,163 @@ async function runProduction(
           console.warn(`[Hollywood] Scene anchor extraction failed for clip ${i + 1}:`, anchorErr);
         }
       }
-    }
-    
-    // FIXED: Analyze real motion vectors from the generated video
-    if (result.videoUrl) {
+      }
+      
+      // =====================================================
+      // CHARACTER IDENTITY VERIFICATION: Detect and fix identity drift
+      // =====================================================
+      if (result.videoUrl && state.identityBible && result.lastFrameUrl) {
+        console.log(`[Hollywood] Running Character Identity Verification on clip ${i + 1}...`);
+        
+        const maxIdentityRetries = 2;
+        let identityRetryCount = 0;
+        
+        while (identityRetryCount < maxIdentityRetries) {
+          try {
+            const verifyResult = await callEdgeFunction('verify-character-identity', {
+              projectId: state.projectId,
+              clipIndex: i,
+              videoUrl: result.videoUrl,
+              frameUrl: result.lastFrameUrl,
+              identityBible: state.identityBible,
+              shotPrompt: clip.prompt,
+              previousClipFrameUrl: i > 0 ? previousLastFrameUrl : undefined,
+              strictness: request.qualityTier === 'professional' ? 'strict' : 'moderate',
+            });
+            
+            if (verifyResult.success && verifyResult.verification) {
+              const verification = verifyResult.verification;
+              console.log(`[Hollywood] Identity Verification: ${verification.passed ? 'PASSED' : 'FAILED'} (score: ${verification.overallScore}/100)`);
+              
+              // Store verification result
+              (result as any).identityVerification = {
+                passed: verification.passed,
+                score: verification.overallScore,
+                driftDetected: verification.driftDetected,
+                retriesUsed: identityRetryCount,
+              };
+              
+              if (verification.passed || verification.overallScore >= 75) {
+                console.log(`[Hollywood] Character identity verified for clip ${i + 1}`);
+                break;
+              } else if (verification.driftDetected && verification.correctivePrompt && identityRetryCount < maxIdentityRetries - 1) {
+                console.log(`[Hollywood] Identity drift detected in clip ${i + 1}:`);
+                console.log(`  - Drift areas: ${verification.driftAreas?.join(', ') || 'unknown'}`);
+                console.log(`  - Regenerating with corrective prompt...`);
+                
+                // Build enhanced corrective prompt with identity anchors
+                let correctedPrompt = verification.correctivePrompt;
+                
+                // Inject non-facial anchors for robustness
+                if (state.identityBible?.nonFacialAnchors) {
+                  const anchors = state.identityBible.nonFacialAnchors;
+                  const anchorPrompt = [
+                    anchors.bodyType,
+                    anchors.clothingSignature,
+                    anchors.hairFromBehind,
+                    anchors.silhouetteDescription,
+                  ].filter(Boolean).join('. ');
+                  correctedPrompt = `[IDENTITY LOCK - Non-facial anchors: ${anchorPrompt}] ${correctedPrompt}`;
+                }
+                
+                // Add occlusion-specific negative prompts
+                const occlusionNegatives = [
+                  'different person',
+                  'changed appearance',
+                  'morphing',
+                  'identity shift',
+                  'altered features',
+                ].join(', ');
+                correctedPrompt = `${correctedPrompt}. [AVOID: ${occlusionNegatives}]`;
+                
+                // Determine which reference to use based on pose
+                let regenerationStartImage = i === 0 ? referenceImageUrl : previousLastFrameUrl;
+                
+                // If back-facing detected, use back-view reference if available
+                if (verification.detectedPose === 'back' && state.identityBible?.multiViewUrls?.backViewUrl) {
+                  regenerationStartImage = state.identityBible.multiViewUrls.backViewUrl;
+                  console.log(`[Hollywood] Using back-view reference for regeneration`);
+                } else if (verification.detectedPose === 'side' && state.identityBible?.multiViewUrls?.sideViewUrl) {
+                  regenerationStartImage = state.identityBible.multiViewUrls.sideViewUrl;
+                  console.log(`[Hollywood] Using side-view reference for regeneration`);
+                }
+                
+                // Regenerate clip
+                const regenResult = await callEdgeFunction('generate-single-clip', {
+                  userId: request.userId,
+                  projectId: state.projectId,
+                  clipIndex: i,
+                  prompt: correctedPrompt,
+                  totalClips: clips.length,
+                  startImageUrl: regenerationStartImage,
+                  previousMotionVectors,
+                  identityBible: state.identityBible,
+                  colorGrading: request.colorGrading || 'cinematic',
+                  qualityTier: request.qualityTier || 'standard',
+                  referenceImageUrl,
+                  isRetry: true,
+                  isIdentityRetry: true,
+                  sceneContext: clip.sceneContext,
+                });
+                
+                if (regenResult.success && regenResult.clipResult) {
+                  result = regenResult.clipResult;
+                  identityRetryCount++;
+                  
+                  // Re-extract frame for new clip
+                  try {
+                    const newFrameResult = await callEdgeFunction('extract-last-frame', {
+                      videoUrl: result.videoUrl,
+                      projectId: state.projectId,
+                      shotIndex: i,
+                      shotPrompt: correctedPrompt,
+                      sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
+                      position: 'last',
+                    });
+                    if (newFrameResult.success && newFrameResult.frameUrl) {
+                      const isVideoUrl = newFrameResult.frameUrl.endsWith('.mp4') || newFrameResult.frameUrl.includes('/video-clips/');
+                      if (!isVideoUrl) {
+                        result.lastFrameUrl = newFrameResult.frameUrl;
+                        console.log(`[Hollywood] Identity retry frame extracted: ${result.lastFrameUrl.substring(0, 60)}...`);
+                      }
+                    }
+                  } catch (e) {
+                    console.warn(`[Hollywood] Identity retry frame extraction failed`);
+                    if (sceneImageLookup[i]) {
+                      result.lastFrameUrl = sceneImageLookup[i];
+                    }
+                  }
+                  
+                  console.log(`[Hollywood] Identity retry ${identityRetryCount} generated, re-verifying...`);
+                  continue;
+                } else {
+                  console.warn(`[Hollywood] Identity retry regeneration failed`);
+                  break;
+                }
+              } else {
+                // Score too low but no corrective prompt or max retries reached
+                console.warn(`[Hollywood] Identity verification failed for clip ${i + 1}, but continuing (score: ${verification.overallScore})`);
+                break;
+              }
+            } else {
+              console.warn(`[Hollywood] Identity verification returned no result for clip ${i + 1}`);
+              break;
+            }
+          } catch (verifyErr) {
+            console.warn(`[Hollywood] Identity verification failed for clip ${i + 1}:`, verifyErr);
+            break;
+          }
+        }
+        
+        // Log final identity verification status
+        if ((result as any).identityVerification) {
+          const iv = (result as any).identityVerification;
+          console.log(`[Hollywood] Final identity status for clip ${i + 1}: passed=${iv.passed}, score=${iv.score}, retries=${iv.retriesUsed}`);
+        }
+      }
+      
+      // FIXED: Analyze real motion vectors from the generated video
+      if (result.videoUrl) {
       try {
         const motionResult = await callEdgeFunction('analyze-motion-vectors', {
           videoUrl: result.videoUrl,
@@ -2274,6 +2439,16 @@ async function runPostProduction(
       const avgScore = debuggedClips.reduce((sum: number, c: any) => sum + (c.visualDebugResult?.score || 0), 0) / debuggedClips.length;
       console.log(`[Hollywood] Visual Debugger: ${debuggedClips.length} clips checked, avg score ${Math.round(avgScore)}, ${retriesUsed} retries used`);
     }
+    
+    // Calculate identity verification stats
+    const identityVerifiedClips = state.production?.clipResults?.filter((c: any) => c.identityVerification) || [];
+    const identityRetries = identityVerifiedClips.reduce((sum: number, c: any) => sum + (c.identityVerification?.retriesUsed || 0), 0);
+    if (identityVerifiedClips.length > 0) {
+      const avgIdentityScore = identityVerifiedClips.reduce((sum: number, c: any) => sum + (c.identityVerification?.score || 0), 0) / identityVerifiedClips.length;
+      const passedCount = identityVerifiedClips.filter((c: any) => c.identityVerification?.passed).length;
+      const driftDetectedCount = identityVerifiedClips.filter((c: any) => c.identityVerification?.driftDetected).length;
+      console.log(`[Hollywood] Identity Verification: ${passedCount}/${identityVerifiedClips.length} passed, avg score ${Math.round(avgIdentityScore)}, ${driftDetectedCount} drift detections, ${identityRetries} retries used`);
+    }
   }
   
   if (!state.finalVideoUrl) {
@@ -2294,6 +2469,15 @@ async function runPostProduction(
       musicSync: (state as any).musicSyncPlan?.emotionalBeats?.length || 0,
       colorGrading: (state as any).colorGrading?.masterPreset,
       sfxCues: (state as any).sfxPlan?.sfxCues?.length || 0,
+      identityVerification: {
+        clipsVerified: state.production?.clipResults?.filter((c: any) => c.identityVerification).length || 0,
+        avgScore: Math.round(
+          (state.production?.clipResults?.filter((c: any) => c.identityVerification) || [])
+            .reduce((sum: number, c: any, _, arr) => sum + (c.identityVerification?.score || 0) / (arr.length || 1), 0)
+        ),
+        driftDetections: state.production?.clipResults?.filter((c: any) => c.identityVerification?.driftDetected).length || 0,
+        retriesUsed: state.production?.clipResults?.reduce((sum: number, c: any) => sum + (c.identityVerification?.retriesUsed || 0), 0) || 0,
+      },
     } : undefined,
   });
   
@@ -2473,6 +2657,17 @@ async function executePipelineInBackground(
       intelligentStitch: {
         enabled: !!state.finalVideoUrl,
         url: state.finalVideoUrl
+      },
+      identityVerification: {
+        enabled: state.production?.clipResults?.some((c: any) => c.identityVerification),
+        clipsVerified: state.production?.clipResults?.filter((c: any) => c.identityVerification).length || 0,
+        passed: state.production?.clipResults?.filter((c: any) => c.identityVerification?.passed).length || 0,
+        avgScore: Math.round(
+          (state.production?.clipResults?.filter((c: any) => c.identityVerification) || [])
+            .reduce((sum: number, c: any, _, arr) => sum + (c.identityVerification?.score || 0) / (arr.length || 1), 0)
+        ),
+        driftDetections: state.production?.clipResults?.filter((c: any) => c.identityVerification?.driftDetected).length || 0,
+        retriesUsed: state.production?.clipResults?.reduce((sum: number, c: any) => sum + (c.identityVerification?.retriesUsed || 0), 0) || 0,
       },
     };
     

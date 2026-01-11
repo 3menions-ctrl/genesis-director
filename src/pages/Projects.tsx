@@ -1111,15 +1111,6 @@ export default function Projects() {
                     <LayoutList className="w-4 h-4" />
                   </button>
                 </div>
-
-                {/* New Project Button */}
-                <Button 
-                  onClick={handleCreateProject}
-                  className="h-10 px-4 bg-white text-black hover:bg-white/90 rounded-xl font-medium"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">New Project</span>
-                </Button>
               </div>
             </motion.div>
 

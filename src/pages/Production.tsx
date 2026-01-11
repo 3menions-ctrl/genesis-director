@@ -998,6 +998,41 @@ export default function Production() {
               {/* Main Column */}
               <div className="col-span-12 lg:col-span-8 space-y-4">
                 
+                {/* Final Video - Show at top when complete */}
+                {finalVideoUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold text-white block">Video Ready!</span>
+                          <span className="text-[10px] text-white/40">Your video has been assembled</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {!finalVideoUrl.endsWith('.json') && (
+                          <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white rounded-full" asChild>
+                            <a href={finalVideoUrl} download><Download className="w-3.5 h-3.5 mr-1" />Download</a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="aspect-video rounded-lg overflow-hidden bg-black ring-1 ring-white/10">
+                      {finalVideoUrl.endsWith('.json') ? (
+                        <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
+                      ) : (
+                        <video src={finalVideoUrl} controls className="w-full h-full object-contain" />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
                 {/* Progress Card */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -1175,39 +1210,6 @@ export default function Production() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Final Video */}
-                {finalVideoUrl && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20"
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span className="text-sm font-semibold text-white">Ready!</span>
-                    </div>
-                    
-                    <div className="aspect-video rounded-lg overflow-hidden bg-black mb-3">
-                      {finalVideoUrl.endsWith('.json') ? (
-                        <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
-                      ) : (
-                        <video src={finalVideoUrl} controls className="w-full h-full object-contain" />
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {!finalVideoUrl.endsWith('.json') && (
-                        <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-white rounded-full" asChild>
-                          <a href={finalVideoUrl} download><Download className="w-3.5 h-3.5 mr-1" />Download</a>
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="rounded-full border-white/10 text-white/60" onClick={() => navigate('/projects')}>
-                        Projects
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* Troubleshooter */}
                 {completedClips > 0 && projectId && !finalVideoUrl && (

@@ -550,6 +550,18 @@ function StudioHeader() {
   const location = useLocation();
 
   const currentPipelineIndex = PIPELINE_STEPS.findIndex(step => location.pathname === step.url);
+  
+  // Determine page title based on route
+  const getPageInfo = () => {
+    if (location.pathname === '/create') return { title: 'Create', subtitle: 'AI Video Studio' };
+    if (location.pathname === '/script-review') return { title: 'Script Review', subtitle: null };
+    if (location.pathname === '/production') return { title: 'Production', subtitle: null };
+    if (location.pathname === '/studio') return { title: 'Studio', subtitle: null };
+    if (location.pathname === '/clips') return { title: 'Clips', subtitle: null };
+    return { title: activeProject?.name || 'Project', subtitle: null };
+  };
+  
+  const pageInfo = getPageInfo();
 
   return (
     <header className="h-12 px-4 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
@@ -558,22 +570,42 @@ function StudioHeader() {
         <SidebarTrigger className="hover:bg-muted rounded-lg h-8 w-8 text-muted-foreground hover:text-foreground transition-colors" />
         
         {/* Breadcrumb navigation */}
-        <nav className="hidden md:flex items-center gap-1 text-sm">
+        <nav className="hidden md:flex items-center gap-2 text-sm">
+          <button 
+            onClick={() => navigate('/projects')}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors font-medium"
+          >
+            <Folder className="w-4 h-4" />
+            <span>Projects</span>
+          </button>
+          
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+          
+          <div className="flex items-center gap-2">
+            <span className="text-foreground font-medium truncate max-w-[200px]">
+              {activeProject?.name || pageInfo.title}
+            </span>
+            {pageInfo.subtitle && (
+              <span className="text-muted-foreground text-xs hidden lg:inline">
+                {pageInfo.subtitle}
+              </span>
+            )}
+          </div>
+        </nav>
+        
+        {/* Mobile: Just show current page */}
+        <div className="md:hidden flex items-center gap-2">
           <button 
             onClick={() => navigate('/projects')}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            Projects
+            <Folder className="w-4 h-4" />
           </button>
-          {activeProject && (
-            <>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
-              <span className="text-foreground font-medium truncate max-w-[160px]">
-                {activeProject.name}
-              </span>
-            </>
-          )}
-        </nav>
+          <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+          <span className="text-foreground font-medium text-sm truncate max-w-[120px]">
+            {activeProject?.name || pageInfo.title}
+          </span>
+        </div>
       </div>
 
       {/* Center Section - Pipeline Steps */}

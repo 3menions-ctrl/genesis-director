@@ -1,10 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Film, Folder, FileText, Play,
   ChevronRight, User, LogOut, Settings,
   Check, Zap, HelpCircle, Keyboard, Coins,
-  Home, Activity, TrendingUp, Video
+  Home, Activity, TrendingUp, Video,
+  LayoutTemplate, Clock, Plus, Sparkles
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -37,12 +38,13 @@ import {
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
-// Main navigation - always visible
+// Main navigation - simplified
 const MAIN_NAV = [
-  { title: 'Projects', url: '/projects', icon: Home },
-  { title: 'Long Video', url: '/long-video', icon: Video },
+  { title: 'Projects', url: '/projects', icon: Folder },
+  { title: 'Templates', url: '/templates', icon: LayoutTemplate },
 ];
 
 // Iron-Clad Pipeline workflow steps (primary workflow)
@@ -52,249 +54,360 @@ const PIPELINE_STEPS = [
   { title: 'Review', url: '/pipeline/review', icon: Play, step: 3 },
 ];
 
+// Quick templates for new project creation
+const QUICK_TEMPLATES = [
+  { id: 'cinematic', name: 'Cinematic', icon: '🎬' },
+  { id: 'commercial', name: 'Commercial', icon: '📺' },
+  { id: 'explainer', name: 'Explainer', icon: '💡' },
+];
+
+interface RecentProject {
+  id: string;
+  title: string;
+  status: string;
+  updated_at: string;
+}
+
 function StudioSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useSidebar();
   const { credits, activeProject, createProject } = useStudio();
+  const { user } = useAuth();
   const isCollapsed = state === 'collapsed';
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+
+  // Fetch recent projects
+  useEffect(() => {
+    const fetchRecent = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('movie_projects')
+        .select('id, title, status, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(3);
+      if (data) setRecentProjects(data);
+    };
+    fetchRecent();
+  }, [user]);
 
   // Check if we're in the pipeline workflow
   const isInPipeline = PIPELINE_STEPS.some(item => location.pathname === item.url);
-  const isOnProjects = location.pathname === '/projects' || location.pathname === '/';
   const currentPipelineIndex = PIPELINE_STEPS.findIndex(item => location.pathname === item.url);
 
   const handleNewProject = () => {
     createProject();
-    navigate('/pipeline/scripting');
+    navigate('/create');
+  };
+
+  const handleQuickTemplate = (templateId: string) => {
+    navigate(`/create?template=${templateId}`);
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-emerald-500';
+      case 'generating': case 'rendering': return 'bg-amber-500 animate-pulse';
+      case 'failed': return 'bg-red-500';
+      default: return 'bg-white/30';
+    }
   };
 
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r border-white/10"
+      className="border-r border-white/[0.06]"
       style={{ 
-        background: 'linear-gradient(180deg, #0a0a0a 0%, #050505 50%, #080808 100%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), inset 0 -1px 0 rgba(0,0,0,0.5), 4px 0 24px rgba(0,0,0,0.3)'
+        background: 'linear-gradient(180deg, #09090b 0%, #0a0a0a 100%)',
       }}
     >
-      <SidebarHeader className="p-4 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="relative shrink-0 group">
-            <div className="absolute inset-0 bg-white/20 rounded-xl blur-lg opacity-0 group-hover:opacity-60 transition-opacity" />
-            <div className="relative w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg">
-              <Film className="w-5 h-5 text-black" />
-            </div>
-          </div>
+      <SidebarHeader className={cn("p-3", isCollapsed ? "px-2" : "px-4")}>
+        <div className="flex items-center gap-2.5">
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => navigate('/projects')}
+                  className="relative shrink-0 group"
+                >
+                  <div className="absolute inset-0 bg-white/20 rounded-lg blur-md opacity-0 group-hover:opacity-40 transition-opacity" />
+                  <div className="relative w-9 h-9 rounded-lg bg-white flex items-center justify-center shadow-lg shadow-white/10">
+                    <Film className="w-4 h-4 text-black" />
+                  </div>
+                </button>
+              </TooltipTrigger>
+              {isCollapsed && (
+                <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
+                  Apex Studio
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           {!isCollapsed && (
-            <div className="animate-fade-in">
-              <h1 className="text-lg font-display font-bold tracking-tight text-white">
-                Apex<span className="text-white/60"> Studio</span>
-              </h1>
-            </div>
+            <span className="text-sm font-semibold text-white tracking-tight">
+              Apex<span className="text-white/50"> Studio</span>
+            </span>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3">
+      <SidebarContent className={cn("px-2", isCollapsed ? "px-1.5" : "px-3")}>
+        {/* New Project Button */}
+        <SidebarGroup className="mb-1">
+          <SidebarGroupContent>
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleNewProject}
+                    className={cn(
+                      "w-full gap-2 bg-white hover:bg-white/90 text-black border-0 font-medium shadow-lg shadow-white/5 transition-all",
+                      isCollapsed ? "h-9 w-9 p-0" : "h-9 justify-start px-3"
+                    )}
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    {!isCollapsed && <span className="text-sm">New Project</span>}
+                  </Button>
+                </TooltipTrigger>
+                {isCollapsed && (
+                  <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
+                    New Project
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-2">
-              {/* Main Navigation Links */}
+            <SidebarMenu className="space-y-0.5">
               {MAIN_NAV.map((navItem) => {
                 const isActive = location.pathname === navItem.url || 
                   (navItem.url === '/projects' && location.pathname === '/');
                 return (
                   <SidebarMenuItem key={navItem.url}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={navItem.title}>
-                      <NavLink 
-                        to={navItem.url} 
-                        className={cn(
-                          "relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-300 group overflow-hidden",
-                          isActive && "bg-white/10",
-                          !isActive && "hover:bg-white/5"
-                        )}
-                        activeClassName=""
-                      >
-                        {isActive && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent" />
-                        )}
-                        <div className={cn(
-                          "relative flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                          isActive && "bg-white shadow-lg shadow-white/20",
-                          !isActive && "bg-white/5 group-hover:bg-white/10 group-hover:scale-105"
-                        )}>
-                          <navItem.icon className={cn(
-                            "w-5 h-5 transition-all",
-                            isActive ? "text-black" : "text-white/50 group-hover:text-white/80"
-                          )} />
-                        </div>
-                        {!isCollapsed && (
-                          <span className={cn(
-                            "relative font-medium text-sm",
-                            isActive ? "text-white" : "text-white/50 group-hover:text-white/80"
-                          )}>
+                    <TooltipProvider delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton asChild isActive={isActive}>
+                            <NavLink 
+                              to={navItem.url} 
+                              className={cn(
+                                "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all group",
+                                isActive && "bg-white/[0.08]",
+                                !isActive && "hover:bg-white/[0.04]",
+                                isCollapsed && "justify-center px-0"
+                              )}
+                              activeClassName=""
+                            >
+                              <div className={cn(
+                                "flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-all",
+                                isActive && "bg-white/10",
+                                !isActive && "group-hover:bg-white/[0.06]"
+                              )}>
+                                <navItem.icon className={cn(
+                                  "w-4 h-4 transition-colors",
+                                  isActive ? "text-white" : "text-white/50 group-hover:text-white/70"
+                                )} />
+                              </div>
+                              {!isCollapsed && (
+                                <span className={cn(
+                                  "text-sm font-medium",
+                                  isActive ? "text-white" : "text-white/50 group-hover:text-white/70"
+                                )}>
+                                  {navItem.title}
+                                </span>
+                              )}
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        {isCollapsed && (
+                          <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
                             {navItem.title}
-                          </span>
+                          </TooltipContent>
                         )}
-                      </NavLink>
-                    </SidebarMenuButton>
+                      </Tooltip>
+                    </TooltipProvider>
                   </SidebarMenuItem>
                 );
               })}
-
-              {/* New Project Button */}
-              {!isCollapsed && (
-                <SidebarMenuItem>
-                  <Button
-                    onClick={handleNewProject}
-                    className="w-full justify-center gap-2 h-10 bg-white hover:bg-white/90 text-black border-0 rounded-xl transition-all"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span className="font-medium text-sm">New Project</span>
-                  </Button>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {isInPipeline && (
-          <SidebarGroup className="mt-8">
-            {!isCollapsed && (
-              <div className="px-1 mb-4">
-                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold p-0">
-                  Iron-Clad Pipeline
-                </SidebarGroupLabel>
-              </div>
-            )}
+
+        {/* Quick Templates */}
+        {!isCollapsed && (
+          <SidebarGroup className="mt-4">
+            <div className="px-2.5 mb-2">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.15em] text-white/30 font-semibold p-0 flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" />
+                Quick Start
+              </SidebarGroupLabel>
+            </div>
             <SidebarGroupContent>
-              <div className="relative">
-                {!isCollapsed && (
-                  <div className="absolute left-[27px] top-6 bottom-6 w-px bg-gradient-to-b from-white/10 via-white/5 to-transparent" />
-                )}
-                <div className="flex flex-col gap-2">
-                  {PIPELINE_STEPS.map((item, index) => {
-                    const isActive = location.pathname === item.url;
-                    const isPast = index < currentPipelineIndex;
-                    return (
-                      <SidebarMenuItem key={item.title} className="list-none">
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                          <NavLink 
-                            to={item.url} 
-                            className={cn(
-                              "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group",
-                              isActive && "bg-white/10",
-                              !isActive && "hover:bg-white/5"
-                            )}
-                            activeClassName=""
-                          >
-                            {isActive && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/5 to-transparent rounded-xl" />
-                            )}
-                            <div className={cn(
-                              "relative z-10 flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-all duration-300",
-                              isActive && "bg-white shadow-lg shadow-white/20",
-                              isPast && "bg-white/20 ring-2 ring-white/30",
-                              !isActive && !isPast && "bg-white/5 group-hover:bg-white/10"
-                            )}>
-                              {isPast ? (
-                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                              ) : (
-                                <item.icon className={cn(
-                                  "w-4 h-4 transition-all",
-                                  isActive && "text-black",
-                                  !isActive && !isPast && "text-white/40 group-hover:text-white/70"
-                                )} />
-                              )}
-                            </div>
-                            {!isCollapsed && (
-                              <span className={cn(
-                                "font-medium text-sm",
-                                isActive && "text-white",
-                                isPast && "text-white/70",
-                                !isActive && !isPast && "text-white/40 group-hover:text-white/70"
-                              )}>
-                                {item.title}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </div>
+              <div className="grid grid-cols-3 gap-1.5 px-1">
+                {QUICK_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => handleQuickTemplate(template.id)}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/[0.03] border border-white/[0.04] hover:bg-white/[0.06] hover:border-white/[0.08] transition-all group"
+                  >
+                    <span className="text-base">{template.icon}</span>
+                    <span className="text-[10px] text-white/40 group-hover:text-white/60 font-medium">
+                      {template.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Progress & Stats Widget */}
-        {!isCollapsed && (
-          <SidebarGroup className="mt-6">
-            <div className="px-1 mb-3">
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold p-0 flex items-center gap-2">
-                <Activity className="w-3 h-3" />
-                Stats
+        {/* Recent Projects */}
+        {!isCollapsed && recentProjects.length > 0 && (
+          <SidebarGroup className="mt-4">
+            <div className="px-2.5 mb-2 flex items-center justify-between">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.15em] text-white/30 font-semibold p-0 flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                Recent
               </SidebarGroupLabel>
             </div>
             <SidebarGroupContent>
-              <div className="space-y-2">
-                {/* Active Project Card */}
-                {activeProject && (
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={cn(
-                        "w-1.5 h-1.5 rounded-full",
-                        activeProject.status === 'completed' && "bg-emerald-400",
-                        activeProject.status === 'generating' && "bg-amber-400 animate-pulse",
-                        activeProject.status === 'rendering' && "bg-blue-400 animate-pulse",
-                        activeProject.status === 'idle' && "bg-white/30"
-                      )} />
-                      <span className="text-[9px] uppercase tracking-widest text-white/40 font-medium">
-                        Active
-                      </span>
-                    </div>
-                    <p className="text-xs font-medium text-white/90 truncate mb-1">
-                      {activeProject.name}
-                    </p>
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/40">
-                      <span className="capitalize">{activeProject.status}</span>
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-0.5">
+                {recentProjects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.04] transition-all group text-left"
+                  >
+                    <div className={cn(
+                      "w-1.5 h-1.5 rounded-full shrink-0",
+                      getStatusColor(project.status)
+                    )} />
+                    <span className="text-xs text-white/50 group-hover:text-white/70 truncate flex-1 font-medium">
+                      {project.title}
+                    </span>
+                    <span className="text-[10px] text-white/30 shrink-0">
+                      {formatTimeAgo(project.updated_at)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-                {/* Usage Stats - Iron-Clad shot-based pricing */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Video className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
-                    </div>
-                    <p className="text-sm font-semibold text-white/90">4s</p>
-                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Per Shot</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 group">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <TrendingUp className="w-3 h-3 text-white/40 group-hover:text-white/60 transition-colors" />
-                    </div>
-                    <p className="text-sm font-semibold text-white/90">{credits.remaining > 0 ? Math.floor(credits.remaining / 25) : 0}</p>
-                    <p className="text-[9px] text-white/40 uppercase tracking-wide">Shots Left</p>
-                  </div>
-                </div>
-
+        {/* Pipeline Steps - only show when in pipeline */}
+        {isInPipeline && (
+          <SidebarGroup className="mt-4">
+            {!isCollapsed && (
+              <div className="px-2.5 mb-2">
+                <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.15em] text-white/30 font-semibold p-0">
+                  Pipeline
+                </SidebarGroupLabel>
+              </div>
+            )}
+            <SidebarGroupContent>
+              <div className="space-y-0.5">
+                {PIPELINE_STEPS.map((item, index) => {
+                  const isActive = location.pathname === item.url;
+                  const isPast = index < currentPipelineIndex;
+                  return (
+                    <SidebarMenuItem key={item.title} className="list-none">
+                      <TooltipProvider delayDuration={0}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuButton asChild isActive={isActive}>
+                              <NavLink 
+                                to={item.url} 
+                                className={cn(
+                                  "flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all group",
+                                  isActive && "bg-white/[0.08]",
+                                  !isActive && "hover:bg-white/[0.04]",
+                                  isCollapsed && "justify-center px-0"
+                                )}
+                                activeClassName=""
+                              >
+                                <div className={cn(
+                                  "flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-all",
+                                  isActive && "bg-white shadow-sm shadow-white/20",
+                                  isPast && "bg-white/20",
+                                  !isActive && !isPast && "group-hover:bg-white/[0.06]"
+                                )}>
+                                  {isPast ? (
+                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                                  ) : (
+                                    <item.icon className={cn(
+                                      "w-3.5 h-3.5 transition-colors",
+                                      isActive && "text-black",
+                                      !isActive && !isPast && "text-white/40 group-hover:text-white/60"
+                                    )} />
+                                  )}
+                                </div>
+                                {!isCollapsed && (
+                                  <span className={cn(
+                                    "text-sm font-medium",
+                                    isActive && "text-white",
+                                    isPast && "text-white/60",
+                                    !isActive && !isPast && "text-white/40 group-hover:text-white/60"
+                                  )}>
+                                    {item.title}
+                                  </span>
+                                )}
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </TooltipTrigger>
+                          {isCollapsed && (
+                            <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
+                              {item.title}
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    </SidebarMenuItem>
+                  );
+                })}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 mt-auto">
-        {!isCollapsed && (
-          <div className="animate-fade-in">
-            <CreditsDisplay 
-              credits={credits} 
-            />
-          </div>
+      <SidebarFooter className={cn("p-3 mt-auto", isCollapsed ? "px-1.5" : "px-3")}>
+        {!isCollapsed ? (
+          <CreditsDisplay credits={credits} />
+        ) : (
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="w-full flex items-center justify-center p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-all"
+                >
+                  <Coins className="w-4 h-4 text-white/60" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
+                {credits.remaining.toLocaleString()} credits
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </SidebarFooter>
     </Sidebar>

@@ -295,6 +295,8 @@ export default function Production() {
   const [autoResumeAttempted, setAutoResumeAttempted] = useState(false);
   const [expectedClipCount, setExpectedClipCount] = useState(6);
   const [isSimpleStitching, setIsSimpleStitching] = useState(false);
+  const [isAutoStitching, setIsAutoStitching] = useState(false);
+  const [autoStitchAttempted, setAutoStitchAttempted] = useState(false);
 
   // Load actual video clips from database
   const loadVideoClips = useCallback(async () => {
@@ -332,6 +334,68 @@ export default function Production() {
       return updated;
     });
   }, []);
+
+  // Auto-stitch trigger - called when all clips complete
+  const triggerAutoStitch = useCallback(async () => {
+    if (!projectId || !user || isAutoStitching || autoStitchAttempted) return;
+    
+    setIsAutoStitching(true);
+    setAutoStitchAttempted(true);
+    addLog('🎬 All clips complete! Triggering automatic stitching...', 'info');
+    toast.info('Starting video stitching...', { 
+      description: 'All clips generated successfully. Assembling final video.',
+      duration: 5000,
+    });
+    
+    try {
+      // Update stage to show stitching
+      updateStageStatus(5, 'active', 'Stitching...');
+      setProgress(85);
+      setProjectStatus('stitching');
+      
+      const { data, error: stitchError } = await supabase.functions.invoke('auto-stitch-trigger', {
+        body: {
+          projectId,
+          userId: user.id,
+          forceStitch: false,
+        },
+      });
+      
+      if (stitchError) throw stitchError;
+      
+      if (data?.success) {
+        if (data.stitchResult?.finalVideoUrl || data.finalVideoUrl) {
+          const videoUrl = data.stitchResult?.finalVideoUrl || data.finalVideoUrl;
+          setFinalVideoUrl(videoUrl);
+          setProjectStatus('completed');
+          setProgress(100);
+          updateStageStatus(5, 'complete', 'Done!');
+          addLog('✅ Video stitching complete!', 'success');
+          toast.success('Video generated successfully!');
+        } else if (data.stitchMode === 'cloud-run-async' || data.stitchMode === 'simple-stitch') {
+          addLog('Stitching in progress via Cloud Run...', 'info');
+          toast.info('Stitching in progress', { description: 'Will complete in a few moments' });
+        } else {
+          addLog(`Stitch initiated: ${data.stitchMode || 'processing'}`, 'info');
+        }
+      } else if (data?.skipped) {
+        addLog(`Stitch skipped: ${data.reason}`, 'info');
+      } else {
+        throw new Error(data?.error || 'Auto-stitch returned no result');
+      }
+    } catch (err: any) {
+      console.error('Auto-stitch failed:', err);
+      addLog(`Auto-stitch failed: ${err.message}`, 'error');
+      toast.error('Auto-stitch failed', { 
+        description: 'Click "Simple Stitch" to retry manually',
+        duration: 10000,
+      });
+      // Reset status so user can retry
+      setProjectStatus('ready_for_stitch');
+    } finally {
+      setIsAutoStitching(false);
+    }
+  }, [projectId, user, isAutoStitching, autoStitchAttempted, addLog, updateStageStatus]);
 
   // Handle retry of failed clip
   const handleRetryClip = useCallback(async (clipIndex: number) => {
@@ -876,6 +940,30 @@ export default function Production() {
   useEffect(() => {
     setLastProgressTime(Date.now());
   }, [completedClips]);
+
+  // AUTO-STITCH TRIGGER: Fire immediately when all clips complete
+  useEffect(() => {
+    // Only trigger if:
+    // 1. We have completed all expected clips
+    // 2. Project is not already completed/stitching
+    // 3. We haven't already attempted auto-stitch
+    // 4. Not currently stitching
+    const allClipsComplete = completedClips >= expectedClipCount && expectedClipCount > 0;
+    const shouldTrigger = allClipsComplete && 
+                          !['completed', 'stitching', 'failed'].includes(projectStatus) &&
+                          !autoStitchAttempted && 
+                          !isAutoStitching &&
+                          !isSimpleStitching;
+    
+    if (shouldTrigger) {
+      console.log(`[AutoStitch] All ${completedClips}/${expectedClipCount} clips complete - triggering stitch!`);
+      // Small delay to ensure all state is settled
+      const timer = setTimeout(() => {
+        triggerAutoStitch();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isAutoStitching, isSimpleStitching, triggerAutoStitch]);
 
   if (isLoading) {
     return (

@@ -117,55 +117,62 @@ export function StitchingTroubleshooter({
     }
   }, [addLog]);
 
-  // Simple stitch (reliable fallback)
-  const handleSimpleStitch = useCallback(async () => {
+  // Auto-stitch (recommended - uses auto-stitch-trigger)
+  const handleAutoStitch = useCallback(async () => {
     if (!user || isStitching) return;
 
     setIsStitching(true);
     setStitchMode('simple');
     setProgress(5);
-    addLog('Starting simple stitch...', 'info');
-    toast.info('Starting simple stitch...', { description: 'This bypasses AI analysis for reliability' });
+    addLog('🎬 Starting auto-stitch...', 'info');
+    toast.info('Starting auto-stitch...', { description: 'Automatically selecting the best stitching method' });
 
     try {
       setProgress(10);
-      addLog('Invoking simple-stitch function...', 'info');
+      addLog('Invoking auto-stitch-trigger...', 'info');
 
-      const { data, error } = await supabase.functions.invoke('simple-stitch', {
-        body: { projectId, userId: user.id },
+      const { data, error } = await supabase.functions.invoke('auto-stitch-trigger', {
+        body: { projectId, userId: user.id, forceStitch: true },
       });
 
       if (error) throw error;
 
       setProgress(50);
-      addLog(`Response: ${data?.mode || 'unknown mode'}`, 'info');
+      addLog(`Response mode: ${data?.stitchMode || 'unknown'}`, 'info');
 
       if (data?.success) {
-        if (data.finalVideoUrl) {
+        if (data.stitchResult?.finalVideoUrl || data.finalVideoUrl) {
+          const videoUrl = data.stitchResult?.finalVideoUrl || data.finalVideoUrl;
           setProgress(100);
-          addLog(`Stitch complete! Video: ${data.finalVideoUrl.slice(-50)}`, 'success');
+          addLog(`✅ Stitch complete! Video ready.`, 'success');
           toast.success('Video stitched successfully!');
-          onStitchComplete?.(data.finalVideoUrl);
+          onStitchComplete?.(videoUrl);
           onStatusChange?.('completed');
-        } else if (data.mode?.includes('async') || data.mode?.includes('timeout')) {
+        } else if (data.stitchMode?.includes('async')) {
           setProgress(75);
           addLog('Cloud Run processing async. Check status in 1-2 minutes.', 'info');
           toast.info('Processing...', { description: 'Cloud Run is stitching. This may take a few minutes.' });
           onStatusChange?.('stitching');
+        } else {
+          setProgress(60);
+          addLog(`Stitch initiated: ${data.stitchMode || 'processing'}`, 'info');
+          onStatusChange?.('stitching');
         }
+      } else if (data?.skipped) {
+        addLog(`Skipped: ${data.reason}`, 'info');
       } else {
-        throw new Error(data?.error || 'Stitch failed');
+        throw new Error(data?.error || 'Auto-stitch failed');
       }
     } catch (err) {
-      addLog(`Simple stitch failed: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
-      toast.error('Stitch failed', { description: err instanceof Error ? err.message : 'Unknown error' });
+      addLog(`Auto-stitch failed: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+      toast.error('Auto-stitch failed', { description: err instanceof Error ? err.message : 'Unknown error' });
     } finally {
       setIsStitching(false);
       setStitchMode(null);
     }
   }, [user, projectId, isStitching, addLog, onStitchComplete, onStatusChange]);
 
-  // Cloud stitch (uses regular stitch-video)
+  // Simple stitch (reliable fallback)
   const handleCloudStitch = useCallback(async () => {
     if (!user || isStitching) return;
 
@@ -387,7 +394,7 @@ export function StitchingTroubleshooter({
               {/* Stitch Actions */}
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  onClick={handleSimpleStitch}
+                  onClick={handleAutoStitch}
                   disabled={!canStitch}
                   className={cn(
                     "h-auto py-3 flex-col gap-1",
@@ -399,8 +406,8 @@ export function StitchingTroubleshooter({
                   ) : (
                     <Zap className="w-5 h-5" />
                   )}
-                  <span className="text-xs font-semibold">Simple Stitch</span>
-                  <span className="text-[10px] text-emerald-400/60">Reliable, no AI</span>
+                  <span className="text-xs font-semibold">Auto Stitch</span>
+                  <span className="text-[10px] text-emerald-400/60">Recommended</span>
                 </Button>
 
                 <Button

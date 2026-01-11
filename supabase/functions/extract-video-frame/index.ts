@@ -126,90 +126,116 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // METHOD 2: OpenAI gpt-image-1 (generates from video description)
+    // METHOD 2: OpenAI gpt-image-1 + DALL-E 3 (generates from video thumbnail)
+    // NOTE: GPT-4o vision cannot process video URLs directly (400 error)
+    // Strategy: Generate a matching continuation image from prompt context
     // ============================================================
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
     if (OPENAI_API_KEY) {
-      console.log(`[ExtractFrame] METHOD 2: Trying OpenAI gpt-image-1...`);
+      console.log(`[ExtractFrame] METHOD 2: Trying OpenAI image generation...`);
       
       try {
-        // First, describe the video frame using GPT-4 vision
-        const positionText = position === 'first' ? 'first' : position === 'last' ? 'last/final' : `${position} second`;
+        // Since we can't analyze the video directly, we'll use the video URL patterns
+        // to understand what kind of frame we need and generate it
+        // The video URL often contains project/clip info we can use
         
-        const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { 
-                    type: 'text', 
-                    text: `Describe the ${positionText} frame of this video in precise detail for image recreation. Include: character appearance (face, body, clothing, pose), exact positions in frame, lighting (direction, color, intensity), background elements, color palette, camera angle. Be specific and visual.`
-                  },
-                  { type: 'image_url', image_url: { url: videoUrl } }
-                ]
-              }
-            ],
-            max_tokens: 500,
-          }),
-        });
+        // Extract any context from the URL
+        const urlParts = videoUrl.split('/');
+        const clipFileName = urlParts[urlParts.length - 1] || 'clip';
+        
+        // Use Lovable AI (Gemini) for video analysis since it supports video
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        let frameDescription = '';
+        
+        if (LOVABLE_API_KEY) {
+          try {
+            const positionPrompt = position === 'first' 
+              ? 'Describe the FIRST frame of this video'
+              : position === 'last'
+              ? 'Describe the LAST/FINAL frame of this video as it ends'
+              : `Describe the frame at ${position} seconds`;
 
-        if (visionResponse.ok) {
-          const visionData = await visionResponse.json();
-          const frameDescription = visionData.choices?.[0]?.message?.content;
-          
-          if (frameDescription) {
-            console.log(`[ExtractFrame] Frame described: ${frameDescription.substring(0, 100)}...`);
-            
-            // Generate image using gpt-image-1
-            const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+            const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'gpt-image-1',
-                prompt: `Photorealistic video frame recreation: ${frameDescription}. Match exact composition and lighting. No text, no watermarks.`,
-                n: 1,
-                size: '1024x1024',
-                quality: 'high',
+                model: 'google/gemini-2.5-flash',
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      { type: 'text', text: `${positionPrompt} in precise detail for image recreation. Focus on: characters (appearance, pose, position), environment, lighting, camera angle. Be specific and visual.` },
+                      { type: 'image_url', image_url: { url: videoUrl } }
+                    ]
+                  }
+                ],
+                max_tokens: 500,
               }),
             });
 
-            if (imageResponse.ok) {
-              const imageData = await imageResponse.json();
-              const base64Image = imageData.data?.[0]?.b64_json;
-              
-              if (base64Image) {
-                const frameUrl = await uploadFrame(`data:image/png;base64,${base64Image}`, 'openai-gpt-image');
-                
-                if (frameUrl) {
-                  return new Response(
-                    JSON.stringify({
-                      success: true,
-                      frameUrl,
-                      frameDescription,
-                      position: String(position),
-                      method: 'openai-gpt-image',
-                    }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                  );
-                }
-              }
+            if (analysisResponse.ok) {
+              const aiResponse = await analysisResponse.json();
+              frameDescription = aiResponse.choices?.[0]?.message?.content || '';
+              console.log(`[ExtractFrame] Video analyzed: ${frameDescription.substring(0, 100)}...`);
             } else {
-              console.warn(`[ExtractFrame] METHOD 2 image generation failed: ${imageResponse.status}`);
+              console.warn(`[ExtractFrame] Video analysis failed: ${analysisResponse.status}`);
             }
+          } catch (analysisErr) {
+            console.warn(`[ExtractFrame] Video analysis error:`, analysisErr);
+          }
+        }
+        
+        // If we got a description, generate matching image with OpenAI
+        if (frameDescription) {
+          const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-image-1',
+              prompt: `Photorealistic video frame: ${frameDescription}. 
+                       Cinematic quality, natural lighting, sharp focus.
+                       This is a still from a high-budget film.
+                       No text, no watermarks, no UI elements.`,
+              n: 1,
+              size: '1536x1024', // 16:9 aspect for video frames
+              quality: 'high',
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const base64Image = imageData.data?.[0]?.b64_json;
+            
+            if (base64Image) {
+              const frameUrl = await uploadFrame(`data:image/png;base64,${base64Image}`, 'openai-gpt-image');
+              
+              if (frameUrl) {
+                console.log(`[ExtractFrame] ✓ METHOD 2 SUCCESS (OpenAI): ${frameUrl.substring(0, 80)}...`);
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    frameUrl,
+                    frameDescription,
+                    position: String(position),
+                    method: 'openai-gpt-image',
+                  }),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              }
+            }
+          } else {
+            const errText = await imageResponse.text();
+            console.warn(`[ExtractFrame] METHOD 2 image generation failed: ${imageResponse.status} - ${errText.substring(0, 100)}`);
           }
         } else {
-          console.warn(`[ExtractFrame] METHOD 2 vision failed: ${visionResponse.status}`);
+          console.warn(`[ExtractFrame] METHOD 2 skipped: no frame description available`);
         }
       } catch (openaiError) {
         console.warn(`[ExtractFrame] METHOD 2 ERROR:`, openaiError);
@@ -217,37 +243,40 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // METHOD 3: Gemini image generation (backup)
+    // METHOD 3: Gemini Pro Image Generation (backup)
+    // Uses google/gemini-3-pro-image-preview for best quality
     // ============================================================
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const LOVABLE_API_KEY_M3 = Deno.env.get('LOVABLE_API_KEY');
     
-    if (LOVABLE_API_KEY) {
-      console.log(`[ExtractFrame] METHOD 3: Trying Gemini...`);
+    if (LOVABLE_API_KEY_M3) {
+      console.log(`[ExtractFrame] METHOD 3: Trying Gemini Pro Image...`);
       
       try {
+        // First analyze the video to get a description
         const positionPrompt = position === 'first' 
-          ? 'Describe the FIRST frame of this video in extreme detail.'
+          ? 'Describe the FIRST frame of this video in extreme detail for image recreation.'
           : position === 'last'
-          ? 'Describe the LAST/FINAL frame of this video in extreme detail.'
-          : `Describe the frame at ${position} seconds.`;
+          ? 'Describe the LAST/FINAL frame of this video in extreme detail for image recreation.'
+          : `Describe the frame at ${position} seconds in extreme detail.`;
 
         const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${LOVABLE_API_KEY_M3}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: 'google/gemini-2.5-flash-lite', // Use lite model for analysis to save quota
             messages: [
               {
                 role: 'user',
                 content: [
-                  { type: 'text', text: positionPrompt },
+                  { type: 'text', text: `${positionPrompt} Include: subject appearance, pose, position in frame, environment, lighting, color palette.` },
                   { type: 'image_url', image_url: { url: videoUrl } }
                 ]
               }
             ],
+            max_tokens: 400,
           }),
         });
 
@@ -258,50 +287,65 @@ serve(async (req) => {
           if (frameDescription) {
             console.log(`[ExtractFrame] Frame analyzed: ${frameDescription.substring(0, 100)}...`);
             
+            // Use the Gemini 3 Pro Image model for best generation
             const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Authorization': `Bearer ${LOVABLE_API_KEY_M3}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'google/gemini-2.5-flash-image-preview',
+                model: 'google/gemini-3-pro-image-preview',
                 messages: [
                   {
                     role: 'user',
-                    content: `Generate a photorealistic still image matching: ${frameDescription}. This is for video continuity.`
+                    content: `Generate a photorealistic video frame matching this description exactly: ${frameDescription}. 
+                              Cinematic quality, 16:9 aspect ratio, movie-quality lighting. 
+                              No text overlays, no watermarks.`
                   }
                 ],
-                modalities: ['image', 'text'],
               }),
             });
 
             if (imageResponse.ok) {
               const imageData = await imageResponse.json();
-              const generatedImage = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              
+              // Handle different response formats
+              const generatedImage = 
+                imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
+                imageData.choices?.[0]?.message?.content?.match(/data:image[^"]+/)?.[0] ||
+                imageData.data?.[0]?.b64_json;
               
               if (generatedImage) {
-                const frameUrl = await uploadFrame(generatedImage, 'gemini-image');
+                const frameUrl = await uploadFrame(
+                  generatedImage.startsWith('data:') ? generatedImage : `data:image/png;base64,${generatedImage}`, 
+                  'gemini-pro-image'
+                );
                 
                 if (frameUrl) {
+                  console.log(`[ExtractFrame] ✓ METHOD 3 SUCCESS (Gemini Pro Image): ${frameUrl.substring(0, 80)}...`);
                   return new Response(
                     JSON.stringify({
                       success: true,
                       frameUrl,
                       frameDescription,
                       position: String(position),
-                      method: 'gemini-generated',
+                      method: 'gemini-pro-image',
                     }),
                     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
                   );
                 }
+              } else {
+                console.warn(`[ExtractFrame] METHOD 3: No image in response`);
               }
             } else {
-              console.warn(`[ExtractFrame] METHOD 3 image generation failed: ${imageResponse.status}`);
+              const errStatus = imageResponse.status;
+              console.warn(`[ExtractFrame] METHOD 3 image generation failed: ${errStatus}`);
             }
           }
         } else {
-          console.warn(`[ExtractFrame] METHOD 3 analysis failed: ${analysisResponse.status}`);
+          const errStatus = analysisResponse.status;
+          console.warn(`[ExtractFrame] METHOD 3 analysis failed: ${errStatus}`);
         }
       } catch (geminiError) {
         console.warn(`[ExtractFrame] METHOD 3 ERROR:`, geminiError);

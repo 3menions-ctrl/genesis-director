@@ -2,14 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 /**
- * Simple Stitch Edge Function v3 - QUALITY FIRST
+ * Simple Stitch Edge Function v4 - BACKGROUND CLOUD RUN
  * 
- * STRATEGY: Always use Cloud Run (Google FFmpeg) for proper stitching
+ * STRATEGY: Use background task so Cloud Run can take as long as needed
  * 1. Load all completed clips
- * 2. Call Cloud Run for real MP4 stitching (WAIT for result)
- * 3. Only create manifest as FALLBACK if Cloud Run fails
- * 
- * This ensures users get the highest quality stitched video.
+ * 2. Return immediately with "processing" status
+ * 3. Cloud Run processes in background via waitUntil
+ * 4. Cloud Run calls finalize-stitch callback when done
  */
 
 const corsHeaders = {
@@ -28,6 +27,11 @@ interface ClipData {
   durationSeconds: number;
 }
 
+// Declare EdgeRuntime for background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,7 +46,7 @@ serve(async (req) => {
       throw new Error("projectId is required");
     }
 
-    console.log(`[SimpleStitch] Starting QUALITY-FIRST stitch for project: ${projectId}`);
+    console.log(`[SimpleStitch] Starting background Cloud Run stitch for project: ${projectId}`);
 
     // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -77,7 +81,7 @@ serve(async (req) => {
       .single();
 
     // Prepare clip data
-    const clipData: ClipData[] = clips.map(clip => ({
+    const clipData: ClipData[] = clips.map((clip: { id: string; video_url: string; duration_seconds: number }) => ({
       shotId: clip.id,
       videoUrl: clip.video_url,
       durationSeconds: clip.duration_seconds || 4,
@@ -85,54 +89,73 @@ serve(async (req) => {
 
     const totalDuration = clipData.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Step 2: Try Cloud Run for REAL stitching (quality first)
+    // Check for Cloud Run
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    if (cloudRunUrl) {
-      console.log("[SimpleStitch] Step 2: Calling Cloud Run for quality stitching...");
-      
-      const stitchRequest = {
-        projectId,
-        projectTitle: project?.title || 'Video',
-        clips: clipData.map(c => ({
-          shotId: c.shotId,
-          videoUrl: c.videoUrl,
-          durationSeconds: c.durationSeconds,
-          transitionOut: 'fade',
-        })),
-        audioMixMode: 'mute',
-        transitionType: 'fade',
-        transitionDuration: 0.3,
-        colorGrading: 'cinematic',
-        callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
-        supabaseUrl: Deno.env.get("EXTERNAL_SUPABASE_URL") || supabaseUrl,
-        supabaseServiceKey: Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || supabaseKey,
-      };
+    if (!cloudRunUrl) {
+      console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - using manifest fallback");
+      return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
+    }
 
+    // Update project status to stitching
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'stitching',
+        pending_video_tasks: {
+          stage: 'stitching',
+          progress: 50,
+          mode: 'cloud_run_background',
+          clipCount: clips.length,
+          totalDuration,
+          stitchingStarted: new Date().toISOString(),
+          expectedCompletionTime: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+
+    // Step 2: Start Cloud Run in BACKGROUND
+    console.log("[SimpleStitch] Step 2: Starting Cloud Run in background...");
+    
+    const stitchRequest = {
+      projectId,
+      projectTitle: project?.title || 'Video',
+      clips: clipData.map(c => ({
+        shotId: c.shotId,
+        videoUrl: c.videoUrl,
+        durationSeconds: c.durationSeconds,
+        transitionOut: 'fade',
+      })),
+      audioMixMode: 'mute',
+      transitionType: 'fade',
+      transitionDuration: 0.3,
+      colorGrading: 'cinematic',
+      callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+      supabaseUrl: Deno.env.get("EXTERNAL_SUPABASE_URL") || supabaseUrl,
+      supabaseServiceKey: Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || supabaseKey,
+    };
+
+    // Background task - will continue after response is sent
+    const backgroundProcess = async () => {
+      const bgSupabase = createClient(supabaseUrl, supabaseKey);
+      
       try {
-        // Use a longer timeout for quality - wait for Cloud Run to finish
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min timeout
+        console.log("[SimpleStitch-BG] Calling Cloud Run...");
         
         const response = await fetch(`${cloudRunUrl}/stitch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stitchRequest),
-          signal: controller.signal,
         });
-        
-        clearTimeout(timeoutId);
         
         if (response.ok) {
           const result = await response.json();
-          console.log(`[SimpleStitch] Cloud Run response: ${JSON.stringify(result).substring(0, 200)}`);
+          console.log(`[SimpleStitch-BG] Cloud Run success: ${JSON.stringify(result).substring(0, 300)}`);
           
-          // Check if we got a real video URL
           if (result.success && result.finalVideoUrl) {
-            console.log(`[SimpleStitch] ✅ Cloud Run stitching SUCCESS: ${result.finalVideoUrl}`);
-            
-            // Update project with the REAL stitched video
-            await supabase
+            // Update project with final video
+            await bgSupabase
               .from('movie_projects')
               .update({
                 status: 'completed',
@@ -150,99 +173,37 @@ serve(async (req) => {
               })
               .eq('id', projectId);
             
-            return new Response(
-              JSON.stringify({
-                success: true,
-                mode: 'cloud_run_stitched',
-                finalVideoUrl: result.finalVideoUrl,
-                clipsProcessed: clips.length,
-                totalDuration,
-                processingTimeMs: Date.now() - startTime,
-                note: 'High quality stitched MP4 ready',
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+            console.log(`[SimpleStitch-BG] ✅ Project ${projectId} completed with Cloud Run video`);
           } else {
-            console.warn(`[SimpleStitch] Cloud Run returned incomplete result: ${JSON.stringify(result)}`);
+            console.warn(`[SimpleStitch-BG] Cloud Run incomplete result, using fallback`);
+            await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
           }
         } else {
           const errorText = await response.text();
-          console.error(`[SimpleStitch] Cloud Run error (${response.status}): ${errorText.substring(0, 200)}`);
+          console.error(`[SimpleStitch-BG] Cloud Run error (${response.status}): ${errorText.substring(0, 200)}`);
+          await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
         }
-      } catch (cloudRunError) {
-        console.error(`[SimpleStitch] Cloud Run failed: ${cloudRunError}`);
+      } catch (error) {
+        console.error(`[SimpleStitch-BG] Background process error:`, error);
+        await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
       }
-    } else {
-      console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured");
-    }
-
-    // Step 3: FALLBACK - Create manifest for client-side playback
-    console.log("[SimpleStitch] Step 3: FALLBACK - Creating manifest for client-side playback...");
-    
-    const manifest = {
-      version: "1.0",
-      projectId,
-      mode: "client_side_concat",
-      createdAt: new Date().toISOString(),
-      clips: clipData.map((clip, index) => ({
-        index,
-        shotId: clip.shotId,
-        videoUrl: clip.videoUrl,
-        duration: clip.durationSeconds,
-        startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
-      })),
-      totalDuration,
-      voiceUrl: project?.voice_audio_url || null,
-      musicUrl: project?.music_url || null,
     };
 
-    const fileName = `manifest_${projectId}_${Date.now()}.json`;
-    const manifestJson = JSON.stringify(manifest, null, 2);
-    const manifestBytes = new TextEncoder().encode(manifestJson);
+    // Use waitUntil for background processing
+    EdgeRuntime.waitUntil(backgroundProcess());
 
-    const { error: uploadError } = await supabase.storage
-      .from('temp-frames')
-      .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
-    
-    if (uploadError) {
-      console.error(`[SimpleStitch] Manifest upload failed: ${uploadError.message}`);
-      throw new Error(`Manifest upload failed: ${uploadError.message}`);
-    }
-
-    const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
-    console.log(`[SimpleStitch] ✅ Fallback manifest created: ${manifestUrl}`);
-
-    // Update project as completed with manifest (fallback mode)
-    await supabase
-      .from('movie_projects')
-      .update({
-        status: 'completed',
-        video_url: manifestUrl,
-        pending_video_tasks: {
-          stage: 'complete',
-          progress: 100,
-          mode: 'manifest_playback',
-          manifestUrl,
-          clipCount: clips.length,
-          totalDuration,
-          note: 'Cloud Run unavailable - using manifest playback',
-          completedAt: new Date().toISOString(),
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', projectId);
-
-    console.log(`[SimpleStitch] ✅ Project completed with manifest fallback`);
+    console.log("[SimpleStitch] Returning immediately - Cloud Run processing in background");
 
     return new Response(
       JSON.stringify({
         success: true,
-        mode: 'manifest_playback',
-        finalVideoUrl: manifestUrl,
+        mode: 'cloud_run_background',
+        status: 'stitching',
+        message: 'Cloud Run stitching started in background',
         clipsProcessed: clips.length,
         totalDuration,
         processingTimeMs: Date.now() - startTime,
-        note: 'Manifest fallback - Cloud Run was unavailable',
+        note: 'Video will be ready in ~2-5 minutes',
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -260,3 +221,139 @@ serve(async (req) => {
     );
   }
 });
+
+// Fallback function to create manifest
+async function fallbackToManifest(
+  supabaseUrl: string,
+  supabaseKey: string,
+  projectId: string,
+  project: { title?: string; voice_audio_url?: string; music_url?: string } | null,
+  clipData: ClipData[],
+  clipCount: number,
+  totalDuration: number
+) {
+  console.log("[SimpleStitch-BG] Creating manifest fallback...");
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  const manifest = {
+    version: "1.0",
+    projectId,
+    mode: "client_side_concat",
+    createdAt: new Date().toISOString(),
+    clips: clipData.map((clip, index) => ({
+      index,
+      shotId: clip.shotId,
+      videoUrl: clip.videoUrl,
+      duration: clip.durationSeconds,
+      startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
+    })),
+    totalDuration,
+    voiceUrl: project?.voice_audio_url || null,
+    musicUrl: project?.music_url || null,
+  };
+
+  const fileName = `manifest_${projectId}_${Date.now()}.json`;
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  const manifestBytes = new TextEncoder().encode(manifestJson);
+
+  await supabase.storage
+    .from('temp-frames')
+    .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
+
+  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+
+  await supabase
+    .from('movie_projects')
+    .update({
+      status: 'completed',
+      video_url: manifestUrl,
+      pending_video_tasks: {
+        stage: 'complete',
+        progress: 100,
+        mode: 'manifest_playback',
+        manifestUrl,
+        clipCount,
+        totalDuration,
+        note: 'Cloud Run failed - using manifest playback',
+        completedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+
+  console.log(`[SimpleStitch-BG] ✅ Fallback manifest created: ${manifestUrl}`);
+}
+
+// Helper for immediate manifest creation (when Cloud Run not configured)
+async function createManifestFallback(
+  supabaseUrl: string,
+  supabaseKey: string,
+  projectId: string,
+  project: { title?: string; voice_audio_url?: string; music_url?: string } | null,
+  clipData: ClipData[],
+  clipCount: number,
+  totalDuration: number,
+  startTime: number
+) {
+  console.log("[SimpleStitch] Creating manifest (no Cloud Run configured)...");
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  const manifest = {
+    version: "1.0",
+    projectId,
+    mode: "client_side_concat",
+    createdAt: new Date().toISOString(),
+    clips: clipData.map((clip, index) => ({
+      index,
+      shotId: clip.shotId,
+      videoUrl: clip.videoUrl,
+      duration: clip.durationSeconds,
+      startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
+    })),
+    totalDuration,
+    voiceUrl: project?.voice_audio_url || null,
+    musicUrl: project?.music_url || null,
+  };
+
+  const fileName = `manifest_${projectId}_${Date.now()}.json`;
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  const manifestBytes = new TextEncoder().encode(manifestJson);
+
+  await supabase.storage
+    .from('temp-frames')
+    .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
+
+  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+
+  await supabase
+    .from('movie_projects')
+    .update({
+      status: 'completed',
+      video_url: manifestUrl,
+      pending_video_tasks: {
+        stage: 'complete',
+        progress: 100,
+        mode: 'manifest_playback',
+        manifestUrl,
+        clipCount,
+        totalDuration,
+        completedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      mode: 'manifest_playback',
+      finalVideoUrl: manifestUrl,
+      clipsProcessed: clipCount,
+      totalDuration,
+      processingTimeMs: Date.now() - startTime,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}

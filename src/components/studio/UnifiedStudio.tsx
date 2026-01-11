@@ -200,17 +200,25 @@ export function UnifiedStudio() {
         return;
       }
       
+      // CRITICAL: Verify Supabase client has valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('UnifiedStudio: No valid session yet, skipping check');
+        return;
+      }
+      
       try {
         // Find projects that are awaiting approval OR actively producing
         const { data: projects, error } = await supabase
           .from('movie_projects')
           .select('id, pending_video_tasks, generated_script, status, title')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id) // Use session user ID, not React state
           .in('status', ['awaiting_approval', 'producing', 'generating', 'rendering'])
           .order('updated_at', { ascending: false })
           .limit(1);
         
         if (error) {
+          console.error('Error checking active projects:', error);
           return;
         }
         

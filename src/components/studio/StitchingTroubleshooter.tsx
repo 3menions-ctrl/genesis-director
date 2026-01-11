@@ -196,6 +196,14 @@ export function StitchingTroubleshooter({
       setProgress(15);
       addLog(`Found ${clips.length} clips`, 'info');
 
+      // Verify session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        addLog('No valid session', 'error');
+        setIsStitching(false);
+        return;
+      }
+
       // Get project
       const { data: project } = await supabase
         .from('movie_projects')
@@ -253,6 +261,10 @@ export function StitchingTroubleshooter({
 
   // Refresh project status
   const refreshStatus = useCallback(async () => {
+    // Verify session before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
     const { data, error } = await supabase
       .from('movie_projects')
       .select('status, video_url, pending_video_tasks')

@@ -77,16 +77,29 @@ function StudioSidebar() {
   const isCollapsed = state === 'collapsed';
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
 
-  // Fetch recent projects
+  // Fetch recent projects - wait for valid session
   useEffect(() => {
     const fetchRecent = async () => {
       if (!user) return;
-      const { data } = await supabase
+      
+      // CRITICAL: Verify Supabase client has valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('StudioLayout: No valid session yet, skipping fetch');
+        return;
+      }
+      
+      const { data, error } = await supabase
         .from('movie_projects')
         .select('id, title, status, updated_at')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id) // Use session user ID, not React state
         .order('updated_at', { ascending: false })
         .limit(3);
+      
+      if (error) {
+        console.error('Error fetching recent projects:', error);
+        return;
+      }
       if (data) setRecentProjects(data);
     };
     fetchRecent();

@@ -38,10 +38,17 @@ export default function Studio() {
     const loadProjects = async () => {
       if (!user) return;
       
+      // CRITICAL: Verify Supabase client has valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('Studio: No valid session yet, skipping load');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('movie_projects')
         .select('id, title, status, created_at, updated_at, thumbnail_url, pending_video_tasks')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id) // Use session user ID
         .in('status', ['draft', 'awaiting_approval', 'producing', 'generating', 'rendering', 'failed'])
         .order('updated_at', { ascending: false });
 

@@ -92,6 +92,13 @@ export default function Clips() {
     const loadClips = async () => {
       if (!user) return;
       
+      // CRITICAL: Verify Supabase client has valid session before querying
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('Clips: No valid session yet, skipping load');
+        return;
+      }
+      
       let query = supabase
         .from('video_clips')
         .select(`
@@ -99,7 +106,7 @@ export default function Clips() {
           created_at, completed_at, error_message, project_id,
           movie_projects!inner(title)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id) // Use session user ID
         .order('created_at', { ascending: false })
         .limit(500);
       

@@ -29,7 +29,7 @@ export const TIER_CREDIT_COSTS = {
 
 // Estimated real API costs in cents for profit tracking
 export const API_COSTS_CENTS = {
-  REPLICATE_VIDEO_4S: 80,   // ~$0.80 per 4-sec video
+  REPLICATE_VIDEO_6S: 120,   // ~$1.20 per 6-sec video (50% more than 4s)
   ELEVENLABS_VOICE: 15,     // ~$0.15 per voice clip
   OPENAI_SCRIPT: 5,         // ~$0.05 for script generation
   VISUAL_DEBUGGER: 3,       // ~$0.03 per AI vision analysis

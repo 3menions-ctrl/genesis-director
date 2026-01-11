@@ -178,7 +178,7 @@ export interface Shot {
   title: string;
   description: string; // Visual description for video generation
   dialogue: string; // Dialogue/narration text for this shot
-  durationSeconds: number; // 4-16 seconds per shot (MAX 16)
+  durationSeconds: number; // 6 seconds per shot (standard)
   mood: string;
   cameraMovement: string; // Will be rewritten by Cameraman Filter
   transitionOut?: TransitionType; // How this shot flows into the next

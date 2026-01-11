@@ -159,7 +159,7 @@ For each shot, provide:
 - title: Brief moment title
 - description: VISUAL description with camera perspective woven in naturally
 - dialogue: Any narration (empty string if none)
-- durationSeconds: 4-8 seconds
+- durationSeconds: 6 seconds (fixed)
 - mood: Emotional tone
 - sceneType: establishing|action|reaction|detail|climax|resolution|dialogue|chase|reveal|emotional
 - cameraScale: REQUIRED from list above
@@ -266,8 +266,8 @@ MINIMUM 6 SHOTS with VARIED CAMERA WORK is MANDATORY.`;
       }
     }
 
-    // Normalize the response to ensure correct format with FIXED 4-second units
-    const FIXED_SHOT_DURATION = 4; // Fixed 4-second units
+    // Normalize the response to ensure correct format with FIXED 6-second units
+    const FIXED_SHOT_DURATION = 6; // Fixed 6-second units for cinematic quality
     const MINIMUM_SHOTS = 6; // Minimum 6 shots required
     
     // Camera scale progression for intelligent defaults
@@ -285,7 +285,7 @@ MINIMUM 6 SHOTS with VARIED CAMERA WORK is MANDATORY.`;
         title: scene.title || `Shot ${index + 1}`,
         description: scene.description || scene.visualDescription || '',
         dialogue: scene.dialogue || scene.scriptText || '',
-        durationSeconds: FIXED_SHOT_DURATION, // Always 4 seconds
+        durationSeconds: FIXED_SHOT_DURATION, // Always 6 seconds
         mood: scene.mood || 'neutral',
         cameraMovement: scene.cameraMovement || 'steady',
         // SMART CAMERA PROPERTIES

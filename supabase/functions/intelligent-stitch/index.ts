@@ -393,7 +393,7 @@ serve(async (req) => {
       clips: finalSequence.map((item, index) => ({
         shotId: `clip_${index}`,
         videoUrl: item.url,
-        durationSeconds: 4,
+        durationSeconds: 6,
         transitionOut: item.transition && item.transition !== 'cut' 
           ? item.transition === 'ai-bridge' ? 'dissolve' : item.transition 
           : 'continuous',

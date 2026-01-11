@@ -111,7 +111,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background overflow-hidden relative">
       {/* Premium Video Background */}
-      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.75} />
+      <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.82} />
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4">
@@ -179,12 +179,12 @@ export default function Landing() {
           {/* Main headline */}
           <div className="text-center max-w-5xl mx-auto mb-10 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             <h1 className="text-5xl sm:text-7xl lg:text-[6.5rem] font-bold tracking-tighter leading-[0.95] mb-8">
-              <span className="block text-foreground">Create videos that</span>
-              <span className="block mt-2 bg-gradient-to-r from-foreground via-foreground/80 to-foreground bg-clip-text text-transparent animate-gradient-shift">
+              <span className="block hero-text">Create videos that</span>
+              <span className="block mt-2 hero-text">
                 captivate the world
               </span>
             </h1>
-            <p className="text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-light">
+            <p className="text-xl lg:text-2xl hero-text-secondary max-w-2xl mx-auto leading-relaxed font-light">
               Transform text or images into cinema. AI writes your script, generates scenes, and produces professional videos.
             </p>
           </div>
@@ -276,8 +276,8 @@ export default function Landing() {
                     <div className="w-12 h-12 mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                       <Image className="w-6 h-6" />
                     </div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">Image-to-Video</h4>
-                    <p className="text-sm text-muted-foreground">Animate any image into dynamic video</p>
+                    <h4 className="text-lg font-semibold hero-text mb-2">Image-to-Video</h4>
+                    <p className="text-sm hero-text-secondary">Animate any image into dynamic video</p>
                   </div>
                 </div>
 
@@ -288,8 +288,8 @@ export default function Landing() {
                     <div className="w-12 h-12 mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                       <Brain className="w-6 h-6" />
                     </div>
-                    <h4 className="text-lg font-semibold text-foreground mb-2">AI Script Writer</h4>
-                    <p className="text-sm text-muted-foreground">Generate compelling narratives</p>
+                    <h4 className="text-lg font-semibold hero-text mb-2">AI Script Writer</h4>
+                    <p className="text-sm hero-text-secondary">Generate compelling narratives</p>
                   </div>
                 </div>
               </div>
@@ -303,13 +303,13 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-              <Zap className="w-4 h-4 text-foreground" />
-              <span className="text-sm font-medium text-foreground">Powerful Features</span>
+              <Zap className="w-4 h-4 hero-text" />
+              <span className="text-sm font-medium hero-text">Powerful Features</span>
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+            <h2 className="text-4xl lg:text-5xl font-bold hero-text mb-4">
               Everything you need
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg hero-text-secondary max-w-2xl mx-auto">
               Professional-grade AI tools that make video creation effortless.
             </p>
           </div>
@@ -340,13 +340,13 @@ export default function Landing() {
                 </div>
                 <h3 className={cn(
                   "text-xl font-semibold mb-3",
-                  feature.highlight ? "text-white" : "text-foreground"
+                  feature.highlight ? "text-white" : "hero-text"
                 )}>
                   {feature.title}
                 </h3>
                 <p className={cn(
                   "leading-relaxed",
-                  feature.highlight ? "text-white/70" : "text-muted-foreground"
+                  feature.highlight ? "text-white/70" : "hero-text-secondary"
                 )}>
                   {feature.description}
                 </p>

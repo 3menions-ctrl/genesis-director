@@ -180,7 +180,7 @@ export default function PricingSection() {
 
                 {/* CTA */}
                 <Button
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate(tier.name === 'Agency' ? '/contact' : '/auth')}
                   className={cn(
                     "w-full h-12 rounded-xl font-semibold transition-all",
                     tier.popular

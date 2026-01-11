@@ -1385,6 +1385,8 @@ export function UnifiedStudio() {
         onGenerate={handleGenerateClick}
         onCancel={handleCancel}
         disabled={!canGenerate}
+        currentStage={currentStage}
+        pipelineLogs={pipelineLogs}
       />
 
       {/* Cost Confirmation Dialog */}

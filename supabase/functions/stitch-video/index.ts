@@ -99,7 +99,7 @@ async function checkCloudRunHealth(cloudRunUrl: string): Promise<HealthCheckResu
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for cold start
     
     const response = await fetch(normalizedUrl, {
       method: 'GET',
@@ -279,6 +279,7 @@ async function fireCloudRunStitcherAsync(
   // CRITICAL: callbackUrl must use Lovable Cloud (SUPABASE_URL) where edge functions live,
   // NOT the external Supabase which is only used for storage
   const lovableCloudUrl = Deno.env.get("SUPABASE_URL")!;
+  console.log(`[Stitch] Callback URL will use: ${lovableCloudUrl}`);
   
   const enhancedRequest = {
     ...request,

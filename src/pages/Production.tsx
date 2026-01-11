@@ -651,8 +651,8 @@ export default function Production() {
         if (tasks.auditScore) setAuditScore(tasks.auditScore);
         if (tasks.stage) setPipelineStage(tasks.stage);
         
-        // Check for script awaiting approval
-        if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
+        // Load script from pending_video_tasks
+        if (tasks.script?.shots) {
           const shots: ScriptShot[] = tasks.script.shots.map((shot, idx) => ({
             id: shot.id || `shot-${idx}`,
             index: idx,
@@ -671,7 +671,9 @@ export default function Production() {
             mood: shot.mood,
           }));
           setScriptShots(shots);
-          addLog('Script ready for approval', 'info');
+          if (tasks.stage === 'awaiting_approval') {
+            addLog('Script ready for approval', 'info');
+          }
         }
         
         if (tasks.stage) {
@@ -685,6 +687,36 @@ export default function Production() {
             if (tasks.stage !== 'complete') updateStageStatus(idx, 'active');
             else updateStageStatus(idx, 'complete');
           }
+        }
+      }
+      
+      // Also try to load script from generated_script field if not in pending_video_tasks
+      if (!scriptShots && project.generated_script) {
+        try {
+          const scriptData = JSON.parse(project.generated_script);
+          if (scriptData?.shots && Array.isArray(scriptData.shots)) {
+            const shots: ScriptShot[] = scriptData.shots.map((shot: any, idx: number) => ({
+              id: shot.id || `shot-${idx}`,
+              index: idx,
+              title: shot.title || shot.name || `Shot ${idx + 1}`,
+              description: shot.description || shot.prompt || '',
+              durationSeconds: shot.durationSeconds || shot.duration || 6,
+              sceneType: shot.sceneType,
+              cameraScale: shot.cameraScale,
+              cameraAngle: shot.cameraAngle,
+              movementType: shot.movementType,
+              transitionOut: shot.transitionOut,
+              visualAnchors: shot.visualAnchors,
+              motionDirection: shot.motionDirection,
+              lightingHint: shot.lightingHint,
+              dialogue: shot.dialogue,
+              mood: shot.mood,
+            }));
+            setScriptShots(shots);
+            addLog('Script loaded from project', 'info');
+          }
+        } catch (e) {
+          console.warn('[Production] Could not parse generated_script:', e);
         }
       }
 
@@ -1197,22 +1229,88 @@ export default function Production() {
               {/* Main Column */}
               <div className="col-span-12 lg:col-span-8 space-y-4">
                 
-                {/* Script Review Panel - Show when awaiting approval */}
-                {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
+                {/* Script Review Panel - ALWAYS show when script data exists */}
+                {scriptShots && scriptShots.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20"
+                    className={cn(
+                      "p-6 rounded-xl border",
+                      pipelineStage === 'awaiting_approval' 
+                        ? "bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20"
+                        : "bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent border-white/[0.08]"
+                    )}
                   >
-                    <ScriptReviewPanel
-                      shots={scriptShots}
-                      onApprove={handleApproveScript}
-                      onRegenerate={handleRegenerateScript}
-                      onCancel={handleCancelScript}
-                      isLoading={isApprovingScript}
-                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
-                      projectTitle={projectTitle}
-                    />
+                    {pipelineStage === 'awaiting_approval' ? (
+                      <ScriptReviewPanel
+                        shots={scriptShots}
+                        onApprove={handleApproveScript}
+                        onRegenerate={handleRegenerateScript}
+                        onCancel={handleCancelScript}
+                        isLoading={isApprovingScript}
+                        totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
+                        projectTitle={projectTitle}
+                      />
+                    ) : (
+                      /* Read-only script view for reference during production */
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-white/60" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-semibold text-white">Shot Script</h3>
+                              <p className="text-[10px] text-white/40">{scriptShots.length} shots · {Math.round(scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0))}s total</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400">
+                            Approved
+                          </Badge>
+                        </div>
+                        
+                        <ScrollArea className="max-h-[300px]">
+                          <div className="space-y-2">
+                            {scriptShots.map((shot, idx) => (
+                              <div 
+                                key={shot.id || idx} 
+                                className={cn(
+                                  "p-3 rounded-lg border transition-all",
+                                  clipResults[idx]?.status === 'completed' 
+                                    ? "bg-emerald-500/5 border-emerald-500/20"
+                                    : clipResults[idx]?.status === 'generating'
+                                    ? "bg-blue-500/5 border-blue-500/20"
+                                    : clipResults[idx]?.status === 'failed'
+                                    ? "bg-red-500/5 border-red-500/20"
+                                    : "bg-white/[0.02] border-white/[0.04]"
+                                )}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[10px] font-bold text-white/30 w-5 shrink-0">{idx + 1}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-white/80 truncate">{shot.title}</p>
+                                    <p className="text-[10px] text-white/40 line-clamp-2 mt-0.5">{shot.description}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[9px] text-white/30">{shot.durationSeconds || 6}s</span>
+                                      {shot.cameraScale && <span className="text-[9px] text-white/20">{shot.cameraScale}</span>}
+                                      {clipResults[idx]?.status === 'completed' && (
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-400 ml-auto" />
+                                      )}
+                                      {clipResults[idx]?.status === 'generating' && (
+                                        <Loader2 className="w-3 h-3 text-blue-400 animate-spin ml-auto" />
+                                      )}
+                                      {clipResults[idx]?.status === 'failed' && (
+                                        <XCircle className="w-3 h-3 text-red-400 ml-auto" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
                   </motion.div>
                 )}
                 

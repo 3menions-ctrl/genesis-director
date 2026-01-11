@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -24,34 +25,36 @@ interface NotificationPreferences {
   marketing: boolean;
 }
 
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationPreferences = {
+  emailNotifications: true,
+  videoComplete: true,
+  videoFailed: true,
+  lowCredits: true,
+  lowCreditsThreshold: 10,
+  weeklyDigest: false,
+  productUpdates: true,
+  tips: true,
+  marketing: false,
+};
+
 export function NotificationSettings() {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    emailNotifications: true,
-    videoComplete: true,
-    videoFailed: true,
-    lowCredits: true,
-    lowCreditsThreshold: 10,
-    weeklyDigest: false,
-    productUpdates: true,
-    tips: true,
-    marketing: false,
-  });
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_SETTINGS);
 
-  // Load preferences from localStorage
+  // Load preferences from database
   useEffect(() => {
-    const saved = localStorage.getItem('notification_preferences');
-    if (saved) {
-      try {
-        setPreferences(JSON.parse(saved));
-      } catch (e) {
-        console.error('Error loading notification preferences:', e);
+    if (profile) {
+      const savedSettings = profile.notification_settings as unknown as NotificationPreferences | null;
+      if (savedSettings) {
+        setPreferences({ ...DEFAULT_NOTIFICATION_SETTINGS, ...savedSettings });
       }
+      setIsLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   const updatePreference = <K extends keyof NotificationPreferences>(
     key: K, 
@@ -62,9 +65,18 @@ export function NotificationSettings() {
   };
 
   const handleSave = async () => {
+    if (!user) return;
+    
     setIsSaving(true);
     try {
-      localStorage.setItem('notification_preferences', JSON.stringify(preferences));
+      const { error } = await supabase
+        .from('profiles')
+        .update({ notification_settings: preferences as any })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
       setHasChanges(false);
       toast.success('Notification preferences saved');
     } catch (error) {
@@ -74,6 +86,14 @@ export function NotificationSettings() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

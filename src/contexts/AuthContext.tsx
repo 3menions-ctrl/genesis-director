@@ -16,6 +16,9 @@ interface UserProfile {
   company: string | null;
   onboarding_completed: boolean;
   created_at: string;
+  preferences: Record<string, unknown> | null;
+  notification_settings: Record<string, unknown> | null;
+  auto_recharge_enabled: boolean | null;
 }
 
 interface AuthContextType {

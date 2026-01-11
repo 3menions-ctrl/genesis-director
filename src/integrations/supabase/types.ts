@@ -406,6 +406,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_recharge_enabled: boolean | null
           avatar_url: string | null
           company: string | null
           created_at: string
@@ -414,7 +415,9 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          notification_settings: Json | null
           onboarding_completed: boolean | null
+          preferences: Json | null
           role: string | null
           total_credits_purchased: number
           total_credits_used: number
@@ -422,6 +425,7 @@ export type Database = {
           use_case: string | null
         }
         Insert: {
+          auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -430,7 +434,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          notification_settings?: Json | null
           onboarding_completed?: boolean | null
+          preferences?: Json | null
           role?: string | null
           total_credits_purchased?: number
           total_credits_used?: number
@@ -438,6 +444,7 @@ export type Database = {
           use_case?: string | null
         }
         Update: {
+          auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -446,7 +453,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          notification_settings?: Json | null
           onboarding_completed?: boolean | null
+          preferences?: Json | null
           role?: string | null
           total_credits_purchased?: number
           total_credits_used?: number

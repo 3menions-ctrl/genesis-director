@@ -11,7 +11,7 @@ import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { 
   Coins, Plus, TrendingUp, TrendingDown, History,
   Zap, Gift, ShoppingCart, Download, CreditCard,
-  BarChart3, Calendar, ArrowUpRight
+  BarChart3, Calendar, ArrowUpRight, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,7 @@ export function BillingSettings() {
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [autoRecharge, setAutoRecharge] = useState(false);
+  const [isSavingAutoRecharge, setIsSavingAutoRecharge] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -45,6 +46,13 @@ export function BillingSettings() {
       fetchUsageStats();
     }
   }, [user]);
+
+  // Load auto-recharge setting from profile
+  useEffect(() => {
+    if (profile) {
+      setAutoRecharge(profile.auto_recharge_enabled || false);
+    }
+  }, [profile]);
 
   const fetchTransactions = async () => {
     if (!user) return;
@@ -112,9 +120,33 @@ export function BillingSettings() {
     setShowBuyModal(false);
   };
 
+  const handleAutoRechargeChange = async (checked: boolean) => {
+    if (!user) return;
+    
+    setIsSavingAutoRecharge(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ auto_recharge_enabled: checked })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setAutoRecharge(checked);
+      await refreshProfile();
+      toast.success(checked ? 'Auto-recharge enabled' : 'Auto-recharge disabled');
+    } catch (error) {
+      console.error('Error updating auto-recharge:', error);
+      toast.error('Failed to update auto-recharge setting');
+    } finally {
+      setIsSavingAutoRecharge(false);
+    }
+  };
+
   const getTransactionIcon = (type: string, amount: number) => {
     if (type === 'bonus') return <Gift className="w-4 h-4 text-emerald-400" />;
     if (type === 'purchase') return <ShoppingCart className="w-4 h-4 text-blue-400" />;
+    if (type === 'refund') return <TrendingUp className="w-4 h-4 text-emerald-400" />;
     if (amount < 0) return <Zap className="w-4 h-4 text-amber-400" />;
     return <TrendingUp className="w-4 h-4 text-emerald-400" />;
   };
@@ -132,6 +164,33 @@ export function BillingSettings() {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleExportTransactions = () => {
+    if (transactions.length === 0) {
+      toast.error('No transactions to export');
+      return;
+    }
+
+    const csvContent = [
+      ['Date', 'Type', 'Description', 'Amount', 'Clip Duration (s)'].join(','),
+      ...transactions.map(tx => [
+        new Date(tx.created_at).toISOString(),
+        tx.transaction_type,
+        `"${tx.description || ''}"`,
+        tx.amount,
+        tx.clip_duration_seconds || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `credit-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Transactions exported');
   };
 
   const monthlyChange = usageStats && usageStats.lastMonth > 0
@@ -275,10 +334,14 @@ export function BillingSettings() {
               </p>
             </div>
           </div>
-          <Switch
-            checked={autoRecharge}
-            onCheckedChange={setAutoRecharge}
-          />
+          <div className="flex items-center gap-2">
+            {isSavingAutoRecharge && <Loader2 className="w-4 h-4 animate-spin text-white/40" />}
+            <Switch
+              checked={autoRecharge}
+              onCheckedChange={handleAutoRechargeChange}
+              disabled={isSavingAutoRecharge}
+            />
+          </div>
         </div>
         
         {autoRecharge && (
@@ -309,7 +372,12 @@ export function BillingSettings() {
               <p className="text-xs text-white/40">Your recent credit activity</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-white/50 hover:text-white">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-white/50 hover:text-white"
+            onClick={handleExportTransactions}
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -348,7 +416,8 @@ export function BillingSettings() {
                     <p className="font-medium text-white">
                       {tx.description || (
                         tx.transaction_type === 'bonus' ? 'Welcome Bonus' : 
-                        tx.transaction_type === 'purchase' ? 'Credit Purchase' : 
+                        tx.transaction_type === 'purchase' ? 'Credit Purchase' :
+                        tx.transaction_type === 'refund' ? 'Credit Refund' :
                         'Video Generation'
                       )}
                     </p>

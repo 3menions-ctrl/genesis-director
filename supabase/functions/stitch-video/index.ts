@@ -262,11 +262,19 @@ async function fireCloudRunStitcherAsync(
   console.log(`[Stitch] Firing async Cloud Run request: ${stitchEndpoint}`);
   
   const audioMixParams = buildAudioMixParams(request.musicSyncPlan);
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   
-  // CRITICAL: Pass Supabase credentials dynamically so Cloud Run always uses the correct URL
-  // This prevents issues when Supabase URL changes but Cloud Run env vars are stale
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  // HYBRID SUPABASE SETUP: Use external Supabase for storage/video operations
+  // This ensures Cloud Run always uses the correct, stable Supabase instance
+  // regardless of any URL changes in the primary Lovable Cloud instance
+  const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
+  const externalSupabaseServiceKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+  
+  // Fall back to primary Supabase if external not configured
+  const supabaseUrl = externalSupabaseUrl || Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = externalSupabaseServiceKey || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  console.log(`[Stitch] Using Supabase URL: ${supabaseUrl}`);
+  console.log(`[Stitch] External Supabase configured: ${!!externalSupabaseUrl}`);
   
   const enhancedRequest = {
     ...request,
@@ -275,7 +283,7 @@ async function fireCloudRunStitcherAsync(
     callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
     retryAttempt: request.retryAttempt || 0,
     maxRetries: 3,
-    // Dynamic Supabase config - overrides Cloud Run env vars
+    // Dynamic Supabase config - Cloud Run uses these instead of its env vars
     supabaseUrl,
     supabaseServiceKey,
   };

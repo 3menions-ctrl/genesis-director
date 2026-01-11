@@ -1032,16 +1032,34 @@ export default function Production() {
                         <Film className="w-3.5 h-3.5 text-white/30" />
                         <span className="text-xs font-medium text-white/40">Clips</span>
                       </div>
-                      {completedClips > 0 && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 px-2 text-[10px] text-white/40 hover:text-white"
-                          onClick={() => navigate(`/clips?projectId=${projectId}`)}
-                        >
-                          View All <ChevronRight className="w-3 h-3 ml-0.5" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {/* Stitch Button - show when clips are ready */}
+                        {completedClips > 0 && !finalVideoUrl && (
+                          <Button 
+                            size="sm" 
+                            className="h-7 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-full font-medium"
+                            onClick={handleSimpleStitch}
+                            disabled={isSimpleStitching}
+                          >
+                            {isSimpleStitching ? (
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                            ) : (
+                              <Sparkles className="w-3 h-3 mr-1" />
+                            )}
+                            Stitch Video
+                          </Button>
+                        )}
+                        {completedClips > 0 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-[10px] text-white/40 hover:text-white"
+                            onClick={() => navigate(`/clips?projectId=${projectId}`)}
+                          >
+                            View All <ChevronRight className="w-3 h-3 ml-0.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <ClipGrid 
                       clips={clipResults}

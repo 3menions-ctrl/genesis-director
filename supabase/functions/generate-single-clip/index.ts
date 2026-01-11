@@ -166,52 +166,71 @@ async function generateClip(
 
   if (startImageUrl) {
     try {
-      console.log(`[SingleClip] Fetching start image for frame-chaining: ${startImageUrl.substring(0, 100)}...`);
-      const imageResponse = await fetch(startImageUrl);
-      
-      // Check if fetch was successful
-      if (!imageResponse.ok) {
-        console.error(`[SingleClip] Failed to fetch start image: HTTP ${imageResponse.status} - ${imageResponse.statusText}`);
-        console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to image fetch failure`);
+      // CRITICAL: Pre-validate URL - reject obvious video URLs before fetching
+      const lowerUrl = startImageUrl.toLowerCase();
+      if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov') || lowerUrl.includes('/video-clips/clip_')) {
+        console.error(`[SingleClip] ⚠️ REJECTED: startImageUrl is a VIDEO file, not an image!`);
+        console.error(`[SingleClip] URL: ${startImageUrl.substring(0, 100)}...`);
+        console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - Veo requires images, not videos`);
       } else {
-        const contentType = imageResponse.headers.get('content-type') || '';
-        console.log(`[SingleClip] Image response content-type: ${contentType}`);
+        console.log(`[SingleClip] Fetching start image for frame-chaining: ${startImageUrl.substring(0, 100)}...`);
+        const imageResponse = await fetch(startImageUrl);
         
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const uint8Array = new Uint8Array(imageBuffer);
-        
-        // Validate image size
-        if (uint8Array.length < 1000) {
-          console.error(`[SingleClip] Image too small (${uint8Array.length} bytes) - likely invalid or error page`);
-          console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to invalid image`);
+        // Check if fetch was successful
+        if (!imageResponse.ok) {
+          console.error(`[SingleClip] Failed to fetch start image: HTTP ${imageResponse.status} - ${imageResponse.statusText}`);
+          console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to image fetch failure`);
         } else {
-          console.log(`[SingleClip] Image size: ${uint8Array.length} bytes`);
+          const contentType = imageResponse.headers.get('content-type') || '';
+          console.log(`[SingleClip] Image response content-type: ${contentType}`);
           
-          let binary = '';
-          const chunkSize = 32768;
-          for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-            binary += String.fromCharCode.apply(null, Array.from(chunk));
+          // CRITICAL: Reject video content types - Veo ONLY accepts images
+          if (contentType.includes('video/') || contentType.includes('application/octet-stream')) {
+            console.error(`[SingleClip] ⚠️ REJECTED: Response is ${contentType}, not an image!`);
+            console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - Veo requires images, not videos`);
+          } else if (!contentType.includes('image/')) {
+            console.error(`[SingleClip] ⚠️ WARNING: Unexpected content-type: ${contentType}`);
+            console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - content-type is not an image`);
+          } else {
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const uint8Array = new Uint8Array(imageBuffer);
+            
+            // Validate image size
+            if (uint8Array.length < 1000) {
+              console.error(`[SingleClip] Image too small (${uint8Array.length} bytes) - likely invalid or error page`);
+              console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to invalid image`);
+            } else if (uint8Array.length > 10000000) {
+              // Video files are typically > 1MB, images are usually < 1MB
+              console.error(`[SingleClip] ⚠️ File too large (${uint8Array.length} bytes) - likely a video file`);
+              console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - file size indicates video`);
+            } else {
+              console.log(`[SingleClip] ✓ Valid image size: ${uint8Array.length} bytes`);
+              
+              let binary = '';
+              const chunkSize = 32768;
+              for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+                binary += String.fromCharCode.apply(null, Array.from(chunk));
+              }
+              const base64Image = btoa(binary);
+              
+              // Determine mime type from content-type header
+              let mimeType = 'image/jpeg';
+              if (contentType.includes('png')) {
+                mimeType = 'image/png';
+              } else if (contentType.includes('webp')) {
+                mimeType = 'image/webp';
+              } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+                mimeType = 'image/jpeg';
+              }
+              
+              instance.image = {
+                bytesBase64Encoded: base64Image,
+                mimeType: mimeType
+              };
+              console.log(`[SingleClip] ✓ Added start image for frame-chaining (${mimeType}, ${base64Image.length} base64 chars)`);
+            }
           }
-          const base64Image = btoa(binary);
-          
-          // Determine mime type from content-type header or URL
-          let mimeType = 'image/jpeg';
-          if (contentType.includes('png')) {
-            mimeType = 'image/png';
-          } else if (contentType.includes('webp')) {
-            mimeType = 'image/webp';
-          } else if (startImageUrl.includes('.png')) {
-            mimeType = 'image/png';
-          } else if (startImageUrl.includes('.webp')) {
-            mimeType = 'image/webp';
-          }
-          
-          instance.image = {
-            bytesBase64Encoded: base64Image,
-            mimeType: mimeType
-          };
-          console.log(`[SingleClip] Added start image for frame-chaining (${mimeType}, ${base64Image.length} base64 chars)`);
         }
       }
     } catch (imgError) {

@@ -102,13 +102,19 @@ function getSupabase() {
 }
 
 // Get signed upload URL from edge function
-async function getSignedUploadUrl(projectId, filename) {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-upload-url`, {
+// CRITICAL: Uses dynamic credentials to ensure correct Supabase URL is used
+async function getSignedUploadUrl(projectId, filename, supabaseUrl, serviceKey) {
+  const effectiveUrl = supabaseUrl || SUPABASE_URL;
+  const effectiveKey = serviceKey || SUPABASE_SERVICE_ROLE_KEY;
+  
+  console.log(`[Upload] Getting signed URL from: ${effectiveUrl}/functions/v1/generate-upload-url`);
+  
+  const response = await fetch(`${effectiveUrl}/functions/v1/generate-upload-url`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'apikey': SUPABASE_SERVICE_ROLE_KEY
+      'Authorization': `Bearer ${effectiveKey}`,
+      'apikey': effectiveKey
     },
     body: JSON.stringify({ projectId, filename })
   });
@@ -122,13 +128,19 @@ async function getSignedUploadUrl(projectId, filename) {
 }
 
 // Finalize stitch by calling edge function
-async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcessed, status = 'completed', errorMessage = null) {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/finalize-stitch`, {
+// CRITICAL: Uses dynamic credentials to ensure correct Supabase URL is used
+async function finalizeStitch(projectId, videoUrl, durationSeconds, clipsProcessed, status = 'completed', errorMessage = null, supabaseUrl, serviceKey) {
+  const effectiveUrl = supabaseUrl || SUPABASE_URL;
+  const effectiveKey = serviceKey || SUPABASE_SERVICE_ROLE_KEY;
+  
+  console.log(`[Finalize] Calling: ${effectiveUrl}/functions/v1/finalize-stitch`);
+  
+  const response = await fetch(`${effectiveUrl}/functions/v1/finalize-stitch`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'apikey': SUPABASE_SERVICE_ROLE_KEY
+      'Authorization': `Bearer ${effectiveKey}`,
+      'apikey': effectiveKey
     },
     body: JSON.stringify({ projectId, videoUrl, durationSeconds, clipsProcessed, status, errorMessage })
   });
@@ -488,13 +500,22 @@ async function stitchVideos(request) {
     transitionDuration = 0.5,
     musicSyncPlan = null,
     sfxPlan = null,
-    audioMixParams = null
+    audioMixParams = null,
+    // CRITICAL: Dynamic Supabase credentials passed from edge function
+    // This ensures we always use the correct URL even if Cloud Run env vars are stale
+    supabaseUrl: dynamicSupabaseUrl,
+    supabaseServiceKey: dynamicSupabaseServiceKey
   } = request;
+  
+  // Use dynamic credentials if provided, otherwise fall back to env vars
+  const effectiveSupabaseUrl = dynamicSupabaseUrl || SUPABASE_URL;
+  const effectiveServiceKey = dynamicSupabaseServiceKey || SUPABASE_SERVICE_ROLE_KEY;
   
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, jobId);
   
   console.log(`[Stitch] Starting job ${jobId} for project ${projectId}`);
+  console.log(`[Stitch] Using Supabase URL: ${effectiveSupabaseUrl}`);
   console.log(`[Stitch] Processing ${clips.length} clips with ${transitionType} transitions (${transitionDuration}s)`);
   console.log(`[Stitch] Color grading: ${colorGrading}`);
   
@@ -752,7 +773,8 @@ async function stitchVideos(request) {
     console.log('[Stitch] Step 6: Getting signed upload URL...');
     
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
-    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName);
+    // Pass dynamic credentials to ensure correct Supabase URL is used
+    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, effectiveSupabaseUrl, effectiveServiceKey);
     
     if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
       throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
@@ -769,7 +791,8 @@ async function stitchVideos(request) {
     
     console.log('[Stitch] Step 7: Finalizing project...');
     
-    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length);
+    // Pass dynamic credentials to ensure correct Supabase URL is used
+    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length, 'completed', null, effectiveSupabaseUrl, effectiveServiceKey);
     
     await fs.rm(workDir, { recursive: true, force: true });
     
@@ -794,7 +817,8 @@ async function stitchVideos(request) {
     try {
       console.log(`[Stitch] Calling finalizeStitch with failure status for project ${projectId}`);
       const retryAttempt = request.retryAttempt || 0;
-      await finalizeStitch(projectId, null, null, null, 'failed', error.message);
+      // Pass dynamic credentials to ensure correct Supabase URL is used
+      await finalizeStitch(projectId, null, null, null, 'failed', error.message, effectiveSupabaseUrl, effectiveServiceKey);
       console.log(`[Stitch] Failure notification sent successfully`);
     } catch (notifyError) {
       console.error(`[Stitch] Failed to notify about failure:`, notifyError.message);

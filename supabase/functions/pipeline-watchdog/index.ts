@@ -7,15 +7,15 @@ const corsHeaders = {
 };
 
 /**
- * Pipeline Watchdog Edge Function
+ * Pipeline Watchdog Edge Function v2.0 - AGGRESSIVE AUTO-RECOVERY
  * 
- * Detects and AUTO-RECOVERS stalled pipelines:
- * 1. Finds projects stuck in 'generating' status with incomplete clips
- * 2. Finds projects stuck in 'stitching' or 'rendering' status for too long
- * 3. Auto-resumes production when clips are missing
- * 4. Processes scheduled retries when their time is due
+ * Runs every minute to ensure pipelines complete even when users log out:
  * 
- * Should be called every 2 minutes via cron
+ * 1. PRODUCTION RECOVERY: Detects stalled 'generating' projects with incomplete clips
+ * 2. STITCHING RECOVERY: Monitors stitching progress and retriggers if stuck
+ * 3. COMPLETION GUARANTEE: Falls back to manifest if Cloud Run fails 3x
+ * 
+ * This runs as a cron job - completely independent of user sessions!
  */
 
 interface StalledProject {
@@ -28,12 +28,26 @@ interface StalledProject {
   generated_script: string | null;
 }
 
+interface ClipRecord {
+  id: string;
+  video_url: string;
+  duration_seconds: number;
+  shot_index: number;
+}
+
+interface ProjectRecord {
+  title: string;
+  voice_audio_url: string | null;
+  music_url: string | null;
+}
+
 interface WatchdogResult {
   stalledProjects: number;
-  retriesProcessed: number;
-  projectsRecovered: number;
-  projectsMarkedFailed: number;
   productionResumed: number;
+  stitchingRetried: number;
+  manifestFallbacks: number;
+  projectsCompleted: number;
+  projectsMarkedFailed: number;
   details: Array<{
     projectId: string;
     action: string;
@@ -41,11 +55,17 @@ interface WatchdogResult {
   }>;
 }
 
-// Stale timeout: 3 minutes for generating/stitching (edge functions timeout at ~60s)
-const STALE_TIMEOUT_MS = 3 * 60 * 1000;
+// Stale timeout: 2 minutes for any stuck state
+const STALE_TIMEOUT_MS = 2 * 60 * 1000;
 
-// Max age before marking as failed: 45 minutes
-const MAX_AGE_MS = 45 * 60 * 1000;
+// Stitching timeout: 5 minutes before retrying
+const STITCHING_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Max stitching attempts before manifest fallback
+const MAX_STITCHING_ATTEMPTS = 3;
+
+// Max total age before marking as failed: 60 minutes
+const MAX_AGE_MS = 60 * 60 * 1000;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,34 +75,31 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const result: WatchdogResult = {
       stalledProjects: 0,
-      retriesProcessed: 0,
-      projectsRecovered: 0,
-      projectsMarkedFailed: 0,
       productionResumed: 0,
+      stitchingRetried: 0,
+      manifestFallbacks: 0,
+      projectsCompleted: 0,
+      projectsMarkedFailed: 0,
       details: [],
     };
 
-    console.log("[Watchdog] Starting pipeline health check...");
+    console.log("[Watchdog] Starting aggressive pipeline recovery check...");
 
-    // ==================== STEP 1: Find stalled projects ====================
-    
     const cutoffTime = new Date(Date.now() - STALE_TIMEOUT_MS).toISOString();
-    const maxAgeTime = new Date(Date.now() - MAX_AGE_MS).toISOString();
     
-    // Include 'generating' status - this is the key fix!
+    // Find ALL potentially stuck projects
     const { data: stalledProjects, error: stalledError } = await supabase
       .from('movie_projects')
       .select('id, title, status, updated_at, pending_video_tasks, user_id, generated_script')
-      .in('status', ['generating', 'stitching', 'rendering', 'retry_scheduled', 'assembling'])
+      .in('status', ['generating', 'stitching', 'rendering', 'assembling', 'retry_scheduled'])
       .lt('updated_at', cutoffTime)
-      .limit(20);
+      .limit(30);
     
     if (stalledError) {
       console.error("[Watchdog] Error finding stalled projects:", stalledError);
@@ -92,95 +109,95 @@ serve(async (req) => {
     result.stalledProjects = stalledProjects?.length || 0;
     console.log(`[Watchdog] Found ${result.stalledProjects} potentially stalled projects`);
 
-    // ==================== STEP 2: Process each stalled project ====================
-    
     for (const project of (stalledProjects as StalledProject[] || [])) {
-      const tasks = project.pending_video_tasks || {};
+      const tasks = project.pending_video_tasks || {} as Record<string, unknown>;
       const projectAge = Date.now() - new Date(project.updated_at).getTime();
+      const stage = (tasks as Record<string, unknown>).stage || 'unknown';
+      const stitchAttempts = ((tasks as Record<string, unknown>).stitchAttempts as number) || 0;
       
-      console.log(`[Watchdog] Processing project ${project.id} (status: ${project.status}, stage: ${(tasks as any).stage}, age: ${Math.round(projectAge / 1000)}s)`);
+      console.log(`[Watchdog] Processing: ${project.id} (status=${project.status}, stage=${stage}, age=${Math.round(projectAge / 1000)}s, stitchAttempts=${stitchAttempts})`);
 
-      // Check if this is a scheduled retry that's ready
-      if (project.status === 'retry_scheduled' && (tasks as any).retryAfter) {
-        const retryTime = new Date((tasks as any).retryAfter as string).getTime();
+      // ==================== HANDLE STUCK STITCHING ====================
+      if (project.status === 'stitching' || project.status === 'assembling') {
+        const stitchingStarted = (tasks as Record<string, unknown>).stitchingStarted as string | undefined;
+        const stitchingAge = stitchingStarted 
+          ? Date.now() - new Date(stitchingStarted).getTime()
+          : projectAge;
         
-        if (Date.now() >= retryTime) {
-          console.log(`[Watchdog] Retry time reached for project ${project.id}`);
+        console.log(`[Watchdog] Stitching age: ${Math.round(stitchingAge / 1000)}s, attempts: ${stitchAttempts}`);
+
+        // If stitching has been stuck too long
+        if (stitchingAge > STITCHING_TIMEOUT_MS) {
           
-          const retryAttempt = ((tasks as any).retryAttempt as number) || 1;
-          
-          if (retryAttempt <= 3) {
-            try {
-              const response = await fetch(`${supabaseUrl}/functions/v1/stitch-video`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseKey}`,
-                },
-                body: JSON.stringify({
-                  ...((tasks as any).retryRequest || {}),
-                  projectId: project.id,
-                  retryAttempt,
-                }),
-              });
-              
-              if (response.ok) {
-                result.retriesProcessed++;
-                result.details.push({
-                  projectId: project.id,
-                  action: 'retry_triggered',
-                  result: `Retry ${retryAttempt} started`,
-                });
-                continue;
-              }
-            } catch (retryError) {
-              console.error(`[Watchdog] Failed to trigger retry for ${project.id}:`, retryError);
-            }
+          // Check if we've exceeded max attempts - fallback to manifest
+          if (stitchAttempts >= MAX_STITCHING_ATTEMPTS) {
+            console.log(`[Watchdog] Max stitch attempts reached for ${project.id}, creating manifest fallback`);
+            
+            await createManifestFallback(supabaseUrl, supabaseKey, project.id);
+            
+            result.manifestFallbacks++;
+            result.details.push({
+              projectId: project.id,
+              action: 'manifest_fallback',
+              result: `Created manifest after ${stitchAttempts} failed stitch attempts`,
+            });
+            continue;
           }
-        } else {
-          result.details.push({
-            projectId: project.id,
-            action: 'retry_pending',
-            result: `Retry scheduled for ${(tasks as any).retryAfter}`,
-          });
+          
+          // Retry stitching
+          console.log(`[Watchdog] Retrying stitch for ${project.id} (attempt ${stitchAttempts + 1})`);
+          
+          // Update attempt counter
+          await supabase
+            .from('movie_projects')
+            .update({
+              pending_video_tasks: {
+                ...tasks,
+                stitchAttempts: stitchAttempts + 1,
+                lastRetryAt: new Date().toISOString(),
+                watchdogRetry: true,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({ projectId: project.id }),
+            });
+            
+            if (response.ok) {
+              result.stitchingRetried++;
+              result.details.push({
+                projectId: project.id,
+                action: 'stitch_retried',
+                result: `Retry attempt ${stitchAttempts + 1}/${MAX_STITCHING_ATTEMPTS}`,
+              });
+              console.log(`[Watchdog] ✓ Stitch retry triggered for ${project.id}`);
+            } else {
+              console.error(`[Watchdog] Stitch retry failed: ${response.status}`);
+              result.details.push({
+                projectId: project.id,
+                action: 'stitch_retry_failed',
+                result: `HTTP ${response.status}`,
+              });
+            }
+          } catch (error) {
+            console.error(`[Watchdog] Stitch retry error:`, error);
+          }
           continue;
         }
       }
 
-      // Check if project is too old and should be marked as failed
-      if (projectAge > MAX_AGE_MS) {
-        console.log(`[Watchdog] Project ${project.id} exceeded max age, marking as failed`);
-        
-        await supabase
-          .from('movie_projects')
-          .update({
-            status: 'failed',
-            pending_video_tasks: {
-              ...tasks,
-              stage: 'error',
-              error: 'Pipeline stalled - exceeded maximum processing time (45 min)',
-              watchdogRecovery: true,
-              recoveredAt: new Date().toISOString(),
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', project.id);
-        
-        result.projectsMarkedFailed++;
-        result.details.push({
-          projectId: project.id,
-          action: 'marked_failed',
-          result: 'Exceeded max processing time (45 min)',
-        });
-        continue;
-      }
-
-      // ==================== NEW: Handle stalled 'generating' projects ====================
+      // ==================== HANDLE STUCK GENERATING ====================
       if (project.status === 'generating') {
-        console.log(`[Watchdog] Checking clip completion for stalled generating project ${project.id}`);
-        
-        // Parse script to get expected clip count
-        let expectedClipCount = (tasks as any).clipCount || 6;
+        // Parse expected clip count
+        let expectedClipCount = ((tasks as Record<string, unknown>).clipCount as number) || 6;
         
         if (project.generated_script) {
           try {
@@ -188,35 +205,56 @@ serve(async (req) => {
             if (script.shots && Array.isArray(script.shots)) {
               expectedClipCount = script.shots.length;
             }
-          } catch (e) {
-            console.log(`[Watchdog] Could not parse script, using default clip count`);
-          }
+          } catch (e) { /* ignore parse errors */ }
         }
         
         // Get clip status
-        const { data: clips, error: clipsError } = await supabase
+        const { data: clips } = await supabase
           .from('video_clips')
           .select('id, shot_index, status, video_url')
           .eq('project_id', project.id)
           .order('shot_index');
         
-        if (clipsError) {
-          console.error(`[Watchdog] Error fetching clips for ${project.id}:`, clipsError);
+        const completedClips = (clips || []).filter((c: { status: string; video_url: string }) => 
+          c.status === 'completed' && c.video_url
+        );
+        
+        console.log(`[Watchdog] Clips: ${completedClips.length}/${expectedClipCount} completed`);
+        
+        // All clips done but stuck in 'generating' -> trigger stitch
+        if (completedClips.length >= expectedClipCount) {
+          console.log(`[Watchdog] All clips ready for ${project.id}, triggering stitch`);
+          
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({ projectId: project.id }),
+            });
+            
+            if (response.ok) {
+              result.projectsCompleted++;
+              result.details.push({
+                projectId: project.id,
+                action: 'stitch_triggered',
+                result: `All ${completedClips.length} clips ready`,
+              });
+            }
+          } catch (error) {
+            console.error(`[Watchdog] Stitch trigger error:`, error);
+          }
           continue;
         }
         
-        const completedClips = clips?.filter(c => c.status === 'completed' && c.video_url) || [];
-        const pendingClips = clips?.filter(c => c.status === 'pending' || c.status === 'generating') || [];
-        const failedClips = clips?.filter(c => c.status === 'failed') || [];
-        
-        console.log(`[Watchdog] Project ${project.id}: ${completedClips.length}/${expectedClipCount} clips completed, ${pendingClips.length} pending, ${failedClips.length} failed`);
-        
-        // If we have incomplete clips and the pipeline stalled, resume it
-        if (completedClips.length < expectedClipCount && completedClips.length > 0) {
-          console.log(`[Watchdog] Auto-resuming production for project ${project.id} from clip ${completedClips.length + 1}`);
+        // Incomplete clips and stalled -> resume production
+        if (completedClips.length > 0 && completedClips.length < expectedClipCount) {
+          console.log(`[Watchdog] Resuming production for ${project.id} from clip ${completedClips.length + 1}`);
           
           try {
-            const resumeResponse = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+            const response = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -229,136 +267,69 @@ serve(async (req) => {
               }),
             });
             
-            if (resumeResponse.ok) {
+            if (response.ok) {
               result.productionResumed++;
               result.details.push({
                 projectId: project.id,
                 action: 'production_resumed',
-                result: `Auto-resumed from clip ${completedClips.length + 1}/${expectedClipCount}`,
+                result: `Resumed from clip ${completedClips.length + 1}/${expectedClipCount}`,
               });
-              console.log(`[Watchdog] ✓ Successfully resumed production for ${project.id}`);
-            } else {
-              const errorText = await resumeResponse.text();
-              console.error(`[Watchdog] Failed to resume production for ${project.id}:`, errorText);
-              result.details.push({
-                projectId: project.id,
-                action: 'resume_failed',
-                result: `Resume failed: ${resumeResponse.status}`,
-              });
+              console.log(`[Watchdog] ✓ Production resumed for ${project.id}`);
             }
-          } catch (resumeError) {
-            console.error(`[Watchdog] Resume error for ${project.id}:`, resumeError);
-            result.details.push({
-              projectId: project.id,
-              action: 'resume_error',
-              result: resumeError instanceof Error ? resumeError.message : 'Unknown error',
-            });
-          }
-          continue;
-        }
-        
-        // If all clips are complete but project is still 'generating', trigger stitching
-        if (completedClips.length >= expectedClipCount) {
-          console.log(`[Watchdog] All ${completedClips.length} clips complete for ${project.id}, triggering stitch`);
-          
-          try {
-            // Get project audio info
-            const { data: projectData } = await supabase
-              .from('movie_projects')
-              .select('voice_audio_url, music_url')
-              .eq('id', project.id)
-              .single();
-            
-            const stitchResponse = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({
-                projectId: project.id,
-              }),
-            });
-            
-            if (stitchResponse.ok) {
-              result.projectsRecovered++;
-              result.details.push({
-                projectId: project.id,
-                action: 'stitch_triggered',
-                result: `All ${completedClips.length} clips ready, stitch started`,
-              });
-              console.log(`[Watchdog] ✓ Triggered stitch for ${project.id}`);
-            } else {
-              result.details.push({
-                projectId: project.id,
-                action: 'stitch_failed',
-                result: `Stitch trigger failed: ${stitchResponse.status}`,
-              });
-            }
-          } catch (stitchError) {
-            console.error(`[Watchdog] Stitch error for ${project.id}:`, stitchError);
+          } catch (error) {
+            console.error(`[Watchdog] Resume error:`, error);
           }
           continue;
         }
       }
 
-      // Handle stalled stitching
-      if (project.status === 'stitching' || project.status === 'assembling') {
-        console.log(`[Watchdog] Attempting to recover stalled stitching for ${project.id}`);
+      // ==================== HANDLE VERY OLD PROJECTS ====================
+      if (projectAge > MAX_AGE_MS) {
+        console.log(`[Watchdog] Project ${project.id} exceeded max age (60 min)`);
         
+        // Try one last stitch if clips exist
         const { data: clips } = await supabase
           .from('video_clips')
-          .select('id, video_url, duration_seconds, shot_index')
+          .select('id, video_url')
           .eq('project_id', project.id)
-          .eq('status', 'completed')
-          .order('shot_index');
+          .eq('status', 'completed');
         
         if (clips && clips.length > 0) {
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/simple-stitch`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({
-                projectId: project.id,
-              }),
-            });
-            
-            if (response.ok) {
-              result.projectsRecovered++;
-              result.details.push({
-                projectId: project.id,
-                action: 'stitch_recovery_triggered',
-                result: 'Stitch re-triggered',
-              });
-            } else {
-              result.details.push({
-                projectId: project.id,
-                action: 'stitch_recovery_failed',
-                result: `Stitch trigger failed: ${response.status}`,
-              });
-            }
-          } catch (recoveryError) {
-            console.error(`[Watchdog] Recovery failed for ${project.id}:`, recoveryError);
-            result.details.push({
-              projectId: project.id,
-              action: 'recovery_error',
-              result: recoveryError instanceof Error ? recoveryError.message : 'Unknown error',
-            });
-          }
-        } else {
+          // Create manifest as final fallback
+          await createManifestFallback(supabaseUrl, supabaseKey, project.id);
+          result.manifestFallbacks++;
           result.details.push({
             projectId: project.id,
-            action: 'no_clips',
-            result: 'No completed clips found to stitch',
+            action: 'max_age_manifest',
+            result: `Created manifest for ${clips.length} clips after timeout`,
+          });
+        } else {
+          // No clips at all - mark as failed
+          await supabase
+            .from('movie_projects')
+            .update({
+              status: 'failed',
+              pending_video_tasks: {
+                ...tasks,
+                stage: 'error',
+                error: 'Pipeline exceeded maximum processing time (60 min)',
+                failedAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          result.projectsMarkedFailed++;
+          result.details.push({
+            projectId: project.id,
+            action: 'marked_failed',
+            result: 'No clips generated within 60 minutes',
           });
         }
       }
     }
 
-    console.log(`[Watchdog] Complete: ${result.productionResumed} production resumed, ${result.projectsRecovered} recovered, ${result.projectsMarkedFailed} marked failed`);
+    console.log(`[Watchdog] Complete: ${result.productionResumed} resumed, ${result.stitchingRetried} stitch retries, ${result.manifestFallbacks} fallbacks`);
 
     return new Response(
       JSON.stringify({
@@ -382,3 +353,91 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Create a manifest fallback when Cloud Run stitching fails
+ */
+async function createManifestFallback(
+  supabaseUrl: string,
+  supabaseKey: string,
+  projectId: string
+) {
+  console.log(`[Watchdog] Creating manifest fallback for ${projectId}`);
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  // Get project and clips
+  const { data: projectData } = await supabase
+    .from('movie_projects')
+    .select('title, voice_audio_url, music_url')
+    .eq('id', projectId)
+    .single();
+  
+  const project = projectData as ProjectRecord | null;
+  
+  const { data: clipsData } = await supabase
+    .from('video_clips')
+    .select('id, video_url, duration_seconds, shot_index')
+    .eq('project_id', projectId)
+    .eq('status', 'completed')
+    .order('shot_index');
+  
+  const clips = clipsData as ClipRecord[] | null;
+  
+  if (!clips || clips.length === 0) {
+    console.error(`[Watchdog] No clips to create manifest for ${projectId}`);
+    return;
+  }
+  
+  const totalDuration = clips.reduce((sum, c) => sum + (c.duration_seconds || 6), 0);
+  
+  const manifest = {
+    version: "1.0",
+    projectId,
+    mode: "client_side_concat",
+    createdAt: new Date().toISOString(),
+    source: "watchdog_fallback",
+    clips: clips.map((clip, index) => ({
+      index,
+      shotId: clip.id,
+      videoUrl: clip.video_url,
+      duration: clip.duration_seconds || 6,
+      startTime: clips.slice(0, index).reduce((sum, c) => sum + (c.duration_seconds || 6), 0),
+    })),
+    totalDuration,
+    voiceUrl: project?.voice_audio_url || null,
+    musicUrl: project?.music_url || null,
+  };
+
+  const fileName = `manifest_${projectId}_watchdog_${Date.now()}.json`;
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  const manifestBytes = new TextEncoder().encode(manifestJson);
+
+  await supabase.storage
+    .from('temp-frames')
+    .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
+
+  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
+
+  await supabase
+    .from('movie_projects')
+    .update({
+      status: 'completed',
+      video_url: manifestUrl,
+      pending_video_tasks: {
+        stage: 'complete',
+        progress: 100,
+        mode: 'manifest_playback',
+        manifestUrl,
+        clipCount: clips.length,
+        totalDuration,
+        source: 'watchdog_fallback',
+        note: 'Completed via watchdog manifest fallback',
+        completedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+
+  console.log(`[Watchdog] ✅ Manifest created: ${manifestUrl}`);
+}

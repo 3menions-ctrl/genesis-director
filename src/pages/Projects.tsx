@@ -521,6 +521,8 @@ export default function Projects() {
   const [isLoadingClips, setIsLoadingClips] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid');
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
+  const [isStitchingAll, setIsStitchingAll] = useState(false);
+  const [stitchQueue, setStitchQueue] = useState<string[]>([]);
 
   // Handle Google Cloud Run stitch (real video stitching, not manifest)
   const handleGoogleStitch = async (projectId: string) => {
@@ -586,6 +588,104 @@ export default function Projects() {
     } finally {
       setRetryingProjectId(null);
     }
+  };
+
+  // Handle stitching ALL projects in the queue with Google Cloud
+  const handleStitchAll = async () => {
+    // Get projects that need stitching
+    const projectsToStitch = projects.filter(p => {
+      const hasClips = Boolean(p.video_clips?.length || p.video_url);
+      const isPlayable = isStitchedMp4(p.video_url) || 
+        (p.video_url && isManifestUrl(p.video_url) && (p.status as string) === 'completed');
+      const isProcessing = (p.status as string) === 'stitching';
+      const isStitchFailed = (p.status as string) === 'stitching_failed';
+      return (hasClips && !isPlayable && !isProcessing) || isStitchFailed;
+    });
+
+    if (projectsToStitch.length === 0) {
+      toast.info('No projects need stitching');
+      return;
+    }
+
+    setIsStitchingAll(true);
+    setStitchQueue(projectsToStitch.map(p => p.id));
+    
+    toast.info(`Starting batch stitch for ${projectsToStitch.length} projects...`, {
+      description: 'Each video takes 2-3 minutes to process'
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const project of projectsToStitch) {
+      try {
+        // Get all completed clips from database
+        const { data: clips, error: clipsError } = await supabase
+          .from('video_clips')
+          .select('id, shot_index, video_url, duration_seconds')
+          .eq('project_id', project.id)
+          .eq('status', 'completed')
+          .order('shot_index');
+
+        if (clipsError) throw clipsError;
+        if (!clips || clips.length === 0) {
+          console.log(`Project ${project.id} has no completed clips, skipping`);
+          continue;
+        }
+
+        // Call stitch-video WITHOUT forceMvpMode to use Cloud Run
+        const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
+          body: {
+            projectId: project.id,
+            projectTitle: project.name,
+            clips: clips.map(clip => ({
+              shotId: clip.id,
+              videoUrl: clip.video_url,
+              durationSeconds: clip.duration_seconds || 4,
+              transitionOut: 'cut',
+            })),
+            audioMixMode: 'mute',
+          },
+        });
+
+        if (stitchError) throw stitchError;
+
+        if (data?.success) {
+          successCount++;
+        } else {
+          throw new Error(data?.error || 'Unknown error');
+        }
+
+        // Small delay between requests to avoid overwhelming the service
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Update queue
+        setStitchQueue(prev => prev.filter(id => id !== project.id));
+        
+      } catch (err: any) {
+        console.error(`Stitch failed for project ${project.id}:`, err);
+        errorCount++;
+        setStitchQueue(prev => prev.filter(id => id !== project.id));
+      }
+    }
+
+    setIsStitchingAll(false);
+    setStitchQueue([]);
+
+    if (successCount > 0) {
+      toast.success(`Started stitching ${successCount} project${successCount > 1 ? 's' : ''}!`, {
+        description: 'Videos will appear in your library when ready'
+      });
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} project${errorCount > 1 ? 's' : ''} failed to start`);
+    }
+
+    // Start polling for completion
+    const pollInterval = setInterval(async () => {
+      await refreshProjects();
+    }, 10000);
+    setTimeout(() => clearInterval(pollInterval), 300000);
   };
 
   const handleRenameProject = (project: Project) => {
@@ -909,12 +1009,35 @@ export default function Projects() {
                 transition={{ delay: 0.1 }}
                 className="mb-12"
               >
-                <div className="flex items-center gap-3 mb-5">
-                  <Layers className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-xl font-bold text-white">Ready to Stitch</h2>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
-                    {needsStitching.length + stitchingProjects.length}
-                  </span>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <Layers className="w-5 h-5 text-amber-400" />
+                    <h2 className="text-xl font-bold text-white">Ready to Stitch</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
+                      {needsStitching.length + stitchingProjects.length}
+                    </span>
+                  </div>
+                  
+                  {needsStitching.length > 1 && !isStitchingAll && (
+                    <Button
+                      onClick={handleStitchAll}
+                      disabled={isStitchingAll || stitchQueue.length > 0}
+                      size="sm"
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-bold shadow-lg shadow-amber-500/20"
+                    >
+                      {isStitchingAll ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Stitching {stitchQueue.length} remaining...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Stitch All ({needsStitching.length})
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -954,14 +1077,14 @@ export default function Projects() {
                       </div>
                       <Button
                         onClick={() => handleGoogleStitch(project.id)}
-                        disabled={retryingProjectId === project.id}
+                        disabled={retryingProjectId === project.id || stitchQueue.includes(project.id)}
                         size="sm"
                         className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold"
                       >
-                        {retryingProjectId === project.id ? (
+                        {retryingProjectId === project.id || stitchQueue.includes(project.id) ? (
                           <>
                             <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                            Stitching...
+                            {stitchQueue.includes(project.id) ? 'Queued...' : 'Stitching...'}
                           </>
                         ) : (
                           <>

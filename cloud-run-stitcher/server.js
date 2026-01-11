@@ -881,9 +881,10 @@ app.post('/validate', async (req, res) => {
   });
 });
 
-// Frame extraction endpoint
+// Frame extraction endpoint - HYBRID ARCHITECTURE SUPPORT
+// When returnBase64: true, returns base64 instead of uploading (for edge function to handle)
 app.post('/extract-frame', async (req, res) => {
-  const { clipUrl, clipIndex, projectId } = req.body;
+  const { clipUrl, clipIndex, projectId, position = 'last', returnBase64 = false } = req.body;
   
   if (!clipUrl) {
     return res.status(400).json({ error: 'clipUrl is required' });
@@ -892,7 +893,8 @@ app.post('/extract-frame', async (req, res) => {
   const jobId = uuidv4();
   const workDir = path.join(TEMP_DIR, `frame_${jobId}`);
   
-  console.log(`[ExtractFrame] Starting frame extraction for clip ${clipIndex}`);
+  console.log(`[ExtractFrame] Starting ${position} frame extraction for clip ${clipIndex}`);
+  console.log(`[ExtractFrame] Return mode: ${returnBase64 ? 'base64' : 'upload'}`);
   
   try {
     await fs.mkdir(workDir, { recursive: true });
@@ -905,21 +907,36 @@ app.post('/extract-frame', async (req, res) => {
       throw new Error('Invalid video file');
     }
     
-    const framePath = path.join(workDir, 'last_frame.jpg');
+    const framePath = path.join(workDir, 'frame.jpg');
     
-    await runFFmpeg([
-      '-sseof', '-0.1',
-      '-i', clipPath,
-      '-frames:v', '1',
-      '-q:v', '2',
-      '-y',
-      framePath
-    ], `Extract last frame from clip ${clipIndex}`);
+    // Extract frame based on position
+    const ffmpegArgs = position === 'first' 
+      ? ['-i', clipPath, '-frames:v', '1', '-q:v', '2', '-y', framePath]
+      : ['-sseof', '-0.1', '-i', clipPath, '-frames:v', '1', '-q:v', '2', '-y', framePath];
     
-    const supabase = getSupabase();
-    const frameFileName = `frame_${projectId || 'unknown'}_clip_${clipIndex}_${Date.now()}.jpg`;
+    await runFFmpeg(ffmpegArgs, `Extract ${position} frame from clip ${clipIndex}`);
     
     const frameBuffer = await fs.readFile(framePath);
+    
+    // HYBRID ARCHITECTURE: Return base64 for edge function to handle storage
+    if (returnBase64) {
+      const base64Data = `data:image/jpeg;base64,${frameBuffer.toString('base64')}`;
+      
+      await fs.rm(workDir, { recursive: true, force: true });
+      
+      console.log(`[ExtractFrame] Returning base64 frame (${Math.round(frameBuffer.length / 1024)}KB)`);
+      
+      return res.json({
+        success: true,
+        frameBase64: base64Data,
+        clipIndex,
+        position
+      });
+    }
+    
+    // LEGACY: Direct upload to Supabase (uses configured SUPABASE_URL)
+    const supabase = getSupabase();
+    const frameFileName = `frame_${projectId || 'unknown'}_clip_${clipIndex}_${Date.now()}.jpg`;
     
     const { error: uploadError } = await supabase.storage
       .from('temp-frames')
@@ -937,11 +954,12 @@ app.post('/extract-frame', async (req, res) => {
     
     await fs.rm(workDir, { recursive: true, force: true });
     
-    console.log(`[ExtractFrame] Frame extracted successfully: ${lastFrameUrl}`);
+    console.log(`[ExtractFrame] Frame extracted and uploaded: ${lastFrameUrl}`);
     
     res.json({
       success: true,
       lastFrameUrl,
+      frameUrl: lastFrameUrl, // Alias for compatibility
       clipIndex
     });
     

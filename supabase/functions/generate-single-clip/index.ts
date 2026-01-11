@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_CLIP_DURATION = 4;
+const DEFAULT_CLIP_DURATION = 6;
 
 interface GenerateSingleClipRequest {
   userId: string;

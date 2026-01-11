@@ -173,5 +173,5 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
 
 // Export for backward compatibility
 export const DURATION_CREDIT_OPTIONS = [
-  { seconds: 4, label: '4 sec (Iron-Clad)', credits: CREDIT_COSTS.TOTAL_PER_SHOT },
+  { seconds: 6, label: '6 sec (Iron-Clad)', credits: CREDIT_COSTS.TOTAL_PER_SHOT },
 ] as const;

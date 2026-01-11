@@ -8,6 +8,111 @@ const corsHeaders = {
 
 const DEFAULT_CLIP_DURATION = 6;
 
+// =====================================================
+// CONSISTENCY ENGINE (Embedded for Edge Function)
+// =====================================================
+
+type DetectedPose = 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette' | 'occluded' | 'unknown';
+
+interface PoseAnalysis {
+  detectedPose: DetectedPose;
+  confidence: number;
+  faceVisible: boolean;
+  recommendedView: 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette';
+}
+
+const POSE_PATTERNS: { pattern: RegExp; pose: DetectedPose; confidence: number }[] = [
+  { pattern: /\b(from\s+behind|from\s+the\s+back|rear\s+view|back\s+to\s+(camera|us|viewer))\b/i, pose: 'back', confidence: 95 },
+  { pattern: /\b(walking\s+away|running\s+away|retreating|departing|leaving)\b/i, pose: 'back', confidence: 85 },
+  { pattern: /\b(facing\s+away|turned\s+away|back\s+turned)\b/i, pose: 'back', confidence: 90 },
+  { pattern: /\b(looking\s+into\s+(the\s+)?distance|gazing\s+at\s+the\s+horizon)\b/i, pose: 'back', confidence: 75 },
+  { pattern: /\b(over\s+the\s+shoulder)\b/i, pose: 'back', confidence: 80 },
+  { pattern: /\b(profile\s+(view|shot)|side\s+(view|profile|angle))\b/i, pose: 'side', confidence: 95 },
+  { pattern: /\b(from\s+the\s+side|lateral\s+view)\b/i, pose: 'side', confidence: 90 },
+  { pattern: /\b(three[-\s]quarter|3\/4\s+view|angled\s+view)\b/i, pose: 'three-quarter', confidence: 95 },
+  { pattern: /\b(silhouette|backlit|shadow\s+figure)\b/i, pose: 'silhouette', confidence: 95 },
+  { pattern: /\b(face\s+(hidden|obscured|covered)|wearing\s+(mask|helmet|hood))\b/i, pose: 'occluded', confidence: 90 },
+  { pattern: /\b(facing\s+(camera|us|forward|viewer)|front\s+view|head-on)\b/i, pose: 'front', confidence: 95 },
+  { pattern: /\b(looking\s+at\s+(camera|us|viewer)|eye\s+contact)\b/i, pose: 'front', confidence: 90 },
+];
+
+function detectPoseFromPrompt(prompt: string): PoseAnalysis {
+  let bestPose: DetectedPose = 'front';
+  let bestConfidence = 50;
+  
+  for (const { pattern, pose, confidence } of POSE_PATTERNS) {
+    if (pattern.test(prompt) && confidence > bestConfidence) {
+      bestPose = pose;
+      bestConfidence = confidence;
+    }
+  }
+  
+  const nonFacialPoses: DetectedPose[] = ['back', 'silhouette', 'occluded'];
+  const faceVisible = !nonFacialPoses.includes(bestPose);
+  
+  const viewMap: Record<DetectedPose, 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette'> = {
+    'front': 'front', 'side': 'side', 'back': 'back',
+    'three-quarter': 'three-quarter', 'silhouette': 'silhouette',
+    'occluded': 'front', 'unknown': 'front',
+  };
+  
+  return { detectedPose: bestPose, confidence: bestConfidence, faceVisible, recommendedView: viewMap[bestPose] };
+}
+
+interface MultiViewUrls {
+  frontViewUrl?: string;
+  sideViewUrl?: string;
+  threeQuarterViewUrl?: string;
+  backViewUrl?: string;
+  silhouetteUrl?: string;
+}
+
+function selectViewForPose(pose: PoseAnalysis, views: MultiViewUrls): { url: string | null; type: string } {
+  const viewUrlMap: Record<string, string | undefined> = {
+    'front': views.frontViewUrl, 'side': views.sideViewUrl, 'back': views.backViewUrl,
+    'three-quarter': views.threeQuarterViewUrl, 'silhouette': views.silhouetteUrl,
+  };
+  
+  if (viewUrlMap[pose.recommendedView]) {
+    return { url: viewUrlMap[pose.recommendedView]!, type: pose.recommendedView };
+  }
+  
+  // Fallback priority
+  const fallbacks = pose.recommendedView === 'back' 
+    ? ['silhouette', 'three-quarter', 'side', 'front']
+    : ['front', 'three-quarter', 'side'];
+  
+  for (const fb of fallbacks) {
+    if (viewUrlMap[fb]) return { url: viewUrlMap[fb]!, type: fb };
+  }
+  
+  return { url: null, type: 'none' };
+}
+
+function buildCharacterSpecificNegatives(nonFacialAnchors?: any): string[] {
+  const negatives: string[] = [
+    'character morphing', 'identity shift', 'face changing mid-shot',
+    'inconsistent appearance', 'different person', 'age progression',
+  ];
+  
+  if (nonFacialAnchors?.clothingColors?.length) {
+    const wrongColors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink']
+      .filter(c => !nonFacialAnchors.clothingColors.some((cc: string) => cc.toLowerCase().includes(c)));
+    negatives.push(...wrongColors.slice(0, 3).map(c => `${c} clothing`));
+    negatives.push('different outfit', 'clothing change');
+  }
+  
+  if (nonFacialAnchors?.hairColor) {
+    const currentColor = nonFacialAnchors.hairColor.toLowerCase();
+    const wrongHairColors = ['blonde', 'brunette', 'black', 'red', 'gray', 'white']
+      .filter(c => !currentColor.includes(c));
+    negatives.push(...wrongHairColors.slice(0, 2).map(c => `${c} hair`));
+    negatives.push('different hairstyle');
+  }
+  
+  return negatives;
+}
+
 interface GenerateSingleClipRequest {
   userId: string;
   projectId: string;

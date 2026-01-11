@@ -3,17 +3,16 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { 
   Film, Loader2, CheckCircle2, XCircle, Play, Download, Clock, ArrowLeft,
-  RotateCcw, Layers, Sparkles, AlertCircle, ExternalLink, RefreshCw,
-  ChevronRight, Zap, Eye, X, FileText, Users, Shield, Wand2, Volume2,
-  Music, Activity, Radio, Cpu, Server, Box, GitBranch, Terminal
+  RotateCcw, Layers, Sparkles, AlertCircle, RefreshCw,
+  ChevronRight, Zap, X, FileText, Users, Shield, Wand2,
+  Activity, Cpu, Terminal, Eye, Pause
 } from 'lucide-react';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
@@ -61,51 +60,63 @@ interface ProductionProject {
 const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.ElementType }> = [
   { name: 'Script Generation', shortName: 'Script', icon: FileText },
   { name: 'Identity Analysis', shortName: 'Identity', icon: Users },
-  { name: 'Quality Audit', shortName: 'QA', icon: Shield },
+  { name: 'Quality Audit', shortName: 'Audit', icon: Shield },
   { name: 'Asset Creation', shortName: 'Assets', icon: Wand2 },
-  { name: 'Video Production', shortName: 'Production', icon: Film },
-  { name: 'Final Assembly', shortName: 'Assembly', icon: Sparkles },
+  { name: 'Video Production', shortName: 'Render', icon: Film },
+  { name: 'Final Assembly', shortName: 'Stitch', icon: Sparkles },
 ];
 
-// ============= ANIMATED PIPELINE COMPONENT =============
+// ============= ANIMATED PIPELINE =============
 
-function AnimatedPipeline({ 
+function CinematicPipeline({ 
   stages, 
-  currentStageIndex, 
-  progress 
+  currentStageIndex 
 }: { 
   stages: StageStatus[]; 
   currentStageIndex: number;
-  progress: number;
 }) {
+  const progressValue = useMotionValue(0);
+  const smoothProgress = useSpring(progressValue, { stiffness: 50, damping: 20 });
+  
+  useEffect(() => {
+    const newProgress = currentStageIndex >= 0 ? ((currentStageIndex + 1) / stages.length) * 100 : 0;
+    progressValue.set(newProgress);
+  }, [currentStageIndex, stages.length, progressValue]);
+
   return (
-    <div className="relative">
-      {/* Connection line */}
-      <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 hidden lg:block">
-        <div className="absolute inset-0 bg-white/[0.05] rounded-full" />
+    <div className="relative py-8">
+      {/* Connection Track */}
+      <div className="absolute top-1/2 left-8 right-8 h-0.5 -translate-y-1/2 hidden sm:block">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] via-white/[0.08] to-white/[0.02]" />
         <motion.div 
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 via-white to-emerald-500 rounded-full"
-          style={{ width: `${Math.min((currentStageIndex / (stages.length - 1)) * 100 + (progress / stages.length), 100)}%` }}
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min((currentStageIndex / (stages.length - 1)) * 100 + (progress / stages.length / 100) * (100 / stages.length), 100)}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500/80 via-white to-emerald-500/80"
+          style={{ width: useTransform(smoothProgress, v => `${v}%`) }}
         />
-        {/* Animated pulse on the line */}
-        {currentStageIndex >= 0 && currentStageIndex < stages.length && stages[currentStageIndex]?.status === 'active' && (
-          <motion.div
-            className="absolute top-1/2 w-4 h-4 -translate-y-1/2 rounded-full bg-white shadow-lg shadow-white/50"
-            style={{ left: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
-            animate={{ 
-              scale: [1, 1.5, 1],
-              opacity: [1, 0.5, 1]
-            }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
+        {/* Flowing particles */}
+        {currentStageIndex >= 0 && stages[currentStageIndex]?.status === 'active' && (
+          <>
+            <motion.div
+              className="absolute top-1/2 w-2 h-2 -translate-y-1/2 rounded-full bg-white shadow-lg shadow-white/50"
+              animate={{ 
+                left: ['0%', '100%'],
+                opacity: [0, 1, 1, 0]
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute top-1/2 w-1.5 h-1.5 -translate-y-1/2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50"
+              animate={{ 
+                left: ['0%', '100%'],
+                opacity: [0, 1, 1, 0]
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: 1.5 }}
+            />
+          </>
         )}
       </div>
 
-      {/* Stage nodes */}
-      <div className="relative grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Stage Nodes */}
+      <div className="relative grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
         {stages.map((stage, index) => {
           const isActive = stage.status === 'active';
           const isComplete = stage.status === 'complete';
@@ -116,92 +127,104 @@ function AnimatedPipeline({
           return (
             <motion.div
               key={stage.name}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: index * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="relative"
+              transition={{ 
+                delay: index * 0.1, 
+                duration: 0.6, 
+                ease: [0.16, 1, 0.3, 1] 
+              }}
+              className="relative flex flex-col items-center"
             >
-              <div className={cn(
-                "relative p-4 rounded-2xl border transition-all duration-500",
-                isComplete && "bg-emerald-500/10 border-emerald-500/30 shadow-lg shadow-emerald-500/5",
-                isActive && "bg-white/[0.08] border-white/30 shadow-xl shadow-white/10",
-                isPending && "bg-white/[0.02] border-white/[0.06]",
-                isError && "bg-red-500/10 border-red-500/30"
-              )}>
-                {/* Active glow ring */}
+              {/* Node */}
+              <motion.div
+                className={cn(
+                  "relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-500",
+                  isComplete && "bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 shadow-lg shadow-emerald-500/20",
+                  isActive && "bg-gradient-to-br from-white/20 to-white/5 shadow-xl shadow-white/20",
+                  isPending && "bg-white/[0.03]",
+                  isError && "bg-gradient-to-br from-red-500/30 to-red-600/10 shadow-lg shadow-red-500/20"
+                )}
+                whileHover={{ scale: 1.05 }}
+              >
+                {/* Glow rings for active */}
                 {isActive && (
                   <>
                     <motion.div 
-                      className="absolute inset-0 rounded-2xl border-2 border-white/30"
-                      animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0, 0.5] }}
+                      className="absolute inset-0 rounded-2xl border border-white/40"
+                      animate={{ scale: [1, 1.15, 1], opacity: [0.8, 0, 0.8] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
-                    <motion.div
-                      className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/5 via-white/10 to-white/5"
-                      animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                      transition={{ duration: 3, repeat: Infinity }}
+                    <motion.div 
+                      className="absolute inset-0 rounded-2xl border border-white/20"
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
                     />
                   </>
                 )}
+                
+                {/* Border */}
+                <div className={cn(
+                  "absolute inset-0 rounded-2xl border transition-colors duration-500",
+                  isComplete && "border-emerald-500/50",
+                  isActive && "border-white/50",
+                  isPending && "border-white/[0.08]",
+                  isError && "border-red-500/50"
+                )} />
 
-                <div className="relative flex flex-col items-center text-center">
-                  {/* Icon container */}
-                  <div className={cn(
-                    "relative w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300",
-                    isComplete && "bg-emerald-500/20",
-                    isActive && "bg-white/10",
-                    isPending && "bg-white/[0.04]",
-                    isError && "bg-red-500/20"
-                  )}>
-                    {isActive ? (
-                      <div className="relative">
-                        <motion.div
-                          className="absolute inset-0 bg-white/20 rounded-full"
-                          animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        />
-                        <Loader2 className="relative w-5 h-5 text-white animate-spin" />
-                      </div>
-                    ) : isComplete ? (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                      >
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                      </motion.div>
-                    ) : isError ? (
-                      <XCircle className="w-5 h-5 text-red-400" />
-                    ) : (
-                      <Icon className={cn("w-5 h-5 transition-colors", isPending ? "text-white/30" : "text-white/70")} />
-                    )}
-                  </div>
-                  
-                  <h3 className={cn(
-                    "text-xs font-semibold transition-colors mb-1",
-                    isComplete && "text-emerald-400",
-                    isActive && "text-white",
-                    isPending && "text-white/40",
-                    isError && "text-red-400"
-                  )}>
-                    {stage.shortName}
-                  </h3>
-                  
-                  {stage.details && (
-                    <motion.span 
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={cn(
-                        "text-[10px] font-medium px-2 py-0.5 rounded-full",
-                        isComplete && "bg-emerald-500/20 text-emerald-400",
-                        isActive && "bg-white/10 text-white/70"
-                      )}
-                    >
-                      {stage.details}
-                    </motion.span>
+                {/* Icon */}
+                {isActive ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Loader2 className="w-6 h-6 text-white" />
+                  </motion.div>
+                ) : isComplete ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                  >
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  </motion.div>
+                ) : isError ? (
+                  <XCircle className="w-6 h-6 text-red-400" />
+                ) : (
+                  <Icon className={cn("w-5 h-5 transition-colors", isPending ? "text-white/20" : "text-white/60")} />
+                )}
+              </motion.div>
+
+              {/* Label */}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.1 + 0.3 }}
+                className={cn(
+                  "mt-3 text-[11px] sm:text-xs font-semibold tracking-wide transition-colors duration-300",
+                  isComplete && "text-emerald-400",
+                  isActive && "text-white",
+                  isPending && "text-white/30",
+                  isError && "text-red-400"
+                )}
+              >
+                {stage.shortName}
+              </motion.span>
+
+              {/* Details badge */}
+              {stage.details && (
+                <motion.span
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium",
+                    isComplete && "bg-emerald-500/20 text-emerald-400",
+                    isActive && "bg-white/10 text-white/80"
                   )}
-                </div>
-              </div>
+                >
+                  {stage.details}
+                </motion.span>
+              )}
             </motion.div>
           );
         })}
@@ -210,9 +233,9 @@ function AnimatedPipeline({
   );
 }
 
-// ============= UNIFIED ACTIVITY LOG =============
+// ============= LIVE ACTIVITY FEED =============
 
-function UnifiedActivityLog({ logs, isLive }: { logs: PipelineLog[]; isLive: boolean }) {
+function LiveActivityFeed({ logs, isLive }: { logs: PipelineLog[]; isLive: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -221,70 +244,78 @@ function UnifiedActivityLog({ logs, isLive }: { logs: PipelineLog[]; isLive: boo
     }
   }, [logs]);
 
+  const getTypeStyles = (type: PipelineLog['type']) => {
+    switch (type) {
+      case 'success': return 'bg-emerald-500 shadow-emerald-500/50';
+      case 'error': return 'bg-red-500 shadow-red-500/50';
+      case 'warning': return 'bg-amber-500 shadow-amber-500/50';
+      default: return 'bg-white/40 shadow-white/20';
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-2xl bg-[#0a0a0a] border border-white/[0.08]"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="relative h-full flex flex-col rounded-2xl bg-black/40 backdrop-blur-xl border border-white/[0.08] overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2.5">
           <div className="relative">
+            <Terminal className={cn("w-4 h-4", isLive ? "text-emerald-400" : "text-white/40")} />
             {isLive && (
               <motion.div
-                className="absolute inset-0 bg-emerald-500 rounded-full"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                className="absolute -inset-1 bg-emerald-500/30 rounded-full blur-sm"
+                animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
             )}
-            <Terminal className={cn("relative w-4 h-4", isLive ? "text-emerald-400" : "text-white/50")} />
           </div>
-          <span className="text-sm font-semibold text-white">Activity Log</span>
+          <span className="text-xs font-semibold text-white">Activity</span>
           {isLive && (
             <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400"
             >
-              Live
+              <motion.div 
+                className="w-1 h-1 rounded-full bg-emerald-400"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+              <span className="text-[9px] font-bold uppercase tracking-wider">Live</span>
             </motion.span>
           )}
         </div>
-        <span className="text-xs text-white/30">{logs.length} events</span>
+        <span className="text-[10px] text-white/30 font-mono">{logs.length}</span>
       </div>
 
       {/* Logs */}
-      <div ref={scrollRef} className="h-[240px] overflow-y-auto p-4 space-y-1.5">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-1">
         <AnimatePresence mode="popLayout">
           {logs.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <p className="text-white/30 text-sm">Waiting for pipeline events...</p>
+              <p className="text-white/20 text-xs">Awaiting events...</p>
             </div>
           ) : (
-            logs.map((log) => (
+            logs.slice(-50).map((log) => (
               <motion.div
                 key={log.id}
-                initial={{ opacity: 0, x: -20, height: 0 }}
+                initial={{ opacity: 0, x: -10, height: 0 }}
                 animate={{ opacity: 1, x: 0, height: 'auto' }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-start gap-3 py-1.5 group"
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-start gap-2 py-1"
               >
-                <span className="text-[10px] font-mono text-white/30 shrink-0 mt-0.5">{log.time}</span>
-                <div className={cn(
-                  "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
-                  log.type === 'success' && "bg-emerald-400",
-                  log.type === 'error' && "bg-red-400",
-                  log.type === 'warning' && "bg-amber-400",
-                  log.type === 'info' && "bg-white/40"
-                )} />
+                <span className="text-[9px] font-mono text-white/25 shrink-0 mt-0.5 w-12">{log.time.split(':').slice(1).join(':')}</span>
+                <div className={cn("w-1.5 h-1.5 rounded-full mt-1 shrink-0 shadow-sm", getTypeStyles(log.type))} />
                 <span className={cn(
-                  "text-xs leading-relaxed",
-                  log.type === 'success' && "text-emerald-400",
-                  log.type === 'error' && "text-red-400",
-                  log.type === 'warning' && "text-amber-400",
-                  log.type === 'info' && "text-white/60"
+                  "text-[11px] leading-relaxed",
+                  log.type === 'success' && "text-emerald-400/90",
+                  log.type === 'error' && "text-red-400/90",
+                  log.type === 'warning' && "text-amber-400/90",
+                  log.type === 'info' && "text-white/50"
                 )}>
                   {log.message}
                 </span>
@@ -294,10 +325,10 @@ function UnifiedActivityLog({ logs, isLive }: { logs: PipelineLog[]; isLive: boo
         </AnimatePresence>
       </div>
 
-      {/* Animated gradient line at bottom when live */}
+      {/* Live indicator bar */}
       {isLive && (
         <motion.div
-          className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500/0 via-emerald-500 to-emerald-500/0"
+          className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent"
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 2, repeat: Infinity }}
         />
@@ -306,9 +337,9 @@ function UnifiedActivityLog({ logs, isLive }: { logs: PipelineLog[]; isLive: boo
   );
 }
 
-// ============= CLIP PROGRESS GRID =============
+// ============= CLIP MOSAIC =============
 
-function ClipProgressGrid({ 
+function ClipMosaic({ 
   clips, 
   onPlay, 
   onRetry, 
@@ -320,7 +351,7 @@ function ClipProgressGrid({
   retryingIndex: number | null;
 }) {
   return (
-    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 sm:gap-2">
       {clips.map((clip, index) => {
         const isCompleted = clip.status === 'completed';
         const isGenerating = clip.status === 'generating';
@@ -335,19 +366,18 @@ function ClipProgressGrid({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.02, duration: 0.3 }}
             className={cn(
-              "relative aspect-video rounded-lg overflow-hidden cursor-pointer transition-all duration-300 group",
-              "border",
-              isCompleted && "border-emerald-500/50 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10",
-              isGenerating && "border-white/30",
-              isFailed && "border-red-500/50 hover:border-red-400",
-              isPending && "border-white/[0.06]"
+              "relative aspect-video rounded-lg overflow-hidden cursor-pointer group",
+              "border transition-all duration-300",
+              isCompleted && "border-emerald-500/40 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 hover:scale-105",
+              isGenerating && "border-white/20",
+              isFailed && "border-red-500/40 hover:border-red-400",
+              isPending && "border-white/[0.04]"
             )}
             onClick={() => {
               if (isCompleted && clip.videoUrl) onPlay(clip.videoUrl);
               else if (isFailed) onRetry(index);
             }}
           >
-            {/* Content */}
             {isCompleted && clip.videoUrl ? (
               <>
                 <video
@@ -357,52 +387,49 @@ function ClipProgressGrid({
                   preload="metadata"
                   onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
                 />
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  className="absolute inset-0 bg-black/60 flex items-center justify-center"
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileHover={{ opacity: 1, scale: 1 }}
+                    className="opacity-0 group-hover:opacity-100"
+                  >
+                    <Play className="w-4 h-4 text-white" fill="currentColor" />
+                  </motion.div>
+                </div>
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-0.5 right-0.5"
                 >
-                  <Play className="w-4 h-4 text-white" fill="currentColor" />
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400 drop-shadow" />
                 </motion.div>
               </>
             ) : isGenerating ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.06] to-transparent">
                 <motion.div
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                 >
-                  <Loader2 className="w-4 h-4 text-white/60" />
+                  <Loader2 className="w-3 h-3 text-white/50" />
                 </motion.div>
               </div>
             ) : isFailed ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-500/10 to-transparent">
                 {isRetrying ? (
-                  <Loader2 className="w-4 h-4 text-red-400 animate-spin" />
+                  <Loader2 className="w-3 h-3 text-red-400 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 text-red-400" />
+                  <RefreshCw className="w-3 h-3 text-red-400 group-hover:scale-110 transition-transform" />
                 )}
               </div>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.02] to-transparent">
-                <span className="text-sm font-bold text-white/15">{index + 1}</span>
+              <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01]">
+                <span className="text-xs font-bold text-white/10">{index + 1}</span>
               </div>
             )}
-
-            {/* Index badge */}
-            <div className="absolute bottom-1 left-1 px-1 py-0.5 rounded bg-black/60 backdrop-blur-sm">
-              <span className="text-[9px] font-bold text-white">{index + 1}</span>
+            
+            <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+              <span className="text-[8px] font-bold text-white/80">{index + 1}</span>
             </div>
-
-            {/* Status indicator */}
-            {isCompleted && (
-              <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute top-1 right-1"
-              >
-                <CheckCircle2 className="w-3 h-3 text-emerald-400 drop-shadow-lg" />
-              </motion.div>
-            )}
           </motion.div>
         );
       })}
@@ -410,9 +437,9 @@ function ClipProgressGrid({
   );
 }
 
-// ============= PRODUCTION PROJECTS LIST =============
+// ============= PRODUCTION SIDEBAR =============
 
-function ProductionProjectsList({ 
+function ProductionSidebar({ 
   projects, 
   activeProjectId, 
   onSelect 
@@ -427,17 +454,17 @@ function ProductionProjectsList({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]"
+      className="rounded-2xl bg-black/40 backdrop-blur-xl border border-white/[0.08] p-4"
     >
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-4 h-4 text-white/50" />
-        <span className="text-sm font-semibold text-white">Active Productions</span>
-        <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px]">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="w-3.5 h-3.5 text-white/40" />
+        <span className="text-xs font-semibold text-white">Active</span>
+        <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[9px] px-1.5 py-0">
           {projects.length}
         </Badge>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {projects.map((project, index) => (
           <motion.button
             key={project.id}
@@ -446,48 +473,39 @@ function ProductionProjectsList({
             transition={{ delay: index * 0.05 }}
             onClick={() => onSelect(project.id)}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 text-left group",
+              "w-full flex items-center gap-2 p-2 rounded-xl transition-all duration-200 text-left",
               activeProjectId === project.id 
                 ? "bg-white/[0.08] border border-white/20" 
-                : "bg-white/[0.02] border border-transparent hover:bg-white/[0.05] hover:border-white/10"
+                : "hover:bg-white/[0.04] border border-transparent"
             )}
           >
-            {/* Thumbnail/Status */}
-            <div className="relative w-12 h-8 rounded-lg overflow-hidden bg-white/5 shrink-0">
+            <div className="relative w-8 h-5 rounded bg-white/5 shrink-0 overflow-hidden">
               {project.thumbnail ? (
                 <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Film className="w-4 h-4 text-white/20" />
+                  <Film className="w-2.5 h-2.5 text-white/20" />
                 </div>
               )}
               {['generating', 'producing', 'stitching'].includes(project.status) && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-3 h-3 text-white animate-spin" />
+                  <Loader2 className="w-2 h-2 text-white animate-spin" />
                 </div>
               )}
             </div>
 
-            {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{project.title}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+              <p className="text-[11px] font-medium text-white truncate">{project.title}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex-1 h-0.5 rounded-full bg-white/10 overflow-hidden">
                   <motion.div 
-                    className="h-full bg-gradient-to-r from-white/50 to-white"
+                    className="h-full bg-white/50"
                     initial={{ width: 0 }}
                     animate={{ width: `${project.progress}%` }}
-                    transition={{ duration: 0.5 }}
                   />
                 </div>
-                <span className="text-[10px] text-white/40 shrink-0">{project.progress}%</span>
+                <span className="text-[9px] text-white/40">{project.progress}%</span>
               </div>
-            </div>
-
-            {/* Clips count */}
-            <div className="text-right shrink-0">
-              <span className="text-xs text-white/60">{project.clipsCompleted}/{project.totalClips}</span>
-              <p className="text-[10px] text-white/30">clips</p>
             </div>
           </motion.button>
         ))}
@@ -530,6 +548,7 @@ export default function Production() {
 
   // Animation values
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
+  const displayProgress = useTransform(springProgress, v => Math.round(v));
 
   // Log ID counter
   const logIdRef = useRef(0);
@@ -655,7 +674,6 @@ export default function Production() {
         if (tasks.clipCount) setExpectedClipCount(tasks.clipCount);
         if (tasks.auditScore) setAuditScore(tasks.auditScore);
         
-        // Set stage statuses based on tasks
         if (tasks.stage) {
           const stageMap: Record<string, number> = {
             'preproduction': 0, 'qualitygate': 2, 'assets': 3,
@@ -822,7 +840,7 @@ export default function Production() {
     }
   }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isSimpleStitching, projectId, user, addLog, updateStageStatus]);
 
-  // Handle retry clip
+  // Handlers
   const handleRetryClip = async (clipIndex: number) => {
     if (!projectId || !user) return;
     setRetryingClipIndex(clipIndex);
@@ -847,7 +865,6 @@ export default function Production() {
     }
   };
 
-  // Handle simple stitch
   const handleSimpleStitch = async () => {
     if (!projectId || !user || isSimpleStitching) return;
     setIsSimpleStitching(true);
@@ -887,7 +904,6 @@ export default function Production() {
     }
   };
 
-  // Handle resume
   const handleResume = async () => {
     if (!projectId || !user || isResuming) return;
     setIsResuming(true);
@@ -912,7 +928,6 @@ export default function Production() {
     }
   };
 
-  // Helpers
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -927,150 +942,210 @@ export default function Production() {
   // Loading
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <motion.div className="absolute inset-0 bg-white/10 rounded-full blur-xl" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-            <Loader2 className="relative w-10 h-10 animate-spin text-white" />
+      <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="relative w-20 h-20">
+            <motion.div 
+              className="absolute inset-0 rounded-full border-2 border-white/10"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div 
+              className="absolute inset-2 rounded-full border-2 border-t-white border-r-transparent border-b-transparent border-l-transparent"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Film className="w-6 h-6 text-white/60" />
+            </div>
           </div>
-          <p className="text-white/50 text-sm">Loading production studio...</p>
+          <p className="text-white/40 text-sm font-medium">Initializing Studio</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] relative overflow-hidden">
-      {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none">
+    <div className="min-h-screen bg-[#030303] relative">
+      {/* Ambient Gradients */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div 
-          className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-white/[0.02] to-transparent blur-[100px]"
-          animate={{ opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 8, repeat: Infinity }}
+          className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full"
+          style={{
+            background: isComplete 
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)'
+              : isError
+              ? 'radial-gradient(circle, rgba(239, 68, 68, 0.08) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(255, 255, 255, 0.04) 0%, transparent 70%)'
+          }}
+          animate={{ 
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute bottom-[-30%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-tl from-white/[0.015] to-transparent blur-[120px]"
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity, delay: 2 }}
+          className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 70%)'
+          }}
+          animate={{ 
+            x: [0, -30, 0],
+            y: [0, -40, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
       {/* Header */}
-      <nav className="sticky top-0 z-50 backdrop-blur-2xl bg-black/60 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-14 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="text-white/60 hover:text-white" onClick={() => navigate('/projects')}>
-                <ArrowLeft className="w-5 h-5" />
+      <header className="sticky top-0 z-50 backdrop-blur-2xl bg-black/40 border-b border-white/[0.04]">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-14 flex items-center justify-between gap-4">
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-8 h-8 text-white/50 hover:text-white hover:bg-white/5" 
+                onClick={() => navigate('/projects')}
+              >
+                <ArrowLeft className="w-4 h-4" />
               </Button>
               
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-9 h-9 rounded-xl flex items-center justify-center",
-                  isComplete ? "bg-emerald-500/20" : isError ? "bg-red-500/20" : "bg-white/10"
-                )}>
+                <motion.div
+                  className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center",
+                    isComplete ? "bg-emerald-500/20" : isError ? "bg-red-500/20" : "bg-white/[0.06]"
+                  )}
+                  animate={isRunning ? { scale: [1, 1.05, 1] } : {}}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
                   {isRunning && <Loader2 className="w-4 h-4 text-white animate-spin" />}
                   {isComplete && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                   {isError && <XCircle className="w-4 h-4 text-red-400" />}
-                  {!isRunning && !isComplete && !isError && <Film className="w-4 h-4 text-white/70" />}
-                </div>
-                <div>
-                  <h1 className="text-sm font-semibold text-white">Production Studio</h1>
-                  <p className="text-xs text-white/40 truncate max-w-[150px] sm:max-w-none">{projectTitle}</p>
+                  {!isRunning && !isComplete && !isError && <Film className="w-4 h-4 text-white/50" />}
+                </motion.div>
+                <div className="hidden sm:block">
+                  <h1 className="text-sm font-semibold text-white leading-none">Production</h1>
+                  <p className="text-xs text-white/40 truncate max-w-[200px] mt-0.5">{projectTitle}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Center - Progress */}
+            <div className="flex-1 max-w-md hidden md:block">
+              <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <motion.div
+                  className={cn(
+                    "absolute inset-y-0 left-0 rounded-full",
+                    isComplete ? "bg-gradient-to-r from-emerald-600 to-emerald-400" 
+                      : isError ? "bg-gradient-to-r from-red-600 to-red-400"
+                      : "bg-gradient-to-r from-white/40 to-white"
+                  )}
+                  style={{ width: `${progress}%` }}
+                />
+                {isRunning && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Right */}
+            <div className="flex items-center gap-2">
               {isRunning && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10">
-                  <motion.div className="w-2 h-2 rounded-full bg-emerald-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1, repeat: Infinity }} />
-                  <span className="text-xs font-medium text-white">Live</span>
+                <motion.div 
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+                >
+                  <motion.div 
+                    className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  />
+                  <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Live</span>
                 </motion.div>
               )}
               
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
-                <Clock className="w-3.5 h-3.5 text-white/50" />
-                <span className="text-xs font-mono text-white">{formatTime(elapsedTime)}</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
+                <Clock className="w-3 h-3 text-white/40" />
+                <span className="text-xs font-mono text-white/70">{formatTime(elapsedTime)}</span>
               </div>
+
+              <motion.div 
+                className={cn(
+                  "px-3 py-1 rounded-full font-bold text-sm",
+                  isComplete ? "text-emerald-400" : isError ? "text-red-400" : "text-white"
+                )}
+                key={Math.round(progress)}
+                initial={{ scale: 1.2 }}
+                animate={{ scale: 1 }}
+              >
+                {Math.round(progress)}%
+              </motion.div>
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        
-        {/* Progress Hero */}
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6 rounded-3xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08]">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-white mb-1">
-                {isComplete ? 'Production Complete!' : isError ? 'Production Failed' : 'Production in Progress'}
-              </h2>
-              <p className="text-sm text-white/40">
-                {isComplete ? 'Your video is ready' : isError ? 'An error occurred' : `Stage ${Math.max(currentStageIndex + 1, 1)} of ${stages.length}`}
-              </p>
-            </div>
-            <motion.span 
-              className={cn("text-4xl font-bold", isComplete ? "text-emerald-400" : isError ? "text-red-400" : "text-white")}
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              key={Math.round(progress)}
-            >
-              {Math.round(progress)}%
-            </motion.span>
-          </div>
+      <main className="relative z-10 max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
-            <motion.div
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full",
-                isComplete ? "bg-gradient-to-r from-emerald-500 to-emerald-400" 
-                  : isError ? "bg-gradient-to-r from-red-500 to-red-400"
-                  : "bg-gradient-to-r from-white/60 to-white"
-              )}
-              style={{ width: `${progress}%` }}
-            />
-            {isRunning && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              />
-            )}
-          </div>
-        </motion.section>
+          {/* Main Area */}
+          <div className="lg:col-span-9 space-y-6">
+            
+            {/* Pipeline */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 sm:p-6 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/[0.06]"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="w-4 h-4 text-white/40" />
+                <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Pipeline</span>
+              </div>
+              <CinematicPipeline stages={stages} currentStageIndex={currentStageIndex} />
+            </motion.section>
 
-        {/* Pipeline Stages */}
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-4 h-4 text-white/50" />
-            <span className="text-sm font-semibold text-white">Pipeline Stages</span>
-          </div>
-          <AnimatedPipeline stages={stages} currentStageIndex={currentStageIndex} progress={progress} />
-        </motion.section>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Clips + Status */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Clips Grid */}
+            {/* Clips */}
             {clipResults.length > 0 && (
-              <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="p-4 sm:p-6 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/[0.06]"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Film className="w-4 h-4 text-white/50" />
-                    <span className="text-sm font-semibold text-white">Video Clips</span>
-                    <span className="text-xs text-white/40">{completedClips}/{clipResults.length}</span>
+                    <Film className="w-4 h-4 text-white/40" />
+                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Clips</span>
+                    <span className="text-xs text-white/40">
+                      <span className="text-white font-semibold">{completedClips}</span>/{clipResults.length}
+                    </span>
                   </div>
                   {completedClips > 0 && (
-                    <Button variant="ghost" size="sm" className="text-white/50 hover:text-white text-xs" onClick={() => navigate(`/clips?projectId=${projectId}`)}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-white/40 hover:text-white text-xs h-7 px-2"
+                      onClick={() => navigate(`/clips?projectId=${projectId}`)}
+                    >
                       View All <ChevronRight className="w-3 h-3 ml-1" />
                     </Button>
                   )}
                 </div>
-                <ClipProgressGrid 
+                <ClipMosaic 
                   clips={clipResults}
                   onPlay={setSelectedClipUrl}
                   onRetry={handleRetryClip}
@@ -1080,88 +1155,140 @@ export default function Production() {
             )}
 
             {/* Status Cards */}
-            {projectStatus === 'stitching' && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
-                <div className="flex items-center gap-3 mb-3">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-                    <Cpu className="w-5 h-5 text-white" />
-                  </motion.div>
-                  <span className="text-sm font-semibold text-white">Final Assembly</span>
-                </div>
-                <p className="text-xs text-white/50 mb-3">Cloud Run is processing your video...</p>
-                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-white/40 to-white"
-                    animate={{ width: ['20%', '80%', '40%', '90%'] }}
-                    transition={{ duration: 4, repeat: Infinity }}
-                  />
-                </div>
-              </motion.div>
-            )}
+            <AnimatePresence mode="wait">
+              {projectStatus === 'stitching' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08]"
+                >
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Cpu className="w-5 h-5 text-white" />
+                    </motion.div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white">Assembling Final Video</p>
+                      <p className="text-xs text-white/40 mt-0.5">Cloud processing in progress...</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 h-1 rounded-full bg-white/10 overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-white/30 via-white to-white/30"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      style={{ width: '50%' }}
+                    />
+                  </div>
+                </motion.div>
+              )}
 
-            {error && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-400 mb-1">Pipeline Error</p>
-                    <p className="text-xs text-white/50 mb-3">{error}</p>
-                    <div className="flex gap-2">
-                      {completedClips > 0 && (
-                        <Button size="sm" className="bg-white text-black hover:bg-white/90 rounded-full" onClick={handleResume} disabled={isResuming}>
-                          {isResuming ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RotateCcw className="w-3 h-3 mr-1" />}
-                          Resume
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/20"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-red-400">Pipeline Error</p>
+                      <p className="text-xs text-white/50 mt-1">{error}</p>
+                      <div className="flex gap-2 mt-3">
+                        {completedClips > 0 && (
+                          <Button 
+                            size="sm" 
+                            className="bg-white text-black hover:bg-white/90 rounded-full h-8" 
+                            onClick={handleResume} 
+                            disabled={isResuming}
+                          >
+                            {isResuming ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+                            Resume
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="rounded-full h-8 border-white/10 text-white/60" 
+                          onClick={() => navigate('/create')}
+                        >
+                          Start New
                         </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="rounded-full border-white/10 text-white/70" onClick={() => navigate('/create')}>
-                        Start New
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {projectStatus === 'stitching_failed' && completedClips > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20"
+                >
+                  <div className="flex items-start gap-3">
+                    <Layers className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-400">Assembly Failed</p>
+                      <p className="text-xs text-white/50 mt-1">All clips ready. Try simple stitch.</p>
+                      <Button 
+                        size="sm" 
+                        className="mt-3 bg-amber-500 hover:bg-amber-400 text-black rounded-full h-8" 
+                        onClick={handleSimpleStitch} 
+                        disabled={isSimpleStitching}
+                      >
+                        {isSimpleStitching ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
+                        Quick Stitch
                       </Button>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-
-            {projectStatus === 'stitching_failed' && completedClips > 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-                <div className="flex items-start gap-3">
-                  <Layers className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-amber-400 mb-1">Stitch Failed</p>
-                    <p className="text-xs text-white/50 mb-3">All clips generated but assembly failed. Try simple stitch.</p>
-                    <Button size="sm" className="bg-amber-500 text-black hover:bg-amber-400 rounded-full" onClick={handleSimpleStitch} disabled={isSimpleStitching}>
-                      {isSimpleStitching ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
-                      Simple Stitch
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Completed Video */}
             {finalVideoUrl && (
-              <motion.section initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="p-6 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/30">
+              <motion.section 
+                initial={{ opacity: 0, y: 20, scale: 0.98 }} 
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20"
+              >
                 <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                  >
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                  </motion.div>
                   <h2 className="text-lg font-bold text-white">Your Video is Ready!</h2>
                 </div>
                 
-                <div className="aspect-video rounded-2xl overflow-hidden border border-emerald-500/20 mb-4">
+                <div className="aspect-video rounded-xl overflow-hidden border border-emerald-500/20 mb-4 bg-black">
                   {finalVideoUrl.endsWith('.json') ? (
                     <ManifestVideoPlayer manifestUrl={finalVideoUrl} className="w-full h-full" />
                   ) : (
-                    <video src={finalVideoUrl} controls className="w-full h-full object-contain bg-black" />
+                    <video src={finalVideoUrl} controls className="w-full h-full object-contain" />
                   )}
                 </div>
                 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   {!finalVideoUrl.endsWith('.json') && (
                     <Button className="bg-emerald-500 hover:bg-emerald-400 text-white rounded-full" asChild>
                       <a href={finalVideoUrl} download><Download className="w-4 h-4 mr-2" />Download</a>
                     </Button>
                   )}
-                  <Button variant="outline" className="rounded-full border-white/10 text-white/70 hover:text-white" onClick={() => navigate('/projects')}>
-                    View All Projects
+                  <Button 
+                    variant="outline" 
+                    className="rounded-full border-white/10 text-white/60 hover:text-white" 
+                    onClick={() => navigate('/projects')}
+                  >
+                    All Projects
                   </Button>
                 </div>
               </motion.section>
@@ -1189,11 +1316,15 @@ export default function Production() {
             )}
           </div>
 
-          {/* Right: Activity Log + Projects */}
-          <div className="space-y-6">
-            <UnifiedActivityLog logs={pipelineLogs} isLive={isRunning} />
-            
-            <ProductionProjectsList 
+          {/* Sidebar */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Activity Feed */}
+            <div className="h-[300px]">
+              <LiveActivityFeed logs={pipelineLogs} isLive={isRunning} />
+            </div>
+
+            {/* Active Productions */}
+            <ProductionSidebar 
               projects={allProductionProjects}
               activeProjectId={projectId}
               onSelect={(id) => navigate(`/production?projectId=${id}`)}
@@ -1201,18 +1332,28 @@ export default function Production() {
 
             {/* Quality Score */}
             {auditScore !== null && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={cn(
-                "p-4 rounded-2xl border",
-                auditScore >= 80 ? "bg-emerald-500/10 border-emerald-500/30" 
-                  : auditScore >= 60 ? "bg-amber-500/10 border-amber-500/30"
-                  : "bg-red-500/10 border-red-500/30"
-              )}>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "p-4 rounded-2xl border backdrop-blur-xl",
+                  auditScore >= 80 ? "bg-emerald-500/10 border-emerald-500/20" 
+                    : auditScore >= 60 ? "bg-amber-500/10 border-amber-500/20"
+                    : "bg-red-500/10 border-red-500/20"
+                )}
+              >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className={cn("w-5 h-5", auditScore >= 80 ? "text-emerald-400" : auditScore >= 60 ? "text-amber-400" : "text-red-400")} />
-                    <span className="text-sm font-semibold text-white">Quality Score</span>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={cn(
+                      "w-4 h-4",
+                      auditScore >= 80 ? "text-emerald-400" : auditScore >= 60 ? "text-amber-400" : "text-red-400"
+                    )} />
+                    <span className="text-xs font-semibold text-white">Quality</span>
                   </div>
-                  <span className={cn("text-2xl font-bold", auditScore >= 80 ? "text-emerald-400" : auditScore >= 60 ? "text-amber-400" : "text-red-400")}>
+                  <span className={cn(
+                    "text-xl font-bold",
+                    auditScore >= 80 ? "text-emerald-400" : auditScore >= 60 ? "text-amber-400" : "text-red-400"
+                  )}>
                     {auditScore}%
                   </span>
                 </div>
@@ -1222,21 +1363,35 @@ export default function Production() {
         </div>
       </main>
 
-      {/* Clip Video Modal */}
+      {/* Clip Preview Modal */}
       <AnimatePresence>
         {selectedClipUrl && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
             onClick={() => setSelectedClipUrl(null)}
           >
             <motion.div 
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
               className="relative max-w-4xl w-full aspect-video"
               onClick={(e) => e.stopPropagation()}
             >
-              <video src={selectedClipUrl} controls autoPlay className="w-full h-full rounded-2xl" />
-              <Button variant="ghost" size="icon" className="absolute top-4 right-4 bg-black/50 text-white rounded-full" onClick={() => setSelectedClipUrl(null)}>
+              <video 
+                src={selectedClipUrl} 
+                controls 
+                autoPlay 
+                className="w-full h-full rounded-2xl shadow-2xl shadow-black/50" 
+              />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10" 
+                onClick={() => setSelectedClipUrl(null)}
+              >
                 <X className="w-5 h-5" />
               </Button>
             </motion.div>

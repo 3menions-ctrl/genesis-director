@@ -301,9 +301,9 @@ function ProjectSidebar({
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isCollapsed ? 64 : 280 }}
+      animate={{ width: isCollapsed ? 56 : 220 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="h-full bg-gradient-to-b from-[#0c0c0c] to-[#080808] border-r border-white/[0.06] flex flex-col shrink-0"
+      className="h-full bg-[#0a0a0a] border-r border-white/[0.06] flex flex-col shrink-0"
     >
       {/* Header */}
       <div className="h-14 flex items-center justify-between px-4 border-b border-white/[0.06]">
@@ -352,8 +352,8 @@ function ProjectSidebar({
                   transition={{ delay: index * 0.03 }}
                   onClick={() => handleSelectProject(project.id)}
                   className={cn(
-                    "w-full rounded-xl transition-all duration-200 group relative overflow-hidden",
-                    isCollapsed ? "p-2 flex justify-center" : "p-3",
+                    "w-full rounded-lg transition-all duration-200 group relative overflow-hidden",
+                    isCollapsed ? "p-1.5 flex justify-center" : "p-2",
                     isActive 
                       ? "bg-gradient-to-r from-white/[0.08] to-white/[0.04] ring-1 ring-white/[0.12] shadow-lg shadow-black/20" 
                       : "hover:bg-white/[0.04]"
@@ -393,22 +393,27 @@ function ProjectSidebar({
                     </div>
                   ) : (
                     /* Expanded View */
-                    <div className="flex gap-3">
+                    <div className="flex gap-2.5 items-center">
                       {/* Thumbnail */}
                       <div className="relative shrink-0">
                         <div className={cn(
-                          "w-14 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center",
+                          "w-9 h-9 rounded-md overflow-hidden bg-white/[0.04] flex items-center justify-center",
                           isActive && "ring-1 ring-white/20"
                         )}>
                           {project.thumbnail ? (
                             <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
                           ) : (
-                            <Film className="w-4 h-4 text-white/20" />
+                            <Film className="w-3.5 h-3.5 text-white/20" />
                           )}
                         </div>
                         {isProcessing && (
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-[#0c0c0c]">
-                            <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-[#0a0a0a]">
+                            <Loader2 className="w-2 h-2 text-white animate-spin" />
+                          </div>
+                        )}
+                        {project.progress >= 100 && !isProcessing && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center ring-2 ring-[#0a0a0a]">
+                            <CheckCircle2 className="w-2 h-2 text-white" />
                           </div>
                         )}
                       </div>
@@ -416,51 +421,21 @@ function ProjectSidebar({
                       {/* Content */}
                       <div className="flex-1 min-w-0 text-left">
                         <p className={cn(
-                          "text-sm font-medium truncate transition-colors",
-                          isActive ? "text-white" : "text-white/70 group-hover:text-white"
+                          "text-xs font-medium truncate transition-colors leading-tight",
+                          isActive ? "text-white" : "text-white/60 group-hover:text-white"
                         )}>
                           {project.title}
                         </p>
                         
-                        <div className="flex items-center gap-2 mt-1.5">
-                          {/* Status Badge */}
-                          <span className={cn(
-                            "text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md",
-                            statusColor === 'emerald' && "bg-emerald-500/20 text-emerald-400",
-                            statusColor === 'blue' && "bg-blue-500/20 text-blue-400",
-                            statusColor === 'red' && "bg-red-500/20 text-red-400",
-                            statusColor === 'amber' && "bg-amber-500/20 text-amber-400"
-                          )}>
-                            {statusLabel}
-                          </span>
-                          
-                          {/* Progress */}
-                          <span className={cn(
-                            "text-[10px] font-medium tabular-nums",
-                            statusColor === 'emerald' && "text-emerald-400",
-                            statusColor === 'blue' && "text-blue-400",
-                            statusColor === 'red' && "text-red-400",
-                            statusColor === 'amber' && "text-amber-400"
-                          )}>
-                            {project.progress}%
-                          </span>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                          <motion.div 
-                            className={cn(
-                              "h-full rounded-full",
-                              statusColor === 'emerald' && "bg-gradient-to-r from-emerald-500 to-emerald-400",
-                              statusColor === 'blue' && "bg-gradient-to-r from-blue-500 to-blue-400",
-                              statusColor === 'red' && "bg-gradient-to-r from-red-500 to-red-400",
-                              statusColor === 'amber' && "bg-gradient-to-r from-amber-500 to-amber-400"
-                            )}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${project.progress}%` }}
-                            transition={{ duration: 0.5, ease: "easeOut" }}
-                          />
-                        </div>
+                        <span className={cn(
+                          "text-[10px] mt-0.5 inline-block",
+                          statusColor === 'emerald' && "text-emerald-400/70",
+                          statusColor === 'blue' && "text-blue-400/70",
+                          statusColor === 'red' && "text-red-400/70",
+                          statusColor === 'amber' && "text-amber-400/70"
+                        )}>
+                          {statusLabel} · {project.progress}%
+                        </span>
                       </div>
                     </div>
                   )}

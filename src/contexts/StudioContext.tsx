@@ -26,6 +26,7 @@ interface StudioContextType {
   layers: AssetLayer[];
   settings: StudioSettings;
   isLoading: boolean;
+  hasLoadedOnce: boolean; // True after first successful load attempt
   setActiveProjectId: (id: string) => void;
   createProject: () => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -83,6 +84,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
   const [layers] = useState<AssetLayer[]>(MOCK_LAYERS);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -104,73 +106,95 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
 
-  // Internal function that loads and returns projects - only call when session is valid
+  // Internal function that loads and returns projects - ALWAYS verify session first
   const loadProjects = useCallback(async (): Promise<Project[]> => {
-    // Double-check we have a valid session before querying
+    // CRITICAL: Always get fresh session from Supabase client, not React state
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     
     console.log('[StudioContext] loadProjects called, session:', currentSession ? 'VALID' : 'NULL', 
                 'userId:', currentSession?.user?.id?.slice(0, 8) + '...');
     
-    if (!currentSession) {
-      console.log('[StudioContext] No valid session, skipping project load');
+    if (!currentSession?.user) {
+      console.log('[StudioContext] No valid session, clearing projects');
+      setProjects([]);
       setIsLoading(false);
       return [];
     }
 
     try {
       setIsLoading(true);
-      console.log('[StudioContext] Fetching projects from database...');
+      console.log('[StudioContext] Fetching projects for user:', currentSession.user.id.slice(0, 8) + '...');
       
+      // Use the session's user ID directly, not React state
       const { data, error } = await supabase
         .from('movie_projects')
         .select('*')
+        .eq('user_id', currentSession.user.id) // Explicit user_id filter
         .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('[StudioContext] Error loading projects:', error);
-        toast.error('Failed to load projects');
-        return [];
+        // Don't clear projects on error - might be transient
+        return projects;
       }
 
       console.log('[StudioContext] Loaded', data?.length || 0, 'projects');
       
-      const mappedProjects = (data || []).map(mapDbProject);
-      setProjects(mappedProjects);
+      if (!data || data.length === 0) {
+        console.log('[StudioContext] No projects found for user');
+        setProjects([]);
+        setIsLoading(false);
+        setHasLoadedOnce(true);
+        return [];
+      }
       
-      // Set active project to first one if not set
-      if (mappedProjects.length > 0 && !activeProjectId) {
-        setActiveProjectId(mappedProjects[0].id);
+      const mappedProjects = data.map(mapDbProject);
+      setProjects(mappedProjects);
+      setHasLoadedOnce(true);
+      
+      // Set active project to first one if not set or if current doesn't exist
+      if (mappedProjects.length > 0) {
+        const currentProjectExists = activeProjectId && mappedProjects.some(p => p.id === activeProjectId);
+        if (!currentProjectExists) {
+          setActiveProjectId(mappedProjects[0].id);
+        }
       }
       
       return mappedProjects;
     } catch (err) {
       console.error('[StudioContext] Error loading projects:', err);
-      return [];
+      return projects;
     } finally {
       setIsLoading(false);
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, projects]);
 
   // Public function that doesn't return projects
   const refreshProjects = async (): Promise<void> => {
     await loadProjects();
   };
 
-  // Load projects when session is established (not just user object)
+  // Load projects when auth finishes loading
   useEffect(() => {
-    // Wait for auth to finish loading AND have a valid session
-    if (authLoading) return;
+    // Don't load while auth is still checking session
+    if (authLoading) {
+      console.log('[StudioContext] Auth still loading, waiting...');
+      return;
+    }
     
-    if (session && user) {
+    // If we have a user, load projects
+    if (user) {
+      console.log('[StudioContext] User authenticated, loading projects');
       loadProjects();
     } else {
-      // Clear projects when user logs out
+      // Clear state when logged out
+      console.log('[StudioContext] No user, clearing projects');
       setProjects([]);
       setActiveProjectId(null);
       setIsLoading(false);
+      setHasLoadedOnce(false);
     }
-  }, [session?.access_token, user?.id, authLoading, loadProjects]);
+  }, [authLoading, user?.id]); // Only depend on authLoading and user?.id, not session
 
   // Sync credits from auth profile
   useEffect(() => {
@@ -372,6 +396,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         layers,
         settings,
         isLoading,
+        hasLoadedOnce,
         setActiveProjectId,
         createProject,
         deleteProject,

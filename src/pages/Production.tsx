@@ -863,6 +863,20 @@ export default function Production() {
               
               <div className="h-5 w-px bg-white/[0.06]" />
               
+              {/* Resume Button - show when there are clips and pipeline might be stalled */}
+              {clipResults.length > 0 && !isComplete && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 rounded-full"
+                  onClick={handleResume}
+                  disabled={isResuming}
+                >
+                  {isResuming ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+                  Resume
+                </Button>
+              )}
+              
               {isRunning && (
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10">
                   <motion.div 

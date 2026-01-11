@@ -1262,7 +1262,13 @@ async function runProduction(
   // CRITICAL: Initialize to undefined, NOT referenceImageUrl
   // This ensures we detect broken frame chains on resume
   let previousLastFrameUrl: string | undefined = undefined;
-  let previousMotionVectors: { endVelocity?: string; endDirection?: string; cameraMomentum?: string } | undefined;
+  let previousMotionVectors: { 
+    endVelocity?: string; 
+    endDirection?: string; 
+    cameraMomentum?: string;
+    continuityPrompt?: string;
+    actionContinuity?: string;
+  } | undefined;
   
   if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
     startIndex = checkpoint[0].last_completed_index + 1;
@@ -1336,22 +1342,49 @@ async function runProduction(
       clipCount: clips.length,
     });
     
-    // Build prompt with accumulated scene anchors for maximum consistency
-    let finalPrompt = clip.prompt;
+    // =====================================================
+    // SCRIPT ADAPTATION: Visual continuity takes precedence over script
+    // The script guides the story, but the visual state is the source of truth
+    // =====================================================
+    let finalPrompt = '';
     
-    // Inject style anchor if available (from first clip analysis)
-    if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
-      finalPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${finalPrompt}`;
-      console.log(`[Hollywood] Injected style anchor into clip ${i + 1} prompt`);
+    // STEP 1: For clips 2+, START with visual continuity (source of truth)
+    if (i > 0) {
+      const visualContinuityParts: string[] = [];
+      
+      // Motion continuity from previous clip (most critical for seamless transitions)
+      if (previousMotionVectors?.continuityPrompt) {
+        visualContinuityParts.push(`[MANDATORY CONTINUATION: ${previousMotionVectors.continuityPrompt}]`);
+      }
+      if (previousMotionVectors?.actionContinuity) {
+        visualContinuityParts.push(`[CURRENT ACTION: ${previousMotionVectors.actionContinuity}]`);
+      }
+      
+      // Scene DNA from accumulated anchors (environment, lighting, colors)
+      if (masterSceneAnchor?.masterConsistencyPrompt) {
+        visualContinuityParts.push(`[SCENE DNA: ${masterSceneAnchor.masterConsistencyPrompt}]`);
+      }
+      
+      // Add the visual continuity FIRST (it takes precedence)
+      if (visualContinuityParts.length > 0) {
+        finalPrompt = visualContinuityParts.join('\n') + '\n\n';
+        console.log(`[Hollywood] Clip ${i + 1}: Visual continuity takes precedence (${visualContinuityParts.length} elements)`);
+      }
+      
+      // STEP 2: Adapt script to visual state
+      // The script is now a GOAL, not a mandate. Blend it with visual reality.
+      const scriptGoal = clip.prompt;
+      finalPrompt += `[STORY GOAL - adapt to maintain continuity: ${scriptGoal}]`;
+      
+    } else {
+      // Clip 1: Use script directly (no previous clip to continue from)
+      finalPrompt = clip.prompt;
     }
     
-    // Inject master scene anchor for clips 2+ (accumulated visual DNA)
-    if (i > 0 && masterSceneAnchor) {
-      const anchorPrompt = masterSceneAnchor.masterConsistencyPrompt || '';
-      if (anchorPrompt) {
-        finalPrompt = `[SCENE DNA: ${anchorPrompt}] ${finalPrompt}`;
-        console.log(`[Hollywood] Injected accumulated scene DNA into clip ${i + 1}`);
-      }
+    // Style anchor injection (for when no reference image was provided)
+    if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
+      finalPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}]\n${finalPrompt}`;
+      console.log(`[Hollywood] Injected style anchor into clip ${i + 1}`);
     }
     
     // Auto-retry logic: try once, then retry once on failure

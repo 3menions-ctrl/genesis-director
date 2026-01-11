@@ -1,18 +1,25 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
   Download, Loader2, Zap, Clock, Sparkles,
   Pencil, Star, TrendingUp, Grid3X3, LayoutGrid, ChevronRight,
-  Eye, Heart, Share2, RefreshCw, AlertCircle, Layers
+  Eye, Heart, Share2, RefreshCw, AlertCircle, Layers,
+  Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
+  BarChart3, Activity, Settings2, ChevronDown, X, Check,
+  Pin, PinOff, Archive, List, LayoutList, Command
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuGroup,
+  DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -22,8 +29,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -32,18 +46,17 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
-// Helper to check if URL is a manifest (not a real stitched video)
+// ============= HELPERS =============
+
 const isManifestUrl = (url: string): boolean => url?.endsWith('.json');
 
-// Helper to check if URL is a real stitched MP4 from Google Cloud Run
 const isStitchedMp4 = (url: string | undefined): boolean => {
   if (!url) return false;
   return url.includes('/final-videos/') && url.endsWith('.mp4');
 };
 
-// Helper to fetch clip URLs from manifest
 const fetchClipsFromManifest = async (manifestUrl: string): Promise<string[]> => {
   try {
     const response = await fetch(manifestUrl);
@@ -55,8 +68,89 @@ const fetchClipsFromManifest = async (manifestUrl: string): Promise<string[]> =>
   }
 };
 
-// Cinematic Video Card Component
-function CinematicVideoCard({ 
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+// ============= STAT CARD COMPONENT =============
+
+function StatCard({ 
+  icon: Icon, 
+  label, 
+  value, 
+  trend,
+  color = 'white',
+  delay = 0 
+}: { 
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  trend?: { value: number; isPositive: boolean };
+  color?: 'white' | 'amber' | 'emerald' | 'blue';
+  delay?: number;
+}) {
+  const colorClasses = {
+    white: 'bg-white/5 text-white/70',
+    amber: 'bg-amber-500/10 text-amber-400',
+    emerald: 'bg-emerald-500/10 text-emerald-400',
+    blue: 'bg-blue-500/10 text-blue-400',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative p-5 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06] hover:border-white/[0.12] transition-all duration-500"
+    >
+      {/* Hover glow */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">{label}</p>
+          <p className="text-3xl font-bold text-white tracking-tight">{value}</p>
+          {trend && (
+            <div className={cn(
+              "flex items-center gap-1 mt-2 text-xs font-medium",
+              trend.isPositive ? "text-emerald-400" : "text-red-400"
+            )}>
+              <TrendingUp className={cn("w-3 h-3", !trend.isPositive && "rotate-180")} />
+              <span>{trend.isPositive ? '+' : ''}{trend.value}% this week</span>
+            </div>
+          )}
+        </div>
+        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", colorClasses[color])}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============= PROJECT CARD COMPONENT =============
+
+function ProjectCard({ 
   project,
   index,
   onPlay,
@@ -65,9 +159,11 @@ function CinematicVideoCard({
   onDelete,
   onDownload,
   onRetryStitch,
+  onTogglePin,
   isActive,
   isRetrying = false,
-  size = 'normal'
+  isPinned = false,
+  viewMode = 'grid'
 }: {
   project: Project;
   index: number;
@@ -77,27 +173,21 @@ function CinematicVideoCard({
   onDelete: () => void;
   onDownload: () => void;
   onRetryStitch?: () => void;
+  onTogglePin?: () => void;
   isActive: boolean;
   isRetrying?: boolean;
-  size?: 'featured' | 'normal' | 'compact';
+  isPinned?: boolean;
+  viewMode?: 'grid' | 'list';
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   
-  // Cast status to string to handle all possible database statuses
   const status = project.status as string;
-  
-  // Check if project has video - include both video_clips array and direct video_url
-  // For manifest URLs, we still consider it as having video (playback will resolve clips)
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
-  
-  // For preview/thumbnail purposes, prefer video_clips array, but also use video_url if it's a direct MP4
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
-  
-  // Use second clip for preview if available (often more interesting than the first)
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
 
   useEffect(() => {
@@ -119,42 +209,162 @@ function CinematicVideoCard({
     }
   };
 
-  const sizeClasses = {
-    featured: 'col-span-2 row-span-2',
-    normal: 'col-span-1 row-span-1',
-    compact: 'col-span-1 row-span-1'
+  const getStatusBadge = () => {
+    if (hasVideo) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Ready</span>
+        </span>
+      );
+    }
+    if (status === 'stitching_failed') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+          <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
+          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitch Failed</span>
+        </span>
+      );
+    }
+    if (status === 'stitching') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+          <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
+          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitching</span>
+        </span>
+      );
+    }
+    if (status === 'generating' || status === 'rendering') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30">
+          <Loader2 className="w-2.5 h-2.5 text-blue-400 animate-spin" />
+          <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Processing</span>
+        </span>
+      );
+    }
+    return null;
   };
 
-  const aspectClasses = {
-    featured: 'aspect-[16/10]',
-    normal: 'aspect-video',
-    compact: 'aspect-[4/3]'
-  };
+  if (viewMode === 'list') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
+        className={cn(
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
+          "bg-white/[0.02] border border-white/[0.04]",
+          "hover:bg-white/[0.05] hover:border-white/[0.08]",
+          isActive && "ring-1 ring-white/20"
+        )}
+        onClick={onPlay}
+      >
+        {/* Thumbnail */}
+        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-white/5 shrink-0">
+          {hasVideo && videoSrc ? (
+            <img 
+              src={project.thumbnail_url || undefined}
+              alt={project.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Film className="w-5 h-5 text-white/20" />
+            </div>
+          )}
+          {isPinned && (
+            <div className="absolute top-1 left-1 w-4 h-4 rounded bg-amber-500/80 flex items-center justify-center">
+              <Pin className="w-2.5 h-2.5 text-black" />
+            </div>
+          )}
+        </div>
 
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-white/40">{formatTimeAgo(project.updated_at)}</span>
+            {videoClips.length > 0 && (
+              <>
+                <span className="text-white/20">•</span>
+                <span className="text-xs text-white/40">{videoClips.length} clips</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="shrink-0">
+          {getStatusBadge()}
+        </div>
+
+        {/* Actions */}
+        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white/50 hover:text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 border-white/10 backdrop-blur-xl">
+              {hasVideo && (
+                <>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                    <Play className="w-4 h-4 mr-2" />
+                    Watch
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                </>
+              )}
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
+                {isPinned ? 'Unpin' : 'Pin'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                <Pencil className="w-4 h-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-400 focus:text-red-300 focus:bg-red-500/10">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Grid view
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
         duration: 0.5, 
-        delay: index * 0.08,
+        delay: index * 0.05,
         ease: [0.16, 1, 0.3, 1]
       }}
-      className={cn(
-        "group relative cursor-pointer",
-        sizeClasses[size]
-      )}
+      className="group relative cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onPlay}
     >
-      {/* Card Container with dramatic shadow on hover */}
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-700",
-        aspectClasses[size],
+        "relative overflow-hidden rounded-2xl transition-all duration-500 aspect-video",
         "bg-gradient-to-br from-white/[0.03] to-white/[0.01]",
         "border border-white/[0.06]",
-        isHovered && "border-white/20 shadow-2xl shadow-white/5",
+        isHovered && "border-white/20 shadow-2xl shadow-white/5 scale-[1.02]",
         isActive && "ring-2 ring-white/30"
       )}>
         
@@ -165,8 +375,8 @@ function CinematicVideoCard({
               ref={videoRef}
               src={videoSrc}
               className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-transform duration-1000",
-                isHovered && "scale-110"
+                "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+                isHovered && "scale-105"
               )}
               loop
               muted
@@ -175,18 +385,18 @@ function CinematicVideoCard({
               onLoadedData={handleLoadedData}
             />
             
-            {/* Cinematic letterbox bars on hover */}
+            {/* Cinematic bars on hover */}
             <motion.div 
               className="absolute inset-x-0 top-0 bg-black pointer-events-none"
               initial={{ height: 0 }}
-              animate={{ height: isHovered ? '8%' : 0 }}
-              transition={{ duration: 0.5 }}
+              animate={{ height: isHovered ? '6%' : 0 }}
+              transition={{ duration: 0.4 }}
             />
             <motion.div 
               className="absolute inset-x-0 bottom-0 bg-black pointer-events-none"
               initial={{ height: 0 }}
-              animate={{ height: isHovered ? '8%' : 0 }}
-              transition={{ duration: 0.5 }}
+              animate={{ height: isHovered ? '6%' : 0 }}
+              transition={{ duration: 0.4 }}
             />
           </>
         ) : (
@@ -196,12 +406,6 @@ function CinematicVideoCard({
                 <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse scale-150" />
                 <Loader2 className="relative w-10 h-10 text-amber-400/70 animate-spin" strokeWidth={1} />
               </div>
-            ) : status === 'stitching_failed' ? (
-              <div className="relative flex flex-col items-center gap-2">
-                <div className="absolute inset-0 bg-amber-500/10 rounded-full blur-2xl scale-150" />
-                <Layers className="relative w-10 h-10 text-amber-400/70" strokeWidth={1} />
-                <span className="text-[10px] text-amber-400/70 font-medium">Clips Ready</span>
-              </div>
             ) : (
               <Film className="w-12 h-12 text-white/10" strokeWidth={1} />
             )}
@@ -210,131 +414,69 @@ function CinematicVideoCard({
 
         {/* Gradient overlays */}
         <div className={cn(
-          "absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent transition-opacity duration-500",
-          isHovered ? "opacity-90" : "opacity-60"
+          "absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent transition-opacity duration-500",
+          isHovered ? "opacity-90" : "opacity-70"
         )} />
         
-        {/* Spotlight effect on hover */}
-        <motion.div 
-          className="absolute inset-0 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.5 }}
-          style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 60%)'
-          }}
-        />
-
-        {/* Play button - cinematic style */}
+        {/* Play button */}
         <AnimatePresence>
           {hasVideo && isHovered && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="absolute inset-0 flex items-center justify-center z-10"
             >
               <div className="relative">
-                {/* Pulse rings */}
-                <div className="absolute inset-0 rounded-full bg-white/10 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-[-8px] rounded-full border border-white/20" />
-                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/30 hover:bg-white/20 transition-colors">
-                  <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
+                <div className="absolute inset-[-4px] rounded-full border border-white/20 animate-ping" style={{ animationDuration: '1.5s' }} />
+                <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/30">
+                  <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Pin indicator */}
+        {isPinned && (
+          <div className="absolute top-3 left-3 z-20">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center shadow-lg">
+              <Pin className="w-3.5 h-3.5 text-black" />
+            </div>
+          </div>
+        )}
+
         {/* Content overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-          {/* Status badge */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: isHovered ? 1 : 0.8, y: 0 }}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-2 mb-2"
           >
-            {hasVideo ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Ready</span>
-              </span>
-            ) : status === 'stitching_failed' ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-                <AlertCircle className="w-2.5 h-2.5 text-amber-400" />
-                <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitch Failed</span>
-              </span>
-            ) : status === 'stitching' ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-                <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
-                <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Stitching</span>
-              </span>
-            ) : status === 'generating' || status === 'rendering' ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-                <Loader2 className="w-2.5 h-2.5 text-amber-400 animate-spin" />
-                <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Processing</span>
-              </span>
-            ) : null}
+            {getStatusBadge()}
           </motion.div>
 
-          {/* Retry Stitch button for failed stitches */}
-          {status === 'stitching_failed' && onRetryStitch && (
-            <motion.button
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: isHovered ? 1 : 0.8, y: 0 }}
-              onClick={(e) => { e.stopPropagation(); onRetryStitch(); }}
-              disabled={isRetrying}
-              className={cn(
-                "mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
-                isRetrying 
-                  ? "bg-white/10 text-white/50 cursor-not-allowed"
-                  : "bg-amber-500 text-black hover:bg-amber-400"
-              )}
-            >
-              {isRetrying ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3 h-3" />
-              )}
-              {isRetrying ? 'Stitching...' : 'Retry Stitch'}
-            </motion.button>
-          )}
-
-          {/* Title with reveal animation */}
-          <motion.h3
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className={cn(
-              "font-bold text-white tracking-tight line-clamp-2 transition-all duration-300",
-              size === 'featured' ? 'text-2xl' : 'text-base',
-              isHovered && "text-shadow-lg"
-            )}
-          >
+          <h3 className={cn(
+            "font-bold text-white tracking-tight line-clamp-1 text-base transition-all duration-300",
+            isHovered && "text-shadow-lg"
+          )}>
             {project.name}
-          </motion.h3>
+          </h3>
 
-          {/* Meta row - appears on hover */}
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ 
-              opacity: isHovered ? 1 : 0.5, 
-              height: 'auto' 
-            }}
-            className="flex items-center gap-3 mt-2 text-white/50 text-xs"
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: isHovered ? 1 : 0.5 }}
+            className="flex items-center gap-3 mt-1.5 text-white/50 text-xs"
           >
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {new Date(project.updated_at).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric' 
-              })}
+              {formatTimeAgo(project.updated_at)}
             </span>
             {videoClips.length > 0 && (
               <span className="flex items-center gap-1">
                 <Film className="w-3 h-3" />
-                {videoClips.length} clip{videoClips.length > 1 ? 's' : ''}
+                {videoClips.length} clips
               </span>
             )}
           </motion.div>
@@ -349,12 +491,12 @@ function CinematicVideoCard({
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="h-8 w-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10"
+                className="h-8 w-8 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-xl text-white/70 hover:text-white hover:bg-black/80 transition-all border border-white/10"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-black/95 border-white/10 shadow-2xl backdrop-blur-2xl p-1.5">
+            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900/95 border-white/10 shadow-2xl backdrop-blur-2xl p-1.5">
               {hasVideo && (
                 <>
                   <DropdownMenuItem 
@@ -375,6 +517,13 @@ function CinematicVideoCard({
                 </>
               )}
               <DropdownMenuItem 
+                onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}
+                className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+              >
+                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                {isPinned ? 'Unpin' : 'Pin to Top'}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
                 onClick={(e) => { e.stopPropagation(); onRename(); }} 
                 className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
               >
@@ -388,13 +537,19 @@ function CinematicVideoCard({
                 <Edit2 className="w-4 h-4" />
                 Edit Project
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Copy className="w-4 h-4" />
-                Duplicate
-              </DropdownMenuItem>
+              {status === 'stitching_failed' && onRetryStitch && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/10 my-1" />
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); onRetryStitch(); }}
+                    disabled={isRetrying}
+                    className="gap-2.5 text-sm text-amber-400 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2.5 px-3"
+                  >
+                    <RefreshCw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
+                    Retry Stitch
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator className="bg-white/10 my-1" />
               <DropdownMenuItem
                 className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2.5 px-3"
@@ -406,25 +561,13 @@ function CinematicVideoCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {/* Favorite indicator */}
-        <div className={cn(
-          "absolute top-3 left-3 z-30 transition-all duration-300",
-          isHovered ? "opacity-100" : "opacity-0"
-        )}>
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="h-8 w-8 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-xl text-white/50 hover:text-rose-400 hover:bg-black/70 transition-all border border-white/10"
-          >
-            <Heart className="w-4 h-4" />
-          </button>
-        </div>
       </div>
     </motion.div>
   );
 }
 
-// Create Button with dramatic styling
+// ============= CREATE PROJECT CARD =============
+
 function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: number }) {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -442,10 +585,9 @@ function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: num
         "relative overflow-hidden rounded-2xl aspect-video transition-all duration-500",
         "border-2 border-dashed",
         isHovered 
-          ? "border-white/30 bg-white/[0.04]" 
+          ? "border-white/30 bg-white/[0.04] scale-[1.02]" 
           : "border-white/[0.08] bg-white/[0.02]"
       )}>
-        {/* Animated gradient background */}
         <motion.div
           className="absolute inset-0"
           animate={{
@@ -455,7 +597,6 @@ function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: num
           }}
         />
 
-        {/* Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.div
             animate={{ 
@@ -464,41 +605,30 @@ function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: num
             }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300",
+              "w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-colors duration-300",
               isHovered 
                 ? "bg-white text-black" 
                 : "bg-white/10 text-white/40 border border-white/10"
             )}
           >
-            <Plus className="w-7 h-7" strokeWidth={1.5} />
+            <Plus className="w-6 h-6" strokeWidth={1.5} />
           </motion.div>
           
           <motion.span
-            animate={{ opacity: isHovered ? 1 : 0.5 }}
-            className="text-sm font-semibold text-white/70"
+            animate={{ opacity: isHovered ? 1 : 0.6 }}
+            className="text-sm font-medium text-white/70"
           >
             Create New Project
-          </motion.span>
-          
-          <motion.span
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ 
-              opacity: isHovered ? 0.5 : 0,
-              y: isHovered ? 0 : 5
-            }}
-            className="text-xs text-white/40 mt-1"
-          >
-            Start from scratch or use a template
           </motion.span>
         </div>
 
         {/* Corner accents on hover */}
         <motion.div
-          className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/30 rounded-tl-2xl"
+          className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white/30 rounded-tl-2xl"
           animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
         />
         <motion.div
-          className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/30 rounded-br-2xl"
+          className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white/30 rounded-br-2xl"
           animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
         />
       </div>
@@ -506,242 +636,233 @@ function CreateProjectCard({ onClick, delay }: { onClick: () => void; delay: num
   );
 }
 
+// ============= ACTIVITY ITEM =============
+
+function ActivityItem({ project, action, time }: { project: string; action: string; time: string }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-start gap-3 py-2.5"
+    >
+      <div className="w-2 h-2 rounded-full bg-white/30 mt-1.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-white/70">
+          <span className="font-medium text-white">{project}</span>
+          {' '}{action}
+        </p>
+        <p className="text-[10px] text-white/40 mt-0.5">{time}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============= MAIN COMPONENT =============
+
 export default function Projects() {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
-  const { projects, activeProjectId, setActiveProjectId, createProject, deleteProject, updateProject, refreshProjects, isLoading: isLoadingProjects, hasLoadedOnce } = useStudio();
-  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
+  const { user, profile } = useAuth();
+  const { 
+    projects, 
+    activeProjectId, 
+    setActiveProjectId, 
+    createProject, 
+    deleteProject, 
+    updateProject, 
+    refreshProjects, 
+    isLoading: isLoadingProjects, 
+    hasLoadedOnce 
+  } = useStudio();
+  
+  // UI State
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [hasTriedAutoThumbnails, setHasTriedAutoThumbnails] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [projectToRename, setProjectToRename] = useState<Project | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [resolvedClips, setResolvedClips] = useState<string[]>([]);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'gallery'>('grid');
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
   const [isStitchingAll, setIsStitchingAll] = useState(false);
   const [stitchQueue, setStitchQueue] = useState<string[]>([]);
+  
+  // View & Filter State
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>('updated');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
+  const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
+  const [showKeyboardHints, setShowKeyboardHints] = useState(false);
 
-  // Handle Google Cloud Run stitch (real video stitching, not manifest)
-  const handleGoogleStitch = async (projectId: string) => {
-    if (retryingProjectId) return;
-    
-    setRetryingProjectId(projectId);
-    toast.info('Starting Google Cloud stitch...', { description: 'Processing with FFmpeg - this may take 2-3 minutes' });
-    
-    try {
-      // Get all completed clips from database
-      const { data: clips, error: clipsError } = await supabase
-        .from('video_clips')
-        .select('id, shot_index, video_url, duration_seconds')
-        .eq('project_id', projectId)
-        .eq('status', 'completed')
-        .order('shot_index');
-      
-      if (clipsError) throw clipsError;
-      if (!clips || clips.length === 0) throw new Error('No completed clips found');
-      
-      // Get project title
-      const { data: project } = await supabase
-        .from('movie_projects')
-        .select('title')
-        .eq('id', projectId)
-        .single();
-      
-      // Call stitch-video WITHOUT forceMvpMode to use Cloud Run
-      const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
-        body: {
-          projectId,
-          projectTitle: project?.title || 'Video',
-          clips: clips.map(clip => ({
-            shotId: clip.id,
-            videoUrl: clip.video_url,
-            durationSeconds: clip.duration_seconds || 4,
-            transitionOut: 'cut',
-          })),
-          audioMixMode: 'mute',
-          // NO forceMvpMode - use Google Cloud Run stitcher
-        },
-      });
-      
-      if (stitchError) throw stitchError;
-      
-      if (data?.success && data?.mode === 'cloud-run') {
-        toast.success('Stitching started!', { description: 'Video will appear when ready (2-3 min)' });
-        // Poll for completion
-        const pollInterval = setInterval(async () => {
-          await refreshProjects();
-        }, 10000);
-        // Stop polling after 5 minutes
-        setTimeout(() => clearInterval(pollInterval), 300000);
-      } else if (data?.success && data?.finalVideoUrl) {
-        toast.success('Video stitched successfully!');
-        await refreshProjects();
-      } else {
-        throw new Error(data?.error || 'Stitch failed to start');
-      }
-    } catch (err: any) {
-      console.error('Google stitch failed:', err);
-      toast.error('Stitch failed', { description: err.message });
-    } finally {
-      setRetryingProjectId(null);
-    }
-  };
+  // Scroll animation
+  const { scrollY } = useScroll();
+  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
 
-  // Handle stitching ALL projects in the queue with Google Cloud
-  const handleStitchAll = async () => {
-    // Get projects that need stitching
-    const projectsToStitch = projects.filter(p => {
-      const hasClips = Boolean(p.video_clips?.length || p.video_url);
-      const isPlayable = isStitchedMp4(p.video_url) || 
-        (p.video_url && isManifestUrl(p.video_url) && (p.status as string) === 'completed');
-      const isProcessing = (p.status as string) === 'stitching';
-      const isStitchFailed = (p.status as string) === 'stitching_failed';
-      return (hasClips && !isPlayable && !isProcessing) || isStitchFailed;
-    });
-
-    if (projectsToStitch.length === 0) {
-      toast.info('No projects need stitching');
-      return;
-    }
-
-    setIsStitchingAll(true);
-    setStitchQueue(projectsToStitch.map(p => p.id));
-    
-    toast.info(`Starting batch stitch for ${projectsToStitch.length} projects...`, {
-      description: 'Each video takes 2-3 minutes to process'
-    });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const project of projectsToStitch) {
-      try {
-        // Get all completed clips from database
-        const { data: clips, error: clipsError } = await supabase
-          .from('video_clips')
-          .select('id, shot_index, video_url, duration_seconds')
-          .eq('project_id', project.id)
-          .eq('status', 'completed')
-          .order('shot_index');
-
-        if (clipsError) throw clipsError;
-        if (!clips || clips.length === 0) {
-          console.log(`Project ${project.id} has no completed clips, skipping`);
-          continue;
-        }
-
-        // Call stitch-video WITHOUT forceMvpMode to use Cloud Run
-        const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
-          body: {
-            projectId: project.id,
-            projectTitle: project.name,
-            clips: clips.map(clip => ({
-              shotId: clip.id,
-              videoUrl: clip.video_url,
-              durationSeconds: clip.duration_seconds || 4,
-              transitionOut: 'cut',
-            })),
-            audioMixMode: 'mute',
-          },
-        });
-
-        if (stitchError) throw stitchError;
-
-        if (data?.success) {
-          successCount++;
-        } else {
-          throw new Error(data?.error || 'Unknown error');
-        }
-
-        // Small delay between requests to avoid overwhelming the service
-        await new Promise(r => setTimeout(r, 1000));
-        
-        // Update queue
-        setStitchQueue(prev => prev.filter(id => id !== project.id));
-        
-      } catch (err: any) {
-        console.error(`Stitch failed for project ${project.id}:`, err);
-        errorCount++;
-        setStitchQueue(prev => prev.filter(id => id !== project.id));
-      }
-    }
-
-    setIsStitchingAll(false);
-    setStitchQueue([]);
-
-    if (successCount > 0) {
-      toast.success(`Started stitching ${successCount} project${successCount > 1 ? 's' : ''}!`, {
-        description: 'Videos will appear in your library when ready'
-      });
-    }
-    if (errorCount > 0) {
-      toast.error(`${errorCount} project${errorCount > 1 ? 's' : ''} failed to start`);
-    }
-
-    // Start polling for completion
-    const pollInterval = setInterval(async () => {
-      await refreshProjects();
-    }, 10000);
-    setTimeout(() => clearInterval(pollInterval), 300000);
-  };
-
-  const handleRenameProject = (project: Project) => {
-    setProjectToRename(project);
-    setNewProjectName(project.name);
-    setRenameDialogOpen(true);
-  };
-
-  const handleConfirmRename = async () => {
-    if (!projectToRename || !newProjectName.trim()) return;
-    await updateProject(projectToRename.id, { name: newProjectName.trim() });
-    toast.success('Project renamed');
-    setRenameDialogOpen(false);
-    setProjectToRename(null);
-    setNewProjectName('');
-  };
-
-  // Auto-generate thumbnails
+  // Load pinned projects from localStorage
   useEffect(() => {
-    const autoGenerateThumbnails = async () => {
-      const projectsNeedingThumbnails = projects.filter(p => !p.thumbnail_url && (p.video_clips?.length || p.video_url));
+    const saved = localStorage.getItem('pinnedProjects');
+    if (saved) {
+      try {
+        setPinnedProjects(new Set(JSON.parse(saved)));
+      } catch {}
+    }
+  }, []);
+
+  // Save pinned projects to localStorage
+  const togglePin = useCallback((projectId: string) => {
+    setPinnedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+        toast.success('Project unpinned');
+      } else {
+        next.add(projectId);
+        toast.success('Project pinned');
+      }
+      localStorage.setItem('pinnedProjects', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
-      if (projectsNeedingThumbnails.length > 0 && !hasTriedAutoThumbnails && !isGeneratingThumbnails) {
-        setHasTriedAutoThumbnails(true);
-        setIsGeneratingThumbnails(true);
-        
-        try {
-          const { data, error } = await supabase.functions.invoke('generate-missing-thumbnails');
-          if (data?.success) {
-            await refreshProjects();
-          }
-        } catch (err) {
-          console.error('Auto-thumbnail generation failed:', err);
-        } finally {
-          setIsGeneratingThumbnails(false);
-        }
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        document.getElementById('project-search')?.focus();
+      }
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleCreateProject();
+      }
+      if (e.key === '?' && e.shiftKey) {
+        setShowKeyboardHints(prev => !prev);
+      }
+      if (e.key === 'g') {
+        setViewMode('grid');
+      }
+      if (e.key === 'l') {
+        setViewMode('list');
       }
     };
 
-    if (projects.length > 0) {
-      autoGenerateThumbnails();
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Realtime subscription for project updates
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('projects_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'movie_projects',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          refreshProjects();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refreshProjects]);
+
+  // Helper functions
+  const status = (p: Project) => p.status as string;
+  
+  const hasVideoContent = (p: Project): boolean => {
+    if (isStitchedMp4(p.video_url)) return true;
+    if (p.video_url && isManifestUrl(p.video_url)) return true;
+    if (p.video_clips && p.video_clips.length > 0) return true;
+    return false;
+  };
+  
+  const isPlayableProject = (p: Project): boolean => {
+    if (isStitchedMp4(p.video_url)) return true;
+    if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
+    return false;
+  };
+
+  // Filtered and sorted projects
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter(hasVideoContent);
+    
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => p.name.toLowerCase().includes(query));
     }
-  }, [projects.length, hasTriedAutoThumbnails, isGeneratingThumbnails, refreshProjects]);
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(p => {
+        const s = status(p);
+        switch (statusFilter) {
+          case 'completed': return isPlayableProject(p);
+          case 'processing': return ['generating', 'rendering', 'stitching'].includes(s);
+          case 'failed': return s === 'stitching_failed' || s === 'failed';
+          default: return true;
+        }
+      });
+    }
+    
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'updated':
+          comparison = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          break;
+        case 'created':
+          comparison = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          break;
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+      }
+      return sortOrder === 'desc' ? comparison : -comparison;
+    });
+    
+    // Put pinned projects first
+    const pinned = result.filter(p => pinnedProjects.has(p.id));
+    const unpinned = result.filter(p => !pinnedProjects.has(p.id));
+    return [...pinned, ...unpinned];
+  }, [projects, searchQuery, statusFilter, sortBy, sortOrder, pinnedProjects]);
 
-  const handleSelectProject = (id: string) => {
-    setActiveProjectId(id);
-  };
+  // Stats
+  const stats = useMemo(() => {
+    const allProjects = projects.filter(hasVideoContent);
+    const completed = allProjects.filter(isPlayableProject).length;
+    const processing = allProjects.filter(p => ['generating', 'rendering', 'stitching'].includes(status(p))).length;
+    const totalClips = allProjects.reduce((acc, p) => acc + (p.video_clips?.length || 0), 0);
+    
+    return { total: allProjects.length, completed, processing, totalClips };
+  }, [projects]);
 
-  const handleOpenProject = (id: string) => {
-    setActiveProjectId(id);
-    navigate('/pipeline/scripting');
-  };
+  // Recent activity (mock for now - could be real from API)
+  const recentActivity = useMemo(() => {
+    return filteredProjects.slice(0, 5).map(p => ({
+      project: p.name,
+      action: isPlayableProject(p) ? 'was completed' : 'was updated',
+      time: formatTimeAgo(p.updated_at)
+    }));
+  }, [filteredProjects]);
 
+  // Handlers
   const handleCreateProject = () => {
     createProject();
-    navigate('/pipeline/scripting');
+    navigate('/create');
   };
 
   const handlePlayVideo = async (project: Project) => {
@@ -766,10 +887,24 @@ export default function Projects() {
     }
   };
 
+  const handleRenameProject = (project: Project) => {
+    setProjectToRename(project);
+    setNewProjectName(project.name);
+    setRenameDialogOpen(true);
+  };
+
+  const handleConfirmRename = async () => {
+    if (!projectToRename || !newProjectName.trim()) return;
+    await updateProject(projectToRename.id, { name: newProjectName.trim() });
+    toast.success('Project renamed');
+    setRenameDialogOpen(false);
+    setProjectToRename(null);
+    setNewProjectName('');
+  };
+
   const handleDownloadAll = async (project: Project) => {
-    // If video_url is a direct MP4, download that
     if (project.video_url && !isManifestUrl(project.video_url)) {
-      toast.info('Downloading final video...');
+      toast.info('Downloading video...');
       try {
         const response = await fetch(project.video_url);
         const blob = await response.blob();
@@ -788,7 +923,6 @@ export default function Projects() {
       return;
     }
     
-    // Otherwise download individual clips
     const clips = project.video_clips || [];
     if (clips.length === 0) {
       toast.error('No clips to download');
@@ -816,420 +950,402 @@ export default function Projects() {
     toast.success('Downloads complete!');
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-    toast.success('Signed out successfully');
+  const handleGoogleStitch = async (projectId: string) => {
+    if (retryingProjectId) return;
+    
+    setRetryingProjectId(projectId);
+    toast.info('Starting Google Cloud stitch...', { description: 'Processing with FFmpeg - this may take 2-3 minutes' });
+    
+    try {
+      const { data: clips, error: clipsError } = await supabase
+        .from('video_clips')
+        .select('id, shot_index, video_url, duration_seconds')
+        .eq('project_id', projectId)
+        .eq('status', 'completed')
+        .order('shot_index');
+      
+      if (clipsError) throw clipsError;
+      if (!clips || clips.length === 0) throw new Error('No completed clips found');
+      
+      const { data: project } = await supabase
+        .from('movie_projects')
+        .select('title')
+        .eq('id', projectId)
+        .single();
+      
+      const { data, error: stitchError } = await supabase.functions.invoke('stitch-video', {
+        body: {
+          projectId,
+          projectTitle: project?.title || 'Video',
+          clips: clips.map(clip => ({
+            shotId: clip.id,
+            videoUrl: clip.video_url,
+            durationSeconds: clip.duration_seconds || 4,
+            transitionOut: 'cut',
+          })),
+          audioMixMode: 'mute',
+        },
+      });
+      
+      if (stitchError) throw stitchError;
+      
+      if (data?.success && data?.mode === 'cloud-run') {
+        toast.success('Stitching started!', { description: 'Video will appear when ready (2-3 min)' });
+      } else if (data?.success && data?.finalVideoUrl) {
+        toast.success('Video stitched successfully!');
+        await refreshProjects();
+      } else {
+        throw new Error(data?.error || 'Stitch failed to start');
+      }
+    } catch (err: any) {
+      console.error('Google stitch failed:', err);
+      toast.error('Stitch failed', { description: err.message });
+    } finally {
+      setRetryingProjectId(null);
+    }
   };
 
-  // Get project status as string
-  const status = (p: Project) => p.status as string;
-  
-  // Helper to check if project has actual video content (playable)
-  const hasVideoContent = (p: Project): boolean => {
-    // Has real stitched MP4
-    if (isStitchedMp4(p.video_url)) return true;
-    // Has manifest URL (clips in video_clips table) - also playable!
-    if (p.video_url && isManifestUrl(p.video_url)) return true;
-    // Has video_clips array with actual URLs
-    if (p.video_clips && p.video_clips.length > 0) return true;
-    return false;
-  };
-  
-  // Helper to check if project is ready for display in Library
-  // (either stitched MP4 OR manifest-based playback)
-  const isPlayableProject = (p: Project): boolean => {
-    // Real stitched MP4
-    if (isStitchedMp4(p.video_url)) return true;
-    // Manifest URL is also playable (sequential clip playback)
-    if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
-    return false;
-  };
-  
-  // Projects ready for playback (stitched MP4s OR completed manifests)
-  const stitchedProjects = projects.filter(isPlayableProject);
-  
-  // Projects that need stitching (have clips but not yet stitched AND not completed with manifest)
+  // Needs stitching & processing projects
   const needsStitching = projects.filter(p => {
     const hasClips = hasVideoContent(p);
     const isPlayable = isPlayableProject(p);
     const isProcessing = status(p) === 'stitching';
     const isStitchFailed = status(p) === 'stitching_failed';
-    // Show failed stitches as needing retry
     return (hasClips && !isPlayable && !isProcessing) || isStitchFailed;
   });
   
-  // Projects currently being stitched
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
-  
-  // All displayable projects (those with any video content)
-  const allDisplayableProjects = projects.filter(hasVideoContent);
-  
-  const recentStitchedProjects = [...stitchedProjects].sort((a, b) => 
-    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
-  const featuredProject = recentStitchedProjects[0];
-  const otherProjects = recentStitchedProjects.slice(1);
 
   return (
     <div className="min-h-screen bg-[#050505] relative overflow-x-hidden">
-      {/* Dramatic ambient background */}
+      {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Large gradient orbs */}
-        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.02] to-transparent blur-[150px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-white/[0.015] to-transparent blur-[180px] animate-pulse" style={{ animationDuration: '14s', animationDelay: '3s' }} />
-        
-        {/* Film grain overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Subtle vignette */}
+        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.015] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-white/[0.01] to-transparent blur-[180px]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
       </div>
 
-      {/* Premium Navigation */}
+      {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* Show loading state while projects are being fetched */}
+        {/* Loading state */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-32 sm:py-48 px-4"
+            className="flex flex-col items-center justify-center py-32"
           >
-            <div className="relative mb-8">
-              <div className="absolute inset-0 bg-white/5 rounded-full blur-3xl scale-150 animate-pulse" />
-              <Loader2 className="relative w-12 h-12 text-white/50 animate-spin" />
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150 animate-pulse" />
+              <Loader2 className="relative w-10 h-10 text-white/50 animate-spin" />
             </div>
-            <p className="text-white/40 text-lg">Loading your projects...</p>
+            <p className="text-white/40">Loading your projects...</p>
           </motion.div>
-        ) : allDisplayableProjects.length === 0 && stitchingProjects.length === 0 ? (
-          /* ========== EMPTY STATE ========== */
+        ) : stats.total === 0 && stitchingProjects.length === 0 ? (
+          /* Empty state */
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col items-center justify-center py-32 sm:py-48 px-4"
+            className="flex flex-col items-center justify-center py-32 px-4"
           >
-            {/* Animated icon */}
-            <div className="relative mb-10">
-              <div className="absolute inset-0 bg-white/5 rounded-full blur-3xl scale-150 animate-pulse" />
-              <motion.div
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative w-28 h-28 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center"
-              >
-                <Sparkles className="w-12 h-12 text-white/30" strokeWidth={1} />
-              </motion.div>
-              
-              {/* Orbiting elements */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0"
-              >
-                <div className="absolute -top-2 left-1/2 w-3 h-3 rounded-full bg-white/20" />
-              </motion.div>
-            </div>
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center mb-8"
+            >
+              <Sparkles className="w-10 h-10 text-white/30" strokeWidth={1} />
+            </motion.div>
             
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 text-center tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 text-center tracking-tight">
               Your Creative Space
             </h2>
-            <p className="text-white/40 text-lg sm:text-xl mb-12 text-center max-w-lg leading-relaxed">
+            <p className="text-white/40 text-lg mb-10 text-center max-w-lg">
               Your completed masterpieces will appear here. Ready to create something extraordinary?
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Button 
-                onClick={() => navigate('/studio')}
-                variant="outline"
-                className="h-14 px-8 rounded-full bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20 font-medium text-base"
-              >
-                <Zap className="w-5 h-5 mr-2 text-amber-400" />
-                Open Studio
-              </Button>
-              <Button 
-                onClick={handleCreateProject}
-                className="h-14 px-10 rounded-full bg-white text-black hover:bg-white/90 font-bold text-base shadow-2xl shadow-white/20"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Start Creating
-              </Button>
-            </div>
+            <Button 
+              onClick={handleCreateProject}
+              className="h-12 px-8 rounded-full bg-white text-black hover:bg-white/90 font-bold shadow-xl shadow-white/10"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Start Creating
+            </Button>
           </motion.div>
         ) : (
           <>
-            {/* ========== HEADER SECTION ========== */}
-            <div className="flex items-end justify-between mb-10">
-              <div>
-                <motion.h1 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-2"
-                >
-                  Library
-                </motion.h1>
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-white/40 text-lg"
-                >
-                  {stitchedProjects.length} {stitchedProjects.length === 1 ? 'video' : 'videos'}
-                </motion.p>
-              </div>
-              
-              {/* View toggle */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-1 bg-white/[0.03] rounded-lg p-1 border border-white/[0.05]"
-              >
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={cn(
-                    "p-2 rounded-md transition-all",
-                    viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
-                  )}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('gallery')}
-                  className={cn(
-                    "p-2 rounded-md transition-all",
-                    viewMode === 'gallery' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
-                  )}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </motion.div>
-            </div>
+            {/* Stats Dashboard */}
+            <motion.div 
+              style={{ opacity: headerOpacity }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+            >
+              <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="white" delay={0} />
+              <StatCard icon={Check} label="Completed" value={stats.completed} color="emerald" delay={0.05} />
+              <StatCard icon={Activity} label="Processing" value={stats.processing} color="amber" delay={0.1} />
+              <StatCard icon={Film} label="Total Clips" value={stats.totalClips} color="blue" delay={0.15} />
+            </motion.div>
 
-            {/* ========== NEEDS STITCHING SECTION ========== */}
+            {/* Search, Filter & View Controls */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8"
+            >
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  id="project-search"
+                  placeholder="Search projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 pl-10 pr-10 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:border-white/20 focus:ring-0"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-[10px] font-mono text-white/30 bg-white/5 px-1.5 py-0.5 rounded">/</kbd>
+              </div>
+
+              {/* Filters */}
+              <div className="flex items-center gap-2">
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                  <SelectTrigger className="w-[130px] h-10 bg-white/[0.03] border-white/[0.08] text-white rounded-xl">
+                    <Filter className="w-3.5 h-3.5 mr-2 text-white/50" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-white/10">
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Sort */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="h-10 px-3 bg-white/[0.03] border-white/[0.08] text-white hover:bg-white/[0.06] rounded-xl">
+                      {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10">
+                    <DropdownMenuLabel className="text-white/50 text-xs">Sort by</DropdownMenuLabel>
+                    <DropdownMenuCheckboxItem 
+                      checked={sortBy === 'updated'} 
+                      onCheckedChange={() => setSortBy('updated')}
+                      className="text-white/80"
+                    >
+                      Last Updated
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem 
+                      checked={sortBy === 'created'} 
+                      onCheckedChange={() => setSortBy('created')}
+                      className="text-white/80"
+                    >
+                      Date Created
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem 
+                      checked={sortBy === 'name'} 
+                      onCheckedChange={() => setSortBy('name')}
+                      className="text-white/80"
+                    >
+                      Name
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem 
+                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      className="text-white/80"
+                    >
+                      {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "p-2 rounded-lg transition-all",
+                      viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                    )}
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      "p-2 rounded-lg transition-all",
+                      viewMode === 'list' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                    )}
+                  >
+                    <LayoutList className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* New Project Button */}
+                <Button 
+                  onClick={handleCreateProject}
+                  className="h-10 px-4 bg-white text-black hover:bg-white/90 rounded-xl font-medium"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">New Project</span>
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Needs Stitching Section */}
             {(needsStitching.length > 0 || stitchingProjects.length > 0) && (
               <motion.section 
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="mb-12"
+                transition={{ delay: 0.25 }}
+                className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/10"
               >
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <Layers className="w-5 h-5 text-amber-400" />
-                    <h2 className="text-xl font-bold text-white">Ready to Stitch</h2>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-amber-400" />
+                    <h2 className="text-sm font-semibold text-white">Ready to Stitch</h2>
+                    <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px]">
                       {needsStitching.length + stitchingProjects.length}
-                    </span>
+                    </Badge>
                   </div>
-                  
-                  {needsStitching.length > 1 && !isStitchingAll && (
-                    <Button
-                      onClick={handleStitchAll}
-                      disabled={isStitchingAll || stitchQueue.length > 0}
-                      size="sm"
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-bold shadow-lg shadow-amber-500/20"
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {stitchingProjects.map(project => (
+                    <div key={project.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                      <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
+                    </div>
+                  ))}
+                  {needsStitching.slice(0, 5).map(project => (
+                    <button
+                      key={project.id}
+                      onClick={() => handleGoogleStitch(project.id)}
+                      disabled={retryingProjectId === project.id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                     >
-                      {isStitchingAll ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Stitching {stitchQueue.length} remaining...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-4 h-4 mr-2" />
-                          Stitch All ({needsStitching.length})
-                        </>
-                      )}
-                    </Button>
+                      <Zap className="w-3 h-3 text-amber-400" />
+                      <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
+                    </button>
+                  ))}
+                  {needsStitching.length > 5 && (
+                    <span className="px-3 py-1.5 text-xs text-white/40">+{needsStitching.length - 5} more</span>
                   )}
                 </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {/* Processing projects */}
-                  {stitchingProjects.map((project, index) => (
-                    <div 
-                      key={project.id}
-                      className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
-                        <span className="text-sm font-medium text-white truncate">{project.name}</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-amber-500"
-                          initial={{ width: '10%' }}
-                          animate={{ width: '60%' }}
-                          transition={{ duration: 60, ease: 'linear' }}
-                        />
-                      </div>
-                      <p className="text-xs text-white/40 mt-2">Processing with Google FFmpeg...</p>
-                    </div>
-                  ))}
-                  
-                  {/* Projects needing stitching */}
-                  {needsStitching.map((project, index) => (
-                    <div 
-                      key={project.id}
-                      className="p-4 rounded-xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.08] hover:border-white/15 transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-white truncate flex-1 mr-2">{project.name}</span>
-                        <span className="text-xs text-white/40 shrink-0">
-                          {project.video_clips?.length || '?'} clips
-                        </span>
-                      </div>
-                      <Button
-                        onClick={() => handleGoogleStitch(project.id)}
-                        disabled={retryingProjectId === project.id || stitchQueue.includes(project.id)}
-                        size="sm"
-                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold"
-                      >
-                        {retryingProjectId === project.id || stitchQueue.includes(project.id) ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                            {stitchQueue.includes(project.id) ? 'Queued...' : 'Stitching...'}
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-3 h-3 mr-2" />
-                            Stitch with Google
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
               </motion.section>
             )}
 
-            {/* ========== FEATURED PROJECT ========== */}
-            {featuredProject && viewMode === 'gallery' && (
-              <motion.section 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="mb-12"
+            {/* Main Grid/List */}
+            <div className="flex gap-8">
+              {/* Projects Grid */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex-1"
               >
-                <div className="flex items-center gap-3 mb-5">
-                  <Star className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-xl font-bold text-white">Latest Creation</h2>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <CinematicVideoCard
-                      project={featuredProject}
-                      index={0}
-                      size="featured"
-                      onPlay={() => handlePlayVideo(featuredProject)}
-                      onEdit={() => handleOpenProject(featuredProject.id)}
-                      onRename={() => handleRenameProject(featuredProject)}
-                      onDelete={() => deleteProject(featuredProject.id)}
-                      onDownload={() => handleDownloadAll(featuredProject)}
-                      onRetryStitch={() => handleGoogleStitch(featuredProject.id)}
-                      isActive={activeProjectId === featuredProject.id}
-                      isRetrying={retryingProjectId === featuredProject.id}
-                    />
+                {filteredProjects.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Search className="w-10 h-10 text-white/20 mb-4" />
+                    <p className="text-white/50 mb-2">No projects found</p>
+                    <p className="text-white/30 text-sm">Try adjusting your search or filters</p>
                   </div>
+                ) : viewMode === 'list' ? (
+                  <div className="space-y-2">
+                    {filteredProjects.map((project, index) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        index={index}
+                        viewMode="list"
+                        onPlay={() => handlePlayVideo(project)}
+                        onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                        onRename={() => handleRenameProject(project)}
+                        onDelete={() => deleteProject(project.id)}
+                        onDownload={() => handleDownloadAll(project)}
+                        onRetryStitch={() => handleGoogleStitch(project.id)}
+                        onTogglePin={() => togglePin(project.id)}
+                        isActive={activeProjectId === project.id}
+                        isRetrying={retryingProjectId === project.id}
+                        isPinned={pinnedProjects.has(project.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    {filteredProjects.map((project, index) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        index={index}
+                        viewMode="grid"
+                        onPlay={() => handlePlayVideo(project)}
+                        onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                        onRename={() => handleRenameProject(project)}
+                        onDelete={() => deleteProject(project.id)}
+                        onDownload={() => handleDownloadAll(project)}
+                        onRetryStitch={() => handleGoogleStitch(project.id)}
+                        onTogglePin={() => togglePin(project.id)}
+                        isActive={activeProjectId === project.id}
+                        isRetrying={retryingProjectId === project.id}
+                        isPinned={pinnedProjects.has(project.id)}
+                      />
+                    ))}
+                    <CreateProjectCard onClick={handleCreateProject} delay={Math.min(filteredProjects.length * 0.03, 0.4)} />
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Activity Sidebar - Desktop only */}
+              <motion.aside
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+                className="hidden xl:block w-64 shrink-0"
+              >
+                <div className="sticky top-24 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5" />
+                    Recent Activity
+                  </h3>
                   
-                  {/* Quick stats */}
-                  <div className="flex flex-col gap-4">
-                    <div className="flex-1 p-6 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06]">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                          <TrendingUp className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-white">{stitchedProjects.length}</p>
-                          <p className="text-xs text-white/40">Completed</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 p-6 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06]">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                          <Film className="w-5 h-5 text-amber-400" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-white">
-                            {stitchedProjects.reduce((acc, p) => acc + (p.video_clips?.length || (p.video_url ? 1 : 0)), 0)}
-                          </p>
-                          <p className="text-xs text-white/40">Total Clips</p>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="space-y-1">
+                    {recentActivity.map((item, i) => (
+                      <ActivityItem key={i} {...item} />
+                    ))}
+                  </div>
 
-                    <Button 
-                      onClick={handleCreateProject}
-                      className="h-14 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-base shadow-xl"
+                  {/* Keyboard shortcuts hint */}
+                  <div className="mt-6 pt-4 border-t border-white/[0.06]">
+                    <button 
+                      onClick={() => setShowKeyboardHints(prev => !prev)}
+                      className="flex items-center gap-2 text-xs text-white/40 hover:text-white/60 transition-colors"
                     >
-                      <Plus className="w-5 h-5 mr-2" />
-                      New Project
-                    </Button>
+                      <Command className="w-3.5 h-3.5" />
+                      Keyboard shortcuts
+                    </button>
                   </div>
                 </div>
-              </motion.section>
-            )}
-
-            {/* ========== PROJECTS GRID ========== */}
-            <motion.section
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25 }}
-            >
-              {viewMode === 'gallery' && otherProjects.length > 0 && (
-                <div className="flex items-center gap-3 mb-5">
-                  <Clock className="w-5 h-5 text-white/40" />
-                  <h2 className="text-xl font-bold text-white">All Projects</h2>
-                </div>
-              )}
-              
-              <div className={cn(
-                "grid gap-5",
-                viewMode === 'grid' 
-                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-              )}>
-                {(viewMode === 'gallery' ? otherProjects : recentStitchedProjects).map((project, index) => (
-                  <CinematicVideoCard
-                    key={project.id}
-                    project={project}
-                    index={index}
-                    size={viewMode === 'gallery' ? 'normal' : 'normal'}
-                    onPlay={() => handlePlayVideo(project)}
-                    onEdit={() => handleOpenProject(project.id)}
-                    onRename={() => handleRenameProject(project)}
-                    onDelete={() => deleteProject(project.id)}
-                    onDownload={() => handleDownloadAll(project)}
-                    onRetryStitch={() => handleGoogleStitch(project.id)}
-                    isActive={activeProjectId === project.id}
-                    isRetrying={retryingProjectId === project.id}
-                  />
-                ))}
-                
-                {/* Create new project card */}
-                <CreateProjectCard 
-                  onClick={handleCreateProject} 
-                  delay={Math.min((viewMode === 'gallery' ? otherProjects : recentStitchedProjects).length * 0.08, 0.5)} 
-                />
-              </div>
-            </motion.section>
+              </motion.aside>
+            </div>
           </>
         )}
       </main>
 
-      {/* ========== VIDEO PLAYER MODAL ========== */}
+      {/* Video Player Modal */}
       {videoModalOpen && selectedProject && !isLoadingClips && resolvedClips.length > 0 && (
         <FullscreenVideoPlayer
           clips={resolvedClips}
@@ -1246,7 +1362,7 @@ export default function Projects() {
             setVideoModalOpen(false);
             setResolvedClips([]);
             setActiveProjectId(selectedProject.id);
-            navigate('/pipeline/production');
+            navigate('/create');
           }}
         />
       )}
@@ -1261,19 +1377,16 @@ export default function Projects() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
           >
             <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-white/10 rounded-full blur-xl animate-pulse" />
-                <Loader2 className="relative w-10 h-10 animate-spin text-white" />
-              </div>
-              <p className="text-white/60 font-medium">Loading your video...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-white" />
+              <p className="text-white/60 text-sm">Loading your video...</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ========== RENAME DIALOG ========== */}
+      {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-black/95 backdrop-blur-2xl border-white/10 rounded-2xl">
+        <DialogContent className="sm:max-w-md bg-zinc-900/95 backdrop-blur-2xl border-white/10 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white text-lg">
               <Pencil className="w-5 h-5" />
@@ -1315,6 +1428,37 @@ export default function Projects() {
               Save Changes
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Keyboard Shortcuts Modal */}
+      <Dialog open={showKeyboardHints} onOpenChange={setShowKeyboardHints}>
+        <DialogContent className="sm:max-w-sm bg-zinc-900/95 backdrop-blur-2xl border-white/10 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Command className="w-5 h-5" />
+              Keyboard Shortcuts
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-3">
+            {[
+              { keys: ['/', ''], action: 'Search projects' },
+              { keys: ['⌘', 'N'], action: 'New project' },
+              { keys: ['G'], action: 'Grid view' },
+              { keys: ['L'], action: 'List view' },
+              { keys: ['?'], action: 'Show shortcuts' },
+            ].map((shortcut, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-sm text-white/60">{shortcut.action}</span>
+                <div className="flex items-center gap-1">
+                  {shortcut.keys.map((key, j) => (
+                    key && <kbd key={j} className="px-2 py-1 text-xs font-mono text-white/80 bg-white/10 rounded">{key}</kbd>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

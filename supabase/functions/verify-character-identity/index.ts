@@ -69,7 +69,21 @@ interface VerificationResult {
   driftAreas: string[];
   correctivePrompt: string;
   detectedPose?: 'front' | 'side' | 'back' | 'three-quarter' | 'occluded';
+  // Hard fail flags
+  clothingHardFail: boolean;
+  hairHardFail: boolean;
+  bodyHardFail: boolean;
 }
+
+// STRICT THRESHOLDS for character consistency
+const THRESHOLDS = {
+  OVERALL_PASS: 65,         // Lowered from 70
+  CLOTHING_HARD_FAIL: 50,   // Clothing score below this = MUST regenerate
+  HAIR_HARD_FAIL: 50,       // Hair score below this = MUST regenerate
+  BODY_HARD_FAIL: 55,       // Body score below this = MUST regenerate
+  FACE_HARD_FAIL: 60,       // Face score below this (if visible) = MUST regenerate
+  MAX_REGENERATIONS: 3,
+};
 
 // Extract frames from video URL (using Cloud Run service or fallback)
 async function extractFramesFromVideo(
@@ -158,6 +172,9 @@ async function analyzeIdentityConsistency(
       driftAreas: [],
       correctivePrompt: '',
       detectedPose: 'front',
+      clothingHardFail: false,
+      hairHardFail: false,
+      bodyHardFail: false,
     };
   }
   
@@ -293,8 +310,23 @@ Return ONLY valid JSON:
       .filter((i: any) => i.severity === 'severe' || i.severity === 'moderate')
       .map((i: any) => i.type);
     
-    // Determine if drift occurred
-    const driftDetected = overallScore < 70 || hasSevereIssues || hasModerateIssues;
+    // Calculate hard fail flags using THRESHOLDS
+    const clothingScore = analysis.clothingScore || 75;
+    const hairScore = analysis.hairScore || 75;
+    const bodyScore = analysis.bodyScore || 75;
+    const faceScore = analysis.faceScore || 75;
+    
+    const clothingHardFail = clothingScore < THRESHOLDS.CLOTHING_HARD_FAIL;
+    const hairHardFail = hairScore < THRESHOLDS.HAIR_HARD_FAIL;
+    const bodyHardFail = bodyScore < THRESHOLDS.BODY_HARD_FAIL;
+    const faceHardFail = analysis.faceVisible && faceScore < THRESHOLDS.FACE_HARD_FAIL;
+    
+    // Determine if drift occurred (use stricter threshold)
+    const driftDetected = overallScore < THRESHOLDS.OVERALL_PASS || hasSevereIssues || hasModerateIssues;
+    
+    // Should regenerate if any hard fail or overall too low
+    const shouldRegenerate = clothingHardFail || hairHardFail || bodyHardFail || faceHardFail ||
+      overallScore < THRESHOLDS.OVERALL_PASS || hasSevereIssues || hasModerateIssues;
     
     // Build corrective prompt from hints
     const correctivePrompt = (analysis.regenerationHints || []).join('. ');
@@ -304,23 +336,34 @@ Return ONLY valid JSON:
       ? (analysis.detectedPose || 'front') 
       : (analysis.detectedPose || 'back');
     
+    // Log hard fail details
+    if (clothingHardFail || hairHardFail || bodyHardFail) {
+      console.log(`[VerifyIdentity] HARD FAIL detected:`);
+      if (clothingHardFail) console.log(`  - Clothing: ${clothingScore} < ${THRESHOLDS.CLOTHING_HARD_FAIL}`);
+      if (hairHardFail) console.log(`  - Hair: ${hairScore} < ${THRESHOLDS.HAIR_HARD_FAIL}`);
+      if (bodyHardFail) console.log(`  - Body: ${bodyScore} < ${THRESHOLDS.BODY_HARD_FAIL}`);
+    }
+    
     return {
-      passed: overallScore >= 70 && !hasSevereIssues,
+      passed: overallScore >= THRESHOLDS.OVERALL_PASS && !hasSevereIssues && !clothingHardFail && !hairHardFail && !bodyHardFail,
       overallScore,
-      faceScore: analysis.faceScore || 75,
-      bodyScore: analysis.bodyScore || 75,
-      clothingScore: analysis.clothingScore || 75,
-      hairScore: analysis.hairScore || 75,
+      faceScore,
+      bodyScore,
+      clothingScore,
+      hairScore,
       accessoryScore: analysis.accessoryScore || 75,
       silhouetteScore: analysis.silhouetteScore || 75,
       issues: analysis.issues || [],
-      shouldRegenerate: overallScore < 65 || hasSevereIssues || hasModerateIssues,
+      shouldRegenerate,
       regenerationHints: analysis.regenerationHints || [],
       analysisDetails: analysis.analysisDetails || 'Analysis complete',
       driftDetected,
       driftAreas,
       correctivePrompt,
       detectedPose,
+      clothingHardFail,
+      hairHardFail,
+      bodyHardFail,
     };
     
   } catch (err) {
@@ -343,6 +386,9 @@ Return ONLY valid JSON:
       driftAreas: [],
       correctivePrompt: '',
       detectedPose: 'front',
+      clothingHardFail: false,
+      hairHardFail: false,
+      bodyHardFail: false,
     };
   }
 }

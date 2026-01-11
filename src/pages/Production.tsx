@@ -280,106 +280,220 @@ function ProjectSidebar({
   const handleSelectProject = (id: string) => {
     navigate(`/production?projectId=${id}`);
   };
+
+  const getStatusColor = (status: string, progress: number) => {
+    if (progress >= 100) return 'emerald';
+    if (status === 'failed' || status === 'stitching_failed') return 'red';
+    if (['generating', 'producing', 'stitching'].includes(status)) return 'blue';
+    return 'amber';
+  };
+
+  const getStatusLabel = (status: string, progress: number) => {
+    if (progress >= 100) return 'Complete';
+    if (status === 'failed') return 'Failed';
+    if (status === 'stitching_failed') return 'Stitch Failed';
+    if (status === 'stitching') return 'Stitching';
+    if (status === 'generating') return 'Generating';
+    if (status === 'producing') return 'Rendering';
+    return 'Paused';
+  };
   
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isCollapsed ? 56 : 240 }}
-      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className="h-full bg-[#0a0a0a] border-r border-white/[0.04] flex flex-col shrink-0"
+      animate={{ width: isCollapsed ? 64 : 280 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full bg-gradient-to-b from-[#0c0c0c] to-[#080808] border-r border-white/[0.06] flex flex-col shrink-0"
     >
       {/* Header */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-white/[0.04]">
+      <div className="h-14 flex items-center justify-between px-4 border-b border-white/[0.06]">
         {!isCollapsed && (
-          <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">Projects</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-white/10 to-white/[0.02] flex items-center justify-center">
+              <Layers className="w-3.5 h-3.5 text-white/60" />
+            </div>
+            <span className="text-xs font-semibold text-white/70">Productions</span>
+          </div>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className={cn("w-7 h-7 text-white/40 hover:text-white shrink-0", isCollapsed && "mx-auto")}
+          className={cn(
+            "w-8 h-8 text-white/40 hover:text-white hover:bg-white/[0.06] rounded-lg shrink-0", 
+            isCollapsed && "mx-auto"
+          )}
           onClick={onToggle}
         >
-          <ChevronLeft className={cn("w-4 h-4 transition-transform", isCollapsed && "rotate-180")} />
+          <ChevronLeft className={cn("w-4 h-4 transition-transform duration-200", isCollapsed && "rotate-180")} />
         </Button>
       </div>
 
       {/* Projects List */}
-      <ScrollArea className="flex-1 py-2">
-        <div className={cn("space-y-1", isCollapsed ? "px-1.5" : "px-2")}>
-          {projects.map((project) => {
-            const isActive = project.id === activeProjectId;
-            const isProcessing = ['generating', 'producing', 'stitching'].includes(project.status);
-            
-            return (
-              <motion.button
-                key={project.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onClick={() => handleSelectProject(project.id)}
-                className={cn(
-                  "w-full flex items-center gap-2 rounded-lg transition-all duration-200",
-                  isCollapsed ? "p-2 justify-center" : "p-2",
-                  isActive 
-                    ? "bg-white/[0.08] ring-1 ring-white/10" 
-                    : "hover:bg-white/[0.04]"
-                )}
-              >
-                {/* Thumbnail */}
-                <div className={cn(
-                  "relative rounded-md overflow-hidden bg-white/[0.03] shrink-0",
-                  isCollapsed ? "w-8 h-5" : "w-10 h-6"
-                )}>
-                  {project.thumbnail ? (
-                    <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Film className="w-3 h-3 text-white/15" />
-                    </div>
+      <ScrollArea className="flex-1">
+        <div className={cn("py-3", isCollapsed ? "px-2" : "px-3")}>
+          {!isCollapsed && projects.length > 0 && (
+            <p className="text-[10px] font-medium text-white/30 uppercase tracking-wider mb-3 px-1">
+              {projects.length} Project{projects.length !== 1 ? 's' : ''}
+            </p>
+          )}
+          
+          <div className="space-y-1.5">
+            {projects.map((project, index) => {
+              const isActive = project.id === activeProjectId;
+              const isProcessing = ['generating', 'producing', 'stitching'].includes(project.status);
+              const statusColor = getStatusColor(project.status, project.progress);
+              const statusLabel = getStatusLabel(project.status, project.progress);
+              
+              return (
+                <motion.button
+                  key={project.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  onClick={() => handleSelectProject(project.id)}
+                  className={cn(
+                    "w-full rounded-xl transition-all duration-200 group relative overflow-hidden",
+                    isCollapsed ? "p-2 flex justify-center" : "p-3",
+                    isActive 
+                      ? "bg-gradient-to-r from-white/[0.08] to-white/[0.04] ring-1 ring-white/[0.12] shadow-lg shadow-black/20" 
+                      : "hover:bg-white/[0.04]"
                   )}
-                  {isProcessing && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
-                    </div>
+                >
+                  {/* Active indicator */}
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeSidebarIndicator"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 rounded-r-full bg-white"
+                    />
                   )}
-                </div>
 
-                {!isCollapsed && (
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[11px] font-medium text-white truncate">{project.title}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <div className="flex-1 h-0.5 rounded-full bg-white/10 overflow-hidden">
-                        <motion.div 
-                          className={cn(
-                            "h-full",
-                            project.progress >= 100 ? "bg-emerald-500" : "bg-white/50"
-                          )}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${project.progress}%` }}
-                        />
+                  {isCollapsed ? (
+                    /* Collapsed View - Just thumbnail */
+                    <div className="relative">
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center",
+                        isActive && "ring-1 ring-white/20"
+                      )}>
+                        {project.thumbnail ? (
+                          <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <Film className="w-4 h-4 text-white/20" />
+                        )}
                       </div>
-                      <span className="text-[9px] text-white/30">{project.progress}%</span>
+                      {isProcessing && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-[#0c0c0c]">
+                          <Loader2 className="w-2 h-2 text-white animate-spin" />
+                        </div>
+                      )}
+                      {project.progress >= 100 && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center ring-2 ring-[#0c0c0c]">
+                          <CheckCircle2 className="w-2 h-2 text-white" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </motion.button>
-            );
-          })}
+                  ) : (
+                    /* Expanded View */
+                    <div className="flex gap-3">
+                      {/* Thumbnail */}
+                      <div className="relative shrink-0">
+                        <div className={cn(
+                          "w-14 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center",
+                          isActive && "ring-1 ring-white/20"
+                        )}>
+                          {project.thumbnail ? (
+                            <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <Film className="w-4 h-4 text-white/20" />
+                          )}
+                        </div>
+                        {isProcessing && (
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-[#0c0c0c]">
+                            <Loader2 className="w-2.5 h-2.5 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className={cn(
+                          "text-sm font-medium truncate transition-colors",
+                          isActive ? "text-white" : "text-white/70 group-hover:text-white"
+                        )}>
+                          {project.title}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {/* Status Badge */}
+                          <span className={cn(
+                            "text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md",
+                            statusColor === 'emerald' && "bg-emerald-500/20 text-emerald-400",
+                            statusColor === 'blue' && "bg-blue-500/20 text-blue-400",
+                            statusColor === 'red' && "bg-red-500/20 text-red-400",
+                            statusColor === 'amber' && "bg-amber-500/20 text-amber-400"
+                          )}>
+                            {statusLabel}
+                          </span>
+                          
+                          {/* Progress */}
+                          <span className={cn(
+                            "text-[10px] font-medium tabular-nums",
+                            statusColor === 'emerald' && "text-emerald-400",
+                            statusColor === 'blue' && "text-blue-400",
+                            statusColor === 'red' && "text-red-400",
+                            statusColor === 'amber' && "text-amber-400"
+                          )}>
+                            {project.progress}%
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mt-2 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                          <motion.div 
+                            className={cn(
+                              "h-full rounded-full",
+                              statusColor === 'emerald' && "bg-gradient-to-r from-emerald-500 to-emerald-400",
+                              statusColor === 'blue' && "bg-gradient-to-r from-blue-500 to-blue-400",
+                              statusColor === 'red' && "bg-gradient-to-r from-red-500 to-red-400",
+                              statusColor === 'amber' && "bg-gradient-to-r from-amber-500 to-amber-400"
+                            )}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${project.progress}%` }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+
+            {projects.length === 0 && !isCollapsed && (
+              <div className="text-center py-8 px-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
+                  <Film className="w-5 h-5 text-white/20" />
+                </div>
+                <p className="text-xs text-white/40">No productions yet</p>
+                <p className="text-[10px] text-white/25 mt-1">Start a project in Studio</p>
+              </div>
+            )}
+          </div>
         </div>
       </ScrollArea>
 
       {/* Footer */}
-      <div className={cn("border-t border-white/[0.04] p-2", isCollapsed && "px-1.5")}>
+      <div className={cn("border-t border-white/[0.06] p-3", isCollapsed && "p-2")}>
         <Button
           variant="ghost"
           size="sm"
           className={cn(
-            "w-full text-white/40 hover:text-white hover:bg-white/[0.04] text-[10px]",
-            isCollapsed ? "p-2" : "justify-start gap-2"
+            "w-full text-white/50 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors",
+            isCollapsed ? "p-2.5" : "justify-start gap-2.5 h-9"
           )}
           onClick={() => navigate('/projects')}
         >
-          <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-          {!isCollapsed && <span>All Projects</span>}
+          <FolderOpen className="w-4 h-4 shrink-0" />
+          {!isCollapsed && <span className="text-xs font-medium">All Projects</span>}
         </Button>
       </div>
     </motion.aside>

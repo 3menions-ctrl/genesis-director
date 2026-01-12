@@ -803,7 +803,15 @@ export default function Production() {
               mood: shot.mood,
             }));
             setScriptShots(shots);
-            addLog('Script loaded from project', 'info');
+            
+            // If project status is awaiting_approval, ensure pipelineStage reflects this
+            if (project.status === 'awaiting_approval') {
+              setPipelineStage('awaiting_approval');
+              addLog('Script ready for approval', 'info');
+              toast.info('Script ready! Review and approve to continue.');
+            } else {
+              addLog('Script loaded from project', 'info');
+            }
           }
         } catch (e) {
           console.warn('[Production] Could not parse generated_script:', e);

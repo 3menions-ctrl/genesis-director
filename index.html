@@ -2,16 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>Apex Studio | AI Virtual Production Platform</title>
+    
+    <!-- Preconnect for faster font loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Preload critical fonts with display=swap for FOUT -->
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    </noscript>
+    
+    <!-- SEO Meta Tags -->
     <meta name="description" content="Create stunning 4K videos with AI-powered presenters, living backgrounds, and hyper-realistic narration. Professional virtual production made simple." />
     <meta name="author" content="Apex Studio" />
     <meta name="keywords" content="virtual production, AI video, text to speech, AI presenter, 4K video, video generation, HeyGen, ElevenLabs, Runway" />
     <link rel="canonical" href="https://apexstudio.app" />
 
+    <!-- Mobile Web App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Apex Studio" />
+    <meta name="application-name" content="Apex Studio" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="msapplication-TileColor" content="#0a0a0a" />
+    
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph -->
     <meta property="og:title" content="Apex Studio | AI Virtual Production Platform" />
     <meta property="og:description" content="Create stunning 4K videos with AI-powered presenters, living backgrounds, and hyper-realistic narration." />
     <meta property="og:type" content="website" />
@@ -19,15 +50,16 @@
     <meta property="og:url" content="https://apexstudio.app" />
     <meta property="og:site_name" content="Apex Studio" />
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@ApexStudio" />
     <meta name="twitter:title" content="Apex Studio | AI Virtual Production Platform" />
     <meta name="twitter:description" content="Create stunning 4K videos with AI-powered presenters and living backgrounds." />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-    <meta name="theme-color" content="#00d4ff" />
     <meta name="robots" content="index, follow" />
 
+    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -44,10 +76,27 @@
       }
     }
     </script>
+    
+    <!-- Critical CSS for faster first paint -->
+    <style>
+      /* Critical above-the-fold styles */
+      *,*::before,*::after{box-sizing:border-box}
+      html{-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4}
+      body{margin:0;font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+      #root{min-height:100vh;min-height:100dvh}
+      .page-loader{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:#0a0a0a}
+      .page-loader-spinner{width:40px;height:40px;border:2px solid #333;border-top-color:#00d4ff;border-radius:50%;animation:spin 1s linear infinite}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Initial loading state (replaced by React) -->
+      <div class="page-loader">
+        <div class="page-loader-spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

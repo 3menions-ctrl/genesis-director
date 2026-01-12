@@ -158,3 +158,6 @@ verify_jwt = false
 
 [functions.extract-first-frame]
 verify_jwt = false
+
+[functions.extract-continuity-manifest]
+verify_jwt = false

@@ -660,17 +660,20 @@ function extractMotionVectors(prompt: string): ClipResult['motionVectors'] {
 }
 
 // =====================================================
-// CONTENT SAFETY PRE-CHECK
+// CONTENT SAFETY PRE-CHECK + AI GUARDRAILS
 // Scans prompts for words that may trigger Google's content policy
+// Uses AI to rephrase when needed
 // =====================================================
 interface ContentSafetyResult {
   isSafe: boolean;
   flaggedTerms: string[];
   sanitizedPrompt: string;
   warnings: string[];
+  requiresAIRephrase: boolean;
 }
 
 // Words/patterns that commonly trigger Google's Responsible AI filters
+// COMPREHENSIVE list based on actual Vertex AI rejections
 const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string }[] = [
   // Age-related terms (high sensitivity)
   { pattern: /\bchildren\b/gi, replacement: 'people', category: 'age' },
@@ -700,7 +703,7 @@ const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string
   { pattern: /\bfamilies\b/gi, replacement: 'groups of people', category: 'family' },
   { pattern: /\bparents?\s+(and|with)\s+(children|kids)\b/gi, replacement: 'adults', category: 'family' },
   
-  // Violence/weapon terms
+  // Violence/weapon terms (expanded)
   { pattern: /\bblood\b/gi, replacement: 'red liquid', category: 'violence' },
   { pattern: /\bbloody\b/gi, replacement: 'dramatic', category: 'violence' },
   { pattern: /\bgore\b/gi, replacement: 'dramatic effect', category: 'violence' },
@@ -712,8 +715,65 @@ const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string
   { pattern: /\bknives?\b/gi, replacement: 'tools', category: 'violence' },
   { pattern: /\bexplosives?\b/gi, replacement: 'effects', category: 'violence' },
   { pattern: /\bexplod(e|ing|ed)\b/gi, replacement: 'burst', category: 'violence' },
+  { pattern: /\bdead\b/gi, replacement: 'fallen', category: 'violence' },
+  { pattern: /\bdeath\b/gi, replacement: 'end', category: 'violence' },
+  { pattern: /\bdying\b/gi, replacement: 'fading', category: 'violence' },
+  { pattern: /\bdie\b/gi, replacement: 'fall', category: 'violence' },
+  { pattern: /\bdies\b/gi, replacement: 'falls', category: 'violence' },
+  { pattern: /\bstab(bed|bing|s)?\b/gi, replacement: 'strike', category: 'violence' },
+  { pattern: /\bshoot(ing|s)?\b/gi, replacement: 'aim', category: 'violence' },
+  { pattern: /\bshot\b/gi, replacement: 'hit', category: 'violence' },
+  { pattern: /\bwounds?\b/gi, replacement: 'marks', category: 'violence' },
+  { pattern: /\bwounded\b/gi, replacement: 'marked', category: 'violence' },
+  { pattern: /\binjur(y|ies|ed)\b/gi, replacement: 'affected', category: 'violence' },
+  { pattern: /\bhurt\b/gi, replacement: 'affected', category: 'violence' },
+  { pattern: /\bpain\b/gi, replacement: 'sensation', category: 'violence' },
+  { pattern: /\bsuffer(ing|s|ed)?\b/gi, replacement: 'experience', category: 'violence' },
+  { pattern: /\btorture\b/gi, replacement: 'struggle', category: 'violence' },
+  { pattern: /\battack(ing|ed|s)?\b/gi, replacement: 'approach', category: 'violence' },
+  { pattern: /\bfight(ing|s)?\b/gi, replacement: 'engage', category: 'violence' },
+  { pattern: /\bfought\b/gi, replacement: 'engaged', category: 'violence' },
+  { pattern: /\bbattle\b/gi, replacement: 'encounter', category: 'violence' },
+  { pattern: /\bwar\b/gi, replacement: 'conflict', category: 'violence' },
+  { pattern: /\bwarfare\b/gi, replacement: 'conflict', category: 'violence' },
+  { pattern: /\bcombat\b/gi, replacement: 'action', category: 'violence' },
+  { pattern: /\bviolent\b/gi, replacement: 'intense', category: 'violence' },
+  { pattern: /\bviolence\b/gi, replacement: 'tension', category: 'violence' },
+  { pattern: /\bbrutal\b/gi, replacement: 'powerful', category: 'violence' },
+  { pattern: /\bsavage\b/gi, replacement: 'wild', category: 'violence' },
+  { pattern: /\bvicious\b/gi, replacement: 'fierce', category: 'violence' },
+  { pattern: /\bdestroy(ed|ing|s)?\b/gi, replacement: 'overcome', category: 'violence' },
+  { pattern: /\bdestruction\b/gi, replacement: 'change', category: 'violence' },
+  { pattern: /\bcorpse\b/gi, replacement: 'figure', category: 'violence' },
+  { pattern: /\bbodies\b/gi, replacement: 'figures', category: 'violence' },
+  { pattern: /\bbody\b/gi, replacement: 'figure', category: 'violence' },
+  { pattern: /\bscream(ing|s|ed)?\b/gi, replacement: 'call', category: 'violence' },
+  { pattern: /\bcrash(ing|ed|es)?\b/gi, replacement: 'collide', category: 'violence' },
+  { pattern: /\bsmash(ing|ed|es)?\b/gi, replacement: 'break', category: 'violence' },
+  { pattern: /\bcollapse\b/gi, replacement: 'fall', category: 'violence' },
+  { pattern: /\bblast(ing|ed|s)?\b/gi, replacement: 'burst', category: 'violence' },
   
-  // Sexual/suggestive terms
+  // Specific weapon types
+  { pattern: /\brifle\b/gi, replacement: 'equipment', category: 'weapons' },
+  { pattern: /\bpistol\b/gi, replacement: 'tool', category: 'weapons' },
+  { pattern: /\bshotgun\b/gi, replacement: 'equipment', category: 'weapons' },
+  { pattern: /\bmachine\s*gun\b/gi, replacement: 'equipment', category: 'weapons' },
+  { pattern: /\bassault\s*rifle\b/gi, replacement: 'equipment', category: 'weapons' },
+  { pattern: /\bsniper\b/gi, replacement: 'observer', category: 'weapons' },
+  { pattern: /\bsword\b/gi, replacement: 'blade', category: 'weapons' },
+  { pattern: /\bdagger\b/gi, replacement: 'tool', category: 'weapons' },
+  { pattern: /\baxe\b/gi, replacement: 'tool', category: 'weapons' },
+  { pattern: /\bbow\s+and\s+arrow\b/gi, replacement: 'equipment', category: 'weapons' },
+  { pattern: /\barrow\b/gi, replacement: 'projectile', category: 'weapons' },
+  { pattern: /\bbomb\b/gi, replacement: 'device', category: 'weapons' },
+  { pattern: /\bgrenade\b/gi, replacement: 'object', category: 'weapons' },
+  { pattern: /\bmissile\b/gi, replacement: 'object', category: 'weapons' },
+  { pattern: /\brocket\b/gi, replacement: 'object', category: 'weapons' },
+  { pattern: /\bbullet\b/gi, replacement: 'projectile', category: 'weapons' },
+  { pattern: /\bammunition\b/gi, replacement: 'supplies', category: 'weapons' },
+  { pattern: /\bammo\b/gi, replacement: 'supplies', category: 'weapons' },
+  
+  // Sexual/suggestive terms (expanded)
   { pattern: /\bsex(y|ual|ually)?\b/gi, replacement: 'attractive', category: 'sexual' },
   { pattern: /\bnude\b/gi, replacement: 'natural', category: 'sexual' },
   { pattern: /\bnaked\b/gi, replacement: 'unclothed', category: 'sexual' },
@@ -723,6 +783,20 @@ const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string
   { pattern: /\bsensual\b/gi, replacement: 'emotional', category: 'sexual' },
   { pattern: /\bintimate\b/gi, replacement: 'close', category: 'sexual' },
   { pattern: /\bundressed\b/gi, replacement: 'casual', category: 'sexual' },
+  { pattern: /\bprovocative\b/gi, replacement: 'striking', category: 'sexual' },
+  { pattern: /\bsuggestive\b/gi, replacement: 'expressive', category: 'sexual' },
+  { pattern: /\blust(ful|y)?\b/gi, replacement: 'passionate', category: 'sexual' },
+  { pattern: /\bsexuali[zs](ed|ing)?\b/gi, replacement: 'styled', category: 'sexual' },
+  { pattern: /\bstripper\b/gi, replacement: 'dancer', category: 'sexual' },
+  { pattern: /\bstrip(ping|ped)?\b/gi, replacement: 'reveal', category: 'sexual' },
+  { pattern: /\blingerie\b/gi, replacement: 'elegant attire', category: 'sexual' },
+  { pattern: /\bunderwear\b/gi, replacement: 'casual wear', category: 'sexual' },
+  { pattern: /\bbikini\b/gi, replacement: 'swimwear', category: 'sexual' },
+  { pattern: /\bcleavage\b/gi, replacement: 'neckline', category: 'sexual' },
+  { pattern: /\bbreast\b/gi, replacement: 'chest', category: 'sexual' },
+  { pattern: /\bbutt\b/gi, replacement: 'silhouette', category: 'sexual' },
+  { pattern: /\bbuttocks\b/gi, replacement: 'silhouette', category: 'sexual' },
+  { pattern: /\bthigh\b/gi, replacement: 'leg', category: 'sexual' },
   
   // Drug/substance terms
   { pattern: /\bdrugs?\b/gi, replacement: 'substances', category: 'drugs' },
@@ -731,18 +805,112 @@ const FLAGGED_PATTERNS: { pattern: RegExp; replacement: string; category: string
   { pattern: /\bmarijuana\b/gi, replacement: 'plant', category: 'drugs' },
   { pattern: /\bweed\b/gi, replacement: 'plant', category: 'drugs' },
   { pattern: /\bsmok(e|ing)\s+weed\b/gi, replacement: 'relaxing', category: 'drugs' },
+  { pattern: /\bcrack\b/gi, replacement: 'substance', category: 'drugs' },
+  { pattern: /\bmeth\b/gi, replacement: 'substance', category: 'drugs' },
+  { pattern: /\bopioid\b/gi, replacement: 'substance', category: 'drugs' },
+  { pattern: /\boverdose\b/gi, replacement: 'incident', category: 'drugs' },
+  { pattern: /\baddiction\b/gi, replacement: 'habit', category: 'drugs' },
+  { pattern: /\baddicted\b/gi, replacement: 'attached', category: 'drugs' },
+  { pattern: /\bhigh\s+on\b/gi, replacement: 'affected by', category: 'drugs' },
+  { pattern: /\bstoned\b/gi, replacement: 'dazed', category: 'drugs' },
+  { pattern: /\bdrunk\b/gi, replacement: 'dazed', category: 'drugs' },
+  { pattern: /\bintoxicated\b/gi, replacement: 'affected', category: 'drugs' },
   
-  // Hate/discrimination terms
+  // Hate/discrimination/extremism terms
   { pattern: /\bterrorist?\b/gi, replacement: 'antagonist', category: 'hate' },
   { pattern: /\bterrorism\b/gi, replacement: 'conflict', category: 'hate' },
   { pattern: /\bracist\b/gi, replacement: 'biased', category: 'hate' },
   { pattern: /\bhate\s+crime\b/gi, replacement: 'incident', category: 'hate' },
+  { pattern: /\bextremist\b/gi, replacement: 'radical', category: 'hate' },
+  { pattern: /\bsupremacist\b/gi, replacement: 'radical', category: 'hate' },
+  { pattern: /\bnazi\b/gi, replacement: 'soldier', category: 'hate' },
+  { pattern: /\bswastika\b/gi, replacement: 'symbol', category: 'hate' },
+  { pattern: /\bjihad\b/gi, replacement: 'mission', category: 'hate' },
+  { pattern: /\bklan\b/gi, replacement: 'group', category: 'hate' },
+  { pattern: /\bisis\b/gi, replacement: 'group', category: 'hate' },
+  { pattern: /\bal[- ]?qaeda\b/gi, replacement: 'group', category: 'hate' },
+  
+  // Self-harm/mental health sensitive terms
+  { pattern: /\bsuicide\b/gi, replacement: 'crisis', category: 'selfharm' },
+  { pattern: /\bself[- ]?harm\b/gi, replacement: 'distress', category: 'selfharm' },
+  { pattern: /\bcutting\b/gi, replacement: 'marking', category: 'selfharm' },
+  { pattern: /\bhanging\b/gi, replacement: 'suspended', category: 'selfharm' },
+  { pattern: /\bjumping\s+(off|from)\s+\w+\b/gi, replacement: 'at a high place', category: 'selfharm' },
+  
+  // Dangerous activities
+  { pattern: /\breckless\b/gi, replacement: 'bold', category: 'danger' },
+  { pattern: /\bdangerous\b/gi, replacement: 'challenging', category: 'danger' },
+  { pattern: /\bhazardous\b/gi, replacement: 'difficult', category: 'danger' },
+  { pattern: /\blethal\b/gi, replacement: 'potent', category: 'danger' },
+  { pattern: /\bdeadly\b/gi, replacement: 'powerful', category: 'danger' },
+  { pattern: /\bfatal\b/gi, replacement: 'serious', category: 'danger' },
+  
+  // Crime-related terms
+  { pattern: /\bsteal(ing|s)?\b/gi, replacement: 'take', category: 'crime' },
+  { pattern: /\bstole\b/gi, replacement: 'took', category: 'crime' },
+  { pattern: /\brob(bing|bed|s)?\b/gi, replacement: 'take from', category: 'crime' },
+  { pattern: /\brobbery\b/gi, replacement: 'incident', category: 'crime' },
+  { pattern: /\btheft\b/gi, replacement: 'incident', category: 'crime' },
+  { pattern: /\bthief\b/gi, replacement: 'person', category: 'crime' },
+  { pattern: /\bcriminal\b/gi, replacement: 'person', category: 'crime' },
+  { pattern: /\bcrime\b/gi, replacement: 'incident', category: 'crime' },
+  { pattern: /\billegal\b/gi, replacement: 'unofficial', category: 'crime' },
+  { pattern: /\bkidnap(ping|ped|s)?\b/gi, replacement: 'take', category: 'crime' },
+  { pattern: /\babduct(ed|ing|ion)?\b/gi, replacement: 'take', category: 'crime' },
+  { pattern: /\bhostage\b/gi, replacement: 'person', category: 'crime' },
+  { pattern: /\bprison(er)?\b/gi, replacement: 'person', category: 'crime' },
+  { pattern: /\bjail\b/gi, replacement: 'building', category: 'crime' },
+  { pattern: /\barrest(ed|ing)?\b/gi, replacement: 'stop', category: 'crime' },
+  { pattern: /\bhandcuffs?\b/gi, replacement: 'restraints', category: 'crime' },
+  
+  // Horror/scary terms that may trigger filters
+  { pattern: /\bhorror\b/gi, replacement: 'suspense', category: 'horror' },
+  { pattern: /\bterrif(y|ying|ied)\b/gi, replacement: 'intense', category: 'horror' },
+  { pattern: /\bterror\b/gi, replacement: 'tension', category: 'horror' },
+  { pattern: /\bfrightening\b/gi, replacement: 'surprising', category: 'horror' },
+  { pattern: /\bscar(y|ier|iest)\b/gi, replacement: 'dramatic', category: 'horror' },
+  { pattern: /\bcreepy\b/gi, replacement: 'mysterious', category: 'horror' },
+  { pattern: /\bdemon\b/gi, replacement: 'dark figure', category: 'horror' },
+  { pattern: /\bdevil\b/gi, replacement: 'dark figure', category: 'horror' },
+  { pattern: /\bsatan\b/gi, replacement: 'dark figure', category: 'horror' },
+  { pattern: /\bpossess(ed|ion)?\b/gi, replacement: 'affected', category: 'horror' },
+  { pattern: /\bzombie\b/gi, replacement: 'figure', category: 'horror' },
+  { pattern: /\bmonster\b/gi, replacement: 'creature', category: 'horror' },
+  { pattern: /\bghost\b/gi, replacement: 'spirit', category: 'horror' },
+  { pattern: /\bhaunt(ed|ing)?\b/gi, replacement: 'mysterious', category: 'horror' },
+  { pattern: /\bnightmare\b/gi, replacement: 'dream', category: 'horror' },
+];
+
+// Terms that indicate prompt needs AI rephrasing even after sanitization
+const HIGH_RISK_INDICATORS = [
+  /\b(sniper|assassin|hitman|executioner)\b/i,
+  /\b(massacre|slaughter|genocide)\b/i,
+  /\b(torture|torment|abuse)\b/i,
+  /\b(rape|assault|molest)\b/i,
+  /\b(slave|slavery|enslave)\b/i,
+  /\b(lynch|hanging|execution)\b/i,
+  /\b(isis|taliban|al[- ]?qaeda|hamas)\b/i,
+  /\b(nazi|fascist|white\s*supremac)\b/i,
+  /\b(concentration\s*camp|holocaust)\b/i,
+  /\b(school\s*shooting|mass\s*shooting)\b/i,
+  /\b(bomb\s*threat|bomb\s*making)\b/i,
+  /\b(self[- ]?harm|cut\s*myself|suicide)\b/i,
 ];
 
 function checkContentSafety(prompt: string): ContentSafetyResult {
   const flaggedTerms: string[] = [];
   const warnings: string[] = [];
   let sanitizedPrompt = prompt;
+  let requiresAIRephrase = false;
+  
+  // Check for high-risk indicators that require AI rephrasing
+  for (const indicator of HIGH_RISK_INDICATORS) {
+    if (indicator.test(prompt)) {
+      requiresAIRephrase = true;
+      console.log(`[ContentSafety] HIGH RISK indicator detected: ${prompt.match(indicator)?.[0]}`);
+      break;
+    }
+  }
   
   for (const { pattern, replacement, category } of FLAGGED_PATTERNS) {
     const matches = prompt.match(pattern);
@@ -757,6 +925,12 @@ function checkContentSafety(prompt: string): ContentSafetyResult {
     }
   }
   
+  // If too many terms were flagged, suggest AI rephrasing
+  if (flaggedTerms.length >= 5) {
+    requiresAIRephrase = true;
+    console.log(`[ContentSafety] Many flagged terms (${flaggedTerms.length}) - recommending AI rephrase`);
+  }
+  
   // Clean up extra spaces from removals
   sanitizedPrompt = sanitizedPrompt.replace(/\s{2,}/g, ' ').trim();
   
@@ -765,7 +939,209 @@ function checkContentSafety(prompt: string): ContentSafetyResult {
     flaggedTerms,
     sanitizedPrompt,
     warnings,
+    requiresAIRephrase,
   };
+}
+
+// =====================================================
+// AI-POWERED PROMPT REPHRASING
+// Uses Lovable AI to intelligently rephrase prompts
+// =====================================================
+async function aiRephrasePrompt(originalPrompt: string, sanitizedPrompt: string, flaggedTerms: string[]): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  if (!LOVABLE_API_KEY) {
+    console.warn("[ContentSafety] LOVABLE_API_KEY not configured - using basic sanitization only");
+    return sanitizedPrompt;
+  }
+  
+  try {
+    console.log(`[ContentSafety] AI rephrasing prompt with ${flaggedTerms.length} flagged terms...`);
+    
+    const systemPrompt = `You are a video prompt specialist. Your task is to rephrase video generation prompts to avoid content policy violations while preserving the cinematic intent.
+
+RULES:
+1. PRESERVE the core visual story and action
+2. REMOVE or REPLACE violence, weapons, adult content, dangerous activities
+3. KEEP character descriptions, settings, camera movements, lighting
+4. Make the prompt suitable for Google's Vertex AI video generation
+5. Use cinematic, professional language
+6. Maintain the dramatic tension through visuals, not violence
+7. Output ONLY the rephrased prompt, no explanations`;
+
+    const userPrompt = `Rephrase this video prompt to be content-safe while preserving cinematic intent:
+
+ORIGINAL PROMPT:
+${originalPrompt}
+
+FLAGGED TERMS: ${flaggedTerms.join(', ')}
+
+OUTPUT ONLY THE REPHRASED PROMPT:`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ContentSafety] AI rephrase failed: ${response.status} - ${errorText}`);
+      return sanitizedPrompt;
+    }
+    
+    const data = await response.json();
+    const rephrasedPrompt = data.choices?.[0]?.message?.content?.trim();
+    
+    if (rephrasedPrompt && rephrasedPrompt.length > 20) {
+      console.log(`[ContentSafety] ✓ AI rephrased successfully: "${rephrasedPrompt.substring(0, 100)}..."`);
+      return rephrasedPrompt;
+    }
+    
+    return sanitizedPrompt;
+  } catch (error) {
+    console.error("[ContentSafety] AI rephrase error:", error);
+    return sanitizedPrompt;
+  }
+}
+
+// =====================================================
+// RETRY WITH REPHRASE
+// Called when Veo rejects a prompt - attempts AI rephrase and retry
+// =====================================================
+async function retryWithRephrasedPrompt(
+  originalPrompt: string,
+  accessToken: string,
+  gcpProjectId: string,
+  startImageUrl?: string,
+  aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
+  negatives?: string[]
+): Promise<{ operationName: string; rephrasedPrompt: string }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  if (!LOVABLE_API_KEY) {
+    throw new Error("Cannot retry - LOVABLE_API_KEY not configured for AI rephrasing");
+  }
+  
+  console.log(`[ContentSafety] Generating alternative safe prompt via AI...`);
+  
+  // Generate a completely new safe prompt that captures the essence
+  const systemPrompt = `You are a video prompt expert. Create a COMPLETELY NEW video prompt that captures the same visual story but is 100% safe for Google's AI video generator.
+
+STRICT RULES:
+1. NO violence, weapons, fighting, attacks, or physical confrontation
+2. NO blood, injuries, death, or physical harm  
+3. NO sexual content, nudity, or suggestive poses
+4. NO drugs, alcohol, or substance use
+5. NO criminal activities or illegal actions
+6. NO children in any context
+7. NO horror elements, demons, or disturbing imagery
+8. Use ONLY safe, professional cinematic descriptions
+9. Focus on: landscapes, architecture, nature, travel, fashion, sports, dance, art
+10. Describe camera movements, lighting, and mood instead of actions
+
+OUTPUT ONLY THE NEW PROMPT, nothing else.`;
+
+  const userPrompt = `The following prompt was rejected by Google's content filter. Create a SAFE alternative that captures similar visual energy and story mood:
+
+REJECTED PROMPT:
+${originalPrompt}
+
+Create a completely new, safe video prompt that captures a similar cinematic feel:`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.5,
+        max_tokens: 500,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`AI rephrase failed: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    const rephrasedPrompt = data.choices?.[0]?.message?.content?.trim();
+    
+    if (!rephrasedPrompt || rephrasedPrompt.length < 20) {
+      throw new Error("AI returned empty or invalid rephrased prompt");
+    }
+    
+    console.log(`[ContentSafety] ✓ AI generated safe alternative: "${rephrasedPrompt.substring(0, 100)}..."`);
+    
+    // Now try to generate with the rephrased prompt
+    const location = "us-central1";
+    const model = "veo-3.1-generate-001";
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+    
+    const instance: Record<string, any> = {
+      prompt: `${rephrasedPrompt}. High quality, cinematic, realistic physics, natural motion, detailed textures.`,
+    };
+    
+    // Note: We don't add startImageUrl here since the prompt has changed significantly
+    // The visual continuity would be broken anyway
+    
+    const requestBody = {
+      instances: [instance],
+      parameters: {
+        aspectRatio: aspectRatio,
+        durationSeconds: 6,
+        sampleCount: 1,
+        negativePrompt: "blurry, low quality, distorted, artifacts, watermark, text overlay",
+        resolution: "720p",
+        personGeneration: "allow_adult",
+      }
+    };
+    
+    const veoResponse = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!veoResponse.ok) {
+      const errorText = await veoResponse.text();
+      throw new Error(`Veo API error on retry: ${veoResponse.status} - ${errorText}`);
+    }
+    
+    const result = await veoResponse.json();
+    const operationName = result.name;
+    
+    if (!operationName) {
+      throw new Error("No operation name in Veo response on retry");
+    }
+    
+    return { operationName, rephrasedPrompt };
+  } catch (error) {
+    console.error("[ContentSafety] Retry with rephrase failed:", error);
+    throw error;
+  }
 }
 
 // Build velocity-aware prompt
@@ -1160,29 +1536,98 @@ serve(async (req) => {
       console.log(`[SingleClip] Negative prompts: ${allNegatives.length} total (${spatialNegatives.length} spatial)`);
     }
     
-    const { operationName } = await generateClip(
-      accessToken,
-      gcpProjectId,
-      velocityAwarePrompt,
-      request.startImageUrl,
-      aspectRatio,
-      allNegatives.length > 0 ? allNegatives : undefined
-    );
+    let operationName: string = '';
+    let finalPrompt = velocityAwarePrompt;
+    let rawVideoUrl: string = '';
+    const MAX_CONTENT_RETRIES = 2;
     
-    console.log(`[SingleClip] Operation started: ${operationName}`);
-    
-    // Save operation name
-    await supabase.rpc('upsert_video_clip', {
-      p_project_id: request.projectId,
-      p_user_id: request.userId,
-      p_shot_index: request.clipIndex,
-      p_prompt: velocityAwarePrompt,
-      p_status: 'generating',
-      p_veo_operation_name: operationName,
-    });
+    // =====================================================
+    // VIDEO GENERATION WITH AUTO-RETRY ON CONTENT FILTER
+    // =====================================================
+    for (let contentRetry = 0; contentRetry <= MAX_CONTENT_RETRIES; contentRetry++) {
+      try {
+        if (contentRetry === 0) {
+          // First attempt with original (sanitized) prompt
+          const result = await generateClip(
+            accessToken,
+            gcpProjectId,
+            finalPrompt,
+            request.startImageUrl,
+            aspectRatio,
+            allNegatives.length > 0 ? allNegatives : undefined
+          );
+          operationName = result.operationName;
+        } else {
+          // Retry with AI-rephrased prompt
+          console.log(`[SingleClip] Content retry ${contentRetry}/${MAX_CONTENT_RETRIES} - using AI rephrase...`);
+          const retryResult = await retryWithRephrasedPrompt(
+            request.prompt, // Use original prompt for best context
+            accessToken,
+            gcpProjectId,
+            undefined, // Skip startImageUrl since prompt changed significantly
+            aspectRatio,
+            undefined
+          );
+          operationName = retryResult.operationName;
+          finalPrompt = retryResult.rephrasedPrompt;
+          
+          // Update clip with rephrased prompt
+          await supabase
+            .from('video_clips')
+            .update({ 
+              prompt: finalPrompt,
+              corrective_prompts: [...(safetyCheck.warnings.length > 0 ? [request.prompt] : []), velocityAwarePrompt]
+            })
+            .eq('project_id', request.projectId)
+            .eq('shot_index', request.clipIndex);
+        }
+        
+        console.log(`[SingleClip] Operation started: ${operationName}`);
+        
+        // Save operation name
+        await supabase.rpc('upsert_video_clip', {
+          p_project_id: request.projectId,
+          p_user_id: request.userId,
+          p_shot_index: request.clipIndex,
+          p_prompt: finalPrompt,
+          p_status: 'generating',
+          p_veo_operation_name: operationName,
+        });
 
-    // Poll for completion
-    const { videoUrl: rawVideoUrl } = await pollOperation(accessToken, operationName);
+        // Poll for completion
+        const pollResult = await pollOperation(accessToken, operationName);
+        rawVideoUrl = pollResult.videoUrl;
+        
+        // Success! Break out of retry loop
+        console.log(`[SingleClip] ✓ Video generated successfully${contentRetry > 0 ? ` on retry ${contentRetry}` : ''}`);
+        break;
+        
+      } catch (genError) {
+        const errorMsg = genError instanceof Error ? genError.message : String(genError);
+        
+        // Check if it's a content filter error
+        const isContentFilterError = 
+          errorMsg.includes('usage guidelines') ||
+          errorMsg.includes('content filter') ||
+          errorMsg.includes('violate') ||
+          errorMsg.includes('policy') ||
+          errorMsg.includes('raiMediaFilteredCount');
+        
+        if (isContentFilterError && contentRetry < MAX_CONTENT_RETRIES) {
+          console.warn(`[SingleClip] ⚠️ Content filter rejected - attempting AI rephrase (retry ${contentRetry + 1}/${MAX_CONTENT_RETRIES})...`);
+          continue;
+        }
+        
+        // Not a content filter error or max retries reached
+        throw genError;
+      }
+    }
+    
+    // Verify video URL was obtained
+    if (!rawVideoUrl) {
+      throw new Error("Video generation failed - no video URL obtained after all retries");
+    }
+    
     console.log(`[SingleClip] Clip completed: ${rawVideoUrl.substring(0, 80)}...`);
     
     // Download to storage

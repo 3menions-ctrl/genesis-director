@@ -598,6 +598,8 @@ export default function Production() {
   }, [startTime]);
 
   useEffect(() => {
+    console.log('[Production] useEffect triggered, projectId:', projectId);
+    
     // Reset all project-specific state when projectId changes
     setScriptShots(null);
     setClipResults([]);
@@ -612,8 +614,11 @@ export default function Production() {
     setPipelineLogs([]);
     
     const loadProject = async () => {
+      console.log('[Production] loadProject called, checking session...');
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[Production] Session result:', session?.user?.id || 'NO SESSION');
       if (!session?.user) {
+        console.log('[Production] No session, redirecting to auth');
         navigate('/auth');
         return;
       }

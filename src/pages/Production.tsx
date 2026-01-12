@@ -21,6 +21,9 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
+import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
+import { useContinuityOrchestrator } from '@/hooks/useContinuityOrchestrator';
+import type { TransitionAnalysis } from '@/types/continuity-orchestrator';
 
 // ============= TYPES =============
 
@@ -546,6 +549,16 @@ export default function Production() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
 
+  // Continuity orchestrator for transition analysis
+  const {
+    isAnalyzing: isContinuityAnalyzing,
+    transitionAnalyses,
+    clipsToRetry: continuityClipsToRetry,
+    overallScore: continuityScore,
+    bridgeClipsNeeded,
+    postProcessClips,
+  } = useContinuityOrchestrator();
+
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
 
@@ -983,6 +996,27 @@ export default function Production() {
       return () => clearTimeout(timer);
     }
   }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isSimpleStitching, projectId, user, addLog, updateStageStatus]);
+
+  // Auto-run continuity analysis when clips complete
+  useEffect(() => {
+    if (!projectId || completedClips < 2) return;
+    
+    // Run analysis when we have multiple completed clips and haven't analyzed yet
+    const completedClipData = clipResults
+      .filter(c => c.status === 'completed' && c.videoUrl)
+      .map(c => ({
+        index: c.index,
+        videoUrl: c.videoUrl!,
+        prompt: scriptShots?.[c.index]?.description || `Clip ${c.index + 1}`,
+        motionVectors: c.motionVectors,
+      }));
+    
+    // Only auto-analyze when all expected clips are done and we don't have analysis yet
+    if (completedClipData.length === expectedClipCount && completedClipData.length >= 2 && transitionAnalyses.length === 0 && !isContinuityAnalyzing) {
+      addLog('Running continuity analysis...', 'info');
+      postProcessClips(projectId, completedClipData);
+    }
+  }, [completedClips, expectedClipCount, projectId, clipResults, scriptShots, transitionAnalyses.length, isContinuityAnalyzing, postProcessClips, addLog]);
 
   const handleRetryClip = async (clipIndex: number) => {
     if (!projectId || !user) return;
@@ -1533,6 +1567,82 @@ export default function Production() {
                       onRetry={handleRetryClip}
                       retryingIndex={retryingClipIndex}
                     />
+                  </motion.div>
+                )}
+
+                {/* Transition Timeline - Continuity Analysis */}
+                {clipResults.length >= 2 && completedClips >= 2 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    {transitionAnalyses.length > 0 ? (
+                      <TransitionTimeline
+                        transitions={transitionAnalyses}
+                        clipsToRetry={continuityClipsToRetry}
+                        onRetryClip={handleRetryClip}
+                        isRetrying={retryingClipIndex !== null}
+                      />
+                    ) : (
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.06]">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-white/30" />
+                            <span className="text-xs font-medium text-white/40">Transition Analysis</span>
+                            {isContinuityAnalyzing && (
+                              <Loader2 className="w-3 h-3 animate-spin text-white/40" />
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-white/50 hover:text-white"
+                            onClick={() => {
+                              if (projectId) {
+                                const clips = clipResults
+                                  .filter(c => c.status === 'completed' && c.videoUrl)
+                                  .map(c => ({
+                                    index: c.index,
+                                    videoUrl: c.videoUrl!,
+                                    prompt: scriptShots?.[c.index]?.description || `Clip ${c.index + 1}`,
+                                    motionVectors: c.motionVectors,
+                                  }));
+                                if (clips.length >= 2) {
+                                  postProcessClips(projectId, clips);
+                                  addLog('Running continuity analysis...', 'info');
+                                }
+                              }
+                            }}
+                            disabled={isContinuityAnalyzing || completedClips < 2}
+                          >
+                            {isContinuityAnalyzing ? (
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                            ) : (
+                              <Activity className="w-3 h-3 mr-1" />
+                            )}
+                            Analyze Transitions
+                          </Button>
+                        </div>
+                        {continuityScore !== null && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[10px] text-white/40">Score:</span>
+                            <span className={cn(
+                              "text-sm font-bold",
+                              continuityScore >= 85 ? "text-emerald-400" :
+                              continuityScore >= 70 ? "text-amber-400" : "text-red-400"
+                            )}>
+                              {continuityScore}/100
+                            </span>
+                            {bridgeClipsNeeded > 0 && (
+                              <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400">
+                                {bridgeClipsNeeded} bridges recommended
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { 
   Film, User, Briefcase, Sparkles, ArrowRight, Check,
-  Video, Users, Building2, Rocket, Palette, GraduationCap
+  Video, Users, Building2, Rocket, Palette, GraduationCap, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -36,10 +36,11 @@ const onboardingSchema = z.object({
 });
 
 export default function Onboarding() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, loading: authLoading, isSessionVerified } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -49,6 +50,19 @@ export default function Onboarding() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Check session on mount - redirect if not authenticated
+  useEffect(() => {
+    if (authLoading || !isSessionVerified) return;
+    
+    if (!user) {
+      toast.error('Please sign in first');
+      navigate('/auth', { replace: true });
+      return;
+    }
+    
+    setSessionChecked(true);
+  }, [user, authLoading, isSessionVerified, navigate]);
 
   const handleNext = () => {
     // Validate current step
@@ -83,9 +97,10 @@ export default function Onboarding() {
       return;
     }
 
+    // Double-check session before save
     if (!user) {
-      toast.error('Please sign in first');
-      navigate('/auth');
+      toast.error('Session expired. Please sign in again.');
+      navigate('/auth', { replace: true });
       return;
     }
 
@@ -108,7 +123,7 @@ export default function Onboarding() {
 
       await refreshProfile();
       toast.success('Welcome to Apex Studio!');
-      navigate('/projects');
+      navigate('/projects', { replace: true });
     } catch (err) {
       console.error('Error saving onboarding:', err);
       toast.error('Failed to save your information');
@@ -119,7 +134,7 @@ export default function Onboarding() {
 
   const handleSkip = async () => {
     if (!user) {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
       return;
     }
 
@@ -131,13 +146,27 @@ export default function Onboarding() {
         .eq('id', user.id);
 
       await refreshProfile();
-      navigate('/projects');
+      navigate('/projects', { replace: true });
     } catch (err) {
-      navigate('/projects');
+      navigate('/projects', { replace: true });
     } finally {
       setLoading(false);
     }
   };
+
+  // Show loading while checking session
+  if (authLoading || !isSessionVerified || !sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
+            <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
+          </div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">

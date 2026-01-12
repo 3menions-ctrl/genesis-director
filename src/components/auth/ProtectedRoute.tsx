@@ -1,14 +1,15 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading, session, isSessionVerified } = useAuth();
+  const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -58,6 +59,31 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // No user after loading = will redirect (don't render children)
   if (!user && !session) {
     return null;
+  }
+
+  // Profile fetch error - show retry option
+  if (user && profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-destructive" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">Failed to load profile</h2>
+            <p className="text-muted-foreground text-sm">{profileError}</p>
+          </div>
+          <Button 
+            onClick={retryProfileFetch}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Wait for profile to load before checking onboarding status

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,14 +27,20 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isSessionVerified: boolean;
+  profileError: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  retryProfileFetch: () => Promise<void>;
   getValidSession: () => Promise<Session | null>;
+  waitForSession: <T>(callback: (session: Session) => Promise<T>) => Promise<T | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Profile fetch timeout in milliseconds
+const PROFILE_FETCH_TIMEOUT = 10000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,8 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSessionVerified, setIsSessionVerified] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  
+  // Ref to track current session for synchronous access
+  const sessionRef = useRef<Session | null>(null);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     // Always verify session before profile fetch to avoid RLS issues
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     if (!currentSession) {
@@ -51,21 +61,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
     
-    const { data, error } = await supabase
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Profile fetch timeout')), PROFILE_FETCH_TIMEOUT);
+    });
+    
+    // Create the fetch promise
+    const fetchPromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (error) {
-      console.error('Error fetching profile:', error);
+    try {
+      // Race between fetch and timeout
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setProfileError('Failed to load profile');
+        return null;
+      }
+      
+      setProfileError(null);
+      return data as UserProfile;
+    } catch (err) {
+      console.error('Profile fetch failed:', err);
+      setProfileError(err instanceof Error ? err.message : 'Failed to load profile');
       return null;
     }
-    return data as UserProfile;
   };
 
   const refreshProfile = async () => {
     if (user) {
+      setProfileError(null);
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
+  };
+
+  const retryProfileFetch = async () => {
+    if (user) {
+      setProfileError(null);
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
     }
@@ -85,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
         
+        sessionRef.current = newSession;
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setIsSessionVerified(true);
@@ -102,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setProfileError(null);
         }
       }
     );
@@ -114,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
       
+      sessionRef.current = existingSession;
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       setIsSessionVerified(true);
@@ -192,6 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
+    // Standardized redirect URL - let ProtectedRoute handle onboarding redirect
     const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signUp({
       email,
@@ -205,7 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    sessionRef.current = null;
     setProfile(null);
+    setProfileError(null);
   };
 
   /**
@@ -217,6 +260,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return freshSession;
   };
 
+  /**
+   * Wrapper that ensures a valid session exists before executing a callback.
+   * Returns null if no session, otherwise executes the callback with the session.
+   * This consolidates functionality from useSessionGuard and useAuthenticatedSupabase.
+   */
+  const waitForSession = useCallback(
+    async <T,>(callback: (session: Session) => Promise<T>): Promise<T | null> => {
+      // Always get fresh session from Supabase to avoid stale React state
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      
+      if (!freshSession) {
+        console.warn('[AuthContext] waitForSession: No valid session for operation');
+        return null;
+      }
+      
+      return callback(freshSession);
+    },
+    []
+  );
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -224,11 +287,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       isSessionVerified,
+      profileError,
       signIn,
       signUp,
       signOut,
       refreshProfile,
+      retryProfileFetch,
       getValidSession,
+      waitForSession,
     }}>
       {children}
     </AuthContext.Provider>

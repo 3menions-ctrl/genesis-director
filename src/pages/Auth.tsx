@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +32,7 @@ export default function Auth() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [hasRedirected, setHasRedirected] = useState(false);
-  const { user, profile, loading: authLoading, signIn } = useAuth();
+  const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
   // Redirect authenticated users - only once to prevent blinking
@@ -106,10 +105,8 @@ export default function Auth() {
       const trimmedEmail = email.trim();
       
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email: trimmedEmail, 
-          password 
-        });
+        // Use signIn from AuthContext for consistency
+        const { error } = await signIn(trimmedEmail, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Invalid email or password');
@@ -120,14 +117,8 @@ export default function Auth() {
           toast.success('Welcome back!');
         }
       } else {
-        const redirectUrl = `${window.location.origin}/onboarding`;
-        const { error } = await supabase.auth.signUp({
-          email: trimmedEmail,
-          password,
-          options: {
-            emailRedirectTo: redirectUrl
-          }
-        });
+        // Use signUp from AuthContext for consistency (standardized redirect URL)
+        const { error } = await signUp(trimmedEmail, password);
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('This email is already registered. Try logging in instead.');

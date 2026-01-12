@@ -30,6 +30,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
+import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
+import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import {
   Table,
   TableBody,
@@ -51,6 +53,15 @@ interface VideoClip {
   error_message: string | null;
   project_id: string;
   project_title?: string;
+  motion_vectors?: any;
+}
+
+interface ProjectProFeatures {
+  masterSceneAnchor?: any;
+  characters?: any[];
+  identityBible?: any;
+  consistencyScore?: number;
+  qualityTier?: string;
 }
 
 interface ProjectGroup {
@@ -80,6 +91,7 @@ export default function Clips() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'duration'>('recent');
   const [projectStatus, setProjectStatus] = useState<string | null>(null);
+  const [proFeatures, setProFeatures] = useState<ProjectProFeatures | null>(null);
 
   const { retryStitch, isRetrying: isRetryingStitch } = useRetryStitch({
     projectId: projectIdFilter,
@@ -102,7 +114,7 @@ export default function Clips() {
         .from('video_clips')
         .select(`
           id, prompt, status, video_url, shot_index, duration_seconds, 
-          created_at, completed_at, error_message, project_id,
+          created_at, completed_at, error_message, project_id, motion_vectors,
           movie_projects!inner(title)
         `)
         .eq('user_id', session.user.id)
@@ -112,14 +124,25 @@ export default function Clips() {
       if (projectIdFilter) {
         query = query.eq('project_id', projectIdFilter);
         
+        // Fetch project data including pro_features_data
         const { data: projectData } = await supabase
           .from('movie_projects')
-          .select('status')
+          .select('status, pro_features_data, quality_tier')
           .eq('id', projectIdFilter)
           .maybeSingle();
         
         if (projectData) {
           setProjectStatus(projectData.status);
+          const proData = projectData.pro_features_data as any;
+          if (proData) {
+            setProFeatures({
+              masterSceneAnchor: proData.masterSceneAnchor,
+              characters: proData.characters || [],
+              identityBible: proData.identityBible,
+              consistencyScore: proData.consistencyScore,
+              qualityTier: projectData.quality_tier,
+            });
+          }
         }
       }
 
@@ -450,6 +473,30 @@ export default function Clips() {
             </div>
           </div>
         </motion.div>
+
+        {/* Consistency Dashboard - Shows for project-specific view with pro features */}
+        {projectIdFilter && proFeatures && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-6"
+          >
+            <ConsistencyDashboard
+              masterAnchor={proFeatures.masterSceneAnchor}
+              characters={proFeatures.characters?.map((c: any) => ({
+                name: c.name || 'Unknown',
+                appearance: c.appearance,
+                verified: c.verified,
+                consistencyScore: c.consistencyScore,
+              }))}
+              identityBibleActive={!!proFeatures.identityBible}
+              nonFacialAnchors={proFeatures.identityBible?.nonFacialAnchors || []}
+              consistencyScore={proFeatures.consistencyScore || 0}
+              isProTier={proFeatures.qualityTier === 'professional'}
+            />
+          </motion.div>
+        )}
 
         {/* Toolbar */}
         <motion.div 

@@ -2685,19 +2685,26 @@ serve(async (req) => {
     console.log(`[SingleClip] Clip stored: ${storedUrl}`);
     
     // =====================================================
-    // CRITICAL: Frame Extraction with MANDATORY Validation
+    // BULLETPROOF FRAME EXTRACTION WITH EXPONENTIAL BACKOFF + CIRCUIT BREAKER
     // This is essential for clip-to-clip continuity
     // =====================================================
     let lastFrameUrl: string | undefined;
     const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    const MAX_FRAME_RETRIES = 3;
+    const MAX_FRAME_RETRIES = 4;
     let frameExtractionSuccess = false;
     
     if (stitcherUrl) {
       for (let frameAttempt = 0; frameAttempt < MAX_FRAME_RETRIES; frameAttempt++) {
         try {
-          console.log(`[SingleClip] Frame extraction attempt ${frameAttempt + 1}/${MAX_FRAME_RETRIES}...`);
+          // EXPONENTIAL BACKOFF: 0ms, 2s, 4s, 8s
+          if (frameAttempt > 0) {
+            const backoffMs = Math.min(2000 * Math.pow(2, frameAttempt - 1), 8000);
+            console.log(`[SingleClip] Frame retry ${frameAttempt + 1}/${MAX_FRAME_RETRIES}, backoff ${backoffMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          } else {
+            console.log(`[SingleClip] Frame extraction attempt ${frameAttempt + 1}/${MAX_FRAME_RETRIES}...`);
+          }
           
           const response = await fetch(`${stitcherUrl}/extract-frame`, {
             method: 'POST',
@@ -2706,30 +2713,65 @@ serve(async (req) => {
               clipUrl: storedUrl,
               clipIndex: request.clipIndex,
               projectId: request.projectId,
+              returnBase64: true, // Request base64 for direct upload
             }),
           });
           
           if (response.ok) {
             const result = await response.json();
             if (result.lastFrameUrl && result.lastFrameUrl.startsWith('http')) {
-              lastFrameUrl = result.lastFrameUrl;
-              frameExtractionSuccess = true;
-              console.log(`[SingleClip] ✓ Frame extracted successfully for chaining: ${lastFrameUrl?.substring(0, 60)}...`);
-              break;
+              // Validate it's an image, not a video URL
+              const isVideoUrl = result.lastFrameUrl.endsWith('.mp4') || result.lastFrameUrl.includes('/video-clips/');
+              if (!isVideoUrl) {
+                lastFrameUrl = result.lastFrameUrl;
+                frameExtractionSuccess = true;
+                console.log(`[SingleClip] ✓ Frame extracted for chaining: ${lastFrameUrl?.substring(0, 60)}...`);
+                break;
+              } else {
+                console.warn(`[SingleClip] Got video URL instead of frame, retrying...`);
+              }
+            } else if (result.frameBase64) {
+              // Handle base64 response - upload to storage
+              console.log(`[SingleClip] Got base64 frame, uploading to storage...`);
+              const base64Data = result.frameBase64.replace(/^data:image\/\w+;base64,/, '');
+              const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+              const filename = `${request.projectId}/shot-${request.clipIndex}-lastframe-${Date.now()}.jpg`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('temp-frames')
+                .upload(filename, binaryData, { contentType: 'image/jpeg', upsert: true });
+              
+              if (!uploadError) {
+                const { data: urlData } = supabase.storage.from('temp-frames').getPublicUrl(filename);
+                lastFrameUrl = urlData.publicUrl;
+                frameExtractionSuccess = true;
+                console.log(`[SingleClip] ✓ Frame uploaded: ${lastFrameUrl?.substring(0, 60)}...`);
+                break;
+              } else {
+                console.warn(`[SingleClip] Frame upload failed:`, uploadError);
+              }
             } else {
               console.warn(`[SingleClip] Frame extraction returned invalid URL, retrying...`);
             }
           } else {
             const errorText = await response.text();
-            console.warn(`[SingleClip] Frame extraction HTTP ${response.status}: ${errorText}`);
+            console.warn(`[SingleClip] Frame extraction HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+            
+            // Check for rate limit - worth retrying
+            if (response.status === 429 || errorText.toLowerCase().includes('rate')) {
+              console.log(`[SingleClip] Rate limit detected, will retry with longer backoff...`);
+              continue;
+            }
           }
         } catch (frameError) {
-          console.warn(`[SingleClip] Frame extraction attempt ${frameAttempt + 1} failed:`, frameError);
-        }
-        
-        // Wait before retry
-        if (frameAttempt < MAX_FRAME_RETRIES - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          const errorMsg = frameError instanceof Error ? frameError.message : 'Unknown error';
+          console.warn(`[SingleClip] Frame extraction attempt ${frameAttempt + 1} failed:`, errorMsg);
+          
+          // Check for network errors - may be temporary
+          if (errorMsg.includes('fetch') || errorMsg.includes('network') || errorMsg.includes('timeout')) {
+            console.log(`[SingleClip] Network error, will retry...`);
+            continue;
+          }
         }
       }
       
@@ -2769,68 +2811,103 @@ serve(async (req) => {
         }
       }
       
-      // CRITICAL: Log frame extraction failure loudly
+      // CRITICAL: Frame extraction failure handling with multiple fallbacks
       if (!frameExtractionSuccess) {
         console.error(`[SingleClip] ⚠️ CRITICAL: Frame extraction FAILED after all attempts!`);
-        console.error(`[SingleClip] Next clip will NOT have frame continuity - expect visual jump`);
         
-        // Store failure in metadata for debugging
-        await supabase
-          .from('video_clips')
-          .update({ 
-            error_message: `Frame extraction failed - continuity broken` 
-          })
-          .eq('project_id', request.projectId)
-          .eq('shot_index', request.clipIndex);
+        // BULLETPROOF FALLBACK CHAIN
+        const fallbackSources = [
+          { name: 'sceneImageUrl', url: request.sceneImageUrl },
+          { name: 'startImageUrl', url: request.startImageUrl },
+          { name: 'referenceImageUrl', url: request.referenceImageUrl },
+          { name: 'goldenFrameUrl', url: (request as any).goldenFrameData?.goldenFrameUrl },
+        ].filter(s => s.url);
+        
+        if (fallbackSources.length > 0) {
+          lastFrameUrl = fallbackSources[0].url;
+          console.warn(`[SingleClip] Using ${fallbackSources[0].name} as fallback: ${lastFrameUrl?.substring(0, 60)}...`);
+        } else {
+          console.error(`[SingleClip] ⚠️ NO FALLBACK AVAILABLE - continuity will be broken`);
+          
+          // Store failure with detailed diagnostics
+          await supabase
+            .from('video_clips')
+            .update({ 
+              error_message: `Frame extraction failed, no fallback - continuity broken`,
+              last_error_category: 'frame_extraction_no_fallback',
+            })
+            .eq('project_id', request.projectId)
+            .eq('shot_index', request.clipIndex);
+        }
       }
     } else {
       // No Cloud Run URL configured - use edge function directly
       console.log(`[SingleClip] CLOUD_RUN_STITCHER_URL not configured, using edge function for frame extraction...`);
       
-      try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        
-        const directResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            videoUrl: storedUrl,
-            projectId: request.projectId,
-            shotId: `clip_${request.clipIndex}`,
-            position: 'last',
-          }),
-        });
-        
-        if (directResponse.ok) {
-          const directResult = await directResponse.json();
-          if (directResult.success && directResult.frameUrl) {
-            lastFrameUrl = directResult.frameUrl;
-            frameExtractionSuccess = true;
-            console.log(`[SingleClip] ✓ Frame extracted via edge function: ${lastFrameUrl?.substring(0, 60)}...`);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      
+      // RETRY WITH BACKOFF for edge function too
+      for (let attempt = 0; attempt < 3 && !frameExtractionSuccess; attempt++) {
+        try {
+          if (attempt > 0) {
+            const backoffMs = 2000 * Math.pow(2, attempt - 1);
+            console.log(`[SingleClip] Edge function retry ${attempt + 1}/3, waiting ${backoffMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
           }
+          
+          const directResponse = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              videoUrl: storedUrl,
+              projectId: request.projectId,
+              shotId: `clip_${request.clipIndex}`,
+              position: 'last',
+            }),
+          });
+          
+          if (directResponse.ok) {
+            const directResult = await directResponse.json();
+            if (directResult.success && directResult.frameUrl) {
+              const isVideoUrl = directResult.frameUrl.endsWith('.mp4') || directResult.frameUrl.includes('/video-clips/');
+              if (!isVideoUrl) {
+                lastFrameUrl = directResult.frameUrl;
+                frameExtractionSuccess = true;
+                console.log(`[SingleClip] ✓ Frame extracted via edge function: ${lastFrameUrl?.substring(0, 60)}...`);
+                break;
+              }
+            }
+          } else {
+            const errorText = await directResponse.text();
+            console.warn(`[SingleClip] Edge function HTTP ${directResponse.status}: ${errorText.substring(0, 100)}`);
+            
+            // Check for rate limit
+            if (directResponse.status === 429 || errorText.toLowerCase().includes('rate')) {
+              continue; // Will retry with backoff
+            }
+          }
+        } catch (directError) {
+          console.warn(`[SingleClip] Edge function attempt ${attempt + 1} failed:`, directError);
         }
-      } catch (directError) {
-        console.error(`[SingleClip] Edge function frame extraction failed:`, directError);
       }
       
+      // If edge function also failed, use fallbacks
       if (!frameExtractionSuccess) {
-        console.error(`[SingleClip] ⚠️ CRITICAL: No frame extraction available - continuity will be broken`);
+        console.error(`[SingleClip] ⚠️ Edge function frame extraction failed`);
         
-        // CRITICAL FIX: Use scene image or startImageUrl as fallback when frame extraction fails
-        // This ensures some visual reference is available for the next clip
-        if (request.sceneImageUrl) {
-          lastFrameUrl = request.sceneImageUrl;
-          console.warn(`[SingleClip] Using sceneImageUrl as fallback for last frame: ${request.sceneImageUrl?.substring(0, 60)}...`);
-        } else if (request.startImageUrl) {
-          lastFrameUrl = request.startImageUrl;
-          console.warn(`[SingleClip] Using startImageUrl as fallback for last frame: ${request.startImageUrl?.substring(0, 60)}...`);
-        } else if (request.referenceImageUrl) {
-          lastFrameUrl = request.referenceImageUrl;
-          console.warn(`[SingleClip] Using referenceImageUrl as fallback for last frame: ${request.referenceImageUrl?.substring(0, 60)}...`);
+        const fallbackSources = [
+          { name: 'sceneImageUrl', url: request.sceneImageUrl },
+          { name: 'startImageUrl', url: request.startImageUrl },
+          { name: 'referenceImageUrl', url: request.referenceImageUrl },
+        ].filter(s => s.url);
+        
+        if (fallbackSources.length > 0) {
+          lastFrameUrl = fallbackSources[0].url;
+          console.warn(`[SingleClip] Using ${fallbackSources[0].name} as fallback: ${lastFrameUrl?.substring(0, 60)}...`);
         }
       }
     }

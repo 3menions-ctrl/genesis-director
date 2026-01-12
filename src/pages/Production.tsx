@@ -640,6 +640,8 @@ export default function Production() {
         return;
       }
 
+      console.log('[Production] Loading project:', projectId, 'for user:', session.user.id);
+      
       const { data: project, error: projectError } = await supabase
         .from('movie_projects')
         .select('*')
@@ -647,7 +649,10 @@ export default function Production() {
         .eq('user_id', session.user.id)
         .single();
 
+      console.log('[Production] Project query result:', { project: project?.title, error: projectError?.message });
+
       if (projectError || !project) {
+        console.error('[Production] Project not found - projectError:', projectError, 'user_id:', session.user.id);
         toast.error('Project not found');
         navigate('/projects');
         return;

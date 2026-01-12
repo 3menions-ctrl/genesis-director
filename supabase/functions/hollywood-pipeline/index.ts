@@ -173,6 +173,8 @@ const MIN_CLIP_DURATION = 4;
 const MAX_CLIP_DURATION = 8;
 
 // Tier-based clip limits (fail-safe defaults if DB unavailable)
+// NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts
+// Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
   'free': { maxClips: 10, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
   'pro': { maxClips: 15, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
@@ -1154,12 +1156,16 @@ async function runAssetCreation(
           projectId: state.projectId,
         });
         
+        // IMPROVED: Check for explicit hasMusic flag from generate-music
         if (musicResult.musicUrl) {
           state.assets.musicUrl = musicResult.musicUrl;
           state.assets.musicDuration = musicResult.durationSeconds;
           console.log(`[Hollywood] Synchronized music generated: ${state.assets.musicUrl}`);
+        } else if (musicResult.hasMusic === false) {
+          // Explicit flag that music was not generated - don't try fallback
+          console.log(`[Hollywood] Music explicitly skipped: ${musicResult.message || 'no provider available'}`);
         } else {
-          console.error(`[Hollywood] Music generation returned no URL`);
+          console.warn(`[Hollywood] Music sync returned no URL, no fallback attempted`);
         }
       } else {
         console.error(`[Hollywood] Music sync failed, trying direct generation...`);
@@ -1171,10 +1177,13 @@ async function runAssetCreation(
           projectId: state.projectId,
         });
         
+        // IMPROVED: Check for explicit hasMusic flag
         if (musicResult.musicUrl) {
           state.assets.musicUrl = musicResult.musicUrl;
           state.assets.musicDuration = musicResult.durationSeconds;
           console.log(`[Hollywood] Music generated (fallback): ${state.assets.musicUrl}`);
+        } else if (musicResult.hasMusic === false) {
+          console.log(`[Hollywood] Music skipped in fallback: ${musicResult.message || 'no provider'}`);
         }
       }
     }

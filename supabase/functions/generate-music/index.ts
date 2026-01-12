@@ -192,6 +192,9 @@ serve(async (req) => {
     }
 
     // Return a response indicating music is not available but video can proceed without it
+    // CRITICAL: success=true but musicUrl=null tells pipeline to set hasMusic=false
+    console.log("[generate-music] No music available - returning null URL for proper status tracking");
+    
     return new Response(
       JSON.stringify({
         success: true,
@@ -200,6 +203,7 @@ serve(async (req) => {
         prompt: finalPrompt,
         message: "Music generation skipped - no provider available. Video will be generated without background music.",
         source: "none",
+        hasMusic: false, // Explicit flag for pipeline status tracking
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

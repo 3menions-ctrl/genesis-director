@@ -320,8 +320,11 @@ export function UnifiedStudio() {
       return;
     }
 
+    const channelName = `studio_project_${activeProjectId}`;
+    console.log(`[UnifiedStudio] Setting up realtime subscription: ${channelName}`);
+    
     const channel = supabase
-      .channel(`studio_project_${activeProjectId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -484,10 +487,12 @@ export function UnifiedStudio() {
       )
       .subscribe();
 
+    // CRITICAL: Proper cleanup of realtime channel to prevent leaks
     return () => {
+      console.log(`[UnifiedStudio] Cleaning up realtime subscription: ${channelName}`);
       supabase.removeChannel(channel);
     };
-  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog, awaitingApprovalProjectId]);
+  }, [activeProjectId, currentStage, clipCount, updateStageStatus, stages, addPipelineLog, awaitingApprovalProjectId, pipelineLogs]);
 
   const resetState = () => {
     setCurrentStage('idle');

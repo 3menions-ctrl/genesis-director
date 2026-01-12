@@ -1,5 +1,6 @@
 // Account Tier System Types
 // Defines limits for Free, Pro, Growth, and Agency tiers
+// SINGLE SOURCE OF TRUTH - used by both frontend and edge functions
 
 export type AccountTier = 'free' | 'pro' | 'growth' | 'agency';
 
@@ -34,7 +35,9 @@ export type PipelineStage =
 
 export type ErrorCategory = 'timeout' | 'api_error' | 'validation' | 'quota' | 'unknown';
 
-// Default limits for each tier
+// Default limits for each tier - SINGLE SOURCE OF TRUTH
+// Edge functions should use get_user_tier_limits RPC which reads from tier_limits table
+// These are fallback defaults if DB is unavailable
 export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
@@ -72,6 +75,20 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
     priority_queue: true,
     chunked_stitching: true,
   },
+};
+
+// Tier clip limits for edge functions (matches DEFAULT_TIER_LIMITS)
+// Use this in edge functions instead of duplicating the values
+export const TIER_CLIP_LIMITS: Record<AccountTier, { 
+  maxClips: number; 
+  maxDuration: number; 
+  maxRetries: number; 
+  chunkedStitching: boolean;
+}> = {
+  free: { maxClips: 10, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
+  pro: { maxClips: 15, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
+  growth: { maxClips: 30, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  agency: { maxClips: 30, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
 };
 
 // Helper to check if tier supports 2-minute videos

@@ -1392,6 +1392,7 @@ export function UnifiedStudio() {
         disabled={!canGenerate}
         currentStage={currentStage}
         pipelineLogs={pipelineLogs}
+        isInitializing={isGeneratingStory || isBreakingDownStory}
       />
 
       {/* Cost Confirmation Dialog */}

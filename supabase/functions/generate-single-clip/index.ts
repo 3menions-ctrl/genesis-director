@@ -877,44 +877,63 @@ serve(async (req) => {
     }
     
     // NEW: Scene context for continuous flow (takes priority)
+    // ENHANCED: Stronger SCENE LOCK enforcement with visual anchors
     if (request.sceneContext) {
       const sc = request.sceneContext;
       
-      // LOCKED: Character, Location, Lighting - same for all clips
-      continuityParts.push(`[SCENE LOCK - THESE ARE CONSTANT FOR ALL CLIPS]`);
-      if (sc.characterDescription) {
-        continuityParts.push(`CHARACTER: ${sc.characterDescription}`);
-      }
-      if (sc.locationDescription) {
-        continuityParts.push(`LOCATION: ${sc.locationDescription}`);
-      }
-      if (sc.lightingDescription) {
-        continuityParts.push(`LIGHTING: ${sc.lightingDescription}`);
-      }
-      continuityParts.push(`[END SCENE LOCK]`);
+      // =====================================================
+      // SCENE LOCK v2.0 - MANDATORY VISUAL CONSTANTS
+      // These elements MUST remain identical across ALL clips
+      // =====================================================
+      continuityParts.push(`[SCENE LOCK v2.0 - MANDATORY VISUAL CONSTANTS - DO NOT DEVIATE]`);
       
-      // Action phase context
+      // CHARACTER LOCK - Full description with identity anchors
+      if (sc.characterDescription) {
+        continuityParts.push(`👤 CHARACTER (LOCKED): ${sc.characterDescription}`);
+        // Inject character identity from bible if available
+        if (request.identityBible?.consistencyPrompt) {
+          continuityParts.push(`   IDENTITY ANCHORS: ${request.identityBible.consistencyPrompt.substring(0, 150)}`);
+        }
+      }
+      
+      // LOCATION LOCK - Environment must be consistent
+      if (sc.locationDescription) {
+        continuityParts.push(`📍 LOCATION (LOCKED): ${sc.locationDescription}`);
+        continuityParts.push(`   MAINTAIN: Same architectural style, same prop positions, same background elements`);
+      }
+      
+      // LIGHTING LOCK - Critical for visual consistency
+      if (sc.lightingDescription) {
+        continuityParts.push(`💡 LIGHTING (LOCKED): ${sc.lightingDescription}`);
+        continuityParts.push(`   MAINTAIN: Same shadow direction, same color temperature, same contrast level`);
+      }
+      
+      continuityParts.push(`[END SCENE LOCK - ANY DEVIATION BREAKS CONTINUITY]`);
+      
+      // Action phase context with stronger guidance
       const phaseHints: Record<string, string> = {
-        'establish': 'ESTABLISH phase: Wide shot, character in environment, initial calm state',
-        'initiate': 'INITIATE phase: Action begins, first movement or change from initial state',
-        'develop': 'DEVELOP phase: Action continues, building on initiated movement',
-        'escalate': 'ESCALATE phase: Intensity increases, action gains momentum',
-        'peak': 'PEAK phase: Highest point, most dramatic moment',
-        'settle': 'SETTLE phase: Action concludes, resolution, prepares for next scene',
+        'establish': 'ESTABLISH phase: Wide establishing shot, introduce character in environment, initial calm state',
+        'initiate': 'INITIATE phase: Action begins, first significant movement or change from initial state',
+        'develop': 'DEVELOP phase: Action continues naturally, building momentum from initiated movement',
+        'escalate': 'ESCALATE phase: Intensity increases, action gains speed and urgency',
+        'peak': 'PEAK phase: Highest dramatic tension, most intense visual moment',
+        'settle': 'SETTLE phase: Action concludes, tension releases, visual resolution',
       };
       continuityParts.push(`\n[ACTION PHASE: ${phaseHints[sc.actionPhase] || sc.actionPhase}]`);
       
-      // Continuity chain
+      // Continuity chain with explicit visual continuity
       if (sc.previousAction) {
         continuityParts.push(`CONTINUES FROM: ${sc.previousAction}`);
+        continuityParts.push(`   (Character pose/position must naturally follow previous clip's ending)`);
       }
       continuityParts.push(`THIS MOMENT: ${sc.currentAction}`);
       if (sc.nextAction) {
         continuityParts.push(`LEADS INTO: ${sc.nextAction}`);
+        continuityParts.push(`   (End position must set up for next action)`);
       }
       
-      console.log(`[SingleClip] Scene continuity injected: ${sc.actionPhase} phase`);
-    } 
+      console.log(`[SingleClip] Enhanced Scene Lock v2.0 injected: ${sc.actionPhase} phase`);
+    }
     // Fallback: Use identity bible for character consistency
     else if (request.identityBible?.characterIdentity) {
       const ci = request.identityBible.characterIdentity;
@@ -971,8 +990,38 @@ serve(async (req) => {
     // MASTER VISUAL DNA: Color, lighting, environment from Clip 1
     // This is the SOURCE OF TRUTH for visual consistency
     // CRITICAL: This section ensures color richness doesn't degrade across clips
+    // ENHANCEMENT: Merge character colors from identity bible into scene palette
     // =====================================================
     const masterDNAParts: string[] = [];
+    
+    // Build merged color palette from identity bible + scene anchor
+    let mergedColorPalette: string[] = [];
+    
+    // Extract character colors from identity bible (clothing, hair, etc.)
+    // Use clothingSignature which contains color information
+    if ((request.identityBible?.nonFacialAnchors as any)?.clothingSignature) {
+      const clothingSignature = (request.identityBible?.nonFacialAnchors as any).clothingSignature;
+      const colorMatches = clothingSignature.match(/\b(red|blue|green|black|white|brown|gray|gold|silver|purple|orange|yellow|pink|teal|navy|maroon|beige|cream)\b/gi);
+      if (colorMatches) {
+        mergedColorPalette.push(...colorMatches.map((c: string) => `character clothing: ${c.toLowerCase()}`));
+      }
+    }
+    if (request.identityBible?.characterIdentity?.clothing) {
+      // Extract colors from clothing description
+      const clothingDesc = request.identityBible.characterIdentity.clothing;
+      const colorMatches = clothingDesc.match(/\b(red|blue|green|black|white|brown|gray|gold|silver|purple|orange|yellow|pink|teal|navy|maroon|beige|cream)\b/gi);
+      if (colorMatches) {
+        mergedColorPalette.push(...colorMatches.map((c: string) => `character: ${c.toLowerCase()}`));
+      }
+    }
+    // Extract hair color from hairFromBehind description
+    if ((request.identityBible?.nonFacialAnchors as any)?.hairFromBehind) {
+      const hairDesc = (request.identityBible?.nonFacialAnchors as any).hairFromBehind;
+      const hairColorMatches = hairDesc.match(/\b(black|brown|blonde|red|gray|white|auburn|ginger)\b/gi);
+      if (hairColorMatches) {
+        mergedColorPalette.push(`character hair: ${hairColorMatches[0].toLowerCase()}`);
+      }
+    }
     
     if (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) {
       // ALWAYS use the FIRST anchor (from Clip 1) as the master reference for color/lighting
@@ -982,12 +1031,19 @@ serve(async (req) => {
       
       masterDNAParts.push(`[MASTER VISUAL DNA - MANDATORY FOR ALL CLIPS - MUST MATCH CLIP 1]`);
       
-      // COLOR PROFILE FROM CLIP 1 (never changes)
+      // COLOR PROFILE FROM CLIP 1 + CHARACTER COLORS (MERGED PALETTE)
       if (masterAnchor.colorPalette?.promptFragment) {
-        masterDNAParts.push(`🎨 COLOR PROFILE (LOCKED): ${masterAnchor.colorPalette.promptFragment}`);
+        masterDNAParts.push(`🎨 SCENE COLOR PROFILE (LOCKED): ${masterAnchor.colorPalette.promptFragment}`);
       }
       if (masterAnchor.colorPalette?.temperature) {
         masterDNAParts.push(`COLOR TEMPERATURE: ${masterAnchor.colorPalette.temperature} (maintain exact warmth/coolness)`);
+      }
+      
+      // MERGED CHARACTER COLORS INTO SCENE PALETTE
+      if (mergedColorPalette.length > 0) {
+        const uniqueColors = [...new Set(mergedColorPalette)].slice(0, 5);
+        masterDNAParts.push(`👤 CHARACTER COLORS (LOCKED): ${uniqueColors.join(', ')}`);
+        console.log(`[SingleClip] Merged ${uniqueColors.length} character colors into scene palette`);
       }
       
       // LIGHTING FROM CLIP 1 (never changes)

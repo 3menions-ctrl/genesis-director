@@ -1582,9 +1582,35 @@ async function runProduction(
   
   // =====================================================
   // SCENE ANCHOR ACCUMULATOR: Track visual DNA across clips for maximum consistency
+  // CRITICAL: Restore from DB on pipeline resume for consistency
   // =====================================================
   let accumulatedAnchors: any[] = [];
   let masterSceneAnchor: any = null;
+  
+  // RESTORE masterSceneAnchor from DB on resume (CRITICAL for consistency)
+  if (state.identityBible?.masterSceneAnchor) {
+    masterSceneAnchor = state.identityBible.masterSceneAnchor;
+    console.log(`[Hollywood] ✓ RESTORED masterSceneAnchor from identityBible: ${masterSceneAnchor.masterConsistencyPrompt?.substring(0, 100)}...`);
+  } else {
+    // Try to restore from pro_features_data (DB persistence)
+    try {
+      const { data: projectData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data')
+        .eq('id', state.projectId)
+        .single();
+      
+      if (projectData?.pro_features_data?.masterSceneAnchor) {
+        masterSceneAnchor = projectData.pro_features_data.masterSceneAnchor;
+        // Also restore to state for downstream use
+        if (!state.identityBible) state.identityBible = {};
+        state.identityBible.masterSceneAnchor = masterSceneAnchor;
+        console.log(`[Hollywood] ✓ RESTORED masterSceneAnchor from DB: ${masterSceneAnchor.masterConsistencyPrompt?.substring(0, 100)}...`);
+      }
+    } catch (restoreErr) {
+      console.warn(`[Hollywood] Could not restore masterSceneAnchor from DB:`, restoreErr);
+    }
+  }
   
   // Generate clips one at a time with proper frame chaining
   for (let i = startIndex; i < clips.length; i++) {
@@ -2131,23 +2157,39 @@ async function runProduction(
             
             console.log(`[Hollywood] Scene anchors accumulated: ${accumulatedAnchors.length} total`);
             
-            // Update project with scene anchor data (for debugging/monitoring)
+            // CRITICAL: Persist masterSceneAnchor to DB for pipeline resume
+            // This ensures visual consistency is maintained even if pipeline restarts
             try {
+              const { data: currentProject } = await supabase
+                .from('movie_projects')
+                .select('pro_features_data')
+                .eq('id', state.projectId)
+                .single();
+              
+              const existingData = currentProject?.pro_features_data || {};
+              
               await supabase
                 .from('movie_projects')
                 .update({
                   pro_features_data: {
-                    ...(state as any).proFeaturesData,
+                    ...existingData,
+                    // Full masterSceneAnchor for resume (CRITICAL)
+                    masterSceneAnchor: masterSceneAnchor,
+                    // Summary for debugging/monitoring
                     sceneAnchors: {
                       count: accumulatedAnchors.length,
-                      masterPrompt: masterSceneAnchor?.masterConsistencyPrompt?.substring(0, 300),
+                      masterPrompt: masterSceneAnchor?.masterConsistencyPrompt?.substring(0, 500),
+                      masterLighting: masterSceneAnchor?.lighting?.timeOfDay,
+                      masterColorTemp: masterSceneAnchor?.colorPalette?.temperature,
                       lastUpdated: new Date().toISOString(),
                     },
                   },
                 })
                 .eq('id', state.projectId);
+              
+              console.log(`[Hollywood] ✓ masterSceneAnchor persisted to DB for resume`);
             } catch (updateErr) {
-              console.warn(`[Hollywood] Failed to persist scene anchor data:`, updateErr);
+              console.warn(`[Hollywood] Failed to persist masterSceneAnchor:`, updateErr);
             }
           }
         } catch (anchorErr) {

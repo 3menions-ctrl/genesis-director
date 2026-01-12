@@ -518,3 +518,14 @@ export function shouldRegenerate(
   
   return { shouldRegen: false, reason: 'All checks passed' };
 }
+
+// =====================================================
+// RE-EXPORT TOTAL ANCHOR INJECTION SYSTEM
+// =====================================================
+
+export { 
+  buildTotalAnchorInjection, 
+  validateTheLaw,
+  type TotalAnchorInjection,
+  type TheLawValidation 
+} from './totalAnchorInjection';

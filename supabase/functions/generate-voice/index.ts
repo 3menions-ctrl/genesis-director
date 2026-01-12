@@ -68,26 +68,122 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error("ElevenLabs error:", response.status, errorText);
       
-      // Parse error to check for quota exceeded
+      // Parse error to check for quota exceeded - fallback to OpenAI TTS
+      let shouldFallbackToOpenAI = false;
       try {
         const errorData = JSON.parse(errorText);
-        if (errorData.detail?.status === "quota_exceeded") {
+        if (errorData.detail?.status === "quota_exceeded" || response.status === 429) {
+          console.log("[Voice] ElevenLabs quota exceeded, falling back to OpenAI TTS");
+          shouldFallbackToOpenAI = true;
+        }
+      } catch (e) {
+        // Not JSON, check status code
+        if (response.status === 429 || response.status === 402) {
+          shouldFallbackToOpenAI = true;
+        }
+      }
+      
+      if (shouldFallbackToOpenAI) {
+        // Fallback to OpenAI TTS with grandmother-appropriate settings
+        const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+        if (!openaiApiKey) {
           return new Response(
             JSON.stringify({ 
-              error: "ElevenLabs quota exceeded. Please use 'Skip Narration' option or upgrade your ElevenLabs plan.",
+              error: "ElevenLabs quota exceeded and OpenAI fallback not configured.",
               quota_exceeded: true,
             }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-      } catch (e) {
-        // Not JSON, continue with generic error
-      }
-      
-      if (response.status === 429) {
+        
+        // Map voice types to OpenAI voices with appropriate speed
+        const openaiVoiceMap: Record<string, { voice: string; speed: number }> = {
+          'grandmother': { voice: 'shimmer', speed: 0.85 }, // Slower, warmer
+          'grandma': { voice: 'shimmer', speed: 0.85 },
+          'elderly_female': { voice: 'shimmer', speed: 0.85 },
+          'narrator': { voice: 'nova', speed: 1.0 },
+          'male': { voice: 'onyx', speed: 1.0 },
+          'female': { voice: 'nova', speed: 1.0 },
+          'default': { voice: 'nova', speed: 1.0 },
+        };
+        
+        const openaiConfig = openaiVoiceMap[voiceType || 'default'] || openaiVoiceMap['default'];
+        console.log(`[Voice] Using OpenAI fallback: voice=${openaiConfig.voice}, speed=${openaiConfig.speed}`);
+        
+        const openaiResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openaiApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "tts-1-hd",
+            input: text,
+            voice: openaiConfig.voice,
+            response_format: "mp3",
+            speed: openaiConfig.speed,
+          }),
+        });
+        
+        if (!openaiResponse.ok) {
+          const openaiError = await openaiResponse.text();
+          console.error("[Voice] OpenAI fallback failed:", openaiError);
+          return new Response(
+            JSON.stringify({ error: "Both ElevenLabs and OpenAI TTS failed." }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        const openaiAudioBuffer = await openaiResponse.arrayBuffer();
+        console.log("[Voice] OpenAI fallback successful, size:", openaiAudioBuffer.byteLength);
+        
+        // Continue with storage upload using OpenAI audio
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          const timestamp = Date.now();
+          const filename = shotId 
+            ? `voice-openai-${projectId || 'unknown'}-${shotId}-${timestamp}.mp3`
+            : `voice-openai-${timestamp}.mp3`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('voice-tracks')
+            .upload(filename, openaiAudioBuffer, {
+              contentType: 'audio/mpeg',
+              upsert: true,
+            });
+          
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('voice-tracks')
+              .getPublicUrl(filename);
+            
+            console.log("[Voice] OpenAI audio uploaded:", publicUrl);
+            
+            return new Response(
+              JSON.stringify({ 
+                success: true,
+                audioUrl: publicUrl,
+                durationMs: Math.round((text.length / 15) * 1000),
+                provider: "openai-fallback",
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+        
+        // Return base64 if storage fails
+        const base64Audio = base64Encode(openaiAudioBuffer);
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            success: true,
+            audioBase64: base64Audio,
+            durationMs: Math.round((text.length / 15) * 1000),
+            provider: "openai-fallback",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       

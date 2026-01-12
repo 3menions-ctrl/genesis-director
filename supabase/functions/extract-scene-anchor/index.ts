@@ -302,15 +302,154 @@ function buildMasterPrompt(analysis: any): string {
   return fragments.join('. ') + '.';
 }
 
+// =====================================================
+// FAILSAFE UTILITIES (embedded for edge function isolation)
+// =====================================================
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2,
+};
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  operationName: string,
+  config = RETRY_CONFIG
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < config.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt < config.maxRetries - 1) {
+        const delay = Math.min(
+          config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt),
+          config.maxDelayMs
+        );
+        console.warn(`[${operationName}] Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error(`${operationName} failed after ${config.maxRetries} attempts`);
+}
+
+function getDefaultSceneAnchor(shotId: string, frameUrl: string): SceneAnchor {
+  return {
+    id: `anchor_fallback_${Date.now()}`,
+    shotId,
+    frameUrl,
+    extractedAt: Date.now(),
+    lighting: {
+      keyLightDirection: 'natural ambient',
+      keyLightIntensity: 'medium',
+      keyLightColor: 'neutral daylight',
+      fillRatio: 0.5,
+      ambientColor: 'neutral',
+      shadowHardness: 'soft',
+      shadowDirection: 'natural',
+      timeOfDay: 'indoor',
+      promptFragment: 'natural ambient lighting with soft shadows',
+    },
+    colorPalette: {
+      dominant: [{ hex: '#808080', percentage: 40, name: 'neutral gray' }],
+      accents: [],
+      temperature: 'neutral',
+      saturation: 'natural',
+      gradeStyle: 'natural cinematic',
+      promptFragment: 'natural color grading with balanced tones',
+    },
+    depthCues: {
+      dofStyle: 'deep',
+      focalPlane: 'midground',
+      bokehQuality: 'subtle',
+      atmosphericPerspective: false,
+      fogHaze: 'none',
+      foregroundElements: [],
+      midgroundElements: [],
+      backgroundElements: [],
+      perspectiveType: 'one-point',
+      vanishingPointLocation: 'center',
+      promptFragment: 'deep depth of field with clear focus',
+    },
+    keyObjects: {
+      objects: [],
+      environmentType: 'mixed',
+      settingDescription: 'general scene',
+      architecturalStyle: 'contemporary',
+      promptFragment: 'contemporary setting',
+    },
+    motionSignature: {
+      cameraMotionStyle: 'subtle',
+      preferredMovements: ['slow pan', 'gentle drift'],
+      subjectMotionIntensity: 'subtle',
+      pacingTempo: 'medium',
+      cutRhythm: 'measured',
+      promptFragment: 'subtle camera movement with measured pacing',
+    },
+    masterConsistencyPrompt: 'natural ambient lighting, balanced color grading, deep focus, contemporary setting, subtle camera movement',
+  };
+}
+
+function validateAndFixAnchor(analysis: any, shotId: string, frameUrl: string): SceneAnchor {
+  const defaultAnchor = getDefaultSceneAnchor(shotId, frameUrl);
+  
+  // Validate and fix each component
+  const lighting = analysis.lighting || defaultAnchor.lighting;
+  if (!lighting.promptFragment) {
+    lighting.promptFragment = `${lighting.keyLightIntensity || 'medium'} ${lighting.timeOfDay || 'natural'} lighting`;
+  }
+  
+  const colorPalette = analysis.colorPalette || defaultAnchor.colorPalette;
+  if (!colorPalette.promptFragment) {
+    colorPalette.promptFragment = `${colorPalette.temperature || 'neutral'} color palette`;
+  }
+  
+  const depthCues = analysis.depthCues || defaultAnchor.depthCues;
+  if (!depthCues.promptFragment) {
+    depthCues.promptFragment = `${depthCues.dofStyle || 'deep'} depth of field`;
+  }
+  
+  const keyObjects = analysis.keyObjects || defaultAnchor.keyObjects;
+  if (!keyObjects.promptFragment) {
+    keyObjects.promptFragment = keyObjects.settingDescription || 'general scene';
+  }
+  
+  const motionSignature = analysis.motionSignature || defaultAnchor.motionSignature;
+  if (!motionSignature.promptFragment) {
+    motionSignature.promptFragment = `${motionSignature.cameraMotionStyle || 'subtle'} camera motion`;
+  }
+  
+  return {
+    id: `anchor_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    shotId: shotId || 'unknown',
+    frameUrl,
+    extractedAt: Date.now(),
+    lighting,
+    colorPalette,
+    depthCues,
+    keyObjects,
+    motionSignature,
+    masterConsistencyPrompt: buildMasterPrompt({ lighting, colorPalette, depthCues, keyObjects, motionSignature }),
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
+  let requestData: any = {};
 
   try {
-    const { frameUrl, shotId, projectId: requestProjectId } = await req.json();
+    requestData = await req.json();
+    const { frameUrl, shotId, projectId: requestProjectId } = requestData;
 
     if (!frameUrl) {
       throw new Error("frameUrl is required");
@@ -327,58 +466,75 @@ serve(async (req) => {
     const serviceAccount = JSON.parse(serviceAccountJson);
     const gcpProjectId = serviceAccount.project_id;
 
-    // Get access token
-    console.log("[Scene Anchor] Getting OAuth2 access token...");
-    const accessToken = await getAccessToken(serviceAccount);
+    let sceneAnchor: SceneAnchor;
+    let usedFallback = false;
 
-    // Convert image to base64
-    console.log("[Scene Anchor] Fetching and encoding image...");
-    const imageBase64 = await imageToBase64(frameUrl);
+    try {
+      // Get access token with retry
+      console.log("[Scene Anchor] Getting OAuth2 access token...");
+      const accessToken = await withRetry(
+        () => getAccessToken(serviceAccount),
+        "OAuth2 Token"
+      );
 
-    // Analyze scene
-    console.log("[Scene Anchor] Analyzing scene with Gemini Vision...");
-    const analysis = await analyzeScene(imageBase64, accessToken, gcpProjectId);
+      // Convert image to base64 with retry
+      console.log("[Scene Anchor] Fetching and encoding image...");
+      const imageBase64 = await withRetry(
+        () => imageToBase64(frameUrl),
+        "Image Fetch"
+      );
 
-    // Build master consistency prompt
-    const masterPrompt = buildMasterPrompt(analysis);
+      // Analyze scene with retry
+      console.log("[Scene Anchor] Analyzing scene with Gemini Vision...");
+      const analysis = await withRetry(
+        () => analyzeScene(imageBase64, accessToken, gcpProjectId),
+        "Scene Analysis"
+      );
 
-    // Construct complete scene anchor
-    const sceneAnchor: SceneAnchor = {
-      id: `anchor_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      shotId: shotId || 'unknown',
-      frameUrl,
-      extractedAt: Date.now(),
-      lighting: analysis.lighting,
-      colorPalette: analysis.colorPalette,
-      depthCues: analysis.depthCues,
-      keyObjects: analysis.keyObjects,
-      motionSignature: analysis.motionSignature,
-      masterConsistencyPrompt: masterPrompt,
-    };
+      // Validate and fix the analysis result
+      sceneAnchor = validateAndFixAnchor(analysis, shotId, frameUrl);
+      console.log(`[Scene Anchor] ✓ Extraction successful`);
+      
+    } catch (extractionError) {
+      // FAILSAFE: Use default anchor if extraction fails completely
+      console.error("[Scene Anchor] Extraction failed after retries, using default anchor:", extractionError);
+      sceneAnchor = getDefaultSceneAnchor(shotId || 'unknown', frameUrl);
+      usedFallback = true;
+    }
 
     const processingTimeMs = Date.now() - startTime;
     
-    console.log(`[Scene Anchor] Extraction complete in ${processingTimeMs}ms`);
-    console.log(`[Scene Anchor] Master prompt: ${masterPrompt.substring(0, 200)}...`);
+    console.log(`[Scene Anchor] Complete in ${processingTimeMs}ms${usedFallback ? ' (FALLBACK)' : ''}`);
+    console.log(`[Scene Anchor] Master prompt: ${sceneAnchor.masterConsistencyPrompt.substring(0, 200)}...`);
 
     return new Response(
       JSON.stringify({
         success: true,
         anchor: sceneAnchor,
         processingTimeMs,
+        usedFallback,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("[Scene Anchor] Error:", error);
+    console.error("[Scene Anchor] Critical error:", error);
+    
+    // ABSOLUTE FAILSAFE: Return a default anchor even on critical error
+    const fallbackAnchor = getDefaultSceneAnchor(
+      requestData?.shotId || 'unknown',
+      requestData?.frameUrl || ''
+    );
+    
     return new Response(
       JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        success: true, // Mark as success with fallback to prevent pipeline failure
+        anchor: fallbackAnchor,
         processingTimeMs: Date.now() - startTime,
+        usedFallback: true,
+        fallbackReason: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

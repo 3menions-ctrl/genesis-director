@@ -36,113 +36,178 @@ interface SceneAnchorComparison {
   bridgeClipPrompt?: string;
 }
 
-// Compare lighting fingerprints
+// =====================================================
+// SAFE COMPARISON UTILITIES
+// Prevents crashes on null/undefined properties
+// =====================================================
+function safeGet(obj: any, path: string, defaultValue: any = undefined): any {
+  const keys = path.split('.');
+  let current = obj;
+  
+  for (const key of keys) {
+    if (current === null || current === undefined) {
+      return defaultValue;
+    }
+    current = current[key];
+  }
+  
+  return (current !== null && current !== undefined) ? current : defaultValue;
+}
+
+function safeCompare(v1: any, v2: any): boolean {
+  if (v1 === undefined || v1 === null || v2 === undefined || v2 === null) {
+    return true; // Treat missing values as "compatible"
+  }
+  return v1 === v2;
+}
+
+// Compare lighting fingerprints with null safety
 function compareLighting(l1: any, l2: any): { score: number; gap?: any } {
+  // SAFETY: Handle null/undefined inputs
+  if (!l1 && !l2) return { score: 100 };
+  if (!l1 || !l2) return { score: 70, gap: { component: 'lighting' as const, severity: 'minor' as const, description: 'Missing lighting data', bridgePrompt: 'maintain current lighting' } };
+  
   let score = 100;
   const gaps: string[] = [];
   
+  const timeOfDay1 = safeGet(l1, 'timeOfDay', 'unknown');
+  const timeOfDay2 = safeGet(l2, 'timeOfDay', 'unknown');
+  
   // Time of day mismatch (severe)
-  if (l1.timeOfDay !== l2.timeOfDay) {
-    if (['night', 'golden-hour'].includes(l1.timeOfDay) && ['midday', 'overcast'].includes(l2.timeOfDay)) {
+  if (timeOfDay1 !== 'unknown' && timeOfDay2 !== 'unknown' && timeOfDay1 !== timeOfDay2) {
+    if (['night', 'golden-hour'].includes(timeOfDay1) && ['midday', 'overcast'].includes(timeOfDay2)) {
       score -= 40;
-      gaps.push(`Time of day jump: ${l1.timeOfDay} → ${l2.timeOfDay}`);
+      gaps.push(`Time of day jump: ${timeOfDay1} → ${timeOfDay2}`);
     } else {
       score -= 20;
     }
   }
   
   // Key light direction mismatch
-  if (l1.keyLightDirection !== l2.keyLightDirection) {
+  const dir1 = safeGet(l1, 'keyLightDirection', '');
+  const dir2 = safeGet(l2, 'keyLightDirection', '');
+  if (dir1 && dir2 && dir1 !== dir2) {
     score -= 15;
-    gaps.push(`Light direction shift: ${l1.keyLightDirection} → ${l2.keyLightDirection}`);
+    gaps.push(`Light direction shift: ${dir1} → ${dir2}`);
   }
   
   // Intensity mismatch
-  if (l1.keyLightIntensity !== l2.keyLightIntensity) {
+  if (!safeCompare(safeGet(l1, 'keyLightIntensity'), safeGet(l2, 'keyLightIntensity'))) {
     score -= 10;
   }
   
   // Shadow hardness mismatch
-  if (l1.shadowHardness !== l2.shadowHardness) {
+  if (!safeCompare(safeGet(l1, 'shadowHardness'), safeGet(l2, 'shadowHardness'))) {
     score -= 10;
   }
+  
+  const prompt1 = safeGet(l1, 'promptFragment', 'current lighting');
+  const prompt2 = safeGet(l2, 'promptFragment', 'target lighting');
   
   const gap = gaps.length > 0 ? {
     component: 'lighting' as const,
     severity: score < 60 ? 'severe' as const : score < 80 ? 'moderate' as const : 'minor' as const,
     description: gaps.join('; '),
-    bridgePrompt: `Transition lighting from ${l1.promptFragment} to ${l2.promptFragment}`,
+    bridgePrompt: `Transition lighting from ${prompt1} to ${prompt2}`,
   } : undefined;
   
   return { score: Math.max(0, score), gap };
 }
 
-// Compare color palettes
+// Compare color palettes with null safety
 function compareColor(c1: any, c2: any): { score: number; gap?: any } {
+  // SAFETY: Handle null/undefined inputs
+  if (!c1 && !c2) return { score: 100 };
+  if (!c1 || !c2) return { score: 70, gap: { component: 'color' as const, severity: 'minor' as const, description: 'Missing color data', bridgePrompt: 'maintain current colors' } };
+  
   let score = 100;
   const gaps: string[] = [];
   
+  const temp1 = safeGet(c1, 'temperature', 'neutral');
+  const temp2 = safeGet(c2, 'temperature', 'neutral');
+  
   // Temperature mismatch
-  if (c1.temperature !== c2.temperature) {
+  if (temp1 !== temp2) {
     score -= 25;
-    gaps.push(`Temperature shift: ${c1.temperature} → ${c2.temperature}`);
+    gaps.push(`Temperature shift: ${temp1} → ${temp2}`);
   }
+  
+  const sat1 = safeGet(c1, 'saturation', 'natural');
+  const sat2 = safeGet(c2, 'saturation', 'natural');
   
   // Saturation mismatch
-  if (c1.saturation !== c2.saturation) {
+  if (sat1 !== sat2) {
     score -= 15;
-    gaps.push(`Saturation shift: ${c1.saturation} → ${c2.saturation}`);
+    gaps.push(`Saturation shift: ${sat1} → ${sat2}`);
   }
+  
+  const grade1 = safeGet(c1, 'gradeStyle', 'natural');
+  const grade2 = safeGet(c2, 'gradeStyle', 'natural');
   
   // Grade style mismatch
-  if (c1.gradeStyle !== c2.gradeStyle) {
+  if (grade1 !== grade2) {
     score -= 20;
-    gaps.push(`Color grade shift: ${c1.gradeStyle} → ${c2.gradeStyle}`);
+    gaps.push(`Color grade shift: ${grade1} → ${grade2}`);
   }
   
-  // Compare dominant colors (simplified hex comparison)
-  const colors1 = c1.dominant?.map((d: any) => d.hex?.toLowerCase()) || [];
-  const colors2 = c2.dominant?.map((d: any) => d.hex?.toLowerCase()) || [];
-  const commonColors = colors1.filter((c: string) => colors2.includes(c));
-  if (commonColors.length < Math.min(colors1.length, colors2.length) / 2) {
-    score -= 20;
-    gaps.push('Significant palette change');
+  // Compare dominant colors (simplified hex comparison) with null safety
+  const dominant1 = safeGet(c1, 'dominant', []);
+  const dominant2 = safeGet(c2, 'dominant', []);
+  const colors1 = Array.isArray(dominant1) ? dominant1.map((d: any) => d?.hex?.toLowerCase()).filter(Boolean) : [];
+  const colors2 = Array.isArray(dominant2) ? dominant2.map((d: any) => d?.hex?.toLowerCase()).filter(Boolean) : [];
+  
+  if (colors1.length > 0 && colors2.length > 0) {
+    const commonColors = colors1.filter((c: string) => colors2.includes(c));
+    if (commonColors.length < Math.min(colors1.length, colors2.length) / 2) {
+      score -= 20;
+      gaps.push('Significant palette change');
+    }
   }
   
   const gap = gaps.length > 0 ? {
     component: 'color' as const,
     severity: score < 60 ? 'severe' as const : score < 80 ? 'moderate' as const : 'minor' as const,
     description: gaps.join('; '),
-    bridgePrompt: `Transition colors from ${c1.gradeStyle} to ${c2.gradeStyle}`,
+    bridgePrompt: `Transition colors from ${grade1} to ${grade2}`,
   } : undefined;
   
   return { score: Math.max(0, score), gap };
 }
 
-// Compare depth cues
+// Compare depth cues with null safety
 function compareDepth(d1: any, d2: any): { score: number; gap?: any } {
+  // SAFETY: Handle null/undefined inputs
+  if (!d1 && !d2) return { score: 100 };
+  if (!d1 || !d2) return { score: 70, gap: { component: 'depth' as const, severity: 'minor' as const, description: 'Missing depth data', bridgePrompt: 'maintain current depth' } };
+  
   let score = 100;
   const gaps: string[] = [];
   
+  const dof1 = safeGet(d1, 'dofStyle', 'deep');
+  const dof2 = safeGet(d2, 'dofStyle', 'deep');
+  
   // DOF style mismatch
-  if (d1.dofStyle !== d2.dofStyle) {
+  if (dof1 !== dof2) {
     score -= 20;
-    gaps.push(`Depth of field shift: ${d1.dofStyle} → ${d2.dofStyle}`);
+    gaps.push(`Depth of field shift: ${dof1} → ${dof2}`);
   }
   
+  const persp1 = safeGet(d1, 'perspectiveType', 'one-point');
+  const persp2 = safeGet(d2, 'perspectiveType', 'one-point');
+  
   // Perspective type mismatch
-  if (d1.perspectiveType !== d2.perspectiveType) {
+  if (persp1 !== persp2) {
     score -= 15;
-    gaps.push(`Perspective shift: ${d1.perspectiveType} → ${d2.perspectiveType}`);
+    gaps.push(`Perspective shift: ${persp1} → ${persp2}`);
   }
   
   // Fog/haze mismatch
-  if (d1.fogHaze !== d2.fogHaze) {
+  if (!safeCompare(safeGet(d1, 'fogHaze'), safeGet(d2, 'fogHaze'))) {
     score -= 10;
   }
   
   // Atmospheric perspective mismatch
-  if (d1.atmosphericPerspective !== d2.atmosphericPerspective) {
+  if (safeGet(d1, 'atmosphericPerspective', false) !== safeGet(d2, 'atmosphericPerspective', false)) {
     score -= 10;
   }
   
@@ -150,87 +215,117 @@ function compareDepth(d1: any, d2: any): { score: number; gap?: any } {
     component: 'depth' as const,
     severity: score < 60 ? 'severe' as const : score < 80 ? 'moderate' as const : 'minor' as const,
     description: gaps.join('; '),
-    bridgePrompt: `Transition depth from ${d1.dofStyle} to ${d2.dofStyle}`,
+    bridgePrompt: `Transition depth from ${dof1} to ${dof2}`,
   } : undefined;
   
   return { score: Math.max(0, score), gap };
 }
 
-// Compare key objects
+// Compare key objects with null safety
 function compareObjects(o1: any, o2: any): { score: number; gap?: any } {
+  // SAFETY: Handle null/undefined inputs
+  if (!o1 && !o2) return { score: 100 };
+  if (!o1 || !o2) return { score: 70, gap: { component: 'objects' as const, severity: 'minor' as const, description: 'Missing objects data', bridgePrompt: 'maintain current environment' } };
+  
   let score = 100;
   const gaps: string[] = [];
   
+  const env1 = safeGet(o1, 'environmentType', 'mixed');
+  const env2 = safeGet(o2, 'environmentType', 'mixed');
+  
   // Environment type mismatch (severe)
-  if (o1.environmentType !== o2.environmentType) {
+  if (env1 !== env2) {
     score -= 40;
-    gaps.push(`Environment type change: ${o1.environmentType} → ${o2.environmentType}`);
+    gaps.push(`Environment type change: ${env1} → ${env2}`);
   }
+  
+  const arch1 = safeGet(o1, 'architecturalStyle', 'contemporary');
+  const arch2 = safeGet(o2, 'architecturalStyle', 'contemporary');
   
   // Architectural style mismatch
-  if (o1.architecturalStyle !== o2.architecturalStyle) {
+  if (arch1 !== arch2) {
     score -= 20;
-    gaps.push(`Style change: ${o1.architecturalStyle} → ${o2.architecturalStyle}`);
+    gaps.push(`Style change: ${arch1} → ${arch2}`);
   }
   
-  // Check for object continuity
-  const objects1 = o1.objects?.map((o: any) => o.name.toLowerCase()) || [];
-  const objects2 = o2.objects?.map((o: any) => o.name.toLowerCase()) || [];
-  const heroObjects1 = o1.objects?.filter((o: any) => o.importance === 'hero') || [];
-  const heroObjects2 = o2.objects?.filter((o: any) => o.importance === 'hero') || [];
+  // Check for object continuity with null safety
+  const objects1List = safeGet(o1, 'objects', []);
+  const objects2List = safeGet(o2, 'objects', []);
+  const objects1 = Array.isArray(objects1List) ? objects1List.map((o: any) => o?.name?.toLowerCase()).filter(Boolean) : [];
+  const objects2 = Array.isArray(objects2List) ? objects2List.map((o: any) => o?.name?.toLowerCase()).filter(Boolean) : [];
+  const heroObjects1 = Array.isArray(objects1List) ? objects1List.filter((o: any) => o?.importance === 'hero') : [];
   
   // Hero objects should persist
-  const missingHeroes = heroObjects1.filter((h: any) => 
-    !objects2.some((name: string) => name.includes(h.name.toLowerCase()) || h.name.toLowerCase().includes(name))
-  );
-  if (missingHeroes.length > 0) {
-    score -= 15 * missingHeroes.length;
-    gaps.push(`Missing hero objects: ${missingHeroes.map((h: any) => h.name).join(', ')}`);
+  if (heroObjects1.length > 0 && objects2.length > 0) {
+    const missingHeroes = heroObjects1.filter((h: any) => 
+      h?.name && !objects2.some((name: string) => name.includes(h.name.toLowerCase()) || h.name.toLowerCase().includes(name))
+    );
+    if (missingHeroes.length > 0) {
+      score -= 15 * missingHeroes.length;
+      gaps.push(`Missing hero objects: ${missingHeroes.map((h: any) => h?.name || 'unknown').join(', ')}`);
+    }
   }
+  
+  const setting1 = safeGet(o1, 'settingDescription', 'current setting');
+  const setting2 = safeGet(o2, 'settingDescription', 'next setting');
   
   const gap = gaps.length > 0 ? {
     component: 'objects' as const,
     severity: score < 60 ? 'severe' as const : score < 80 ? 'moderate' as const : 'minor' as const,
     description: gaps.join('; '),
-    bridgePrompt: `Transition environment from ${o1.settingDescription} to ${o2.settingDescription}`,
+    bridgePrompt: `Transition environment from ${setting1} to ${setting2}`,
   } : undefined;
   
   return { score: Math.max(0, score), gap };
 }
 
-// Compare motion signatures
+// Compare motion signatures with null safety
 function compareMotion(m1: any, m2: any): { score: number; gap?: any } {
+  // SAFETY: Handle null/undefined inputs
+  if (!m1 && !m2) return { score: 100 };
+  if (!m1 || !m2) return { score: 70, gap: { component: 'motion' as const, severity: 'minor' as const, description: 'Missing motion data', bridgePrompt: 'maintain current motion' } };
+  
   let score = 100;
   const gaps: string[] = [];
   
+  const cam1 = safeGet(m1, 'cameraMotionStyle', 'subtle');
+  const cam2 = safeGet(m2, 'cameraMotionStyle', 'subtle');
+  
   // Camera motion style mismatch
-  if (m1.cameraMotionStyle !== m2.cameraMotionStyle) {
+  if (cam1 !== cam2) {
+    const motionStyles = ['static', 'subtle', 'dynamic', 'chaotic'];
     const styleDiff = Math.abs(
-      ['static', 'subtle', 'dynamic', 'chaotic'].indexOf(m1.cameraMotionStyle) -
-      ['static', 'subtle', 'dynamic', 'chaotic'].indexOf(m2.cameraMotionStyle)
+      motionStyles.indexOf(cam1) -
+      motionStyles.indexOf(cam2)
     );
     score -= styleDiff * 10;
     if (styleDiff > 1) {
-      gaps.push(`Camera motion shift: ${m1.cameraMotionStyle} → ${m2.cameraMotionStyle}`);
+      gaps.push(`Camera motion shift: ${cam1} → ${cam2}`);
     }
   }
   
+  const pace1 = safeGet(m1, 'pacingTempo', 'medium');
+  const pace2 = safeGet(m2, 'pacingTempo', 'medium');
+  
   // Pacing tempo mismatch
-  if (m1.pacingTempo !== m2.pacingTempo) {
+  if (pace1 !== pace2) {
     score -= 15;
-    gaps.push(`Pacing shift: ${m1.pacingTempo} → ${m2.pacingTempo}`);
+    gaps.push(`Pacing shift: ${pace1} → ${pace2}`);
   }
   
   // Subject motion intensity mismatch
-  if (m1.subjectMotionIntensity !== m2.subjectMotionIntensity) {
+  if (!safeCompare(safeGet(m1, 'subjectMotionIntensity'), safeGet(m2, 'subjectMotionIntensity'))) {
     score -= 10;
   }
+  
+  const prompt1 = safeGet(m1, 'promptFragment', 'current motion');
+  const prompt2 = safeGet(m2, 'promptFragment', 'target motion');
   
   const gap = gaps.length > 0 ? {
     component: 'motion' as const,
     severity: score < 60 ? 'severe' as const : score < 80 ? 'moderate' as const : 'minor' as const,
     description: gaps.join('; '),
-    bridgePrompt: `Transition motion from ${m1.promptFragment} to ${m2.promptFragment}`,
+    bridgePrompt: `Transition motion from ${prompt1} to ${prompt2}`,
   } : undefined;
   
   return { score: Math.max(0, score), gap };

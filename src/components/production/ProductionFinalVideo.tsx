@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CheckCircle2, Download, Play } from 'lucide-react';
+import { CheckCircle2, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';

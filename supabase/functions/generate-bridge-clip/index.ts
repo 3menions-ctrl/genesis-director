@@ -175,8 +175,12 @@ serve(async (req) => {
     // Convert starting frame to base64
     const imageBase64 = await imageToBase64(fromClipLastFrame);
 
-    // Generate video using Veo with image-to-video
-    const veoEndpoint = `https://us-central1-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/us-central1/publishers/google/models/veo-2.0-generate-001:predictLongRunning`;
+    // Generate video using Veo 3.1 with image-to-video
+    const model = "veo-3.1-generate-001"; // Latest stable Veo 3.1
+    const veoEndpoint = `https://us-central1-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/us-central1/publishers/google/models/${model}:predictLongRunning`;
+    
+    // For image-to-video, Veo 3.1 supports [4, 6, 8] seconds - prefer 6 for quality
+    const validDuration = durationSeconds <= 4 ? 6 : (durationSeconds <= 7 ? 6 : 8);
     
     const veoResponse = await fetch(veoEndpoint, {
       method: 'POST',
@@ -188,13 +192,15 @@ serve(async (req) => {
         instances: [{
           prompt: enhancedPrompt,
           image: {
-            bytesBase64Encoded: imageBase64
+            bytesBase64Encoded: imageBase64,
+            mimeType: "image/jpeg"
           }
         }],
         parameters: {
           aspectRatio: "16:9",
           sampleCount: 1,
-          durationSeconds: Math.min(durationSeconds, 8), // Veo max is 8 seconds
+          durationSeconds: validDuration,
+          resolution: "1080p",
           personGeneration: "allow_adult",
           negativePrompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut"
         }

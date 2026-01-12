@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -7,191 +8,86 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Voice Generation using OpenAI TTS (Primary)
+ * 
+ * Uses OpenAI's tts-1-hd model for reliable, high-quality voice generation.
+ * ElevenLabs was removed due to frequent quota/rate limit issues.
+ */
+
+// OpenAI TTS voice mapping for different character types
+const VOICE_MAP: Record<string, { voice: string; speed: number }> = {
+  // Elderly/Grandmother voices - slower, warmer
+  grandmother: { voice: 'shimmer', speed: 0.85 },
+  elderly_female: { voice: 'shimmer', speed: 0.85 },
+  grandma: { voice: 'shimmer', speed: 0.85 },
+  
+  // Standard narrator voices
+  narrator: { voice: 'nova', speed: 1.0 },
+  storyteller: { voice: 'fable', speed: 0.95 },
+  
+  // Male voices
+  male: { voice: 'onyx', speed: 1.0 },
+  male_deep: { voice: 'onyx', speed: 0.9 },
+  friendly_male: { voice: 'echo', speed: 1.0 },
+  
+  // Female voices
+  female: { voice: 'nova', speed: 1.0 },
+  young_female: { voice: 'alloy', speed: 1.0 },
+  
+  // Default
+  default: { voice: 'nova', speed: 1.0 },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, voiceId, shotId, projectId, voiceType } = await req.json();
-    
-    // Voice ID mapping for different character types
-    const VOICE_MAP: Record<string, string> = {
-      // Elderly/Grandmother voices
-      'grandmother': 'XB0fDUnXU5powFXDhCwa', // Charlotte - warm, mature female
-      'elderly_female': 'XB0fDUnXU5powFXDhCwa',
-      'grandma': 'XB0fDUnXU5powFXDhCwa',
-      
-      // Standard voices
-      'narrator': 'pNInz6obpgDQGcFmaJgB', // Adam - deep male narrator
-      'male': 'pNInz6obpgDQGcFmaJgB',
-      'female': 'EXAVITQu4vr4xnSDxMaL', // Sarah - young female
-      'default': 'EXAVITQu4vr4xnSDxMaL',
-    };
-    
-    // Resolve voice ID from voiceType or use provided voiceId
-    const resolvedVoiceId = voiceId || VOICE_MAP[voiceType || 'default'] || VOICE_MAP['default'];
+    const { text, voiceId, shotId, projectId, voiceType, speed } = await req.json();
 
     if (!text) {
       throw new Error("Text is required");
     }
 
-    console.log("Generating voice for text length:", text.length, "shotId:", shotId, "voiceType:", voiceType, "resolvedVoiceId:", resolvedVoiceId);
-
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error("ELEVENLABS_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.5,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
+    // Resolve voice configuration from voiceType
+    const voiceConfig = VOICE_MAP[voiceType || 'default'] || VOICE_MAP['default'];
+    
+    // Allow override of speed if provided
+    const finalSpeed = speed || voiceConfig.speed;
+
+    console.log(`[Voice] Generating for text length: ${text.length}, voiceType: ${voiceType || 'default'}, voice: ${voiceConfig.voice}, speed: ${finalSpeed}`);
+
+    // Call OpenAI TTS API
+    const response = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "tts-1-hd",
+        input: text,
+        voice: voiceConfig.voice,
+        response_format: "mp3",
+        speed: finalSpeed,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("ElevenLabs error:", response.status, errorText);
-      
-      // Parse error to check for quota exceeded - fallback to OpenAI TTS
-      let shouldFallbackToOpenAI = false;
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.detail?.status === "quota_exceeded" || response.status === 429) {
-          console.log("[Voice] ElevenLabs quota exceeded, falling back to OpenAI TTS");
-          shouldFallbackToOpenAI = true;
-        }
-      } catch (e) {
-        // Not JSON, check status code
-        if (response.status === 429 || response.status === 402) {
-          shouldFallbackToOpenAI = true;
-        }
-      }
-      
-      if (shouldFallbackToOpenAI) {
-        // Fallback to OpenAI TTS with grandmother-appropriate settings
-        const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-        if (!openaiApiKey) {
-          return new Response(
-            JSON.stringify({ 
-              error: "ElevenLabs quota exceeded and OpenAI fallback not configured.",
-              quota_exceeded: true,
-            }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        // Map voice types to OpenAI voices with appropriate speed
-        const openaiVoiceMap: Record<string, { voice: string; speed: number }> = {
-          'grandmother': { voice: 'shimmer', speed: 0.85 }, // Slower, warmer
-          'grandma': { voice: 'shimmer', speed: 0.85 },
-          'elderly_female': { voice: 'shimmer', speed: 0.85 },
-          'narrator': { voice: 'nova', speed: 1.0 },
-          'male': { voice: 'onyx', speed: 1.0 },
-          'female': { voice: 'nova', speed: 1.0 },
-          'default': { voice: 'nova', speed: 1.0 },
-        };
-        
-        const openaiConfig = openaiVoiceMap[voiceType || 'default'] || openaiVoiceMap['default'];
-        console.log(`[Voice] Using OpenAI fallback: voice=${openaiConfig.voice}, speed=${openaiConfig.speed}`);
-        
-        const openaiResponse = await fetch("https://api.openai.com/v1/audio/speech", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openaiApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "tts-1-hd",
-            input: text,
-            voice: openaiConfig.voice,
-            response_format: "mp3",
-            speed: openaiConfig.speed,
-          }),
-        });
-        
-        if (!openaiResponse.ok) {
-          const openaiError = await openaiResponse.text();
-          console.error("[Voice] OpenAI fallback failed:", openaiError);
-          return new Response(
-            JSON.stringify({ error: "Both ElevenLabs and OpenAI TTS failed." }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        const openaiAudioBuffer = await openaiResponse.arrayBuffer();
-        console.log("[Voice] OpenAI fallback successful, size:", openaiAudioBuffer.byteLength);
-        
-        // Continue with storage upload using OpenAI audio
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-        
-        if (supabaseUrl && supabaseServiceKey) {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
-          const timestamp = Date.now();
-          const filename = shotId 
-            ? `voice-openai-${projectId || 'unknown'}-${shotId}-${timestamp}.mp3`
-            : `voice-openai-${timestamp}.mp3`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('voice-tracks')
-            .upload(filename, openaiAudioBuffer, {
-              contentType: 'audio/mpeg',
-              upsert: true,
-            });
-          
-          if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('voice-tracks')
-              .getPublicUrl(filename);
-            
-            console.log("[Voice] OpenAI audio uploaded:", publicUrl);
-            
-            return new Response(
-              JSON.stringify({ 
-                success: true,
-                audioUrl: publicUrl,
-                durationMs: Math.round((text.length / 15) * 1000),
-                provider: "openai-fallback",
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        }
-        
-        // Return base64 if storage fails
-        const base64Audio = base64Encode(openaiAudioBuffer);
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            audioBase64: base64Audio,
-            durationMs: Math.round((text.length / 15) * 1000),
-            provider: "openai-fallback",
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`ElevenLabs error: ${response.status}`);
+      console.error("[Voice] OpenAI TTS error:", response.status, errorText);
+      throw new Error(`OpenAI TTS error: ${response.status} - ${errorText}`);
     }
 
     const audioBuffer = await response.arrayBuffer();
-    console.log("Voice generated successfully, size:", audioBuffer.byteLength);
+    console.log(`[Voice] Generated successfully, size: ${audioBuffer.byteLength} bytes`);
 
     // Initialize Supabase client for storage upload
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -205,10 +101,10 @@ serve(async (req) => {
         const timestamp = Date.now();
         const filename = shotId 
           ? `voice-${projectId || 'unknown'}-${shotId}-${timestamp}.mp3`
-          : `voice-${timestamp}.mp3`;
+          : `voice-${projectId || 'unknown'}-${timestamp}.mp3`;
         
         // Upload to storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('voice-tracks')
           .upload(filename, audioBuffer, {
             contentType: 'audio/mpeg',
@@ -216,14 +112,15 @@ serve(async (req) => {
           });
 
         if (uploadError) {
-          console.error("Storage upload error:", uploadError);
+          console.error("[Voice] Storage upload error:", uploadError);
           // Fall back to base64 response
           const base64Audio = base64Encode(audioBuffer);
           return new Response(
             JSON.stringify({ 
               success: true,
               audioBase64: base64Audio,
-              durationMs: Math.round((text.length / 15) * 1000),
+              durationMs: estimateDuration(text),
+              provider: "openai",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -234,19 +131,33 @@ serve(async (req) => {
           .from('voice-tracks')
           .getPublicUrl(filename);
 
-        console.log("Voice uploaded to storage:", publicUrl);
+        console.log("[Voice] Uploaded to storage:", publicUrl);
+
+        // Update project with voice URL if projectId provided
+        if (projectId) {
+          const { error: updateError } = await supabase
+            .from('movie_projects')
+            .update({ voice_audio_url: publicUrl })
+            .eq('id', projectId);
+          
+          if (updateError) {
+            console.warn("[Voice] Failed to update project voice URL:", updateError);
+          } else {
+            console.log("[Voice] Project voice_audio_url updated");
+          }
+        }
 
         // Log API cost for voice generation
         try {
-          const durationMs = Math.round((text.length / 15) * 1000);
-          const creditsCharged = 2; // Voice generation cost
-          const realCostCents = Math.ceil(text.length * 0.003); // ElevenLabs ~$0.003 per char
+          const durationMs = estimateDuration(text);
+          const creditsCharged = 2;
+          const realCostCents = Math.ceil(text.length * 0.0015); // OpenAI TTS ~$0.015 per 1k chars
           
           await supabase.rpc('log_api_cost', {
-            p_user_id: null, // Voice doesn't have user context directly
+            p_user_id: null,
             p_project_id: projectId || null,
             p_shot_id: shotId || 'narration',
-            p_service: 'elevenlabs',
+            p_service: 'openai-tts',
             p_operation: 'text_to_speech',
             p_credits_charged: creditsCharged,
             p_real_cost_cents: realCostCents,
@@ -254,8 +165,9 @@ serve(async (req) => {
             p_status: 'completed',
             p_metadata: JSON.stringify({
               textLength: text.length,
-              voiceId: resolvedVoiceId,
+              voice: voiceConfig.voice,
               voiceType: voiceType || 'default',
+              speed: finalSpeed,
             }),
           });
           console.log(`[Voice] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
@@ -267,12 +179,13 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true,
             audioUrl: publicUrl,
-            durationMs: Math.round((text.length / 15) * 1000),
+            durationMs: estimateDuration(text),
+            provider: "openai",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (storageError) {
-        console.error("Storage error:", storageError);
+        console.error("[Voice] Storage error:", storageError);
       }
     }
 
@@ -283,12 +196,13 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true,
         audioBase64: base64Audio,
-        durationMs: Math.round((text.length / 15) * 1000),
+        durationMs: estimateDuration(text),
+        provider: "openai",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in generate-voice function:", error);
+    console.error("[Voice] Error:", error);
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -298,3 +212,11 @@ serve(async (req) => {
     );
   }
 });
+
+// Estimate audio duration based on text length
+// Average speaking rate: ~150 words per minute, ~5 chars per word
+function estimateDuration(text: string): number {
+  const words = text.length / 5;
+  const minutes = words / 150;
+  return Math.round(minutes * 60 * 1000); // Return in milliseconds
+}

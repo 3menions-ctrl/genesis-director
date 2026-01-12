@@ -2124,6 +2124,13 @@ async function runProduction(
                 referenceImageUrl,
                 isRetry: true,
                 sceneContext: clip.sceneContext,
+                // CRITICAL: Include accumulated anchors for visual consistency in retries
+                accumulatedAnchors: accumulatedAnchors.length > 0 
+                  ? [
+                      { ...accumulatedAnchors[0], masterConsistencyPrompt: masterSceneAnchor?.masterConsistencyPrompt },
+                      ...accumulatedAnchors.slice(-2)
+                    ].filter(Boolean)
+                  : [],
               });
               
               if (retryResult.success && retryResult.clipResult) {
@@ -2395,6 +2402,13 @@ async function runProduction(
                   isRetry: true,
                   isIdentityRetry: true,
                   sceneContext: clip.sceneContext,
+                  // CRITICAL: Include accumulated anchors for visual consistency in identity retries
+                  accumulatedAnchors: accumulatedAnchors.length > 0 
+                    ? [
+                        { ...accumulatedAnchors[0], masterConsistencyPrompt: masterSceneAnchor?.masterConsistencyPrompt },
+                        ...accumulatedAnchors.slice(-2)
+                      ].filter(Boolean)
+                    : [],
                 });
                 
                 if (regenResult.success && regenResult.clipResult) {

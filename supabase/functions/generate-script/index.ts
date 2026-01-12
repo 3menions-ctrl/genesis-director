@@ -41,6 +41,106 @@ interface StoryRequest {
   preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
 }
 
+interface DetectedContent {
+  hasDialogue: boolean;
+  hasNarration: boolean;
+  dialogueLines: string[];
+  narrationText: string;
+  estimatedDurationSeconds: number;
+  recommendedClipCount: number;
+}
+
+/**
+ * Detect dialogue and narration from user input
+ * Patterns detected:
+ * - Quoted text: "Hello world"
+ * - Character dialogue: CHARACTER: "Line" or CHARACTER says "Line"
+ * - Narration markers: [NARRATION], (voiceover), VO:
+ * - Script format: INT./EXT. scenes
+ */
+function detectUserContent(text: string): DetectedContent {
+  const dialogueLines: string[] = [];
+  let narrationText = '';
+  
+  // Detect quoted dialogue
+  const quotedRegex = /"([^"]+)"/g;
+  let match;
+  while ((match = quotedRegex.exec(text)) !== null) {
+    dialogueLines.push(match[1]);
+  }
+  
+  // Detect character dialogue patterns: NAME: "text" or NAME says "text"
+  const characterDialogueRegex = /([A-Z][A-Z\s]+):\s*["']?([^"'\n]+)["']?/g;
+  while ((match = characterDialogueRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect "says" pattern
+  const saysRegex = /([A-Z][a-z]+)\s+says?\s*[,:]\s*["']([^"']+)["']/gi;
+  while ((match = saysRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect narration patterns
+  const narrationPatterns = [
+    /\[NARRATION\]:?\s*([^\[\]]+)/gi,
+    /\(voiceover\):?\s*([^\(\)]+)/gi,
+    /\(V\.?O\.?\):?\s*([^\(\)]+)/gi,
+    /VO:?\s*["']?([^"'\n]+)["']?/gi,
+    /NARRATOR:?\s*["']?([^"'\n]+)["']?/gi,
+  ];
+  
+  for (const pattern of narrationPatterns) {
+    while ((match = pattern.exec(text)) !== null) {
+      narrationText += (narrationText ? ' ' : '') + match[1].trim();
+    }
+  }
+  
+  // If no explicit narration found but text has prose-like structure, treat as narration
+  if (!narrationText && dialogueLines.length === 0) {
+    // Check if it looks like a script/narration (sentences, not just keywords)
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length >= 2) {
+      narrationText = text;
+    }
+  }
+  
+  // Calculate duration based on content
+  const allText = [...dialogueLines, narrationText].join(' ');
+  const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
+  
+  // Average speaking rate: 150 words per minute = 2.5 words per second
+  // Each clip is 6 seconds = 15 words per clip comfortable pace
+  const WORDS_PER_SECOND = 2.5;
+  const CLIP_DURATION = 6;
+  const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION; // 15 words per clip
+  
+  const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
+  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
+  
+  // Cap at reasonable maximum
+  recommendedClipCount = Math.min(recommendedClipCount, 20);
+  
+  // Minimum 6 clips for proper story structure
+  if (recommendedClipCount < 6) recommendedClipCount = 6;
+  
+  console.log(`[ContentDetection] Words: ${wordCount}, Duration: ${estimatedDurationSeconds}s, Clips: ${recommendedClipCount}`);
+  console.log(`[ContentDetection] Dialogue lines: ${dialogueLines.length}, Has narration: ${!!narrationText}`);
+  
+  return {
+    hasDialogue: dialogueLines.length > 0,
+    hasNarration: narrationText.length > 0,
+    dialogueLines,
+    narrationText,
+    estimatedDurationSeconds,
+    recommendedClipCount,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -83,14 +183,42 @@ serve(async (req) => {
     const hasCharacters = requestData.characters && requestData.characters.length > 0;
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
     
-    // Check if user provided specific narration/dialogue that must be preserved
-    const hasUserNarration = requestData.userNarration && requestData.userNarration.trim().length > 10;
-    const hasUserDialogue = requestData.userDialogue && requestData.userDialogue.length > 0;
+    // AUTO-DETECT dialogue and narration from user's synopsis/topic
+    const inputText = [
+      requestData.synopsis || '',
+      requestData.topic || '',
+      requestData.userNarration || '',
+      ...(requestData.userDialogue || []),
+    ].join(' ');
+    
+    const detectedContent = detectUserContent(inputText);
+    
+    // Use detected content if no explicit user content provided
+    let hasUserNarration = requestData.userNarration && requestData.userNarration.trim().length > 10;
+    let hasUserDialogue = requestData.userDialogue && requestData.userDialogue.length > 0;
+    
+    // If we detected content in the synopsis, use it
+    if (!hasUserNarration && detectedContent.hasNarration) {
+      hasUserNarration = true;
+      requestData.userNarration = detectedContent.narrationText;
+      console.log("[generate-script] Auto-detected narration from input");
+    }
+    
+    if (!hasUserDialogue && detectedContent.hasDialogue) {
+      hasUserDialogue = true;
+      requestData.userDialogue = detectedContent.dialogueLines;
+      console.log("[generate-script] Auto-detected dialogue from input:", detectedContent.dialogueLines.length, "lines");
+    }
+    
     const mustPreserveContent = requestData.preserveUserContent || hasUserNarration || hasUserDialogue;
     
+    // Calculate recommended clip count based on content
+    const recommendedClips = detectedContent.recommendedClipCount;
+    console.log(`[generate-script] Recommended clips based on content: ${recommendedClips}`);
+    
     if (isFullMovieMode) {
-      // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions and buffer shots
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. MINIMUM 6 shots, each 6 seconds.
+      // Full movie script generation - dynamic shot count based on content
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${recommendedClips} shots, each 6 seconds.
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -133,7 +261,7 @@ MOTION REQUIREMENTS:
 - Describe body mechanics: weight shifts, reach, tension, release
 
 RULES:
-- MINIMUM 6 shots (add buffer shots as needed for smooth flow)
+- Generate EXACTLY ${recommendedClips} shots to fit the content
 - Each shot is EXACTLY 6 seconds
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
@@ -147,7 +275,7 @@ ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not mo
           ).join(', ')
         : '';
 
-      userPrompt = `Write MINIMUM 6 shots (more if needed, include buffer shots for smooth stitching) for: "${requestData.title}"
+      userPrompt = `Write EXACTLY ${recommendedClips} shots for: "${requestData.title}"
 Genre: ${requestData.genre || 'Drama'}
 ${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
@@ -156,7 +284,7 @@ USER'S NARRATION (USE EXACTLY - DO NOT CHANGE):
 """
 ${requestData.userNarration}
 """
-Distribute this narration across the shots. Use the EXACT words provided.
+Distribute this narration across the ${recommendedClips} shots. Use the EXACT words provided.
 ` : ''}
 ${hasUserDialogue && requestData.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE):
@@ -165,11 +293,13 @@ Include these dialogue lines in the appropriate shots. Use the EXACT words provi
 ` : ''}
 
 CRITICAL: 
+- Generate EXACTLY ${recommendedClips} shots (based on content length)
+- Total duration: ${recommendedClips * 6} seconds
 - Each shot must transition SMOOTHLY into the next
 - Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
 - This will be stitched by AI, so ensure visual continuity
 ${mustPreserveContent ? '- The user\'s narration/dialogue MUST appear exactly as written - only add visual descriptions' : ''}
-MINIMUM 6 SHOTS. Rich visual descriptions. Go:`;
+Write ${recommendedClips} shots. Rich visual descriptions. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
@@ -221,7 +351,7 @@ Write the script now:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: isFullMovieMode ? 800 : 400,
+        max_tokens: Math.max(800, recommendedClips * 120), // Scale tokens with clip count
       }),
     });
 
@@ -248,7 +378,11 @@ Write the script now:`;
     const data = await response.json();
     const script = data.choices?.[0]?.message?.content;
     
-    console.log("Script generated successfully, length:", script?.length);
+    // Count actual shots in generated script
+    const shotMatches = script?.match(/\[SHOT \d+\]/g) || [];
+    const actualShotCount = shotMatches.length || recommendedClips;
+    
+    console.log(`Script generated successfully, length: ${script?.length}, shots: ${actualShotCount}`);
 
     return new Response(
       JSON.stringify({ 
@@ -258,8 +392,16 @@ Write the script now:`;
         genre: requestData.genre,
         characters: requestData.characters?.map(c => c.name),
         wordCount: script?.split(/\s+/).length || 0,
-        estimatedDuration: Math.ceil((script?.split(/\s+/).length || 0) / 150),
-        model: "google/gemini-2.5-flash",
+        estimatedDuration: actualShotCount * 6, // 6 seconds per shot
+        recommendedClipCount: recommendedClips,
+        actualClipCount: actualShotCount,
+        detectedContent: {
+          hasDialogue: detectedContent.hasDialogue,
+          hasNarration: detectedContent.hasNarration,
+          dialogueLineCount: detectedContent.dialogueLines.length,
+          contentPreserved: mustPreserveContent,
+        },
+        model: "gpt-4o-mini",
         usage: data.usage,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

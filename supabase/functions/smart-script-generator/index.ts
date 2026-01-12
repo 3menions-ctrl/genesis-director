@@ -5,6 +5,89 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface DetectedContent {
+  hasDialogue: boolean;
+  hasNarration: boolean;
+  dialogueLines: string[];
+  narrationText: string;
+  estimatedDurationSeconds: number;
+  recommendedClipCount: number;
+}
+
+/**
+ * Detect dialogue and narration from user input
+ */
+function detectUserContent(text: string): DetectedContent {
+  const dialogueLines: string[] = [];
+  let narrationText = '';
+  
+  // Detect quoted dialogue
+  const quotedRegex = /"([^"]+)"/g;
+  let match;
+  while ((match = quotedRegex.exec(text)) !== null) {
+    dialogueLines.push(match[1]);
+  }
+  
+  // Detect character dialogue patterns
+  const characterDialogueRegex = /([A-Z][A-Z\s]+):\s*["']?([^"'\n]+)["']?/g;
+  while ((match = characterDialogueRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect "says" pattern
+  const saysRegex = /([A-Z][a-z]+)\s+says?\s*[,:]\s*["']([^"']+)["']/gi;
+  while ((match = saysRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect narration patterns
+  const narrationPatterns = [
+    /\[NARRATION\]:?\s*([^\[\]]+)/gi,
+    /\(voiceover\):?\s*([^\(\)]+)/gi,
+    /\(V\.?O\.?\):?\s*([^\(\)]+)/gi,
+    /VO:?\s*["']?([^"'\n]+)["']?/gi,
+    /NARRATOR:?\s*["']?([^"'\n]+)["']?/gi,
+  ];
+  
+  for (const pattern of narrationPatterns) {
+    while ((match = pattern.exec(text)) !== null) {
+      narrationText += (narrationText ? ' ' : '') + match[1].trim();
+    }
+  }
+  
+  // If no explicit narration found but text has prose-like structure
+  if (!narrationText && dialogueLines.length === 0) {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length >= 2) {
+      narrationText = text;
+    }
+  }
+  
+  const allText = [...dialogueLines, narrationText].join(' ');
+  const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
+  
+  const WORDS_PER_SECOND = 2.5;
+  const CLIP_DURATION = 6;
+  const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
+  
+  const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
+  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
+  recommendedClipCount = Math.min(recommendedClipCount, 20);
+  
+  return {
+    hasDialogue: dialogueLines.length > 0,
+    hasNarration: narrationText.length > 0,
+    dialogueLines,
+    narrationText,
+    estimatedDurationSeconds,
+    recommendedClipCount,
+  };
+}
+
 interface SmartScriptRequest {
   topic: string;
   synopsis?: string;
@@ -83,32 +166,58 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    // Fixed: 6 clips per scene, ~6 seconds each
-    const CLIPS_PER_SCENE = 6;
-    const CLIP_DURATION = 6;
-    const targetSeconds = Math.max(30, Math.min(45, request.targetDurationSeconds || 36));
+    // AUTO-DETECT dialogue and narration from user's input
+    const inputText = [
+      request.topic || '',
+      request.synopsis || '',
+      request.approvedScene || '',
+      request.userNarration || '',
+      ...(request.userDialogue || []),
+    ].join(' ');
     
-    // Check if user provided specific narration/dialogue that must be preserved
-    const hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
-    const hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    const detectedContent = detectUserContent(inputText);
+    console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
+
+    // Dynamic clip count based on content
+    const CLIP_DURATION = 6;
+    const recommendedClips = detectedContent.recommendedClipCount;
+    const targetSeconds = recommendedClips * CLIP_DURATION;
+    
+    // Use detected content if no explicit user content provided
+    let hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
+    let hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    
+    // If we detected content, use it
+    if (!hasUserNarration && detectedContent.hasNarration) {
+      hasUserNarration = true;
+      request.userNarration = detectedContent.narrationText;
+      console.log("[SmartScript] Auto-detected narration from input");
+    }
+    
+    if (!hasUserDialogue && detectedContent.hasDialogue) {
+      hasUserDialogue = true;
+      request.userDialogue = detectedContent.dialogueLines;
+      console.log("[SmartScript] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+    }
+    
     const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
     
-    console.log(`[SmartScript] Generating ${CLIPS_PER_SCENE} clips for continuous scene, preserveContent: ${mustPreserveContent}`);
+    console.log(`[SmartScript] Generating ${recommendedClips} clips for continuous scene, preserveContent: ${mustPreserveContent}`);
 
     // Build the system prompt for CONTINUOUS SCENE breakdown
-    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into exactly 6 clips that flow seamlessly together.
+    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into exactly ${recommendedClips} clips that flow seamlessly together.
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
 The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
 DO NOT paraphrase, summarize, or rewrite the user's text.
 Your job is to create VISUAL descriptions that accompany the user's exact words.
-Distribute the user's narration/dialogue across the 6 clips appropriately.
+Distribute the user's narration/dialogue across the ${recommendedClips} clips appropriately.
 Include the user's exact text in the "dialogue" field of each clip.
 ` : ''}
 
 CRITICAL: CONTINUOUS SCENE BREAKDOWN
-Each scene = 6 clips showing PROGRESSIVE ACTION in the SAME location.
+Each scene = ${recommendedClips} clips showing PROGRESSIVE ACTION in the SAME location.
 The clips are NOT separate shots - they are SEQUENTIAL MOMENTS of ONE continuous action.
 
 OUTPUT FORMAT (STRICT JSON):
@@ -137,24 +246,24 @@ OUTPUT FORMAT (STRICT JSON):
   ]
 }
 
-ACTION PHASE REQUIREMENTS:
+ACTION PHASE REQUIREMENTS (distribute across ${recommendedClips} clips):
 - ESTABLISH (Clip 0): Wide shot. Character in environment. Initial state before action.
 - INITIATE (Clip 1): Action begins. First movement or change from initial state.
-- DEVELOP (Clip 2): Action continues. Building on the initiated action.
-- ESCALATE (Clip 3): Intensity increases. Action gains momentum.
-- PEAK (Clip 4): Highest point. Most dramatic moment of the scene.
-- SETTLE (Clip 5): Resolution. Action concludes. Sets up next scene.
+- DEVELOP (Clips 2-${Math.floor(recommendedClips/2)}): Action continues and builds.
+- ESCALATE (Clips ${Math.floor(recommendedClips/2)+1}-${recommendedClips-2}): Intensity increases. Action gains momentum.
+- PEAK (Clip ${recommendedClips-2}): Highest point. Most dramatic moment of the scene.
+- SETTLE (Clip ${recommendedClips-1}): Resolution. Action concludes. Sets up next scene.
 
 CONTINUITY REQUIREMENTS (CRITICAL):
-1. CHARACTER LOCK: Copy the EXACT same character description to ALL 6 clips
+1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${recommendedClips} clips
    - Same clothes, hair, face, body in every clip
    - No outfit changes, no appearance drift
    
-2. LOCATION LOCK: Copy the EXACT same location description to ALL 6 clips
+2. LOCATION LOCK: Copy the EXACT same location description to ALL ${recommendedClips} clips
    - Same room, street, forest - never changes
    - Same background elements visible
    
-3. LIGHTING LOCK: Copy the EXACT same lighting to ALL 6 clips
+3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${recommendedClips} clips
    - Same sun position, same shadows
    - Same color temperature
    
@@ -185,7 +294,7 @@ Describe how each clip's END connects to the next clip's START:
     
     if (request.approvedScene) {
       // Scene has been written - break it into clips
-      userPrompt = `Break this APPROVED SCENE into exactly 6 continuous clips:
+      userPrompt = `Break this APPROVED SCENE into exactly ${recommendedClips} continuous clips:
 
 SCENE:
 """
@@ -220,16 +329,16 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
 REQUIREMENTS:
-- Extract the 6 sequential moments from this scene
+- Extract the ${recommendedClips} sequential moments from this scene
 - Each clip = 6 seconds of the continuous action
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dialogue" field' : '- Keep dialogue/narration in the appropriate clips'}
 
-Output ONLY valid JSON with exactly 6 clips.`;
+Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
     } else {
       // Generate from topic - create a continuous scene
-      userPrompt = `Create a continuous scene broken into 6 clips for:
+      userPrompt = `Create a continuous scene broken into ${recommendedClips} clips for:
 
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
@@ -239,14 +348,14 @@ ${request.mainSubjects?.length ? `MAIN SUBJECTS: ${request.mainSubjects.join(', 
 ${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.join(', ')}` : ''}
 
 ${request.characterLock ? `
-CHARACTER (use EXACTLY in all 6 clips):
+CHARACTER (use EXACTLY in all ${recommendedClips} clips):
 ${request.characterLock.description}
 Wearing: ${request.characterLock.clothing}
 Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
 ` : ''}
 
 ${request.environmentLock ? `
-LOCATION (use EXACTLY in all 6 clips):
+LOCATION (use EXACTLY in all ${recommendedClips} clips):
 ${request.environmentLock.location}
 Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
@@ -257,7 +366,7 @@ USER'S NARRATION (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
 """
 ${request.userNarration}
 """
-Distribute this narration across the clips in the "dialogue" field. Use the EXACT words provided.
+Distribute this narration across the ${recommendedClips} clips in the "dialogue" field. Use the EXACT words provided.
 ` : ''}
 ${hasUserDialogue && request.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
@@ -265,12 +374,13 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
-Create ONE continuous scene with 6 progressive clips. Each clip = 6 seconds.
+Create ONE continuous scene with ${recommendedClips} progressive clips. Each clip = 6 seconds.
+Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
 ${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
 
-Output ONLY valid JSON with exactly 6 clips.`;
+Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
     }
 
     console.log("[SmartScript] Calling OpenAI API for scene breakdown...");

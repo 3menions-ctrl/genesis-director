@@ -5,6 +5,89 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface DetectedContent {
+  hasDialogue: boolean;
+  hasNarration: boolean;
+  dialogueLines: string[];
+  narrationText: string;
+  estimatedDurationSeconds: number;
+  recommendedClipCount: number;
+}
+
+/**
+ * Detect dialogue and narration from user input
+ */
+function detectUserContent(text: string): DetectedContent {
+  const dialogueLines: string[] = [];
+  let narrationText = '';
+  
+  // Detect quoted dialogue
+  const quotedRegex = /"([^"]+)"/g;
+  let match;
+  while ((match = quotedRegex.exec(text)) !== null) {
+    dialogueLines.push(match[1]);
+  }
+  
+  // Detect character dialogue patterns
+  const characterDialogueRegex = /([A-Z][A-Z\s]+):\s*["']?([^"'\n]+)["']?/g;
+  while ((match = characterDialogueRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect "says" pattern
+  const saysRegex = /([A-Z][a-z]+)\s+says?\s*[,:]\s*["']([^"']+)["']/gi;
+  while ((match = saysRegex.exec(text)) !== null) {
+    if (!dialogueLines.includes(match[2].trim())) {
+      dialogueLines.push(match[2].trim());
+    }
+  }
+  
+  // Detect narration patterns
+  const narrationPatterns = [
+    /\[NARRATION\]:?\s*([^\[\]]+)/gi,
+    /\(voiceover\):?\s*([^\(\)]+)/gi,
+    /\(V\.?O\.?\):?\s*([^\(\)]+)/gi,
+    /VO:?\s*["']?([^"'\n]+)["']?/gi,
+    /NARRATOR:?\s*["']?([^"'\n]+)["']?/gi,
+  ];
+  
+  for (const pattern of narrationPatterns) {
+    while ((match = pattern.exec(text)) !== null) {
+      narrationText += (narrationText ? ' ' : '') + match[1].trim();
+    }
+  }
+  
+  // If no explicit narration found but text has prose-like structure
+  if (!narrationText && dialogueLines.length === 0) {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length >= 2) {
+      narrationText = text;
+    }
+  }
+  
+  const allText = [...dialogueLines, narrationText].join(' ');
+  const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
+  
+  const WORDS_PER_SECOND = 2.5;
+  const CLIP_DURATION = 6;
+  const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
+  
+  const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
+  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
+  recommendedClipCount = Math.min(recommendedClipCount, 20);
+  
+  return {
+    hasDialogue: dialogueLines.length > 0,
+    hasNarration: narrationText.length > 0,
+    dialogueLines,
+    narrationText,
+    estimatedDurationSeconds,
+    recommendedClipCount,
+  };
+}
+
 interface ReferenceAnalysis {
   characterIdentity?: {
     description?: string;
@@ -101,6 +184,16 @@ serve(async (req) => {
       throw new Error("Please provide a story prompt");
     }
 
+    // AUTO-DETECT dialogue and narration from user's prompt
+    const inputText = [
+      request.prompt || '',
+      request.userNarration || '',
+      ...(request.userDialogue || []),
+    ].join(' ');
+    
+    const detectedContent = detectUserContent(inputText);
+    console.log(`[GenerateStory] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, clips: ${detectedContent.recommendedClipCount}`);
+
     // Check if user provided their own complete script - use it directly
     if (request.userScript && request.userScript.trim().length > 50) {
       console.log("[GenerateStory] Using user-provided script directly");
@@ -111,20 +204,36 @@ serve(async (req) => {
           story: request.userScript.trim(),
           title: request.prompt.substring(0, 50),
           synopsis: request.userScript.substring(0, 200),
-          estimatedScenes: 6,
+          estimatedScenes: detectedContent.recommendedClipCount,
           source: 'user_provided',
+          detectedContent,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if user provided specific narration/dialogue that must be preserved
-    const hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
-    const hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    // Use detected content if no explicit user content provided
+    let hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
+    let hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    
+    // If we detected content in the prompt, use it
+    if (!hasUserNarration && detectedContent.hasNarration) {
+      hasUserNarration = true;
+      request.userNarration = detectedContent.narrationText;
+      console.log("[GenerateStory] Auto-detected narration from input");
+    }
+    
+    if (!hasUserDialogue && detectedContent.hasDialogue) {
+      hasUserDialogue = true;
+      request.userDialogue = detectedContent.dialogueLines;
+      console.log("[GenerateStory] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+    }
+    
     const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
 
-    const targetDuration = request.targetDurationSeconds || 24;
+    const targetDuration = request.targetDurationSeconds || (detectedContent.recommendedClipCount * 6);
     const sceneMode = request.sceneMode || 'single_scene';
+    const recommendedClips = detectedContent.recommendedClipCount;
 
     // SCENE-BASED SYSTEM PROMPT
     const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across 6 connected clips.

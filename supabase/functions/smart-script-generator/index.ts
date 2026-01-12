@@ -27,6 +27,11 @@ interface SmartScriptRequest {
     lighting: string;
     keyObjects: string[];
   };
+  // USER-PROVIDED CONTENT - must be preserved exactly
+  userNarration?: string;      // User's exact narration text
+  userDialogue?: string[];     // User's exact dialogue lines
+  userScript?: string;         // User's complete script (use as-is)
+  preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
 }
 
 interface SceneClip {
@@ -83,10 +88,24 @@ serve(async (req) => {
     const CLIP_DURATION = 6;
     const targetSeconds = Math.max(30, Math.min(45, request.targetDurationSeconds || 36));
     
-    console.log(`[SmartScript] Generating ${CLIPS_PER_SCENE} clips for continuous scene`);
+    // Check if user provided specific narration/dialogue that must be preserved
+    const hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
+    const hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
+    
+    console.log(`[SmartScript] Generating ${CLIPS_PER_SCENE} clips for continuous scene, preserveContent: ${mustPreserveContent}`);
 
     // Build the system prompt for CONTINUOUS SCENE breakdown
     const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into exactly 6 clips that flow seamlessly together.
+
+${mustPreserveContent ? `
+CRITICAL - USER CONTENT PRESERVATION:
+The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
+DO NOT paraphrase, summarize, or rewrite the user's text.
+Your job is to create VISUAL descriptions that accompany the user's exact words.
+Distribute the user's narration/dialogue across the 6 clips appropriately.
+Include the user's exact text in the "dialogue" field of each clip.
+` : ''}
 
 CRITICAL: CONTINUOUS SCENE BREAKDOWN
 Each scene = 6 clips showing PROGRESSIVE ACTION in the SAME location.
@@ -112,7 +131,7 @@ OUTPUT FORMAT (STRICT JSON):
       "movementType": "static|pan|tracking|dolly",
       "motionDirection": "The direction of action/movement",
       "transitionHint": "How this moment connects to the next",
-      "dialogue": "Any narration or speech",
+      "dialogue": "Any narration or speech - USE USER'S EXACT WORDS if provided",
       "mood": "Emotional tone of this moment"
     }
   ]
@@ -148,6 +167,13 @@ CONTINUITY REQUIREMENTS (CRITICAL):
    - Can go from wide to close-up over 2-3 clips
    - No jumping from behind character to in front between clips
 
+${mustPreserveContent ? `
+6. DIALOGUE/NARRATION PRESERVATION:
+   - Use the user's EXACT words in the "dialogue" field
+   - DO NOT paraphrase or rewrite their text
+   - Distribute their narration/dialogue across appropriate clips
+` : ''}
+
 TRANSITION HINTS:
 Describe how each clip's END connects to the next clip's START:
 - "Character's hand reaches toward door handle" → "Hand grips the handle"
@@ -180,12 +206,25 @@ Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
 ` : ''}
 
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT MODIFY):
+"""
+${request.userNarration}
+"""
+Distribute this across the clips in the "dialogue" field. Use EXACT words.
+` : ''}
+${hasUserDialogue && request.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
+${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
+Include in appropriate clips' "dialogue" field. Use EXACT words.
+` : ''}
+
 REQUIREMENTS:
 - Extract the 6 sequential moments from this scene
 - Each clip = 6 seconds of the continuous action
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
-- Keep dialogue/narration in the appropriate clips
+${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dialogue" field' : '- Keep dialogue/narration in the appropriate clips'}
 
 Output ONLY valid JSON with exactly 6 clips.`;
     } else {
@@ -213,9 +252,23 @@ Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
 ` : ''}
 
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
+"""
+${request.userNarration}
+"""
+Distribute this narration across the clips in the "dialogue" field. Use the EXACT words provided.
+` : ''}
+${hasUserDialogue && request.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
+${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
+Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT words.
+` : ''}
+
 Create ONE continuous scene with 6 progressive clips. Each clip = 6 seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
+${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
 
 Output ONLY valid JSON with exactly 6 clips.`;
     }

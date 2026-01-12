@@ -40,11 +40,16 @@ interface StoryRequest {
   style?: string;
   targetDurationSeconds?: number;
   referenceAnalysis?: ReferenceAnalysis;
-  // NEW: Scene-based story generation
+  // Scene-based story generation
   sceneMode?: 'single_scene' | 'multi_scene' | 'episode';
   episodeNumber?: number;
   previousSceneSummary?: string;
   totalEpisodes?: number;
+  // USER-PROVIDED CONTENT - must be preserved exactly
+  userNarration?: string;      // User's exact narration text
+  userDialogue?: string[];     // User's exact dialogue lines  
+  userScript?: string;         // User's complete script (use as-is)
+  preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
 }
 
 interface SceneDescription {
@@ -96,11 +101,41 @@ serve(async (req) => {
       throw new Error("Please provide a story prompt");
     }
 
+    // Check if user provided their own complete script - use it directly
+    if (request.userScript && request.userScript.trim().length > 50) {
+      console.log("[GenerateStory] Using user-provided script directly");
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          story: request.userScript.trim(),
+          title: request.prompt.substring(0, 50),
+          synopsis: request.userScript.substring(0, 200),
+          estimatedScenes: 6,
+          source: 'user_provided',
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user provided specific narration/dialogue that must be preserved
+    const hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
+    const hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
+    const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
+
     const targetDuration = request.targetDurationSeconds || 24;
     const sceneMode = request.sceneMode || 'single_scene';
 
     // SCENE-BASED SYSTEM PROMPT
     const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across 6 connected clips.
+
+${mustPreserveContent ? `
+CRITICAL - USER CONTENT PRESERVATION:
+The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
+DO NOT paraphrase, summarize, or rewrite the user's text.
+Your job is to create VISUAL descriptions that accompany the user's exact words.
+Distribute the user's narration/dialogue across the 6 clips appropriately.
+` : ''}
 
 CRITICAL CONCEPT: SCENE vs STORY
 - A SCENE is ONE continuous moment in ONE location with ONE action sequence
@@ -147,6 +182,7 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
 OUTPUT FORMAT:
 Write the scene as 6 connected paragraphs, each describing 6 seconds of continuous action.
 Label each: [CLIP 1], [CLIP 2], etc.
+${mustPreserveContent ? 'Include [NARRATION] or [DIALOGUE] tags with the user\'s EXACT text for each clip.' : ''}
 End each clip at a moment that naturally flows into the next.
 Include: character description (consistent across all clips), exact location, lighting, and progressive action.
 
@@ -199,9 +235,22 @@ End with a moment that leads into the next episode.
 ${request.genre ? `Genre: ${request.genre}` : ''}
 ${request.mood ? `Mood/Tone: ${request.mood}` : ''}
 ${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT CHANGE OR PARAPHRASE):
+"""
+${request.userNarration}
+"""
+Distribute this narration across the 6 clips. Use the EXACT words provided.
+` : ''}
+${hasUserDialogue && request.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE OR PARAPHRASE):
+${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
+Include these dialogue lines in the appropriate clips. Use the EXACT words provided.
+` : ''}
 
 This scene will be a ${targetDuration}-second video made of 6 clips (6 seconds each).
 All 6 clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
+${mustPreserveContent ? 'CRITICAL: Preserve the user\'s narration/dialogue EXACTLY as written - only add visual descriptions.' : ''}
 
 ${sceneMode === 'episode' && request.previousSceneSummary ? `
 CONTINUE FROM: ${request.previousSceneSummary}

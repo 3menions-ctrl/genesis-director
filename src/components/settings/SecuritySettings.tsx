@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { PasswordStrength } from '@/components/ui/password-strength';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { 
   Shield, Key, Smartphone, Monitor, LogOut,
-  Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff
+  Trash2, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ export function SecuritySettings() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -47,8 +49,8 @@ export function SecuritySettings() {
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
@@ -83,6 +85,43 @@ export function SecuritySettings() {
     }
   };
 
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in again');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('export-user-data', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `apex-studio-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Data exported successfully');
+    } catch (error: any) {
+      console.error('Error exporting data:', error);
+      toast.error('Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'DELETE') {
       toast.error('Please type DELETE to confirm');
@@ -91,14 +130,26 @@ export function SecuritySettings() {
 
     setIsDeleting(true);
     try {
-      // Note: Full account deletion requires admin privileges
-      // This will sign the user out and they can request deletion
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in again');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('delete-user-account', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) throw response.error;
+
       await signOut();
-      toast.success('Account deletion requested. You will receive a confirmation email.');
+      toast.success('Account deleted successfully');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      toast.error(error.message || 'Failed to delete account');
     } finally {
       setIsDeleting(false);
     }
@@ -173,6 +224,7 @@ export function SecuritySettings() {
                   {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <PasswordStrength password={passwordForm.newPassword} className="mt-3" />
             </div>
 
             <div className="space-y-2">
@@ -193,6 +245,9 @@ export function SecuritySettings() {
                   {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
+                <p className="text-xs text-red-400">Passwords do not match</p>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">
@@ -208,7 +263,7 @@ export function SecuritySettings() {
               </Button>
               <Button
                 onClick={handlePasswordChange}
-                disabled={isSavingPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                disabled={isSavingPassword || !passwordForm.newPassword || !passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
                 className="bg-white text-black hover:bg-white/90"
               >
                 {isSavingPassword ? (
@@ -334,6 +389,43 @@ export function SecuritySettings() {
             <p className="text-xs text-white/40">Account Created</p>
             <p className="text-white font-medium mt-1 text-sm">{memberSince}</p>
           </div>
+        </div>
+      </motion.div>
+
+      {/* Export Data */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.22 }}
+        className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] p-6"
+      >
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+              <Download className="w-5 h-5 text-white/40" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Export Your Data</h3>
+              <p className="text-sm text-white/50">
+                Download a copy of all your data
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleExportData}
+            disabled={isExporting}
+            variant="outline"
+            className="border-white/10 text-white hover:bg-white/5"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Export Data
+          </Button>
         </div>
       </motion.div>
 

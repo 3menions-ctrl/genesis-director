@@ -9,9 +9,20 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   User, Camera, Mail, Building2, Briefcase, 
-  Save, Loader2, CheckCircle2, Edit3
+  Save, Loader2, CheckCircle2, Edit3, Crown, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { z } from 'zod';
+
+const emailSchema = z.string().email('Please enter a valid email address').max(255);
 
 export function AccountSettings() {
   const { user, profile, refreshProfile } = useAuth();
@@ -19,6 +30,12 @@ export function AccountSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Email change state
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
   
   const [formData, setFormData] = useState({
     display_name: '',
@@ -120,6 +137,48 @@ export function AccountSettings() {
     }
   };
 
+  const handleEmailChange = async () => {
+    const result = emailSchema.safeParse(newEmail.trim());
+    if (!result.success) {
+      setEmailError(result.error.errors[0].message);
+      return;
+    }
+
+    if (newEmail.trim() === user?.email) {
+      setEmailError('New email must be different from current email');
+      return;
+    }
+
+    setIsChangingEmail(true);
+    setEmailError('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in again');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('update-user-email', {
+        body: { newEmail: newEmail.trim() },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      toast.success('Confirmation email sent to your new address');
+      setShowEmailDialog(false);
+      setNewEmail('');
+    } catch (error: any) {
+      console.error('Error changing email:', error);
+      toast.error(error.message || 'Failed to change email');
+    } finally {
+      setIsChangingEmail(false);
+    }
+  };
+
   const memberSince = profile?.created_at 
     ? new Date(profile.created_at).toLocaleDateString('en-US', { 
         month: 'long', 
@@ -127,6 +186,20 @@ export function AccountSettings() {
         year: 'numeric' 
       })
     : 'Unknown';
+
+  // Get tier display info
+  const getTierInfo = (tier: string | undefined) => {
+    switch (tier) {
+      case 'pro':
+        return { label: 'Pro', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' };
+      case 'enterprise':
+        return { label: 'Enterprise', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+      default:
+        return { label: 'Free', color: 'text-white/60', bg: 'bg-white/5', border: 'border-white/10' };
+    }
+  };
+
+  const tierInfo = getTierInfo((profile as any)?.account_tier);
 
   return (
     <div className="space-y-6">
@@ -285,6 +358,14 @@ export function AccountSettings() {
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
                 Verified
               </span>
+              <Button
+                onClick={() => setShowEmailDialog(true)}
+                variant="ghost"
+                size="sm"
+                className="text-white/40 hover:text-white text-xs"
+              >
+                Change
+              </Button>
             </div>
           </div>
 
@@ -353,7 +434,7 @@ export function AccountSettings() {
         
         <h3 className="font-semibold text-white mb-4">Account Details</h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
             <p className="text-xs text-white/40 uppercase tracking-wider">Member Since</p>
             <p className="text-white font-medium mt-1">{memberSince}</p>
@@ -361,6 +442,13 @@ export function AccountSettings() {
           <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
             <p className="text-xs text-white/40 uppercase tracking-wider">Account ID</p>
             <p className="text-white font-mono text-sm mt-1 truncate">{user?.id?.slice(0, 8)}...</p>
+          </div>
+          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <p className="text-xs text-white/40 uppercase tracking-wider">Account Tier</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Crown className={cn("w-4 h-4", tierInfo.color)} />
+              <span className={cn("font-medium", tierInfo.color)}>{tierInfo.label}</span>
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
             <p className="text-xs text-white/40 uppercase tracking-wider">Status</p>
@@ -371,6 +459,76 @@ export function AccountSettings() {
           </div>
         </div>
       </motion.div>
+
+      {/* Email Change Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="bg-black/95 backdrop-blur-2xl border-white/10">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-white/60" />
+              </div>
+              <DialogTitle className="text-white">Change Email Address</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/60">
+              Enter your new email address. You'll receive a confirmation link at the new address.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-sm text-white/50">Current email</p>
+              <p className="text-white font-medium">{user?.email}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/60">New Email Address</Label>
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => {
+                  setNewEmail(e.target.value);
+                  setEmailError('');
+                }}
+                placeholder="Enter new email address"
+                className="bg-white/[0.05] border-white/10 text-white placeholder:text-white/30"
+              />
+              {emailError && (
+                <p className="text-xs text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {emailError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowEmailDialog(false);
+                setNewEmail('');
+                setEmailError('');
+              }}
+              variant="ghost"
+              className="text-white/60 hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEmailChange}
+              disabled={!newEmail || isChangingEmail}
+              className="bg-white text-black hover:bg-white/90"
+            >
+              {isChangingEmail ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="w-4 h-4 mr-2" />
+              )}
+              Send Confirmation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

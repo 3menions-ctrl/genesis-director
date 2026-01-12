@@ -843,6 +843,56 @@ export type Database = {
         }
         Relationships: []
       }
+      universe_activity: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string | null
+          thumbnail_url: string | null
+          title: string
+          universe_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          thumbnail_url?: string | null
+          title: string
+          universe_id: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          universe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_activity_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universe_continuity: {
         Row: {
           affected_characters: string[] | null

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Globe, Search, Filter } from 'lucide-react';
+import { Plus, Globe, Search, Filter, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { StudioLayout } from '@/components/layout/StudioLayout';
 import { UniverseCard } from '@/components/universes/UniverseCard';
 import { UniverseTimeline } from '@/components/universes/UniverseTimeline';
 import { CharacterLendingPanel } from '@/components/universes/CharacterLendingPanel';
+import { UniverseActivityFeed } from '@/components/universes/UniverseActivityFeed';
 import { useUniverses, useUniverseMembers } from '@/hooks/useUniverses';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Universe } from '@/types/universe';
@@ -185,6 +186,9 @@ export default function Universes() {
 
               {/* Sidebar */}
               <div className="space-y-6">
+                {/* Activity Feed for this universe */}
+                <UniverseActivityFeed universeId={selectedUniverse.id} maxItems={10} />
+
                 <div className="bg-card rounded-lg p-4 border">
                   <h3 className="font-semibold mb-3">Members ({members?.length || 1})</h3>
                   <div className="space-y-2">
@@ -213,13 +217,43 @@ export default function Universes() {
           </div>
         ) : (
           // Universe list view
-          <Tabs defaultValue="my-universes" className="space-y-6">
+          <Tabs defaultValue="feed" className="space-y-6">
             <TabsList>
+              <TabsTrigger value="feed" className="gap-1.5">
+                <Sparkles className="h-4 w-4" />
+                Feed
+              </TabsTrigger>
               <TabsTrigger value="my-universes">My Universes</TabsTrigger>
               <TabsTrigger value="shared">Shared With Me</TabsTrigger>
               <TabsTrigger value="discover">Discover</TabsTrigger>
               <TabsTrigger value="character-lending">Character Lending</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="feed">
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <UniverseActivityFeed maxItems={30} />
+                </div>
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+                    Your Universes
+                  </h3>
+                  {myUniverses.slice(0, 3).map((universe) => (
+                    <UniverseCard
+                      key={universe.id}
+                      universe={universe}
+                      onSelect={setSelectedUniverse}
+                      isOwner
+                    />
+                  ))}
+                  {myUniverses.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Create your first universe to get started
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
 
             <TabsContent value="my-universes">
               {isLoading ? (

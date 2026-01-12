@@ -920,6 +920,38 @@ async function runPreProduction(
     multiCharacterBible: !!(state as any).multiCharacterBible,
   });
   
+  // =====================================================
+  // CRITICAL: Persist identityBible to DB for resume support
+  // Without this, character anchors are lost when pipeline restarts
+  // =====================================================
+  if (state.identityBible) {
+    try {
+      const { data: currentProject } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data')
+        .eq('id', state.projectId)
+        .single();
+      
+      const updatedProFeatures = {
+        ...(currentProject?.pro_features_data || {}),
+        identityBible: state.identityBible,
+        identityBiblePersistedAt: new Date().toISOString(),
+      };
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          pro_features_data: updatedProFeatures,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', state.projectId);
+      
+      console.log(`[Hollywood] ✓ PERSISTED identityBible to DB for resume support`);
+    } catch (persistErr) {
+      console.warn(`[Hollywood] Failed to persist identityBible:`, persistErr);
+    }
+  }
+  
   return state;
 }
 
@@ -1650,9 +1682,112 @@ async function runProduction(
         console.log(`[Hollywood]   Comprehensive anchors: ${Object.keys(goldenFrameData?.comprehensiveAnchors || {}).length} dimensions`);
         console.log(`[Hollywood]   Frame URL: ${goldenFrameData?.goldenFrameUrl?.substring(0, 50)}...`);
       }
+      
+      // =====================================================
+      // CRITICAL FIX: Restore identityBible from DB on resume
+      // Without this, character identity is lost and anchors show 0%
+      // =====================================================
+      if (projectData?.pro_features_data?.identityBible && !state.identityBible) {
+        state.identityBible = projectData.pro_features_data.identityBible;
+        console.log(`[Hollywood] ✓ RESTORED identityBible from DB:`);
+        console.log(`[Hollywood]   Consistency prompt: ${state.identityBible?.consistencyPrompt?.substring(0, 100)}...`);
+        console.log(`[Hollywood]   Character identity: ${state.identityBible?.characterIdentity?.description?.substring(0, 100) || 'none'}...`);
+        console.log(`[Hollywood]   Distinctive markers: ${state.identityBible?.characterIdentity?.distinctiveMarkers?.length || 0}`);
+      }
     } catch (restoreErr) {
-      console.warn(`[Hollywood] Could not restore masterSceneAnchor/goldenFrameData from DB:`, restoreErr);
+      console.warn(`[Hollywood] Could not restore masterSceneAnchor/goldenFrameData/identityBible from DB:`, restoreErr);
     }
+  }
+  
+  // =====================================================
+  // CRITICAL FALLBACK: If goldenFrameData is still null on resume,
+  // rebuild it from identityBible to ensure anchors are always present
+  // This prevents 0% anchor strength for later clips on resume
+  // =====================================================
+  if (!goldenFrameData && startIndex > 0 && state.identityBible) {
+    console.log(`[Hollywood] ⚠️ goldenFrameData missing on resume - REBUILDING from identityBible...`);
+    
+    const ci = state.identityBible.characterIdentity;
+    const nfa = state.identityBible.nonFacialAnchors;
+    const styleA = state.identityBible.styleAnchor;
+    
+    // Build comprehensive anchors from identity bible data
+    const comprehensiveAnchors: any = {
+      facialGeometry: {},
+      skin: {},
+      hair: {},
+      body: {},
+      wardrobe: {},
+      accessories: {},
+      movement: {},
+      expression: {},
+      lightingResponse: {},
+      colorFingerprint: {},
+      scale: {},
+      uniqueIdentifiers: {},
+    };
+    
+    // Extract from character identity
+    if (ci) {
+      if (ci.facialFeatures) {
+        comprehensiveAnchors.facialGeometry = { facialSymmetry: ci.facialFeatures };
+      }
+      if (ci.bodyType) {
+        comprehensiveAnchors.body = { build: ci.bodyType, posture: 'as shown', silhouette: ci.bodyType };
+      }
+      if (ci.clothing) {
+        comprehensiveAnchors.wardrobe = { topGarment: ci.clothing };
+      }
+      if (ci.distinctiveMarkers?.length) {
+        comprehensiveAnchors.uniqueIdentifiers = {
+          mostDistinctiveFeature: ci.distinctiveMarkers[0],
+          absoluteNonNegotiables: ci.distinctiveMarkers,
+          quickCheckpoints: ci.distinctiveMarkers.slice(0, 5),
+          driftWarningZones: ['face', 'hair', 'clothing', 'skin tone', 'body proportions'],
+        };
+      }
+    }
+    
+    // Extract from non-facial anchors
+    if (nfa) {
+      if (nfa.bodyType) comprehensiveAnchors.body.build = nfa.bodyType;
+      if (nfa.clothingSignature) comprehensiveAnchors.wardrobe.fabricTexture = nfa.clothingSignature;
+      if (nfa.hairFromBehind) comprehensiveAnchors.hair = { hairStyle: nfa.hairFromBehind };
+      if (nfa.gait) comprehensiveAnchors.movement = { walkingGait: nfa.gait };
+      if (nfa.posture) comprehensiveAnchors.movement = { ...comprehensiveAnchors.movement, defaultStance: nfa.posture };
+    }
+    
+    // Build character description parts
+    const characterParts: string[] = [];
+    if (ci?.description) characterParts.push(ci.description);
+    if (ci?.facialFeatures) characterParts.push(`Face: ${ci.facialFeatures}`);
+    if (ci?.bodyType) characterParts.push(`Body: ${ci.bodyType}`);
+    if (ci?.clothing) characterParts.push(`Clothing: ${ci.clothing}`);
+    
+    goldenFrameData = {
+      characterSnapshot: characterParts.join('. ') || ci?.description || 'Character as established in clip 1',
+      goldenAnchors: [
+        ...(state.identityBible?.consistencyAnchors || []),
+        ...(ci?.distinctiveMarkers || []),
+        ...(styleA?.anchors || []),
+      ].slice(0, 15),
+      goldenFrameUrl: (state.identityBible as any)?.frontViewUrl || (state.identityBible as any)?.originalImageUrl || undefined,
+      comprehensiveAnchors,
+    };
+    
+    // Count filled fields
+    let filledFields = 0;
+    Object.values(comprehensiveAnchors).forEach((section: any) => {
+      if (typeof section === 'object' && section !== null) {
+        filledFields += Object.keys(section).length;
+      }
+    });
+    
+    console.log(`[Hollywood] ✓ REBUILT goldenFrameData from identityBible:`);
+    console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 100)}...`);
+    console.log(`[Hollywood]   Golden anchors: ${goldenFrameData.goldenAnchors?.length || 0}`);
+    console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
+    console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50) || 'none'}...`);
   }
   
   // Generate clips one at a time with proper frame chaining

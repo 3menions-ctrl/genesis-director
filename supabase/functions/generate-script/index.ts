@@ -33,6 +33,12 @@ interface StoryRequest {
   // Continuation mode
   previousScript?: string;
   continuationType?: 'sequel' | 'prequel' | 'episode';
+  
+  // USER-PROVIDED CONTENT - must be preserved exactly
+  userNarration?: string;      // User's exact narration text
+  userDialogue?: string[];     // User's exact dialogue lines
+  userScript?: string;         // User's complete script (use as-is)
+  preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
 }
 
 serve(async (req) => {
@@ -53,16 +59,50 @@ serve(async (req) => {
     let systemPrompt: string;
     let userPrompt: string;
     
+    // Check if user provided their own complete script - use it directly
+    if (requestData.userScript && requestData.userScript.trim().length > 50) {
+      console.log("[generate-script] Using user-provided script directly");
+      
+      // Return the user's script with minimal processing
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          script: requestData.userScript.trim(),
+          title: requestData.title || 'User Script',
+          genre: requestData.genre,
+          characters: requestData.characters?.map(c => c.name),
+          wordCount: requestData.userScript.split(/\s+/).length,
+          estimatedDuration: Math.ceil(requestData.userScript.split(/\s+/).length / 150),
+          source: 'user_provided',
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Check if this is a full movie request with characters OR if fullMovieMode flag is set
     const hasCharacters = requestData.characters && requestData.characters.length > 0;
     const isFullMovieMode = requestData.title && (hasCharacters || requestData.synopsis);
+    
+    // Check if user provided specific narration/dialogue that must be preserved
+    const hasUserNarration = requestData.userNarration && requestData.userNarration.trim().length > 10;
+    const hasUserDialogue = requestData.userDialogue && requestData.userDialogue.length > 0;
+    const mustPreserveContent = requestData.preserveUserContent || hasUserNarration || hasUserDialogue;
     
     if (isFullMovieMode) {
       // Full movie script generation - MINIMUM 6 SHOTS with smooth transitions and buffer shots
       systemPrompt = `You write cinematic scripts for AI video generation and stitching. MINIMUM 6 shots, each 6 seconds.
 
+${mustPreserveContent ? `
+CRITICAL - USER CONTENT PRESERVATION:
+The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
+DO NOT paraphrase, summarize, or rewrite the user's text.
+Your job is to create VISUAL descriptions that accompany the user's exact words.
+` : ''}
+
 FORMAT (use exactly this):
 [SHOT 1] Visual description with motion and physics.
+${hasUserNarration ? '[NARRATION] (User\'s exact narration for this shot)' : ''}
+${hasUserDialogue ? '[DIALOGUE] (User\'s exact dialogue for this shot)' : ''}
 [SHOT 2] Visual description continuing the motion seamlessly.
 ...continue for all shots...
 
@@ -97,7 +137,8 @@ RULES:
 - Each shot is EXACTLY 6 seconds
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
-- NO static scenes - always movement (even buffer shots have subtle motion)`;
+- NO static scenes - always movement (even buffer shots have subtle motion)
+${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not modify their words' : ''}`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
@@ -110,18 +151,35 @@ RULES:
 Genre: ${requestData.genre || 'Drama'}
 ${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT CHANGE):
+"""
+${requestData.userNarration}
+"""
+Distribute this narration across the shots. Use the EXACT words provided.
+` : ''}
+${hasUserDialogue && requestData.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE):
+${requestData.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
+Include these dialogue lines in the appropriate shots. Use the EXACT words provided.
+` : ''}
 
 CRITICAL: 
 - Each shot must transition SMOOTHLY into the next
 - Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
 - This will be stitched by AI, so ensure visual continuity
+${mustPreserveContent ? '- The user\'s narration/dialogue MUST appear exactly as written - only add visual descriptions' : ''}
 MINIMUM 6 SHOTS. Rich visual descriptions. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
       systemPrompt = `You are a visual storyteller. Write scripts that are VISUALLY RICH with cinematic precision.
 Include specific visual details: colors, lighting, textures, movements.
-After each key point, add a [VISUAL: description] tag.`;
+After each key point, add a [VISUAL: description] tag.
+${mustPreserveContent ? `
+CRITICAL: The user has provided specific narration/dialogue. You MUST use their EXACT words.
+DO NOT paraphrase or rewrite. Only add visual descriptions to accompany their text.
+` : ''}`;
 
       // Use synopsis OR topic for the content
       const content = requestData.synopsis || requestData.topic || 'a visually engaging scene';
@@ -129,9 +187,20 @@ After each key point, add a [VISUAL: description] tag.`;
       userPrompt = `Write a VISUALLY DESCRIPTIVE ${requestData.duration || '60 second'} video script about: ${content}
 Style: ${requestData.style || 'Professional and engaging'}
 Title: ${requestData.title || 'Untitled'}
+${hasUserNarration ? `
+USER'S NARRATION (USE EXACTLY - DO NOT MODIFY):
+"""
+${requestData.userNarration}
+"""
+` : ''}
+${hasUserDialogue && requestData.userDialogue ? `
+USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY):
+${requestData.userDialogue.map((d, i) => `"${d}"`).join('\n')}
+` : ''}
 
 Requirements:
 - Follow the user's concept EXACTLY
+${mustPreserveContent ? '- USE THE USER\'S EXACT NARRATION/DIALOGUE - do not paraphrase or rewrite their words' : ''}
 - Start with an attention-grabbing hook AND opening visual
 - Include [VISUAL: ...] tags describing imagery
 - Use descriptive language for environments and characters

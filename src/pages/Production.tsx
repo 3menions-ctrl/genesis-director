@@ -20,6 +20,7 @@ import { StitchingTroubleshooter } from '@/components/studio/StitchingTroublesho
 import { AppHeader } from '@/components/layout/AppHeader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
+import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 
 // ============= TYPES =============
 
@@ -37,6 +38,12 @@ interface ClipResult {
   videoUrl?: string;
   error?: string;
   id?: string;
+  motionVectors?: {
+    subjectVelocity?: { x: number; y: number; magnitude: number };
+    cameraMovement?: { type: string; direction: string; speed: number };
+    motionBlur?: number;
+    dominantDirection?: string;
+  };
 }
 
 interface PipelineLog {
@@ -152,6 +159,7 @@ function ClipGrid({
         const isGenerating = clip.status === 'generating';
         const isFailed = clip.status === 'failed';
         const isRetrying = retryingIndex === index;
+        const hasMotionVectors = isCompleted && clip.motionVectors;
 
         return (
           <motion.div
@@ -159,53 +167,66 @@ function ClipGrid({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.02 }}
-            className={cn(
-              "relative aspect-video rounded-lg overflow-hidden cursor-pointer group transition-all duration-200",
-              isCompleted && "ring-1 ring-emerald-500/30 hover:ring-emerald-400/50 hover:scale-[1.02]",
-              isGenerating && "ring-1 ring-white/10",
-              isFailed && "ring-1 ring-red-500/30 hover:ring-red-400/50",
-              !isCompleted && !isGenerating && !isFailed && "ring-1 ring-white/[0.04]"
-            )}
-            onClick={() => {
-              if (isCompleted && clip.videoUrl) onPlay(clip.videoUrl);
-              else if (isFailed) onRetry(index);
-            }}
+            className="flex flex-col gap-1"
           >
-            {isCompleted && clip.videoUrl ? (
-              <>
-                <video
-                  src={clip.videoUrl}
-                  className="w-full h-full object-cover"
-                  muted
-                  preload="metadata"
-                  onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                  <Play className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
+            <div
+              className={cn(
+                "relative aspect-video rounded-lg overflow-hidden cursor-pointer group transition-all duration-200",
+                isCompleted && "ring-1 ring-emerald-500/30 hover:ring-emerald-400/50 hover:scale-[1.02]",
+                isGenerating && "ring-1 ring-white/10",
+                isFailed && "ring-1 ring-red-500/30 hover:ring-red-400/50",
+                !isCompleted && !isGenerating && !isFailed && "ring-1 ring-white/[0.04]"
+              )}
+              onClick={() => {
+                if (isCompleted && clip.videoUrl) onPlay(clip.videoUrl);
+                else if (isFailed) onRetry(index);
+              }}
+            >
+              {isCompleted && clip.videoUrl ? (
+                <>
+                  <video
+                    src={clip.videoUrl}
+                    className="w-full h-full object-cover"
+                    muted
+                    preload="metadata"
+                    onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
+                  </div>
+                  <CheckCircle2 className="absolute top-1 right-1 w-3 h-3 text-emerald-400" />
+                </>
+              ) : isGenerating ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
+                  <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
                 </div>
-                <CheckCircle2 className="absolute top-1 right-1 w-3 h-3 text-emerald-400" />
-              </>
-            ) : isGenerating ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/[0.02]">
-                <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
+              ) : isFailed ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-500/5">
+                  {isRetrying ? (
+                    <Loader2 className="w-4 h-4 text-red-400 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 text-red-400" />
+                  )}
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01]">
+                  <span className="text-xs font-medium text-white/10">{index + 1}</span>
+                </div>
+              )}
+              
+              <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white/70">
+                {index + 1}
               </div>
-            ) : isFailed ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-red-500/5">
-                {isRetrying ? (
-                  <Loader2 className="w-4 h-4 text-red-400 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 text-red-400" />
-                )}
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01]">
-                <span className="text-xs font-medium text-white/10">{index + 1}</span>
-              </div>
-            )}
-            
-            <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white/70">
-              {index + 1}
             </div>
+            
+            {/* Motion Vectors - shown below clip when available */}
+            {hasMotionVectors && (
+              <MotionVectorsDisplay 
+                motionVectors={clip.motionVectors}
+                shotIndex={clip.index}
+                className="text-[10px]"
+              />
+            )}
           </motion.div>
         );
       })}
@@ -551,7 +572,7 @@ export default function Production() {
     
     const { data: clips } = await supabase
       .from('video_clips')
-      .select('id, shot_index, status, video_url, error_message')
+      .select('id, shot_index, status, video_url, error_message, motion_vectors')
       .eq('project_id', projectId)
       .eq('user_id', session.user.id)
       .order('shot_index');
@@ -563,6 +584,7 @@ export default function Production() {
         videoUrl: clip.video_url || undefined,
         error: clip.error_message || undefined,
         id: clip.id,
+        motionVectors: clip.motion_vectors as ClipResult['motionVectors'],
       })));
       setCompletedClips(clips.filter(c => c.status === 'completed').length);
     }

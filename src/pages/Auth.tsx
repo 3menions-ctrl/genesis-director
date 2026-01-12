@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from 'lucide-react';
 import { z } from 'zod';
+import { PasswordStrength } from '@/components/ui/password-strength';
 
 // Validation schemas
 const emailSchema = z.string()
@@ -19,9 +20,21 @@ const passwordSchema = z.string()
   .min(6, 'Password must be at least 6 characters')
   .max(72, 'Password must be less than 72 characters');
 
+const signupPasswordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(72, 'Password must be less than 72 characters')
+  .regex(/[a-z]/, 'Password must contain a lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+  .regex(/[0-9]/, 'Password must contain a number');
+
 const authFormSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+});
+
+const signupFormSchema = z.object({
+  email: emailSchema,
+  password: signupPasswordSchema,
 });
 
 export default function Auth() {
@@ -70,7 +83,9 @@ export default function Auth() {
   };
 
   const validateForm = (): boolean => {
-    const result = authFormSchema.safeParse({ email: email.trim(), password });
+    // Use stricter validation for signup
+    const schema = isLogin ? authFormSchema : signupFormSchema;
+    const result = schema.safeParse({ email: email.trim(), password });
     
     if (!result.success) {
       const fieldErrors: { email?: string; password?: string } = {};
@@ -323,6 +338,11 @@ export default function Auth() {
                   <p className="text-destructive text-xs mt-1">{errors.password}</p>
                 )}
               </div>
+              {!isLogin && password && (
+                <div className="mt-3 p-3 rounded-lg bg-muted border border-border">
+                  <PasswordStrength password={password} />
+                </div>
+              )}
             </div>
 
             <Button

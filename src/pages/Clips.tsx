@@ -915,6 +915,15 @@ export default function Clips() {
                                   {clip.prompt}
                                 </p>
                                 
+                                {/* Motion Vectors */}
+                                {clip.motion_vectors && (
+                                  <MotionVectorsDisplay 
+                                    motionVectors={clip.motion_vectors}
+                                    shotIndex={clip.shot_index}
+                                    className="mt-2"
+                                  />
+                                )}
+                                
                                 {/* Actions */}
                                 <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   {clip.video_url && (

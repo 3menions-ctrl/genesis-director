@@ -439,99 +439,118 @@ async function processStitching(
 
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    if (cloudRunUrl && !request.forceMvpMode) {
-      console.log("[Stitch] Step 1: Checking Cloud Run health...");
-      await updatePipelineProgress(supabase, request.projectId, 'health_check', 10);
+    // CRITICAL: Cloud Run is REQUIRED - no manifest fallback
+    if (!cloudRunUrl) {
+      console.error("[Stitch] CLOUD_RUN_STITCHER_URL not configured - stitching not possible");
       
-      const healthCheck = await checkCloudRunHealth(cloudRunUrl);
+      await supabase
+        .from('movie_projects')
+        .update({ 
+          status: 'stitching_blocked',
+          last_error: 'Cloud Run stitcher not configured',
+          pending_video_tasks: {
+            stage: 'stitching_blocked',
+            progress: 0,
+            error: 'CLOUD_RUN_STITCHER_URL environment variable not set',
+            message: 'Google Cloud Run is required for video stitching',
+          },
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq('id', request.projectId);
       
-      if (!healthCheck.healthy) {
-        console.error(`[Stitch] Cloud Run unhealthy: ${healthCheck.error}`);
-        
-        if (retryCount < 3) {
-          await scheduleRetry(supabase, request.projectId, request, cloudRunUrl, retryCount);
-          
-          return {
-            success: false,
-            error: `Cloud Run unavailable: ${healthCheck.error}. Retry scheduled.`,
-            retryScheduled: true,
-            processingTimeMs: Date.now() - startTime,
-          };
-        }
-        
-        console.log("[Stitch] Max retries exceeded, falling back to MVP mode");
-        await updatePipelineProgress(supabase, request.projectId, 'fallback_mvp', 50, 'Cloud Run unavailable, using fallback');
-      } else {
-        console.log(`[Stitch] Cloud Run healthy (latency: ${healthCheck.latencyMs}ms)`);
-      }
+      return {
+        success: false,
+        error: 'Cloud Run stitcher not configured. Only Google Cloud Run is supported.',
+        processingTimeMs: Date.now() - startTime,
+      };
+    }
+    
+    console.log("[Stitch] Step 1: Checking Cloud Run health...");
+    await updatePipelineProgress(supabase, request.projectId, 'health_check', 10);
+    
+    const healthCheck = await checkCloudRunHealth(cloudRunUrl);
+    
+    if (!healthCheck.healthy) {
+      console.error(`[Stitch] Cloud Run unhealthy: ${healthCheck.error}`);
       
-      if (healthCheck.healthy) {
-        console.log("[Stitch] Step 2: Dispatching to Cloud Run FFmpeg service");
-        await updatePipelineProgress(supabase, request.projectId, 'stitching', 25);
-        
-        await supabase
-          .from('movie_projects')
-          .update({ 
-            status: 'stitching',
-            updated_at: new Date().toISOString(),
-            pending_video_tasks: {
-              stage: 'stitching',
-              progress: 25,
-              stitchingStarted: new Date().toISOString(),
-              expectedCompletionTime: new Date(Date.now() + 300000).toISOString(), // 5 min timeout marker
-              lastUpdated: new Date().toISOString(),
-            },
-          } as Record<string, unknown>)
-          .eq('id', request.projectId);
-        
-        // Use EdgeRuntime.waitUntil for background processing
-        const stitchPromise = fireCloudRunStitcherAsync(cloudRunUrl, {
-          ...request,
-          clips: validClips,
-        }, supabase);
-        
-        // Use waitUntil if available (Deno Edge Runtime feature)
-        if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-          EdgeRuntime.waitUntil(stitchPromise);
-        } else {
-          // Fallback: await the promise
-          await stitchPromise;
-        }
+      if (retryCount < 3) {
+        await scheduleRetry(supabase, request.projectId, request, cloudRunUrl, retryCount);
         
         return {
-          success: true,
-          mode: 'cloud-run',
+          success: false,
+          error: `Cloud Run unavailable: ${healthCheck.error}. Retry scheduled.`,
+          retryScheduled: true,
           processingTimeMs: Date.now() - startTime,
-          clipsProcessed: validClips.length,
-          durationSeconds: totalDuration,
-          finalVideoUrl: undefined,
         };
       }
+      
+      // Max retries exceeded - fail without manifest fallback
+      console.error("[Stitch] Max retries exceeded, Cloud Run stitching failed");
+      
+      await supabase
+        .from('movie_projects')
+        .update({ 
+          status: 'stitching_failed',
+          last_error: `Cloud Run unavailable after ${retryCount} retries: ${healthCheck.error}`,
+          pending_video_tasks: {
+            stage: 'stitching_failed',
+            progress: 0,
+            error: healthCheck.error,
+            retries: retryCount,
+            message: 'Cloud Run stitching failed. Please retry manually.',
+          },
+          updated_at: new Date().toISOString(),
+        } as Record<string, unknown>)
+        .eq('id', request.projectId);
+      
+      return {
+        success: false,
+        error: `Cloud Run stitching failed after ${retryCount} retries: ${healthCheck.error}`,
+        processingTimeMs: Date.now() - startTime,
+      };
     }
-
-    console.log("[Stitch] Using manifest-based client-side stitching (MVP mode)");
-    await updatePipelineProgress(supabase, request.projectId, 'creating_manifest', 75);
-
-    const manifestUrl = await createVideoManifest(validClips, request.projectId, supabase);
+    
+    console.log(`[Stitch] Cloud Run healthy (latency: ${healthCheck.latencyMs}ms)`);
+    console.log("[Stitch] Step 2: Dispatching to Cloud Run FFmpeg service");
+    await updatePipelineProgress(supabase, request.projectId, 'stitching', 25);
     
     await supabase
       .from('movie_projects')
       .update({ 
-        status: 'completed',
-        video_url: manifestUrl,
+        status: 'stitching',
         updated_at: new Date().toISOString(),
+        pending_video_tasks: {
+          stage: 'stitching',
+          progress: 25,
+          mode: 'cloud_run',
+          stitchingStarted: new Date().toISOString(),
+          expectedCompletionTime: new Date(Date.now() + 300000).toISOString(), // 5 min timeout marker
+          lastUpdated: new Date().toISOString(),
+        },
       } as Record<string, unknown>)
       .eq('id', request.projectId);
     
-    await updatePipelineProgress(supabase, request.projectId, 'complete', 100);
-
+    // Use EdgeRuntime.waitUntil for background processing
+    const stitchPromise = fireCloudRunStitcherAsync(cloudRunUrl, {
+      ...request,
+      clips: validClips,
+    }, supabase);
+    
+    // Use waitUntil if available (Deno Edge Runtime feature)
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(stitchPromise);
+    } else {
+      // Fallback: await the promise
+      await stitchPromise;
+    }
+    
     return {
       success: true,
-      finalVideoUrl: manifestUrl,
-      durationSeconds: totalDuration,
-      clipsProcessed: validClips.length,
+      mode: 'cloud-run',
       processingTimeMs: Date.now() - startTime,
-      mode: 'mvp-manifest',
+      clipsProcessed: validClips.length,
+      durationSeconds: totalDuration,
+      finalVideoUrl: undefined,
     };
 
   } catch (error) {

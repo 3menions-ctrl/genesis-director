@@ -671,6 +671,7 @@ export default function Clips() {
                                 muted
                                 playsInline
                                 preload="metadata"
+                                onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
                               />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
                                 <Play className="w-5 h-5 text-white" fill="white" />
@@ -791,6 +792,7 @@ export default function Clips() {
                                 muted
                                 playsInline
                                 preload="metadata"
+                                onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -880,6 +882,7 @@ export default function Clips() {
                                       muted
                                       playsInline
                                       preload="metadata"
+                                      onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
                                     />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                                       <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">

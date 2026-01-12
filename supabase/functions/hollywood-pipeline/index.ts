@@ -1593,6 +1593,16 @@ async function runProduction(
   // =====================================================
   let previousContinuityManifest: any = null;
   
+  // =====================================================
+  // GOLDEN FRAME DATA: Captured from Clip 1 for periodic re-anchoring
+  // Prevents character decay that typically starts at clip 3
+  // =====================================================
+  let goldenFrameData: {
+    characterSnapshot?: string;
+    goldenAnchors?: string[];
+    goldenFrameUrl?: string;
+  } | null = null;
+  
   // RESTORE masterSceneAnchor from DB on resume (CRITICAL for consistency)
   if (state.identityBible?.masterSceneAnchor) {
     masterSceneAnchor = state.identityBible.masterSceneAnchor;
@@ -1828,6 +1838,8 @@ async function runProduction(
           previousMotionVectors,
           // NEW: Pass previous shot's continuity manifest for comprehensive consistency
           previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
+          // NEW: Pass golden frame data from clip 1 to prevent character decay
+          goldenFrameData: i > 0 ? goldenFrameData : undefined,
           identityBible: state.identityBible,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
@@ -2091,6 +2103,7 @@ async function runProduction(
                 startImageUrl: retryStartImage,
                 previousMotionVectors,
                 previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
+                goldenFrameData: i > 0 ? goldenFrameData : undefined,
                 identityBible: state.identityBible,
                 colorGrading: request.colorGrading || 'cinematic',
                 qualityTier: request.qualityTier || 'standard',
@@ -2360,6 +2373,7 @@ async function runProduction(
                   startImageUrl: regenerationStartImage,
                   previousMotionVectors,
                   previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
+                  goldenFrameData: i > 0 ? goldenFrameData : undefined,
                   identityBible: state.identityBible,
                   colorGrading: request.colorGrading || 'cinematic',
                   qualityTier: request.qualityTier || 'standard',
@@ -2486,8 +2500,44 @@ async function runProduction(
       console.log(`[Hollywood] ✓ Continuity manifest updated for clip ${i + 2}: ${result.continuityManifest.criticalAnchors?.length || 0} critical anchors`);
     }
     
+    // =====================================================
+    // GOLDEN FRAME DATA CAPTURE: Store clip 1's character identity
+    // This becomes the canonical reference for periodic re-anchoring
+    // =====================================================
+    if (i === 0 && result.continuityManifest) {
+      // Build golden frame data from first clip's manifest + identity bible
+      const manifest = result.continuityManifest;
+      
+      // Extract character snapshot from manifest's critical anchors and identity bible
+      const characterParts: string[] = [];
+      
+      if (state.identityBible?.consistencyPrompt) {
+        characterParts.push(state.identityBible.consistencyPrompt);
+      }
+      if (state.identityBible?.characterIdentity?.description) {
+        characterParts.push(state.identityBible.characterIdentity.description);
+      }
+      if (manifest.criticalAnchors?.length) {
+        characterParts.push(...manifest.criticalAnchors.slice(0, 5));
+      }
+      
+      goldenFrameData = {
+        characterSnapshot: characterParts.join('. '),
+        goldenAnchors: [
+          ...(state.identityBible?.consistencyAnchors || []),
+          ...(manifest.criticalAnchors || []),
+        ].slice(0, 10),
+        goldenFrameUrl: result.lastFrameUrl,
+      };
+      
+      console.log(`[Hollywood] 🎯 GOLDEN FRAME DATA captured from Clip 1:`);
+      console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 100)}...`);
+      console.log(`[Hollywood]   Golden anchors: ${goldenFrameData.goldenAnchors?.length || 0}`);
+      console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50)}...`);
+    }
+    
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
-    console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors' : 'no motion'}, ${previousContinuityManifest ? 'manifest ready' : 'no manifest'}`);
+    console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors' : 'no motion'}, ${previousContinuityManifest ? 'manifest ready' : 'no manifest'}${goldenFrameData ? ', golden frame set' : ''}`);
   }
   
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');

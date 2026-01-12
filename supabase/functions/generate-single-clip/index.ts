@@ -1234,6 +1234,8 @@ interface GenerateSingleClipRequest {
   colorGrading?: string;
   qualityTier?: 'standard' | 'professional';
   referenceImageUrl?: string;
+  // CRITICAL FIX: Scene image fallback for when frame extraction fails
+  sceneImageUrl?: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';
   // Scene continuity
   sceneContext?: {
@@ -2817,6 +2819,19 @@ serve(async (req) => {
       
       if (!frameExtractionSuccess) {
         console.error(`[SingleClip] ⚠️ CRITICAL: No frame extraction available - continuity will be broken`);
+        
+        // CRITICAL FIX: Use scene image or startImageUrl as fallback when frame extraction fails
+        // This ensures some visual reference is available for the next clip
+        if (request.sceneImageUrl) {
+          lastFrameUrl = request.sceneImageUrl;
+          console.warn(`[SingleClip] Using sceneImageUrl as fallback for last frame: ${request.sceneImageUrl?.substring(0, 60)}...`);
+        } else if (request.startImageUrl) {
+          lastFrameUrl = request.startImageUrl;
+          console.warn(`[SingleClip] Using startImageUrl as fallback for last frame: ${request.startImageUrl?.substring(0, 60)}...`);
+        } else if (request.referenceImageUrl) {
+          lastFrameUrl = request.referenceImageUrl;
+          console.warn(`[SingleClip] Using referenceImageUrl as fallback for last frame: ${request.referenceImageUrl?.substring(0, 60)}...`);
+        }
       }
     }
     

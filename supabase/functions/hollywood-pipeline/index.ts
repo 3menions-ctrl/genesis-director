@@ -2347,18 +2347,36 @@ async function runProduction(
             console.log(`[Hollywood] Clip 1: TEXT-TO-VIDEO (no valid reference image)`);
           }
         } else {
-          // CLIP 2+: Use previous clip's extracted last frame for continuity
+          // =====================================================
+          // THE LAW: CLIP 2+ MUST USE PREVIOUS CLIP'S LAST FRAME
+          // NO EXCEPTIONS. NO FALLBACKS. FAILURE IS FATAL.
+          // =====================================================
           if (previousLastFrameUrl && isValidImageUrl(previousLastFrameUrl)) {
             useStartImage = previousLastFrameUrl;
             console.log(`[Hollywood] Clip ${i + 1}: FRAME-CHAINED from clip ${i}'s last frame: ${previousLastFrameUrl?.substring(0, 60)}...`);
           } else {
-            // CRITICAL: No valid frame - proceed without frame chaining
-            console.error(`[Hollywood] ⚠️ CRITICAL: No valid image frame for clip ${i + 1}! Proceeding WITHOUT frame-chaining.`);
-            if (previousLastFrameUrl) {
-              console.error(`[Hollywood] Invalid URL (likely video): ${previousLastFrameUrl.substring(0, 80)}...`);
-            }
-            // Do NOT use video URL - better to skip frame-chaining than crash Veo
-            useStartImage = undefined;
+            // FATAL ERROR: Cannot proceed without frame continuity
+            const errorDetails = previousLastFrameUrl 
+              ? `Invalid URL (video file or corrupted): ${previousLastFrameUrl.substring(0, 100)}`
+              : 'No last frame URL extracted from previous clip';
+            
+            console.error(`[Hollywood] ❌ STRICT_CONTINUITY_FAILURE: Clip ${i + 1} CANNOT proceed without valid frame from clip ${i}`);
+            console.error(`[Hollywood] Reason: ${errorDetails}`);
+            console.error(`[Hollywood] THE LAW: Each clip MUST use previous clip's last frame. No exceptions.`);
+            
+            // Update project with fatal error
+            await supabase.from('movie_projects').update({
+              status: 'failed',
+              last_error: `STRICT_CONTINUITY_FAILURE: Clip ${i + 1} requires valid last frame from clip ${i}. ${errorDetails}`,
+              pipeline_stage: 'continuity_failure',
+              updated_at: new Date().toISOString(),
+            }).eq('id', state.projectId);
+            
+            throw new Error(
+              `STRICT_CONTINUITY_FAILURE: The Law requires Clip ${i + 1} to use Clip ${i}'s last frame. ` +
+              `Frame extraction failed or returned invalid URL. ${errorDetails}. ` +
+              `Pipeline halted to preserve visual continuity.`
+            );
           }
         }
         

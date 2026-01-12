@@ -2084,6 +2084,55 @@ serve(async (req) => {
       throw new Error("clipIndex and prompt are required");
     }
 
+    // =====================================================
+    // THE LAW: STRICT CONTINUITY VALIDATION FOR CLIP 2+
+    // Each clip MUST have: previous clip's last frame, anchor points, reference image
+    // NO EXCEPTIONS. NO FALLBACKS. FAILURE IS FATAL.
+    // =====================================================
+    if (request.clipIndex > 0) {
+      const violations: string[] = [];
+      
+      // Validation 1: startImageUrl (previous clip's last frame) is REQUIRED
+      if (!request.startImageUrl) {
+        violations.push('Missing startImageUrl (previous clip\'s last frame)');
+      }
+      
+      // Validation 2: Previous continuity manifest OR accumulated anchors REQUIRED
+      const hasAnchors = (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) ||
+                         request.previousContinuityManifest;
+      if (!hasAnchors) {
+        violations.push('Missing anchor points (accumulatedAnchors or previousContinuityManifest)');
+      }
+      
+      // Validation 3: Reference image REQUIRED (passed through from pipeline)
+      if (!request.referenceImageUrl) {
+        violations.push('Missing referenceImageUrl (character/style reference from clip 1)');
+      }
+      
+      // Validation 4: Script/prompt cannot be empty
+      if (!request.prompt || request.prompt.trim().length < 10) {
+        violations.push('Missing or insufficient script/prompt');
+      }
+      
+      // If ANY violation, FAIL IMMEDIATELY - THE LAW IS THE LAW
+      if (violations.length > 0) {
+        console.error(`[SingleClip] ❌ THE LAW VIOLATED - Clip ${request.clipIndex + 1} cannot proceed:`);
+        violations.forEach((v, i) => console.error(`  ${i + 1}. ${v}`));
+        console.error(`[SingleClip] THE LAW: Each clip MUST use previous clip's last frame, all anchor points, reference image, and follow script.`);
+        
+        throw new Error(
+          `THE_LAW_VIOLATED: Clip ${request.clipIndex + 1} cannot be generated. Violations: ${violations.join('; ')}. ` +
+          `THE LAW requires: (1) Previous clip's last frame, (2) All anchor points, (3) Reference image, (4) Script.`
+        );
+      }
+      
+      console.log(`[SingleClip] ✓ THE LAW VALIDATED for Clip ${request.clipIndex + 1}:`);
+      console.log(`  - startImageUrl: ${request.startImageUrl!.substring(0, 50)}...`);
+      console.log(`  - Anchors: ${request.accumulatedAnchors?.length || 0} accumulated, manifest: ${request.previousContinuityManifest ? 'YES' : 'NO'}`);
+      console.log(`  - referenceImageUrl: ${request.referenceImageUrl!.substring(0, 50)}...`);
+      console.log(`  - prompt: ${request.prompt.substring(0, 50)}...`);
+    }
+
     // Get service account
     const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
     if (!serviceAccountJson) {

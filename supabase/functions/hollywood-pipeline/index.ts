@@ -1625,13 +1625,66 @@ async function runProduction(
     });
     
     // =====================================================
+    // CONTINUITY ORCHESTRATOR: Enhance prompt with previous clip data
+    // This provides: frame handoff, motion chaining, color continuity
+    // =====================================================
+    let orchestratedEnhancements: {
+      enhancedPrompt?: string;
+      motionInjection?: { entryMotion: string; entryCameraHint: string };
+      recommendedStartImage?: string;
+    } = {};
+    
+    if (i > 0 && previousLastFrameUrl) {
+      try {
+        console.log(`[Hollywood] Calling continuity-orchestrator for clip ${i + 1}...`);
+        const orchestratorResult = await callEdgeFunction('continuity-orchestrator', {
+          projectId: state.projectId,
+          userId: request.userId,
+          mode: 'enhance-clip',
+          clipIndex: i,
+          currentClipPrompt: clip.prompt,
+          previousClipData: {
+            videoUrl: state.production?.clipResults?.[i - 1]?.videoUrl || '',
+            lastFrameUrl: previousLastFrameUrl,
+            motionVectors: previousMotionVectors ? {
+              exitMotion: previousMotionVectors.endVelocity || previousMotionVectors.continuityPrompt,
+              dominantDirection: previousMotionVectors.endDirection,
+              cameraMovement: previousMotionVectors.cameraMomentum ? { type: previousMotionVectors.cameraMomentum, direction: '', speed: 0.5 } : undefined,
+              continuityPrompt: previousMotionVectors.continuityPrompt,
+            } : undefined,
+          },
+          config: {
+            consistencyThreshold: 70,
+            enableMotionChaining: true,
+          },
+        });
+        
+        if (orchestratorResult.success && orchestratorResult.enhancedPrompt) {
+          orchestratedEnhancements = {
+            enhancedPrompt: orchestratorResult.enhancedPrompt.enhancedPrompt,
+            motionInjection: orchestratorResult.motionInjection,
+            recommendedStartImage: orchestratorResult.recommendedStartImage,
+          };
+          console.log(`[Hollywood] Continuity orchestrator enhanced clip ${i + 1} prompt with ${Object.keys(orchestratorResult.enhancedPrompt.injections || {}).length} injections`);
+        }
+      } catch (orchErr) {
+        console.warn(`[Hollywood] Continuity orchestrator failed for clip ${i + 1}, falling back to standard logic:`, orchErr);
+      }
+    }
+    
+    // =====================================================
     // SCRIPT ADAPTATION: Visual continuity takes precedence over script
     // The script guides the story, but the visual state is the source of truth
     // =====================================================
     let finalPrompt = '';
     
-    // STEP 1: For clips 2+, START with visual continuity (source of truth)
-    if (i > 0) {
+    // STEP 1: Use orchestrated prompt if available, else build manually
+    if (orchestratedEnhancements.enhancedPrompt) {
+      // Use the continuity orchestrator's enhanced prompt
+      finalPrompt = orchestratedEnhancements.enhancedPrompt;
+      console.log(`[Hollywood] Clip ${i + 1}: Using orchestrator-enhanced prompt`);
+    } else if (i > 0) {
+      // Fallback: Build visual continuity manually (original logic)
       const visualContinuityParts: string[] = [];
       
       // Motion continuity from previous clip (most critical for seamless transitions)
@@ -1661,6 +1714,14 @@ async function runProduction(
     } else {
       // Clip 1: Use script directly (no previous clip to continue from)
       finalPrompt = clip.prompt;
+    }
+    
+    // Inject motion hints from orchestrator if available
+    if (orchestratedEnhancements.motionInjection) {
+      const motion = orchestratedEnhancements.motionInjection;
+      if (motion.entryMotion && !finalPrompt.includes('MOTION')) {
+        finalPrompt = `[ENTRY MOTION: ${motion.entryMotion}${motion.entryCameraHint ? `, camera ${motion.entryCameraHint}` : ''}]\n${finalPrompt}`;
+      }
     }
     
     // Style anchor injection (for when no reference image was provided)
@@ -2793,6 +2854,58 @@ async function runPostProduction(
     }
   }
   
+  // =====================================================
+  // CONTINUITY ORCHESTRATOR: Post-process analysis for transition quality
+  // Stores analysis in pro_features_data for frontend display
+  // =====================================================
+  if (completedClipsList.length >= 2) {
+    console.log(`[Hollywood] Running continuity orchestrator post-process analysis...`);
+    
+    try {
+      // Build clip data for post-process analysis
+      const clipDataForAnalysis = completedClipsList.map((c: any) => {
+        const scriptShot = state.script?.shots?.[c.index];
+        return {
+          index: c.index,
+          videoUrl: c.videoUrl,
+          lastFrameUrl: c.lastFrameUrl,
+          prompt: scriptShot?.description || `Clip ${c.index + 1}`,
+          motionVectors: (state as any).clipMotionVectors?.[c.index],
+          colorProfile: (state as any).clipColorProfiles?.[c.index],
+          consistencyScore: (c as any).visualDebugResult?.score || (c as any).identityVerification?.score,
+        };
+      });
+      
+      const postProcessResult = await callEdgeFunction('continuity-orchestrator', {
+        projectId: state.projectId,
+        userId: request.userId,
+        mode: 'post-process',
+        allClips: clipDataForAnalysis,
+        config: {
+          consistencyThreshold: 70,
+          enableBridgeClips: true,
+          enableMotionChaining: true,
+          enableAutoRetry: false, // Don't retry in post-process, just analyze
+          maxBridgeClips: 5,
+          maxAutoRetries: 0,
+        },
+      });
+      
+      if (postProcessResult.success) {
+        console.log(`[Hollywood] Continuity post-process complete:`);
+        console.log(`  - Overall continuity score: ${postProcessResult.overallContinuityScore}/100`);
+        console.log(`  - Transitions analyzed: ${postProcessResult.transitionAnalyses?.length || 0}`);
+        console.log(`  - Bridge clips recommended: ${postProcessResult.bridgeClipsNeeded || 0}`);
+        console.log(`  - Clips needing retry: ${postProcessResult.clipsToRetry?.length || 0}`);
+        
+        // Store in state for final update
+        (state as any).continuityOrchestratorResult = postProcessResult;
+      }
+    } catch (postProcessErr) {
+      console.warn(`[Hollywood] Continuity post-process analysis failed:`, postProcessErr);
+    }
+  }
+  
   if (!state.finalVideoUrl) {
     console.warn(`[Hollywood] No final video URL from production stage`);
   } else {
@@ -2800,10 +2913,23 @@ async function runPostProduction(
   }
   
   state.progress = 100;
+  
+  // Build final pro features data including continuity analysis
+  const continuityAnalysisData = (state as any).continuityOrchestratorResult ? {
+    continuityAnalysis: {
+      score: (state as any).continuityOrchestratorResult.overallContinuityScore,
+      transitions: (state as any).continuityOrchestratorResult.transitionAnalyses,
+      bridgeClipsNeeded: (state as any).continuityOrchestratorResult.bridgeClipsNeeded,
+      clipsToRetry: (state as any).continuityOrchestratorResult.clipsToRetry,
+      analyzedAt: new Date().toISOString(),
+    },
+  } : {};
+  
   await updateProjectProgress(supabase, state.projectId, 'postproduction', 100, {
     finalVideoUrl: state.finalVideoUrl,
     clipsCompleted: completedClips,
     clipsFailed: failedClips,
+    ...continuityAnalysisData,
     proFeaturesUsed: request.qualityTier === 'professional' ? {
       multiCharacterBible: !!(state as any).multiCharacterBible,
       depthConsistency: (state as any).depthConsistency?.overallScore,
@@ -2811,6 +2937,7 @@ async function runPostProduction(
       musicSync: (state as any).musicSyncPlan?.emotionalBeats?.length || 0,
       colorGrading: (state as any).colorGrading?.masterPreset,
       sfxCues: (state as any).sfxPlan?.sfxCues?.length || 0,
+      continuityScore: (state as any).continuityOrchestratorResult?.overallContinuityScore,
       identityVerification: {
         clipsVerified: state.production?.clipResults?.filter((c: any) => c.identityVerification).length || 0,
         avgScore: Math.round(

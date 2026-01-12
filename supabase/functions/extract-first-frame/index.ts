@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { getAccessToken } from "../_shared/gcp-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,55 +30,6 @@ interface FrameExtractionResult {
   frameDescription?: string;
   extractionMethod: string;
   error?: string;
-}
-
-// Get Google Cloud access token
-async function getAccessToken(serviceAccount: any): Promise<string> {
-  const header = { alg: "RS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/cloud-platform",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const claimB64 = btoa(JSON.stringify(claim)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const signatureInput = `${headerB64}.${claimB64}`;
-
-  const keyData = serviceAccount.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\n/g, "");
-
-  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, encoder.encode(signatureInput));
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  const jwt = `${signatureInput}.${signatureB64}`;
-
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  const tokenData = await tokenResponse.json();
-  return tokenData.access_token;
 }
 
 // Analyze first frame using Gemini Vision

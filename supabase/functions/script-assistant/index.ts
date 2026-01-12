@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { action, currentScript, userPrompt, tone, targetLength } = await req.json();
+    const { action, currentScript, userPrompt, prompt, context, tone, targetLength } = await req.json();
     
     // Input validation
-    const promptValidation = validateInput(userPrompt, { maxLength: 5000, fieldName: 'userPrompt' });
+    const promptValidation = validateInput(userPrompt || prompt, { maxLength: 5000, fieldName: 'userPrompt' });
     const scriptValidation = validateInput(currentScript, { maxLength: 50000, fieldName: 'currentScript' });
     
     const validatedPrompt = promptValidation.sanitized;
@@ -34,8 +34,35 @@ serve(async (req) => {
     const lengthInstructions = targetLength ? `Target approximately ${targetLength} words.` : "";
     
     let userMessage = "";
+    let isRephraseAction = false;
     
     switch (action) {
+      case "rephrase_safe":
+        isRephraseAction = true;
+        systemPrompt = `You are an expert at rephrasing AI video prompts to pass content filters while maintaining visual intent.
+
+CRITICAL RULES:
+1. NEVER use copyrighted character names (Superman, Batman, Homelander, etc.) - replace with generic descriptors
+2. NEVER use violent words (punch, hit, fight, attack, kill, blood, weapon) - use softer alternatives
+3. NEVER use sexual or suggestive content
+4. Keep the same visual composition, camera angles, and scene description
+5. Maintain the mood and atmosphere
+6. Keep it cinematic and descriptive
+
+REPLACEMENTS GUIDE:
+- "Superman" → "a powerful hero in a blue suit with a red cape"
+- "Batman" → "a dark vigilante in black armor"  
+- "Homelander" → "a menacing rival in a patriotic costume"
+- "punch/hit" → "forceful movement/push"
+- "fight/battle" → "confrontation/clash"
+- "thrown into building" → "pushed into a structure"
+- "uppercut" → "upward strike"
+- "explosion" → "burst of energy"
+
+Return ONLY the rephrased prompt, nothing else.`;
+        userMessage = `Rephrase this prompt to be content-filter safe:\n\n${validatedPrompt}${context ? `\n\nContext: ${context}` : ''}`;
+        break;
+
       case "generate":
         systemPrompt += `
 Generate a complete, engaging video script based on the user's request.
@@ -142,6 +169,14 @@ Provide helpful, actionable suggestions or generate content as requested.`;
     }
 
     console.log("[script-assistant] Success, length:", generatedScript.length);
+
+    // Return different response format for rephrase action
+    if (isRephraseAction) {
+      return successResponse({ 
+        rephrasedPrompt: generatedScript.trim(),
+        action: action
+      });
+    }
 
     return successResponse({ 
       script: generatedScript,

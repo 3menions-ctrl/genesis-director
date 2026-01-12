@@ -23,6 +23,7 @@ import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewP
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
+import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
 import { useContinuityOrchestrator } from '@/hooks/useContinuityOrchestrator';
 import type { TransitionAnalysis } from '@/types/continuity-orchestrator';
 
@@ -1612,7 +1613,22 @@ export default function Production() {
                   </motion.div>
                 )}
 
-                {/* Transition Timeline - Continuity Analysis */}
+                {/* Failed Clips Panel - Show detailed errors and fix options */}
+                {clipResults.filter(c => c.status === 'failed').length > 0 && user && projectId && (
+                  <FailedClipsPanel
+                    clips={clipResults.filter(c => c.status === 'failed').map(c => ({
+                      index: c.index,
+                      error: c.error,
+                      prompt: scriptShots?.[c.index]?.description,
+                      id: c.id,
+                    }))}
+                    projectId={projectId}
+                    userId={user.id}
+                    onRetry={handleRetryClip}
+                    isRetrying={retryingClipIndex !== null}
+                    retryingIndex={retryingClipIndex}
+                  />
+                )}
                 {clipResults.length >= 2 && completedClips >= 2 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}

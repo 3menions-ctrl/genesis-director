@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, LogOut, 
-  Menu, X
+  Menu, X, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Library', path: '/projects' },
   { label: 'Pipeline', path: '/production' },
   { label: 'Clips', path: '/clips' },
+  { label: 'Universes', path: '/universes' },
 ];
 
 interface AppHeaderProps {

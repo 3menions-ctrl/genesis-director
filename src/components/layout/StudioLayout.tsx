@@ -5,7 +5,7 @@ import {
   ChevronRight, User, LogOut, Settings,
   Check, Zap, HelpCircle, Keyboard, Coins,
   Home, Activity, TrendingUp, Video,
-  LayoutTemplate, Clock, Plus, Sparkles
+  LayoutTemplate, Clock, Plus, Sparkles, Globe
 } from 'lucide-react';
 
 import { NavLink } from '@/components/NavLink';
@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils';
 const MAIN_NAV = [
   { title: 'Projects', url: '/projects', icon: Folder },
   { title: 'Templates', url: '/templates', icon: LayoutTemplate },
+  { title: 'Universes', url: '/universes', icon: Globe },
 ];
 
 // Iron-Clad Pipeline workflow steps (primary workflow)

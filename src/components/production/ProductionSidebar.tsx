@@ -4,12 +4,12 @@ import {
   Film, 
   Loader2, 
   CheckCircle2, 
-  ChevronLeft, 
-  FolderOpen, 
-  Sparkles,
-  AlertCircle,
-  Clock,
-  Pause
+  PanelLeftClose,
+  PanelLeft,
+  LayoutGrid,
+  AlertTriangle,
+  Zap,
+  Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,74 +48,87 @@ export function ProductionSidebar({
 
   const getStatusConfig = (status: string, progress: number) => {
     if (progress >= 100) return { 
-      color: 'success', 
       label: 'Complete',
       icon: CheckCircle2,
-      bgClass: 'bg-success/10',
-      textClass: 'text-success',
-      dotClass: 'bg-success'
+      color: 'emerald',
+      gradient: 'from-emerald-500/20 to-emerald-500/5',
+      iconColor: 'text-emerald-400',
+      barColor: 'bg-gradient-to-r from-emerald-500 to-emerald-400',
+      pulseColor: 'bg-emerald-400'
     };
     if (status === 'failed' || status === 'stitching_failed') return { 
-      color: 'destructive', 
       label: status === 'stitching_failed' ? 'Stitch Failed' : 'Failed',
-      icon: AlertCircle,
-      bgClass: 'bg-destructive/10',
-      textClass: 'text-destructive',
-      dotClass: 'bg-destructive'
+      icon: AlertTriangle,
+      color: 'rose',
+      gradient: 'from-rose-500/20 to-rose-500/5',
+      iconColor: 'text-rose-400',
+      barColor: 'bg-gradient-to-r from-rose-500 to-rose-400',
+      pulseColor: 'bg-rose-400'
     };
     if (['generating', 'producing', 'stitching'].includes(status)) return { 
-      color: 'info', 
       label: status === 'stitching' ? 'Stitching' : status === 'producing' ? 'Rendering' : 'Generating',
-      icon: Loader2,
-      bgClass: 'bg-info/10',
-      textClass: 'text-info',
-      dotClass: 'bg-info',
+      icon: Zap,
+      color: 'sky',
+      gradient: 'from-sky-500/20 to-sky-500/5',
+      iconColor: 'text-sky-400',
+      barColor: 'bg-gradient-to-r from-sky-500 to-sky-400',
+      pulseColor: 'bg-sky-400',
       isAnimated: true
     };
     return { 
-      color: 'muted', 
-      label: 'Paused',
-      icon: Pause,
-      bgClass: 'bg-muted',
-      textClass: 'text-muted-foreground',
-      dotClass: 'bg-muted-foreground'
+      label: 'Queued',
+      icon: Circle,
+      color: 'zinc',
+      gradient: 'from-zinc-500/20 to-zinc-500/5',
+      iconColor: 'text-zinc-400',
+      barColor: 'bg-gradient-to-r from-zinc-500 to-zinc-400',
+      pulseColor: 'bg-zinc-400'
     };
   };
   
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delayDuration={100}>
       <motion.aside
         initial={false}
-        animate={{ width: isCollapsed ? 64 : 280 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="h-full flex flex-col shrink-0 relative"
-        style={{
-          background: 'linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 2%) 100%)',
-        }}
+        animate={{ width: isCollapsed ? 72 : 300 }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        className={cn(
+          "h-full flex flex-col shrink-0 relative overflow-hidden",
+          "bg-gradient-to-b from-zinc-950 via-zinc-950 to-black",
+          "border-r border-white/[0.04]"
+        )}
       >
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+        {/* Ambient glow effect */}
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
         
         {/* Header */}
         <div className={cn(
-          "relative h-16 flex items-center border-b border-white/[0.06]",
-          isCollapsed ? "justify-center px-2" : "justify-between px-4"
+          "relative z-10 flex items-center h-[60px] border-b border-white/[0.04]",
+          isCollapsed ? "justify-center px-3" : "justify-between px-4"
         )}>
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.div 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/[0.02] flex items-center justify-center border border-white/[0.08] shadow-lg shadow-black/20">
-                  <Sparkles className="w-4 h-4 text-white/80" />
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/10 to-white/[0.02] flex items-center justify-center backdrop-blur-sm border border-white/[0.08]">
+                    <Zap className="w-4 h-4 text-white/70" />
+                  </div>
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
-                <div>
-                  <span className="text-sm font-semibold text-white/90 tracking-tight">Pipeline</span>
-                  <p className="text-[10px] text-white/40 font-medium">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-white/90 tracking-tight leading-none">
+                    Pipeline
+                  </span>
+                  <span className="text-[11px] text-white/35 mt-1">
+                    {projects.length} active
+                  </span>
                 </div>
               </motion.div>
             )}
@@ -127,149 +140,178 @@ export function ProductionSidebar({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "w-8 h-8 rounded-lg transition-all duration-200",
-                  "text-white/40 hover:text-white/80 hover:bg-white/[0.06]",
-                  isCollapsed && "mx-auto"
+                  "w-8 h-8 rounded-lg",
+                  "text-white/30 hover:text-white/70 hover:bg-white/[0.05]",
+                  "transition-colors duration-200"
                 )}
                 onClick={onToggle}
               >
-                <ChevronLeft className={cn(
-                  "w-4 h-4 transition-transform duration-300",
-                  isCollapsed && "rotate-180"
-                )} />
+                {isCollapsed ? (
+                  <PanelLeft className="w-4 h-4" />
+                ) : (
+                  <PanelLeftClose className="w-4 h-4" />
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="text-xs">
-              {isCollapsed ? 'Expand' : 'Collapse'}
+            <TooltipContent side="right" sideOffset={12}>
+              {isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             </TooltipContent>
           </Tooltip>
         </div>
 
         {/* Projects List */}
-        <ScrollArea className="flex-1 relative">
-          <div className={cn("py-3", isCollapsed ? "px-2" : "px-3")}>
-            <div className="space-y-1">
+        <ScrollArea className="flex-1 relative z-10">
+          <div className={cn("py-2", isCollapsed ? "px-2" : "px-2.5")}>
+            <AnimatePresence mode="popLayout">
               {projects.map((project, index) => {
                 const isActive = project.id === activeProjectId;
-                const statusConfig = getStatusConfig(project.status, project.progress);
-                const StatusIcon = statusConfig.icon;
+                const config = getStatusConfig(project.status, project.progress);
+                const StatusIcon = config.icon;
                 
                 return (
                   <Tooltip key={project.id}>
                     <TooltipTrigger asChild>
                       <motion.button
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04, duration: 0.3 }}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ 
+                          delay: index * 0.03,
+                          duration: 0.2,
+                          layout: { duration: 0.2 }
+                        }}
                         onClick={() => handleSelectProject(project.id)}
                         className={cn(
-                          "w-full rounded-xl transition-all duration-200 group relative",
-                          isCollapsed ? "p-2 flex justify-center" : "p-3",
+                          "w-full mb-1 rounded-xl transition-all duration-200 group relative overflow-hidden",
+                          isCollapsed ? "p-2.5" : "p-3",
                           isActive 
                             ? "bg-white/[0.08]" 
                             : "hover:bg-white/[0.04]"
                         )}
                       >
-                        {/* Active indicator line */}
+                        {/* Active state background glow */}
+                        {isActive && (
+                          <div className={cn(
+                            "absolute inset-0 bg-gradient-to-r opacity-50",
+                            config.gradient
+                          )} />
+                        )}
+                        
+                        {/* Active indicator */}
                         <AnimatePresence>
                           {isActive && (
                             <motion.div 
-                              layoutId="activePipelineIndicator"
-                              initial={{ opacity: 0, scaleY: 0 }}
-                              animate={{ opacity: 1, scaleY: 1 }}
-                              exit={{ opacity: 0, scaleY: 0 }}
-                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-8 rounded-r-full bg-white"
+                              initial={{ scaleY: 0, opacity: 0 }}
+                              animate={{ scaleY: 1, opacity: 1 }}
+                              exit={{ scaleY: 0, opacity: 0 }}
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-6 rounded-r-full bg-white"
                             />
                           )}
                         </AnimatePresence>
 
                         {isCollapsed ? (
                           /* Collapsed View */
-                          <div className="relative">
+                          <div className="relative flex justify-center">
                             <div className={cn(
-                              "w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center transition-all",
-                              "bg-gradient-to-br from-white/[0.08] to-transparent border border-white/[0.06]",
-                              isActive && "border-white/20 shadow-lg shadow-black/20"
+                              "w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center",
+                              "bg-gradient-to-br from-white/[0.06] to-white/[0.01]",
+                              "border border-white/[0.06]",
+                              "transition-all duration-200",
+                              isActive && "border-white/[0.12] shadow-lg shadow-black/30"
                             )}>
                               {project.thumbnail ? (
-                                <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
+                                <img 
+                                  src={project.thumbnail} 
+                                  className="w-full h-full object-cover" 
+                                  alt="" 
+                                />
                               ) : (
-                                <Film className="w-4 h-4 text-white/30" />
+                                <Film className="w-4 h-4 text-white/25" />
                               )}
                             </div>
                             
-                            {/* Status indicator dot */}
+                            {/* Status dot */}
                             <div className={cn(
-                              "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center",
-                              "ring-2 ring-[hsl(0_0%_3%)]",
-                              statusConfig.bgClass
+                              "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full",
+                              "flex items-center justify-center",
+                              "ring-[2px] ring-zinc-950",
+                              config.pulseColor,
+                              config.isAnimated && "animate-pulse"
                             )}>
-                              <StatusIcon className={cn(
-                                "w-2.5 h-2.5",
-                                statusConfig.textClass,
-                                statusConfig.isAnimated && "animate-spin"
-                              )} />
+                              {config.isAnimated && (
+                                <Loader2 className="w-2 h-2 text-white animate-spin" />
+                              )}
                             </div>
                           </div>
                         ) : (
                           /* Expanded View */
-                          <div className="flex gap-3 items-start w-full">
+                          <div className="relative flex gap-3 items-center">
                             {/* Thumbnail */}
                             <div className="relative shrink-0">
                               <div className={cn(
-                                "w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center",
-                                "bg-gradient-to-br from-white/[0.08] to-transparent border border-white/[0.06]",
-                                isActive && "border-white/15"
+                                "w-12 h-12 rounded-xl overflow-hidden",
+                                "bg-gradient-to-br from-white/[0.06] to-white/[0.01]",
+                                "border border-white/[0.06]",
+                                "flex items-center justify-center",
+                                "transition-all duration-200",
+                                isActive && "border-white/[0.12]"
                               )}>
                                 {project.thumbnail ? (
-                                  <img src={project.thumbnail} className="w-full h-full object-cover" alt="" />
+                                  <img 
+                                    src={project.thumbnail} 
+                                    className="w-full h-full object-cover" 
+                                    alt="" 
+                                  />
                                 ) : (
-                                  <Film className="w-4 h-4 text-white/25" />
+                                  <Film className="w-5 h-5 text-white/20" />
                                 )}
                               </div>
                             </div>
 
-                            {/* Info */}
+                            {/* Content */}
                             <div className="flex-1 min-w-0 text-left">
-                              <p className={cn(
-                                "text-[13px] font-medium truncate leading-tight transition-colors",
-                                isActive ? "text-white" : "text-white/70 group-hover:text-white/90"
-                              )}>
-                                {project.title}
-                              </p>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className={cn(
+                                  "text-[13px] font-medium truncate leading-tight",
+                                  isActive ? "text-white" : "text-white/70 group-hover:text-white/90",
+                                  "transition-colors duration-200"
+                                )}>
+                                  {project.title}
+                                </p>
+                              </div>
                               
-                              {/* Status row */}
+                              {/* Status */}
                               <div className="flex items-center gap-2 mt-1.5">
                                 <div className={cn(
-                                  "flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-                                  statusConfig.bgClass
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md",
+                                  "bg-white/[0.05] border border-white/[0.04]"
                                 )}>
                                   <StatusIcon className={cn(
                                     "w-3 h-3",
-                                    statusConfig.textClass,
-                                    statusConfig.isAnimated && "animate-spin"
+                                    config.iconColor,
+                                    config.isAnimated && "animate-pulse"
                                   )} />
-                                  <span className={cn("text-[10px] font-medium", statusConfig.textClass)}>
-                                    {statusConfig.label}
+                                  <span className={cn(
+                                    "text-[10px] font-medium",
+                                    config.iconColor
+                                  )}>
+                                    {config.label}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-white/30 font-medium">
+                                
+                                <span className="text-[10px] text-white/25 tabular-nums">
                                   {project.clipsCompleted}/{project.totalClips}
                                 </span>
                               </div>
                               
                               {/* Progress bar */}
-                              <div className="mt-2.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div className="mt-2.5 h-1 rounded-full bg-white/[0.04] overflow-hidden">
                                 <motion.div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    project.progress >= 100 ? "bg-success" :
-                                    statusConfig.color === 'destructive' ? "bg-destructive" :
-                                    statusConfig.color === 'info' ? "bg-white/60" : "bg-white/30"
-                                  )}
+                                  className={cn("h-full rounded-full", config.barColor)}
                                   initial={{ width: 0 }}
                                   animate={{ width: `${Math.min(project.progress, 100)}%` }}
-                                  transition={{ duration: 0.6, ease: "easeOut" }}
+                                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                                 />
                               </div>
                             </div>
@@ -278,58 +320,65 @@ export function ProductionSidebar({
                       </motion.button>
                     </TooltipTrigger>
                     {isCollapsed && (
-                      <TooltipContent side="right" className="flex flex-col gap-1">
-                        <span className="font-medium">{project.title}</span>
-                        <span className="text-muted-foreground text-xs">{statusConfig.label} · {project.progress}%</span>
+                      <TooltipContent side="right" sideOffset={12} className="max-w-[200px]">
+                        <div className="font-medium">{project.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {config.label} · {Math.round(project.progress)}%
+                        </div>
                       </TooltipContent>
                     )}
                   </Tooltip>
                 );
               })}
-              
-              {projects.length === 0 && (
-                <div className={cn(
-                  "text-center py-8",
-                  isCollapsed ? "px-1" : "px-4"
-                )}>
-                  {!isCollapsed && (
-                    <>
-                      <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-3">
-                        <Film className="w-5 h-5 text-white/20" />
-                      </div>
-                      <p className="text-sm text-white/40 font-medium">No projects</p>
-                      <p className="text-xs text-white/25 mt-1">Create one to get started</p>
-                    </>
-                  )}
+            </AnimatePresence>
+            
+            {/* Empty state */}
+            {projects.length === 0 && !isCollapsed && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-12 px-4"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mx-auto mb-4">
+                  <Film className="w-6 h-6 text-white/15" />
                 </div>
-              )}
-            </div>
+                <p className="text-sm text-white/40 font-medium">No projects yet</p>
+                <p className="text-xs text-white/20 mt-1.5 leading-relaxed">
+                  Create your first project to start producing
+                </p>
+              </motion.div>
+            )}
           </div>
         </ScrollArea>
 
         {/* Footer */}
         <div className={cn(
-          "relative border-t border-white/[0.06]",
-          isCollapsed ? "p-2" : "p-3"
+          "relative z-10 border-t border-white/[0.04]",
+          isCollapsed ? "p-2" : "p-2.5"
         )}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
                 className={cn(
-                  "w-full transition-all duration-200 rounded-xl",
-                  "text-white/50 hover:text-white/80 hover:bg-white/[0.06]",
-                  isCollapsed ? "p-2.5 justify-center" : "justify-start gap-2.5 h-10 px-3"
+                  "w-full rounded-xl transition-all duration-200",
+                  "text-white/40 hover:text-white/70 hover:bg-white/[0.05]",
+                  isCollapsed 
+                    ? "h-11 p-0 justify-center" 
+                    : "h-10 justify-start gap-3 px-3"
                 )}
                 onClick={() => navigate('/projects')}
               >
-                <FolderOpen className="w-4 h-4 shrink-0" />
-                {!isCollapsed && <span className="text-xs font-medium">All Projects</span>}
+                <LayoutGrid className="w-4 h-4 shrink-0" />
+                {!isCollapsed && (
+                  <span className="text-[13px] font-medium">All Projects</span>
+                )}
               </Button>
             </TooltipTrigger>
             {isCollapsed && (
-              <TooltipContent side="right">All Projects</TooltipContent>
+              <TooltipContent side="right" sideOffset={12}>
+                All Projects
+              </TooltipContent>
             )}
           </Tooltip>
         </div>

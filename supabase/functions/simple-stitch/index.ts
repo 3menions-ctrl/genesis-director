@@ -19,6 +19,7 @@ const corsHeaders = {
 interface SimpleStitchRequest {
   projectId: string;
   userId?: string;
+  forceManifest?: boolean; // Skip Cloud Run and use manifest playback directly
 }
 
 interface ClipData {
@@ -40,7 +41,7 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { projectId } = await req.json() as SimpleStitchRequest;
+    const { projectId, forceManifest } = await req.json() as SimpleStitchRequest;
 
     if (!projectId) {
       throw new Error("projectId is required");
@@ -89,8 +90,13 @@ serve(async (req) => {
 
     const totalDuration = clipData.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Check for Cloud Run
+    // Check for Cloud Run - or use forceManifest to skip it
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+    
+    if (forceManifest) {
+      console.log("[SimpleStitch] forceManifest=true - skipping Cloud Run, using manifest");
+      return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
+    }
     
     if (!cloudRunUrl) {
       console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - using manifest fallback");
@@ -155,13 +161,20 @@ serve(async (req) => {
       const bgSupabase = createClient(supabaseUrl, supabaseKey);
       
       try {
-        console.log("[SimpleStitch-BG] Calling Cloud Run...");
+        console.log("[SimpleStitch-BG] Calling Cloud Run with 120s timeout...");
+        
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
         
         const response = await fetch(`${cloudRunUrl}/stitch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stitchRequest),
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const result = await response.json();
@@ -198,7 +211,9 @@ serve(async (req) => {
           await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
         }
       } catch (error) {
-        console.error(`[SimpleStitch-BG] Background process error:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isTimeout = errorMessage.includes('abort') || errorMessage.includes('timeout');
+        console.error(`[SimpleStitch-BG] ${isTimeout ? 'Cloud Run timeout' : 'Background process error'}:`, errorMessage);
         await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
       }
     };

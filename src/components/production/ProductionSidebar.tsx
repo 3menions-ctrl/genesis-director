@@ -158,31 +158,19 @@ export function ProductionSidebar({
                           )} />
                           
                           {/* Title & Progress */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className={cn(
-                                "text-[12px] font-medium truncate",
-                                isActive ? "text-zinc-100" : "text-zinc-400"
-                              )}>
-                                {project.title}
-                              </span>
-                              <span className={cn(
-                                "text-[10px] tabular-nums shrink-0",
-                                config.textColor
-                              )}>
-                                {Math.round(project.progress)}%
-                              </span>
-                            </div>
-                            
-                            {/* Progress bar */}
-                            <div className="mt-1 h-[3px] rounded-full bg-zinc-800 overflow-hidden">
-                              <motion.div
-                                className={cn("h-full rounded-full", config.barColor)}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(project.progress, 100)}%` }}
-                                transition={{ duration: 0.4, ease: 'easeOut' }}
-                              />
-                            </div>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <span className={cn(
+                              "text-[12px] font-medium truncate",
+                              isActive ? "text-zinc-100" : "text-zinc-400"
+                            )}>
+                              {project.title}
+                            </span>
+                            <span className={cn(
+                              "text-[10px] tabular-nums shrink-0",
+                              config.textColor
+                            )}>
+                              {Math.round(project.progress)}%
+                            </span>
                           </div>
                         </div>
                       )}

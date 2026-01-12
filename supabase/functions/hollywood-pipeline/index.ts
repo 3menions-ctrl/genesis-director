@@ -1504,16 +1504,51 @@ async function runProduction(
   
   // =====================================================
   // BULLETPROOF FRAME CHAINING: Build scene image lookup for guaranteed fallback
+  // CRITICAL FIX: Also load from DB if state.assets is empty (resume scenario)
   // =====================================================
   const sceneImageLookup: Record<number, string> = {};
+  
+  // First try from state
   if (state.assets?.sceneImages) {
     for (const img of state.assets.sceneImages) {
       if (img.imageUrl) {
-        // sceneNumber is 1-indexed, shotIndex is 0-indexed
         sceneImageLookup[img.sceneNumber - 1] = img.imageUrl;
       }
     }
-    console.log(`[Hollywood] Scene image lookup built: ${Object.keys(sceneImageLookup).length} images available`);
+    console.log(`[Hollywood] Scene image lookup built from state: ${Object.keys(sceneImageLookup).length} images`);
+  }
+  
+  // CRITICAL FIX: If no scene images in state, load from DB (resume scenario)
+  if (Object.keys(sceneImageLookup).length === 0) {
+    try {
+      const { data: projectData } = await supabase
+        .from('movie_projects')
+        .select('scene_images, pro_features_data')
+        .eq('id', state.projectId)
+        .single();
+      
+      // Load scene_images from DB
+      if (projectData?.scene_images && Array.isArray(projectData.scene_images)) {
+        for (const img of projectData.scene_images) {
+          if (img.imageUrl) {
+            sceneImageLookup[img.sceneNumber - 1] = img.imageUrl;
+          }
+        }
+        console.log(`[Hollywood] Scene image lookup loaded from DB: ${Object.keys(sceneImageLookup).length} images`);
+      }
+      
+      // FALLBACK: Use reference image from pro_features_data if no scene images
+      if (Object.keys(sceneImageLookup).length === 0 && projectData?.pro_features_data?.goldenFrameData?.goldenFrameUrl) {
+        const goldenUrl = projectData.pro_features_data.goldenFrameData.goldenFrameUrl;
+        // Use golden frame as fallback for ALL clips
+        for (let i = 0; i < clips.length; i++) {
+          sceneImageLookup[i] = goldenUrl;
+        }
+        console.log(`[Hollywood] Using goldenFrameUrl as universal fallback: ${goldenUrl.substring(0, 60)}...`);
+      }
+    } catch (dbErr) {
+      console.warn(`[Hollywood] Failed to load scene images from DB:`, dbErr);
+    }
   }
   
   // Determine first frame reference (REQUIRED for Clip 1)
@@ -1527,14 +1562,27 @@ async function runProduction(
     console.log(`[Hollywood] Using scene image 1 as Clip 1 starting frame`);
   }
   
+  // CRITICAL: Store referenceImageUrl in sceneImageLookup as ultimate fallback
+  if (referenceImageUrl && Object.keys(sceneImageLookup).length === 0) {
+    for (let i = 0; i < clips.length; i++) {
+      sceneImageLookup[i] = referenceImageUrl;
+    }
+    console.log(`[Hollywood] Using referenceImageUrl as universal fallback for all clips`);
+  }
+  
   // CRITICAL: Clip 1 MUST have a starting image for visual continuity
   if (!referenceImageUrl) {
     console.error(`[Hollywood] ⚠️ CRITICAL: No starting image for Clip 1! Frame chaining will be suboptimal.`);
     console.error(`[Hollywood] Generate scene images first or provide a reference image.`);
-    // Don't halt - proceed with text-to-video for clip 1, but log prominently
   } else {
     console.log(`[Hollywood] ✓ Clip 1 starting frame: ${referenceImageUrl.substring(0, 60)}...`);
+    // Ensure referenceImageUrl is in sceneImageLookup[0] as the ultimate fallback
+    if (!sceneImageLookup[0]) {
+      sceneImageLookup[0] = referenceImageUrl;
+    }
   }
+  
+  console.log(`[Hollywood] Scene image fallbacks: ${Object.keys(sceneImageLookup).length} clips covered`);
   
   console.log(`[Hollywood] Generating ${clips.length} clips with BULLETPROOF frame chaining...`);
   
@@ -2262,6 +2310,11 @@ async function runProduction(
             result.lastFrameUrl = sceneImageFallback;
             frameForAnalysis = sceneImageFallback;
             console.log(`[Hollywood] Using scene image fallback: ${sceneImageFallback.substring(0, 60)}...`);
+          } else if (referenceImageUrl) {
+            // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
+            result.lastFrameUrl = referenceImageUrl;
+            frameForAnalysis = referenceImageUrl;
+            console.warn(`[Hollywood] Using referenceImageUrl as ultimate fallback: ${referenceImageUrl.substring(0, 60)}...`);
           } else {
             console.error(`[Hollywood] ⚠️ CRITICAL: No fallback available! Frame chain broken.`);
             result.lastFrameUrl = undefined;
@@ -2274,6 +2327,11 @@ async function runProduction(
           result.lastFrameUrl = sceneImageFallback;
           frameForAnalysis = sceneImageFallback;
           console.log(`[Hollywood] Using scene image fallback after error: ${sceneImageFallback.substring(0, 60)}...`);
+        } else if (referenceImageUrl) {
+          // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
+          result.lastFrameUrl = referenceImageUrl;
+          frameForAnalysis = referenceImageUrl;
+          console.warn(`[Hollywood] Using referenceImageUrl as ultimate fallback after error`);
         } else {
           result.lastFrameUrl = undefined;
         }
@@ -2755,10 +2813,31 @@ async function runProduction(
       if (nextSceneImage) {
         previousLastFrameUrl = nextSceneImage;
         console.warn(`[Hollywood] ⚠️ Frame extraction failed - using scene image ${i + 2} as fallback for continuity`);
+      } else if (referenceImageUrl) {
+        // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
+        previousLastFrameUrl = referenceImageUrl;
+        console.warn(`[Hollywood] Using referenceImageUrl as fallback for clip ${i + 2}`);
+      } else if (previousLastFrameUrl) {
+        // Keep previous frame as last resort
+        console.error(`[Hollywood] ⚠️ Keeping stale frame for clip ${i + 2}: ${previousLastFrameUrl?.substring(0, 50)}...`);
       } else {
         console.error(`[Hollywood] ⚠️ CRITICAL: No frame or fallback for clip ${i + 2}! Frame chain broken.`);
-        // Keep previous frame as last resort
-        console.error(`[Hollywood] Keeping stale frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      }
+    }
+    
+    // CRITICAL FIX: Persist last_frame_url to database for EVERY completed clip
+    // This ensures resume operations have frame data to work with
+    if (result.lastFrameUrl || previousLastFrameUrl) {
+      const frameToSave = result.lastFrameUrl || previousLastFrameUrl;
+      try {
+        await supabase
+          .from('video_clips')
+          .update({ last_frame_url: frameToSave })
+          .eq('project_id', state.projectId)
+          .eq('shot_index', i);
+        console.log(`[Hollywood] ✓ Persisted last_frame_url to DB for clip ${i + 1}`);
+      } catch (dbErr) {
+        console.warn(`[Hollywood] Failed to persist last_frame_url:`, dbErr);
       }
     }
     
@@ -2777,15 +2856,18 @@ async function runProduction(
     // Even if frame extraction fails, use scene image as visual anchor
     // =====================================================
     if (i === 0) {
-      // BULLETPROOF: Get visual reference from multiple sources
+      // BULLETPROOF: Get visual reference from multiple sources (including referenceImageUrl variable)
       const goldenVisualUrl = result.lastFrameUrl 
         || sceneImageLookup[0] 
+        || referenceImageUrl  // Use local variable, not state
         || (state as any).referenceImageUrl 
+        || request.referenceImageUrl
         || null;
       
       console.log(`[Hollywood] 🎯 GOLDEN FRAME SOURCES:`);
       console.log(`[Hollywood]   lastFrameUrl: ${result.lastFrameUrl ? 'YES' : 'NO (frame extraction failed)'}`);
       console.log(`[Hollywood]   sceneImageLookup[0]: ${sceneImageLookup[0] ? 'YES' : 'NO'}`);
+      console.log(`[Hollywood]   referenceImageUrl: ${referenceImageUrl ? 'YES' : 'NO'}`);
       console.log(`[Hollywood]   Using: ${goldenVisualUrl?.substring(0, 60) || 'TEXT-ONLY ANCHORS'}...`);
       
       // Build golden frame data from first clip - manifest is optional enhancement

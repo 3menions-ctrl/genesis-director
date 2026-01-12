@@ -684,7 +684,15 @@ export default function Clips() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-white/80 line-clamp-2">{clip.prompt}</p>
+                        <div className="space-y-1.5">
+                          <p className="text-sm text-white/80 line-clamp-2">{clip.prompt}</p>
+                          {clip.motion_vectors && (
+                            <MotionVectorsDisplay 
+                              motionVectors={clip.motion_vectors}
+                              shotIndex={clip.shot_index}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-white/50 truncate block max-w-[120px]">

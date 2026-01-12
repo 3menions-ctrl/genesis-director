@@ -459,9 +459,9 @@ function buildContinuityFromManifest(manifest: ShotContinuityManifest): { prompt
 // =====================================================
 // IDENTITY DECAY PREVENTION SYSTEM
 // Problem: Character identity degrades over clips (especially after clip 3)
-// Solution: Periodic re-anchoring + cumulative identity reinforcement
+// Solution: Re-anchor EVERY clip to original identity + cumulative reinforcement
 // =====================================================
-const IDENTITY_REANCHOR_INTERVAL = 2; // Re-anchor to original every N clips
+const IDENTITY_REANCHOR_INTERVAL = 1; // Re-anchor EVERY clip to original
 const BASE_IDENTITY_WEIGHT = 1.0;
 const IDENTITY_WEIGHT_GROWTH = 0.15; // Increase identity emphasis by 15% each clip
 

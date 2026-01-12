@@ -2973,18 +2973,98 @@ serve(async (req) => {
     // IMPORTANT: Use 6-second duration as the standard for all clips
     const clipDurationSeconds = 6;
     
-    // Mark clip as completed with correct duration
-    await supabase.rpc('upsert_video_clip', {
-      p_project_id: request.projectId,
-      p_user_id: request.userId,
-      p_shot_index: request.clipIndex,
-      p_prompt: velocityAwarePrompt,
-      p_status: 'completed',
-      p_video_url: storedUrl,
-      p_last_frame_url: lastFrameUrl,
-      p_motion_vectors: JSON.stringify(motionVectors),
-      p_duration_seconds: clipDurationSeconds,
-    });
+    // =====================================================
+    // BULLETPROOF FRAME PERSISTENCE: Critical for continuity chain
+    // RPC may silently fail - add direct SQL update as verification
+    // =====================================================
+    
+    // STEP 1: Ensure we have SOME frame URL (never leave it NULL)
+    const frameToSave = lastFrameUrl 
+      || request.sceneImageUrl 
+      || request.startImageUrl 
+      || request.referenceImageUrl 
+      || (request as any).goldenFrameData?.goldenFrameUrl
+      || undefined;
+    
+    if (!frameToSave) {
+      console.error(`[SingleClip] ⚠️ CRITICAL: No frame URL available for clip ${request.clipIndex}! Continuity will be broken.`);
+    } else {
+      console.log(`[SingleClip] Frame to save: ${frameToSave.substring(0, 60)}... (source: ${lastFrameUrl ? 'extracted' : 'fallback'})`);
+    }
+    
+    // STEP 2: Mark clip as completed via RPC
+    try {
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: request.projectId,
+        p_user_id: request.userId,
+        p_shot_index: request.clipIndex,
+        p_prompt: velocityAwarePrompt,
+        p_status: 'completed',
+        p_video_url: storedUrl,
+        p_last_frame_url: frameToSave,
+        p_motion_vectors: JSON.stringify(motionVectors),
+        p_duration_seconds: clipDurationSeconds,
+      });
+      console.log(`[SingleClip] ✓ RPC upsert_video_clip completed`);
+    } catch (rpcError) {
+      console.error(`[SingleClip] RPC upsert_video_clip failed:`, rpcError);
+    }
+    
+    // STEP 3: VERIFICATION + DIRECT SQL UPDATE (belt and suspenders)
+    // This ensures the frame URL is DEFINITELY saved even if RPC silently fails
+    if (frameToSave) {
+      try {
+        // Direct update with explicit frame URL
+        const { error: updateError } = await supabase
+          .from('video_clips')
+          .update({ 
+            last_frame_url: frameToSave,
+            video_url: storedUrl,
+            status: 'completed',
+          })
+          .eq('project_id', request.projectId)
+          .eq('shot_index', request.clipIndex);
+        
+        if (updateError) {
+          console.error(`[SingleClip] Direct SQL update failed:`, updateError);
+        } else {
+          // VERIFY the save actually worked
+          const { data: verifyData } = await supabase
+            .from('video_clips')
+            .select('last_frame_url')
+            .eq('project_id', request.projectId)
+            .eq('shot_index', request.clipIndex)
+            .single();
+          
+          if (verifyData?.last_frame_url === frameToSave) {
+            console.log(`[SingleClip] ✓ VERIFIED last_frame_url persisted: ${frameToSave.substring(0, 60)}...`);
+          } else {
+            console.error(`[SingleClip] ⚠️ VERIFICATION FAILED! DB has: ${verifyData?.last_frame_url?.substring(0, 60) || 'NULL'}`);
+            
+            // RETRY with raw update
+            const { error: retryError } = await supabase
+              .from('video_clips')
+              .upsert({
+                project_id: request.projectId,
+                shot_index: request.clipIndex,
+                user_id: request.userId,
+                prompt: velocityAwarePrompt,
+                status: 'completed',
+                video_url: storedUrl,
+                last_frame_url: frameToSave,
+              }, { onConflict: 'project_id,shot_index' });
+            
+            if (retryError) {
+              console.error(`[SingleClip] Upsert retry also failed:`, retryError);
+            } else {
+              console.log(`[SingleClip] ✓ Upsert retry succeeded`);
+            }
+          }
+        }
+      } catch (verifyErr) {
+        console.error(`[SingleClip] Verification/retry failed:`, verifyErr);
+      }
+    }
 
     // Log API cost for this video generation
     try {

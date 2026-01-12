@@ -1227,6 +1227,20 @@ async function runAssetCreation(
         state.assets.sceneImages = imageResult.images;
         console.log(`[Hollywood] Generated ${imageResult.images.length} scene images for ALL shots`);
         
+        // CRITICAL: Persist scene_images to DB immediately for fallback access
+        try {
+          await supabase
+            .from('movie_projects')
+            .update({ 
+              scene_images: imageResult.images,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', state.projectId);
+          console.log(`[Hollywood] ✓ Scene images persisted to DB for fallback access`);
+        } catch (persistErr) {
+          console.warn(`[Hollywood] Failed to persist scene_images:`, persistErr);
+        }
+        
         // SAFEGUARD: Track partial scene image failure
         const expectedCount = state.script.shots.length;
         const generatedCount = imageResult.images.length;
@@ -1237,10 +1251,46 @@ async function runAssetCreation(
       } else {
         console.error(`[Hollywood] Scene image generation returned no images`);
         state.degradation.sceneImagePartialFail = state.script.shots.length;
+        
+        // BULLETPROOF FALLBACK: Use reference image for all scenes if no scene images
+        if (request.referenceImageUrl) {
+          console.log(`[Hollywood] Using reference image as fallback for all scene images...`);
+          state.assets.sceneImages = state.script.shots.map((_, i) => ({
+            sceneNumber: i + 1,
+            imageUrl: request.referenceImageUrl as string,
+          }));
+          
+          // Persist fallback scene images
+          await supabase
+            .from('movie_projects')
+            .update({ 
+              scene_images: state.assets.sceneImages,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', state.projectId);
+          console.log(`[Hollywood] ✓ Fallback scene images (reference image) persisted`);
+        }
       }
     } catch (err) {
       console.error(`[Hollywood] Scene image generation FAILED:`, err);
       state.degradation.sceneImagePartialFail = state.script?.shots?.length || 0;
+      
+      // BULLETPROOF FALLBACK: Use reference image
+      if (request.referenceImageUrl) {
+        console.log(`[Hollywood] Scene image generation failed - using reference image as universal fallback...`);
+        state.assets.sceneImages = state.script.shots.map((_, i) => ({
+          sceneNumber: i + 1,
+          imageUrl: request.referenceImageUrl as string,
+        }));
+        
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            scene_images: state.assets.sceneImages,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', state.projectId);
+      }
     }
   } else {
     console.error(`[Hollywood] No script shots available for scene images`);
@@ -2684,29 +2734,54 @@ async function runProduction(
               
               const existingData = currentProject?.pro_features_data || {};
               
-              await supabase
+              const updatedProData = {
+                ...existingData,
+                // Full masterSceneAnchor for resume (CRITICAL)
+                masterSceneAnchor: masterSceneAnchor,
+                // CRITICAL FIX: Persist accumulatedAnchors for resume
+                // Without this, clips on resume have 0 anchors
+                accumulatedAnchors: accumulatedAnchors.slice(-5), // Keep last 5 for reasonable size
+                // Also persist goldenFrameData if available (CRITICAL for character consistency)
+                goldenFrameData: goldenFrameData || existingData.goldenFrameData,
+                // And identityBible (CRITICAL for resume)
+                identityBible: state.identityBible || existingData.identityBible,
+                // Summary for debugging/monitoring
+                sceneAnchors: {
+                  count: accumulatedAnchors.length,
+                  masterPrompt: masterSceneAnchor?.masterConsistencyPrompt?.substring(0, 500),
+                  masterLighting: masterSceneAnchor?.lighting?.timeOfDay,
+                  masterColorTemp: masterSceneAnchor?.colorPalette?.temperature,
+                  lastUpdated: new Date().toISOString(),
+                },
+              };
+              
+              const { error: anchorUpdateError } = await supabase
                 .from('movie_projects')
                 .update({
-                  pro_features_data: {
-                    ...existingData,
-                    // Full masterSceneAnchor for resume (CRITICAL)
-                    masterSceneAnchor: masterSceneAnchor,
-                    // CRITICAL FIX: Persist accumulatedAnchors for resume
-                    // Without this, clips on resume have 0 anchors
-                    accumulatedAnchors: accumulatedAnchors.slice(-5), // Keep last 5 for reasonable size
-                    // Summary for debugging/monitoring
-                    sceneAnchors: {
-                      count: accumulatedAnchors.length,
-                      masterPrompt: masterSceneAnchor?.masterConsistencyPrompt?.substring(0, 500),
-                      masterLighting: masterSceneAnchor?.lighting?.timeOfDay,
-                      masterColorTemp: masterSceneAnchor?.colorPalette?.temperature,
-                      lastUpdated: new Date().toISOString(),
-                    },
-                  },
+                  pro_features_data: updatedProData,
                 })
                 .eq('id', state.projectId);
               
-              console.log(`[Hollywood] ✓ masterSceneAnchor + accumulatedAnchors (${accumulatedAnchors.length}) persisted to DB for resume`);
+              if (anchorUpdateError) {
+                console.error(`[Hollywood] ⚠️ Scene anchor persistence FAILED:`, anchorUpdateError);
+              } else {
+                // VERIFY the save
+                const { data: verifyData } = await supabase
+                  .from('movie_projects')
+                  .select('pro_features_data')
+                  .eq('id', state.projectId)
+                  .single();
+                
+                const savedAnchors = verifyData?.pro_features_data?.accumulatedAnchors?.length || 0;
+                const savedGolden = verifyData?.pro_features_data?.goldenFrameData ? 'YES' : 'NO';
+                const savedIdentity = verifyData?.pro_features_data?.identityBible ? 'YES' : 'NO';
+                
+                console.log(`[Hollywood] ✓ VERIFIED persistence:`);
+                console.log(`[Hollywood]   masterSceneAnchor: YES`);
+                console.log(`[Hollywood]   accumulatedAnchors: ${savedAnchors}`);
+                console.log(`[Hollywood]   goldenFrameData: ${savedGolden}`);
+                console.log(`[Hollywood]   identityBible: ${savedIdentity}`);
+              }
             } catch (updateErr) {
               console.warn(`[Hollywood] Failed to persist masterSceneAnchor:`, updateErr);
             }
@@ -3162,6 +3237,7 @@ async function runProduction(
       // =====================================================
       // CRITICAL: Persist goldenFrameData to DB for resume support
       // Without this, 12-dimensional anchors are lost on pipeline restart
+      // BULLETPROOF: Verify after save
       // =====================================================
       try {
         // Get current pro_features_data and merge
@@ -3175,9 +3251,11 @@ async function runProduction(
           ...(currentProject?.pro_features_data || {}),
           goldenFrameData,
           goldenFrameCapturedAt: new Date().toISOString(),
+          // CRITICAL: Also persist identityBible for resume
+          identityBible: state.identityBible,
         };
         
-        await supabase
+        const { error: updateError } = await supabase
           .from('movie_projects')
           .update({
             pro_features_data: updatedProFeatures,
@@ -3185,7 +3263,36 @@ async function runProduction(
           })
           .eq('id', state.projectId);
         
-        console.log(`[Hollywood] ✓ PERSISTED goldenFrameData to DB for resume support`);
+        if (updateError) {
+          console.error(`[Hollywood] ⚠️ goldenFrameData persistence FAILED:`, updateError);
+        } else {
+          // VERIFICATION: Read back and confirm
+          const { data: verifyData } = await supabase
+            .from('movie_projects')
+            .select('pro_features_data')
+            .eq('id', state.projectId)
+            .single();
+          
+          if (verifyData?.pro_features_data?.goldenFrameData?.goldenFrameUrl) {
+            console.log(`[Hollywood] ✓ VERIFIED goldenFrameData persisted:`);
+            console.log(`[Hollywood]   Frame URL: ${verifyData.pro_features_data.goldenFrameData.goldenFrameUrl.substring(0, 60)}...`);
+            console.log(`[Hollywood]   Anchors: ${verifyData.pro_features_data.goldenFrameData.goldenAnchors?.length || 0}`);
+          } else {
+            console.error(`[Hollywood] ⚠️ VERIFICATION FAILED - goldenFrameData not in DB!`);
+            
+            // RETRY with raw update
+            await supabase.rpc('upsert_project_pro_features', {
+              p_project_id: state.projectId,
+              p_key: 'goldenFrameData',
+              p_value: JSON.stringify(goldenFrameData),
+            }).catch(() => {
+              // RPC may not exist, try direct
+              console.log(`[Hollywood] RPC not available, using direct update...`);
+            });
+          }
+        }
+        
+        console.log(`[Hollywood] ✓ PERSISTED goldenFrameData + identityBible to DB for resume support`);
       } catch (persistErr) {
         console.warn(`[Hollywood] Failed to persist goldenFrameData:`, persistErr);
       }

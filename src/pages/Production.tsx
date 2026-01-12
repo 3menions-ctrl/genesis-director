@@ -886,7 +886,8 @@ export default function Production() {
           }
           
           // Check for script awaiting approval (realtime update)
-          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots && !scriptShots) {
+          // FIXED: Removed !scriptShots check to avoid stale closure - always update when awaiting_approval
+          if (tasks.stage === 'awaiting_approval' && tasks.script?.shots) {
             const shots: ScriptShot[] = tasks.script.shots.map((shot, idx) => ({
               id: shot.id || `shot-${idx}`,
               index: idx,
@@ -907,6 +908,38 @@ export default function Production() {
             setScriptShots(shots);
             addLog('Script ready for approval', 'info');
             toast.info('Script ready! Review and approve to continue.');
+          }
+          
+          // Also load script from generated_script if status is awaiting_approval but tasks don't have script
+          if (project.status === 'awaiting_approval' && !tasks.script?.shots && project.generated_script) {
+            try {
+              const scriptData = JSON.parse(project.generated_script as string);
+              if (scriptData?.shots && Array.isArray(scriptData.shots)) {
+                const shots: ScriptShot[] = scriptData.shots.map((shot: any, idx: number) => ({
+                  id: shot.id || `shot-${idx}`,
+                  index: idx,
+                  title: shot.title || `Shot ${idx + 1}`,
+                  description: shot.description || '',
+                  durationSeconds: shot.durationSeconds || 6,
+                  sceneType: shot.sceneType,
+                  cameraScale: shot.cameraScale,
+                  cameraAngle: shot.cameraAngle,
+                  movementType: shot.movementType,
+                  transitionOut: shot.transitionOut,
+                  visualAnchors: shot.visualAnchors,
+                  motionDirection: shot.motionDirection,
+                  lightingHint: shot.lightingHint,
+                  dialogue: shot.dialogue,
+                  mood: shot.mood,
+                }));
+                setScriptShots(shots);
+                setPipelineStage('awaiting_approval');
+                addLog('Script ready for approval', 'info');
+                toast.info('Script ready! Review and approve to continue.');
+              }
+            } catch (e) {
+              console.warn('[Production] Could not parse generated_script in realtime:', e);
+            }
           }
 
           if (tasks.scriptGenerated && !pipelineLogs.some(l => l.message.includes('Script'))) {

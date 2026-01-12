@@ -107,6 +107,48 @@ function getSupabase() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// Update progress in movie_projects table for real-time UI updates
+async function updateProgressInDb(projectId, stage, progress, error = null, callbackUrl = null, callbackServiceKey = null) {
+  try {
+    // Use Lovable Cloud URL if provided (where the DB lives)
+    const effectiveUrl = callbackUrl 
+      ? callbackUrl.replace('/functions/v1/finalize-stitch', '')
+      : SUPABASE_URL;
+    const effectiveKey = callbackServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!effectiveKey) {
+      console.warn('[Progress] No service key available, skipping DB update');
+      return;
+    }
+    
+    const supabase = createClient(effectiveUrl, effectiveKey);
+    
+    const updatePayload = {
+      pending_video_tasks: {
+        stage,
+        progress,
+        error: error || null,
+        lastUpdated: new Date().toISOString(),
+        stitchingStarted: stage === 'downloading_clips' ? new Date().toISOString() : undefined,
+      },
+      updated_at: new Date().toISOString(),
+    };
+    
+    const { error: dbError } = await supabase
+      .from('movie_projects')
+      .update(updatePayload)
+      .eq('id', projectId);
+    
+    if (dbError) {
+      console.warn(`[Progress] DB update failed: ${dbError.message}`);
+    } else {
+      console.log(`[Progress] Updated: ${stage} ${progress}%`);
+    }
+  } catch (err) {
+    console.warn(`[Progress] Failed to update progress: ${err.message}`);
+  }
+}
+
 // Get signed upload URL from edge function
 // CRITICAL: Uses dynamic credentials to ensure correct Supabase URL is used
 async function getSignedUploadUrl(projectId, filename, supabaseUrl, serviceKey) {
@@ -556,6 +598,9 @@ async function stitchVideos(request) {
     const validClips = [];
     const invalidClips = [];
     
+    // Update progress: downloading clips
+    await updateProgressInDb(projectId, 'downloading_clips', 5, null, effectiveCallbackUrl, effectiveCallbackKey);
+    
     console.log('[Stitch] Step 1: Downloading and validating clips...');
     
     for (let i = 0; i < clips.length; i++) {
@@ -617,6 +662,9 @@ async function stitchVideos(request) {
     
     validClips.sort((a, b) => a.index - b.index);
     
+    // Update progress: normalizing
+    await updateProgressInDb(projectId, 'normalizing', 20, null, effectiveCallbackUrl, effectiveCallbackKey);
+    
     console.log('[Stitch] Step 2: Normalizing clips for smooth transitions...');
     
     const normalizedClips = [];
@@ -637,11 +685,18 @@ async function stitchVideos(request) {
         normalizedPath
       ], `Normalizing clip ${i + 1}/${validClips.length}`);
       
+      // Update progress per clip
+      const normProgress = 20 + Math.round((i + 1) / validClips.length * 15);
+      await updateProgressInDb(projectId, 'normalizing', normProgress, null, effectiveCallbackUrl, effectiveCallbackKey);
+      
       normalizedClips.push({
         ...clip,
         normalizedPath,
       });
     }
+    
+    // Update progress: crossfading
+    await updateProgressInDb(projectId, 'crossfading', 40, null, effectiveCallbackUrl, effectiveCallbackKey);
     
     console.log(`[Stitch] Step 3: Applying ${transitionType} crossfades...`);
     
@@ -678,6 +733,9 @@ async function stitchVideos(request) {
       accumulatedOffset += nextClip.actualDuration - xfadeDuration;
     }
     
+    // Update progress: color grading
+    await updateProgressInDb(projectId, 'color_grading', 55, null, effectiveCallbackUrl, effectiveCallbackKey);
+    
     console.log(`[Stitch] Step 4: Applying ${colorGrading} color grading...`);
     
     const concatenatedPath = path.join(workDir, 'concatenated.mp4');
@@ -706,6 +764,9 @@ async function stitchVideos(request) {
     const hasSFX = sfxTracks.length > 0;
     
     if (hasVoice || hasMusic || hasSFX) {
+      // Update progress: audio mixing
+      await updateProgressInDb(projectId, 'audio_mixing', 70, null, effectiveCallbackUrl, effectiveCallbackKey);
+      
       console.log('[Stitch] Step 5: Audio mixing with music sync and SFX...');
       console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}, SFX tracks: ${sfxTracks.length}`);
       
@@ -802,6 +863,9 @@ async function stitchVideos(request) {
       console.log(`[Stitch] Audio mixing complete: ${mixInputs.length} tracks mixed`);
     }
     
+    // Update progress: uploading
+    await updateProgressInDb(projectId, 'uploading', 85, null, effectiveCallbackUrl, effectiveCallbackKey);
+    
     console.log('[Stitch] Step 6: Getting signed upload URL...');
     
     const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
@@ -821,6 +885,9 @@ async function stitchVideos(request) {
     
     const finalVideoUrl = uploadUrlData.publicUrl;
     console.log(`[Stitch] Upload complete: ${finalVideoUrl}`);
+    
+    // Update progress: complete
+    await updateProgressInDb(projectId, 'complete', 100, null, effectiveCallbackUrl, effectiveCallbackKey);
     
     console.log('[Stitch] Step 7: Finalizing project...');
     

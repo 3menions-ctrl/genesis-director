@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { Play, CheckCircle2, Loader2, RefreshCw, Film, Sparkles, ChevronRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import { cn } from '@/lib/utils';
@@ -49,49 +48,47 @@ export function ProductionClipsGrid({
   if (clips.length === 0) return null;
 
   return (
-    <Card className="glass-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Film className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-sm">Video Clips</CardTitle>
-              <p className="text-xs text-muted-foreground">{completedClips} of {clips.length || expectedClipCount} ready</p>
-            </div>
+    <div className="bg-zinc-800/50 rounded-lg border border-zinc-700/30">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-zinc-700/30">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-violet-500/15 flex items-center justify-center">
+            <Film className="w-3.5 h-3.5 text-violet-400" />
           </div>
-          <div className="flex items-center gap-2">
-            {completedClips > 0 && !finalVideoUrl && (
-              <Button 
-                size="sm" 
-                className="h-8 text-xs gap-1.5"
-                onClick={onStitch}
-                disabled={isSimpleStitching}
-              >
-                {isSimpleStitching ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3 h-3" />
-                )}
-                Stitch Video
-              </Button>
-            )}
-            {completedClips > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
-                onClick={onViewAll}
-              >
-                View All <ChevronRight className="w-3 h-3" />
-              </Button>
-            )}
+          <div>
+            <span className="text-xs font-medium text-zinc-200">Clips</span>
+            <span className="text-[10px] text-zinc-500 ml-1.5">{completedClips}/{clips.length || expectedClipCount}</span>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+        <div className="flex items-center gap-1.5">
+          {completedClips > 0 && !finalVideoUrl && (
+            <Button 
+              size="sm" 
+              className="h-7 text-[11px] gap-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-200"
+              onClick={onStitch}
+              disabled={isSimpleStitching}
+            >
+              {isSimpleStitching ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Sparkles className="w-3 h-3" />
+              )}
+              Stitch
+            </Button>
+          )}
+          {completedClips > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 text-[11px] text-zinc-500 hover:text-zinc-300 gap-0.5"
+              onClick={onViewAll}
+            >
+              All <ChevronRight className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
           {clips.map((clip, index) => {
             const isCompleted = clip.status === 'completed';
             const isGenerating = clip.status === 'generating';
@@ -102,18 +99,18 @@ export function ProductionClipsGrid({
             return (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.02 }}
-                className="flex flex-col gap-1"
+                transition={{ delay: index * 0.015 }}
+                className="flex flex-col gap-0.5"
               >
                 <div
                   className={cn(
-                    "relative aspect-video rounded-lg overflow-hidden cursor-pointer group transition-all duration-200",
-                    isCompleted && "ring-1 ring-success/30 hover:ring-success/50 hover:scale-[1.02]",
-                    isGenerating && "ring-1 ring-primary/20",
-                    isFailed && "ring-1 ring-destructive/30 hover:ring-destructive/50",
-                    !isCompleted && !isGenerating && !isFailed && "ring-1 ring-border"
+                    "relative aspect-video rounded overflow-hidden cursor-pointer group transition-all duration-150",
+                    isCompleted && "ring-1 ring-emerald-500/30 hover:ring-emerald-500/60",
+                    isGenerating && "ring-1 ring-sky-500/30",
+                    isFailed && "ring-1 ring-rose-500/30 hover:ring-rose-500/60",
+                    !isCompleted && !isGenerating && !isFailed && "ring-1 ring-zinc-700/50"
                   )}
                   onClick={() => {
                     if (isCompleted && clip.videoUrl) onPlay(clip.videoUrl);
@@ -129,47 +126,46 @@ export function ProductionClipsGrid({
                         preload="metadata"
                         onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <Play className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                        <Play className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
                       </div>
-                      <CheckCircle2 className="absolute top-1 right-1 w-4 h-4 text-success" />
+                      <CheckCircle2 className="absolute top-0.5 right-0.5 w-3 h-3 text-emerald-400" />
                     </>
                   ) : isGenerating ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-sky-500/10">
+                      <Loader2 className="w-4 h-4 text-sky-400 animate-spin" />
                     </div>
                   ) : isFailed ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-destructive/5">
+                    <div className="absolute inset-0 flex items-center justify-center bg-rose-500/10">
                       {isRetrying ? (
-                        <Loader2 className="w-5 h-5 text-destructive animate-spin" />
+                        <Loader2 className="w-4 h-4 text-rose-400 animate-spin" />
                       ) : (
-                        <RefreshCw className="w-5 h-5 text-destructive" />
+                        <RefreshCw className="w-4 h-4 text-rose-400" />
                       )}
                     </div>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                      <span className="text-sm font-medium text-muted-foreground">{index + 1}</span>
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+                      <span className="text-[11px] font-medium text-zinc-500">{index + 1}</span>
                     </div>
                   )}
                   
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-background/80 text-[10px] font-bold text-foreground">
+                  <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded-sm bg-black/60 text-[9px] font-medium text-zinc-200">
                     {index + 1}
                   </div>
                 </div>
                 
-                {/* Motion Vectors */}
                 {hasMotionVectors && (
                   <MotionVectorsDisplay 
                     motionVectors={clip.motionVectors}
                     shotIndex={clip.index}
-                    className="text-[10px]"
+                    className="text-[9px]"
                   />
                 )}
               </motion.div>
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

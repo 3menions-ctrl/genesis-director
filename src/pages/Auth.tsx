@@ -159,9 +159,9 @@ export default function Auth() {
           <div>
             <div className="flex items-center gap-3 mb-12">
               <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                <Film className="w-6 h-6 text-white" />
+                <span className="text-xl font-display font-bold text-white">AS</span>
               </div>
-              <span className="text-xl font-display font-bold text-white">AI Film Studio</span>
+              <span className="text-xl font-display font-bold text-white">Apex Studio</span>
             </div>
 
             <h1 className="text-5xl font-display font-bold text-white leading-tight mb-6">
@@ -213,10 +213,10 @@ export default function Auth() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-foreground mb-4">
-              <Film className="w-7 h-7 text-background" />
+              <span className="text-xl font-display font-bold text-background">AS</span>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">
-              AI Film Studio
+              Apex Studio
             </h1>
           </div>
 

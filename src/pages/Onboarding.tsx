@@ -230,13 +230,13 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      {/* Decorative elements */}
+      {/* Decorative elements - subtle muted gradients */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-primary/5 blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-muted/50 blur-[120px] animate-morph" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary/40 blur-[100px]" />
       </div>
 
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full max-w-lg animate-fade-in">
         {/* Progress with step indicator */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <div className="flex items-center gap-2">
@@ -244,18 +244,22 @@ export default function Onboarding() {
               <div
                 key={s}
                 className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
-                  s === step ? "w-12 bg-primary" : s < step ? "w-8 bg-primary/50" : "w-8 bg-muted"
+                  "h-1.5 rounded-full transition-all duration-500 ease-out",
+                  s === step 
+                    ? "w-12 bg-primary shadow-sm" 
+                    : s < step 
+                      ? "w-8 bg-primary/60" 
+                      : "w-8 bg-border"
                 )}
               />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Step {step} of 3</p>
+          <p className="text-xs text-muted-foreground font-medium">Step {step} of 3</p>
         </div>
 
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-xl shadow-primary/25">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-obsidian">
             <Film className="w-7 h-7 text-primary-foreground" />
           </div>
           <AnimatePresence mode="wait">
@@ -264,9 +268,9 @@ export default function Onboarding() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h1 className="text-2xl font-display font-bold text-foreground mb-2">
+              <h1 className="text-2xl font-display font-bold text-foreground mb-2 tracking-tight">
                 {step === 1 && "Welcome! Let's get to know you"}
                 {step === 2 && "How will you be using Apex Studio?"}
                 {step === 3 && "What will you create?"}
@@ -281,14 +285,14 @@ export default function Onboarding() {
           
           {/* Show email context */}
           {user?.email && (
-            <p className="text-xs text-muted-foreground/60 mt-3">
+            <p className="text-xs text-muted-foreground mt-3 font-medium">
               Signed in as {user.email}
             </p>
           )}
         </div>
 
-        {/* Form Card */}
-        <div className="p-8 rounded-2xl bg-card border border-border overflow-hidden">
+        {/* Form Card - Premium glass card */}
+        <div className="glass-card p-8">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={step}
@@ -302,8 +306,8 @@ export default function Onboarding() {
               {/* Step 1: Name */}
               {step === 1 && (
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-foreground text-sm">
+                  <div className="space-y-2.5">
+                    <Label htmlFor="fullName" className="text-foreground text-sm font-medium">
                       What's your name?
                     </Label>
                     <Input
@@ -316,20 +320,21 @@ export default function Onboarding() {
                         if (errors.fullName) setErrors({});
                       }}
                       className={cn(
-                        "h-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20",
-                        errors.fullName && "border-destructive"
+                        "h-12 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground",
+                        "focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200",
+                        errors.fullName && "border-destructive focus:ring-destructive/10"
                       )}
                       maxLength={100}
                       autoFocus
                     />
                     {errors.fullName && (
-                      <p className="text-destructive text-xs">{errors.fullName}</p>
+                      <p className="text-destructive text-xs font-medium">{errors.fullName}</p>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="company" className="text-foreground text-sm">
-                      Company or brand <span className="text-muted-foreground">(optional)</span>
+                  <div className="space-y-2.5">
+                    <Label htmlFor="company" className="text-foreground text-sm font-medium">
+                      Company or brand <span className="text-muted-foreground font-normal">(optional)</span>
                     </Label>
                     <Input
                       id="company"
@@ -337,11 +342,11 @@ export default function Onboarding() {
                       placeholder="Acme Studios"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      className="h-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20"
+                      className="h-12 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all duration-200"
                       maxLength={100}
                     />
                     {errors.company && (
-                      <p className="text-destructive text-xs">{errors.company}</p>
+                      <p className="text-destructive text-xs font-medium">{errors.company}</p>
                     )}
                   </div>
                 </div>
@@ -350,25 +355,28 @@ export default function Onboarding() {
               {/* Step 2: Role */}
               {step === 2 && (
                 <div className="space-y-3">
-                  {ROLES.map((role) => (
-                    <button
+                  {ROLES.map((role, index) => (
+                    <motion.button
                       key={role.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
                       onClick={() => {
                         setFormData({ ...formData, role: role.id });
                         setErrors({});
                       }}
                       className={cn(
-                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
+                        "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left group",
                         formData.role === role.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-secondary/50"
                       )}
                     >
                       <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
+                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200",
                         formData.role === role.id 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-muted text-muted-foreground"
+                          ? "bg-primary text-primary-foreground shadow-obsidian" 
+                          : "bg-secondary text-muted-foreground group-hover:bg-muted"
                       )}>
                         <role.icon className="w-5 h-5" />
                       </div>
@@ -376,10 +384,10 @@ export default function Onboarding() {
                       {formData.role === role.id && (
                         <Check className="w-5 h-5 text-primary ml-auto" />
                       )}
-                    </button>
+                    </motion.button>
                   ))}
                   {errors.role && (
-                    <p className="text-destructive text-xs">{errors.role}</p>
+                    <p className="text-destructive text-xs font-medium">{errors.role}</p>
                   )}
                 </div>
               )}
@@ -387,36 +395,39 @@ export default function Onboarding() {
               {/* Step 3: Use Case */}
               {step === 3 && (
                 <div className="grid grid-cols-2 gap-3">
-                  {USE_CASES.map((useCase) => (
-                    <button
+                  {USE_CASES.map((useCase, index) => (
+                    <motion.button
                       key={useCase.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.04, duration: 0.2 }}
                       onClick={() => {
                         setFormData({ ...formData, useCase: useCase.id });
                         setErrors({});
                       }}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center",
+                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center group",
                         formData.useCase === useCase.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-secondary/50"
                       )}
                     >
                       <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+                        "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
                         formData.useCase === useCase.id 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-muted text-muted-foreground"
+                          ? "bg-primary text-primary-foreground shadow-sm" 
+                          : "bg-secondary text-muted-foreground group-hover:bg-muted"
                       )}>
                         <useCase.icon className="w-5 h-5" />
                       </div>
                       <div>
                         <p className="font-medium text-foreground text-sm">{useCase.label}</p>
-                        <p className="text-muted-foreground text-xs">{useCase.description}</p>
+                        <p className="text-muted-foreground text-xs leading-tight">{useCase.description}</p>
                       </div>
-                    </button>
+                    </motion.button>
                   ))}
                   {errors.useCase && (
-                    <p className="text-destructive text-xs col-span-2">{errors.useCase}</p>
+                    <p className="text-destructive text-xs col-span-2 font-medium">{errors.useCase}</p>
                   )}
                 </div>
               )}
@@ -424,14 +435,14 @@ export default function Onboarding() {
           </AnimatePresence>
 
           {/* Actions */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border/50">
             <div className="flex items-center gap-3">
               {step > 1 && (
                 <Button
                   onClick={handleBack}
                   variant="ghost"
                   size="sm"
-                  className="gap-1 text-muted-foreground hover:text-foreground"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -441,7 +452,7 @@ export default function Onboarding() {
                 <button
                   onClick={handleSkip}
                   disabled={loading}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
                 >
                   Skip for now
                 </button>
@@ -451,7 +462,7 @@ export default function Onboarding() {
             {step < 3 ? (
               <Button
                 onClick={handleNext}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
+                className="btn-primary h-10 px-5 gap-2"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />
@@ -460,7 +471,7 @@ export default function Onboarding() {
               <Button
                 onClick={handleComplete}
                 disabled={loading || !formData.useCase}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
+                className="btn-primary h-10 px-5 gap-2"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

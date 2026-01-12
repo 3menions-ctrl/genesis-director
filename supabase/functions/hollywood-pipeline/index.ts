@@ -1701,11 +1701,32 @@ async function runProduction(
   
   // =====================================================
   // CRITICAL FALLBACK: If goldenFrameData is still null on resume,
-  // rebuild it from identityBible to ensure anchors are always present
+  // rebuild it from identityBible AND fetch clip 1's actual frame URL
   // This prevents 0% anchor strength for later clips on resume
   // =====================================================
   if (!goldenFrameData && startIndex > 0 && state.identityBible) {
-    console.log(`[Hollywood] ⚠️ goldenFrameData missing on resume - REBUILDING from identityBible...`);
+    console.log(`[Hollywood] ⚠️ goldenFrameData missing on resume - REBUILDING with REAL frame URL...`);
+    
+    // CRITICAL: Fetch the actual last_frame_url from clip 1 in the database
+    let clip1FrameUrl: string | undefined = undefined;
+    try {
+      const { data: clip1Data } = await supabase
+        .from('video_clips')
+        .select('last_frame_url, video_url')
+        .eq('project_id', state.projectId)
+        .eq('shot_index', 0)
+        .eq('status', 'completed')
+        .single();
+      
+      if (clip1Data?.last_frame_url) {
+        clip1FrameUrl = clip1Data.last_frame_url;
+        console.log(`[Hollywood] ✓ Found clip 1 frame URL from DB: ${clip1FrameUrl?.substring(0, 60)}...`);
+      } else {
+        console.warn(`[Hollywood] Clip 1 has no last_frame_url in DB`);
+      }
+    } catch (fetchErr) {
+      console.warn(`[Hollywood] Failed to fetch clip 1 frame URL:`, fetchErr);
+    }
     
     const ci = state.identityBible.characterIdentity;
     const nfa = state.identityBible.nonFacialAnchors;
@@ -1771,7 +1792,8 @@ async function runProduction(
         ...(ci?.distinctiveMarkers || []),
         ...(styleA?.anchors || []),
       ].slice(0, 15),
-      goldenFrameUrl: (state.identityBible as any)?.frontViewUrl || (state.identityBible as any)?.originalImageUrl || undefined,
+      // CRITICAL: Use the REAL frame URL from clip 1, not just identity bible URLs
+      goldenFrameUrl: clip1FrameUrl || (state.identityBible as any)?.frontViewUrl || (state.identityBible as any)?.originalImageUrl || undefined,
       comprehensiveAnchors,
     };
     
@@ -1783,11 +1805,41 @@ async function runProduction(
       }
     });
     
-    console.log(`[Hollywood] ✓ REBUILT goldenFrameData from identityBible:`);
+    console.log(`[Hollywood] ✓ REBUILT goldenFrameData from identityBible + DB:`);
     console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 100)}...`);
     console.log(`[Hollywood]   Golden anchors: ${goldenFrameData.goldenAnchors?.length || 0}`);
     console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
     console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50) || 'none'}...`);
+    console.log(`[Hollywood]   Frame source: ${clip1FrameUrl ? 'clip 1 DB record' : 'identity bible fallback'}`);
+    
+    // Persist the rebuilt goldenFrameData to DB for future resumes
+    if (goldenFrameData.goldenFrameUrl) {
+      try {
+        const { data: currentProject } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data')
+          .eq('id', state.projectId)
+          .single();
+        
+        const updatedProFeatures = {
+          ...(currentProject?.pro_features_data || {}),
+          goldenFrameData,
+          goldenFrameRebuiltAt: new Date().toISOString(),
+        };
+        
+        await supabase
+          .from('movie_projects')
+          .update({
+            pro_features_data: updatedProFeatures,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', state.projectId);
+        
+        console.log(`[Hollywood] ✓ PERSISTED rebuilt goldenFrameData to DB`);
+      } catch (persistErr) {
+        console.warn(`[Hollywood] Failed to persist rebuilt goldenFrameData:`, persistErr);
+      }
+    }
   }
   
   // Generate clips one at a time with proper frame chaining
@@ -2679,9 +2731,10 @@ async function runProduction(
     // =====================================================
     // COMPREHENSIVE GOLDEN FRAME DATA CAPTURE FROM CLIP 1
     // 12-dimensional anchor matrix for maximum character consistency
+    // CRITICAL FIX: Create goldenFrameData ALWAYS after clip 1, not just when manifest exists
     // =====================================================
-    if (i === 0 && result.continuityManifest) {
-      // Build golden frame data from first clip's manifest + identity bible
+    if (i === 0 && result.lastFrameUrl) {
+      // Build golden frame data from first clip - manifest is optional enhancement
       const manifest = result.continuityManifest;
       const ci = state.identityBible?.characterIdentity;
       const nfa = state.identityBible?.nonFacialAnchors;
@@ -2704,7 +2757,7 @@ async function runProduction(
       if (ci?.clothing) {
         characterParts.push(`Clothing: ${ci.clothing}`);
       }
-      if (manifest.criticalAnchors?.length) {
+      if (manifest?.criticalAnchors?.length) {
         characterParts.push(...manifest.criticalAnchors.slice(0, 5));
       }
       
@@ -2778,7 +2831,7 @@ async function runProduction(
       }
       
       // Extract from manifest spatial if available
-      if (manifest.spatial) {
+      if (manifest?.spatial) {
         comprehensiveAnchors.scale = {
           environmentScale: manifest.spatial.characterPosition || 'as established',
           headToBodyRatio: 'maintain from clip 1',
@@ -2786,7 +2839,7 @@ async function runProduction(
       }
       
       // Extract lighting response from manifest
-      if (manifest.lighting) {
+      if (manifest?.lighting) {
         comprehensiveAnchors.lightingResponse = {
           highlightAreas: [manifest.lighting.keyLightPosition || 'as shown'],
           shadowAreas: [manifest.lighting.shadowDirection || 'as shown'],
@@ -2795,12 +2848,13 @@ async function runProduction(
       }
       
       goldenFrameData = {
-        characterSnapshot: characterParts.join('. '),
+        characterSnapshot: characterParts.join('. ') || 'Character as established in clip 1',
         goldenAnchors: [
           ...(state.identityBible?.consistencyAnchors || []),
-          ...(manifest.criticalAnchors || []),
+          ...(manifest?.criticalAnchors || []),
           ...(ci?.distinctiveMarkers || []),
         ].slice(0, 15),
+        // CRITICAL: Always capture the actual frame URL from clip 1
         goldenFrameUrl: result.lastFrameUrl,
         comprehensiveAnchors,
       };
@@ -2819,6 +2873,7 @@ async function runProduction(
       console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
       console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50)}...`);
       console.log(`[Hollywood]   Unique identifiers: ${comprehensiveAnchors.uniqueIdentifiers?.absoluteNonNegotiables?.length || 0} non-negotiables`);
+      console.log(`[Hollywood]   Manifest available: ${manifest ? 'YES' : 'NO (using identity bible only)'}`);
       
       // =====================================================
       // CRITICAL: Persist goldenFrameData to DB for resume support

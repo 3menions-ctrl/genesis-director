@@ -1,3 +1,5 @@
+import type { Json } from '@/integrations/supabase/types';
+
 export type UniverseRole = 'owner' | 'admin' | 'member' | 'viewer';
 export type LendingPermission = 'none' | 'universe_only' | 'specific_users' | 'public';
 
@@ -11,7 +13,7 @@ export interface Universe {
   user_id: string;
   is_public: boolean;
   cover_image_url: string | null;
-  style_guide: Record<string, unknown>;
+  style_guide: Json;
   lore_document: string | null;
   member_count: number;
   video_count: number;
@@ -72,7 +74,7 @@ export interface UniverseContinuityEvent {
   affected_characters: string[];
   source_project_id: string | null;
   is_canon: boolean;
-  metadata: Record<string, unknown>;
+  metadata: Json;
   created_at: string;
   updated_at: string;
 }

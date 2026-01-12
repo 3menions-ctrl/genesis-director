@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  corsHeaders,
+  validateInput,
+  fetchWithRetry,
+  errorResponse,
+  successResponse,
+} from "../_shared/script-utils.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,6 +14,13 @@ serve(async (req) => {
 
   try {
     const { action, currentScript, userPrompt, tone, targetLength } = await req.json();
+    
+    // Input validation
+    const promptValidation = validateInput(userPrompt, { maxLength: 5000, fieldName: 'userPrompt' });
+    const scriptValidation = validateInput(currentScript, { maxLength: 50000, fieldName: 'currentScript' });
+    
+    const validatedPrompt = promptValidation.sanitized;
+    const validatedScript = scriptValidation.sanitized;
     
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
@@ -35,7 +44,7 @@ ${lengthInstructions}
 Format the script as natural spoken content suitable for video narration.
 Do not include stage directions, timestamps, or speaker labels unless specifically requested.
 Make it conversational and engaging.`;
-        userMessage = userPrompt;
+        userMessage = validatedPrompt;
         break;
         
       case "rewrite":
@@ -45,7 +54,7 @@ ${toneInstructions}
 ${lengthInstructions}
 Make it more engaging, clear, and professional.
 Keep the same general structure but enhance the language and flow.`;
-        userMessage = `Original script:\n\n${currentScript}\n\nUser request: ${userPrompt || "Improve this script"}`;
+        userMessage = `Original script:\n\n${validatedScript}\n\nUser request: ${validatedPrompt || "Improve this script"}`;
         break;
         
       case "expand":
@@ -90,37 +99,36 @@ Provide helpful, actionable suggestions or generate content as requested.`;
 
     console.log("Script Assistant - Action:", action, "Tone:", tone, "Length:", targetLength);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+    // Use retry with exponential backoff
+    const response = await fetchWithRetry(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+          max_tokens: 2000,
+        }),
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage }
-        ],
-        max_tokens: 2000,
-      }),
-    });
+      { maxRetries: 3, baseDelayMs: 1000 }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("[script-assistant] OpenAI API error after retries:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
       }
       if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ error: "Invalid OpenAI API key." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Invalid OpenAI API key.", 401);
       }
       
       throw new Error(`OpenAI API error: ${response.status}`);
@@ -129,29 +137,21 @@ Provide helpful, actionable suggestions or generate content as requested.`;
     const data = await response.json();
     const generatedScript = data.choices?.[0]?.message?.content;
 
-    if (!generatedScript) {
-      throw new Error("No content generated");
+    if (!generatedScript || generatedScript.trim().length < 10) {
+      return errorResponse("Script generation returned insufficient content. Please try again.", 500);
     }
 
-    console.log("Script generated successfully, length:", generatedScript.length);
+    console.log("[script-assistant] Success, length:", generatedScript.length);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        script: generatedScript,
-        action: action
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return successResponse({ 
+      script: generatedScript,
+      action: action
+    });
 
   } catch (error) {
-    console.error("Script Assistant error:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    console.error("[script-assistant] Error:", error);
+    return errorResponse(
+      error instanceof Error ? error.message : "Unknown error"
     );
   }
 });

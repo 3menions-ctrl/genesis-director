@@ -51,7 +51,8 @@ app.get('/', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
     service: 'ffmpeg-stitcher',
-    version: '1.0.1',
+    version: '2.0.0',
+    features: ['chunked-stitching', 'merge-chunks', 'color-grading', 'sfx-mixing'],
     timestamp: new Date().toISOString()
   });
 });
@@ -60,7 +61,12 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
     service: 'ffmpeg-stitcher',
-    version: '1.0.1'
+    version: '2.0.0',
+    capabilities: {
+      maxClipsPerChunk: 10,
+      supportedTransitions: Object.keys(TRANSITION_TYPES || {}),
+      colorPresets: Object.keys(COLOR_PRESETS || {})
+    }
   });
 });
 
@@ -900,6 +906,442 @@ app.post('/stitch', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Internal server error'
+    });
+  }
+});
+
+// ============================================
+// CHUNKED STITCHING ENDPOINTS (for tier-based processing)
+// ============================================
+
+// Stitch a single chunk of clips (batch processing)
+app.post('/stitch-chunk', async (req, res) => {
+  const {
+    projectId,
+    chunkIndex,
+    totalChunks,
+    clips,
+    transitionType = 'fade',
+    transitionDuration = 0.5,
+    colorGrading = 'cinematic',
+    supabaseUrl: dynamicSupabaseUrl,
+    supabaseServiceKey: dynamicSupabaseServiceKey,
+    callbackUrl,
+    callbackServiceKey
+  } = req.body;
+  
+  if (!projectId || !clips || !Array.isArray(clips) || clips.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'projectId and clips array required' 
+    });
+  }
+  
+  console.log(`[ChunkStitch] Processing chunk ${chunkIndex + 1}/${totalChunks} for project ${projectId}`);
+  console.log(`[ChunkStitch] Clips in chunk: ${clips.length}`);
+  
+  const jobId = uuidv4();
+  const workDir = path.join(TEMP_DIR, `chunk_${jobId}`);
+  
+  const effectiveSupabaseUrl = dynamicSupabaseUrl || SUPABASE_URL;
+  const effectiveStorageKey = dynamicSupabaseServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+  const lovableCloudBaseUrl = callbackUrl 
+    ? callbackUrl.replace('/functions/v1/finalize-stitch', '') 
+    : SUPABASE_URL;
+  const effectiveCallbackKey = callbackServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+  
+  try {
+    await fs.mkdir(workDir, { recursive: true });
+    
+    // Step 1: Download and validate clips
+    const validClips = [];
+    const invalidClips = [];
+    
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      const clipPath = path.join(workDir, `clip_${i.toString().padStart(3, '0')}.mp4`);
+      
+      try {
+        console.log(`[ChunkStitch] Downloading clip ${i + 1}/${clips.length}: ${clip.shotId}`);
+        await downloadFile(clip.videoUrl, clipPath);
+        
+        const validation = await validateVideo(clipPath);
+        if (!validation.valid) {
+          throw new Error(validation.error || 'Invalid video');
+        }
+        
+        let duration = clip.durationSeconds || 4;
+        if (validation.data?.streams) {
+          const videoStream = validation.data.streams.find(s => s.codec_type === 'video');
+          if (videoStream?.duration) {
+            duration = parseFloat(videoStream.duration);
+          }
+        }
+        
+        validClips.push({
+          ...clip,
+          localPath: clipPath,
+          index: i,
+          actualDuration: duration
+        });
+        
+      } catch (err) {
+        console.error(`[ChunkStitch] Clip ${i + 1} failed: ${err.message}`);
+        invalidClips.push({ shotId: clip.shotId, index: i, error: err.message });
+      }
+    }
+    
+    if (validClips.length === 0) {
+      throw new Error('No valid clips in chunk');
+    }
+    
+    validClips.sort((a, b) => a.index - b.index);
+    
+    // Step 2: Normalize clips
+    console.log('[ChunkStitch] Normalizing clips...');
+    const normalizedClips = [];
+    
+    for (let i = 0; i < validClips.length; i++) {
+      const clip = validClips[i];
+      const normalizedPath = path.join(workDir, `normalized_${i.toString().padStart(3, '0')}.mp4`);
+      
+      await runFFmpeg([
+        '-i', clip.localPath,
+        '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'aac',
+        '-ar', '48000',
+        '-ac', '2',
+        '-y',
+        normalizedPath
+      ], `Normalizing clip ${i + 1}/${validClips.length}`);
+      
+      normalizedClips.push({ ...clip, normalizedPath });
+    }
+    
+    // Step 3: Apply crossfades within chunk
+    console.log('[ChunkStitch] Applying crossfades...');
+    const transition = TRANSITION_TYPES[transitionType] || 'fade';
+    const xfadeDuration = Math.min(transitionDuration, 1.0);
+    
+    let currentPath = normalizedClips[0].normalizedPath;
+    let accumulatedOffset = normalizedClips[0].actualDuration - xfadeDuration;
+    
+    for (let i = 1; i < normalizedClips.length; i++) {
+      const nextClip = normalizedClips[i];
+      const outputPath = path.join(workDir, `xfade_${i.toString().padStart(3, '0')}.mp4`);
+      
+      await runFFmpeg([
+        '-i', currentPath,
+        '-i', nextClip.normalizedPath,
+        '-filter_complex',
+        `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${accumulatedOffset}[outv];[0:a][1:a]acrossfade=d=${xfadeDuration}[outa]`,
+        '-map', '[outv]',
+        '-map', '[outa]',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'aac',
+        '-y',
+        outputPath
+      ], `Crossfade ${i}/${normalizedClips.length - 1}`);
+      
+      currentPath = outputPath;
+      accumulatedOffset += nextClip.actualDuration - xfadeDuration;
+    }
+    
+    // Step 4: Apply color grading to chunk
+    const colorProfile = COLOR_PRESETS[colorGrading] || COLOR_PRESETS.cinematic;
+    const colorFilter = `eq=${colorProfile.eq},colorbalance=${colorProfile.colorbalance}`;
+    const chunkOutputPath = path.join(workDir, `chunk_${chunkIndex}_final.mp4`);
+    
+    await runFFmpeg([
+      '-i', currentPath,
+      '-vf', colorFilter,
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '18',
+      '-c:a', 'copy',
+      '-movflags', '+faststart',
+      '-y',
+      chunkOutputPath
+    ], `Color grading chunk ${chunkIndex + 1}`);
+    
+    // Step 5: Upload chunk to storage
+    const chunkFileName = `chunk_${projectId}_${chunkIndex}_${Date.now()}.mp4`;
+    const uploadUrlData = await getSignedUploadUrl(projectId, chunkFileName, lovableCloudBaseUrl, effectiveCallbackKey);
+    
+    if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
+      throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
+    }
+    
+    const fileBuffer = await fs.readFile(chunkOutputPath);
+    await uploadToSignedUrl(uploadUrlData.signedUrl, fileBuffer);
+    
+    const chunkDuration = validClips.reduce((sum, c) => sum + c.actualDuration, 0) 
+                          - (validClips.length - 1) * xfadeDuration;
+    
+    // Cleanup
+    await fs.rm(workDir, { recursive: true, force: true });
+    
+    console.log(`[ChunkStitch] Chunk ${chunkIndex + 1} complete: ${uploadUrlData.publicUrl}`);
+    
+    res.json({
+      success: true,
+      chunkIndex,
+      chunkVideoUrl: uploadUrlData.publicUrl,
+      durationSeconds: chunkDuration,
+      clipsProcessed: validClips.length,
+      invalidClips: invalidClips.length > 0 ? invalidClips : undefined
+    });
+    
+  } catch (error) {
+    console.error(`[ChunkStitch] Chunk ${chunkIndex} failed:`, error);
+    
+    try { await fs.rm(workDir, { recursive: true, force: true }); } catch {}
+    
+    res.status(500).json({
+      success: false,
+      chunkIndex,
+      error: error.message
+    });
+  }
+});
+
+// Merge multiple chunk videos into final output
+app.post('/merge-chunks', async (req, res) => {
+  const {
+    projectId,
+    chunkUrls,
+    voiceTrackUrl,
+    backgroundMusicUrl,
+    audioMixParams,
+    sfxPlan,
+    transitionType = 'fade',
+    transitionDuration = 0.3,
+    supabaseUrl: dynamicSupabaseUrl,
+    supabaseServiceKey: dynamicSupabaseServiceKey,
+    callbackUrl,
+    callbackServiceKey
+  } = req.body;
+  
+  if (!projectId || !chunkUrls || !Array.isArray(chunkUrls) || chunkUrls.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'projectId and chunkUrls array required' 
+    });
+  }
+  
+  console.log(`[MergeChunks] Merging ${chunkUrls.length} chunks for project ${projectId}`);
+  
+  const jobId = uuidv4();
+  const workDir = path.join(TEMP_DIR, `merge_${jobId}`);
+  
+  const effectiveSupabaseUrl = dynamicSupabaseUrl || SUPABASE_URL;
+  const effectiveCallbackUrl = callbackUrl || `${SUPABASE_URL}/functions/v1/finalize-stitch`;
+  const lovableCloudBaseUrl = callbackUrl 
+    ? callbackUrl.replace('/functions/v1/finalize-stitch', '') 
+    : SUPABASE_URL;
+  const effectiveCallbackKey = callbackServiceKey || SUPABASE_SERVICE_ROLE_KEY;
+  
+  try {
+    await fs.mkdir(workDir, { recursive: true });
+    
+    // Download all chunk videos
+    const chunkPaths = [];
+    const chunkDurations = [];
+    
+    for (let i = 0; i < chunkUrls.length; i++) {
+      const chunkPath = path.join(workDir, `chunk_${i.toString().padStart(3, '0')}.mp4`);
+      console.log(`[MergeChunks] Downloading chunk ${i + 1}/${chunkUrls.length}`);
+      
+      await downloadFile(chunkUrls[i], chunkPath);
+      
+      const validation = await validateVideo(chunkPath);
+      if (!validation.valid) {
+        throw new Error(`Chunk ${i} is invalid: ${validation.error}`);
+      }
+      
+      let duration = 30;
+      if (validation.data?.streams) {
+        const videoStream = validation.data.streams.find(s => s.codec_type === 'video');
+        if (videoStream?.duration) {
+          duration = parseFloat(videoStream.duration);
+        }
+      }
+      
+      chunkPaths.push(chunkPath);
+      chunkDurations.push(duration);
+    }
+    
+    // Apply crossfades between chunks
+    console.log('[MergeChunks] Applying crossfades between chunks...');
+    const transition = TRANSITION_TYPES[transitionType] || 'fade';
+    const xfadeDuration = Math.min(transitionDuration, 0.5);
+    
+    let currentPath = chunkPaths[0];
+    let accumulatedOffset = chunkDurations[0] - xfadeDuration;
+    
+    for (let i = 1; i < chunkPaths.length; i++) {
+      const outputPath = path.join(workDir, `merged_${i.toString().padStart(3, '0')}.mp4`);
+      
+      await runFFmpeg([
+        '-i', currentPath,
+        '-i', chunkPaths[i],
+        '-filter_complex',
+        `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${accumulatedOffset}[outv];[0:a][1:a]acrossfade=d=${xfadeDuration}[outa]`,
+        '-map', '[outv]',
+        '-map', '[outa]',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'aac',
+        '-y',
+        outputPath
+      ], `Merging chunk ${i}/${chunkPaths.length - 1}`);
+      
+      currentPath = outputPath;
+      accumulatedOffset += chunkDurations[i] - xfadeDuration;
+    }
+    
+    let finalPath = currentPath;
+    const totalDuration = chunkDurations.reduce((sum, d) => sum + d, 0) 
+                          - (chunkDurations.length - 1) * xfadeDuration;
+    
+    // Audio mixing if voice/music provided
+    const hasVoice = voiceTrackUrl;
+    const hasMusic = backgroundMusicUrl;
+    const sfxTracks = await downloadSFXFiles(sfxPlan, workDir);
+    const hasSFX = sfxTracks.length > 0;
+    
+    if (hasVoice || hasMusic || hasSFX) {
+      console.log('[MergeChunks] Applying audio mix...');
+      
+      const audioInputs = ['-i', currentPath];
+      let inputIndex = 1;
+      
+      let voiceInputIdx = null;
+      if (hasVoice) {
+        const voicePath = path.join(workDir, 'voice_track.mp3');
+        await downloadFile(voiceTrackUrl, voicePath);
+        audioInputs.push('-i', voicePath);
+        voiceInputIdx = inputIndex++;
+      }
+      
+      let musicInputIdx = null;
+      if (hasMusic) {
+        const musicPath = path.join(workDir, 'background_music.mp3');
+        await downloadFile(backgroundMusicUrl, musicPath);
+        audioInputs.push('-i', musicPath);
+        musicInputIdx = inputIndex++;
+      }
+      
+      const sfxInputIndices = [];
+      for (const sfx of sfxTracks) {
+        audioInputs.push('-i', sfx.path);
+        sfxInputIndices.push({ index: inputIndex++, ...sfx });
+      }
+      
+      const withAudioPath = path.join(workDir, 'final_with_audio.mp4');
+      let ffmpegArgs = [...audioInputs, '-t', totalDuration.toString()];
+      
+      let filterParts = [];
+      let mixInputs = [];
+      
+      if (voiceInputIdx !== null) {
+        filterParts.push(`[${voiceInputIdx}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=1.0[voice]`);
+        mixInputs.push('[voice]');
+      }
+      
+      if (musicInputIdx !== null) {
+        const baseVolume = audioMixParams?.musicVolume || 0.3;
+        const fadeIn = audioMixParams?.fadeIn || 1;
+        const fadeOut = audioMixParams?.fadeOut || 2;
+        const fadeOutStart = Math.max(0, totalDuration - fadeOut);
+        
+        filterParts.push(`[${musicInputIdx}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${baseVolume},afade=t=in:st=0:d=${fadeIn},afade=t=out:st=${fadeOutStart}:d=${fadeOut},atrim=0:${totalDuration}[music]`);
+        mixInputs.push('[music]');
+      }
+      
+      for (let i = 0; i < sfxInputIndices.length; i++) {
+        const sfx = sfxInputIndices[i];
+        const label = `sfx${i}`;
+        
+        let sfxFilter = `[${sfx.index}:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${sfx.volume}`;
+        if (sfx.startMs > 0) {
+          sfxFilter += `,adelay=${sfx.startMs}|${sfx.startMs}`;
+        }
+        sfxFilter += `,apad=whole_dur=${totalDuration}[${label}]`;
+        filterParts.push(sfxFilter);
+        mixInputs.push(`[${label}]`);
+      }
+      
+      filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
+      mixInputs.unshift('[orig]');
+      
+      const mixFilter = `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first:dropout_transition=2[aout]`;
+      filterParts.push(mixFilter);
+      
+      ffmpegArgs.push(
+        '-filter_complex', filterParts.join(';'),
+        '-map', '0:v',
+        '-map', '[aout]',
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-movflags', '+faststart',
+        '-y',
+        withAudioPath
+      );
+      
+      await runFFmpeg(ffmpegArgs, 'Audio mixing for merged chunks');
+      finalPath = withAudioPath;
+    }
+    
+    // Upload final video
+    console.log('[MergeChunks] Uploading final video...');
+    const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
+    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, lovableCloudBaseUrl, effectiveCallbackKey);
+    
+    if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
+      throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
+    }
+    
+    const fileBuffer = await fs.readFile(finalPath);
+    await uploadToSignedUrl(uploadUrlData.signedUrl, fileBuffer);
+    
+    const finalVideoUrl = uploadUrlData.publicUrl;
+    
+    // Finalize
+    await finalizeStitch(projectId, finalVideoUrl, totalDuration, chunkUrls.length, 'completed', null, effectiveCallbackUrl, effectiveCallbackKey);
+    
+    // Cleanup
+    await fs.rm(workDir, { recursive: true, force: true });
+    
+    console.log(`[MergeChunks] Complete: ${finalVideoUrl}`);
+    
+    res.json({
+      success: true,
+      finalVideoUrl,
+      durationSeconds: totalDuration,
+      chunksProcessed: chunkUrls.length
+    });
+    
+  } catch (error) {
+    console.error('[MergeChunks] Failed:', error);
+    
+    try { await fs.rm(workDir, { recursive: true, force: true }); } catch {}
+    
+    // Notify failure
+    try {
+      await finalizeStitch(projectId, null, null, null, 'failed', error.message, effectiveCallbackUrl, effectiveCallbackKey);
+    } catch {}
+    
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

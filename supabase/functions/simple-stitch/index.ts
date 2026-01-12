@@ -118,14 +118,40 @@ serve(async (req) => {
     // Check for Cloud Run
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    if (forceManifest) {
-      console.log("[SimpleStitch] forceManifest=true - using manifest");
-      return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
+    // CRITICAL: Only use Google Cloud Run for stitching - no manifest fallbacks
+    if (!cloudRunUrl) {
+      console.error("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - cannot stitch");
+      
+      // Update project to show Cloud Run is required
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'stitching_blocked',
+          pending_video_tasks: {
+            stage: 'stitching_blocked',
+            progress: 0,
+            error: 'Cloud Run stitcher not configured. Please configure CLOUD_RUN_STITCHER_URL.',
+            clipCount: clips.length,
+            totalDuration,
+          },
+          last_error: 'CLOUD_RUN_STITCHER_URL not configured',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Cloud Run stitcher not configured. Only Google Cloud Run is supported for video stitching.",
+          processingTimeMs: Date.now() - startTime,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    if (!cloudRunUrl) {
-      console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - using manifest");
-      return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
+    // forceManifest is deprecated - Cloud Run only
+    if (forceManifest) {
+      console.warn("[SimpleStitch] forceManifest=true ignored - Cloud Run only mode enabled");
     }
 
     // Determine stitching mode
@@ -412,12 +438,15 @@ serve(async (req) => {
                 result.durationSeconds || totalDuration, clips.length, 1, 'direct');
               console.log(`[SimpleStitch-BG] ✅ DIRECT STITCH COMPLETE`);
             } else {
-              console.warn(`[SimpleStitch-BG] Incomplete result, using fallback`);
-              await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
+              // No manifest fallback - retry with Cloud Run
+              console.error(`[SimpleStitch-BG] Cloud Run returned incomplete result - scheduling retry`);
+              await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
+                'Cloud Run returned incomplete result (no finalVideoUrl)',
+                project, clipData, clips.length, totalDuration);
             }
           } else {
             const errorText = await response.text();
-            console.error(`[SimpleStitch-BG] Cloud Run error: ${response.status}`);
+            console.error(`[SimpleStitch-BG] Cloud Run error: ${response.status} - ${errorText.substring(0, 200)}`);
             await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
               `Cloud Run failed: ${response.status} - ${errorText.substring(0, 100)}`,
               project, clipData, clips.length, totalDuration);
@@ -425,7 +454,7 @@ serve(async (req) => {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[SimpleStitch-BG] Error:`, errorMessage);
+        console.error(`[SimpleStitch-BG] Cloud Run error:`, errorMessage);
         await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
           errorMessage, project, clipData, clips.length, totalDuration);
       }
@@ -531,11 +560,11 @@ async function scheduleRetryOrFallback(
   const maxAttempts = 3;
   
   if (attempts < maxAttempts) {
-    // Schedule retry
+    // Schedule retry with Cloud Run
     const retryDelay = [30, 60, 120][Math.min(attempts - 1, 2)] * 1000;
     const retryAfter = new Date(Date.now() + retryDelay).toISOString();
     
-    console.log(`[SimpleStitch] Scheduling retry ${attempts + 1}/${maxAttempts} after ${retryDelay / 1000}s`);
+    console.log(`[SimpleStitch] Scheduling Cloud Run retry ${attempts + 1}/${maxAttempts} after ${retryDelay / 1000}s`);
     
     if (jobId) {
       await supabase
@@ -560,14 +589,43 @@ async function scheduleRetryOrFallback(
           lastError: errorMessage,
           clipCount,
           totalDuration,
+          mode: 'cloud_run_retry',
         },
         updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
   } else {
-    // Max retries - fallback to manifest
-    console.log(`[SimpleStitch] Max retries reached - creating manifest fallback`);
-    await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
+    // Max retries reached - mark as failed (no manifest fallback)
+    console.error(`[SimpleStitch] Max Cloud Run retries (${maxAttempts}) reached - stitching failed`);
+    
+    if (jobId) {
+      await supabase
+        .from('stitch_jobs')
+        .update({
+          status: 'failed',
+          last_error: `Max retries reached: ${errorMessage}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    }
+    
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'stitching_failed',
+        pending_video_tasks: {
+          stage: 'stitching_failed',
+          progress: 0,
+          lastError: errorMessage,
+          attempts: maxAttempts,
+          clipCount,
+          totalDuration,
+          message: 'Cloud Run stitching failed after maximum retries. Please retry manually.',
+        },
+        last_error: `Stitching failed after ${maxAttempts} attempts: ${errorMessage}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
   }
 }
 

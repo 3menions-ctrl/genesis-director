@@ -2476,7 +2476,43 @@ async function runProduction(
   }
   
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');
-  console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips`);
+  const failedClips = state.production.clipResults.filter(c => c.status === 'failed');
+  console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips (${failedClips.length} failed)`);
+  
+  // =====================================================
+  // CRITICAL: Ensure ALL clips are generated before stitching
+  // If any clips failed, DO NOT proceed to stitching - wait for manual retry
+  // =====================================================
+  if (completedClips.length < clips.length) {
+    console.error(`[Hollywood] ⚠️ INCOMPLETE PRODUCTION: Only ${completedClips.length}/${clips.length} clips completed`);
+    console.error(`[Hollywood] Failed clips: ${failedClips.map(c => c.index + 1).join(', ')}`);
+    
+    // Update project status to indicate incomplete production
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'production_incomplete',
+        pending_video_tasks: {
+          stage: 'production_incomplete',
+          progress: 85,
+          clipsCompleted: completedClips.length,
+          clipCount: clips.length,
+          failedClips: failedClips.map(c => c.index),
+          message: `${clips.length - completedClips.length} clips need to be regenerated before stitching`,
+          canRetryFailed: true,
+        },
+        last_error: `Production incomplete: ${completedClips.length}/${clips.length} clips. Failed: ${failedClips.map(c => c.index + 1).join(', ')}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', state.projectId);
+    
+    // Return state without proceeding to stitching
+    state.progress = 85;
+    state.error = `Production incomplete: ${completedClips.length}/${clips.length} clips completed. Stitching requires all clips.`;
+    return state;
+  }
+  
+  console.log(`[Hollywood] ✓ All ${completedClips.length} clips completed - proceeding to stitching`);
   
   // =====================================================
   // CONTINUITY ENGINE: Analyze gaps and generate bridges

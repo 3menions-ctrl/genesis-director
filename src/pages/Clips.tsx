@@ -352,6 +352,26 @@ export default function Clips() {
     }
   };
 
+  const handleDeleteAllFailed = async () => {
+    const failedClipIds = clips.filter(c => c.status === 'failed').map(c => c.id);
+    if (failedClipIds.length === 0) return;
+
+    const confirmed = window.confirm(`Delete ${failedClipIds.length} failed clip(s)? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from('video_clips')
+      .delete()
+      .in('id', failedClipIds);
+
+    if (error) {
+      toast.error('Failed to delete clips');
+    } else {
+      setClips(prev => prev.filter(c => c.status !== 'failed'));
+      toast.success(`Deleted ${failedClipIds.length} failed clips`);
+    }
+  };
+
   const completedCount = clips.filter(c => c.status === 'completed').length;
   const pendingCount = clips.filter(c => c.status === 'pending' || c.status === 'generating').length;
   const failedCount = clips.filter(c => c.status === 'failed').length;
@@ -396,6 +416,17 @@ export default function Clips() {
 
             {/* Stats */}
             <div className="flex items-center gap-3">
+              {failedCount > 0 && (
+                <Button
+                  onClick={handleDeleteAllFailed}
+                  variant="outline"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete {failedCount} Failed
+                </Button>
+              )}
+              
               {projectIdFilter && projectStatus === 'stitching_failed' && completedCount > 0 && (
                 <Button
                   onClick={retryStitch}

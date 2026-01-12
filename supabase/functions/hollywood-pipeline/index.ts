@@ -1620,6 +1620,43 @@ async function runProduction(
   let masterSceneAnchor: any = null;
   
   // =====================================================
+  // CRITICAL FIX: Rebuild accumulatedAnchors from completed clips on resume
+  // Without this, clips 2+ on resume have 0 anchors
+  // =====================================================
+  if (startIndex > 0) {
+    try {
+      // Fetch pro_features_data which contains scene anchors
+      const { data: projectData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data')
+        .eq('id', state.projectId)
+        .single();
+      
+      // Restore accumulated anchors from persisted data
+      if (projectData?.pro_features_data?.accumulatedAnchors) {
+        accumulatedAnchors = projectData.pro_features_data.accumulatedAnchors;
+        console.log(`[Hollywood] ✓ RESTORED accumulatedAnchors from DB: ${accumulatedAnchors.length} anchors`);
+      } else if (projectData?.pro_features_data?.sceneAnchors?.masterPrompt) {
+        // Fallback: rebuild minimal anchor from master prompt
+        accumulatedAnchors = [{
+          masterConsistencyPrompt: projectData.pro_features_data.sceneAnchors.masterPrompt,
+          lighting: { timeOfDay: projectData.pro_features_data.sceneAnchors.masterLighting },
+          colorPalette: { temperature: projectData.pro_features_data.sceneAnchors.masterColorTemp },
+        }];
+        console.log(`[Hollywood] ✓ REBUILT accumulatedAnchors from sceneAnchors summary`);
+      }
+      
+      // Also restore masterSceneAnchor if we have anchors
+      if (accumulatedAnchors.length > 0 && !masterSceneAnchor) {
+        masterSceneAnchor = accumulatedAnchors[0];
+        console.log(`[Hollywood] ✓ Set masterSceneAnchor from first accumulated anchor`);
+      }
+    } catch (restoreErr) {
+      console.warn(`[Hollywood] Could not restore accumulatedAnchors from DB:`, restoreErr);
+    }
+  }
+  
+  // =====================================================
   // CONTINUITY MANIFEST TRACKING: AI-extracted comprehensive continuity data
   // Tracks: spatial position, lighting, props, emotional state, action momentum
   // =====================================================
@@ -2058,6 +2095,8 @@ async function runProduction(
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
           referenceImageUrl, // Still passed for character identity reference
+          // CRITICAL FIX: Pass scene image for fallback when frame extraction fails
+          sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
           isRetry,
           retryAttempt: attempt,
           // Pass scene context for continuous action flow
@@ -2479,6 +2518,9 @@ async function runProduction(
                     ...existingData,
                     // Full masterSceneAnchor for resume (CRITICAL)
                     masterSceneAnchor: masterSceneAnchor,
+                    // CRITICAL FIX: Persist accumulatedAnchors for resume
+                    // Without this, clips on resume have 0 anchors
+                    accumulatedAnchors: accumulatedAnchors.slice(-5), // Keep last 5 for reasonable size
                     // Summary for debugging/monitoring
                     sceneAnchors: {
                       count: accumulatedAnchors.length,
@@ -2491,7 +2533,7 @@ async function runProduction(
                 })
                 .eq('id', state.projectId);
               
-              console.log(`[Hollywood] ✓ masterSceneAnchor persisted to DB for resume`);
+              console.log(`[Hollywood] ✓ masterSceneAnchor + accumulatedAnchors (${accumulatedAnchors.length}) persisted to DB for resume`);
             } catch (updateErr) {
               console.warn(`[Hollywood] Failed to persist masterSceneAnchor:`, updateErr);
             }

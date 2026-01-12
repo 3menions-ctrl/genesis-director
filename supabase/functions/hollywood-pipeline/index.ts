@@ -2731,9 +2731,21 @@ async function runProduction(
     // =====================================================
     // COMPREHENSIVE GOLDEN FRAME DATA CAPTURE FROM CLIP 1
     // 12-dimensional anchor matrix for maximum character consistency
-    // CRITICAL FIX: Create goldenFrameData ALWAYS after clip 1, not just when manifest exists
+    // CRITICAL FIX v2: Create goldenFrameData ALWAYS after clip 1
+    // Even if frame extraction fails, use scene image as visual anchor
     // =====================================================
-    if (i === 0 && result.lastFrameUrl) {
+    if (i === 0) {
+      // BULLETPROOF: Get visual reference from multiple sources
+      const goldenVisualUrl = result.lastFrameUrl 
+        || sceneImageLookup[0] 
+        || (state as any).referenceImageUrl 
+        || null;
+      
+      console.log(`[Hollywood] 🎯 GOLDEN FRAME SOURCES:`);
+      console.log(`[Hollywood]   lastFrameUrl: ${result.lastFrameUrl ? 'YES' : 'NO (frame extraction failed)'}`);
+      console.log(`[Hollywood]   sceneImageLookup[0]: ${sceneImageLookup[0] ? 'YES' : 'NO'}`);
+      console.log(`[Hollywood]   Using: ${goldenVisualUrl?.substring(0, 60) || 'TEXT-ONLY ANCHORS'}...`);
+      
       // Build golden frame data from first clip - manifest is optional enhancement
       const manifest = result.continuityManifest;
       const ci = state.identityBible?.characterIdentity;
@@ -2854,10 +2866,13 @@ async function runProduction(
           ...(manifest?.criticalAnchors || []),
           ...(ci?.distinctiveMarkers || []),
         ].slice(0, 15),
-        // CRITICAL: Always capture the actual frame URL from clip 1
-        goldenFrameUrl: result.lastFrameUrl,
+        // CRITICAL FIX v2: Use bulletproof visual URL with fallbacks
+        goldenFrameUrl: goldenVisualUrl || undefined,
         comprehensiveAnchors,
       };
+      
+      // Store frame source info in comprehensiveAnchors
+      (goldenFrameData.comprehensiveAnchors as any).frameSource = result.lastFrameUrl ? 'extracted-frame' : (sceneImageLookup[0] ? 'scene-image' : 'none');
       
       // Count filled anchor fields
       let filledFields = 0;
@@ -2868,10 +2883,11 @@ async function runProduction(
       });
       
       console.log(`[Hollywood] 🎯 COMPREHENSIVE GOLDEN FRAME DATA captured from Clip 1:`);
-      console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 150)}...`);
-      console.log(`[Hollywood]   Golden anchors: ${goldenFrameData.goldenAnchors?.length || 0}`);
+      console.log(`[Hollywood]   Character snapshot: ${goldenFrameData?.characterSnapshot?.substring(0, 150) || 'N/A'}...`);
+      console.log(`[Hollywood]   Golden anchors: ${goldenFrameData?.goldenAnchors?.length || 0}`);
       console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
-      console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50)}...`);
+      console.log(`[Hollywood]   Frame URL: ${goldenFrameData?.goldenFrameUrl?.substring(0, 50) || 'NONE - text anchors only'}...`);
+      console.log(`[Hollywood]   Frame Source: ${(goldenFrameData?.comprehensiveAnchors as any)?.frameSource || 'unknown'}`);
       console.log(`[Hollywood]   Unique identifiers: ${comprehensiveAnchors.uniqueIdentifiers?.absoluteNonNegotiables?.length || 0} non-negotiables`);
       console.log(`[Hollywood]   Manifest available: ${manifest ? 'YES' : 'NO (using identity bible only)'}`);
       

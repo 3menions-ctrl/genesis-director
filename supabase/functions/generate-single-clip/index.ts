@@ -968,32 +968,77 @@ serve(async (req) => {
     }
     
     // =====================================================
-    // ACCUMULATED SCENE ANCHORS: Visual DNA from previous clips
+    // MASTER VISUAL DNA: Color, lighting, environment from Clip 1
+    // This is the SOURCE OF TRUTH for visual consistency
+    // CRITICAL: This section ensures color richness doesn't degrade across clips
     // =====================================================
+    const masterDNAParts: string[] = [];
+    
     if (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) {
-      const anchorParts: string[] = [];
-      
-      // Use the most recent anchor's consistency prompt (freshest visual DNA)
+      // ALWAYS use the FIRST anchor (from Clip 1) as the master reference for color/lighting
+      // This prevents gradual degradation - every clip matches Clip 1, not the previous clip
+      const masterAnchor = request.accumulatedAnchors[0];
       const latestAnchor = request.accumulatedAnchors[request.accumulatedAnchors.length - 1];
-      if (latestAnchor.lighting?.promptFragment) {
-        anchorParts.push(`LIGHTING: ${latestAnchor.lighting.promptFragment}`);
+      
+      masterDNAParts.push(`[MASTER VISUAL DNA - MANDATORY FOR ALL CLIPS - MUST MATCH CLIP 1]`);
+      
+      // COLOR PROFILE FROM CLIP 1 (never changes)
+      if (masterAnchor.colorPalette?.promptFragment) {
+        masterDNAParts.push(`🎨 COLOR PROFILE (LOCKED): ${masterAnchor.colorPalette.promptFragment}`);
       }
-      if (latestAnchor.colorPalette?.promptFragment) {
-        anchorParts.push(`COLORS: ${latestAnchor.colorPalette.promptFragment}`);
-      }
-      if (latestAnchor.keyObjects?.promptFragment) {
-        anchorParts.push(`ENVIRONMENT: ${latestAnchor.keyObjects.promptFragment}`);
+      if (masterAnchor.colorPalette?.temperature) {
+        masterDNAParts.push(`COLOR TEMPERATURE: ${masterAnchor.colorPalette.temperature} (maintain exact warmth/coolness)`);
       }
       
-      if (anchorParts.length > 0) {
-        continuityParts.push(`[VISUAL DNA FROM PREVIOUS CLIPS]`);
-        continuityParts.push(...anchorParts);
-        continuityParts.push(`[END VISUAL DNA]`);
-        console.log(`[SingleClip] Injected ${anchorParts.length} scene anchor elements from ${request.accumulatedAnchors.length} previous clips`);
+      // LIGHTING FROM CLIP 1 (never changes)
+      if (masterAnchor.lighting?.promptFragment) {
+        masterDNAParts.push(`💡 LIGHTING (LOCKED): ${masterAnchor.lighting.promptFragment}`);
       }
+      if (masterAnchor.lighting?.timeOfDay) {
+        masterDNAParts.push(`TIME OF DAY: ${masterAnchor.lighting.timeOfDay} (maintain consistent sun/shadow direction)`);
+      }
+      
+      // ENVIRONMENT FROM CLIP 1 (base setting, can evolve slightly)
+      if (masterAnchor.keyObjects?.environmentType) {
+        masterDNAParts.push(`🌍 ENVIRONMENT BASE: ${masterAnchor.keyObjects.environmentType}`);
+      }
+      
+      // MASTER CONSISTENCY PROMPT (comprehensive summary)
+      if (masterAnchor.masterConsistencyPrompt) {
+        masterDNAParts.push(`VISUAL CONSISTENCY: ${masterAnchor.masterConsistencyPrompt}`);
+      }
+      
+      masterDNAParts.push(`[END MASTER VISUAL DNA]`);
+      
+      // Also add CURRENT scene evolution (what's happening NOW) from latest anchor
+      // This allows natural progression while maintaining visual base
+      if (request.accumulatedAnchors.length > 1 && latestAnchor !== masterAnchor) {
+        if (latestAnchor.keyObjects?.promptFragment && 
+            latestAnchor.keyObjects.promptFragment !== masterAnchor.keyObjects?.promptFragment) {
+          masterDNAParts.push(`[SCENE EVOLUTION: ${latestAnchor.keyObjects.promptFragment}]`);
+        }
+      }
+      
+      console.log(`[SingleClip] 🎬 MASTER VISUAL DNA injected from Clip 1 (${request.accumulatedAnchors.length} anchors available)`);
+      console.log(`[SingleClip]   Color locked: ${masterAnchor.colorPalette?.temperature || 'not specified'}`);
+      console.log(`[SingleClip]   Lighting locked: ${masterAnchor.lighting?.timeOfDay || 'not specified'}`);
     }
     
-    // INJECT: Put continuity at START of prompt
+    // =====================================================
+    // PROMPT CONSTRUCTION ORDER (from highest to lowest priority):
+    // 1. MASTER VISUAL DNA (color/lighting lock from Clip 1) - HIGHEST PRIORITY
+    // 2. Scene continuity (character, location, lighting locks)
+    // 3. Base prompt (what happens in this clip)
+    // =====================================================
+    
+    // STEP 1: Master Visual DNA at the very top (for clips 2+)
+    if (masterDNAParts.length > 0) {
+      const masterDNABlock = `${masterDNAParts.join('\n')}\n\n`;
+      enhancedPrompt = masterDNABlock + enhancedPrompt;
+      console.log(`[SingleClip] Master Visual DNA block added (${masterDNAParts.length} elements)`);
+    }
+    
+    // STEP 2: Scene continuity (character, location, etc.)
     if (continuityParts.length > 0) {
       const continuityBlock = `${continuityParts.join('\n')}\n\n`;
       enhancedPrompt = continuityBlock + enhancedPrompt;

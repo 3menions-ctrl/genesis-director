@@ -242,7 +242,9 @@ export function ProductionPipeline({
       )
       .subscribe();
     
+    // CRITICAL: Proper cleanup of realtime channel to prevent memory leaks
     return () => {
+      console.log(`[ProductionPipeline] Cleaning up pro_features subscription for project: ${projectId}`);
       supabase.removeChannel(channel);
     };
   }, [projectId, qualityTier]);

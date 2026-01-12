@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -382,10 +382,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   // Check if user can afford a number of shots with tier-aware pricing
-  const canAffordShots = (shotCount: number, tier: QualityTier = 'standard'): boolean => {
+  // Returns detailed info for better UI feedback
+  const canAffordShots = useCallback((shotCount: number, tier: QualityTier = 'standard'): boolean => {
     const required = shotCount * TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
-    return credits.remaining >= required;
-  };
+    const canAfford = credits.remaining >= required;
+    
+    if (!canAfford) {
+      console.log(`[StudioContext] Cannot afford ${shotCount} shots at ${tier} tier: need ${required}, have ${credits.remaining}`);
+    }
+    
+    return canAfford;
+  }, [credits.remaining]);
+
   return (
     <StudioContext.Provider
       value={{

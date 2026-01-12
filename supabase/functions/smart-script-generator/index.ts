@@ -1,92 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface DetectedContent {
-  hasDialogue: boolean;
-  hasNarration: boolean;
-  dialogueLines: string[];
-  narrationText: string;
-  estimatedDurationSeconds: number;
-  recommendedClipCount: number;
-}
-
-/**
- * Detect dialogue and narration from user input
- */
-function detectUserContent(text: string): DetectedContent {
-  const dialogueLines: string[] = [];
-  let narrationText = '';
-  
-  // Detect quoted dialogue
-  const quotedRegex = /"([^"]+)"/g;
-  let match;
-  while ((match = quotedRegex.exec(text)) !== null) {
-    dialogueLines.push(match[1]);
-  }
-  
-  // Detect character dialogue patterns
-  const characterDialogueRegex = /([A-Z][A-Z\s]+):\s*["']?([^"'\n]+)["']?/g;
-  while ((match = characterDialogueRegex.exec(text)) !== null) {
-    if (!dialogueLines.includes(match[2].trim())) {
-      dialogueLines.push(match[2].trim());
-    }
-  }
-  
-  // Detect "says" pattern
-  const saysRegex = /([A-Z][a-z]+)\s+says?\s*[,:]\s*["']([^"']+)["']/gi;
-  while ((match = saysRegex.exec(text)) !== null) {
-    if (!dialogueLines.includes(match[2].trim())) {
-      dialogueLines.push(match[2].trim());
-    }
-  }
-  
-  // Detect narration patterns
-  const narrationPatterns = [
-    /\[NARRATION\]:?\s*([^\[\]]+)/gi,
-    /\(voiceover\):?\s*([^\(\)]+)/gi,
-    /\(V\.?O\.?\):?\s*([^\(\)]+)/gi,
-    /VO:?\s*["']?([^"'\n]+)["']?/gi,
-    /NARRATOR:?\s*["']?([^"'\n]+)["']?/gi,
-  ];
-  
-  for (const pattern of narrationPatterns) {
-    while ((match = pattern.exec(text)) !== null) {
-      narrationText += (narrationText ? ' ' : '') + match[1].trim();
-    }
-  }
-  
-  // If no explicit narration found but text has prose-like structure
-  if (!narrationText && dialogueLines.length === 0) {
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    if (sentences.length >= 2) {
-      narrationText = text;
-    }
-  }
-  
-  const allText = [...dialogueLines, narrationText].join(' ');
-  const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
-  
-  const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 6;
-  const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
-  
-  const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
-  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
-  recommendedClipCount = Math.min(recommendedClipCount, 20);
-  
-  return {
-    hasDialogue: dialogueLines.length > 0,
-    hasNarration: narrationText.length > 0,
-    dialogueLines,
-    narrationText,
-    estimatedDurationSeconds,
-    recommendedClipCount,
-  };
-}
+import {
+  corsHeaders,
+  validateInput,
+  validateStringArray,
+  fetchWithRetry,
+  parseJsonWithRecovery,
+  detectUserContent,
+  errorResponse,
+  successResponse,
+  calculateMaxTokens,
+  type DetectedContent,
+} from "../_shared/script-utils.ts";
 
 interface SmartScriptRequest {
   topic: string;
@@ -159,7 +83,34 @@ serve(async (req) => {
   try {
     const request: SmartScriptRequest = await req.json();
     
-    console.log("[SmartScript] Request:", JSON.stringify(request, null, 2));
+    // Input validation
+    const topicValidation = validateInput(request.topic, { 
+      maxLength: 5000, 
+      fieldName: 'topic',
+      required: true,
+      minLength: 3,
+    });
+    
+    if (!topicValidation.valid) {
+      return errorResponse(topicValidation.errors.join(', '), 400);
+    }
+    request.topic = topicValidation.sanitized;
+    
+    // Validate other inputs
+    if (request.synopsis) {
+      request.synopsis = validateInput(request.synopsis, { maxLength: 10000 }).sanitized;
+    }
+    if (request.approvedScene) {
+      request.approvedScene = validateInput(request.approvedScene, { maxLength: 20000 }).sanitized;
+    }
+    if (request.userNarration) {
+      request.userNarration = validateInput(request.userNarration, { maxLength: 10000 }).sanitized;
+    }
+    if (request.userDialogue) {
+      request.userDialogue = validateStringArray(request.userDialogue, 50, 1000);
+    }
+    
+    console.log("[SmartScript] Request validated, topic:", request.topic.substring(0, 100));
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
@@ -385,38 +336,37 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
 
     console.log("[SmartScript] Calling OpenAI API for scene breakdown...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+    // Use retry with exponential backoff
+    const response = await fetchWithRetry(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: calculateMaxTokens(recommendedClips, 200),
+          temperature: 0.6,
+        }),
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 3000,
-        temperature: 0.6,
-      }),
-    });
+      { maxRetries: 3, baseDelayMs: 1000 }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[SmartScript] OpenAI API error:", response.status, errorText);
+      console.error("[SmartScript] OpenAI API error after retries:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
       }
       if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Invalid OpenAI API key." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Invalid OpenAI API key.", 401);
       }
       
       throw new Error(`OpenAI API error: ${response.status}`);
@@ -427,34 +377,39 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
     
     console.log("[SmartScript] Raw AI response length:", rawContent.length);
 
-    // Parse the JSON response
-    let parsedClips;
-    try {
-      let jsonStr = rawContent;
-      const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1].trim();
-      }
-      
-      const parsed = JSON.parse(jsonStr);
-      parsedClips = parsed.clips || parsed;
-    } catch (parseError) {
-      console.error("[SmartScript] JSON parse error:", parseError);
-      console.error("[SmartScript] Raw content:", rawContent.substring(0, 500));
-      throw new Error("Failed to parse AI response as JSON. Please try again.");
+    // Use JSON recovery to parse the response
+    const parseResult = parseJsonWithRecovery<{ clips?: any[] } | any[]>(rawContent);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error("[SmartScript] JSON parse failed after recovery attempts");
+      console.error("[SmartScript] Raw content preview:", rawContent.substring(0, 500));
+      return errorResponse("Failed to parse AI response. Please try again.", 500);
     }
 
-    // Validate we have exactly 6 clips
-    if (!Array.isArray(parsedClips) || parsedClips.length !== 6) {
-      console.warn(`[SmartScript] Expected 6 clips, got ${parsedClips?.length}. Padding/trimming...`);
-      while (parsedClips.length < 6) {
+    // Extract clips array from response
+    let parsedClips = Array.isArray(parseResult.data) 
+      ? parseResult.data 
+      : (parseResult.data as { clips?: any[] }).clips || [];
+
+    // FIX: Use recommendedClips instead of hardcoded 6
+    const expectedClipCount = recommendedClips;
+    
+    if (!Array.isArray(parsedClips) || parsedClips.length !== expectedClipCount) {
+      console.warn(`[SmartScript] Expected ${expectedClipCount} clips, got ${parsedClips?.length}. Adjusting...`);
+      
+      // Pad with placeholder clips if too few
+      while (parsedClips.length < expectedClipCount) {
+        const phaseIndex = Math.min(parsedClips.length, ACTION_PHASES.length - 1);
         parsedClips.push({
           title: `Clip ${parsedClips.length + 1}`,
-          description: 'Scene continuation',
-          actionPhase: ACTION_PHASES[parsedClips.length],
+          description: 'Scene continuation - action progresses naturally',
+          actionPhase: ACTION_PHASES[phaseIndex],
+          currentAction: 'Action continues from previous moment',
         });
       }
-      parsedClips = parsedClips.slice(0, 6);
+      
+      // Trim if too many
+      parsedClips = parsedClips.slice(0, expectedClipCount);
     }
 
     // Extract the character/location/lighting from first clip to enforce consistency
@@ -502,35 +457,28 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
 
     console.log(`[SmartScript] Generated ${normalizedClips.length} clips in ${generationTimeMs}ms. Continuity score: ${continuityScore}`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        shots: normalizedClips, // Keep 'shots' for backwards compatibility
-        clips: normalizedClips,
-        totalDurationSeconds: totalDuration,
-        clipCount: normalizedClips.length,
-        sceneMode: 'continuous',
-        continuityScore,
-        consistency: {
-          character: lockFields.characterDescription,
-          location: lockFields.locationDescription,
-          lighting: lockFields.lightingDescription,
-        },
-        model: "gpt-4o-mini",
-        generationTimeMs,
-        usage: data.usage,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return successResponse({
+      shots: normalizedClips, // Keep 'shots' for backwards compatibility
+      clips: normalizedClips,
+      totalDurationSeconds: totalDuration,
+      clipCount: normalizedClips.length,
+      expectedClipCount: recommendedClips,
+      sceneMode: 'continuous',
+      continuityScore,
+      consistency: {
+        character: lockFields.characterDescription,
+        location: lockFields.locationDescription,
+        lighting: lockFields.lightingDescription,
+      },
+      model: "gpt-4o-mini",
+      generationTimeMs,
+      usage: data.usage,
+    });
 
   } catch (error) {
     console.error("[SmartScript] Error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return errorResponse(
+      error instanceof Error ? error.message : "Unknown error"
     );
   }
 });

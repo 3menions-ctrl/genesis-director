@@ -1,9 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  corsHeaders,
+  validateInput,
+  validateStringArray,
+  fetchWithRetry,
+  detectUserContent,
+  errorResponse,
+  successResponse,
+  calculateMaxTokens,
+} from "../_shared/script-utils.ts";
 
 interface CharacterInput {
   name: string;
@@ -35,110 +40,10 @@ interface StoryRequest {
   continuationType?: 'sequel' | 'prequel' | 'episode';
   
   // USER-PROVIDED CONTENT - must be preserved exactly
-  userNarration?: string;      // User's exact narration text
-  userDialogue?: string[];     // User's exact dialogue lines
-  userScript?: string;         // User's complete script (use as-is)
-  preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
-}
-
-interface DetectedContent {
-  hasDialogue: boolean;
-  hasNarration: boolean;
-  dialogueLines: string[];
-  narrationText: string;
-  estimatedDurationSeconds: number;
-  recommendedClipCount: number;
-}
-
-/**
- * Detect dialogue and narration from user input
- * Patterns detected:
- * - Quoted text: "Hello world"
- * - Character dialogue: CHARACTER: "Line" or CHARACTER says "Line"
- * - Narration markers: [NARRATION], (voiceover), VO:
- * - Script format: INT./EXT. scenes
- */
-function detectUserContent(text: string): DetectedContent {
-  const dialogueLines: string[] = [];
-  let narrationText = '';
-  
-  // Detect quoted dialogue
-  const quotedRegex = /"([^"]+)"/g;
-  let match;
-  while ((match = quotedRegex.exec(text)) !== null) {
-    dialogueLines.push(match[1]);
-  }
-  
-  // Detect character dialogue patterns: NAME: "text" or NAME says "text"
-  const characterDialogueRegex = /([A-Z][A-Z\s]+):\s*["']?([^"'\n]+)["']?/g;
-  while ((match = characterDialogueRegex.exec(text)) !== null) {
-    if (!dialogueLines.includes(match[2].trim())) {
-      dialogueLines.push(match[2].trim());
-    }
-  }
-  
-  // Detect "says" pattern
-  const saysRegex = /([A-Z][a-z]+)\s+says?\s*[,:]\s*["']([^"']+)["']/gi;
-  while ((match = saysRegex.exec(text)) !== null) {
-    if (!dialogueLines.includes(match[2].trim())) {
-      dialogueLines.push(match[2].trim());
-    }
-  }
-  
-  // Detect narration patterns
-  const narrationPatterns = [
-    /\[NARRATION\]:?\s*([^\[\]]+)/gi,
-    /\(voiceover\):?\s*([^\(\)]+)/gi,
-    /\(V\.?O\.?\):?\s*([^\(\)]+)/gi,
-    /VO:?\s*["']?([^"'\n]+)["']?/gi,
-    /NARRATOR:?\s*["']?([^"'\n]+)["']?/gi,
-  ];
-  
-  for (const pattern of narrationPatterns) {
-    while ((match = pattern.exec(text)) !== null) {
-      narrationText += (narrationText ? ' ' : '') + match[1].trim();
-    }
-  }
-  
-  // If no explicit narration found but text has prose-like structure, treat as narration
-  if (!narrationText && dialogueLines.length === 0) {
-    // Check if it looks like a script/narration (sentences, not just keywords)
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    if (sentences.length >= 2) {
-      narrationText = text;
-    }
-  }
-  
-  // Calculate duration based on content
-  const allText = [...dialogueLines, narrationText].join(' ');
-  const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
-  
-  // Average speaking rate: 150 words per minute = 2.5 words per second
-  // Each clip is 6 seconds = 15 words per clip comfortable pace
-  const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 6;
-  const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION; // 15 words per clip
-  
-  const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
-  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
-  
-  // Cap at reasonable maximum
-  recommendedClipCount = Math.min(recommendedClipCount, 20);
-  
-  // Minimum 6 clips for proper story structure
-  if (recommendedClipCount < 6) recommendedClipCount = 6;
-  
-  console.log(`[ContentDetection] Words: ${wordCount}, Duration: ${estimatedDurationSeconds}s, Clips: ${recommendedClipCount}`);
-  console.log(`[ContentDetection] Dialogue lines: ${dialogueLines.length}, Has narration: ${!!narrationText}`);
-  
-  return {
-    hasDialogue: dialogueLines.length > 0,
-    hasNarration: narrationText.length > 0,
-    dialogueLines,
-    narrationText,
-    estimatedDurationSeconds,
-    recommendedClipCount,
-  };
+  userNarration?: string;
+  userDialogue?: string[];
+  userScript?: string;
+  preserveUserContent?: boolean;
 }
 
 serve(async (req) => {
@@ -146,10 +51,34 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const requestData: StoryRequest = await req.json();
     
-    console.log("Generating script for:", JSON.stringify(requestData, null, 2));
+    // Input validation
+    const topicValidation = validateInput(requestData.topic, { 
+      maxLength: 5000, 
+      fieldName: 'topic' 
+    });
+    const synopsisValidation = validateInput(requestData.synopsis, { 
+      maxLength: 10000, 
+      fieldName: 'synopsis' 
+    });
+    const userScriptValidation = validateInput(requestData.userScript, { 
+      maxLength: 50000, 
+      fieldName: 'userScript' 
+    });
+    
+    // Apply sanitized values
+    if (requestData.topic) requestData.topic = topicValidation.sanitized;
+    if (requestData.synopsis) requestData.synopsis = synopsisValidation.sanitized;
+    if (requestData.userScript) requestData.userScript = userScriptValidation.sanitized;
+    if (requestData.userDialogue) {
+      requestData.userDialogue = validateStringArray(requestData.userDialogue, 50, 1000);
+    }
+    
+    console.log("[generate-script] Request received, topic length:", requestData.topic?.length || 0);
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) {
@@ -339,37 +268,36 @@ ${mustPreserveContent ? '- USE THE USER\'S EXACT NARRATION/DIALOGUE - do not par
 Write the script now:`;
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+    // Use retry with exponential backoff
+    const response = await fetchWithRetry(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: calculateMaxTokens(recommendedClips, 120),
+        }),
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: Math.max(800, recommendedClips * 120), // Scale tokens with clip count
-      }),
-    });
+      { maxRetries: 3, baseDelayMs: 1000 }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("[generate-script] OpenAI API error after retries:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Rate limit exceeded after retries. Please try again later.", 429);
       }
       if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ error: "Invalid OpenAI API key." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return errorResponse("Invalid OpenAI API key.", 401);
       }
       
       throw new Error(`OpenAI API error: ${response.status}`);
@@ -378,43 +306,43 @@ Write the script now:`;
     const data = await response.json();
     const script = data.choices?.[0]?.message?.content;
     
+    // Validate response content
+    if (!script || script.trim().length < 50) {
+      console.error("[generate-script] Empty or too short script generated");
+      return errorResponse("Script generation returned insufficient content. Please try again.", 500);
+    }
+    
     // Count actual shots in generated script
     const shotMatches = script?.match(/\[SHOT \d+\]/g) || [];
     const actualShotCount = shotMatches.length || recommendedClips;
     
-    console.log(`Script generated successfully, length: ${script?.length}, shots: ${actualShotCount}`);
+    const generationTimeMs = Date.now() - startTime;
+    console.log(`[generate-script] Success in ${generationTimeMs}ms, length: ${script?.length}, shots: ${actualShotCount}`);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        script,
-        title: requestData.title,
-        genre: requestData.genre,
-        characters: requestData.characters?.map(c => c.name),
-        wordCount: script?.split(/\s+/).length || 0,
-        estimatedDuration: actualShotCount * 6, // 6 seconds per shot
-        recommendedClipCount: recommendedClips,
-        actualClipCount: actualShotCount,
-        detectedContent: {
-          hasDialogue: detectedContent.hasDialogue,
-          hasNarration: detectedContent.hasNarration,
-          dialogueLineCount: detectedContent.dialogueLines.length,
-          contentPreserved: mustPreserveContent,
-        },
-        model: "gpt-4o-mini",
-        usage: data.usage,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return successResponse({ 
+      script,
+      title: requestData.title,
+      genre: requestData.genre,
+      characters: requestData.characters?.map(c => c.name),
+      wordCount: script?.split(/\s+/).length || 0,
+      estimatedDuration: actualShotCount * 6,
+      recommendedClipCount: recommendedClips,
+      actualClipCount: actualShotCount,
+      detectedContent: {
+        hasDialogue: detectedContent.hasDialogue,
+        hasNarration: detectedContent.hasNarration,
+        dialogueLineCount: detectedContent.dialogueLines.length,
+        contentPreserved: mustPreserveContent,
+      },
+      model: "gpt-4o-mini",
+      usage: data.usage,
+      generationTimeMs,
+    });
 
   } catch (error) {
-    console.error("Error in generate-script function:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    console.error("[generate-script] Error:", error);
+    return errorResponse(
+      error instanceof Error ? error.message : "Unknown error"
     );
   }
 });

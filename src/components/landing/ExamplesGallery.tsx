@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
@@ -62,7 +62,8 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryProps) {
+const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
+  function ExamplesGallery({ open, onOpenChange }, ref) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -258,4 +259,6 @@ export default function ExamplesGallery({ open, onOpenChange }: ExamplesGalleryP
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+export default ExamplesGallery;

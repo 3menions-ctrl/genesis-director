@@ -42,6 +42,19 @@ export interface PendingVideoTasksStages {
   };
 }
 
+// Degradation flags for quality compromise notifications
+export interface PendingVideoTasksDegradation {
+  identityBibleFailed?: boolean;
+  identityBibleRetries?: number;
+  musicGenerationFailed?: boolean;
+  sceneImagePartialFail?: number;
+  voiceGenerationFailed?: boolean;
+  auditFailed?: boolean;
+  characterExtractionFailed?: boolean;
+  sfxGenerationFailed?: boolean;
+  reducedConsistencyMode?: boolean;
+}
+
 export interface PendingVideoTasks {
   // Pipeline stage tracking
   stage?: 'initializing' | 'preproduction' | 'awaiting_approval' | 'qualitygate' | 'assets' | 'production' | 'postproduction' | 'complete' | 'error';
@@ -72,6 +85,9 @@ export interface PendingVideoTasks {
 
   // Detailed stage info
   stages?: PendingVideoTasksStages;
+  
+  // SAFEGUARD: Degradation flags for quality compromise notifications
+  degradation?: PendingVideoTasksDegradation;
 }
 
 // Type guard to check if an unknown value is PendingVideoTasks

@@ -64,8 +64,22 @@ interface SceneContext {
   lightingDescription: string;
 }
 
+// Degradation tracking for user notifications
+interface DegradationFlags {
+  identityBibleFailed?: boolean;
+  identityBibleRetries?: number;
+  musicGenerationFailed?: boolean;
+  sceneImagePartialFail?: number; // Number of scenes that failed
+  voiceGenerationFailed?: boolean;
+  auditFailed?: boolean;
+  characterExtractionFailed?: boolean;
+  sfxGenerationFailed?: boolean;
+  reducedConsistencyMode?: boolean;
+}
+
 interface PipelineState {
   projectId: string;
+  degradation?: DegradationFlags;
   stage: string;
   progress: number;
   clipCount: number;
@@ -326,13 +340,22 @@ async function callEdgeFunction(
   return response.json();
 }
 
-// Update project with pipeline progress
-async function updateProjectProgress(supabase: any, projectId: string, stage: string, progress: number, details?: any) {
+// Update project with pipeline progress (includes degradation tracking)
+async function updateProjectProgress(
+  supabase: any, 
+  projectId: string, 
+  stage: string, 
+  progress: number, 
+  details?: any,
+  degradation?: DegradationFlags
+) {
   const pendingTasks = {
     stage,
     progress,
     updatedAt: new Date().toISOString(),
     ...details,
+    // SAFEGUARD: Include degradation flags for UI notifications
+    ...(degradation && Object.keys(degradation).length > 0 ? { degradation } : {}),
   };
   
   await supabase
@@ -684,24 +707,53 @@ async function runPreProduction(
   } else if (request.referenceImageUrl) {
     console.log(`[Hollywood] Analyzing reference image...`);
     
+    // Initialize degradation tracking
+    state.degradation = state.degradation || {};
+    
     try {
-      const [analysisResult, identityResult] = await Promise.all([
-        callEdgeFunction('analyze-reference-image', {
-          imageUrl: request.referenceImageUrl,
-        }),
-        callEdgeFunction('generate-identity-bible', {
-          imageUrl: request.referenceImageUrl,
-          // Enable 5-view system with back view and silhouette
-          generateBackView: true,
-          generateSilhouette: true,
-        }).catch(err => {
-          console.warn(`[Hollywood] Identity Bible generation failed:`, err);
-          return null;
-        }),
-      ]);
+      // SAFEGUARD: Identity Bible with retry (2 attempts)
+      const MAX_IDENTITY_RETRIES = 2;
+      let identityResult = null;
+      let identityRetryCount = 0;
+      
+      const analysisResult = await callEdgeFunction('analyze-reference-image', {
+        imageUrl: request.referenceImageUrl,
+      });
       
       const analysis = analysisResult.analysis || analysisResult;
       state.referenceAnalysis = analysis;
+      
+      // Retry loop for Identity Bible
+      for (let attempt = 1; attempt <= MAX_IDENTITY_RETRIES; attempt++) {
+        try {
+          console.log(`[Hollywood] Identity Bible generation attempt ${attempt}/${MAX_IDENTITY_RETRIES}...`);
+          identityResult = await callEdgeFunction('generate-identity-bible', {
+            imageUrl: request.referenceImageUrl,
+            generateBackView: true,
+            generateSilhouette: true,
+          });
+          
+          if (identityResult?.success) {
+            console.log(`[Hollywood] Identity Bible generated on attempt ${attempt}`);
+            break;
+          }
+          identityRetryCount = attempt;
+        } catch (err) {
+          console.warn(`[Hollywood] Identity Bible attempt ${attempt} failed:`, err);
+          identityRetryCount = attempt;
+          if (attempt < MAX_IDENTITY_RETRIES) {
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
+          }
+        }
+      }
+      
+      // Track degradation if identity bible failed after retries
+      if (!identityResult?.success) {
+        state.degradation.identityBibleFailed = true;
+        state.degradation.identityBibleRetries = identityRetryCount;
+        state.degradation.reducedConsistencyMode = true;
+        console.warn(`[Hollywood] ⚠️ DEGRADATION: Identity Bible failed after ${identityRetryCount} attempts - entering reduced consistency mode`);
+      }
       
       state.identityBible = {
         characterIdentity: analysis.characterIdentity,
@@ -719,7 +771,7 @@ async function runPreProduction(
         };
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
         
-        // NEW: Non-facial anchors for occlusion handling
+        // Non-facial anchors for occlusion handling
         if (identityResult.nonFacialAnchors) {
           state.identityBible.nonFacialAnchors = {
             bodyType: identityResult.nonFacialAnchors.bodyType,
@@ -732,7 +784,7 @@ async function runPreProduction(
           console.log(`[Hollywood] Non-facial anchors extracted: bodyType=${identityResult.nonFacialAnchors.bodyType}`);
         }
         
-        // NEW: Occlusion negatives for anti-morphing
+        // Occlusion negatives for anti-morphing
         if (identityResult.occlusionNegatives) {
           state.identityBible.occlusionNegatives = identityResult.occlusionNegatives;
           console.log(`[Hollywood] Occlusion negatives: ${identityResult.occlusionNegatives.length} anti-morphing prompts`);
@@ -748,6 +800,9 @@ async function runPreProduction(
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
     } catch (err) {
       console.warn(`[Hollywood] Reference analysis failed:`, err);
+      state.degradation = state.degradation || {};
+      state.degradation.identityBibleFailed = true;
+      state.degradation.reducedConsistencyMode = true;
     }
   }
   
@@ -1050,6 +1105,7 @@ async function runAssetCreation(
   await updateProjectProgress(supabase, state.projectId, 'assets', 50);
   
   state.assets = {};
+  state.degradation = state.degradation || {};
   
   // 3a. Generate scene reference images for ALL shots (removed slice limit)
   console.log(`[Hollywood] Generating scene reference images for ALL shots...`);
@@ -1070,14 +1126,24 @@ async function runAssetCreation(
         globalStyle: 'Cinematic film still, professional color grading, high detail',
       });
       
-      if (imageResult.images) {
+      if (imageResult.images && imageResult.images.length > 0) {
         state.assets.sceneImages = imageResult.images;
         console.log(`[Hollywood] Generated ${imageResult.images.length} scene images for ALL shots`);
+        
+        // SAFEGUARD: Track partial scene image failure
+        const expectedCount = state.script.shots.length;
+        const generatedCount = imageResult.images.length;
+        if (generatedCount < expectedCount) {
+          state.degradation.sceneImagePartialFail = expectedCount - generatedCount;
+          console.warn(`[Hollywood] ⚠️ DEGRADATION: Only ${generatedCount}/${expectedCount} scene images generated`);
+        }
       } else {
         console.error(`[Hollywood] Scene image generation returned no images`);
+        state.degradation.sceneImagePartialFail = state.script.shots.length;
       }
     } catch (err) {
       console.error(`[Hollywood] Scene image generation FAILED:`, err);
+      state.degradation.sceneImagePartialFail = state.script?.shots?.length || 0;
     }
   } else {
     console.error(`[Hollywood] No script shots available for scene images`);
@@ -1088,6 +1154,7 @@ async function runAssetCreation(
   
   // 3b. Generate voice narration (ALWAYS - no optional flag)
   console.log(`[Hollywood] Generating voice narration...`);
+  state.degradation = state.degradation || {};
   
   try {
     const narrationText = state.script?.shots
@@ -1108,12 +1175,16 @@ async function runAssetCreation(
         console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
       } else {
         console.error(`[Hollywood] Voice generation returned no URL`);
+        state.degradation.voiceGenerationFailed = true;
+        console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
       }
     } else {
       console.warn(`[Hollywood] No narration text available (${narrationText?.length || 0} chars)`);
     }
   } catch (err) {
     console.error(`[Hollywood] Voice generation FAILED:`, err);
+    state.degradation.voiceGenerationFailed = true;
+    console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
   }
   
   state.progress = 60;
@@ -1121,6 +1192,8 @@ async function runAssetCreation(
   
   // 3c. Generate background music with scene synchronization (ALWAYS - no optional flag)
   console.log(`[Hollywood] Generating synchronized background music...`);
+  
+  let musicGenerated = false;
   
   try {
     // ALWAYS use music sync engine for all tiers
@@ -1156,20 +1229,23 @@ async function runAssetCreation(
           projectId: state.projectId,
         });
         
-        // IMPROVED: Check for explicit hasMusic flag from generate-music
         if (musicResult.musicUrl) {
           state.assets.musicUrl = musicResult.musicUrl;
           state.assets.musicDuration = musicResult.durationSeconds;
+          musicGenerated = true;
           console.log(`[Hollywood] Synchronized music generated: ${state.assets.musicUrl}`);
         } else if (musicResult.hasMusic === false) {
-          // Explicit flag that music was not generated - don't try fallback
           console.log(`[Hollywood] Music explicitly skipped: ${musicResult.message || 'no provider available'}`);
         } else {
-          console.warn(`[Hollywood] Music sync returned no URL, no fallback attempted`);
+          console.warn(`[Hollywood] Music sync returned no URL, trying fallback...`);
         }
       } else {
         console.error(`[Hollywood] Music sync failed, trying direct generation...`);
-        // Fallback to direct music generation
+      }
+      
+      // SAFEGUARD: Fallback to direct music generation if sync failed
+      if (!musicGenerated) {
+        console.log(`[Hollywood] Attempting direct music generation fallback...`);
         const musicResult = await callEdgeFunction('generate-music', {
           mood: request.musicMood || request.mood || 'cinematic',
           genre: 'hybrid',
@@ -1177,10 +1253,10 @@ async function runAssetCreation(
           projectId: state.projectId,
         });
         
-        // IMPROVED: Check for explicit hasMusic flag
         if (musicResult.musicUrl) {
           state.assets.musicUrl = musicResult.musicUrl;
           state.assets.musicDuration = musicResult.durationSeconds;
+          musicGenerated = true;
           console.log(`[Hollywood] Music generated (fallback): ${state.assets.musicUrl}`);
         } else if (musicResult.hasMusic === false) {
           console.log(`[Hollywood] Music skipped in fallback: ${musicResult.message || 'no provider'}`);
@@ -1189,6 +1265,13 @@ async function runAssetCreation(
     }
   } catch (err) {
     console.error(`[Hollywood] Music generation FAILED:`, err);
+  }
+  
+  // SAFEGUARD: Track music degradation if no music was generated
+  if (!musicGenerated && !state.assets.musicUrl) {
+    state.degradation = state.degradation || {};
+    state.degradation.musicGenerationFailed = true;
+    console.warn(`[Hollywood] ⚠️ DEGRADATION: Music generation failed - video will have no background music`);
   }
   
   state.progress = 65;
@@ -1217,9 +1300,15 @@ async function runAssetCreation(
       if (sfxResult.success && sfxResult.plan) {
         (state as any).sfxPlan = sfxResult.plan;
         console.log(`[Hollywood] SFX plan created: ${sfxResult.summary?.ambientBedCount || 0} ambient beds, ${sfxResult.summary?.sfxCueCount || 0} SFX cues`);
+      } else {
+        state.degradation = state.degradation || {};
+        state.degradation.sfxGenerationFailed = true;
+        console.warn(`[Hollywood] ⚠️ DEGRADATION: SFX plan generation returned no plan`);
       }
     } catch (err) {
       console.warn(`[Hollywood] SFX generation failed:`, err);
+      state.degradation = state.degradation || {};
+      state.degradation.sfxGenerationFailed = true;
     }
   }
   
@@ -1268,6 +1357,12 @@ async function runAssetCreation(
   }
   
   state.progress = 70;
+  
+  // SAFEGUARD: Log degradation summary at end of asset stage
+  if (state.degradation && Object.keys(state.degradation).length > 0) {
+    console.log(`[Hollywood] ⚠️ ASSET STAGE DEGRADATION SUMMARY:`, JSON.stringify(state.degradation));
+  }
+  
   await updateProjectProgress(supabase, state.projectId, 'assets', 70, {
     hasVoice: !!state.assets.voiceUrl,
     hasMusic: !!state.assets.musicUrl,
@@ -1278,7 +1373,7 @@ async function runAssetCreation(
     sfxCues: (state as any).sfxPlan?.sfxCues?.length || 0,
     hasColorGrading: !!(state as any).colorGrading,
     colorPreset: (state as any).colorGrading?.masterPreset,
-  });
+  }, state.degradation);
   
   return state;
 }

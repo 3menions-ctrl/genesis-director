@@ -198,7 +198,7 @@ export function parseJsonWithRecovery<T>(
     jsonStr = jsonMatch[1].trim();
   }
   
-  // Step 2: Try direct parse
+  // Step 2: Try direct parse first
   try {
     const data = JSON.parse(jsonStr) as T;
     return { success: true, data };
@@ -206,41 +206,88 @@ export function parseJsonWithRecovery<T>(
     console.log('[JSON Recovery] Direct parse failed, attempting recovery...');
   }
   
-  // Step 3: Try to find JSON object/array in the content
-  const jsonObjectMatch = jsonStr.match(/(\{[\s\S]*\})/);
-  const jsonArrayMatch = jsonStr.match(/(\[[\s\S]*\])/);
+  // Step 3: Try to find and extract JSON object/array
+  // Look for the outermost { } or [ ]
+  let braceStart = jsonStr.indexOf('{');
+  let bracketStart = jsonStr.indexOf('[');
   
-  const potentialJson = jsonObjectMatch?.[1] || jsonArrayMatch?.[1];
-  if (potentialJson) {
-    try {
-      const data = JSON.parse(potentialJson) as T;
-      console.log('[JSON Recovery] Extracted JSON from content');
-      return { success: true, data };
-    } catch (e) {
-      console.log('[JSON Recovery] Extracted content still invalid');
+  let startChar = '{';
+  let endChar = '}';
+  let startPos = braceStart;
+  
+  if (bracketStart !== -1 && (braceStart === -1 || bracketStart < braceStart)) {
+    startChar = '[';
+    endChar = ']';
+    startPos = bracketStart;
+  }
+  
+  if (startPos !== -1) {
+    // Find matching closing bracket by counting
+    let depth = 0;
+    let endPos = -1;
+    let inString = false;
+    let escapeNext = false;
+    
+    for (let i = startPos; i < jsonStr.length; i++) {
+      const char = jsonStr[i];
+      
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+      
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      if (!inString) {
+        if (char === startChar) depth++;
+        if (char === endChar) {
+          depth--;
+          if (depth === 0) {
+            endPos = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (endPos !== -1) {
+      const extracted = jsonStr.substring(startPos, endPos + 1);
+      try {
+        const data = JSON.parse(extracted) as T;
+        console.log('[JSON Recovery] Extracted and parsed JSON successfully');
+        return { success: true, data };
+      } catch (e) {
+        console.log('[JSON Recovery] Extracted content still invalid, trying fixes...');
+        
+        // Try common fixes on extracted content
+        let fixedJson = extracted
+          // Fix trailing commas before closing brackets
+          .replace(/,\s*([}\]])/g, '$1')
+          // Fix unescaped newlines in strings (replace with space)
+          .replace(/([^\\])[\n\r]+/g, '$1 ')
+          // Remove control characters
+          .replace(/[\x00-\x1F\x7F]/g, ' ');
+        
+        try {
+          const data = JSON.parse(fixedJson) as T;
+          console.log('[JSON Recovery] Fixed common issues and parsed');
+          return { success: true, data };
+        } catch (e2) {
+          console.log('[JSON Recovery] Common fixes failed');
+        }
+      }
     }
   }
   
-  // Step 4: Try common fixes
-  let fixedJson = jsonStr
-    // Fix trailing commas
-    .replace(/,\s*([}\]])/g, '$1')
-    // Fix unquoted keys
-    .replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
-    // Fix single quotes to double quotes
-    .replace(/'/g, '"')
-    // Fix newlines in strings
-    .replace(/[\n\r]+/g, ' ');
-  
-  try {
-    const data = JSON.parse(fixedJson) as T;
-    console.log('[JSON Recovery] Fixed common issues and parsed');
-    return { success: true, data };
-  } catch (e) {
-    console.log('[JSON Recovery] Common fixes failed');
-  }
-  
-  // Step 5: Try fallback extractor if provided
+  // Step 4: Try fallback extractor if provided
   if (fallbackExtractor) {
     try {
       const data = fallbackExtractor(rawContent);
@@ -395,12 +442,14 @@ export function successResponse<T>(data: T): Response {
 
 /**
  * Calculate appropriate max_tokens for OpenAI based on content
+ * For JSON output (like smart-script-generator), use higher tokensPerClip (400+)
+ * For text output (like generate-script), use lower tokensPerClip (120-150)
  */
 export function calculateMaxTokens(
   clipCount: number,
   baseTokensPerClip: number = 150,
-  minTokens: number = 800,
-  maxTokens: number = 4000
+  minTokens: number = 1000,
+  maxTokens: number = 4096
 ): number {
   const calculated = clipCount * baseTokensPerClip;
   return Math.max(minTokens, Math.min(calculated, maxTokens));

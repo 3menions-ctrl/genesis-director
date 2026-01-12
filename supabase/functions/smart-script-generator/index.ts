@@ -351,7 +351,7 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(recommendedClips, 200),
+          max_tokens: calculateMaxTokens(recommendedClips, 400, 2500, 4096), // JSON needs more tokens per clip
           temperature: 0.6,
         }),
       },

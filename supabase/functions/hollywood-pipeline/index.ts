@@ -1636,7 +1636,7 @@ async function runProduction(
           clipIndex: i,
           prompt: finalPrompt,
           totalClips: clips.length,
-          startImageUrl: useStartImage,
+          startImageUrl: useStartImage, // Last frame for MOTION continuity
           previousMotionVectors,
           identityBible: state.identityBible,
           colorGrading: request.colorGrading || 'cinematic',
@@ -1646,8 +1646,20 @@ async function runProduction(
           retryAttempt: attempt,
           // Pass scene context for continuous action flow
           sceneContext: clip.sceneContext,
-          // NEW: Pass accumulated anchors for visual consistency
-          accumulatedAnchors: accumulatedAnchors.slice(-3), // Last 3 anchors
+          // ENHANCED: Pass ALL accumulated anchors with master anchor first
+          // This ensures Clip 1's visual DNA is used as the SOURCE OF TRUTH
+          // for color/lighting, preventing gradual degradation
+          accumulatedAnchors: accumulatedAnchors.length > 0 
+            ? [
+                // Master anchor (from Clip 1) - always include for color/lighting lock
+                { 
+                  ...accumulatedAnchors[0], 
+                  masterConsistencyPrompt: masterSceneAnchor?.masterConsistencyPrompt 
+                },
+                // Recent anchors for environment evolution (last 2)
+                ...accumulatedAnchors.slice(-2)
+              ].filter(Boolean)
+            : [],
         });
         
         if (!clipResult.success) {

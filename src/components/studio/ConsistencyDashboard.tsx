@@ -68,9 +68,8 @@ export function ConsistencyDashboard({
 }: ConsistencyDashboardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Only show for pro tier or when there's data to display
+  // Always show when on a project page - provides context even without data
   const hasData = masterAnchor || characters.length > 0 || consistencyScore > 0;
-  if (!isProTier && !hasData) return null;
 
   return (
     <motion.div

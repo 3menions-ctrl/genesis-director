@@ -135,11 +135,19 @@ export default function Clips() {
           setProjectStatus(projectData.status);
           const proData = projectData.pro_features_data as any;
           if (proData) {
+            // Extract from continuityPlan if available (standard tier structure)
+            const continuityPlan = proData.continuityPlan;
+            const envLock = continuityPlan?.environmentLock;
+            
             setProFeatures({
-              masterSceneAnchor: proData.masterSceneAnchor,
+              masterSceneAnchor: proData.masterSceneAnchor || (envLock ? {
+                lighting: envLock.lighting,
+                environment: `${envLock.weather || ''} ${envLock.timeOfDay || ''}`.trim(),
+                dominantColors: envLock.colorPalette ? [envLock.colorPalette] : [],
+              } : null),
               characters: proData.characters || [],
               identityBible: proData.identityBible,
-              consistencyScore: proData.consistencyScore,
+              consistencyScore: proData.consistencyScore || (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined),
               qualityTier: projectData.quality_tier,
             });
           }
@@ -474,8 +482,8 @@ export default function Clips() {
           </div>
         </motion.div>
 
-        {/* Consistency Dashboard - Shows for project-specific view with pro features */}
-        {projectIdFilter && proFeatures && (
+        {/* Consistency Dashboard - Shows for project-specific view */}
+        {projectIdFilter && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -483,17 +491,21 @@ export default function Clips() {
             className="mb-6"
           >
             <ConsistencyDashboard
-              masterAnchor={proFeatures.masterSceneAnchor}
-              characters={proFeatures.characters?.map((c: any) => ({
+              masterAnchor={proFeatures?.masterSceneAnchor}
+              characters={proFeatures?.characters?.map((c: any) => ({
                 name: c.name || 'Unknown',
                 appearance: c.appearance,
                 verified: c.verified,
                 consistencyScore: c.consistencyScore,
-              }))}
-              identityBibleActive={!!proFeatures.identityBible}
-              nonFacialAnchors={proFeatures.identityBible?.nonFacialAnchors || []}
-              consistencyScore={proFeatures.consistencyScore || 0}
-              isProTier={proFeatures.qualityTier === 'professional'}
+              })) || []}
+              identityBibleActive={!!proFeatures?.identityBible}
+              nonFacialAnchors={proFeatures?.identityBible?.nonFacialAnchors || []}
+              consistencyScore={proFeatures?.consistencyScore || (completedCount > 0 ? completedCount / clips.length : 0)}
+              consistencyMetrics={{
+                color: proFeatures?.masterSceneAnchor?.dominantColors?.length ? 0.85 : undefined,
+                scene: proFeatures?.masterSceneAnchor ? 0.9 : undefined,
+              }}
+              isProTier={proFeatures?.qualityTier === 'professional'}
             />
           </motion.div>
         )}

@@ -19,6 +19,7 @@ import { parsePendingVideoTasks, PendingVideoTasksScript } from '@/types/pending
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
+import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 
 // ============= TYPES =============
 
@@ -54,6 +55,14 @@ interface ProductionProject {
   totalClips: number;
   thumbnail?: string;
   updatedAt: string;
+}
+
+interface ProFeaturesState {
+  masterSceneAnchor?: any;
+  characters?: any[];
+  identityBible?: any;
+  consistencyScore?: number;
+  qualityTier?: string;
 }
 
 // ============= CONSTANTS =============
@@ -514,6 +523,7 @@ export default function Production() {
   const [isApprovingScript, setIsApprovingScript] = useState(false);
   const [pipelineStage, setPipelineStage] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -666,6 +676,24 @@ export default function Production() {
       setProjectTitle(project.title);
       setProjectStatus(project.status);
       if (project.video_url) setFinalVideoUrl(project.video_url);
+      
+      // Load pro features data for consistency dashboard
+      const proData = project.pro_features_data as any;
+      if (proData) {
+        const continuityPlan = proData.continuityPlan;
+        const envLock = continuityPlan?.environmentLock;
+        setProFeatures({
+          masterSceneAnchor: proData.masterSceneAnchor || (envLock ? {
+            lighting: envLock.lighting,
+            environment: `${envLock.weather || ''} ${envLock.timeOfDay || ''}`.trim(),
+            dominantColors: envLock.colorPalette ? [envLock.colorPalette] : [],
+          } : null),
+          characters: proData.characters || [],
+          identityBible: proData.identityBible,
+          consistencyScore: proData.consistencyScore || (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined),
+          qualityTier: project.quality_tier,
+        });
+      }
 
       let scriptLoaded = false;
       
@@ -772,6 +800,24 @@ export default function Production() {
 
         setProjectStatus(project.status as string);
         if (project.video_url) setFinalVideoUrl(project.video_url as string);
+        
+        // Update pro features data in realtime
+        const proData = project.pro_features_data as any;
+        if (proData) {
+          const continuityPlan = proData.continuityPlan;
+          const envLock = continuityPlan?.environmentLock;
+          setProFeatures({
+            masterSceneAnchor: proData.masterSceneAnchor || (envLock ? {
+              lighting: envLock.lighting,
+              environment: `${envLock.weather || ''} ${envLock.timeOfDay || ''}`.trim(),
+              dominantColors: envLock.colorPalette ? [envLock.colorPalette] : [],
+            } : null),
+            characters: proData.characters || [],
+            identityBible: proData.identityBible,
+            consistencyScore: proData.consistencyScore || (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined),
+            qualityTier: project.quality_tier as string,
+          });
+        }
 
         const tasks = parsePendingVideoTasks(project.pending_video_tasks);
         if (tasks) {
@@ -1395,6 +1441,27 @@ export default function Production() {
                     />
                   </div>
                 </motion.div>
+
+                {/* Consistency Dashboard - Live metrics during generation */}
+                {projectId && (proFeatures || clipResults.length > 0) && (
+                  <ConsistencyDashboard
+                    masterAnchor={proFeatures?.masterSceneAnchor}
+                    characters={proFeatures?.characters?.map((c: any) => ({
+                      name: c.name || 'Unknown',
+                      appearance: c.appearance,
+                      verified: c.verified,
+                      consistencyScore: c.consistencyScore,
+                    })) || []}
+                    identityBibleActive={!!proFeatures?.identityBible}
+                    nonFacialAnchors={proFeatures?.identityBible?.nonFacialAnchors || []}
+                    consistencyScore={proFeatures?.consistencyScore || (completedClips > 0 ? completedClips / (clipResults.length || expectedClipCount) : 0)}
+                    consistencyMetrics={{
+                      color: proFeatures?.masterSceneAnchor?.dominantColors?.length ? 0.85 : undefined,
+                      scene: proFeatures?.masterSceneAnchor ? 0.9 : undefined,
+                    }}
+                    isProTier={proFeatures?.qualityTier === 'professional'}
+                  />
+                )}
 
                 {/* Clips Grid */}
                 {clipResults.length > 0 && (

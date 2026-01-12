@@ -40,6 +40,7 @@ interface StickyGenerateBarProps {
   disabled?: boolean;
   currentStage?: string;
   pipelineLogs?: PipelineLog[];
+  isInitializing?: boolean; // Show loading state when starting
 }
 
 const STAGE_MESSAGES: Record<string, { label: string; icon: string }> = {
@@ -69,6 +70,7 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
     disabled,
     currentStage = 'idle',
     pipelineLogs = [],
+    isInitializing = false,
   }, ref) {
   const [showLogs, setShowLogs] = useState(false);
   const [statusText, setStatusText] = useState('Initializing...');
@@ -282,18 +284,28 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
               {!isRunning && (
                 <Button
                   onClick={onGenerate}
-                  disabled={disabled}
+                  disabled={disabled || isInitializing}
                   className={cn(
                     "gap-2 h-11 px-8 font-semibold transition-all",
                     "bg-foreground hover:bg-foreground/90 text-background",
                     "shadow-lg hover:shadow-xl hover:scale-[1.02]",
-                    "relative overflow-hidden group"
+                    "relative overflow-hidden group",
+                    isInitializing && "cursor-wait"
                   )}
                 >
-                  {/* Shimmer effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  <Sparkles className="w-5 h-5" />
-                  <span>Generate Video</span>
+                  {isInitializing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Preparing...</span>
+                    </>
+                  ) : (
+                    <>
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                      <Sparkles className="w-5 h-5" />
+                      <span>Generate Video</span>
+                    </>
+                  )}
                 </Button>
               )}
             </div>

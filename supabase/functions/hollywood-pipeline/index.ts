@@ -1587,6 +1587,12 @@ async function runProduction(
   let accumulatedAnchors: any[] = [];
   let masterSceneAnchor: any = null;
   
+  // =====================================================
+  // CONTINUITY MANIFEST TRACKING: AI-extracted comprehensive continuity data
+  // Tracks: spatial position, lighting, props, emotional state, action momentum
+  // =====================================================
+  let previousContinuityManifest: any = null;
+  
   // RESTORE masterSceneAnchor from DB on resume (CRITICAL for consistency)
   if (state.identityBible?.masterSceneAnchor) {
     masterSceneAnchor = state.identityBible.masterSceneAnchor;
@@ -1820,6 +1826,8 @@ async function runProduction(
           totalClips: clips.length,
           startImageUrl: useStartImage, // Last frame for MOTION continuity
           previousMotionVectors,
+          // NEW: Pass previous shot's continuity manifest for comprehensive consistency
+          previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
           identityBible: state.identityBible,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
@@ -2082,6 +2090,7 @@ async function runProduction(
                 totalClips: clips.length,
                 startImageUrl: retryStartImage,
                 previousMotionVectors,
+                previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
                 identityBible: state.identityBible,
                 colorGrading: request.colorGrading || 'cinematic',
                 qualityTier: request.qualityTier || 'standard',
@@ -2342,7 +2351,6 @@ async function runProduction(
                   console.log(`[Hollywood] Using side-view reference for regeneration`);
                 }
                 
-                // Regenerate clip
                 const regenResult = await callEdgeFunction('generate-single-clip', {
                   userId: request.userId,
                   projectId: state.projectId,
@@ -2351,6 +2359,7 @@ async function runProduction(
                   totalClips: clips.length,
                   startImageUrl: regenerationStartImage,
                   previousMotionVectors,
+                  previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
                   identityBible: state.identityBible,
                   colorGrading: request.colorGrading || 'cinematic',
                   qualityTier: request.qualityTier || 'standard',
@@ -2471,8 +2480,14 @@ async function runProduction(
     
     previousMotionVectors = result.motionVectors;
     
+    // Update continuity manifest for next clip (if available from generate-single-clip)
+    if (result.continuityManifest) {
+      previousContinuityManifest = result.continuityManifest;
+      console.log(`[Hollywood] ✓ Continuity manifest updated for clip ${i + 2}: ${result.continuityManifest.criticalAnchors?.length || 0} critical anchors`);
+    }
+    
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
-    console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors ready' : 'no motion vectors'}`);
+    console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors' : 'no motion'}, ${previousContinuityManifest ? 'manifest ready' : 'no manifest'}`);
   }
   
   const completedClips = state.production.clipResults.filter(c => c.status === 'completed');

@@ -17,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks, PendingVideoTasksScript } from '@/types/pending-video-tasks';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
+import { CloudRunProgressPanel } from '@/components/studio/CloudRunProgressPanel';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
@@ -1751,6 +1752,21 @@ export default function Production() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Cloud Run Real-time Progress */}
+                {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
+                  <CloudRunProgressPanel
+                    projectId={projectId}
+                    projectStatus={projectStatus}
+                    onComplete={(url) => {
+                      setFinalVideoUrl(url);
+                      setProjectStatus('completed');
+                      setProgress(100);
+                      updateStageStatus(5, 'complete');
+                      toast.success('Video stitching complete!');
+                    }}
+                  />
+                )}
 
                 {/* Troubleshooter */}
                 {completedClips > 0 && projectId && !finalVideoUrl && (

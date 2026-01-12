@@ -8,7 +8,7 @@ import {
   Film, Loader2, CheckCircle2, XCircle, Play, Download, Clock, 
   RotateCcw, Sparkles, AlertCircle, RefreshCw,
   ChevronRight, Zap, X, FileText, Users, Shield, Wand2,
-  Activity, Cpu, Terminal, FolderOpen, ChevronLeft, Layers
+  Activity, Cpu, Terminal, FolderOpen, ChevronLeft, Layers, Eye
 } from 'lucide-react';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,11 @@ import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
 import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
+import { ContinuityManifestPanel } from '@/components/studio/ContinuityManifestPanel';
 import { useContinuityOrchestrator } from '@/hooks/useContinuityOrchestrator';
+import { useContinuityManifest } from '@/hooks/useContinuityManifest';
 import type { TransitionAnalysis } from '@/types/continuity-orchestrator';
+import type { ShotContinuityManifest } from '@/types/continuity-manifest';
 
 // ============= TYPES =============
 
@@ -550,6 +553,7 @@ export default function Production() {
   const [pipelineStage, setPipelineStage] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
+  const [selectedManifestIndex, setSelectedManifestIndex] = useState<number>(0);
 
   // Continuity orchestrator for transition analysis
   const {
@@ -560,6 +564,21 @@ export default function Production() {
     bridgeClipsNeeded,
     postProcessClips,
   } = useContinuityOrchestrator();
+
+  // Continuity manifest for per-shot detail tracking
+  const {
+    isExtracting: isExtractingManifest,
+    manifests: continuityManifests,
+    currentManifest,
+    extractManifest,
+    getManifestForShot,
+    getContinuitySummary,
+  } = useContinuityManifest({ 
+    projectId: projectId || '',
+    onManifestExtracted: (manifest) => {
+      addLog(`Extracted continuity for shot ${manifest.shotIndex + 1}: ${manifest.criticalAnchors?.length || 0} anchors`, 'success');
+    }
+  });
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -1854,10 +1873,77 @@ export default function Production() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="h-64 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.06] overflow-hidden"
+                  className="h-48 rounded-xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.06] overflow-hidden"
                 >
                   <ActivityLog logs={pipelineLogs} isLive={isRunning} />
                 </motion.div>
+
+                {/* Continuity Manifest Panel */}
+                {clipResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.12 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-xs font-medium text-white/50">Continuity Tracking</span>
+                        {isExtractingManifest && (
+                          <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                        )}
+                      </div>
+                      {clipResults.filter(c => c.status === 'completed').length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {clipResults.filter(c => c.status === 'completed').slice(0, 8).map((clip, i) => (
+                            <Button
+                              key={clip.index}
+                              variant={selectedManifestIndex === clip.index ? "default" : "ghost"}
+                              size="sm"
+                              className={cn(
+                                "w-6 h-6 p-0 text-[10px] rounded",
+                                selectedManifestIndex === clip.index 
+                                  ? "bg-primary text-primary-foreground" 
+                                  : "text-white/40 hover:text-white"
+                              )}
+                              onClick={async () => {
+                                setSelectedManifestIndex(clip.index);
+                                // Extract manifest if not already done
+                                if (!getManifestForShot(clip.index) && clip.videoUrl) {
+                                  // Get last frame URL from clip
+                                  const clipData = await supabase
+                                    .from('video_clips')
+                                    .select('last_frame_url')
+                                    .eq('project_id', projectId)
+                                    .eq('shot_index', clip.index)
+                                    .single();
+                                  
+                                  if (clipData.data?.last_frame_url) {
+                                    extractManifest(
+                                      clipData.data.last_frame_url,
+                                      clip.index,
+                                      { 
+                                        shotDescription: scriptShots?.[clip.index]?.description,
+                                        previousManifest: getManifestForShot(clip.index - 1),
+                                      }
+                                    );
+                                  }
+                                }
+                              }}
+                            >
+                              {clip.index + 1}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ContinuityManifestPanel
+                      manifest={getManifestForShot(selectedManifestIndex) || null}
+                      shotIndex={selectedManifestIndex}
+                      isLoading={isExtractingManifest}
+                    />
+                  </motion.div>
+                )}
 
                 {/* Quality Score */}
                 {auditScore !== null && (

@@ -79,11 +79,30 @@ serve(async (req) => {
     
     console.log(`[ResumePipeline] Resuming from stage: ${resumeFrom}`);
 
-    // Update shots if user made edits (only for script approval)
+    // Load script from multiple sources (fallback chain)
+    // Priority: 1) User-edited shots, 2) pending_video_tasks.script, 3) generated_script field
     let script = pendingTasks.script;
+    
+    // CRITICAL FIX: Fall back to generated_script if pending_video_tasks.script is missing
+    if (!script?.shots && project.generated_script) {
+      try {
+        script = typeof project.generated_script === 'string' 
+          ? JSON.parse(project.generated_script)
+          : project.generated_script;
+        console.log(`[ResumePipeline] Loaded script from generated_script field: ${script?.shots?.length || 0} shots`);
+      } catch (e) {
+        console.warn(`[ResumePipeline] Failed to parse generated_script:`, e);
+      }
+    }
+    
+    // Update shots if user made edits (only for script approval)
     if (request.approvedShots && request.approvedShots.length > 0) {
       script = { shots: request.approvedShots };
       console.log("[ResumePipeline] Using user-edited shots:", request.approvedShots.length);
+    }
+    
+    if (!script?.shots || script.shots.length === 0) {
+      throw new Error(`No script found for project. Cannot resume.`);
     }
 
     // Update project to indicate resumption

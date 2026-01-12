@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       api_cost_logs: {
         Row: {
           created_at: string
@@ -1101,6 +1134,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_clips: {
         Row: {
           color_profile: Json | null
@@ -1205,6 +1262,34 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_adjust_credits: {
+        Args: { p_amount: number; p_reason: string; p_target_user_id: string }
+        Returns: Json
+      }
+      admin_list_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          account_tier: string
+          created_at: string
+          credits_balance: number
+          display_name: string
+          email: string
+          full_name: string
+          id: string
+          project_count: number
+          roles: Database["public"]["Enums"]["app_role"][]
+          total_credits_purchased: number
+          total_credits_used: number
+        }[]
+      }
+      admin_manage_role: {
+        Args: {
+          p_action: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
       charge_preproduction_credits: {
         Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
         Returns: Json
@@ -1235,6 +1320,7 @@ export type Database = {
           total_real_cost_cents: number
         }[]
       }
+      get_admin_stats: { Args: never; Returns: Json }
       get_generation_checkpoint: {
         Args: { p_project_id: string }
         Returns: {
@@ -1250,6 +1336,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["universe_role"]
       }
       get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_universe_member: {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: boolean
@@ -1321,6 +1415,7 @@ export type Database = {
           }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       lending_permission: "none" | "universe_only" | "specific_users" | "public"
       movie_genre:
         | "ad"
@@ -1467,6 +1562,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       lending_permission: ["none", "universe_only", "specific_users", "public"],
       movie_genre: [
         "ad",

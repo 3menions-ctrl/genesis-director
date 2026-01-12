@@ -457,52 +457,649 @@ function buildContinuityFromManifest(manifest: ShotContinuityManifest): { prompt
 }
 
 // =====================================================
-// IDENTITY DECAY PREVENTION SYSTEM
+// COMPREHENSIVE MULTI-DIMENSIONAL IDENTITY ANCHOR SYSTEM
 // Problem: Character identity degrades over clips (especially after clip 3)
-// Solution: Re-anchor EVERY clip to original identity + cumulative reinforcement
+// Solution: 12-dimensional anchor matrix + cumulative reinforcement + decay prevention
 // =====================================================
+
 const IDENTITY_REANCHOR_INTERVAL = 1; // Re-anchor EVERY clip to original
 const BASE_IDENTITY_WEIGHT = 1.0;
 const IDENTITY_WEIGHT_GROWTH = 0.15; // Increase identity emphasis by 15% each clip
+
+// =====================================================
+// ANCHOR DIMENSION 1: Facial Geometry Anchors
+// =====================================================
+interface FacialGeometryAnchors {
+  eyeShape: string;           // "almond-shaped", "round", "hooded"
+  eyeColor: string;           // "deep brown", "hazel with gold flecks"
+  eyeSpacing: string;         // "wide-set", "close-set", "average"
+  noseShape: string;          // "straight", "aquiline", "button"
+  lipShape: string;           // "full", "thin", "cupid's bow"
+  jawline: string;            // "sharp angular", "soft rounded", "square"
+  cheekbones: string;         // "high prominent", "subtle", "wide"
+  foreheadShape: string;      // "high", "low", "rounded"
+  chinShape: string;          // "pointed", "rounded", "cleft"
+  eyebrowShape: string;       // "arched", "straight", "thick bushy"
+  facialSymmetry: string;     // notes on asymmetrical features
+  facialExpression: string;   // default/neutral expression
+}
+
+// =====================================================
+// ANCHOR DIMENSION 2: Skin & Complexion Anchors
+// =====================================================
+interface SkinAnchors {
+  skinTone: string;           // "warm olive", "cool fair", "deep ebony"
+  skinUndertone: string;      // "warm", "cool", "neutral"
+  skinTexture: string;        // "smooth", "textured", "mature"
+  freckles: string;           // presence and pattern
+  moles: string[];            // specific mole locations
+  scars: string[];            // visible scars with locations
+  wrinkles: string;           // wrinkle pattern description
+  birthmarks: string[];       // any visible birthmarks
+  blemishes: string;          // current skin condition notes
+  blushPattern: string;       // natural blush areas
+  shadingAreas: string;       // natural shadow areas on face
+}
+
+// =====================================================
+// ANCHOR DIMENSION 3: Hair DNA Anchors
+// =====================================================
+interface HairAnchors {
+  hairColor: string;          // "warm chestnut brown with auburn highlights"
+  hairTexture: string;        // "silky straight", "loose waves", "tight coils"
+  hairLength: string;         // "shoulder-length", "cropped short"
+  hairVolume: string;         // "thick voluminous", "fine thin"
+  hairStyle: string;          // current styling
+  hairPart: string;           // "center part", "left side part", "no part"
+  hairline: string;           // "widow's peak", "straight", "receding"
+  bangs: string;              // "side-swept", "blunt", "none"
+  hairShine: string;          // "matte", "glossy", "healthy sheen"
+  grayHairs: string;          // presence and pattern
+  hairAccessories: string[];  // clips, ties, headbands
+  facialHair: string;         // beard, mustache, stubble
+}
+
+// =====================================================
+// ANCHOR DIMENSION 4: Body Proportion Anchors
+// =====================================================
+interface BodyAnchors {
+  height: string;             // "tall", "average", "petite"
+  build: string;              // "athletic", "slender", "stocky"
+  shoulderWidth: string;      // "broad", "narrow", "average"
+  torsoLength: string;        // proportion description
+  limbProportions: string;    // arm/leg length notes
+  handSize: string;           // "large", "delicate", "average"
+  neckLength: string;         // "long elegant", "short", "average"
+  posture: string;            // "upright confident", "relaxed slouch"
+  silhouette: string;         // overall body shape silhouette
+  bodySymmetry: string;       // notes on proportional balance
+  musculature: string;        // muscle definition level
+  waistHipRatio: string;      // body shape indicator
+}
+
+// =====================================================
+// ANCHOR DIMENSION 5: Clothing & Wardrobe Anchors
+// =====================================================
+interface WardrobeAnchors {
+  topGarment: string;         // shirt, blouse, jacket description
+  topColor: string;           // exact color
+  topPattern: string;         // solid, striped, printed
+  topFit: string;             // loose, fitted, oversized
+  bottomGarment: string;      // pants, skirt, shorts
+  bottomColor: string;
+  bottomFit: string;
+  footwear: string;           // shoes, boots, barefoot
+  outerwear: string;          // jacket, coat, cardigan
+  neckline: string;           // v-neck, crew, collar
+  sleeves: string;            // short, long, rolled up
+  fabricTexture: string;      // cotton, silk, denim, leather
+  wearCondition: string;      // pristine, worn, wrinkled
+  layers: string[];           // visible clothing layers
+  colorPaletteWardrobe: string[]; // overall clothing color scheme
+}
+
+// =====================================================
+// ANCHOR DIMENSION 6: Accessories & Jewelry Anchors
+// =====================================================
+interface AccessoryAnchors {
+  glasses: string;            // frame style and color
+  earrings: string;           // type and style
+  necklace: string;           // pendant, chain type
+  bracelets: string[];        // wrist accessories
+  rings: string[];            // ring descriptions with hand/finger
+  watch: string;              // wrist watch details
+  hat: string;                // headwear
+  scarf: string;              // neck accessories
+  belt: string;               // belt style
+  bag: string;                // purse, backpack
+  tattoos: string[];          // visible tattoos with locations
+  piercings: string[];        // visible piercings
+  otherAccessories: string[]; // any other notable items
+}
+
+// =====================================================
+// ANCHOR DIMENSION 7: Pose & Movement Signature
+// =====================================================
+interface MovementAnchors {
+  defaultStance: string;      // how they naturally stand
+  walkingGait: string;        // walking style
+  gestureTendencies: string;  // common hand gestures
+  headTilt: string;           // natural head position
+  shoulderSet: string;        // how shoulders are held
+  handRestPosition: string;   // where hands rest naturally
+  eyeGazeTendency: string;    // how they look at things
+  facialTics: string;         // any nervous habits
+  breathingPattern: string;   // visible breathing style
+  centerOfGravity: string;    // body weight distribution
+  movementSpeed: string;      // quick, deliberate, languid
+  characteristicPoses: string[]; // signature poses
+}
+
+// =====================================================
+// ANCHOR DIMENSION 8: Expression & Emotion Baseline
+// =====================================================
+interface ExpressionAnchors {
+  neutralExpression: string;  // resting face description
+  smileType: string;          // how they smile
+  frownType: string;          // how they show displeasure
+  eyeExpression: string;      // expressive eyes description
+  mouthResting: string;       // lips position at rest
+  browPosition: string;       // eyebrow resting position
+  emotionalTells: string;     // what shows emotion first
+  blinkRate: string;          // normal blinking pattern
+  teethVisibility: string;    // teeth shown when speaking
+  emotionalRange: string;     // how expressive overall
+}
+
+// =====================================================
+// ANCHOR DIMENSION 9: Lighting Response Anchors
+// =====================================================
+interface LightingResponseAnchors {
+  highlightAreas: string[];   // where light hits naturally
+  shadowAreas: string[];      // natural shadow zones
+  skinReflectivity: string;   // how skin catches light
+  eyeReflections: string;     // catchlights in eyes
+  hairShinePattern: string;   // how hair reflects light
+  subsurfaceScatter: string;  // skin translucency areas (ears, nose)
+  rimLightResponse: string;   // how edge lighting looks
+  shadowColorCast: string;    // color of shadows on skin
+  specularHighlights: string; // shiny spots
+  overallLuminance: string;   // brightness level
+}
+
+// =====================================================
+// ANCHOR DIMENSION 10: Color & Tone Fingerprint
+// =====================================================
+interface ColorFingerprint {
+  skinHexPrimary: string;     // main skin color hex
+  skinHexHighlight: string;   // highlighted skin hex
+  skinHexShadow: string;      // shadowed skin hex
+  hairHexPrimary: string;     // main hair color hex
+  hairHexHighlight: string;   // hair highlight hex
+  eyeHex: string;             // iris color hex
+  lipHex: string;             // lip color hex
+  clothingHexPrimary: string; // main clothing color
+  clothingHexSecondary: string; // secondary clothing color
+  overallColorTemperature: string; // warm, cool, neutral
+  contrastLevel: string;      // high, medium, low contrast
+  saturationLevel: string;    // vibrant, muted, natural
+}
+
+// =====================================================
+// ANCHOR DIMENSION 11: Scale & Proportion Reference
+// =====================================================
+interface ScaleAnchors {
+  headToBodyRatio: string;    // "1:7.5 proportion"
+  facialThirds: string;       // forehead:nose:chin ratio
+  eyeToFaceWidth: string;     // eyes width vs face width
+  noseToFaceRatio: string;    // nose proportions
+  mouthWidth: string;         // mouth to face ratio
+  shoulderToHipRatio: string; // body proportions
+  armLength: string;          // arm to torso ratio
+  legLength: string;          // leg to torso ratio
+  handToFaceRatio: string;    // hand size vs face
+  environmentScale: string;   // character size in environment
+}
+
+// =====================================================
+// ANCHOR DIMENSION 12: Unique Identifiers (Most Critical)
+// =====================================================
+interface UniqueIdentifiers {
+  mostDistinctiveFeature: string;   // THE one thing that's unmistakable
+  secondMostDistinctive: string;    // backup identifier
+  thirdMostDistinctive: string;     // tertiary identifier
+  recognitionSignature: string;     // how to identify at a glance
+  colorSignature: string;           // key color that defines them
+  silhouetteIdentifier: string;     // shape that identifies them
+  gestureIdentifier: string;        // movement that's uniquely theirs
+  quickCheckpoints: string[];       // fast verification points
+  absoluteNonNegotiables: string[]; // MUST be present, never change
+  driftWarningZones: string[];      // areas prone to AI drift
+}
+
+// =====================================================
+// COMPLETE COMPREHENSIVE ANCHOR MATRIX
+// =====================================================
+interface ComprehensiveAnchorMatrix {
+  facialGeometry: Partial<FacialGeometryAnchors>;
+  skin: Partial<SkinAnchors>;
+  hair: Partial<HairAnchors>;
+  body: Partial<BodyAnchors>;
+  wardrobe: Partial<WardrobeAnchors>;
+  accessories: Partial<AccessoryAnchors>;
+  movement: Partial<MovementAnchors>;
+  expression: Partial<ExpressionAnchors>;
+  lightingResponse: Partial<LightingResponseAnchors>;
+  colorFingerprint: Partial<ColorFingerprint>;
+  scale: Partial<ScaleAnchors>;
+  uniqueIdentifiers: Partial<UniqueIdentifiers>;
+  // Computed fields
+  anchorStrength: number; // 0-100 how complete the anchors are
+  extractedAt: number;
+  sourceClip: number;
+}
 
 function calculateIdentityWeight(clipIndex: number): { weight: number; shouldReanchor: boolean } {
   // Identity weight grows as we get further from clip 1 to counteract drift
   const weight = BASE_IDENTITY_WEIGHT + (IDENTITY_WEIGHT_GROWTH * clipIndex);
   
-  // Re-anchor every N clips (clips 2, 4, 6, etc. get extra reinforcement)
+  // Re-anchor every N clips (every clip with interval of 1)
   const shouldReanchor = clipIndex > 0 && (clipIndex % IDENTITY_REANCHOR_INTERVAL === 0);
   
-  return { weight: Math.min(weight, 2.0), shouldReanchor }; // Cap at 2x weight
+  return { weight: Math.min(weight, 2.5), shouldReanchor }; // Cap at 2.5x weight
+}
+
+// Build anchor matrix from identity bible and golden frame data
+function buildAnchorMatrix(
+  identityBible: any,
+  goldenFrameData?: any
+): ComprehensiveAnchorMatrix {
+  const ci = identityBible?.characterIdentity;
+  const gfd = goldenFrameData;
+  
+  const matrix: ComprehensiveAnchorMatrix = {
+    facialGeometry: {},
+    skin: {},
+    hair: {},
+    body: {},
+    wardrobe: {},
+    accessories: {},
+    movement: {},
+    expression: {},
+    lightingResponse: {},
+    colorFingerprint: {},
+    scale: {},
+    uniqueIdentifiers: {},
+    anchorStrength: 0,
+    extractedAt: Date.now(),
+    sourceClip: 0,
+  };
+  
+  // Parse from identity bible
+  if (ci) {
+    // Extract facial features if available
+    if (ci.facialFeatures) {
+      const ff = ci.facialFeatures;
+      matrix.facialGeometry = {
+        facialSymmetry: ff,
+        facialExpression: 'as shown in reference',
+      };
+    }
+    
+    // Body type
+    if (ci.bodyType) {
+      matrix.body = {
+        build: ci.bodyType,
+        posture: 'as shown in reference',
+        silhouette: ci.bodyType,
+      };
+    }
+    
+    // Clothing
+    if (ci.clothing) {
+      matrix.wardrobe = {
+        topGarment: ci.clothing,
+        wearCondition: 'as shown in reference',
+      };
+    }
+    
+    // Distinctive markers become unique identifiers
+    if (ci.distinctiveMarkers?.length) {
+      matrix.uniqueIdentifiers = {
+        mostDistinctiveFeature: ci.distinctiveMarkers[0],
+        secondMostDistinctive: ci.distinctiveMarkers[1],
+        thirdMostDistinctive: ci.distinctiveMarkers[2],
+        absoluteNonNegotiables: ci.distinctiveMarkers,
+        quickCheckpoints: ci.distinctiveMarkers.slice(0, 5),
+      };
+    }
+  }
+  
+  // Extract from non-facial anchors
+  if (identityBible?.nonFacialAnchors) {
+    const nfa = identityBible.nonFacialAnchors;
+    if (nfa.bodyType) matrix.body.build = nfa.bodyType;
+    if (nfa.clothingSignature) matrix.wardrobe.fabricTexture = nfa.clothingSignature;
+    if (nfa.hairFromBehind) matrix.hair.hairStyle = nfa.hairFromBehind;
+    if (nfa.silhouetteDescription) matrix.body.silhouette = nfa.silhouetteDescription;
+    if (nfa.gait) matrix.movement.walkingGait = nfa.gait;
+    if (nfa.posture) matrix.movement.defaultStance = nfa.posture;
+  }
+  
+  // Enhanced golden frame data
+  if (gfd?.comprehensiveAnchors) {
+    const ca = gfd.comprehensiveAnchors;
+    if (ca.facialGeometry) matrix.facialGeometry = { ...matrix.facialGeometry, ...ca.facialGeometry };
+    if (ca.skin) matrix.skin = { ...matrix.skin, ...ca.skin };
+    if (ca.hair) matrix.hair = { ...matrix.hair, ...ca.hair };
+    if (ca.body) matrix.body = { ...matrix.body, ...ca.body };
+    if (ca.wardrobe) matrix.wardrobe = { ...matrix.wardrobe, ...ca.wardrobe };
+    if (ca.accessories) matrix.accessories = { ...matrix.accessories, ...ca.accessories };
+    if (ca.colorFingerprint) matrix.colorFingerprint = { ...matrix.colorFingerprint, ...ca.colorFingerprint };
+    if (ca.uniqueIdentifiers) matrix.uniqueIdentifiers = { ...matrix.uniqueIdentifiers, ...ca.uniqueIdentifiers };
+  }
+  
+  // Calculate anchor strength (how many fields are filled)
+  let filledFields = 0;
+  let totalFields = 0;
+  Object.values(matrix).forEach(section => {
+    if (typeof section === 'object' && section !== null) {
+      Object.values(section).forEach(value => {
+        totalFields++;
+        if (value && value !== 'as shown in reference') filledFields++;
+      });
+    }
+  });
+  matrix.anchorStrength = Math.round((filledFields / Math.max(totalFields, 1)) * 100);
+  
+  return matrix;
+}
+
+// Convert anchor matrix to prompt string
+function anchorMatrixToPrompt(matrix: ComprehensiveAnchorMatrix): string {
+  const parts: string[] = [];
+  
+  // FACIAL GEOMETRY
+  if (Object.keys(matrix.facialGeometry).length > 0) {
+    const fg = matrix.facialGeometry;
+    const faceDetails: string[] = [];
+    if (fg.eyeShape) faceDetails.push(`eyes: ${fg.eyeShape}`);
+    if (fg.eyeColor) faceDetails.push(`eye color: ${fg.eyeColor}`);
+    if (fg.noseShape) faceDetails.push(`nose: ${fg.noseShape}`);
+    if (fg.lipShape) faceDetails.push(`lips: ${fg.lipShape}`);
+    if (fg.jawline) faceDetails.push(`jawline: ${fg.jawline}`);
+    if (fg.cheekbones) faceDetails.push(`cheekbones: ${fg.cheekbones}`);
+    if (fg.eyebrowShape) faceDetails.push(`eyebrows: ${fg.eyebrowShape}`);
+    if (fg.facialSymmetry) faceDetails.push(fg.facialSymmetry);
+    if (faceDetails.length > 0) {
+      parts.push(`[FACIAL GEOMETRY LOCK] ${faceDetails.join(', ')}`);
+    }
+  }
+  
+  // SKIN & COMPLEXION
+  if (Object.keys(matrix.skin).length > 0) {
+    const s = matrix.skin;
+    const skinDetails: string[] = [];
+    if (s.skinTone) skinDetails.push(`skin tone: ${s.skinTone}`);
+    if (s.skinTexture) skinDetails.push(`texture: ${s.skinTexture}`);
+    if (s.freckles) skinDetails.push(`freckles: ${s.freckles}`);
+    if (s.moles?.length) skinDetails.push(`moles: ${s.moles.join(', ')}`);
+    if (s.scars?.length) skinDetails.push(`scars: ${s.scars.join(', ')}`);
+    if (skinDetails.length > 0) {
+      parts.push(`[SKIN DNA] ${skinDetails.join(', ')}`);
+    }
+  }
+  
+  // HAIR DNA
+  if (Object.keys(matrix.hair).length > 0) {
+    const h = matrix.hair;
+    const hairDetails: string[] = [];
+    if (h.hairColor) hairDetails.push(`color: ${h.hairColor}`);
+    if (h.hairTexture) hairDetails.push(`texture: ${h.hairTexture}`);
+    if (h.hairLength) hairDetails.push(`length: ${h.hairLength}`);
+    if (h.hairStyle) hairDetails.push(`style: ${h.hairStyle}`);
+    if (h.hairPart) hairDetails.push(`part: ${h.hairPart}`);
+    if (h.facialHair) hairDetails.push(`facial hair: ${h.facialHair}`);
+    if (hairDetails.length > 0) {
+      parts.push(`[HAIR DNA] ${hairDetails.join(', ')}`);
+    }
+  }
+  
+  // BODY PROPORTIONS
+  if (Object.keys(matrix.body).length > 0) {
+    const b = matrix.body;
+    const bodyDetails: string[] = [];
+    if (b.build) bodyDetails.push(`build: ${b.build}`);
+    if (b.height) bodyDetails.push(`height: ${b.height}`);
+    if (b.shoulderWidth) bodyDetails.push(`shoulders: ${b.shoulderWidth}`);
+    if (b.posture) bodyDetails.push(`posture: ${b.posture}`);
+    if (b.silhouette) bodyDetails.push(`silhouette: ${b.silhouette}`);
+    if (bodyDetails.length > 0) {
+      parts.push(`[BODY PROPORTIONS] ${bodyDetails.join(', ')}`);
+    }
+  }
+  
+  // WARDROBE
+  if (Object.keys(matrix.wardrobe).length > 0) {
+    const w = matrix.wardrobe;
+    const wardrobeDetails: string[] = [];
+    if (w.topGarment) wardrobeDetails.push(`top: ${w.topGarment}`);
+    if (w.topColor) wardrobeDetails.push(`top color: ${w.topColor}`);
+    if (w.bottomGarment) wardrobeDetails.push(`bottom: ${w.bottomGarment}`);
+    if (w.footwear) wardrobeDetails.push(`footwear: ${w.footwear}`);
+    if (w.fabricTexture) wardrobeDetails.push(`fabric: ${w.fabricTexture}`);
+    if (wardrobeDetails.length > 0) {
+      parts.push(`[WARDROBE LOCK] ${wardrobeDetails.join(', ')}`);
+    }
+  }
+  
+  // ACCESSORIES
+  if (Object.keys(matrix.accessories).length > 0) {
+    const a = matrix.accessories;
+    const accDetails: string[] = [];
+    if (a.glasses) accDetails.push(`glasses: ${a.glasses}`);
+    if (a.earrings) accDetails.push(`earrings: ${a.earrings}`);
+    if (a.necklace) accDetails.push(`necklace: ${a.necklace}`);
+    if (a.watch) accDetails.push(`watch: ${a.watch}`);
+    if (a.tattoos?.length) accDetails.push(`tattoos: ${a.tattoos.join(', ')}`);
+    if (a.piercings?.length) accDetails.push(`piercings: ${a.piercings.join(', ')}`);
+    if (accDetails.length > 0) {
+      parts.push(`[ACCESSORIES] ${accDetails.join(', ')}`);
+    }
+  }
+  
+  // MOVEMENT SIGNATURE
+  if (Object.keys(matrix.movement).length > 0) {
+    const m = matrix.movement;
+    const moveDetails: string[] = [];
+    if (m.defaultStance) moveDetails.push(`stance: ${m.defaultStance}`);
+    if (m.walkingGait) moveDetails.push(`gait: ${m.walkingGait}`);
+    if (m.gestureTendencies) moveDetails.push(`gestures: ${m.gestureTendencies}`);
+    if (moveDetails.length > 0) {
+      parts.push(`[MOVEMENT SIGNATURE] ${moveDetails.join(', ')}`);
+    }
+  }
+  
+  // COLOR FINGERPRINT
+  if (Object.keys(matrix.colorFingerprint).length > 0) {
+    const c = matrix.colorFingerprint;
+    const colorDetails: string[] = [];
+    if (c.skinHexPrimary) colorDetails.push(`skin: ${c.skinHexPrimary}`);
+    if (c.hairHexPrimary) colorDetails.push(`hair: ${c.hairHexPrimary}`);
+    if (c.eyeHex) colorDetails.push(`eyes: ${c.eyeHex}`);
+    if (c.overallColorTemperature) colorDetails.push(`temperature: ${c.overallColorTemperature}`);
+    if (colorDetails.length > 0) {
+      parts.push(`[COLOR FINGERPRINT] ${colorDetails.join(', ')}`);
+    }
+  }
+  
+  // UNIQUE IDENTIFIERS (MOST CRITICAL)
+  if (Object.keys(matrix.uniqueIdentifiers).length > 0) {
+    const u = matrix.uniqueIdentifiers;
+    if (u.absoluteNonNegotiables?.length) {
+      parts.push(`[⚠️ NON-NEGOTIABLE FEATURES - MUST BE PRESENT] ${u.absoluteNonNegotiables.join(', ')}`);
+    }
+    if (u.mostDistinctiveFeature) {
+      parts.push(`[🎯 PRIMARY IDENTIFIER] ${u.mostDistinctiveFeature}`);
+    }
+    if (u.recognitionSignature) {
+      parts.push(`[RECOGNITION SIGNATURE] ${u.recognitionSignature}`);
+    }
+    if (u.quickCheckpoints?.length) {
+      parts.push(`[QUICK CHECKPOINTS] ${u.quickCheckpoints.join(', ')}`);
+    }
+  }
+  
+  return parts.join('\n');
+}
+
+// Build comprehensive anti-drift negative prompts
+function buildComprehensiveNegatives(matrix: ComprehensiveAnchorMatrix, clipIndex: number): string[] {
+  const negatives: string[] = [];
+  
+  // Core anti-morphing (always present)
+  negatives.push(
+    'character morphing',
+    'identity change',
+    'different person',
+    'face changing',
+    'facial structure change',
+    'body transformation',
+    'age progression',
+    'age regression',
+    'aging',
+    'de-aging',
+  );
+  
+  // Wardrobe protection
+  negatives.push(
+    'clothing change',
+    'outfit swap',
+    'costume change',
+    'different clothes',
+    'wardrobe malfunction',
+    'changing clothes',
+  );
+  
+  // Hair protection
+  negatives.push(
+    'hair color change',
+    'different hairstyle',
+    'hair length change',
+    'haircut',
+    'hair transformation',
+  );
+  
+  // Skin protection
+  negatives.push(
+    'skin color change',
+    'skin tone shift',
+    'complexion change',
+    'tan',
+    'sunburn',
+  );
+  
+  // Accessory protection
+  if (matrix.accessories?.glasses) {
+    negatives.push('glasses removed', 'no glasses', 'different glasses');
+  }
+  if (matrix.accessories?.tattoos?.length) {
+    negatives.push('tattoo removed', 'missing tattoo', 'different tattoo');
+  }
+  
+  // Feature-specific negatives from unique identifiers
+  if (matrix.uniqueIdentifiers?.driftWarningZones?.length) {
+    matrix.uniqueIdentifiers.driftWarningZones.forEach(zone => {
+      negatives.push(`${zone} changed`, `different ${zone}`);
+    });
+  }
+  
+  // Clip-indexed escalating negatives
+  if (clipIndex >= 1) {
+    negatives.push(
+      'appearance shift',
+      'feature drift',
+      'subtle changes',
+      'gradual transformation',
+    );
+  }
+  
+  if (clipIndex >= 2) {
+    negatives.push(
+      'accumulated drift',
+      'character evolution',
+      'progressive change',
+      'slow morphing',
+    );
+  }
+  
+  if (clipIndex >= 3) {
+    negatives.push(
+      'significant deviation',
+      'noticeable difference',
+      'identity slip',
+    );
+  }
+  
+  if (clipIndex >= 4) {
+    negatives.push(
+      'completely different character',
+      'unrecognizable',
+      'character replacement',
+      'new person',
+      'wrong character',
+    );
+  }
+  
+  return negatives;
 }
 
 function buildIdentityReinforcement(
   identityBible: any,
   clipIndex: number,
-  goldenFrameData?: { characterSnapshot?: string; goldenAnchors?: string[] }
+  goldenFrameData?: { 
+    characterSnapshot?: string; 
+    goldenAnchors?: string[];
+    goldenFrameUrl?: string;
+    comprehensiveAnchors?: any;
+  }
 ): { reinforcementPrompt: string; reinforcementNegatives: string[] } {
   const { weight, shouldReanchor } = calculateIdentityWeight(clipIndex);
   const parts: string[] = [];
-  const negatives: string[] = [];
   
-  // CRITICAL: Add decay prevention header
-  parts.push(`[CHARACTER IDENTITY LOCK - CLIP ${clipIndex + 1} - WEIGHT: ${weight.toFixed(2)}x]`);
+  // Build the comprehensive anchor matrix
+  const anchorMatrix = buildAnchorMatrix(identityBible, goldenFrameData);
+  
+  // CRITICAL: Add decay prevention header with anchor strength
+  parts.push(`[🔒 COMPREHENSIVE IDENTITY LOCK - CLIP ${clipIndex + 1}]`);
+  parts.push(`[WEIGHT: ${weight.toFixed(2)}x | ANCHORS: ${anchorMatrix.anchorStrength}% | RE-ANCHOR: ${shouldReanchor ? 'YES' : 'NO'}]`);
   
   if (shouldReanchor) {
-    parts.push(`⚠️ RE-ANCHOR POINT: This clip MUST match original character exactly`);
-    parts.push(`COMPARE TO CLIP 1 - Correct any drift that may have occurred`);
+    parts.push(`⚠️ RE-ANCHOR POINT: This clip MUST match original character EXACTLY`);
+    parts.push(`🎯 COMPARE TO CLIP 1 - Correct ANY drift that may have occurred`);
   }
   
-  // Golden frame data (from clip 1) takes highest priority for re-anchoring
-  if (shouldReanchor && goldenFrameData?.characterSnapshot) {
-    parts.push(`🎯 GOLDEN REFERENCE (from Clip 1): ${goldenFrameData.characterSnapshot}`);
+  // Golden frame snapshot (from clip 1) takes highest priority
+  if (goldenFrameData?.characterSnapshot) {
+    parts.push(`\n[GOLDEN REFERENCE FROM CLIP 1]`);
+    parts.push(goldenFrameData.characterSnapshot);
     if (goldenFrameData.goldenAnchors?.length) {
       parts.push(`GOLDEN ANCHORS: ${goldenFrameData.goldenAnchors.join(', ')}`);
     }
   }
   
-  // Build comprehensive identity description with weight emphasis
+  // Add comprehensive anchor matrix
+  const matrixPrompt = anchorMatrixToPrompt(anchorMatrix);
+  if (matrixPrompt) {
+    parts.push(`\n[12-DIMENSIONAL ANCHOR MATRIX]`);
+    parts.push(matrixPrompt);
+  }
+  
+  // Build legacy identity description with weight emphasis
   const ci = identityBible?.characterIdentity;
   if (ci) {
+    parts.push(`\n[LEGACY IDENTITY ANCHORS]`);
+    
     // Repeat critical features based on weight (more repetition = stronger signal)
     const repeatCount = Math.ceil(weight);
     
@@ -527,46 +1124,37 @@ function buildIdentityReinforcement(
   
   // Add strong consistency prompt if available
   if (identityBible?.consistencyPrompt) {
-    parts.push(`IDENTITY SIGNATURE: ${identityBible.consistencyPrompt}`);
+    parts.push(`\n[IDENTITY SIGNATURE]`);
+    parts.push(identityBible.consistencyPrompt);
   }
   
   // Add all consistency anchors
   if (identityBible?.consistencyAnchors?.length) {
-    parts.push(`VISUAL ANCHORS (ALL REQUIRED): ${identityBible.consistencyAnchors.join(', ')}`);
+    parts.push(`[VISUAL ANCHORS (ALL REQUIRED)]`);
+    parts.push(identityBible.consistencyAnchors.join(', '));
   }
   
-  // Build aggressive negative prompts that scale with clip index
-  negatives.push(
-    'character morphing',
-    'identity change',
-    'different person',
-    'face changing',
-    'body transformation',
-    'age progression',
-    'clothing change',
-    'outfit swap',
-    'appearance shift',
-    'feature drift',
-  );
-  
-  // Add clip-specific anti-drift negatives
-  if (clipIndex >= 2) {
-    negatives.push(
-      'gradual character change',
-      'subtle identity shift',
-      'accumulated drift',
-      'character evolution',
-    );
-  }
-  if (clipIndex >= 4) {
-    negatives.push(
-      'completely different character',
-      'unrecognizable',
-      'character replacement',
-    );
+  // Non-facial anchors for when face isn't visible
+  if (identityBible?.nonFacialAnchors) {
+    const nfa = identityBible.nonFacialAnchors;
+    parts.push(`\n[NON-FACIAL IDENTIFICATION]`);
+    if (nfa.silhouetteDescription) parts.push(`Silhouette: ${nfa.silhouetteDescription}`);
+    if (nfa.gait) parts.push(`Movement: ${nfa.gait}`);
+    if (nfa.hairFromBehind) parts.push(`Hair from behind: ${nfa.hairFromBehind}`);
+    if (nfa.clothingSignature) parts.push(`Clothing signature: ${nfa.clothingSignature}`);
   }
   
-  parts.push(`[END CHARACTER IDENTITY LOCK]`);
+  parts.push(`\n[END COMPREHENSIVE IDENTITY LOCK]`);
+  
+  // Build comprehensive negatives
+  const negatives = buildComprehensiveNegatives(anchorMatrix, clipIndex);
+  
+  // Add occlusion negatives if available
+  if (identityBible?.occlusionNegatives?.length) {
+    negatives.push(...identityBible.occlusionNegatives);
+  }
+  
+  console.log(`[Identity Reinforcement] Clip ${clipIndex + 1}: weight=${weight.toFixed(2)}, anchors=${anchorMatrix.anchorStrength}%, negatives=${negatives.length}`);
   
   return {
     reinforcementPrompt: parts.join('\n'),
@@ -588,11 +1176,25 @@ interface GenerateSingleClipRequest {
   };
   // NEW: Previous shot's continuity manifest for comprehensive consistency
   previousContinuityManifest?: ShotContinuityManifest;
-  // NEW: Golden frame data from clip 1 for periodic re-anchoring
+  // Comprehensive golden frame data from clip 1 for 12-dimensional re-anchoring
   goldenFrameData?: {
     characterSnapshot?: string;
     goldenAnchors?: string[];
     goldenFrameUrl?: string;
+    comprehensiveAnchors?: {
+      facialGeometry?: any;
+      skin?: any;
+      hair?: any;
+      body?: any;
+      wardrobe?: any;
+      accessories?: any;
+      movement?: any;
+      expression?: any;
+      lightingResponse?: any;
+      colorFingerprint?: any;
+      scale?: any;
+      uniqueIdentifiers?: any;
+    };
   };
   identityBible?: {
     characterIdentity?: {

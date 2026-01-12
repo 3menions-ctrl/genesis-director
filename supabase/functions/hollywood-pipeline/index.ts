@@ -1594,13 +1594,27 @@ async function runProduction(
   let previousContinuityManifest: any = null;
   
   // =====================================================
-  // GOLDEN FRAME DATA: Captured from Clip 1 for periodic re-anchoring
-  // Prevents character decay that typically starts at clip 3
+  // COMPREHENSIVE GOLDEN FRAME DATA: Captured from Clip 1
+  // 12-dimensional anchor matrix for maximum character consistency
   // =====================================================
   let goldenFrameData: {
     characterSnapshot?: string;
     goldenAnchors?: string[];
     goldenFrameUrl?: string;
+    comprehensiveAnchors?: {
+      facialGeometry?: any;
+      skin?: any;
+      hair?: any;
+      body?: any;
+      wardrobe?: any;
+      accessories?: any;
+      movement?: any;
+      expression?: any;
+      lightingResponse?: any;
+      colorFingerprint?: any;
+      scale?: any;
+      uniqueIdentifiers?: any;
+    };
   } | null = null;
   
   // RESTORE masterSceneAnchor from DB on resume (CRITICAL for consistency)
@@ -2501,12 +2515,14 @@ async function runProduction(
     }
     
     // =====================================================
-    // GOLDEN FRAME DATA CAPTURE: Store clip 1's character identity
-    // This becomes the canonical reference for periodic re-anchoring
+    // COMPREHENSIVE GOLDEN FRAME DATA CAPTURE FROM CLIP 1
+    // 12-dimensional anchor matrix for maximum character consistency
     // =====================================================
     if (i === 0 && result.continuityManifest) {
       // Build golden frame data from first clip's manifest + identity bible
       const manifest = result.continuityManifest;
+      const ci = state.identityBible?.characterIdentity;
+      const nfa = state.identityBible?.nonFacialAnchors;
       
       // Extract character snapshot from manifest's critical anchors and identity bible
       const characterParts: string[] = [];
@@ -2514,11 +2530,106 @@ async function runProduction(
       if (state.identityBible?.consistencyPrompt) {
         characterParts.push(state.identityBible.consistencyPrompt);
       }
-      if (state.identityBible?.characterIdentity?.description) {
-        characterParts.push(state.identityBible.characterIdentity.description);
+      if (ci?.description) {
+        characterParts.push(ci.description);
+      }
+      if (ci?.facialFeatures) {
+        characterParts.push(`Facial features: ${ci.facialFeatures}`);
+      }
+      if (ci?.bodyType) {
+        characterParts.push(`Body: ${ci.bodyType}`);
+      }
+      if (ci?.clothing) {
+        characterParts.push(`Clothing: ${ci.clothing}`);
       }
       if (manifest.criticalAnchors?.length) {
         characterParts.push(...manifest.criticalAnchors.slice(0, 5));
+      }
+      
+      // Build comprehensive 12-dimensional anchors
+      const comprehensiveAnchors: any = {
+        facialGeometry: {},
+        skin: {},
+        hair: {},
+        body: {},
+        wardrobe: {},
+        accessories: {},
+        movement: {},
+        expression: {},
+        lightingResponse: {},
+        colorFingerprint: {},
+        scale: {},
+        uniqueIdentifiers: {},
+      };
+      
+      // Extract facial geometry from identity bible
+      if (ci?.facialFeatures) {
+        comprehensiveAnchors.facialGeometry = {
+          facialSymmetry: ci.facialFeatures,
+          facialExpression: 'as established in clip 1',
+        };
+      }
+      
+      // Extract body anchors
+      if (ci?.bodyType) {
+        comprehensiveAnchors.body = {
+          build: ci.bodyType,
+          posture: nfa?.posture || 'as established in clip 1',
+          silhouette: nfa?.silhouetteDescription || ci.bodyType,
+        };
+      }
+      
+      // Extract wardrobe anchors
+      if (ci?.clothing) {
+        comprehensiveAnchors.wardrobe = {
+          topGarment: ci.clothing,
+          fabricTexture: nfa?.clothingSignature || 'as shown',
+          wearCondition: 'identical to clip 1',
+        };
+      }
+      
+      // Extract hair anchors
+      if (nfa?.hairFromBehind) {
+        comprehensiveAnchors.hair = {
+          hairStyle: nfa.hairFromBehind,
+        };
+      }
+      
+      // Extract movement anchors
+      if (nfa?.gait || nfa?.posture) {
+        comprehensiveAnchors.movement = {
+          walkingGait: nfa?.gait,
+          defaultStance: nfa?.posture,
+        };
+      }
+      
+      // Extract unique identifiers from distinctive markers
+      if (ci?.distinctiveMarkers?.length) {
+        comprehensiveAnchors.uniqueIdentifiers = {
+          mostDistinctiveFeature: ci.distinctiveMarkers[0],
+          secondMostDistinctive: ci.distinctiveMarkers[1] || null,
+          thirdMostDistinctive: ci.distinctiveMarkers[2] || null,
+          absoluteNonNegotiables: ci.distinctiveMarkers,
+          quickCheckpoints: ci.distinctiveMarkers.slice(0, 5),
+          driftWarningZones: ['face', 'hair', 'clothing', 'skin tone', 'body proportions'],
+        };
+      }
+      
+      // Extract from manifest spatial if available
+      if (manifest.spatial) {
+        comprehensiveAnchors.scale = {
+          environmentScale: manifest.spatial.characterPosition || 'as established',
+          headToBodyRatio: 'maintain from clip 1',
+        };
+      }
+      
+      // Extract lighting response from manifest
+      if (manifest.lighting) {
+        comprehensiveAnchors.lightingResponse = {
+          highlightAreas: [manifest.lighting.keyLightPosition || 'as shown'],
+          shadowAreas: [manifest.lighting.shadowDirection || 'as shown'],
+          overallLuminance: manifest.lighting.intensity || 'as shown',
+        };
       }
       
       goldenFrameData = {
@@ -2526,14 +2637,26 @@ async function runProduction(
         goldenAnchors: [
           ...(state.identityBible?.consistencyAnchors || []),
           ...(manifest.criticalAnchors || []),
-        ].slice(0, 10),
+          ...(ci?.distinctiveMarkers || []),
+        ].slice(0, 15),
         goldenFrameUrl: result.lastFrameUrl,
+        comprehensiveAnchors,
       };
       
-      console.log(`[Hollywood] 🎯 GOLDEN FRAME DATA captured from Clip 1:`);
-      console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 100)}...`);
+      // Count filled anchor fields
+      let filledFields = 0;
+      Object.values(comprehensiveAnchors).forEach((section: any) => {
+        if (typeof section === 'object' && section !== null) {
+          filledFields += Object.keys(section).length;
+        }
+      });
+      
+      console.log(`[Hollywood] 🎯 COMPREHENSIVE GOLDEN FRAME DATA captured from Clip 1:`);
+      console.log(`[Hollywood]   Character snapshot: ${goldenFrameData.characterSnapshot?.substring(0, 150)}...`);
       console.log(`[Hollywood]   Golden anchors: ${goldenFrameData.goldenAnchors?.length || 0}`);
+      console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
       console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50)}...`);
+      console.log(`[Hollywood]   Unique identifiers: ${comprehensiveAnchors.uniqueIdentifiers?.absoluteNonNegotiables?.length || 0} non-negotiables`);
     }
     
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);

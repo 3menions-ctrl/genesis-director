@@ -25,6 +25,7 @@ import ScriptReview from "./pages/ScriptReview";
 import Production from "./pages/Production";
 import Clips from "./pages/Clips";
 import HelpCenter from "./pages/HelpCenter";
+import Universes from "./pages/Universes";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,13 @@ const App = () => (
               <Route path="/clips" element={
                 <ProtectedRoute>
                   <Clips />
+                </ProtectedRoute>
+              } />
+              
+              {/* Story Universes */}
+              <Route path="/universes" element={
+                <ProtectedRoute>
+                  <Universes />
                 </ProtectedRoute>
               } />
               

@@ -1637,8 +1637,21 @@ async function runProduction(
         state.identityBible.masterSceneAnchor = masterSceneAnchor;
         console.log(`[Hollywood] ✓ RESTORED masterSceneAnchor from DB: ${masterSceneAnchor.masterConsistencyPrompt?.substring(0, 100)}...`);
       }
+      
+      // =====================================================
+      // CRITICAL FIX: Restore goldenFrameData from DB on resume
+      // Without this, 12-dimensional anchors are lost when resuming
+      // =====================================================
+      if (projectData?.pro_features_data?.goldenFrameData) {
+        goldenFrameData = projectData.pro_features_data.goldenFrameData;
+        console.log(`[Hollywood] ✓ RESTORED goldenFrameData from DB:`);
+        console.log(`[Hollywood]   Character snapshot: ${goldenFrameData?.characterSnapshot?.substring(0, 100)}...`);
+        console.log(`[Hollywood]   Golden anchors: ${goldenFrameData?.goldenAnchors?.length || 0}`);
+        console.log(`[Hollywood]   Comprehensive anchors: ${Object.keys(goldenFrameData?.comprehensiveAnchors || {}).length} dimensions`);
+        console.log(`[Hollywood]   Frame URL: ${goldenFrameData?.goldenFrameUrl?.substring(0, 50)}...`);
+      }
     } catch (restoreErr) {
-      console.warn(`[Hollywood] Could not restore masterSceneAnchor from DB:`, restoreErr);
+      console.warn(`[Hollywood] Could not restore masterSceneAnchor/goldenFrameData from DB:`, restoreErr);
     }
   }
   
@@ -2671,6 +2684,37 @@ async function runProduction(
       console.log(`[Hollywood]   Comprehensive anchors: ${filledFields} fields across 12 dimensions`);
       console.log(`[Hollywood]   Frame URL: ${goldenFrameData.goldenFrameUrl?.substring(0, 50)}...`);
       console.log(`[Hollywood]   Unique identifiers: ${comprehensiveAnchors.uniqueIdentifiers?.absoluteNonNegotiables?.length || 0} non-negotiables`);
+      
+      // =====================================================
+      // CRITICAL: Persist goldenFrameData to DB for resume support
+      // Without this, 12-dimensional anchors are lost on pipeline restart
+      // =====================================================
+      try {
+        // Get current pro_features_data and merge
+        const { data: currentProject } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data')
+          .eq('id', state.projectId)
+          .single();
+        
+        const updatedProFeatures = {
+          ...(currentProject?.pro_features_data || {}),
+          goldenFrameData,
+          goldenFrameCapturedAt: new Date().toISOString(),
+        };
+        
+        await supabase
+          .from('movie_projects')
+          .update({
+            pro_features_data: updatedProFeatures,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', state.projectId);
+        
+        console.log(`[Hollywood] ✓ PERSISTED goldenFrameData to DB for resume support`);
+      } catch (persistErr) {
+        console.warn(`[Hollywood] Failed to persist goldenFrameData:`, persistErr);
+      }
     }
     
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);

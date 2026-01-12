@@ -2,13 +2,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 /**
- * Simple Stitch Edge Function v5 - CHUNKED PROCESSING FOR 2-MIN VIDEOS
+ * Simple Stitch Edge Function v6 - FIXED CHUNKED PROCESSING
  * 
- * STRATEGY: Chunk-based stitching for Growth/Agency tiers (up to 30 clips)
- * 1. Detect if chunked stitching is needed (>10 clips AND tier supports it)
- * 2. Stitch clips in batches of 10
- * 3. Merge batch outputs into final video
- * 4. Fallback to manifest if any step fails
+ * Uses the correct Cloud Run endpoints:
+ * - /stitch-chunk for processing individual chunks
+ * - /merge-chunks for combining chunks with audio
+ * - /stitch for direct (non-chunked) processing
+ * 
+ * Creates stitch_jobs for tracking and supports retry_scheduled recovery
  */
 
 const corsHeaders = {
@@ -19,8 +20,9 @@ const corsHeaders = {
 interface SimpleStitchRequest {
   projectId: string;
   userId?: string;
-  forceManifest?: boolean; // Skip Cloud Run and use manifest playback directly
-  forceChunked?: boolean; // Force chunked processing even for small clip counts
+  forceManifest?: boolean;
+  forceChunked?: boolean;
+  jobId?: string; // Resume existing job
 }
 
 interface ClipData {
@@ -30,10 +32,9 @@ interface ClipData {
 }
 
 // Chunked stitching config
-const CHUNK_SIZE = 10; // Stitch 10 clips per batch
-const MAX_DIRECT_STITCH_CLIPS = 15; // Below this, use single stitch call
+const CHUNK_SIZE = 10;
+const MAX_DIRECT_STITCH_CLIPS = 15;
 
-// Declare EdgeRuntime for background tasks
 declare const EdgeRuntime: {
   waitUntil: (promise: Promise<unknown>) => void;
 };
@@ -46,7 +47,7 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { projectId, forceManifest, forceChunked } = await req.json() as SimpleStitchRequest;
+    const { projectId, forceManifest, forceChunked, jobId } = await req.json() as SimpleStitchRequest;
 
     if (!projectId) {
       throw new Error("projectId is required");
@@ -54,7 +55,6 @@ serve(async (req) => {
 
     console.log(`[SimpleStitch] Starting stitch for project: ${projectId}`);
 
-    // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -79,15 +79,17 @@ serve(async (req) => {
 
     console.log(`[SimpleStitch] Found ${clips.length} completed clips`);
 
-    // Get project details including user's tier
+    // Get project details
     const { data: project } = await supabase
       .from('movie_projects')
-      .select('title, voice_audio_url, music_url, user_id')
+      .select('title, voice_audio_url, music_url, user_id, stitch_attempts')
       .eq('id', projectId)
       .single();
 
     // Check user tier for chunked stitching support
     let useChunkedStitching = forceChunked || false;
+    let userTier = 'free';
+    
     if (project?.user_id && clips.length > MAX_DIRECT_STITCH_CLIPS) {
       try {
         const { data: tierData } = await supabase.rpc('get_user_tier_limits', { 
@@ -96,9 +98,8 @@ serve(async (req) => {
         
         if (tierData?.chunked_stitching) {
           useChunkedStitching = true;
-          console.log(`[SimpleStitch] User tier (${tierData.tier}) supports chunked stitching`);
-        } else {
-          console.log(`[SimpleStitch] User tier does not support chunked stitching - will use manifest if needed`);
+          userTier = tierData.tier || 'free';
+          console.log(`[SimpleStitch] User tier (${userTier}) supports chunked stitching`);
         }
       } catch (err) {
         console.warn(`[SimpleStitch] Failed to fetch tier limits:`, err);
@@ -114,58 +115,117 @@ serve(async (req) => {
 
     const totalDuration = clipData.reduce((sum, c) => sum + c.durationSeconds, 0);
 
-    // Check for Cloud Run - or use forceManifest to skip it
+    // Check for Cloud Run
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
     if (forceManifest) {
-      console.log("[SimpleStitch] forceManifest=true - skipping Cloud Run, using manifest");
+      console.log("[SimpleStitch] forceManifest=true - using manifest");
       return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
     }
     
     if (!cloudRunUrl) {
-      console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - using manifest fallback");
+      console.warn("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - using manifest");
       return await createManifestFallback(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration, startTime);
     }
 
-    // Update project status to stitching
+    // Determine stitching mode
     const isChunked = useChunkedStitching && clips.length > CHUNK_SIZE;
     const chunkCount = isChunked ? Math.ceil(clips.length / CHUNK_SIZE) : 1;
+    const mode = isChunked ? 'chunked' : 'direct';
     
+    // Create or update stitch job
+    const stitchAttempts = (project?.stitch_attempts || 0) + 1;
+    
+    const { data: stitchJob, error: jobError } = await supabase
+      .from('stitch_jobs')
+      .upsert({
+        project_id: projectId,
+        user_id: project?.user_id,
+        status: 'pending',
+        total_clips: clips.length,
+        total_chunks: isChunked ? chunkCount : 1,
+        completed_chunks: 0,
+        chunk_urls: [],
+        attempt_number: stitchAttempts,
+        mode,
+        progress: 5,
+        current_step: 'initializing',
+        started_at: new Date().toISOString(),
+      }, { onConflict: 'project_id' })
+      .select()
+      .single();
+
+    if (jobError) {
+      console.warn(`[SimpleStitch] Failed to create stitch job:`, jobError);
+    }
+
+    // Update project status
     await supabase
       .from('movie_projects')
       .update({
         status: 'stitching',
+        stitch_attempts: stitchAttempts,
         pending_video_tasks: {
           stage: 'stitching',
-          progress: 50,
+          progress: 10,
           mode: isChunked ? 'chunked_cloud_run' : 'cloud_run_background',
           clipCount: clips.length,
           chunkCount: isChunked ? chunkCount : undefined,
           totalDuration,
           stitchingStarted: new Date().toISOString(),
-          expectedCompletionTime: new Date(Date.now() + (isChunked ? 10 : 5) * 60 * 1000).toISOString(),
+          jobId: stitchJob?.id,
         },
         updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
 
-    console.log(`[SimpleStitch] Stitching mode: ${isChunked ? 'CHUNKED' : 'DIRECT'} (${clips.length} clips, ${chunkCount} chunk(s))`);
+    console.log(`[SimpleStitch] Mode: ${mode.toUpperCase()} (${clips.length} clips, ${chunkCount} chunk(s))`);
 
-    // Determine audio mode based on available tracks
+    // Audio config
     const hasVoice = !!project?.voice_audio_url;
     const hasMusic = !!project?.music_url;
-    const audioMixMode = hasVoice ? 'voice_over' : (hasMusic ? 'background_music' : 'mute');
     
-    console.log(`[SimpleStitch] Audio config: voice=${hasVoice}, music=${hasMusic}, mode=${audioMixMode}`);
-
-    // Background task - handles both chunked and direct stitching
+    // Background processing
     const backgroundProcess = async () => {
       const bgSupabase = createClient(supabaseUrl, supabaseKey);
       
+      const updateJobProgress = async (status: string, progress: number, step: string, extra?: Record<string, unknown>) => {
+        if (stitchJob?.id) {
+          await bgSupabase
+            .from('stitch_jobs')
+            .update({
+              status,
+              progress,
+              current_step: step,
+              ...extra,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', stitchJob.id);
+        }
+        
+        await bgSupabase
+          .from('movie_projects')
+          .update({
+            pending_video_tasks: {
+              stage: 'stitching',
+              progress,
+              mode: isChunked ? 'chunked_cloud_run' : 'cloud_run_background',
+              currentStep: step,
+              clipCount: clips.length,
+              totalDuration,
+              ...extra,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
+      };
+      
       try {
         if (isChunked) {
-          // CHUNKED STITCHING: Process in batches of CHUNK_SIZE
-          console.log(`[SimpleStitch-BG] Starting CHUNKED processing: ${chunkCount} chunks of up to ${CHUNK_SIZE} clips`);
+          // ============ CHUNKED STITCHING ============
+          console.log(`[SimpleStitch-BG] CHUNKED: ${chunkCount} chunks of up to ${CHUNK_SIZE} clips`);
+          
+          await updateJobProgress('chunking', 15, 'Processing chunks');
           
           const chunkResults: string[] = [];
           
@@ -174,49 +234,35 @@ serve(async (req) => {
             const endIdx = Math.min(startIdx + CHUNK_SIZE, clipData.length);
             const chunkClips = clipData.slice(startIdx, endIdx);
             
-            console.log(`[SimpleStitch-BG] Processing chunk ${chunkIdx + 1}/${chunkCount}: clips ${startIdx + 1}-${endIdx}`);
+            console.log(`[SimpleStitch-BG] Chunk ${chunkIdx + 1}/${chunkCount}: clips ${startIdx + 1}-${endIdx}`);
             
-            // Update progress
-            const chunkProgress = 50 + Math.floor((chunkIdx / chunkCount) * 40);
-            await bgSupabase
-              .from('movie_projects')
-              .update({
-                pending_video_tasks: {
-                  stage: 'stitching',
-                  progress: chunkProgress,
-                  mode: 'chunked_cloud_run',
-                  currentChunk: chunkIdx + 1,
-                  chunkCount,
-                  clipCount: clips.length,
-                  totalDuration,
-                },
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', projectId);
+            const chunkProgress = 15 + Math.floor((chunkIdx / chunkCount) * 60);
+            await updateJobProgress('chunking', chunkProgress, `Processing chunk ${chunkIdx + 1}/${chunkCount}`);
             
+            // Call the NEW /stitch-chunk endpoint
             const chunkRequest = {
-              projectId: `${projectId}_chunk_${chunkIdx}`,
-              projectTitle: `${project?.title || 'Video'} (Part ${chunkIdx + 1})`,
+              projectId,
+              chunkIndex: chunkIdx,
+              totalChunks: chunkCount,
               clips: chunkClips.map(c => ({
                 shotId: c.shotId,
                 videoUrl: c.videoUrl,
                 durationSeconds: c.durationSeconds,
-                transitionOut: 'fade',
               })),
-              audioMixMode: 'mute', // Don't add audio to chunks - add in final merge
               transitionType: 'fade',
               transitionDuration: 0.3,
               colorGrading: 'cinematic',
               supabaseUrl: Deno.env.get("EXTERNAL_SUPABASE_URL") || supabaseUrl,
               supabaseServiceKey: Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || supabaseKey,
-              skipCallback: true, // Don't call finalize for chunks
+              callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+              callbackServiceKey: supabaseKey,
             };
             
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min per chunk
             
             try {
-              const response = await fetch(`${cloudRunUrl}/stitch`, {
+              const response = await fetch(`${cloudRunUrl}/stitch-chunk`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(chunkRequest),
@@ -227,9 +273,22 @@ serve(async (req) => {
               
               if (response.ok) {
                 const result = await response.json();
-                if (result.success && result.finalVideoUrl) {
-                  chunkResults.push(result.finalVideoUrl);
-                  console.log(`[SimpleStitch-BG] ✓ Chunk ${chunkIdx + 1} complete: ${result.finalVideoUrl.substring(0, 60)}...`);
+                if (result.success && result.chunkVideoUrl) {
+                  chunkResults.push(result.chunkVideoUrl);
+                  
+                  // Update job with chunk URL
+                  if (stitchJob?.id) {
+                    await bgSupabase
+                      .from('stitch_jobs')
+                      .update({
+                        completed_chunks: chunkIdx + 1,
+                        chunk_urls: chunkResults,
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', stitchJob.id);
+                  }
+                  
+                  console.log(`[SimpleStitch-BG] ✓ Chunk ${chunkIdx + 1} complete`);
                 } else {
                   throw new Error(`Chunk ${chunkIdx + 1} returned no video URL`);
                 }
@@ -240,58 +299,43 @@ serve(async (req) => {
             } catch (chunkError) {
               clearTimeout(timeoutId);
               console.error(`[SimpleStitch-BG] Chunk ${chunkIdx + 1} error:`, chunkError);
-              // Fall back to manifest if any chunk fails
-              await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
+              
+              // Schedule retry or fallback
+              await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id, 
+                `Chunk ${chunkIdx + 1} failed: ${chunkError instanceof Error ? chunkError.message : 'Unknown'}`,
+                project, clipData, clips.length, totalDuration);
               return;
             }
           }
           
-          // All chunks complete - now merge them with audio
-          console.log(`[SimpleStitch-BG] All ${chunkCount} chunks complete. Merging final video with audio...`);
+          // All chunks complete - merge with audio
+          console.log(`[SimpleStitch-BG] All ${chunkCount} chunks complete. Merging with audio...`);
+          await updateJobProgress('merging', 80, 'Merging chunks with audio');
           
-          await bgSupabase
-            .from('movie_projects')
-            .update({
-              pending_video_tasks: {
-                stage: 'stitching',
-                progress: 92,
-                mode: 'chunked_merging',
-                chunkCount,
-                totalDuration,
-              },
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', projectId);
-          
-          // Merge chunks with audio
+          // Call the NEW /merge-chunks endpoint
           const mergeRequest = {
             projectId,
-            projectTitle: project?.title || 'Video',
-            clips: chunkResults.map((url, idx) => ({
-              shotId: `chunk_${idx}`,
-              videoUrl: url,
-              durationSeconds: clipData.slice(idx * CHUNK_SIZE, (idx + 1) * CHUNK_SIZE)
-                .reduce((sum, c) => sum + c.durationSeconds, 0),
-              transitionOut: 'cut', // No transition between chunks (already have fade at boundaries)
-            })),
-            audioMixMode,
-            voiceAudioUrl: project?.voice_audio_url || null,
-            musicAudioUrl: project?.music_url || null,
-            voiceVolume: 1.0,
-            musicVolume: hasVoice ? 0.3 : 0.8,
-            transitionType: 'cut',
-            transitionDuration: 0,
-            colorGrading: 'none', // Already graded in chunks
-            callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+            chunkUrls: chunkResults,
+            voiceTrackUrl: project?.voice_audio_url || null,
+            backgroundMusicUrl: project?.music_url || null,
+            audioMixParams: {
+              musicVolume: hasVoice ? 0.3 : 0.8,
+              fadeIn: 1,
+              fadeOut: 2,
+            },
+            transitionType: 'fade',
+            transitionDuration: 0.3,
             supabaseUrl: Deno.env.get("EXTERNAL_SUPABASE_URL") || supabaseUrl,
             supabaseServiceKey: Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || supabaseKey,
+            callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+            callbackServiceKey: supabaseKey,
           };
           
           const mergeController = new AbortController();
-          const mergeTimeoutId = setTimeout(() => mergeController.abort(), 180000);
+          const mergeTimeoutId = setTimeout(() => mergeController.abort(), 300000); // 5 min for merge
           
           try {
-            const mergeResponse = await fetch(`${cloudRunUrl}/stitch`, {
+            const mergeResponse = await fetch(`${cloudRunUrl}/merge-chunks`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(mergeRequest),
@@ -303,26 +347,10 @@ serve(async (req) => {
             if (mergeResponse.ok) {
               const mergeResult = await mergeResponse.json();
               if (mergeResult.success && mergeResult.finalVideoUrl) {
-                await bgSupabase
-                  .from('movie_projects')
-                  .update({
-                    status: 'completed',
-                    video_url: mergeResult.finalVideoUrl,
-                    pending_video_tasks: {
-                      stage: 'complete',
-                      progress: 100,
-                      mode: 'chunked_stitched',
-                      finalVideoUrl: mergeResult.finalVideoUrl,
-                      clipCount: clips.length,
-                      chunkCount,
-                      totalDuration,
-                      stitchedAt: new Date().toISOString(),
-                    },
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', projectId);
-                
-                console.log(`[SimpleStitch-BG] ✅ CHUNKED STITCH COMPLETE: ${mergeResult.finalVideoUrl}`);
+                // Success! Update everything
+                await completeStitch(bgSupabase, projectId, stitchJob?.id, mergeResult.finalVideoUrl, 
+                  mergeResult.durationSeconds || totalDuration, clips.length, chunkCount, 'chunked');
+                console.log(`[SimpleStitch-BG] ✅ CHUNKED STITCH COMPLETE`);
                 return;
               }
             }
@@ -331,12 +359,15 @@ serve(async (req) => {
           } catch (mergeError) {
             clearTimeout(mergeTimeoutId);
             console.error(`[SimpleStitch-BG] Merge error:`, mergeError);
-            await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
+            await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
+              `Merge failed: ${mergeError instanceof Error ? mergeError.message : 'Unknown'}`,
+              project, clipData, clips.length, totalDuration);
           }
           
         } else {
-          // DIRECT STITCHING: Single Cloud Run call
-          console.log("[SimpleStitch-BG] Starting DIRECT Cloud Run stitch...");
+          // ============ DIRECT STITCHING ============
+          console.log("[SimpleStitch-BG] DIRECT Cloud Run stitch...");
+          await updateJobProgress('chunking', 20, 'Processing video');
           
           const stitchRequest = {
             projectId,
@@ -347,7 +378,7 @@ serve(async (req) => {
               durationSeconds: c.durationSeconds,
               transitionOut: 'fade',
             })),
-            audioMixMode,
+            audioMixMode: hasVoice ? 'voice_over' : (hasMusic ? 'background_music' : 'mute'),
             voiceAudioUrl: project?.voice_audio_url || null,
             musicAudioUrl: project?.music_url || null,
             voiceVolume: 1.0,
@@ -356,12 +387,13 @@ serve(async (req) => {
             transitionDuration: 0.3,
             colorGrading: 'cinematic',
             callbackUrl: `${supabaseUrl}/functions/v1/finalize-stitch`,
+            callbackServiceKey: supabaseKey,
             supabaseUrl: Deno.env.get("EXTERNAL_SUPABASE_URL") || supabaseUrl,
             supabaseServiceKey: Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") || supabaseKey,
           };
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+          const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min
           
           const response = await fetch(`${cloudRunUrl}/stitch`, {
             method: 'POST',
@@ -374,64 +406,48 @@ serve(async (req) => {
           
           if (response.ok) {
             const result = await response.json();
-            console.log(`[SimpleStitch-BG] Cloud Run success: ${JSON.stringify(result).substring(0, 300)}`);
             
             if (result.success && result.finalVideoUrl) {
-              await bgSupabase
-                .from('movie_projects')
-                .update({
-                  status: 'completed',
-                  video_url: result.finalVideoUrl,
-                  pending_video_tasks: {
-                    stage: 'complete',
-                    progress: 100,
-                    mode: 'cloud_run_stitched',
-                    finalVideoUrl: result.finalVideoUrl,
-                    clipCount: clips.length,
-                    totalDuration,
-                    stitchedAt: new Date().toISOString(),
-                  },
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', projectId);
-              
-              console.log(`[SimpleStitch-BG] ✅ Project ${projectId} completed with Cloud Run video`);
+              await completeStitch(bgSupabase, projectId, stitchJob?.id, result.finalVideoUrl,
+                result.durationSeconds || totalDuration, clips.length, 1, 'direct');
+              console.log(`[SimpleStitch-BG] ✅ DIRECT STITCH COMPLETE`);
             } else {
-              console.warn(`[SimpleStitch-BG] Cloud Run incomplete result, using fallback`);
+              console.warn(`[SimpleStitch-BG] Incomplete result, using fallback`);
               await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
             }
           } else {
             const errorText = await response.text();
-            console.error(`[SimpleStitch-BG] Cloud Run error (${response.status}): ${errorText.substring(0, 200)}`);
-            await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
+            console.error(`[SimpleStitch-BG] Cloud Run error: ${response.status}`);
+            await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
+              `Cloud Run failed: ${response.status} - ${errorText.substring(0, 100)}`,
+              project, clipData, clips.length, totalDuration);
           }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        const isTimeout = errorMessage.includes('abort') || errorMessage.includes('timeout');
-        console.error(`[SimpleStitch-BG] ${isTimeout ? 'Cloud Run timeout' : 'Background process error'}:`, errorMessage);
-        await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clips.length, totalDuration);
+        console.error(`[SimpleStitch-BG] Error:`, errorMessage);
+        await scheduleRetryOrFallback(bgSupabase, supabaseUrl, supabaseKey, projectId, stitchJob?.id,
+          errorMessage, project, clipData, clips.length, totalDuration);
       }
     };
 
-    // Use waitUntil for background processing
     EdgeRuntime.waitUntil(backgroundProcess());
 
-    console.log("[SimpleStitch] Returning immediately - processing in background");
+    console.log("[SimpleStitch] Returning - processing in background");
 
     return new Response(
       JSON.stringify({
         success: true,
         mode: isChunked ? 'chunked_cloud_run' : 'cloud_run_background',
         status: 'stitching',
+        jobId: stitchJob?.id,
         message: isChunked 
-          ? `Chunked stitching started: ${chunkCount} chunks of ${CHUNK_SIZE} clips`
-          : 'Cloud Run stitching started in background',
+          ? `Chunked stitching: ${chunkCount} chunks of ${CHUNK_SIZE} clips`
+          : 'Direct stitching started',
         clipsProcessed: clips.length,
         chunkCount: isChunked ? chunkCount : undefined,
         totalDuration,
         processingTimeMs: Date.now() - startTime,
-        note: isChunked ? 'Video will be ready in ~5-10 minutes' : 'Video will be ready in ~2-5 minutes',
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -449,7 +465,113 @@ serve(async (req) => {
     );
   }
 });
-// Fallback function to create manifest
+
+// Complete stitch successfully
+// deno-lint-ignore no-explicit-any
+async function completeStitch(
+  supabase: any,
+  projectId: string,
+  jobId: string | undefined,
+  videoUrl: string,
+  duration: number,
+  clipCount: number,
+  chunkCount: number,
+  mode: string
+) {
+  if (jobId) {
+    await supabase
+      .from('stitch_jobs')
+      .update({
+        status: 'completed',
+        progress: 100,
+        current_step: 'complete',
+        final_video_url: videoUrl,
+        final_duration_seconds: duration,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+  }
+  
+  await supabase
+    .from('movie_projects')
+    .update({
+      status: 'completed',
+      video_url: videoUrl,
+      pending_video_tasks: {
+        stage: 'complete',
+        progress: 100,
+        mode: `${mode}_stitched`,
+        finalVideoUrl: videoUrl,
+        clipCount,
+        chunkCount,
+        totalDuration: duration,
+        completedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', projectId);
+}
+
+// Schedule retry or fall back to manifest
+// deno-lint-ignore no-explicit-any
+async function scheduleRetryOrFallback(
+  supabase: any,
+  supabaseUrl: string,
+  supabaseKey: string,
+  projectId: string,
+  jobId: string | undefined,
+  errorMessage: string,
+  project: { title?: string; voice_audio_url?: string; music_url?: string; stitch_attempts?: number } | null,
+  clipData: ClipData[],
+  clipCount: number,
+  totalDuration: number
+) {
+  const attempts = project?.stitch_attempts || 1;
+  const maxAttempts = 3;
+  
+  if (attempts < maxAttempts) {
+    // Schedule retry
+    const retryDelay = [30, 60, 120][Math.min(attempts - 1, 2)] * 1000;
+    const retryAfter = new Date(Date.now() + retryDelay).toISOString();
+    
+    console.log(`[SimpleStitch] Scheduling retry ${attempts + 1}/${maxAttempts} after ${retryDelay / 1000}s`);
+    
+    if (jobId) {
+      await supabase
+        .from('stitch_jobs')
+        .update({
+          status: 'retry_scheduled',
+          last_error: errorMessage,
+          retry_after: retryAfter,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    }
+    
+    await supabase
+      .from('movie_projects')
+      .update({
+        status: 'retry_scheduled',
+        pending_video_tasks: {
+          stage: 'retry_scheduled',
+          retryAttempt: attempts + 1,
+          retryAfter,
+          lastError: errorMessage,
+          clipCount,
+          totalDuration,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', projectId);
+  } else {
+    // Max retries - fallback to manifest
+    console.log(`[SimpleStitch] Max retries reached - creating manifest fallback`);
+    await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
+  }
+}
+
+// Fallback to manifest
 async function fallbackToManifest(
   supabaseUrl: string,
   supabaseKey: string,
@@ -459,7 +581,7 @@ async function fallbackToManifest(
   clipCount: number,
   totalDuration: number
 ) {
-  console.log("[SimpleStitch-BG] Creating manifest fallback...");
+  console.log("[SimpleStitch] Creating manifest fallback...");
   
   const supabase = createClient(supabaseUrl, supabaseKey);
   
@@ -468,6 +590,7 @@ async function fallbackToManifest(
     projectId,
     mode: "client_side_concat",
     createdAt: new Date().toISOString(),
+    source: "stitch_fallback",
     clips: clipData.map((clip, index) => ({
       index,
       shotId: clip.shotId,
@@ -502,17 +625,17 @@ async function fallbackToManifest(
         manifestUrl,
         clipCount,
         totalDuration,
-        note: 'Cloud Run failed - using manifest playback',
+        note: 'Using manifest playback (Cloud Run unavailable)',
         completedAt: new Date().toISOString(),
       },
       updated_at: new Date().toISOString(),
     })
     .eq('id', projectId);
 
-  console.log(`[SimpleStitch-BG] ✅ Fallback manifest created: ${manifestUrl}`);
+  console.log(`[SimpleStitch] ✅ Manifest created: ${manifestUrl}`);
 }
 
-// Helper for immediate manifest creation (when Cloud Run not configured)
+// Helper for immediate manifest creation
 async function createManifestFallback(
   supabaseUrl: string,
   supabaseKey: string,
@@ -523,55 +646,10 @@ async function createManifestFallback(
   totalDuration: number,
   startTime: number
 ) {
-  console.log("[SimpleStitch] Creating manifest (no Cloud Run configured)...");
+  await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
   
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/manifest_${projectId}_${Date.now()}.json`;
   
-  const manifest = {
-    version: "1.0",
-    projectId,
-    mode: "client_side_concat",
-    createdAt: new Date().toISOString(),
-    clips: clipData.map((clip, index) => ({
-      index,
-      shotId: clip.shotId,
-      videoUrl: clip.videoUrl,
-      duration: clip.durationSeconds,
-      startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
-    })),
-    totalDuration,
-    voiceUrl: project?.voice_audio_url || null,
-    musicUrl: project?.music_url || null,
-  };
-
-  const fileName = `manifest_${projectId}_${Date.now()}.json`;
-  const manifestJson = JSON.stringify(manifest, null, 2);
-  const manifestBytes = new TextEncoder().encode(manifestJson);
-
-  await supabase.storage
-    .from('temp-frames')
-    .upload(fileName, manifestBytes, { contentType: 'application/json', upsert: true });
-
-  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/${fileName}`;
-
-  await supabase
-    .from('movie_projects')
-    .update({
-      status: 'completed',
-      video_url: manifestUrl,
-      pending_video_tasks: {
-        stage: 'complete',
-        progress: 100,
-        mode: 'manifest_playback',
-        manifestUrl,
-        clipCount,
-        totalDuration,
-        completedAt: new Date().toISOString(),
-      },
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', projectId);
-
   return new Response(
     JSON.stringify({
       success: true,

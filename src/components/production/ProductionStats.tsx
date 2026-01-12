@@ -1,7 +1,4 @@
-import { motion } from 'framer-motion';
 import { Film, Clock, Sparkles, Zap, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 interface ProductionStatsProps {
@@ -30,115 +27,109 @@ export function ProductionStats({
   isError,
 }: ProductionStatsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       {/* Progress */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-primary" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Progress</span>
+      <div className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/30">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-sky-500/15 flex items-center justify-center">
+              <Zap className="w-3.5 h-3.5 text-sky-400" />
             </div>
-            <span className={cn(
-              "text-lg font-bold",
-              isComplete ? "text-success" : isError ? "text-destructive" : "text-foreground"
-            )}>
-              {Math.round(progress)}%
-            </span>
+            <span className="text-[11px] text-zinc-500">Progress</span>
           </div>
-          <Progress 
-            value={progress} 
+          <span className={cn(
+            "text-base font-semibold",
+            isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-zinc-100"
+          )}>
+            {Math.round(progress)}%
+          </span>
+        </div>
+        <div className="h-1 rounded-full bg-zinc-700/50 overflow-hidden">
+          <div 
             className={cn(
-              "h-1.5",
-              isComplete && "[&>div]:bg-success",
-              isError && "[&>div]:bg-destructive"
-            )} 
+              "h-full rounded-full transition-all duration-500",
+              isComplete ? "bg-emerald-500" : isError ? "bg-rose-500" : "bg-sky-500"
+            )}
+            style={{ width: `${progress}%` }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Clips */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
-                <Film className="w-4 h-4 text-info" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Clips</span>
+      <div className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-violet-500/15 flex items-center justify-center">
+              <Film className="w-3.5 h-3.5 text-violet-400" />
             </div>
-            <div className="text-right">
-              <span className="text-lg font-bold text-foreground">{completedClips}</span>
-              <span className="text-sm text-muted-foreground">/{totalClips}</span>
-            </div>
+            <span className="text-[11px] text-zinc-500">Clips</span>
           </div>
-          {completedClips === totalClips && totalClips > 0 && (
-            <div className="flex items-center gap-1 mt-2 text-success">
-              <CheckCircle2 className="w-3 h-3" />
-              <span className="text-[10px] font-medium">All clips ready</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <div className="text-right">
+            <span className="text-base font-semibold text-zinc-100">{completedClips}</span>
+            <span className="text-sm text-zinc-500">/{totalClips}</span>
+          </div>
+        </div>
+        {completedClips === totalClips && totalClips > 0 && (
+          <div className="flex items-center gap-1 mt-2 text-emerald-400">
+            <CheckCircle2 className="w-3 h-3" />
+            <span className="text-[10px] font-medium">Ready</span>
+          </div>
+        )}
+      </div>
 
       {/* Time */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock className="w-4 h-4 text-warning" />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Time</span>
+      <div className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-amber-500/15 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
             </div>
-            <span className="text-lg font-bold font-mono text-foreground">
-              {formatTime(elapsedTime)}
-            </span>
+            <span className="text-[11px] text-zinc-500">Time</span>
           </div>
-        </CardContent>
-      </Card>
+          <span className="text-base font-semibold font-mono text-zinc-100">
+            {formatTime(elapsedTime)}
+          </span>
+        </div>
+      </div>
 
       {/* Quality Score */}
-      <Card className={cn(
-        "glass-card",
-        auditScore !== null && auditScore >= 80 && "ring-1 ring-success/30",
-        auditScore !== null && auditScore >= 60 && auditScore < 80 && "ring-1 ring-warning/30",
-        auditScore !== null && auditScore < 60 && "ring-1 ring-destructive/30"
+      <div className={cn(
+        "bg-zinc-800/50 rounded-lg p-3 border",
+        auditScore !== null && auditScore >= 80 ? "border-emerald-500/30" :
+        auditScore !== null && auditScore >= 60 ? "border-amber-500/30" :
+        auditScore !== null && auditScore < 60 ? "border-rose-500/30" :
+        "border-zinc-700/30"
       )}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center",
-                auditScore === null && "bg-muted",
-                auditScore !== null && auditScore >= 80 && "bg-success/10",
-                auditScore !== null && auditScore >= 60 && auditScore < 80 && "bg-warning/10",
-                auditScore !== null && auditScore < 60 && "bg-destructive/10"
-              )}>
-                <Sparkles className={cn(
-                  "w-4 h-4",
-                  auditScore === null && "text-muted-foreground",
-                  auditScore !== null && auditScore >= 80 && "text-success",
-                  auditScore !== null && auditScore >= 60 && auditScore < 80 && "text-warning",
-                  auditScore !== null && auditScore < 60 && "text-destructive"
-                )} />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground">Quality</span>
-            </div>
-            <span className={cn(
-              "text-lg font-bold",
-              auditScore === null && "text-muted-foreground",
-              auditScore !== null && auditScore >= 80 && "text-success",
-              auditScore !== null && auditScore >= 60 && auditScore < 80 && "text-warning",
-              auditScore !== null && auditScore < 60 && "text-destructive"
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-7 h-7 rounded-md flex items-center justify-center",
+              auditScore === null && "bg-zinc-700/50",
+              auditScore !== null && auditScore >= 80 && "bg-emerald-500/15",
+              auditScore !== null && auditScore >= 60 && auditScore < 80 && "bg-amber-500/15",
+              auditScore !== null && auditScore < 60 && "bg-rose-500/15"
             )}>
-              {auditScore !== null ? `${auditScore}%` : '—'}
-            </span>
+              <Sparkles className={cn(
+                "w-3.5 h-3.5",
+                auditScore === null && "text-zinc-500",
+                auditScore !== null && auditScore >= 80 && "text-emerald-400",
+                auditScore !== null && auditScore >= 60 && auditScore < 80 && "text-amber-400",
+                auditScore !== null && auditScore < 60 && "text-rose-400"
+              )} />
+            </div>
+            <span className="text-[11px] text-zinc-500">Quality</span>
           </div>
-        </CardContent>
-      </Card>
+          <span className={cn(
+            "text-base font-semibold",
+            auditScore === null && "text-zinc-500",
+            auditScore !== null && auditScore >= 80 && "text-emerald-400",
+            auditScore !== null && auditScore >= 60 && auditScore < 80 && "text-amber-400",
+            auditScore !== null && auditScore < 60 && "text-rose-400"
+          )}>
+            {auditScore !== null ? `${auditScore}%` : '—'}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

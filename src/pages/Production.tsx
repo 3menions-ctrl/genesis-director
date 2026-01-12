@@ -761,23 +761,23 @@ export default function Production() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           className="flex flex-col items-center gap-4"
         >
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
           </div>
-          <p className="text-muted-foreground text-sm">Loading production...</p>
+          <p className="text-zinc-500 text-sm">Loading production...</p>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-zinc-950 flex flex-col">
       {/* App Header */}
       <AppHeader showCreate={false} />
 
@@ -792,7 +792,7 @@ export default function Production() {
         />
 
         {/* Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-zinc-900">
           {/* Production Header */}
           <ProductionHeader
             projectTitle={projectTitle}

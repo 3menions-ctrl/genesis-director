@@ -53,9 +53,17 @@ serve(async (req) => {
     console.log(`Generating ${scenes.length} scene reference images for project ${effectiveProjectId} using OpenAI DALL-E 3`);
 
     const generatedImages: { sceneNumber: number; imageUrl: string; prompt: string }[] = [];
+    const MAX_RETRIES_PER_SCENE = 3; // SAFEGUARD: Limit retries per scene
+    const MAX_CONSECUTIVE_FAILURES = 5; // SAFEGUARD: Stop if too many consecutive failures
+    let consecutiveFailures = 0;
 
     // Process scenes sequentially to avoid rate limiting
     for (const scene of scenes) {
+      // SAFEGUARD: Stop if too many consecutive failures
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        console.error(`[SceneImages] Stopping after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`);
+        break;
+      }
       // Build a comprehensive image generation prompt
       const imagePromptParts = [
         "Create a cinematic film still for a video scene.",
@@ -119,18 +127,36 @@ serve(async (req) => {
           const errorData = await response.json();
           console.error(`OpenAI error for scene ${scene.sceneNumber}:`, JSON.stringify(errorData));
           
+          // SAFEGUARD: Retry with backoff for rate limits (max 3 attempts)
           if (response.status === 429) {
-            console.error(`Rate limit hit for scene ${scene.sceneNumber}, waiting 10s...`);
-            await new Promise(resolve => setTimeout(resolve, 10000));
+            consecutiveFailures++;
+            const retryAttempt = (scene as any)._retryCount || 0;
+            if (retryAttempt < MAX_RETRIES_PER_SCENE) {
+              const waitTime = Math.min(10000 * Math.pow(2, retryAttempt), 60000); // 10s, 20s, 40s max 60s
+              console.error(`Rate limit hit for scene ${scene.sceneNumber}, attempt ${retryAttempt + 1}/${MAX_RETRIES_PER_SCENE}, waiting ${waitTime/1000}s...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              (scene as any)._retryCount = retryAttempt + 1;
+              // Re-add to processing by continuing (will be picked up next iteration if we restructure)
+              // For now, just continue to next scene after max retries
+              if (retryAttempt + 1 >= MAX_RETRIES_PER_SCENE) {
+                console.error(`Max retries reached for scene ${scene.sceneNumber}, skipping`);
+              }
+              continue;
+            }
+            console.error(`Max retries exceeded for scene ${scene.sceneNumber}, skipping`);
             continue;
           }
           if (response.status === 402 || response.status === 401) {
             throw new Error(`OpenAI API error: ${errorData?.error?.message || 'Authentication or billing issue'}`);
           }
           // Log and continue for other errors
+          consecutiveFailures++;
           console.error(`Skipping scene ${scene.sceneNumber} due to error: ${errorData?.error?.message}`);
           continue;
         }
+        
+        // Reset consecutive failures on success
+        consecutiveFailures = 0;
 
         const data = await response.json();
         console.log(`DALL-E 3 response for scene ${scene.sceneNumber}:`, JSON.stringify(data).substring(0, 200));

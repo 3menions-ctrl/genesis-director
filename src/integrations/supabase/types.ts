@@ -74,6 +74,63 @@ export type Database = {
           },
         ]
       }
+      character_loans: {
+        Row: {
+          borrower_id: string
+          character_id: string
+          credit_given: boolean | null
+          expires_at: string | null
+          id: string
+          owner_id: string
+          project_id: string | null
+          requested_at: string | null
+          responded_at: string | null
+          status: string
+          usage_notes: string | null
+        }
+        Insert: {
+          borrower_id: string
+          character_id: string
+          credit_given?: boolean | null
+          expires_at?: string | null
+          id?: string
+          owner_id: string
+          project_id?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
+          status?: string
+          usage_notes?: string | null
+        }
+        Update: {
+          borrower_id?: string
+          character_id?: string
+          credit_given?: boolean | null
+          expires_at?: string | null
+          id?: string
+          owner_id?: string
+          project_id?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
+          status?: string
+          usage_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_loans_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_loans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           appearance: string | null
@@ -81,8 +138,13 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          lending_credits_required: number | null
+          lending_permission:
+            | Database["public"]["Enums"]["lending_permission"]
+            | null
           name: string
           personality: string | null
+          times_borrowed: number | null
           universe_id: string | null
           user_id: string
           voice_id: string | null
@@ -93,8 +155,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          lending_credits_required?: number | null
+          lending_permission?:
+            | Database["public"]["Enums"]["lending_permission"]
+            | null
           name: string
           personality?: string | null
+          times_borrowed?: number | null
           universe_id?: string | null
           user_id: string
           voice_id?: string | null
@@ -105,8 +172,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          lending_credits_required?: number | null
+          lending_permission?:
+            | Database["public"]["Enums"]["lending_permission"]
+            | null
           name?: string
           personality?: string | null
+          times_borrowed?: number | null
           universe_id?: string | null
           user_id?: string
           voice_id?: string | null
@@ -771,39 +843,211 @@ export type Database = {
         }
         Relationships: []
       }
-      universes: {
+      universe_continuity: {
         Row: {
-          created_at: string
+          affected_characters: string[] | null
+          created_at: string | null
+          created_by: string
+          date_in_universe: string | null
           description: string | null
+          event_type: string
           id: string
-          name: string
-          rules: string | null
-          setting: string | null
-          time_period: string | null
-          updated_at: string
+          is_canon: boolean | null
+          metadata: Json | null
+          source_project_id: string | null
+          timeline_position: number | null
+          title: string
+          universe_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          affected_characters?: string[] | null
+          created_at?: string | null
+          created_by: string
+          date_in_universe?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          is_canon?: boolean | null
+          metadata?: Json | null
+          source_project_id?: string | null
+          timeline_position?: number | null
+          title: string
+          universe_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          affected_characters?: string[] | null
+          created_at?: string | null
+          created_by?: string
+          date_in_universe?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          is_canon?: boolean | null
+          metadata?: Json | null
+          source_project_id?: string | null
+          timeline_position?: number | null
+          title?: string
+          universe_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_continuity_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "universe_continuity_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universe_invitations: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          invited_by: string
+          invited_email: string
+          role: Database["public"]["Enums"]["universe_role"] | null
+          status: string | null
+          universe_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invited_by: string
+          invited_email: string
+          role?: Database["public"]["Enums"]["universe_role"] | null
+          status?: string | null
+          universe_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          role?: Database["public"]["Enums"]["universe_role"] | null
+          status?: string | null
+          universe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_invitations_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universe_members: {
+        Row: {
+          can_add_characters: boolean | null
+          can_edit_lore: boolean | null
+          can_invite_members: boolean | null
+          id: string
+          invited_by: string | null
+          joined_at: string | null
+          role: Database["public"]["Enums"]["universe_role"]
+          universe_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
-          description?: string | null
+          can_add_characters?: boolean | null
+          can_edit_lore?: boolean | null
+          can_invite_members?: boolean | null
           id?: string
-          name: string
-          rules?: string | null
-          setting?: string | null
-          time_period?: string | null
-          updated_at?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["universe_role"]
+          universe_id: string
           user_id: string
         }
         Update: {
+          can_add_characters?: boolean | null
+          can_edit_lore?: boolean | null
+          can_invite_members?: boolean | null
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["universe_role"]
+          universe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_members_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universes: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          lore_document: string | null
+          member_count: number | null
+          name: string
+          rules: string | null
+          setting: string | null
+          style_guide: Json | null
+          tags: string[] | null
+          time_period: string | null
+          updated_at: string
+          user_id: string
+          video_count: number | null
+        }
+        Insert: {
+          cover_image_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          lore_document?: string | null
+          member_count?: number | null
+          name: string
+          rules?: string | null
+          setting?: string | null
+          style_guide?: Json | null
+          tags?: string[] | null
+          time_period?: string | null
+          updated_at?: string
+          user_id: string
+          video_count?: number | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          lore_document?: string | null
+          member_count?: number | null
           name?: string
           rules?: string | null
           setting?: string | null
+          style_guide?: Json | null
+          tags?: string[] | null
           time_period?: string | null
           updated_at?: string
           user_id?: string
+          video_count?: number | null
         }
         Relationships: []
       }
@@ -951,7 +1195,15 @@ export type Database = {
           pending_count: number
         }[]
       }
+      get_universe_role: {
+        Args: { p_universe_id: string; p_user_id: string }
+        Returns: Database["public"]["Enums"]["universe_role"]
+      }
       get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
+      is_universe_member: {
+        Args: { p_universe_id: string; p_user_id: string }
+        Returns: boolean
+      }
       log_api_cost: {
         Args: {
           p_credits_charged: number
@@ -1019,6 +1271,7 @@ export type Database = {
           }
     }
     Enums: {
+      lending_permission: "none" | "universe_only" | "specific_users" | "public"
       movie_genre:
         | "ad"
         | "educational"
@@ -1036,6 +1289,7 @@ export type Database = {
         | "circular"
         | "in_medias_res"
         | "episodic"
+      universe_role: "owner" | "admin" | "member" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1163,6 +1417,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      lending_permission: ["none", "universe_only", "specific_users", "public"],
       movie_genre: [
         "ad",
         "educational",
@@ -1182,6 +1437,7 @@ export const Constants = {
         "in_medias_res",
         "episodic",
       ],
+      universe_role: ["owner", "admin", "member", "viewer"],
     },
   },
 } as const

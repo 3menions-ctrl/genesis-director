@@ -118,6 +118,15 @@ serve(async (req) => {
     // Step 2: Start Cloud Run in BACKGROUND
     console.log("[SimpleStitch] Step 2: Starting Cloud Run in background...");
     
+    // Determine audio mode based on available tracks
+    const hasVoice = !!project?.voice_audio_url;
+    const hasMusic = !!project?.music_url;
+    const audioMixMode = hasVoice ? 'voice_over' : (hasMusic ? 'background_music' : 'mute');
+    
+    console.log(`[SimpleStitch] Audio config: voice=${hasVoice}, music=${hasMusic}, mode=${audioMixMode}`);
+    if (hasVoice) console.log(`[SimpleStitch] Voice URL: ${project?.voice_audio_url}`);
+    if (hasMusic) console.log(`[SimpleStitch] Music URL: ${project?.music_url}`);
+
     const stitchRequest = {
       projectId,
       projectTitle: project?.title || 'Video',
@@ -127,7 +136,12 @@ serve(async (req) => {
         durationSeconds: c.durationSeconds,
         transitionOut: 'fade',
       })),
-      audioMixMode: 'mute',
+      // Audio configuration - use project's audio tracks
+      audioMixMode,
+      voiceAudioUrl: project?.voice_audio_url || null,
+      musicAudioUrl: project?.music_url || null,
+      voiceVolume: 1.0,
+      musicVolume: hasVoice ? 0.3 : 0.8, // Lower music if voice present
       transitionType: 'fade',
       transitionDuration: 0.3,
       colorGrading: 'cinematic',

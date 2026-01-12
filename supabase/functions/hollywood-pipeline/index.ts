@@ -1701,6 +1701,51 @@ async function runProduction(
   
   console.log(`[Hollywood] Generating ${clips.length} clips with BULLETPROOF frame chaining...`);
   
+  // =====================================================
+  // PREFLIGHT VALIDATION: Ensure all required resources exist
+  // =====================================================
+  const preflightWarnings: string[] = [];
+  
+  // Check scene images coverage
+  const sceneImageCoverage = Object.keys(sceneImageLookup).length;
+  if (sceneImageCoverage === 0) {
+    preflightWarnings.push('No scene images available - frame extraction failures may break continuity');
+    console.warn(`[Hollywood] ⚠️ PREFLIGHT WARNING: No scene images for fallback`);
+  } else if (sceneImageCoverage < clips.length) {
+    preflightWarnings.push(`Only ${sceneImageCoverage}/${clips.length} scene images - some clips lack fallback`);
+    console.warn(`[Hollywood] ⚠️ PREFLIGHT WARNING: Incomplete scene image coverage (${sceneImageCoverage}/${clips.length})`);
+  }
+  
+  // Check identity bible
+  if (!state.identityBible?.characterIdentity && !state.identityBible?.consistencyPrompt) {
+    preflightWarnings.push('No identity bible - character may drift across clips');
+    console.warn(`[Hollywood] ⚠️ PREFLIGHT WARNING: No identity bible for character consistency`);
+  }
+  
+  // Check reference image
+  if (!referenceImageUrl && sceneImageCoverage === 0) {
+    preflightWarnings.push('No reference image AND no scene images - visual consistency will be very limited');
+    console.error(`[Hollywood] ⚠️ PREFLIGHT CRITICAL: No visual reference available!`);
+  }
+  
+  // Log preflight summary
+  if (preflightWarnings.length > 0) {
+    console.log(`[Hollywood] PREFLIGHT WARNINGS (${preflightWarnings.length}): ${preflightWarnings.join('; ')}`);
+    // Store warnings in project for debugging
+    await supabase
+      .from('movie_projects')
+      .update({ 
+        pending_video_tasks: {
+          ...((await supabase.from('movie_projects').select('pending_video_tasks').eq('id', state.projectId).single()).data?.pending_video_tasks || {}),
+          preflightWarnings,
+          preflightAt: new Date().toISOString(),
+        }
+      })
+      .eq('id', state.projectId);
+  } else {
+    console.log(`[Hollywood] ✓ PREFLIGHT PASSED: All resources available`);
+  }
+  
   // Check for checkpoint - resume from last completed clip
   const { data: checkpoint } = await supabase
     .rpc('get_generation_checkpoint', { p_project_id: state.projectId });
@@ -1717,10 +1762,35 @@ async function runProduction(
     actionContinuity?: string;
   } | undefined;
   
+  // =====================================================
   // CIRCUIT BREAKER: Track consecutive failures to detect service degradation
+  // =====================================================
+  let consecutiveFailures = 0;
   let consecutiveFrameExtractionFailures = 0;
-  const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 failures, switch to fallback-only mode
+  const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 consecutive failures, halt pipeline
+  const FRAME_EXTRACTION_CIRCUIT_THRESHOLD = 3; // After 3 frame failures, use fallback-only mode
   let frameExtractionCircuitOpen = false;
+  let circuitBreakerOpen = false;
+  
+  // =====================================================
+  // RETRY BUDGET: Prevent infinite retry loops
+  // =====================================================
+  const tierLimits = (request as any)._tierLimits || { maxRetries: 1 };
+  let totalRetriesUsed = 0;
+  const MAX_TOTAL_RETRIES = clips.length * (tierLimits.maxRetries + 1);
+  const clipRetryCount: Map<number, number> = new Map();
+  
+  // =====================================================
+  // DEAD LETTER QUEUE: Track failed clips for potential recovery
+  // =====================================================
+  const deadLetterQueue: Array<{
+    clipIndex: number;
+    error: string;
+    errorCategory: string;
+    attempts: number;
+    lastAttemptAt: number;
+    recoverable: boolean;
+  }> = [];
   
   if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
     startIndex = checkpoint[0].last_completed_index + 1;

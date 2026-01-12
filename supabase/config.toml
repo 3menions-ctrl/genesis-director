@@ -155,3 +155,6 @@ verify_jwt = false
 
 [functions.continuity-orchestrator]
 verify_jwt = false
+
+[functions.extract-first-frame]
+verify_jwt = false

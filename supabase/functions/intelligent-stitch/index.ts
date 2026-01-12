@@ -32,8 +32,12 @@ interface StitchRequest {
   autoGenerateBridges: boolean;
   strictnessLevel: 'lenient' | 'normal' | 'strict';
   maxBridgeClips: number;
+  bridgeClipDuration?: number; // FIX: Configurable bridge duration (default: 3)
   targetFormat: '1080p' | '4k';
   qualityTier: 'standard' | 'professional';
+  // Integration flags
+  useContinuityOrchestrator?: boolean; // FIX: Option to use continuity-orchestrator
+  extractFirstFrames?: boolean; // FIX: Extract first frames for better analysis
   // Pro features from hollywood-pipeline
   musicSyncPlan?: {
     timingMarkers?: any[];
@@ -81,8 +85,8 @@ async function callEdgeFunction(functionName: string, body: any): Promise<any> {
   return response.json();
 }
 
-// Extract frame from video URL (uses last frame from video_clips table or generates one)
-async function getClipFrames(clip: any, supabase: any): Promise<{ first: string; last: string }> {
+// Extract frame from video URL (uses last frame from video_clips table or extracts first frame)
+async function getClipFrames(clip: any, supabase: any): Promise<{ first: string; last: string; firstDescription?: string }> {
   // If frames provided, use them
   if (clip.firstFrameUrl && clip.lastFrameUrl) {
     return { first: clip.firstFrameUrl, last: clip.lastFrameUrl };
@@ -91,17 +95,43 @@ async function getClipFrames(clip: any, supabase: any): Promise<{ first: string;
   // Try to get from video_clips table
   const { data: clipData } = await supabase
     .from('video_clips')
-    .select('last_frame_url')
+    .select('last_frame_url, motion_vectors')
     .eq('id', clip.shotId)
     .single();
   
+  // Check for existing first frame analysis
+  const motionVectors = (clipData?.motion_vectors as Record<string, any>) || {};
+  const firstFrameAnalysis = motionVectors?.firstFrameAnalysis;
+  
   if (clipData?.last_frame_url) {
-    // For now, use last frame for both (first frame extraction would need FFmpeg)
-    return { first: clipData.last_frame_url, last: clipData.last_frame_url };
+    return { 
+      first: clipData.last_frame_url, // Use last frame URL as placeholder
+      last: clipData.last_frame_url,
+      firstDescription: firstFrameAnalysis?.description, // Include if available
+    };
   }
   
   // Fallback: use video URL as frame (Gemini can analyze video)
   return { first: clip.videoUrl, last: clip.videoUrl };
+}
+
+// Call extract-first-frame to get first frame analysis
+async function extractFirstFrameIfNeeded(clip: any, index: number): Promise<void> {
+  try {
+    console.log(`[Intelligent Stitch] Extracting first frame for clip ${index}...`);
+    
+    const result = await callEdgeFunction('extract-first-frame', {
+      videoUrl: clip.videoUrl,
+      shotId: clip.shotId,
+      extractionMethod: 'vision-describe',
+    });
+    
+    if (result.success) {
+      console.log(`[Intelligent Stitch] First frame extracted for clip ${index}`);
+    }
+  } catch (error) {
+    console.warn(`[Intelligent Stitch] First frame extraction failed for clip ${index}:`, error);
+  }
 }
 
 serve(async (req) => {
@@ -121,8 +151,11 @@ serve(async (req) => {
       autoGenerateBridges = true,
       strictnessLevel = 'normal',
       maxBridgeClips = 3,
+      bridgeClipDuration = 3, // FIX: Configurable bridge duration
       targetFormat = '1080p',
       qualityTier = 'standard',
+      useContinuityOrchestrator = false, // FIX: Integration with continuity-orchestrator
+      extractFirstFrames = false, // FIX: Option to extract first frames
       musicSyncPlan,
       colorGradingFilter,
       sfxPlan
@@ -133,6 +166,7 @@ serve(async (req) => {
     }
 
     console.log(`[Intelligent Stitch] Starting for project ${projectId} with ${clips.length} clips`);
+    console.log(`[Intelligent Stitch] Options: bridges=${autoGenerateBridges}, continuityOrch=${useContinuityOrchestrator}, extractFrames=${extractFirstFrames}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -146,6 +180,62 @@ serve(async (req) => {
       .eq('id', projectId);
 
     const steps: { step: string; status: string; durationMs?: number; error?: string }[] = [];
+
+    // ========================================
+    // STEP 0: Extract First Frames (if enabled)
+    // ========================================
+    if (extractFirstFrames) {
+      console.log("[Intelligent Stitch] Step 0: Extracting first frames for all clips...");
+      steps.push({ step: 'extract_first_frames', status: 'running' });
+      const frameStartTime = Date.now();
+      
+      // Extract first frames in parallel (up to 5 at a time to avoid rate limits)
+      const batchSize = 5;
+      for (let i = 0; i < clips.length; i += batchSize) {
+        const batch = clips.slice(i, i + batchSize);
+        await Promise.all(batch.map((clip, batchIndex) => 
+          extractFirstFrameIfNeeded(clip, i + batchIndex)
+        ));
+      }
+      
+      steps[steps.length - 1].status = 'complete';
+      steps[steps.length - 1].durationMs = Date.now() - frameStartTime;
+      console.log(`[Intelligent Stitch] First frames extracted for ${clips.length} clips`);
+    }
+
+    // ========================================
+    // STEP 0.5: Continuity Orchestrator Analysis (if enabled)
+    // ========================================
+    let continuityAnalysis: any = null;
+    if (useContinuityOrchestrator) {
+      console.log("[Intelligent Stitch] Step 0.5: Running continuity orchestrator analysis...");
+      steps.push({ step: 'continuity_analysis', status: 'running' });
+      const contStartTime = Date.now();
+      
+      try {
+        continuityAnalysis = await callEdgeFunction('continuity-orchestrator', {
+          mode: 'analyze',
+          projectId,
+          clips: clips.map((c, i) => ({
+            id: c.shotId,
+            index: i,
+            videoUrl: c.videoUrl,
+            lastFrameUrl: c.lastFrameUrl,
+          })),
+        });
+        
+        if (continuityAnalysis.success) {
+          console.log(`[Intelligent Stitch] Continuity analysis complete: score=${continuityAnalysis.overallScore}, gaps=${continuityAnalysis.clipsToRetry?.length || 0}`);
+        }
+        
+        steps[steps.length - 1].status = 'complete';
+        steps[steps.length - 1].durationMs = Date.now() - contStartTime;
+      } catch (contError) {
+        console.warn("[Intelligent Stitch] Continuity orchestrator failed:", contError);
+        steps[steps.length - 1].status = 'failed';
+        steps[steps.length - 1].error = String(contError);
+      }
+    }
 
     // ========================================
     // STEP 1: Extract Scene Anchors
@@ -322,7 +412,7 @@ serve(async (req) => {
             fromClipLastFrame: fromAnchor?.lastFrameUrl || fromClip.lastFrameUrl || fromClip.videoUrl,
             toClipFirstFrame: toAnchor?.firstFrameUrl,
             bridgePrompt: transition.bridgeClipPrompt,
-            durationSeconds: 3,
+            durationSeconds: bridgeClipDuration, // FIX: Use configurable duration
             sceneContext,
           });
           
@@ -401,9 +491,11 @@ serve(async (req) => {
       voiceTrackUrl: voiceAudioUrl,
       backgroundMusicUrl: musicAudioUrl,
       audioMixMode: (voiceAudioUrl || musicAudioUrl) ? 'full' : 'mute',
-      // Pass pro features through to stitch-video
+      // Pass ALL pro features through to stitch-video
       musicSyncPlan: musicSyncPlan,
       colorGradingFilter: colorGradingFilter,
+      // FIX: Pass SFX plan through to Cloud Run stitcher
+      sfxPlan: sfxPlan,
       output: {
         format: 'mp4',
         resolution: targetFormat === '4k' ? '3840x2160' : '1920x1080',

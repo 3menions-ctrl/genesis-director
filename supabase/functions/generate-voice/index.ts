@@ -13,13 +13,30 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = "EXAVITQu4vr4xnSDxMaL", shotId, projectId } = await req.json();
+    const { text, voiceId, shotId, projectId, voiceType } = await req.json();
+    
+    // Voice ID mapping for different character types
+    const VOICE_MAP: Record<string, string> = {
+      // Elderly/Grandmother voices
+      'grandmother': 'XB0fDUnXU5powFXDhCwa', // Charlotte - warm, mature female
+      'elderly_female': 'XB0fDUnXU5powFXDhCwa',
+      'grandma': 'XB0fDUnXU5powFXDhCwa',
+      
+      // Standard voices
+      'narrator': 'pNInz6obpgDQGcFmaJgB', // Adam - deep male narrator
+      'male': 'pNInz6obpgDQGcFmaJgB',
+      'female': 'EXAVITQu4vr4xnSDxMaL', // Sarah - young female
+      'default': 'EXAVITQu4vr4xnSDxMaL',
+    };
+    
+    // Resolve voice ID from voiceType or use provided voiceId
+    const resolvedVoiceId = voiceId || VOICE_MAP[voiceType || 'default'] || VOICE_MAP['default'];
 
     if (!text) {
       throw new Error("Text is required");
     }
 
-    console.log("Generating voice for text length:", text.length, "shotId:", shotId);
+    console.log("Generating voice for text length:", text.length, "shotId:", shotId, "voiceType:", voiceType, "resolvedVoiceId:", resolvedVoiceId);
 
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
     if (!ELEVENLABS_API_KEY) {
@@ -27,7 +44,7 @@ serve(async (req) => {
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${resolvedVoiceId}?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
@@ -141,7 +158,8 @@ serve(async (req) => {
             p_status: 'completed',
             p_metadata: JSON.stringify({
               textLength: text.length,
-              voiceId,
+              voiceId: resolvedVoiceId,
+              voiceType: voiceType || 'default',
             }),
           });
           console.log(`[Voice] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);

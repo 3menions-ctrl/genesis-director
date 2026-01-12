@@ -318,26 +318,91 @@ function buildDefaultSceneContext(clipIndex: number, state: PipelineState): Scen
 
 async function callEdgeFunction(
   functionName: string,
-  body: any
+  body: any,
+  options?: {
+    maxRetries?: number;
+    timeoutMs?: number;
+    retryableErrors?: string[];
+  }
 ): Promise<any> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   
-  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const maxRetries = options?.maxRetries ?? 2;
+  const timeoutMs = options?.timeoutMs ?? 300000; // 5 minute default
+  const retryableErrors = options?.retryableErrors ?? ['rate', '429', 'timeout', 'network', '503', '502'];
   
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`${functionName} failed: ${error}`);
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Exponential backoff on retries
+      if (attempt > 0) {
+        const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+        console.log(`[Hollywood] Retry ${attempt}/${maxRetries} for ${functionName}, waiting ${backoffMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        // Check if error is retryable
+        const isRetryable = retryableErrors.some(re => 
+          errorText.toLowerCase().includes(re) || response.status.toString().includes(re)
+        );
+        
+        if (isRetryable && attempt < maxRetries) {
+          console.warn(`[Hollywood] ${functionName} returned ${response.status}, retrying...`);
+          lastError = new Error(`${functionName} failed: ${errorText.substring(0, 200)}`);
+          continue;
+        }
+        
+        throw new Error(`${functionName} failed: ${errorText}`);
+      }
+      
+      return response.json();
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check for abort/timeout
+      if (errorMsg.includes('abort') || errorMsg.includes('timeout')) {
+        console.warn(`[Hollywood] ${functionName} timed out after ${timeoutMs}ms`);
+        if (attempt < maxRetries) {
+          lastError = error instanceof Error ? error : new Error(errorMsg);
+          continue;
+        }
+      }
+      
+      // Check if retryable network error
+      const isRetryable = retryableErrors.some(re => errorMsg.toLowerCase().includes(re));
+      if (isRetryable && attempt < maxRetries) {
+        console.warn(`[Hollywood] ${functionName} error (${errorMsg.substring(0, 50)}), retrying...`);
+        lastError = error instanceof Error ? error : new Error(errorMsg);
+        continue;
+      }
+      
+      throw error;
+    }
   }
   
-  return response.json();
+  // All retries exhausted
+  throw lastError || new Error(`${functionName} failed after ${maxRetries} retries`);
 }
 
 // Update project with pipeline progress (includes degradation tracking)
@@ -1591,9 +1656,9 @@ async function runProduction(
     .rpc('get_generation_checkpoint', { p_project_id: state.projectId });
   
   let startIndex = 0;
-  // CRITICAL: Initialize to undefined, NOT referenceImageUrl
-  // This ensures we detect broken frame chains on resume
-  let previousLastFrameUrl: string | undefined = undefined;
+  // BULLETPROOF: Initialize previousLastFrameUrl with best available fallback
+  // Priority: checkpoint frame > scene image > reference image > undefined
+  let previousLastFrameUrl: string | undefined = referenceImageUrl || sceneImageLookup[0] || undefined;
   let previousMotionVectors: { 
     endVelocity?: string; 
     endDirection?: string; 
@@ -1601,6 +1666,11 @@ async function runProduction(
     continuityPrompt?: string;
     actionContinuity?: string;
   } | undefined;
+  
+  // CIRCUIT BREAKER: Track consecutive failures to detect service degradation
+  let consecutiveFrameExtractionFailures = 0;
+  const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 failures, switch to fallback-only mode
+  let frameExtractionCircuitOpen = false;
   
   if (checkpoint && checkpoint.length > 0 && checkpoint[0].last_completed_index >= 0) {
     startIndex = checkpoint[0].last_completed_index + 1;
@@ -1610,13 +1680,20 @@ async function runProduction(
       previousLastFrameUrl = checkpoint[0].last_frame_url;
       console.log(`[Hollywood] Resuming from clip ${startIndex + 1}, using REAL last frame: ${previousLastFrameUrl?.substring(0, 50)}...`);
     } else {
-      // WARNING: No frame from checkpoint - use scene image as fallback
-      const sceneImageFallback = sceneImageLookup[startIndex - 1] || sceneImageLookup[startIndex] || referenceImageUrl;
-      if (sceneImageFallback) {
-        previousLastFrameUrl = sceneImageFallback;
-        console.warn(`[Hollywood] ⚠️ Checkpoint missing frame, using scene image fallback: ${previousLastFrameUrl?.substring(0, 50)}...`);
+      // WARNING: No frame from checkpoint - try multiple fallbacks
+      const fallbackSources = [
+        sceneImageLookup[startIndex - 1],
+        sceneImageLookup[startIndex],
+        sceneImageLookup[0],
+        referenceImageUrl,
+      ].filter(Boolean);
+      
+      if (fallbackSources.length > 0) {
+        previousLastFrameUrl = fallbackSources[0];
+        console.warn(`[Hollywood] ⚠️ Checkpoint missing frame, using fallback: ${previousLastFrameUrl?.substring(0, 50)}...`);
       } else {
-        console.error(`[Hollywood] ⚠️ CRITICAL: No frame available for resume! Frame chain broken.`);
+        console.error(`[Hollywood] ⚠️ CRITICAL: No frame available for resume! Will attempt text-only generation.`);
+        previousLastFrameUrl = undefined;
       }
     }
     
@@ -1637,6 +1714,15 @@ async function runProduction(
           lastFrameUrl: clip.last_frame_url,
         })),
       };
+      
+      // BULLETPROOF: Try to get frame from last completed clip if checkpoint was empty
+      if (!checkpoint[0].last_frame_url && existingClips.length > 0) {
+        const lastClip = existingClips[existingClips.length - 1];
+        if (lastClip.last_frame_url) {
+          previousLastFrameUrl = lastClip.last_frame_url;
+          console.log(`[Hollywood] ✓ Recovered frame from last completed clip: ${previousLastFrameUrl?.substring(0, 50)}...`);
+        }
+      }
       
       // Get motion vectors from last completed clip
       const lastClip = existingClips[existingClips.length - 1];
@@ -2267,73 +2353,102 @@ async function runProduction(
       console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
       
       // =====================================================
-      // BULLETPROOF FRAME EXTRACTION: Use new extract-last-frame with scene fallback
+      // BULLETPROOF FRAME EXTRACTION WITH CIRCUIT BREAKER + EXPONENTIAL BACKOFF
       // =====================================================
       let frameForAnalysis = result.lastFrameUrl;
       
       // Get scene image for this clip as fallback (guaranteed to exist if assets were generated)
-      const sceneImageFallback = sceneImageLookup[i] || sceneImageLookup[i - 1] || sceneImageLookup[0];
+      const sceneImageFallback = sceneImageLookup[i] || sceneImageLookup[i - 1] || sceneImageLookup[0] || referenceImageUrl;
       
-      try {
-        const frameResult = await callEdgeFunction('extract-last-frame', {
-          videoUrl: result.videoUrl,
-          projectId: state.projectId,
-          shotIndex: i,
-          shotPrompt: clip.prompt,
-          sceneImageUrl: sceneImageFallback, // Guaranteed fallback
-          position: 'last',
-        });
+      // CIRCUIT BREAKER: Skip frame extraction if too many failures
+      if (frameExtractionCircuitOpen) {
+        console.warn(`[Hollywood] ⚡ Circuit breaker OPEN - using fallback directly`);
+        result.lastFrameUrl = sceneImageFallback;
+        frameForAnalysis = sceneImageFallback;
+      } else {
+        // RETRY WITH EXPONENTIAL BACKOFF for rate limits
+        const MAX_FRAME_RETRIES = 3;
+        let frameExtractionSuccess = false;
         
-        if (frameResult.success && frameResult.frameUrl) {
-          // CRITICAL: Validate that we got an actual IMAGE, not the video URL back
-          const frameUrl = frameResult.frameUrl;
-          const isVideoUrl = frameUrl.endsWith('.mp4') || frameUrl.includes('video/mp4') || frameUrl.includes('/video-clips/');
-          
-          if (isVideoUrl) {
-            console.error(`[Hollywood] ⚠️ Frame extraction returned VIDEO URL instead of image!`);
-            console.error(`[Hollywood] Invalid frame URL: ${frameUrl.substring(0, 80)}...`);
-            // Use scene image fallback
-            if (sceneImageFallback) {
-              result.lastFrameUrl = sceneImageFallback;
-              frameForAnalysis = sceneImageFallback;
-              console.log(`[Hollywood] Using scene image fallback: ${sceneImageFallback.substring(0, 60)}...`);
+        for (let frameAttempt = 0; frameAttempt < MAX_FRAME_RETRIES && !frameExtractionSuccess; frameAttempt++) {
+          try {
+            // Exponential backoff: 0ms, 2s, 4s
+            if (frameAttempt > 0) {
+              const backoffMs = 2000 * Math.pow(2, frameAttempt - 1);
+              console.log(`[Hollywood] Frame extraction retry ${frameAttempt + 1}/${MAX_FRAME_RETRIES}, waiting ${backoffMs}ms...`);
+              await new Promise(resolve => setTimeout(resolve, backoffMs));
             }
-          } else {
-            frameForAnalysis = frameUrl;
-            result.lastFrameUrl = frameUrl;
-            console.log(`[Hollywood] ✓ Frame extracted via ${frameResult.method}: ${frameForAnalysis.substring(0, 80)}...`);
+            
+            const frameResult = await callEdgeFunction('extract-last-frame', {
+              videoUrl: result.videoUrl,
+              projectId: state.projectId,
+              shotIndex: i,
+              shotPrompt: clip.prompt,
+              sceneImageUrl: sceneImageFallback, // Guaranteed fallback
+              position: 'last',
+            });
+            
+            if (frameResult.success && frameResult.frameUrl) {
+              // CRITICAL: Validate that we got an actual IMAGE, not the video URL back
+              const frameUrl = frameResult.frameUrl;
+              const isVideoUrl = frameUrl.endsWith('.mp4') || frameUrl.includes('video/mp4') || frameUrl.includes('/video-clips/');
+              
+              if (isVideoUrl) {
+                console.error(`[Hollywood] ⚠️ Frame extraction returned VIDEO URL instead of image!`);
+                throw new Error('Invalid frame URL - got video instead of image');
+              } else {
+                frameForAnalysis = frameUrl;
+                result.lastFrameUrl = frameUrl;
+                frameExtractionSuccess = true;
+                consecutiveFrameExtractionFailures = 0; // Reset circuit breaker
+                console.log(`[Hollywood] ✓ Frame extracted via ${frameResult.method}: ${frameForAnalysis.substring(0, 80)}...`);
+              }
+            } else {
+              const errorMsg = frameResult.error || 'unknown error';
+              console.warn(`[Hollywood] Frame extraction attempt ${frameAttempt + 1} failed: ${errorMsg}`);
+              
+              // Check if it's a rate limit error - worth retrying
+              if (errorMsg.toLowerCase().includes('rate') || errorMsg.toLowerCase().includes('429')) {
+                console.log(`[Hollywood] Rate limit detected, will retry with backoff...`);
+                continue;
+              }
+              
+              // Not a rate limit - use fallback immediately
+              break;
+            }
+          } catch (frameErr) {
+            const errorMsg = frameErr instanceof Error ? frameErr.message : 'Unknown error';
+            console.warn(`[Hollywood] Frame extraction attempt ${frameAttempt + 1} error: ${errorMsg}`);
+            
+            // Check for rate limit errors
+            if (errorMsg.toLowerCase().includes('rate') || errorMsg.toLowerCase().includes('429') || errorMsg.toLowerCase().includes('quota')) {
+              console.log(`[Hollywood] Rate limit error, will retry with backoff...`);
+              continue;
+            }
           }
-        } else {
-          console.warn(`[Hollywood] Frame extraction failed: ${frameResult.error || 'unknown error'}`);
-          // Use scene image fallback
+        }
+        
+        // If all retries failed, use fallback
+        if (!frameExtractionSuccess) {
+          consecutiveFrameExtractionFailures++;
+          console.warn(`[Hollywood] Frame extraction failed after ${MAX_FRAME_RETRIES} attempts. Consecutive failures: ${consecutiveFrameExtractionFailures}`);
+          
+          // Check circuit breaker threshold
+          if (consecutiveFrameExtractionFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+            frameExtractionCircuitOpen = true;
+            console.error(`[Hollywood] ⚡ CIRCUIT BREAKER TRIGGERED - switching to fallback-only mode for remaining clips`);
+          }
+          
+          // Use fallback chain
           if (sceneImageFallback) {
             result.lastFrameUrl = sceneImageFallback;
             frameForAnalysis = sceneImageFallback;
-            console.log(`[Hollywood] Using scene image fallback: ${sceneImageFallback.substring(0, 60)}...`);
-          } else if (referenceImageUrl) {
-            // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
-            result.lastFrameUrl = referenceImageUrl;
-            frameForAnalysis = referenceImageUrl;
-            console.warn(`[Hollywood] Using referenceImageUrl as ultimate fallback: ${referenceImageUrl.substring(0, 60)}...`);
+            console.log(`[Hollywood] Using fallback: ${sceneImageFallback.substring(0, 60)}...`);
           } else {
             console.error(`[Hollywood] ⚠️ CRITICAL: No fallback available! Frame chain broken.`);
-            result.lastFrameUrl = undefined;
+            result.lastFrameUrl = previousLastFrameUrl; // Use previous frame as last resort
+            frameForAnalysis = previousLastFrameUrl;
           }
-        }
-      } catch (frameErr) {
-        console.error(`[Hollywood] Frame extraction error:`, frameErr);
-        // Use scene image fallback
-        if (sceneImageFallback) {
-          result.lastFrameUrl = sceneImageFallback;
-          frameForAnalysis = sceneImageFallback;
-          console.log(`[Hollywood] Using scene image fallback after error: ${sceneImageFallback.substring(0, 60)}...`);
-        } else if (referenceImageUrl) {
-          // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
-          result.lastFrameUrl = referenceImageUrl;
-          frameForAnalysis = referenceImageUrl;
-          console.warn(`[Hollywood] Using referenceImageUrl as ultimate fallback after error`);
-        } else {
-          result.lastFrameUrl = undefined;
         }
       }
       
@@ -2825,20 +2940,49 @@ async function runProduction(
       }
     }
     
-    // CRITICAL FIX: Persist last_frame_url to database for EVERY completed clip
-    // This ensures resume operations have frame data to work with
-    if (result.lastFrameUrl || previousLastFrameUrl) {
-      const frameToSave = result.lastFrameUrl || previousLastFrameUrl;
+    // =====================================================
+    // BULLETPROOF FRAME PERSISTENCE WITH VERIFICATION
+    // Ensures resume operations ALWAYS have frame data
+    // =====================================================
+    const frameToSave = result.lastFrameUrl || previousLastFrameUrl || sceneImageLookup[i] || sceneImageLookup[0] || referenceImageUrl;
+    
+    if (frameToSave) {
       try {
-        await supabase
+        // Save with verification
+        const { error: updateError } = await supabase
           .from('video_clips')
           .update({ last_frame_url: frameToSave })
           .eq('project_id', state.projectId)
           .eq('shot_index', i);
-        console.log(`[Hollywood] ✓ Persisted last_frame_url to DB for clip ${i + 1}`);
+        
+        if (updateError) {
+          console.error(`[Hollywood] ⚠️ Failed to persist last_frame_url:`, updateError);
+        } else {
+          // VERIFY the save was successful
+          const { data: verifyData } = await supabase
+            .from('video_clips')
+            .select('last_frame_url')
+            .eq('project_id', state.projectId)
+            .eq('shot_index', i)
+            .single();
+          
+          if (verifyData?.last_frame_url === frameToSave) {
+            console.log(`[Hollywood] ✓ VERIFIED last_frame_url persisted for clip ${i + 1}: ${frameToSave.substring(0, 50)}...`);
+          } else {
+            console.warn(`[Hollywood] ⚠️ Frame save verification FAILED - retry...`);
+            // Retry once
+            await supabase
+              .from('video_clips')
+              .update({ last_frame_url: frameToSave })
+              .eq('project_id', state.projectId)
+              .eq('shot_index', i);
+          }
+        }
       } catch (dbErr) {
-        console.warn(`[Hollywood] Failed to persist last_frame_url:`, dbErr);
+        console.error(`[Hollywood] Failed to persist last_frame_url:`, dbErr);
       }
+    } else {
+      console.error(`[Hollywood] ⚠️ CRITICAL: No frame to save for clip ${i + 1}! Resume will have no visual reference.`);
     }
     
     previousMotionVectors = result.motionVectors;

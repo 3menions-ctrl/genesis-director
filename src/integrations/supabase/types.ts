@@ -214,6 +214,7 @@ export type Database = {
           id: string
           include_narration: boolean
           is_template: boolean | null
+          last_checkpoint_at: string | null
           last_error: string | null
           mood: string | null
           movie_intro_style: string | null
@@ -249,6 +250,7 @@ export type Database = {
           id?: string
           include_narration?: boolean
           is_template?: boolean | null
+          last_checkpoint_at?: string | null
           last_error?: string | null
           mood?: string | null
           movie_intro_style?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           id?: string
           include_narration?: boolean
           is_template?: boolean | null
+          last_checkpoint_at?: string | null
           last_error?: string | null
           mood?: string | null
           movie_intro_style?: string | null
@@ -638,6 +641,96 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      stitch_jobs: {
+        Row: {
+          attempt_number: number
+          chunk_urls: string[] | null
+          completed_at: string | null
+          completed_chunks: number
+          created_at: string
+          current_step: string | null
+          file_size_bytes: number | null
+          final_duration_seconds: number | null
+          final_video_url: string | null
+          id: string
+          last_error: string | null
+          max_attempts: number
+          mode: string
+          progress: number
+          project_id: string
+          retry_after: string | null
+          started_at: string | null
+          status: string
+          total_chunks: number
+          total_clips: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          chunk_urls?: string[] | null
+          completed_at?: string | null
+          completed_chunks?: number
+          created_at?: string
+          current_step?: string | null
+          file_size_bytes?: number | null
+          final_duration_seconds?: number | null
+          final_video_url?: string | null
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          mode?: string
+          progress?: number
+          project_id: string
+          retry_after?: string | null
+          started_at?: string | null
+          status?: string
+          total_chunks?: number
+          total_clips?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number
+          chunk_urls?: string[] | null
+          completed_at?: string | null
+          completed_chunks?: number
+          created_at?: string
+          current_step?: string | null
+          file_size_bytes?: number | null
+          final_duration_seconds?: number | null
+          final_video_url?: string | null
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          mode?: string
+          progress?: number
+          project_id?: string
+          retry_after?: string | null
+          started_at?: string | null
+          status?: string
+          total_chunks?: number
+          total_clips?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stitch_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stitch_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tier_limits: {
         Row: {

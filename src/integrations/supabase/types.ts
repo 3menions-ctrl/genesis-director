@@ -209,21 +209,25 @@ export type Database = {
         Row: {
           created_at: string
           generated_script: string | null
+          generation_checkpoint: Json | null
           genre: Database["public"]["Enums"]["movie_genre"]
           id: string
           include_narration: boolean
           is_template: boolean | null
+          last_error: string | null
           mood: string | null
           movie_intro_style: string | null
           music_url: string | null
           parent_project_id: string | null
           pending_video_tasks: Json | null
+          pipeline_stage: string | null
           pro_features_data: Json | null
           quality_tier: string | null
           scene_images: Json | null
           script_content: string | null
           setting: string | null
           status: string
+          stitch_attempts: number | null
           story_structure: Database["public"]["Enums"]["story_structure"]
           synopsis: string | null
           target_duration_minutes: number
@@ -240,21 +244,25 @@ export type Database = {
         Insert: {
           created_at?: string
           generated_script?: string | null
+          generation_checkpoint?: Json | null
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
           is_template?: boolean | null
+          last_error?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pipeline_stage?: string | null
           pro_features_data?: Json | null
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
           status?: string
+          stitch_attempts?: number | null
           story_structure?: Database["public"]["Enums"]["story_structure"]
           synopsis?: string | null
           target_duration_minutes?: number
@@ -271,21 +279,25 @@ export type Database = {
         Update: {
           created_at?: string
           generated_script?: string | null
+          generation_checkpoint?: Json | null
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
           is_template?: boolean | null
+          last_error?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pipeline_stage?: string | null
           pro_features_data?: Json | null
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
           status?: string
+          stitch_attempts?: number | null
           story_structure?: Database["public"]["Enums"]["story_structure"]
           synopsis?: string | null
           target_duration_minutes?: number
@@ -406,6 +418,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_tier: string
           auto_recharge_enabled: boolean | null
           avatar_url: string | null
           company: string | null
@@ -425,6 +438,7 @@ export type Database = {
           use_case: string | null
         }
         Insert: {
+          account_tier?: string
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -444,6 +458,7 @@ export type Database = {
           use_case?: string | null
         }
         Update: {
+          account_tier?: string
           auto_recharge_enabled?: boolean | null
           avatar_url?: string | null
           company?: string | null
@@ -624,6 +639,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_limits: {
+        Row: {
+          chunked_stitching: boolean
+          created_at: string
+          id: string
+          max_clips_per_video: number
+          max_concurrent_projects: number
+          max_duration_minutes: number
+          max_retries_per_clip: number
+          priority_queue: boolean
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          chunked_stitching?: boolean
+          created_at?: string
+          id?: string
+          max_clips_per_video?: number
+          max_concurrent_projects?: number
+          max_duration_minutes?: number
+          max_retries_per_clip?: number
+          priority_queue?: boolean
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          chunked_stitching?: boolean
+          created_at?: string
+          id?: string
+          max_clips_per_video?: number
+          max_concurrent_projects?: number
+          max_duration_minutes?: number
+          max_retries_per_clip?: number
+          priority_queue?: boolean
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       universes: {
         Row: {
           created_at: string
@@ -670,7 +724,9 @@ export type Database = {
           duration_seconds: number | null
           error_message: string | null
           id: string
+          last_error_category: string | null
           last_frame_url: string | null
+          max_retries: number | null
           motion_vectors: Json | null
           project_id: string
           prompt: string
@@ -692,7 +748,9 @@ export type Database = {
           duration_seconds?: number | null
           error_message?: string | null
           id?: string
+          last_error_category?: string | null
           last_frame_url?: string | null
+          max_retries?: number | null
           motion_vectors?: Json | null
           project_id: string
           prompt: string
@@ -714,7 +772,9 @@ export type Database = {
           duration_seconds?: number | null
           error_message?: string | null
           id?: string
+          last_error_category?: string | null
           last_frame_url?: string | null
+          max_retries?: number | null
           motion_vectors?: Json | null
           project_id?: string
           prompt?: string
@@ -798,6 +858,7 @@ export type Database = {
           pending_count: number
         }[]
       }
+      get_user_tier_limits: { Args: { p_user_id: string }; Returns: Json }
       log_api_cost: {
         Args: {
           p_credits_charged: number
@@ -821,6 +882,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      update_generation_checkpoint: {
+        Args: {
+          p_failed_shots?: Json
+          p_last_completed_shot: number
+          p_project_id: string
+          p_total_shots: number
+        }
+        Returns: boolean
       }
       upsert_video_clip:
         | {

@@ -172,8 +172,14 @@ const DEFAULT_CLIP_DURATION = 6; // 6 seconds for cinematic quality
 const MIN_CLIP_DURATION = 4;
 const MAX_CLIP_DURATION = 8;
 
-// Extended clip limits for longer productions
-const MAX_CLIPS_PER_PROJECT = 24;
+// Tier-based clip limits (fail-safe defaults if DB unavailable)
+const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
+  'free': { maxClips: 10, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
+  'pro': { maxClips: 15, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
+  'growth': { maxClips: 30, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  'agency': { maxClips: 30, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
+};
+
 const MIN_CLIPS_PER_PROJECT = 2;
 
 // Tier-aware credit costs (matches frontend useCreditBilling.ts)
@@ -192,12 +198,48 @@ const TIER_CREDIT_COSTS = {
   },
 } as const;
 
-function calculatePipelineParams(request: PipelineRequest): { clipCount: number; clipDuration: number; totalCredits: number } {
+// Fetch user tier limits from database
+async function getUserTierLimits(supabase: any, userId: string): Promise<{
+  tier: string;
+  maxClips: number;
+  maxDuration: number;
+  maxRetries: number;
+  chunkedStitching: boolean;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('get_user_tier_limits', { p_user_id: userId });
+    
+    if (error || !data) {
+      console.warn(`[Hollywood] Failed to fetch tier limits, using free tier defaults:`, error);
+      return { tier: 'free', ...TIER_CLIP_LIMITS['free'] };
+    }
+    
+    return {
+      tier: data.tier || 'free',
+      maxClips: data.max_clips_per_video || TIER_CLIP_LIMITS['free'].maxClips,
+      maxDuration: (data.max_duration_minutes || 1) * 60,
+      maxRetries: data.max_retries_per_clip || TIER_CLIP_LIMITS['free'].maxRetries,
+      chunkedStitching: data.chunked_stitching || false,
+    };
+  } catch (err) {
+    console.error(`[Hollywood] Error fetching tier limits:`, err);
+    return { tier: 'free', ...TIER_CLIP_LIMITS['free'] };
+  }
+}
+
+function calculatePipelineParams(
+  request: PipelineRequest, 
+  tierLimits?: { maxClips: number; maxDuration: number }
+): { clipCount: number; clipDuration: number; totalCredits: number } {
   // Avatar-quality: Configurable clip duration (4-8 seconds)
   let clipDuration = DEFAULT_CLIP_DURATION;
   if ((request as any).clipDuration) {
     clipDuration = Math.max(MIN_CLIP_DURATION, Math.min(MAX_CLIP_DURATION, (request as any).clipDuration));
   }
+  
+  // Use tier limits if provided
+  const maxClips = tierLimits?.maxClips || TIER_CLIP_LIMITS['free'].maxClips;
+  const maxDuration = tierLimits?.maxDuration || TIER_CLIP_LIMITS['free'].maxDuration;
   
   let clipCount: number;
   
@@ -211,15 +253,22 @@ function calculatePipelineParams(request: PipelineRequest): { clipCount: number;
     clipCount = 6;
   }
   
-  // Extended clip limit: 2-24 clips for Avatar-quality productions
-  clipCount = Math.max(MIN_CLIPS_PER_PROJECT, Math.min(MAX_CLIPS_PER_PROJECT, clipCount));
+  // Apply tier limits
+  clipCount = Math.max(MIN_CLIPS_PER_PROJECT, Math.min(maxClips, clipCount));
+  
+  // Also enforce duration limit
+  const totalDuration = clipCount * clipDuration;
+  if (totalDuration > maxDuration) {
+    clipCount = Math.floor(maxDuration / clipDuration);
+    console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
+  }
   
   // Use tier-aware credit calculation
   const tier = request.qualityTier || 'standard';
   const creditsPerClip = TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
   const totalCredits = clipCount * creditsPerClip;
   
-  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total`);
+  console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips)`);
   
   return { clipCount, clipDuration, totalCredits };
 }
@@ -1490,20 +1539,33 @@ async function runProduction(
       console.log(`[Hollywood] Injected style anchor into clip ${i + 1}`);
     }
     
-    // Auto-retry logic: try once, then retry once on failure
+    // =====================================================
+    // TIER-AWARE AUTO-RETRY: Use tier maxRetries setting
+    // =====================================================
+    const tierLimits = (request as any)._tierLimits || { maxRetries: 1 };
+    const maxAttempts = Math.max(1, tierLimits.maxRetries + 1); // +1 for initial attempt
+    
     let lastError: Error | null = null;
     let result: any = null;
+    let lastErrorCategory: string = 'unknown';
     
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         const isRetry = attempt > 0;
         if (isRetry) {
-          console.log(`[Hollywood] Auto-retry attempt for clip ${i + 1}...`);
+          console.log(`[Hollywood] Auto-retry attempt ${attempt + 1}/${maxAttempts} for clip ${i + 1} (tier: ${tierLimits.tier})...`);
           await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
             clipsCompleted: i,
             clipCount: clips.length,
             retryingClip: i,
+            retryAttempt: attempt + 1,
+            maxRetries: maxAttempts,
           });
+          
+          // Exponential backoff: 2s, 4s, 8s, etc.
+          const backoffMs = Math.min(2000 * Math.pow(2, attempt - 1), 16000);
+          console.log(`[Hollywood] Waiting ${backoffMs}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
         
         // =====================================================
@@ -1572,6 +1634,7 @@ async function runProduction(
           qualityTier: request.qualityTier || 'standard',
           referenceImageUrl, // Still passed for character identity reference
           isRetry,
+          retryAttempt: attempt,
           // Pass scene context for continuous action flow
           sceneContext: clip.sceneContext,
           // NEW: Pass accumulated anchors for visual consistency
@@ -1588,33 +1651,68 @@ async function runProduction(
         
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.warn(`[Hollywood] Clip ${i + 1} attempt ${attempt + 1} failed:`, lastError.message);
+        const errorMsg = lastError.message.toLowerCase();
         
-        if (attempt === 0) {
-          // Wait a bit before retry
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        // Categorize error for smarter retries
+        if (errorMsg.includes('timeout') || errorMsg.includes('deadline')) {
+          lastErrorCategory = 'timeout';
+        } else if (errorMsg.includes('quota') || errorMsg.includes('rate limit') || errorMsg.includes('429')) {
+          lastErrorCategory = 'quota';
+        } else if (errorMsg.includes('invalid') || errorMsg.includes('validation')) {
+          lastErrorCategory = 'validation';
+        } else if (errorMsg.includes('api') || errorMsg.includes('500') || errorMsg.includes('503')) {
+          lastErrorCategory = 'api_error';
+        } else {
+          lastErrorCategory = 'unknown';
+        }
+        
+        console.warn(`[Hollywood] Clip ${i + 1} attempt ${attempt + 1}/${maxAttempts} failed (${lastErrorCategory}):`, lastError.message);
+        
+        // Don't retry on validation errors - they won't fix themselves
+        if (lastErrorCategory === 'validation') {
+          console.log(`[Hollywood] Validation error - skipping remaining retries`);
+          break;
         }
       }
     }
     
+    // =====================================================
+    // FAIL-SAFE CHECKPOINT: Save progress after each clip attempt
+    // =====================================================
+    const completedCount = state.production.clipResults.filter(c => c.status === 'completed').length;
+    const failedShotIds = state.production.clipResults
+      .filter(c => c.status === 'failed')
+      .map(c => `shot_${c.index + 1}`);
+    
+    await supabase.rpc('update_generation_checkpoint', {
+      p_project_id: state.projectId,
+      p_last_completed_shot: completedCount > 0 ? Math.max(...state.production.clipResults.filter(c => c.status === 'completed').map(c => c.index)) : -1,
+      p_total_shots: clips.length,
+      p_failed_shots: JSON.stringify(failedShotIds),
+    });
+    
     // If all attempts failed, mark as failed and notify
     if (lastError || !result) {
-      console.error(`[Hollywood] Clip ${i + 1} failed after auto-retry:`, lastError?.message);
+      console.error(`[Hollywood] Clip ${i + 1} failed after ${maxAttempts} attempts (tier: ${tierLimits.tier}):`, lastError?.message);
       
-      // Mark clip as failed in DB with retry_count
+      // Mark clip as failed in DB with retry_count and error category
       await supabase.rpc('upsert_video_clip', {
         p_project_id: state.projectId,
         p_user_id: request.userId,
         p_shot_index: i,
         p_prompt: finalPrompt,
         p_status: 'failed',
-        p_error_message: `Auto-retry exhausted: ${lastError?.message || 'Unknown error'}`,
+        p_error_message: `Exhausted ${maxAttempts} attempts (tier: ${tierLimits.tier}): ${lastError?.message || 'Unknown error'}`,
       });
       
-      // Update retry count
+      // Update retry count and error category
       await supabase
         .from('video_clips')
-        .update({ retry_count: 1 })
+        .update({ 
+          retry_count: maxAttempts - 1,
+          max_retries: tierLimits.maxRetries,
+          last_error_category: lastErrorCategory,
+        })
         .eq('project_id', state.projectId)
         .eq('shot_index', i);
       
@@ -1631,6 +1729,9 @@ async function runProduction(
         failedClips: state.production.clipResults.filter(c => c.status === 'failed').map(c => c.index),
         lastFailedClip: i,
         lastFailedError: lastError?.message,
+        lastErrorCategory,
+        retriesUsed: maxAttempts - 1,
+        tierMaxRetries: tierLimits.maxRetries,
       });
       
       // Continue with remaining clips
@@ -2845,10 +2946,35 @@ serve(async (req) => {
       throw new Error("Either 'concept' or 'manualPrompts' is required");
     }
     
-    const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request);
+    // FAIL-SAFE #1: Fetch user tier limits from database
+    console.log(`[Hollywood] Fetching tier limits for user ${request.userId}...`);
+    const tierLimits = await getUserTierLimits(supabase, request.userId);
+    console.log(`[Hollywood] User tier: ${tierLimits.tier}, maxClips: ${tierLimits.maxClips}, maxDuration: ${tierLimits.maxDuration}s, maxRetries: ${tierLimits.maxRetries}, chunkedStitching: ${tierLimits.chunkedStitching}`);
+    
+    // Store tier info in request for downstream stages
+    (request as any)._tierLimits = tierLimits;
+    
+    const { clipCount, clipDuration, totalCredits } = calculatePipelineParams(request, {
+      maxClips: tierLimits.maxClips,
+      maxDuration: tierLimits.maxDuration,
+    });
     
     console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s, ${totalCredits} credits`);
     console.log(`[Hollywood] Is resuming: ${isResuming}, resumeFrom: ${request.resumeFrom}`);
+    
+    // FAIL-SAFE #2: Validate request against tier limits
+    const requestedDuration = clipCount * clipDuration;
+    if (requestedDuration > tierLimits.maxDuration) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Requested duration (${requestedDuration}s) exceeds your tier limit (${tierLimits.maxDuration}s). Upgrade to Growth or Agency tier for 2-minute videos.`,
+          tierLimit: tierLimits.tier,
+          maxDuration: tierLimits.maxDuration,
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     if (!isResuming && request.manualPrompts && request.manualPrompts.length < 2) {
       throw new Error(`At least 2 prompts are required`);

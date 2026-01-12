@@ -456,6 +456,124 @@ function buildContinuityFromManifest(manifest: ShotContinuityManifest): { prompt
   };
 }
 
+// =====================================================
+// IDENTITY DECAY PREVENTION SYSTEM
+// Problem: Character identity degrades over clips (especially after clip 3)
+// Solution: Periodic re-anchoring + cumulative identity reinforcement
+// =====================================================
+const IDENTITY_REANCHOR_INTERVAL = 2; // Re-anchor to original every N clips
+const BASE_IDENTITY_WEIGHT = 1.0;
+const IDENTITY_WEIGHT_GROWTH = 0.15; // Increase identity emphasis by 15% each clip
+
+function calculateIdentityWeight(clipIndex: number): { weight: number; shouldReanchor: boolean } {
+  // Identity weight grows as we get further from clip 1 to counteract drift
+  const weight = BASE_IDENTITY_WEIGHT + (IDENTITY_WEIGHT_GROWTH * clipIndex);
+  
+  // Re-anchor every N clips (clips 2, 4, 6, etc. get extra reinforcement)
+  const shouldReanchor = clipIndex > 0 && (clipIndex % IDENTITY_REANCHOR_INTERVAL === 0);
+  
+  return { weight: Math.min(weight, 2.0), shouldReanchor }; // Cap at 2x weight
+}
+
+function buildIdentityReinforcement(
+  identityBible: any,
+  clipIndex: number,
+  goldenFrameData?: { characterSnapshot?: string; goldenAnchors?: string[] }
+): { reinforcementPrompt: string; reinforcementNegatives: string[] } {
+  const { weight, shouldReanchor } = calculateIdentityWeight(clipIndex);
+  const parts: string[] = [];
+  const negatives: string[] = [];
+  
+  // CRITICAL: Add decay prevention header
+  parts.push(`[CHARACTER IDENTITY LOCK - CLIP ${clipIndex + 1} - WEIGHT: ${weight.toFixed(2)}x]`);
+  
+  if (shouldReanchor) {
+    parts.push(`⚠️ RE-ANCHOR POINT: This clip MUST match original character exactly`);
+    parts.push(`COMPARE TO CLIP 1 - Correct any drift that may have occurred`);
+  }
+  
+  // Golden frame data (from clip 1) takes highest priority for re-anchoring
+  if (shouldReanchor && goldenFrameData?.characterSnapshot) {
+    parts.push(`🎯 GOLDEN REFERENCE (from Clip 1): ${goldenFrameData.characterSnapshot}`);
+    if (goldenFrameData.goldenAnchors?.length) {
+      parts.push(`GOLDEN ANCHORS: ${goldenFrameData.goldenAnchors.join(', ')}`);
+    }
+  }
+  
+  // Build comprehensive identity description with weight emphasis
+  const ci = identityBible?.characterIdentity;
+  if (ci) {
+    // Repeat critical features based on weight (more repetition = stronger signal)
+    const repeatCount = Math.ceil(weight);
+    
+    if (ci.description) {
+      for (let i = 0; i < repeatCount; i++) {
+        parts.push(`CHARACTER: ${ci.description}`);
+      }
+    }
+    if (ci.facialFeatures) {
+      parts.push(`FACE (MUST MATCH): ${ci.facialFeatures}`);
+    }
+    if (ci.bodyType) {
+      parts.push(`BODY (LOCKED): ${ci.bodyType}`);
+    }
+    if (ci.clothing) {
+      parts.push(`CLOTHING (IDENTICAL): ${ci.clothing}`);
+    }
+    if (ci.distinctiveMarkers?.length) {
+      parts.push(`MARKERS (MANDATORY - CHECK EACH): ${ci.distinctiveMarkers.join(', ')}`);
+    }
+  }
+  
+  // Add strong consistency prompt if available
+  if (identityBible?.consistencyPrompt) {
+    parts.push(`IDENTITY SIGNATURE: ${identityBible.consistencyPrompt}`);
+  }
+  
+  // Add all consistency anchors
+  if (identityBible?.consistencyAnchors?.length) {
+    parts.push(`VISUAL ANCHORS (ALL REQUIRED): ${identityBible.consistencyAnchors.join(', ')}`);
+  }
+  
+  // Build aggressive negative prompts that scale with clip index
+  negatives.push(
+    'character morphing',
+    'identity change',
+    'different person',
+    'face changing',
+    'body transformation',
+    'age progression',
+    'clothing change',
+    'outfit swap',
+    'appearance shift',
+    'feature drift',
+  );
+  
+  // Add clip-specific anti-drift negatives
+  if (clipIndex >= 2) {
+    negatives.push(
+      'gradual character change',
+      'subtle identity shift',
+      'accumulated drift',
+      'character evolution',
+    );
+  }
+  if (clipIndex >= 4) {
+    negatives.push(
+      'completely different character',
+      'unrecognizable',
+      'character replacement',
+    );
+  }
+  
+  parts.push(`[END CHARACTER IDENTITY LOCK]`);
+  
+  return {
+    reinforcementPrompt: parts.join('\n'),
+    reinforcementNegatives: negatives,
+  };
+}
+
 interface GenerateSingleClipRequest {
   userId: string;
   projectId: string;
@@ -470,6 +588,12 @@ interface GenerateSingleClipRequest {
   };
   // NEW: Previous shot's continuity manifest for comprehensive consistency
   previousContinuityManifest?: ShotContinuityManifest;
+  // NEW: Golden frame data from clip 1 for periodic re-anchoring
+  goldenFrameData?: {
+    characterSnapshot?: string;
+    goldenAnchors?: string[];
+    goldenFrameUrl?: string;
+  };
   identityBible?: {
     characterIdentity?: {
       description?: string;
@@ -1495,9 +1619,36 @@ serve(async (req) => {
     let enhancedPrompt = safePrompt;
     const continuityParts: string[] = [];
     let manifestNegatives: string[] = [];
+    let identityNegatives: string[] = [];
     
     // =====================================================
-    // CONTINUITY MANIFEST INJECTION (HIGHEST PRIORITY)
+    // IDENTITY DECAY PREVENTION (NEW - HIGHEST PRIORITY)
+    // Prevents character drift that typically starts at clip 3
+    // =====================================================
+    const { weight: identityWeight, shouldReanchor } = calculateIdentityWeight(request.clipIndex);
+    
+    if (request.identityBible) {
+      const identityReinforcement = buildIdentityReinforcement(
+        request.identityBible,
+        request.clipIndex,
+        request.goldenFrameData
+      );
+      
+      if (identityReinforcement.reinforcementPrompt) {
+        // For clips 2+, add identity lock at the VERY TOP of the prompt
+        continuityParts.push(identityReinforcement.reinforcementPrompt);
+        identityNegatives = identityReinforcement.reinforcementNegatives;
+        
+        console.log(`[SingleClip] 🔒 IDENTITY DECAY PREVENTION: Clip ${request.clipIndex + 1}, weight ${identityWeight.toFixed(2)}x`);
+        if (shouldReanchor) {
+          console.log(`[SingleClip] ⚠️ RE-ANCHOR POINT: Resetting to golden reference`);
+        }
+        console.log(`[SingleClip]   Identity negatives: ${identityNegatives.length} active`);
+      }
+    }
+    
+    // =====================================================
+    // CONTINUITY MANIFEST INJECTION (SECOND PRIORITY)
     // Uses AI-extracted spatial, lighting, props, emotional, and action data
     // =====================================================
     if (request.previousContinuityManifest) {
@@ -1816,15 +1967,19 @@ serve(async (req) => {
     const aspectRatio = request.aspectRatio || '16:9';
     console.log(`[SingleClip] Using aspect ratio from request: ${aspectRatio}`);
     
-    // Merge all negative prompts: occlusion negatives + spatial negatives + manifest negatives
+    // Merge all negative prompts: identity + occlusion + spatial + manifest negatives
     const allNegatives = [
+      ...identityNegatives, // Identity negatives FIRST (highest priority)
       ...(request.identityBible?.occlusionNegatives || []),
       ...spatialNegatives,
       ...manifestNegatives,
     ];
     
-    if (allNegatives.length > 0) {
-      console.log(`[SingleClip] Negative prompts: ${allNegatives.length} total (${spatialNegatives.length} spatial, ${manifestNegatives.length} manifest)`);
+    // Remove duplicates while preserving order
+    const uniqueNegatives = [...new Set(allNegatives)];
+    
+    if (uniqueNegatives.length > 0) {
+      console.log(`[SingleClip] Negative prompts: ${uniqueNegatives.length} unique (${identityNegatives.length} identity, ${spatialNegatives.length} spatial, ${manifestNegatives.length} manifest)`);
     }
     
     let operationName: string = '';
@@ -1845,7 +2000,7 @@ serve(async (req) => {
             finalPrompt,
             request.startImageUrl,
             aspectRatio,
-            allNegatives.length > 0 ? allNegatives : undefined
+            uniqueNegatives.length > 0 ? uniqueNegatives : undefined
           );
           operationName = result.operationName;
         } else {

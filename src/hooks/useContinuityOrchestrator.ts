@@ -7,7 +7,6 @@ import type {
   ContinuityConfig,
   ClipContinuityData,
   TransitionAnalysis,
-  DEFAULT_CONTINUITY_CONFIG,
 } from '@/types/continuity-orchestrator';
 
 interface UseContinuityOrchestratorResult {

@@ -210,6 +210,252 @@ CRITICAL: ${pursuerCap} must NEVER be ahead of, beside, or passing ${targetCap}.
   };
 }
 
+// =====================================================
+// CONTINUITY MANIFEST TYPES (Embedded)
+// =====================================================
+interface SpatialPosition {
+  screenPosition: string;
+  depth: string;
+  verticalPosition: string;
+  facingDirection: string;
+  bodyAngle: number;
+}
+
+interface LightingState {
+  primarySource: {
+    type: string;
+    direction: string;
+    quality: string;
+    intensity: string;
+  };
+  colorTemperature: string;
+  colorTint?: string;
+  shadowDirection: string;
+  ambientLevel: string;
+  specialLighting?: string[];
+}
+
+interface PropState {
+  propId: string;
+  name: string;
+  heldBy?: string;
+  hand?: string;
+  state: string;
+  position?: string;
+  condition?: string;
+}
+
+interface PropsInventory {
+  characterProps: { characterName: string; props: PropState[] }[];
+  environmentProps: { name: string; position: string; state: string }[];
+  importantAbsences?: string[];
+}
+
+interface EmotionalState {
+  primaryEmotion: string;
+  intensity: string;
+  facialExpression: string;
+  bodyLanguage: string;
+  breathingState?: string;
+  physicalIndicators?: string[];
+}
+
+interface ActionMomentum {
+  movementDirection: string;
+  movementType: string;
+  gestureInProgress?: string;
+  poseAtCut: string;
+  eyeMovement?: string;
+  expectedContinuation?: string;
+}
+
+interface MicroDetails {
+  skin: {
+    scars: { location: string; description: string }[];
+    wounds: { location: string; freshness: string; description: string }[];
+    dirt: { areas: string[]; intensity: string }[];
+    sweat: boolean;
+    blood?: { areas: string[]; freshness: string }[];
+  };
+  clothing: {
+    tears: { location: string; size: string }[];
+    stains: { location: string; type: string; color?: string }[];
+    dustLevel: string;
+    wetness?: { areas: string[]; level: string }[];
+  };
+  hair: {
+    style: string;
+    condition: string;
+    wetness?: string;
+    debris?: string[];
+    windEffect?: string;
+  };
+  persistentMarkers: string[];
+}
+
+interface EnvironmentState {
+  weatherVisible: string;
+  timeOfDay: string;
+  atmospherics: string[];
+  backgroundElements: string[];
+  surfaceConditions?: string;
+}
+
+interface ShotContinuityManifest {
+  shotIndex: number;
+  projectId: string;
+  extractedAt: number;
+  spatial: {
+    primaryCharacter: SpatialPosition;
+    secondaryCharacters?: { characterId: string; position: SpatialPosition }[];
+    cameraDistance: string;
+    eyeLineDirection?: string;
+  };
+  lighting: LightingState;
+  props: PropsInventory;
+  emotional: EmotionalState;
+  action: ActionMomentum;
+  microDetails: MicroDetails;
+  environment: EnvironmentState;
+  injectionPrompt: string;
+  negativePrompt: string;
+  criticalAnchors: string[];
+}
+
+// Function to build continuity injection from manifest
+function buildContinuityFromManifest(manifest: ShotContinuityManifest): { prompt: string; negative: string } {
+  const sections: string[] = [];
+  
+  // Spatial continuity
+  const sp = manifest.spatial;
+  if (sp.primaryCharacter) {
+    sections.push(
+      `[SPATIAL CONTINUITY: Character ${sp.primaryCharacter.screenPosition} of frame, ` +
+      `${sp.primaryCharacter.depth}, facing ${sp.primaryCharacter.facingDirection}, ` +
+      `${sp.cameraDistance} shot]`
+    );
+  }
+  
+  // Lighting continuity
+  const lt = manifest.lighting;
+  if (lt.primarySource) {
+    sections.push(
+      `[LIGHTING LOCK: ${lt.primarySource.type} ${lt.primarySource.direction} light, ` +
+      `${lt.primarySource.quality} shadows, ${lt.colorTemperature} temperature, ` +
+      `${lt.ambientLevel} ambient, shadows ${lt.shadowDirection}]`
+    );
+  }
+  
+  // Props continuity
+  if (manifest.props?.characterProps?.length > 0) {
+    const propList = manifest.props.characterProps
+      .flatMap(cp => cp.props.map(p => `${p.name} ${p.state}${p.position ? ' at ' + p.position : ''}`))
+      .slice(0, 4)
+      .join(', ');
+    if (propList) sections.push(`[PROPS LOCK: ${propList}]`);
+  }
+  
+  // Emotional continuity
+  const em = manifest.emotional;
+  if (em.primaryEmotion) {
+    sections.push(
+      `[EMOTIONAL CONTINUITY: ${em.intensity} ${em.primaryEmotion}, ` +
+      `expression: ${em.facialExpression}, body: ${em.bodyLanguage}]`
+    );
+    if (em.physicalIndicators?.length) {
+      sections.push(`[PHYSICAL STATE: ${em.physicalIndicators.join(', ')}]`);
+    }
+  }
+  
+  // Action momentum
+  const ac = manifest.action;
+  if (ac.movementType && ac.movementType !== 'still') {
+    sections.push(
+      `[ACTION MOMENTUM: ${ac.movementType} ${ac.movementDirection}, ` +
+      `pose: ${ac.poseAtCut}${ac.gestureInProgress ? ', gesture: ' + ac.gestureInProgress : ''}]`
+    );
+    if (ac.expectedContinuation) {
+      sections.push(`[CONTINUES INTO: ${ac.expectedContinuation}]`);
+    }
+  }
+  
+  // Micro-details (critical for consistency)
+  const md = manifest.microDetails;
+  const microList: string[] = [];
+  if (md?.skin?.scars?.length > 0) {
+    microList.push(...md.skin.scars.slice(0, 2).map(s => `scar on ${s.location}`));
+  }
+  if (md?.skin?.wounds?.length > 0) {
+    microList.push(...md.skin.wounds.slice(0, 2).map(w => `${w.freshness} wound on ${w.location}`));
+  }
+  if (md?.skin?.dirt?.length > 0) {
+    microList.push(`${md.skin.dirt[0].intensity} dirt on ${md.skin.dirt[0].areas.slice(0, 2).join(', ')}`);
+  }
+  if (md?.clothing?.stains?.length > 0) {
+    microList.push(...md.clothing.stains.slice(0, 2).map(s => `${s.type} stain on ${s.location}`));
+  }
+  if (md?.clothing?.tears?.length > 0) {
+    microList.push(...md.clothing.tears.slice(0, 1).map(t => `torn ${t.location}`));
+  }
+  if (md?.hair?.condition && md.hair.condition !== 'neat') {
+    microList.push(`${md.hair.condition} ${md.hair.style} hair`);
+  }
+  if (md?.hair?.windEffect) {
+    microList.push(`hair ${md.hair.windEffect}`);
+  }
+  if (microList.length > 0) {
+    sections.push(`[MICRO-DETAILS LOCK: ${microList.slice(0, 5).join(', ')}]`);
+  }
+  
+  // Persistent markers (MUST maintain)
+  if (md?.persistentMarkers?.length > 0) {
+    sections.push(`[PERSISTENT MARKERS - MANDATORY: ${md.persistentMarkers.slice(0, 3).join(', ')}]`);
+  }
+  
+  // Environment state
+  const env = manifest.environment;
+  if (env?.weatherVisible || env?.atmospherics?.length) {
+    const envParts: string[] = [];
+    if (env.weatherVisible) envParts.push(env.weatherVisible);
+    if (env.timeOfDay) envParts.push(env.timeOfDay);
+    if (env.atmospherics?.length) envParts.push(...env.atmospherics.slice(0, 2));
+    if (env.surfaceConditions) envParts.push(env.surfaceConditions);
+    if (envParts.length > 0) {
+      sections.push(`[ENVIRONMENT LOCK: ${envParts.join(', ')}]`);
+    }
+  }
+  
+  // Critical anchors summary
+  if (manifest.criticalAnchors?.length > 0) {
+    sections.push(`[CRITICAL ANCHORS - DO NOT CHANGE: ${manifest.criticalAnchors.slice(0, 5).join(', ')}]`);
+  }
+  
+  // Build comprehensive negative prompt
+  const negatives: string[] = [
+    'character morphing', 'identity change', 'clothing change',
+    'lighting direction reversal', 'prop disappearance', 'scar removal',
+    'wound healing between shots', 'sudden cleanliness', '180 degree rule violation',
+    'position swap', 'emotion jump', 'hair style change',
+  ];
+  
+  // Add position-specific negatives
+  if (sp.primaryCharacter?.screenPosition) {
+    const pos = sp.primaryCharacter.screenPosition;
+    if (pos.includes('left')) negatives.push('character on right side', 'character jumping to right');
+    if (pos.includes('right')) negatives.push('character on left side', 'character jumping to left');
+  }
+  
+  // Add lighting-specific negatives
+  if (lt.shadowDirection) {
+    negatives.push('shadow direction change', 'reversed shadows');
+  }
+  
+  return {
+    prompt: sections.join('\n'),
+    negative: [...new Set(negatives)].join(', '),
+  };
+}
+
 interface GenerateSingleClipRequest {
   userId: string;
   projectId: string;
@@ -222,6 +468,8 @@ interface GenerateSingleClipRequest {
     endDirection?: string;
     cameraMomentum?: string;
   };
+  // NEW: Previous shot's continuity manifest for comprehensive consistency
+  previousContinuityManifest?: ShotContinuityManifest;
   identityBible?: {
     characterIdentity?: {
       description?: string;
@@ -261,7 +509,7 @@ interface GenerateSingleClipRequest {
   qualityTier?: 'standard' | 'professional';
   referenceImageUrl?: string;
   aspectRatio?: '16:9' | '9:16' | '1:1';
-  // Scene continuity (NEW)
+  // Scene continuity
   sceneContext?: {
     actionPhase: 'establish' | 'initiate' | 'develop' | 'escalate' | 'peak' | 'settle';
     previousAction: string;
@@ -1246,8 +1494,50 @@ serve(async (req) => {
     // =====================================================
     let enhancedPrompt = safePrompt;
     const continuityParts: string[] = [];
+    let manifestNegatives: string[] = [];
     
-    // INJECT SPATIAL LOCK FIRST (highest priority for multi-character scenes)
+    // =====================================================
+    // CONTINUITY MANIFEST INJECTION (HIGHEST PRIORITY)
+    // Uses AI-extracted spatial, lighting, props, emotional, and action data
+    // =====================================================
+    if (request.previousContinuityManifest) {
+      const manifest = request.previousContinuityManifest;
+      console.log(`[SingleClip] 🎬 CONTINUITY MANIFEST detected from shot ${manifest.shotIndex}`);
+      
+      try {
+        const continuityInjection = buildContinuityFromManifest(manifest);
+        
+        if (continuityInjection.prompt) {
+          continuityParts.push(`[CONTINUITY MANIFEST FROM SHOT ${manifest.shotIndex} - MANDATORY MATCH]`);
+          continuityParts.push(continuityInjection.prompt);
+          continuityParts.push(`[END CONTINUITY MANIFEST]`);
+          console.log(`[SingleClip] ✓ Injected comprehensive continuity manifest with ${manifest.criticalAnchors?.length || 0} critical anchors`);
+        }
+        
+        if (continuityInjection.negative) {
+          manifestNegatives = continuityInjection.negative.split(', ').filter(n => n.trim());
+          console.log(`[SingleClip] ✓ Added ${manifestNegatives.length} manifest-based negative prompts`);
+        }
+        
+        // Log key continuity elements
+        if (manifest.spatial?.primaryCharacter) {
+          console.log(`[SingleClip]   Spatial: ${manifest.spatial.primaryCharacter.screenPosition}, ${manifest.spatial.primaryCharacter.depth}`);
+        }
+        if (manifest.lighting?.colorTemperature) {
+          console.log(`[SingleClip]   Lighting: ${manifest.lighting.colorTemperature}, shadows ${manifest.lighting.shadowDirection || 'unspecified'}`);
+        }
+        if (manifest.emotional?.primaryEmotion) {
+          console.log(`[SingleClip]   Emotion: ${manifest.emotional.intensity} ${manifest.emotional.primaryEmotion}`);
+        }
+        if (manifest.action?.movementType) {
+          console.log(`[SingleClip]   Action: ${manifest.action.movementType} ${manifest.action.movementDirection}`);
+        }
+      } catch (manifestErr) {
+        console.warn(`[SingleClip] Failed to process continuity manifest:`, manifestErr);
+      }
+    }
+    
+    // INJECT SPATIAL LOCK (for multi-character chase/follow scenes)
     if (spatialLockPrompt) {
       continuityParts.push(spatialLockPrompt);
     }
@@ -1526,14 +1816,15 @@ serve(async (req) => {
     const aspectRatio = request.aspectRatio || '16:9';
     console.log(`[SingleClip] Using aspect ratio from request: ${aspectRatio}`);
     
-    // Merge all negative prompts: occlusion negatives + spatial negatives
+    // Merge all negative prompts: occlusion negatives + spatial negatives + manifest negatives
     const allNegatives = [
       ...(request.identityBible?.occlusionNegatives || []),
       ...spatialNegatives,
+      ...manifestNegatives,
     ];
     
     if (allNegatives.length > 0) {
-      console.log(`[SingleClip] Negative prompts: ${allNegatives.length} total (${spatialNegatives.length} spatial)`);
+      console.log(`[SingleClip] Negative prompts: ${allNegatives.length} total (${spatialNegatives.length} spatial, ${manifestNegatives.length} manifest)`);
     }
     
     let operationName: string = '';
@@ -1776,6 +2067,60 @@ serve(async (req) => {
     const motionVectors = extractMotionVectors(request.prompt);
     console.log(`[SingleClip] Motion vectors:`, motionVectors);
     
+    // =====================================================
+    // CONTINUITY MANIFEST EXTRACTION
+    // Extract comprehensive continuity data from last frame for next clip
+    // =====================================================
+    let extractedManifest: ShotContinuityManifest | undefined;
+    
+    if (lastFrameUrl && frameExtractionSuccess) {
+      try {
+        console.log(`[SingleClip] Extracting continuity manifest from last frame...`);
+        
+        const manifestResponse = await fetch(`${supabaseUrl}/functions/v1/extract-continuity-manifest`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            frameUrl: lastFrameUrl,
+            projectId: request.projectId,
+            shotIndex: request.clipIndex,
+            shotDescription: request.prompt.substring(0, 500),
+            previousManifest: request.previousContinuityManifest,
+          }),
+        });
+        
+        if (manifestResponse.ok) {
+          const manifestResult = await manifestResponse.json();
+          if (manifestResult.success && manifestResult.manifest) {
+            extractedManifest = manifestResult.manifest;
+            console.log(`[SingleClip] ✓ Continuity manifest extracted with ${extractedManifest?.criticalAnchors?.length || 0} critical anchors`);
+            
+            // Log key extracted elements
+            if (extractedManifest?.spatial?.primaryCharacter) {
+              console.log(`[SingleClip]   Spatial: ${extractedManifest.spatial.primaryCharacter.screenPosition}`);
+            }
+            if (extractedManifest?.lighting?.colorTemperature) {
+              console.log(`[SingleClip]   Lighting: ${extractedManifest.lighting.colorTemperature}`);
+            }
+            if (extractedManifest?.emotional?.primaryEmotion) {
+              console.log(`[SingleClip]   Emotion: ${extractedManifest.emotional.primaryEmotion}`);
+            }
+          } else {
+            console.warn(`[SingleClip] Continuity manifest extraction returned no data`);
+          }
+        } else {
+          console.warn(`[SingleClip] Continuity manifest extraction failed: HTTP ${manifestResponse.status}`);
+        }
+      } catch (manifestError) {
+        console.warn(`[SingleClip] Continuity manifest extraction error:`, manifestError);
+      }
+    } else {
+      console.log(`[SingleClip] Skipping continuity manifest extraction - no frame available`);
+    }
+    
     // IMPORTANT: Use 6-second duration as the standard for all clips
     const clipDurationSeconds = 6;
     
@@ -1812,6 +2157,7 @@ serve(async (req) => {
           aspectRatio: request.aspectRatio || '16:9',
           qualityTier: request.qualityTier || 'standard',
           hasStartImage: !!request.startImageUrl,
+          hasContinuityManifest: !!extractedManifest,
         }),
       });
       console.log(`[SingleClip] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
@@ -1819,16 +2165,22 @@ serve(async (req) => {
       console.warn(`[SingleClip] Failed to log API cost:`, costError);
     }
 
-    const clipResult: ClipResult = {
+    // Extended clip result with continuity manifest
+    interface ExtendedClipResult extends ClipResult {
+      continuityManifest?: ShotContinuityManifest;
+    }
+    
+    const clipResult: ExtendedClipResult = {
       index: request.clipIndex,
       videoUrl: storedUrl,
       lastFrameUrl,
       durationSeconds: DEFAULT_CLIP_DURATION,
       status: 'completed',
       motionVectors,
+      continuityManifest: extractedManifest,
     };
 
-    console.log(`[SingleClip] Clip ${request.clipIndex + 1} completed successfully`);
+    console.log(`[SingleClip] Clip ${request.clipIndex + 1} completed successfully${extractedManifest ? ' with continuity manifest' : ''}`);
 
     return new Response(
       JSON.stringify({

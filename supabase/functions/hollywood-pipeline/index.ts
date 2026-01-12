@@ -1666,10 +1666,39 @@ async function runProduction(
     }
   }
   
-  // Determine first frame reference (REQUIRED for Clip 1)
+  // =====================================================
+  // BULLETPROOF REFERENCE IMAGE INITIALIZATION
+  // Multi-source lookup to guarantee we have visual reference
+  // =====================================================
   let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
     || request.referenceImageUrl
     || request.referenceImageAnalysis?.imageUrl;
+  
+  // CRITICAL: If no reference image, try to fetch from project record
+  if (!referenceImageUrl) {
+    try {
+      const { data: projectRefData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data, scene_images')
+        .eq('id', state.projectId)
+        .single();
+      
+      // Try multiple sources in priority order
+      const possibleRefs = [
+        projectRefData?.pro_features_data?.goldenFrameData?.goldenFrameUrl,
+        projectRefData?.pro_features_data?.identityBible?.multiViewUrls?.frontViewUrl,
+        projectRefData?.pro_features_data?.masterSceneAnchor?.frameUrl,
+        projectRefData?.scene_images?.[0]?.imageUrl,
+      ].filter(Boolean);
+      
+      if (possibleRefs.length > 0) {
+        referenceImageUrl = possibleRefs[0];
+        console.log(`[Hollywood] ✓ RECOVERED referenceImageUrl from project record: ${referenceImageUrl.substring(0, 60)}...`);
+      }
+    } catch (refErr) {
+      console.warn(`[Hollywood] Failed to fetch reference image from project:`, refErr);
+    }
+  }
   
   // Priority: explicit reference > scene image for clip 1
   if (!referenceImageUrl && sceneImageLookup[0]) {

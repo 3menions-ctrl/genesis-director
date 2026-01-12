@@ -2815,29 +2815,69 @@ serve(async (req) => {
       if (!frameExtractionSuccess) {
         console.error(`[SingleClip] ⚠️ CRITICAL: Frame extraction FAILED after all attempts!`);
         
-        // BULLETPROOF FALLBACK CHAIN
+        // BULLETPROOF FALLBACK CHAIN - Check ALL possible sources
         const fallbackSources = [
           { name: 'sceneImageUrl', url: request.sceneImageUrl },
           { name: 'startImageUrl', url: request.startImageUrl },
           { name: 'referenceImageUrl', url: request.referenceImageUrl },
           { name: 'goldenFrameUrl', url: (request as any).goldenFrameData?.goldenFrameUrl },
+          { name: 'identityBibleFront', url: request.identityBible?.multiViewUrls?.frontViewUrl },
         ].filter(s => s.url);
         
         if (fallbackSources.length > 0) {
           lastFrameUrl = fallbackSources[0].url;
           console.warn(`[SingleClip] Using ${fallbackSources[0].name} as fallback: ${lastFrameUrl?.substring(0, 60)}...`);
         } else {
-          console.error(`[SingleClip] ⚠️ NO FALLBACK AVAILABLE - continuity will be broken`);
+          // LAST RESORT: Fetch from project record
+          console.warn(`[SingleClip] No immediate fallback - querying project for reference/scene images...`);
+          try {
+            const { data: projectData } = await supabase
+              .from('movie_projects')
+              .select('scene_images, pro_features_data')
+              .eq('id', request.projectId)
+              .single();
+            
+            // Try scene images first
+            if (projectData?.scene_images && Array.isArray(projectData.scene_images)) {
+              const sceneImage = projectData.scene_images.find((s: any) => s.sceneNumber === request.clipIndex + 1)
+                || projectData.scene_images[0];
+              if (sceneImage?.imageUrl) {
+                lastFrameUrl = sceneImage.imageUrl;
+                console.warn(`[SingleClip] Using project scene_image as last-resort fallback: ${lastFrameUrl?.substring(0, 60)}...`);
+              }
+            }
+            
+            // Try pro_features_data next
+            if (!lastFrameUrl && projectData?.pro_features_data) {
+              const proData = projectData.pro_features_data;
+              const possibleUrls = [
+                proData.goldenFrameData?.goldenFrameUrl,
+                proData.identityBible?.multiViewUrls?.frontViewUrl,
+                proData.masterSceneAnchor?.frameUrl,
+              ].filter(Boolean);
+              
+              if (possibleUrls.length > 0) {
+                lastFrameUrl = possibleUrls[0];
+                console.warn(`[SingleClip] Using pro_features_data fallback: ${lastFrameUrl?.substring(0, 60)}...`);
+              }
+            }
+          } catch (projectQueryErr) {
+            console.error(`[SingleClip] Project query for fallback failed:`, projectQueryErr);
+          }
           
-          // Store failure with detailed diagnostics
-          await supabase
-            .from('video_clips')
-            .update({ 
-              error_message: `Frame extraction failed, no fallback - continuity broken`,
-              last_error_category: 'frame_extraction_no_fallback',
-            })
-            .eq('project_id', request.projectId)
-            .eq('shot_index', request.clipIndex);
+          if (!lastFrameUrl) {
+            console.error(`[SingleClip] ⚠️ NO FALLBACK AVAILABLE - continuity will be broken`);
+            
+            // Store failure with detailed diagnostics
+            await supabase
+              .from('video_clips')
+              .update({ 
+                error_message: `Frame extraction failed, no fallback - continuity broken`,
+                last_error_category: 'frame_extraction_no_fallback',
+              })
+              .eq('project_id', request.projectId)
+              .eq('shot_index', request.clipIndex);
+          }
         }
       }
     } else {

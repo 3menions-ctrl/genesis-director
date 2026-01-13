@@ -4,21 +4,20 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-// Premium pricing: $6 per video (6 clips stitched) = 60 credits
+// Pricing tiers - credits-based system
 const PRICING_TIERS = [
   {
     name: 'Free Trial',
     price: 0,
-    period: 'forever',
+    period: 'to start',
     credits: 60,
     icon: Zap,
-    description: 'Experience premium quality',
+    description: 'Try the platform',
     features: [
       '60 credits to start',
-      '1 complete video (6 clips)',
-      'Zero-Waste quality guarantee',
-      'Autonomous AI retries',
-      '4K HDR export',
+      'Create sample videos',
+      'Automatic retry system',
+      '4K export available',
     ],
     cta: 'Try Free',
     popular: false,
@@ -30,16 +29,15 @@ const PRICING_TIERS = [
     period: '/month',
     credits: 600,
     icon: Sparkles,
-    description: 'For serious content creators',
+    description: 'For regular content creation',
     features: [
       '600 credits per month',
-      '10 videos per month',
-      'Zero-Waste guarantee',
-      'AI retries until perfect',
-      '4K HDR export',
-      'Priority support',
+      'Approximately 10 videos',
+      'Automatic retry system',
+      '4K export',
+      'Email support',
     ],
-    cta: 'Start Creating',
+    cta: 'Get Started',
     popular: false,
     gradient: 'from-blue-500/20 to-purple-500/20',
   },
@@ -49,15 +47,14 @@ const PRICING_TIERS = [
     period: '/month',
     credits: 1800,
     icon: Crown,
-    description: 'Most popular for professionals',
+    description: 'For frequent creators',
     features: [
       '1,800 credits per month',
-      '30 videos per month',
-      'Zero-Waste guarantee',
-      'Fastest processing queue',
-      '4K HDR + all exports',
-      'Priority email support',
-      'Custom voice cloning',
+      'Approximately 30 videos',
+      'Priority processing',
+      'All export formats',
+      'Priority support',
+      'Voice cloning feature',
     ],
     cta: 'Go Pro',
     popular: true,
@@ -69,16 +66,15 @@ const PRICING_TIERS = [
     period: '/month',
     credits: 6000,
     icon: Building2,
-    description: 'For studios and agencies',
+    description: 'For teams and agencies',
     features: [
       '6,000 credits per month',
-      '100 videos per month',
-      'Zero-Waste guarantee',
-      'Dedicated processing queue',
+      'Approximately 100 videos',
+      'Dedicated processing',
       'All export formats',
-      'Dedicated account manager',
+      'Dedicated support',
       'API access',
-      'White-label options',
+      'Custom branding options',
     ],
     cta: 'Contact Sales',
     popular: false,
@@ -86,12 +82,12 @@ const PRICING_TIERS = [
   },
 ];
 
-// Premium quality breakdown - $6 per video (6 clips)
+// Credit cost breakdown
 const CREDIT_COSTS = [
-  { action: 'Complete video (6 clips)', credits: 60, breakdown: '$6/video • Zero-Waste quality' },
-  { action: 'Per clip cost', credits: 10, breakdown: 'Included in video price' },
-  { action: 'Voice + music + stitching', credits: 'Included', breakdown: 'All in one price' },
-  { action: 'Autonomous quality retries', credits: 'Included', breakdown: 'Up to 4 retries/clip' },
+  { action: 'Video (6 clips)', credits: 60, breakdown: 'Approximately $6 per video' },
+  { action: 'Per clip', credits: 10, breakdown: 'Included in video price' },
+  { action: 'Voice + music + stitching', credits: 'Included', breakdown: 'Bundled with video' },
+  { action: 'Automatic retries', credits: 'Included', breakdown: 'Up to 4 retries per clip' },
 ];
 
 export default function PricingSection() {
@@ -104,13 +100,13 @@ export default function PricingSection() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
             <Shield className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm font-medium text-foreground">Zero-Waste Quality Guarantee</span>
+            <span className="text-sm font-medium text-foreground">Simple Pricing</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            $6 per video. Exceptional quality.
+            Credits-based pricing
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every video gets 6 clips with AI retries until perfect. No compromises.
+            Pay for what you use. Each video uses approximately 60 credits.
           </p>
         </div>
 
@@ -198,7 +194,7 @@ export default function PricingSection() {
           })}
         </div>
 
-        {/* Zero-Waste Quality Promise */}
+        {/* Quality System Info */}
         <div className="max-w-4xl mx-auto">
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 lg:p-8">
             <div className="flex items-center justify-center gap-3 mb-6">
@@ -206,7 +202,7 @@ export default function PricingSection() {
                 <Shield className="w-6 h-6 text-emerald-400" />
               </div>
               <h3 className="text-xl font-bold text-foreground">
-                Zero-Waste Quality Guarantee
+                Automatic Retry System
               </h3>
             </div>
             
@@ -215,22 +211,22 @@ export default function PricingSection() {
                 <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <RefreshCw className="w-5 h-5 text-amber-400" />
                 </div>
-                <p className="text-sm font-medium text-foreground mb-1">Autonomous Retries</p>
-                <p className="text-xs text-muted-foreground">AI regenerates until perfect</p>
+                <p className="text-sm font-medium text-foreground mb-1">Auto Retries</p>
+                <p className="text-xs text-muted-foreground">System regenerates clips automatically</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <Eye className="w-5 h-5 text-blue-400" />
                 </div>
-                <p className="text-sm font-medium text-foreground mb-1">Visual Debugger</p>
-                <p className="text-xs text-muted-foreground">AI validates every frame</p>
+                <p className="text-sm font-medium text-foreground mb-1">Quality Analysis</p>
+                <p className="text-xs text-muted-foreground">AI checks generated clips</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
                   <Crown className="w-5 h-5 text-purple-400" />
                 </div>
-                <p className="text-sm font-medium text-foreground mb-1">Director Audit</p>
-                <p className="text-xs text-muted-foreground">Cinematic quality checks</p>
+                <p className="text-sm font-medium text-foreground mb-1">Scene Review</p>
+                <p className="text-xs text-muted-foreground">Automated scene analysis</p>
               </div>
             </div>
             
@@ -250,7 +246,7 @@ export default function PricingSection() {
             </div>
             
             <p className="text-sm text-center mt-6 text-emerald-400 font-medium">
-              Every clip is premium quality. No cheap tier. No compromises.
+              Automatic retries included at no extra cost.
             </p>
           </div>
         </div>

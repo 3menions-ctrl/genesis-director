@@ -3,90 +3,78 @@ import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX } fr
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Featured creator videos from actual completed projects
+// Sample videos generated with Apex Studio
 const CREATOR_VIDEOS = [
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
-    title: 'Soaring Above Snowy Serenity',
-    creator: 'Mountain Vision',
+    title: 'Snowy Mountain Landscape',
     genre: 'Motivational',
   },
   {
     id: 'ed88401a-7a11-404c-acbc-55e375aee05d',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
-    title: 'Haunted Whispers of the Past',
-    creator: 'Dark Horizons',
+    title: 'Atmospheric Scene',
     genre: 'Cinematic',
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
-    title: 'Whimsical Chocolate Adventures',
-    creator: 'Sweet Dreams Studio',
+    title: 'Animated Story',
     genre: 'Storytelling',
   },
   {
     id: '2e3503b6-a687-4d3e-bd97-9a1c264a7af2',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
-    title: 'Echoes of Desolation',
-    creator: 'Noir Films',
+    title: 'Dramatic Scene',
     genre: 'Cinematic',
   },
   {
     id: '56f2b0ca-e570-4ab0-b73d-39318a6c2ea8',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
-    title: 'Illuminated Conversations',
-    creator: 'Light & Shadow',
+    title: 'Explainer Video',
     genre: 'Explainer',
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
-    title: 'Silent Vigil in Ruined Valor',
-    creator: 'Valor Studios',
+    title: 'Scenic Composition',
     genre: 'Cinematic',
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
-    title: 'Skyward Over Fiery Majesty',
-    creator: 'Drone Vision',
+    title: 'Aerial Landscape',
     genre: 'Cinematic',
   },
   {
     id: '171d8bf6-2911-4c6a-b715-6ed0e93ff226',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
-    title: 'Editing Dreams in Motion',
-    creator: 'Studio Pro',
+    title: 'Product Showcase',
     genre: 'Ad',
   },
   {
     id: '9ee134ca-5526-4e7f-9c10-1345f7b7b01f',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
-    title: 'Whispers of the Enchanted Jungle',
-    creator: 'Jungle Media',
+    title: 'Nature Scene',
     genre: 'Cinematic',
   },
   {
     id: '5d530ba0-a1e7-4954-8d90-05ffb5a346c2',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
-    title: 'Shadows of the Predator',
-    creator: 'Wild Lens',
+    title: 'Wildlife Scene',
     genre: 'Cinematic',
   },
   {
     id: 'f47e40c4-26cd-4746-8f98-144d830e2303',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
-    title: "Jungle Guardian's Vigil",
-    creator: 'Nature Visuals',
+    title: 'Forest Landscape',
     genre: 'Cinematic',
   },
   {
     id: 'df957e60-7589-46be-b044-d6d52e342316',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
-    title: 'Volcanic Forces',
-    creator: 'Earth Dynamics',
+    title: 'Volcano Landscape',
     genre: 'Cinematic',
   },
 ];
@@ -249,7 +237,7 @@ export default function CreatorShowcase() {
                     {activeVideo.genre}
                   </span>
                   <h3 className="text-2xl lg:text-3xl font-bold text-white mb-1">{activeVideo.title}</h3>
-                  <p className="text-white/50">by {activeVideo.creator}</p>
+                  <p className="text-white/50">AI Generated Sample</p>
                 </div>
                 
                 {/* Controls */}

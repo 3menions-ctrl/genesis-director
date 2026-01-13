@@ -15,10 +15,13 @@ interface SceneImageRequest {
     mood?: string;
   }[];
   projectId?: string;  // Optional - generated ID if not provided
+  userId?: string;     // For callback continuation
   visualStyle?: string;
   globalStyle?: string;
   globalCharacters?: string;
   globalEnvironment?: string;
+  // Callback continuation - triggers next stage when complete
+  triggerNextStage?: boolean;
 }
 
 serve(async (req) => {
@@ -27,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { scenes, projectId, visualStyle, globalStyle, globalCharacters, globalEnvironment }: SceneImageRequest = await req.json();
+    const { scenes, projectId, userId, visualStyle, globalStyle, globalCharacters, globalEnvironment, triggerNextStage }: SceneImageRequest = await req.json();
 
     if (!scenes || scenes.length === 0) {
       throw new Error("Scenes array is required");
@@ -232,12 +235,55 @@ serve(async (req) => {
 
     console.log(`Generated ${generatedImages.length}/${scenes.length} scene images using OpenAI`);
 
+    // CALLBACK CONTINUATION: Trigger next pipeline stage if requested
+    // This prevents stalls when hollywood-pipeline gets early_drop shutdown
+    if (triggerNextStage && projectId && userId && generatedImages.length > 0) {
+      console.log(`[SceneImages] Triggering next pipeline stage for project ${projectId}...`);
+      
+      try {
+        // First, persist scene images to DB
+        await supabase
+          .from('movie_projects')
+          .update({ 
+            scene_images: generatedImages,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
+        console.log(`[SceneImages] ✓ Scene images persisted to DB`);
+        
+        // Call resume-pipeline to continue from assets stage
+        const resumeResponse = await fetch(`${SUPABASE_URL}/functions/v1/resume-pipeline`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            projectId,
+            userId,
+            resumeFrom: 'assets', // Continue from asset stage (voice/music generation)
+          }),
+        });
+        
+        if (resumeResponse.ok) {
+          console.log(`[SceneImages] ✓ Pipeline continuation triggered successfully`);
+        } else {
+          const errorText = await resumeResponse.text();
+          console.warn(`[SceneImages] Pipeline continuation failed: ${errorText.substring(0, 200)}`);
+        }
+      } catch (callbackError) {
+        console.error(`[SceneImages] Callback error:`, callbackError);
+        // Don't fail the response - images were generated successfully
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         images: generatedImages,
         totalGenerated: generatedImages.length,
         totalRequested: scenes.length,
+        continuationTriggered: triggerNextStage && projectId && userId,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

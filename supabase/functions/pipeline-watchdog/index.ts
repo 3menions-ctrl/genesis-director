@@ -250,6 +250,82 @@ serve(async (req) => {
         }
       }
 
+      // ==================== STUCK AT ASSETS STAGE ====================
+      // This catches the case where generate-scene-images completed but hollywood-pipeline got early_drop
+      if (project.status === 'generating' && stage === 'assets') {
+        // Check if scene images exist in DB
+        const { data: projectData } = await supabase
+          .from('movie_projects')
+          .select('scene_images')
+          .eq('id', project.id)
+          .single();
+        
+        const sceneImages = projectData?.scene_images;
+        const hasSceneImages = sceneImages && Array.isArray(sceneImages) && sceneImages.length > 0;
+        
+        if (hasSceneImages) {
+          console.log(`[Watchdog] Assets stage stall detected for ${project.id} - scene images exist, resuming to production`);
+          
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+                userId: project.user_id,
+                resumeFrom: 'production', // Skip to production since images are done
+              }),
+            });
+            
+            if (response.ok) {
+              result.productionResumed++;
+              result.details.push({
+                projectId: project.id,
+                action: 'assets_stall_recovered',
+                result: `Scene images exist, resuming to production`,
+              });
+              console.log(`[Watchdog] ✓ Assets stall recovered for ${project.id}`);
+            }
+          } catch (error) {
+            console.error(`[Watchdog] Assets stall recovery error:`, error);
+          }
+          continue;
+        } else if (projectAge > 3 * 60 * 1000) {
+          // If stuck at assets for 3+ minutes with no images, retry from assets
+          console.log(`[Watchdog] Assets stage stall for ${project.id} - no images, restarting assets stage`);
+          
+          try {
+            const response = await fetch(`${supabaseUrl}/functions/v1/resume-pipeline`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                projectId: project.id,
+                userId: project.user_id,
+                resumeFrom: 'assets',
+              }),
+            });
+            
+            if (response.ok) {
+              result.productionResumed++;
+              result.details.push({
+                projectId: project.id,
+                action: 'assets_stall_restart',
+                result: `No scene images after 3min, restarting assets`,
+              });
+            }
+          } catch (error) {
+            console.error(`[Watchdog] Assets restart error:`, error);
+          }
+          continue;
+        }
+      }
+
       // ==================== STUCK GENERATING ====================
       if (project.status === 'generating') {
         let expectedClipCount = ((tasks as Record<string, unknown>).clipCount as number) || 6;

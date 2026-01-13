@@ -246,22 +246,22 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // TIER 2: Existing Image Fallback Chain
-    // Use pre-existing images from scene generation or reference upload
-    // These are REAL images, not AI-generated as fallback
+    // TIER 2: User-Uploaded Reference Image ONLY
+    // Only use images uploaded by user - no AI-generated scene images
+    // Reference image is the ONLY valid fallback for frame extraction
     // ============================================================
-    console.log(`[ExtractFrame] TIER 2: Using existing image fallbacks...`);
+    console.log(`[ExtractFrame] TIER 2: Checking for user-uploaded reference image...`);
     
-    // Build prioritized fallback list of EXISTING images only
-    const fallbackSources = [
-      { name: 'scene', url: sceneImageUrl, confidence: 'medium' as const },
+    // Only accept user-uploaded reference image or previously extracted golden frames
+    // Scene images are AI-generated (DALL-E) so we exclude them entirely
+    const validFallbacks = [
       { name: 'reference', url: referenceImageUrl, confidence: 'medium' as const },
       { name: 'golden', url: goldenFrameUrl, confidence: 'medium' as const },
       { name: 'identity', url: identityBibleFrontUrl, confidence: 'low' as const },
     ].filter(s => isValidImageUrl(s.url));
     
-    if (fallbackSources.length > 0) {
-      const best = fallbackSources[0];
+    if (validFallbacks.length > 0) {
+      const best = validFallbacks[0];
       const frameUrl = best.url!;
       
       await saveFrameToDb(frameUrl);
@@ -271,7 +271,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           frameUrl,
-          method: best.name === 'scene' ? 'scene-fallback' : 'reference-fallback',
+          method: 'reference-fallback',
           confidence: best.confidence,
         } as ExtractLastFrameResult),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

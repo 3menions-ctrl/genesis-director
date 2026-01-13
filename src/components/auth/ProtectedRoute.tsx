@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLoader } from '@/components/ui/app-loader';
@@ -14,8 +14,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Track if we've shown the loader to prevent re-renders
-  const hasShownLoader = useRef(false);
+  // Track if we've already rendered children to prevent blink on navigation
+  const hasRenderedChildren = useRef(false);
+  // Track if this is the initial mount
+  const [isInitialMount, setIsInitialMount] = useState(true);
+
+  // Mark initial mount complete after first render with valid session
+  useEffect(() => {
+    if (isSessionVerified && (session || user)) {
+      // Small delay to ensure smooth transition
+      const timer = setTimeout(() => setIsInitialMount(false), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isSessionVerified, session, user]);
 
   // Redirect to auth only when we're certain there's no session
   useEffect(() => {
@@ -34,8 +45,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // CRITICAL: If we already have a session, render children immediately
-  // This prevents any loading flash when navigating between protected routes
+  // CRITICAL: If we have a session, render children immediately to prevent blink
   const hasSessionInState = !!session || !!user;
   
   // Determine what message to show during loading
@@ -45,13 +55,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return 'Almost there...';
   };
 
-  // Only show loader during INITIAL auth check (no session data yet)
-  if ((loading || !isSessionVerified) && !hasSessionInState) {
-    hasShownLoader.current = true;
+  // Only show loader during INITIAL auth check when there's no session data yet
+  // After we've rendered children once, never show loader again (prevents navigation blink)
+  if ((loading || !isSessionVerified) && !hasSessionInState && !hasRenderedChildren.current) {
     return <AppLoader message={getLoadingMessage()} />;
   }
 
-  // No user after loading = will redirect
+  // No user after loading = will redirect (show nothing to prevent flash)
   if (!user && !session) {
     return null;
   }
@@ -81,12 +91,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Wait for profile but use unified loader
-  if (user && !profile) {
-    // If we already showed a loader, just return null briefly to prevent double-flash
-    if (hasShownLoader.current) {
-      return <AppLoader message="Loading your workspace..." />;
-    }
+  // Wait for profile on INITIAL mount only - never block navigation between routes
+  if (user && !profile && isInitialMount && !hasRenderedChildren.current) {
     return <AppLoader message="Loading your workspace..." />;
   }
 
@@ -94,6 +100,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return null;
   }
+
+  // Mark that we've successfully rendered children
+  hasRenderedChildren.current = true;
 
   return <>{children}</>;
 }

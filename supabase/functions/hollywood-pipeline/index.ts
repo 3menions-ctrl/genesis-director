@@ -1700,9 +1700,17 @@ async function runProduction(
   // BULLETPROOF REFERENCE IMAGE INITIALIZATION
   // Multi-source lookup to guarantee we have visual reference
   // =====================================================
-  let referenceImageUrl = state.identityBible?.multiViewUrls?.frontViewUrl 
-    || request.referenceImageUrl
-    || request.referenceImageAnalysis?.imageUrl;
+  // CRITICAL FIX: Prioritize ORIGINAL UPLOADED reference image over generated frames
+  // The user's uploaded image is the source of truth for character identity
+  let referenceImageUrl = request.referenceImageAnalysis?.imageUrl  // FIRST: Original uploaded image
+    || request.referenceImageUrl                                     // Second: Explicit reference URL
+    || state.identityBible?.multiViewUrls?.frontViewUrl;             // Third: Generated multi-view (may be null)
+  
+  console.log(`[Hollywood] Reference image sources:`);
+  console.log(`  - referenceImageAnalysis.imageUrl: ${request.referenceImageAnalysis?.imageUrl?.substring(0, 60) || 'NONE'}`);
+  console.log(`  - request.referenceImageUrl: ${request.referenceImageUrl?.substring(0, 60) || 'NONE'}`);
+  console.log(`  - identityBible.multiViewUrls.frontViewUrl: ${state.identityBible?.multiViewUrls?.frontViewUrl?.substring(0, 60) || 'NONE'}`);
+  console.log(`  - SELECTED: ${referenceImageUrl?.substring(0, 60) || 'NONE'}`);
   
   // CRITICAL: If no reference image, try to fetch from project record
   if (!referenceImageUrl) {
@@ -1713,8 +1721,9 @@ async function runProduction(
         .eq('id', state.projectId)
         .single();
       
-      // Try multiple sources in priority order
+      // Try multiple sources in priority order - ORIGINAL UPLOADED IMAGE FIRST
       const possibleRefs = [
+        projectRefData?.pro_features_data?.referenceAnalysis?.imageUrl, // FIRST: Original uploaded
         projectRefData?.pro_features_data?.goldenFrameData?.goldenFrameUrl,
         projectRefData?.pro_features_data?.identityBible?.multiViewUrls?.frontViewUrl,
         projectRefData?.pro_features_data?.masterSceneAnchor?.frameUrl,

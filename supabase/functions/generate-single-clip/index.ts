@@ -468,9 +468,25 @@ const BASE_IDENTITY_WEIGHT = 1.0;
 const IDENTITY_WEIGHT_GROWTH = 0.15; // Increase identity emphasis by 15% each clip
 
 // =====================================================
-// TOTAL ANCHOR INJECTION SYSTEM (THE LAW)
-// Every clip MUST receive ALL possible anchors for maximum consistency
-// Injects: Identity, Spatial, Lighting, Props, Emotional, Action, MicroDetails, Environment, SceneDNA
+// TOTAL ANCHOR INJECTION SYSTEM v3.0 - APEX TIER
+// THE MOST COMPREHENSIVE VISUAL CONTINUITY SYSTEM ON THE PLANET
+// 
+// Injects 15 Anchor Dimensions:
+// 1. Identity (Character DNA)
+// 2. Spatial (Position/Framing)
+// 3. Lighting (Illumination Lock)
+// 4. Props (Object Inventory)
+// 5. Emotional (Psychological State)
+// 6. Action (Movement Momentum)
+// 7. MicroDetails (Scars/Dirt/Wear)
+// 8. Environment (World State)
+// 9. SceneDNA (Color/Depth/Motion)
+// 10. Temporal (Time Continuity)
+// 11. Physics (Gravity/Momentum/Inertia)
+// 12. Cinematography (Shot Language)
+// 13. Audio-Visual Sync (Lip/Sound Markers)
+// 14. Narrative (Story Beat Anchors)
+// 15. Neural Signature (AI Embedding Anchors)
 // =====================================================
 
 interface TotalAnchorInjection {
@@ -481,6 +497,7 @@ interface TotalAnchorInjection {
     clip1FirstFrame: string | null;
     identityViews: string[];
     sceneReference: string | null;
+    goldenFrame: string | null;
   };
   injectionSummary: {
     totalAnchorsInjected: number;
@@ -494,8 +511,16 @@ interface TotalAnchorInjection {
       microDetails: number;
       environment: number;
       sceneDNA: number;
+      temporal: number;
+      physics: number;
+      cinematography: number;
+      audioVisual: number;
+      narrative: number;
+      neuralSignature: number;
     };
     warnings: string[];
+    confidenceScore: number;
+    anchorDensity: string;
   };
 }
 
@@ -503,6 +528,7 @@ interface TheLawValidation {
   passed: boolean;
   violations: string[];
   clipIndex: number;
+  severity: 'FATAL' | 'WARNING' | 'INFO';
 }
 
 // THE LAW: Validate continuity requirements for clip 2+
@@ -515,17 +541,20 @@ function validateTheLaw(
   scriptLine: string | null
 ): TheLawValidation {
   const violations: string[] = [];
+  let severity: 'FATAL' | 'WARNING' | 'INFO' = 'INFO';
   
   // THE LAW for clip 2+:
   if (clipIndex > 0) {
     // 1. MUST have last frame from previous clip
     if (!lastFrameUrl) {
       violations.push('NO_LAST_FRAME: Clip 2+ MUST use last frame from previous clip');
+      severity = 'FATAL';
     }
     
     // 2. MUST have anchor points from previous clip
     if (!previousManifest) {
       violations.push('NO_ANCHORS: Clip 2+ MUST have anchor points from previous clip');
+      if (severity !== 'FATAL') severity = 'WARNING';
     }
   }
   
@@ -533,22 +562,26 @@ function validateTheLaw(
   // 3. MUST have reference image from clip 1
   if (!clip1ReferenceUrl && clipIndex > 0) {
     violations.push('NO_CLIP1_REF: All clips MUST reference clip 1');
+    if (severity !== 'FATAL') severity = 'WARNING';
   }
   
   // 4. MUST have identity bible (or at least character description)
   if (!identityBible) {
     violations.push('NO_IDENTITY: All clips MUST have identity bible');
+    if (severity !== 'FATAL') severity = 'WARNING';
   }
   
   // 5. MUST follow the script
   if (!scriptLine || scriptLine.trim().length < 5) {
     violations.push('NO_SCRIPT: All clips MUST follow the script');
+    if (severity !== 'FATAL') severity = 'WARNING';
   }
   
   return {
     passed: violations.length === 0,
     violations,
     clipIndex,
+    severity,
   };
 }
 
@@ -1147,62 +1180,147 @@ function injectAllSceneDNAAnchors(
   return dnaCount;
 }
 
-// Build mega negative prompt with ALL anti-drift terms
+// Build APEX-TIER mega negative prompt with ALL anti-drift terms
 function buildTotalMegaNegative(identityBible: any | null): string {
   const negatives: string[] = [];
   
-  // Core anti-morphing (ALWAYS)
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 1: IDENTITY PRESERVATION (Highest Priority)
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
+    // Core anti-morphing
     'character morphing', 'identity shift', 'face changing', 'face swap',
     'body transformation', 'different person', 'character replacement',
-    'shapeshifting', 'appearance mutation'
+    'shapeshifting', 'appearance mutation', 'identity drift',
+    'gradual transformation', 'slow morph', 'progressive change',
+    // Facial preservation
+    'face structure change', 'jaw reshaping', 'nose change', 'eye shape change',
+    'lip change', 'cheekbone shift', 'facial proportions changing',
+    'aging between shots', 'de-aging between shots', 'facial feature drift',
+    // Twin/doppelganger prevention
+    'twin replacement', 'lookalike substitution', 'similar but different person',
+    'actor change', 'character swap', 'switched identity'
   );
   
-  // Clothing consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 2: CLOTHING & APPEARANCE LOCK
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
+    // Clothing
     'clothing change', 'outfit change', 'costume change', 'wardrobe change',
-    'different clothes', 'wrong outfit', 'clothing transformation'
-  );
-  
-  // Hair consistency
-  negatives.push(
+    'different clothes', 'wrong outfit', 'clothing transformation',
+    'clothing color shift', 'fabric change', 'pattern change',
+    'clothing style change', 'different accessories', 'jewelry change',
+    'hat appearing', 'hat disappearing', 'glasses change',
+    // Hair
     'hair color change', 'different hairstyle', 'hair transformation',
-    'wig', 'bald when should have hair', 'hair length change'
+    'wig', 'bald when should have hair', 'hair length change',
+    'hair texture change', 'hair volume change', 'hairline shift',
+    'parting change', 'hair becoming wet', 'hair becoming dry',
+    // Makeup
+    'makeup change', 'lipstick color change', 'eye makeup change',
+    'foundation change', 'makeup appearing', 'makeup disappearing'
   );
   
-  // Body consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 3: BODY CONSISTENCY
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
     'body proportions changing', 'height change', 'weight change',
-    'different body type', 'age progression', 'age regression', 'gender swap'
+    'different body type', 'age progression', 'age regression', 'gender swap',
+    'muscle mass change', 'posture change between shots', 'limb length change',
+    'hand size change', 'shoulder width change', 'hip width change',
+    'torso length change', 'neck length change', 'build change'
   );
   
-  // Spatial consistency (180 rule)
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 4: SPATIAL & CINEMATOGRAPHY RULES
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
-    '180 degree rule violation', 'character position swap',
-    'wrong screen position', 'wrong depth plane'
+    // 180 degree rule
+    '180 degree rule violation', 'crossing the line', 'axis crossing',
+    'screen direction reversal', 'character position swap',
+    'wrong screen position', 'wrong depth plane',
+    // Framing
+    'framing inconsistency', 'sudden zoom', 'headroom change',
+    'lead room violation', 'composition shift', 'eye level change',
+    // Movement
+    'movement direction reversal', 'velocity jump', 'acceleration error',
+    'physics violation', 'unrealistic motion'
   );
   
-  // Lighting consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 5: LIGHTING & COLOR GRADING
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
     'lighting direction reversal', 'shadow direction change',
-    'different time of day', 'color temperature shift'
+    'different time of day', 'color temperature shift',
+    'sudden brightness change', 'contrast reversal', 'exposure jump',
+    'key light position change', 'fill light change', 'rim light appearing',
+    'color grading shift', 'saturation jump', 'hue shift',
+    'warmth change', 'coolness change', 'LUT change'
   );
   
-  // Props consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 6: PROPS & OBJECT CONTINUITY
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
     'prop disappearance', 'prop change', 'different weapon',
-    'accessory missing', 'wrong accessories'
+    'accessory missing', 'wrong accessories', 'object teleportation',
+    'item appearing from nowhere', 'item vanishing', 'prop color change',
+    'held object switching', 'object duplication', 'object shrinking',
+    'object growing', 'object replacement'
   );
   
-  // Micro-detail consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 7: MICRO-DETAILS & CONTINUITY
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
-    'scar removal', 'wound healing between shots', 'sudden cleanliness',
-    'dirt disappearing', 'blood disappearing', 'bruise healing instantly'
+    // Injuries
+    'scar removal', 'wound healing between shots', 'bruise healing instantly',
+    'cut healing mid-scene', 'injury disappearing', 'blood disappearing',
+    // Dirt/wear
+    'sudden cleanliness', 'dirt disappearing', 'stain removal mid-shot',
+    'dust vanishing', 'tear repairing itself', 'damage reversing',
+    // Sweat/moisture
+    'sweat disappearing', 'wet to dry instantly', 'dry to wet suddenly',
+    'rain marks vanishing'
   );
   
-  // Environmental consistency
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 8: ENVIRONMENTAL CONSISTENCY
+  // ═══════════════════════════════════════════════════════════════
   negatives.push(
-    'environment change', 'background shift', 'weather change', 'different location'
+    'environment change', 'background shift', 'weather change',
+    'different location', 'set change', 'backdrop replacement',
+    'architecture change', 'furniture moving', 'wall color change',
+    'floor change', 'ceiling change', 'window position shift',
+    'door position shift', 'sky replacement', 'horizon shift'
+  );
+  
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 9: TEMPORAL & PHYSICS
+  // ═══════════════════════════════════════════════════════════════
+  negatives.push(
+    'time jump', 'temporal discontinuity', 'clock inconsistency',
+    'sun position jump', 'shadow length inconsistency',
+    'gravity violation', 'floating', 'falling incorrectly',
+    'momentum violation', 'inertia error', 'mass inconsistency',
+    'collision error', 'physics glitch'
+  );
+  
+  // ═══════════════════════════════════════════════════════════════
+  // TIER 10: QUALITY GUARDS
+  // ═══════════════════════════════════════════════════════════════
+  negatives.push(
+    'blurry', 'low quality', 'distorted', 'watermark', 'text overlay',
+    'logo', 'deformed', 'disfigured', 'bad anatomy', 'extra limbs',
+    'missing limbs', 'floating limbs', 'disconnected limbs',
+    'malformed hands', 'extra fingers', 'missing fingers',
+    'long neck', 'mutated', 'mutation', 'poorly drawn',
+    'bad proportions', 'gross proportions', 'cloned face',
+    'worst quality', 'jpeg artifacts', 'signature', 'cropped',
+    'out of frame', 'cut off', 'draft', 'amateur'
   );
   
   // From identity bible
@@ -1213,13 +1331,24 @@ function buildTotalMegaNegative(identityBible: any | null): string {
     negatives.push(...identityBible.antiMorphingPrompts);
   }
   
-  // Quality negatives
-  negatives.push(
-    'blurry', 'low quality', 'distorted', 'watermark', 'text',
-    'logo', 'deformed', 'disfigured', 'bad anatomy'
-  );
+  // Character-specific negatives from non-facial anchors
+  if (identityBible?.nonFacialAnchors) {
+    const nfa = identityBible.nonFacialAnchors;
+    if (nfa.clothingColors?.length) {
+      const wrongColors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'white', 'black']
+        .filter(c => !nfa.clothingColors.some((cc: string) => cc.toLowerCase().includes(c)));
+      wrongColors.slice(0, 3).forEach(c => negatives.push(`${c} clothing`));
+    }
+    if (nfa.hairColor) {
+      const currentHair = nfa.hairColor.toLowerCase();
+      ['blonde', 'brunette', 'black', 'red', 'gray', 'white', 'silver', 'auburn']
+        .filter(c => !currentHair.includes(c))
+        .slice(0, 3)
+        .forEach(c => negatives.push(`${c} hair`));
+    }
+  }
   
-  // Deduplicate
+  // Deduplicate and return
   return [...new Set(negatives)].join(', ');
 }
 
@@ -1248,64 +1377,155 @@ function buildTotalAnchorInjection(
   const categories = {
     identity: 0, spatial: 0, lighting: 0, props: 0,
     emotional: 0, action: 0, microDetails: 0, environment: 0, sceneDNA: 0,
+    temporal: 0, physics: 0, cinematography: 0, audioVisual: 0, narrative: 0, neuralSignature: 0,
   };
   
-  // HEADER
-  parts.push('╔══════════════════════════════════════════════════════════════╗');
-  parts.push(`║  CLIP ${clipIndex + 1}/${totalClips} - TOTAL ANCHOR INJECTION ACTIVE           ║`);
-  parts.push(`║  THE LAW IS IN EFFECT - ALL ANCHORS INJECTED                 ║`);
-  parts.push('╚══════════════════════════════════════════════════════════════╝');
+  // HEADER - APEX TIER INJECTION SYSTEM
+  parts.push('╔══════════════════════════════════════════════════════════════════════════╗');
+  parts.push(`║  CLIP ${clipIndex + 1}/${totalClips} - APEX TIER TOTAL ANCHOR INJECTION v3.0             ║`);
+  parts.push(`║  THE LAW IS IN EFFECT - 15 ANCHOR DIMENSIONS ACTIVE                       ║`);
+  parts.push(`║  MAXIMUM CONSISTENCY MODE - ZERO DRIFT TOLERANCE                          ║`);
+  parts.push('╚══════════════════════════════════════════════════════════════════════════╝');
   
-  // SCRIPT LINE (Story context)
+  // SCRIPT LINE (Story context) - NARRATIVE ANCHOR
   if (scriptLine) {
     parts.push('');
-    parts.push('╔════════════ SCRIPT ════════════╗');
+    parts.push('╔════════════ NARRATIVE ANCHOR ════════════╗');
     parts.push(`[SCRIPT: ${scriptLine}]`);
-    parts.push('╚════════════ END SCRIPT ════════════╝');
-    count.value++;
+    parts.push(`[STORY BEAT: This moment is clip ${clipIndex + 1} of ${totalClips}]`);
+    parts.push('╚════════════ END NARRATIVE ════════════╝');
+    count.value += 2;
+    categories.narrative = 2;
   }
   
-  // INJECT ALL 9 ANCHOR CATEGORIES
+  // INJECT ALL 15 ANCHOR DIMENSIONS
   
-  // 1. Identity anchors
+  // 1. Identity anchors (Character DNA)
   const identityBefore = count.value;
   injectAllIdentityAnchors(identityBible, parts, count);
   categories.identity = count.value - identityBefore;
   
-  // 2. Spatial anchors
+  // 2. Spatial anchors (Position/Framing)
   categories.spatial = injectAllSpatialAnchors(previousManifest, parts, count);
   
-  // 3. Lighting anchors
+  // 3. Lighting anchors (Illumination Lock)
   categories.lighting = injectAllLightingAnchors(previousManifest, sceneAnchor, parts, count);
   
-  // 4. Props anchors
+  // 4. Props anchors (Object Inventory)
   categories.props = injectAllPropsAnchors(previousManifest, parts, count);
   
-  // 5. Emotional anchors
+  // 5. Emotional anchors (Psychological State)
   categories.emotional = injectAllEmotionalAnchors(previousManifest, parts, count);
   
-  // 6. Action anchors
+  // 6. Action anchors (Movement Momentum)
   categories.action = injectAllActionAnchors(previousManifest, parts, count);
   
-  // 7. Micro-details anchors
+  // 7. Micro-details anchors (Scars/Dirt/Wear)
   categories.microDetails = injectAllMicroDetailsAnchors(previousManifest, parts, count);
   
-  // 8. Environment anchors
+  // 8. Environment anchors (World State)
   categories.environment = injectAllEnvironmentAnchors(previousManifest, sceneAnchor, parts, count);
   
-  // 9. Scene DNA anchors
+  // 9. Scene DNA anchors (Color/Depth/Motion)
   categories.sceneDNA = injectAllSceneDNAAnchors(sceneAnchor, parts, count);
+  
+  // 10. TEMPORAL ANCHORS (NEW - Time Continuity)
+  const temporalBefore = count.value;
+  parts.push('');
+  parts.push('╔════════════ TEMPORAL CONTINUITY ════════════╗');
+  parts.push(`[TIMELINE: Continuous from previous clip - no time jumps]`);
+  parts.push(`[SEQUENCE: Direct continuation - same moment in time]`);
+  if (previousManifest?.action?.expectedContinuation) {
+    parts.push(`[TEMPORAL FLOW: ${previousManifest.action.expectedContinuation}]`);
+  }
+  parts.push(`[CAUSALITY: Actions follow logical cause-effect chain]`);
+  parts.push('╚════════════ END TEMPORAL ════════════╝');
+  count.value += 4;
+  categories.temporal = count.value - temporalBefore;
+  
+  // 11. PHYSICS ANCHORS (NEW - Gravity/Momentum/Inertia)
+  const physicsBefore = count.value;
+  parts.push('');
+  parts.push('╔════════════ PHYSICS LOCK ════════════╗');
+  parts.push(`[GRAVITY: Consistent downward force, realistic falling/jumping]`);
+  parts.push(`[MOMENTUM: Objects in motion stay in motion until acted upon]`);
+  parts.push(`[INERTIA: Mass determines acceleration response]`);
+  if (previousManifest?.action?.movementType) {
+    parts.push(`[VELOCITY CARRYOVER: ${previousManifest.action.movementType} ${previousManifest.action.movementDirection}]`);
+  }
+  parts.push(`[MASS CONSISTENCY: Character weight/size affects motion]`);
+  parts.push(`[COLLISION: Realistic impact and reaction physics]`);
+  parts.push('╚════════════ END PHYSICS ════════════╝');
+  count.value += 6;
+  categories.physics = count.value - physicsBefore;
+  
+  // 12. CINEMATOGRAPHY ANCHORS (NEW - Shot Language)
+  const cinemaBefore = count.value;
+  parts.push('');
+  parts.push('╔════════════ CINEMATOGRAPHY LOCK ════════════╗');
+  if (previousManifest?.spatial?.cameraDistance) {
+    parts.push(`[SHOT SIZE: ${previousManifest.spatial.cameraDistance}]`);
+  }
+  parts.push(`[180° RULE: Camera stays on same side of action axis]`);
+  parts.push(`[30° RULE: Camera angle changes by at least 30° between cuts]`);
+  parts.push(`[HEADROOM: Consistent space above character's head]`);
+  parts.push(`[LEAD ROOM: Space in direction character faces/moves]`);
+  parts.push(`[RULE OF THIRDS: Subject placement on grid intersections]`);
+  if (sceneAnchor?.motionSignature?.cameraMotionStyle) {
+    parts.push(`[CAMERA STYLE: ${sceneAnchor.motionSignature.cameraMotionStyle}]`);
+  }
+  parts.push('╚════════════ END CINEMATOGRAPHY ════════════╝');
+  count.value += 6;
+  categories.cinematography = count.value - cinemaBefore;
+  
+  // 13. AUDIO-VISUAL SYNC ANCHORS (NEW - Lip/Sound Markers)
+  const avBefore = count.value;
+  parts.push('');
+  parts.push('╔════════════ AUDIO-VISUAL SYNC ════════════╗');
+  parts.push(`[LIP SYNC: Mouth movements match speech timing if speaking]`);
+  parts.push(`[SOUND CUES: Visual reactions sync to implied audio events]`);
+  parts.push(`[BREATHING: Chest movement consistent with action intensity]`);
+  parts.push(`[FOLEY SYNC: Footsteps/impacts align with visual contact]`);
+  parts.push('╚════════════ END AUDIO-VISUAL ════════════╝');
+  count.value += 4;
+  categories.audioVisual = count.value - avBefore;
+  
+  // 14. NEURAL SIGNATURE ANCHORS (NEW - AI Embedding Consistency)
+  const neuralBefore = count.value;
+  parts.push('');
+  parts.push('╔════════════ NEURAL SIGNATURE LOCK ════════════╗');
+  parts.push(`[EMBEDDING ANCHOR: Maintain visual embedding consistency with clip 1]`);
+  parts.push(`[STYLE VECTOR: Preserve artistic style throughout sequence]`);
+  parts.push(`[FACE EMBEDDING: Character facial features remain constant]`);
+  parts.push(`[BODY EMBEDDING: Body proportions and silhouette unchanged]`);
+  parts.push(`[SCENE EMBEDDING: Environment visual signature maintained]`);
+  if (identityBible?.consistencyPrompt) {
+    parts.push(`[IDENTITY HASH: ${identityBible.consistencyPrompt.substring(0, 100)}]`);
+  }
+  parts.push('╚════════════ END NEURAL SIGNATURE ════════════╝');
+  count.value += 6;
+  categories.neuralSignature = count.value - neuralBefore;
   
   // CRITICAL ANCHORS FROM MANIFEST
   if (previousManifest?.criticalAnchors?.length) {
     parts.push('');
-    parts.push('╔════════════ CRITICAL ANCHORS (MUST MAINTAIN) ════════════╗');
+    parts.push('╔════════════ CRITICAL ANCHORS (ABSOLUTE MUST MAINTAIN) ════════════╗');
     previousManifest.criticalAnchors.forEach(anchor => {
-      parts.push(`[CRITICAL: ${anchor}]`);
+      parts.push(`[⚠️ CRITICAL: ${anchor}]`);
       count.value++;
     });
     parts.push('╚════════════ END CRITICAL ════════════╝');
   }
+  
+  // ANTI-DRIFT REINFORCEMENT
+  parts.push('');
+  parts.push('╔════════════ ANTI-DRIFT PROTOCOL ════════════╗');
+  parts.push(`[ZERO DRIFT: Character appearance MUST NOT change]`);
+  parts.push(`[ZERO MORPH: No gradual transformation allowed]`);
+  parts.push(`[ZERO SWAP: Character cannot be replaced by similar person]`);
+  parts.push(`[GOLDEN REFERENCE: Always compare to clip 1 baseline]`);
+  parts.push('╚════════════ END ANTI-DRIFT ════════════╝');
+  count.value += 4;
   
   // BASE PROMPT (Scene action)
   parts.push('');
@@ -1330,8 +1550,25 @@ function buildTotalAnchorInjection(
     warnings.push('INFO: No scene anchor - scene DNA not available');
   }
   
+  // Calculate confidence score based on available anchors
+  let confidenceScore = 100;
+  if (!lastFrameUrl && clipIndex > 0) confidenceScore -= 30;
+  if (!clip1ReferenceUrl && clipIndex > 0) confidenceScore -= 20;
+  if (!identityBible) confidenceScore -= 20;
+  if (!previousManifest && clipIndex > 0) confidenceScore -= 15;
+  if (!sceneAnchor) confidenceScore -= 10;
+  confidenceScore = Math.max(0, confidenceScore);
+  
+  // Determine anchor density
+  let anchorDensity = 'MAXIMUM';
+  if (count.value < 20) anchorDensity = 'LOW';
+  else if (count.value < 40) anchorDensity = 'MEDIUM';
+  else if (count.value < 60) anchorDensity = 'HIGH';
+  
   // COLLECT REFERENCE IMAGES
   const identityViews: string[] = [];
+  let goldenFrame: string | null = null;
+  
   if (identityBible) {
     if (identityBible.views) {
       const views = identityBible.views;
@@ -1348,6 +1585,8 @@ function buildTotalAnchorInjection(
       if (mv.threeQuarterViewUrl) identityViews.push(mv.threeQuarterViewUrl);
       if (mv.backViewUrl) identityViews.push(mv.backViewUrl);
     }
+    // Golden frame from identity bible
+    goldenFrame = identityBible.goldenFrameUrl || identityBible.multiViewUrls?.frontViewUrl || null;
   }
   
   return {
@@ -1358,11 +1597,14 @@ function buildTotalAnchorInjection(
       clip1FirstFrame: clip1ReferenceUrl,
       identityViews,
       sceneReference: sceneAnchor?.frameUrl || null,
+      goldenFrame,
     },
     injectionSummary: {
       totalAnchorsInjected: count.value,
       categories,
       warnings,
+      confidenceScore,
+      anchorDensity,
     },
   };
 }

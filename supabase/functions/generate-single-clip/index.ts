@@ -3312,13 +3312,10 @@ async function retryWithRephrasedPrompt(
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
   negatives?: string[]
 ): Promise<{ operationName: string; rephrasedPrompt: string }> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  // Try OpenAI first, then fallback to simple text replacement
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   
-  if (!LOVABLE_API_KEY) {
-    throw new Error("Cannot retry - LOVABLE_API_KEY not configured for AI rephrasing");
-  }
-  
-  console.log(`[ContentSafety] Generating alternative safe prompt via AI...`);
+  console.log(`[ContentSafety] Generating alternative safe prompt via OpenAI...`);
   
   // Generate a completely new safe prompt that captures the essence
   const systemPrompt = `You are a video prompt expert. Create a COMPLETELY NEW video prompt that captures the same visual story but is 100% safe for Google's AI video generator.
@@ -3344,38 +3341,54 @@ ${originalPrompt}
 
 Create a completely new, safe video prompt that captures a similar cinematic feel:`;
 
+  let rephrasedPrompt: string;
+
+  if (OPENAI_API_KEY) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.5,
+          max_tokens: 500,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`[ContentSafety] OpenAI rephrase failed: ${response.status} - ${errorText}, using fallback`);
+        rephrasedPrompt = simpleSafetyRephrase(originalPrompt);
+      } else {
+        const data = await response.json();
+        rephrasedPrompt = data.choices?.[0]?.message?.content?.trim();
+        
+        if (!rephrasedPrompt || rephrasedPrompt.length < 20) {
+          console.warn("[ContentSafety] OpenAI returned empty response, using fallback");
+          rephrasedPrompt = simpleSafetyRephrase(originalPrompt);
+        } else {
+          console.log(`[ContentSafety] ✓ OpenAI generated safe alternative: "${rephrasedPrompt.substring(0, 100)}..."`);
+        }
+      }
+    } catch (error) {
+      console.warn(`[ContentSafety] OpenAI error:`, error, `, using fallback`);
+      rephrasedPrompt = simpleSafetyRephrase(originalPrompt);
+    }
+  } else {
+    console.log(`[ContentSafety] No OpenAI key, using simple text fallback...`);
+    rephrasedPrompt = simpleSafetyRephrase(originalPrompt);
+  }
+  
+  console.log(`[ContentSafety] ✓ Final rephrased prompt: "${rephrasedPrompt.substring(0, 100)}..."`);
+  
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.5,
-        max_tokens: 500,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`AI rephrase failed: ${response.status} - ${errorText}`);
-    }
-    
-    const data = await response.json();
-    const rephrasedPrompt = data.choices?.[0]?.message?.content?.trim();
-    
-    if (!rephrasedPrompt || rephrasedPrompt.length < 20) {
-      throw new Error("AI returned empty or invalid rephrased prompt");
-    }
-    
-    console.log(`[ContentSafety] ✓ AI generated safe alternative: "${rephrasedPrompt.substring(0, 100)}..."`);
-    
     // Now try to generate with the rephrased prompt
     const location = "us-central1";
     const model = "veo-3.1-generate-001";
@@ -3426,6 +3439,30 @@ Create a completely new, safe video prompt that captures a similar cinematic fee
     console.error("[ContentSafety] Retry with rephrase failed:", error);
     throw error;
   }
+}
+
+// Simple text-based safety rephrase fallback (no AI needed)
+function simpleSafetyRephrase(originalPrompt: string): string {
+  // Remove potentially problematic words and rephrase generically
+  let safe = originalPrompt
+    .replace(/\b(shot|shoot|shooting|gun|weapon|attack|fight|kill|death|blood|violence|violent)\b/gi, 'scene')
+    .replace(/\b(naked|nude|sexy|sexual|explicit)\b/gi, 'elegant')
+    .replace(/\b(drug|drugs|alcohol|drunk|high)\b/gi, 'relaxed')
+    .replace(/\b(child|children|kid|kids|minor|minors)\b/gi, 'person')
+    .replace(/\b(horror|scary|demon|devil|hell)\b/gi, 'dramatic')
+    .replace(/\b(crime|criminal|illegal|steal|theft)\b/gi, 'action');
+  
+  // Add safe cinematic framing
+  if (!safe.toLowerCase().includes('cinematic')) {
+    safe = `Cinematic ${safe}`;
+  }
+  
+  // Ensure it ends with quality descriptors
+  if (!safe.toLowerCase().includes('high quality')) {
+    safe = `${safe}. High quality, professional cinematography.`;
+  }
+  
+  return safe;
 }
 
 // Build velocity-aware prompt

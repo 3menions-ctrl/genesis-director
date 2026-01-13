@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
+import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
@@ -690,30 +691,13 @@ export default function Clips() {
                   return (
                     <TableRow key={clip.id} className="group border-white/5 hover:bg-white/5">
                       <TableCell>
-                        <div 
-                          className="w-20 h-12 rounded-lg overflow-hidden bg-black/50 cursor-pointer relative group/thumb"
+                        <VideoThumbnail
+                          src={clip.video_url}
+                          showTitleOnHover={false}
                           onClick={() => clip.video_url && handlePlayClip(clip)}
-                        >
-                          {clip.video_url ? (
-                            <>
-                              <video 
-                                src={clip.video_url}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                                onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                <Play className="w-5 h-5 text-white" fill="white" />
-                              </div>
-                            </>
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Film className="w-5 h-5 text-white/20" />
-                            </div>
-                          )}
-                        </div>
+                          className="w-20 h-12 rounded-lg"
+                          aspectRatio="video"
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1.5">
@@ -901,47 +885,20 @@ export default function Clips() {
                               className="group rounded-xl bg-white/[0.02] border border-white/10 overflow-hidden hover:border-white/20 transition-all hover:shadow-lg"
                             >
                               {/* Video Thumbnail */}
-                              <div 
-                                className="aspect-video relative cursor-pointer bg-black/50"
+                              <VideoThumbnail
+                                src={clip.video_url}
+                                showTitleOnHover={false}
+                                duration={clip.duration_seconds || undefined}
                                 onClick={() => clip.video_url && handlePlayClip(clip)}
-                              >
-                                {clip.video_url ? (
-                                  <>
-                                    <video 
-                                      src={clip.video_url}
-                                      className="w-full h-full object-cover"
-                                      muted
-                                      playsInline
-                                      preload="metadata"
-                                      onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.5; }}
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                        <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
-                                      </div>
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Film className="w-8 h-8 text-white/20" />
+                                overlay={
+                                  <div className="absolute top-2 left-2 z-20">
+                                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 gap-1 backdrop-blur-sm bg-black/60", statusConfig.className)}>
+                                      <StatusIcon className={cn("w-2.5 h-2.5", statusConfig.animate && "animate-spin")} />
+                                      {statusConfig.label}
+                                    </Badge>
                                   </div>
-                                )}
-                                
-                                {/* Status Badge */}
-                                <div className="absolute top-2 left-2">
-                                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 gap-1 backdrop-blur-sm bg-black/60", statusConfig.className)}>
-                                    <StatusIcon className={cn("w-2.5 h-2.5", statusConfig.animate && "animate-spin")} />
-                                    {statusConfig.label}
-                                  </Badge>
-                                </div>
-
-                                {/* Duration */}
-                                {clip.duration_seconds && (
-                                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm">
-                                    <span className="text-[10px] font-medium text-white">{clip.duration_seconds}s</span>
-                                  </div>
-                                )}
-                              </div>
+                                }
+                              />
 
                               {/* Info */}
                               <div className="p-3">

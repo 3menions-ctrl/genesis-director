@@ -3631,11 +3631,11 @@ serve(async (req) => {
       }
       
       // Validation C2-4: Consistency anchors REQUIRED (extracted from clip 1's scene)
+      // THIS IS NOW A HARD VIOLATION - NO CHARACTER DRIFT ALLOWED
       const hasConsistencyAnchors = request.identityBible?.consistencyAnchors && 
                                      request.identityBible.consistencyAnchors.length > 0;
       if (!hasConsistencyAnchors) {
-        // This is a critical warning but not a hard failure (yet) - the fix we just applied should prevent this
-        warnings.push('CONSISTENCY_ANCHORS: Missing identityBible.consistencyAnchors - character drift likely');
+        violations.push('CONSISTENCY_ANCHORS: Missing identityBible.consistencyAnchors (extracted from clip 1) - character drift would occur');
       }
       
       // Validation C2-5: Golden frame data RECOMMENDED for character re-anchoring

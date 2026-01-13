@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRef } from 'react';
 
 interface AppLoaderProps {
   message?: string;
@@ -7,6 +8,14 @@ interface AppLoaderProps {
 }
 
 export function AppLoader({ message = 'Loading...', className }: AppLoaderProps) {
+  // Use ref to track if component has mounted to prevent re-animation
+  const hasMounted = useRef(false);
+  
+  // After first render, mark as mounted
+  if (!hasMounted.current) {
+    hasMounted.current = true;
+  }
+
   return (
     <div className={cn(
       "fixed inset-0 z-[100] flex items-center justify-center",
@@ -19,19 +28,9 @@ export function AppLoader({ message = 'Loading...', className }: AppLoaderProps)
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '0.5s' }} />
       </div>
       
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex flex-col items-center gap-6"
-      >
-        {/* Logo mark */}
-        <motion.div 
-          className="relative"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-        >
+      <div className="relative flex flex-col items-center gap-6">
+        {/* Logo mark - no entrance animation to prevent blink */}
+        <div className="relative">
           {/* Outer ring */}
           <div className="absolute inset-[-8px] rounded-3xl border border-primary/10 animate-pulse" />
           
@@ -56,15 +55,10 @@ export function AppLoader({ message = 'Loading...', className }: AppLoaderProps)
               />
             </div>
           </div>
-        </motion.div>
+        </div>
         
         {/* Loading indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="flex flex-col items-center gap-3"
-        >
+        <div className="flex flex-col items-center gap-3">
           {/* Progress bar */}
           <div className="w-48 h-1 rounded-full bg-muted overflow-hidden">
             <motion.div 
@@ -81,17 +75,21 @@ export function AppLoader({ message = 'Loading...', className }: AppLoaderProps)
             />
           </div>
           
-          {/* Message */}
-          <motion.p 
-            key={message}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-muted-foreground font-medium"
-          >
-            {message}
-          </motion.p>
-        </motion.div>
-      </motion.div>
+          {/* Message - animate only text changes, not container */}
+          <AnimatePresence mode="wait">
+            <motion.p 
+              key={message}
+              initial={{ opacity: 0.7 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0.7 }}
+              transition={{ duration: 0.15 }}
+              className="text-sm text-muted-foreground font-medium"
+            >
+              {message}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }

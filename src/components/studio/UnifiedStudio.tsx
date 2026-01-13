@@ -33,8 +33,11 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  Volume2
+  Volume2,
+  LayoutTemplate,
+  TreePine
 } from 'lucide-react';
+import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,6 +124,9 @@ export function UnifiedStudio() {
   const navigate = useNavigate();
   const abortControllerRef = useRef<AbortController | null>(null);
   
+  // Template/Environment loading from URL params
+  const { appliedSettings, isLoading: isLoadingPreset, clearAppliedSettings } = useTemplateEnvironment();
+  
   // Pipeline mode and configuration
   const [mode, setMode] = useState<PipelineMode>('ai');
   const [clipCount, setClipCount] = useState(6);
@@ -129,6 +135,7 @@ export function UnifiedStudio() {
   const [concept, setConcept] = useState('');
   const [mood, setMood] = useState('epic');
   const [genre, setGenre] = useState('cinematic');
+  const [environmentPrompt, setEnvironmentPrompt] = useState('');
   
   // Story-first flow state
   const [storyFlowStage, setStoryFlowStage] = useState<'prompt' | 'story' | 'script'>('prompt');
@@ -150,6 +157,10 @@ export function UnifiedStudio() {
   const [includeSfx, setIncludeSfx] = useState(false); // SFX only for pro tier
   const [referenceImageAnalysis, setReferenceImageAnalysis] = useState<ReferenceImageAnalysis | undefined>();
   const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
+  
+  // Applied template/environment info for display
+  const [appliedTemplateName, setAppliedTemplateName] = useState<string | null>(null);
+  const [appliedEnvironmentName, setAppliedEnvironmentName] = useState<string | null>(null);
   
   // UI State
   const [currentStage, setCurrentStage] = useState<PipelineStage>('idle');
@@ -295,6 +306,46 @@ export function UnifiedStudio() {
     
     checkForActiveProjects();
   }, [user]);
+
+  // Apply template/environment settings when loaded from URL params
+  useEffect(() => {
+    if (appliedSettings && currentStage === 'idle') {
+      // Apply all settings from template/environment
+      if (appliedSettings.concept) {
+        setConcept(appliedSettings.concept);
+      }
+      if (appliedSettings.mood) {
+        setMood(appliedSettings.mood);
+      }
+      if (appliedSettings.genre) {
+        setGenre(appliedSettings.genre);
+      }
+      if (appliedSettings.clipCount) {
+        setClipCount(appliedSettings.clipCount);
+        // Update manual prompts array to match new clip count
+        setManualPrompts(Array(appliedSettings.clipCount).fill('').map((_, i) => 
+          i === 0 ? 'Opening shot: Wide cinematic establishing view' : ''
+        ));
+      }
+      if (appliedSettings.colorGrading) {
+        setColorGrading(appliedSettings.colorGrading);
+      }
+      if (appliedSettings.environmentPrompt) {
+        setEnvironmentPrompt(appliedSettings.environmentPrompt);
+      }
+      
+      // Store names for display
+      if (appliedSettings.templateName) {
+        setAppliedTemplateName(appliedSettings.templateName);
+      }
+      if (appliedSettings.environmentName) {
+        setAppliedEnvironmentName(appliedSettings.environmentName);
+      }
+      
+      // Clear the applied settings after applying
+      clearAppliedSettings();
+    }
+  }, [appliedSettings, currentStage, clearAppliedSettings]);
 
   const updatePrompt = (index: number, value: string) => {
     setManualPrompts(prev => {
@@ -583,6 +634,7 @@ export function UnifiedStudio() {
           mood,
           targetDurationSeconds: clipCount * CLIP_DURATION,
           referenceAnalysis: referenceImageAnalysis,
+          environmentPrompt: environmentPrompt || undefined,
         },
       });
 
@@ -739,6 +791,10 @@ export function UnifiedStudio() {
         if (generatedStory) {
           requestBody.approvedStory = generatedStory;
           requestBody.storyTitle = storyTitle;
+        }
+        // Pass environment DNA if applied
+        if (environmentPrompt) {
+          requestBody.environmentPrompt = environmentPrompt;
         }
       } else {
         requestBody.manualPrompts = manualPrompts.slice(0, clipCount);
@@ -1022,6 +1078,42 @@ export function UnifiedStudio() {
           <p className="text-white/50 max-w-xl mx-auto">
             Transform your ideas into stunning videos with AI-powered production
           </p>
+          
+          {/* Template/Environment Applied Indicator */}
+          {(appliedTemplateName || appliedEnvironmentName) && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              {appliedTemplateName && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/20 border border-violet-500/30">
+                  <LayoutTemplate className="w-3.5 h-3.5 text-violet-400" />
+                  <span className="text-sm font-medium text-violet-300">{appliedTemplateName}</span>
+                  <button 
+                    onClick={() => {
+                      setAppliedTemplateName(null);
+                      setConcept('');
+                    }}
+                    className="ml-1 text-violet-400 hover:text-violet-300"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              {appliedEnvironmentName && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                  <TreePine className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-300">{appliedEnvironmentName}</span>
+                  <button 
+                    onClick={() => {
+                      setAppliedEnvironmentName(null);
+                      setEnvironmentPrompt('');
+                    }}
+                    className="ml-1 text-emerald-400 hover:text-emerald-300"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Mode Selection Tabs */}

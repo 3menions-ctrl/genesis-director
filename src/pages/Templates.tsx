@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LayoutTemplate, Search, Play, Clock, Users, Sparkles,
   Film, Megaphone, BookOpen, Smile, Heart, Briefcase,
-  Loader2, ArrowRight, Star, TrendingUp, Zap
+  Loader2, ArrowRight, Star, TrendingUp, Zap, Moon, Mountain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,8 +42,8 @@ const CATEGORIES = [
   { id: 'corporate', label: 'Corporate', icon: Briefcase },
 ];
 
-// Featured templates shown at top
-const FEATURED_TEMPLATES = [
+// Built-in featured templates (always available)
+const BUILT_IN_TEMPLATES = [
   {
     id: 'featured-1',
     name: 'Epic Product Launch',
@@ -54,6 +54,7 @@ const FEATURED_TEMPLATES = [
     target_duration_minutes: 2,
     clip_count: 8,
     mood: 'epic',
+    genre: 'ad',
     is_featured: true,
   },
   {
@@ -64,8 +65,9 @@ const FEATURED_TEMPLATES = [
     thumbnail_url: null,
     use_count: 1923,
     target_duration_minutes: 5,
-    clip_count: 15,
-    mood: 'dramatic',
+    clip_count: 12,
+    mood: 'emotional',
+    genre: 'documentary',
     is_featured: true,
   },
   {
@@ -77,8 +79,48 @@ const FEATURED_TEMPLATES = [
     use_count: 4521,
     target_duration_minutes: 1,
     clip_count: 5,
-    mood: 'energetic',
+    mood: 'uplifting',
+    genre: 'vlog',
     is_featured: true,
+  },
+  {
+    id: 'template-edu-1',
+    name: 'Educational Explainer',
+    description: 'Clear, engaging educational content with visual demonstrations',
+    category: 'educational',
+    thumbnail_url: null,
+    use_count: 1250,
+    target_duration_minutes: 3,
+    clip_count: 8,
+    mood: 'uplifting',
+    genre: 'educational',
+    is_featured: false,
+  },
+  {
+    id: 'template-story-1',
+    name: 'Short Film Drama',
+    description: 'Cinematic narrative with emotional depth and character development',
+    category: 'cinematic',
+    thumbnail_url: null,
+    use_count: 892,
+    target_duration_minutes: 4,
+    clip_count: 10,
+    mood: 'emotional',
+    genre: 'storytelling',
+    is_featured: false,
+  },
+  {
+    id: 'template-noir-1',
+    name: 'Noir Mystery',
+    description: 'Atmospheric noir thriller with high contrast and moody lighting',
+    category: 'cinematic',
+    thumbnail_url: null,
+    use_count: 678,
+    target_duration_minutes: 3,
+    clip_count: 8,
+    mood: 'mysterious',
+    genre: 'cinematic',
+    is_featured: false,
   },
 ];
 
@@ -87,7 +129,7 @@ function TemplateCard({
   onUse, 
   isFeatured = false 
 }: { 
-  template: Template | typeof FEATURED_TEMPLATES[0]; 
+  template: Template | typeof BUILT_IN_TEMPLATES[0];
   onUse: () => void;
   isFeatured?: boolean;
 }) {
@@ -306,7 +348,7 @@ export default function Templates() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURED_TEMPLATES.map((template) => (
+            {BUILT_IN_TEMPLATES.filter(t => t.is_featured).map((template) => (
               <TemplateCard 
                 key={template.id}
                 template={template as any}

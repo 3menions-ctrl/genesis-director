@@ -986,35 +986,63 @@ async function runPreProduction(
   });
   
   // =====================================================
-  // CRITICAL: Persist identityBible to DB for resume support
-  // Without this, character anchors are lost when pipeline restarts
+  // CRITICAL FIX: Persist ALL identity data to DB for resume/callback support
+  // Without this, character anchors are lost when pipeline restarts or callbacks happen
+  // This includes: identityBible, extractedCharacters, multiCharacterBible
   // =====================================================
-  if (state.identityBible) {
-    try {
-      const { data: currentProject } = await supabase
-        .from('movie_projects')
-        .select('pro_features_data')
-        .eq('id', state.projectId)
-        .single();
-      
-      const updatedProFeatures = {
-        ...(currentProject?.pro_features_data || {}),
-        identityBible: state.identityBible,
-        identityBiblePersistedAt: new Date().toISOString(),
-      };
-      
-      await supabase
-        .from('movie_projects')
-        .update({
-          pro_features_data: updatedProFeatures,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', state.projectId);
-      
-      console.log(`[Hollywood] ✓ PERSISTED identityBible to DB for resume support`);
-    } catch (persistErr) {
-      console.warn(`[Hollywood] Failed to persist identityBible:`, persistErr);
+  try {
+    const { data: currentProject } = await supabase
+      .from('movie_projects')
+      .select('pro_features_data')
+      .eq('id', state.projectId)
+      .single();
+    
+    // CRITICAL: Add characterDescription to identityBible for verify-character-identity compatibility
+    const identityBibleWithDescription = state.identityBible ? {
+      ...state.identityBible,
+      // Ensure characterDescription is set for downstream functions
+      characterDescription: state.identityBible.consistencyPrompt 
+        || state.identityBible.characterIdentity?.description
+        || (state.extractedCharacters?.[0] ? 
+            `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
+    } : null;
+    
+    const updatedProFeatures = {
+      ...(currentProject?.pro_features_data || {}),
+      // Identity Bible with characterDescription added
+      identityBible: identityBibleWithDescription,
+      // Extracted characters for multi-character scenes
+      extractedCharacters: state.extractedCharacters || [],
+      // Multi-character bible if generated
+      multiCharacterBible: (state as any).multiCharacterBible || null,
+      // Reference analysis for scene consistency
+      referenceAnalysis: state.referenceAnalysis || null,
+      // Scene consistency locks
+      sceneConsistency: state.sceneConsistency || null,
+      // Timestamp for debugging
+      preProductionPersistedAt: new Date().toISOString(),
+    };
+    
+    const { error: updateError } = await supabase
+      .from('movie_projects')
+      .update({
+        pro_features_data: updatedProFeatures,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', state.projectId);
+    
+    if (updateError) {
+      console.error(`[Hollywood] ⚠️ Failed to persist pre-production data:`, updateError);
+    } else {
+      console.log(`[Hollywood] ✓ PERSISTED ALL pre-production data to DB:`);
+      console.log(`  - identityBible: ${identityBibleWithDescription ? 'YES' : 'NO'}`);
+      console.log(`  - characterDescription: ${identityBibleWithDescription?.characterDescription?.substring(0, 50) || 'NONE'}...`);
+      console.log(`  - extractedCharacters: ${state.extractedCharacters?.length || 0}`);
+      console.log(`  - multiCharacterBible: ${(state as any).multiCharacterBible ? 'YES' : 'NO'}`);
+      console.log(`  - consistencyAnchors: ${state.identityBible?.consistencyAnchors?.length || 0}`);
     }
+  } catch (persistErr) {
+    console.error(`[Hollywood] Failed to persist pre-production data:`, persistErr);
   }
   
   return state;
@@ -2401,7 +2429,14 @@ async function runProduction(
           previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
           // NEW: Pass golden frame data from clip 1 to prevent character decay
           goldenFrameData: i > 0 ? goldenFrameData : undefined,
-          identityBible: state.identityBible,
+          // CRITICAL FIX: Pass identityBible with characterDescription for verify-character-identity
+          identityBible: state.identityBible ? {
+            ...state.identityBible,
+            characterDescription: state.identityBible.consistencyPrompt 
+              || state.identityBible.characterIdentity?.description
+              || (state.extractedCharacters?.[0] ? 
+                  `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
+          } : undefined,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
           referenceImageUrl, // Still passed for character identity reference
@@ -2431,7 +2466,15 @@ async function runProduction(
           // =====================================================
           triggerNextClip: true,
           pipelineContext: {
-            identityBible: state.identityBible,
+            // CRITICAL FIX: Pass identityBible with characterDescription to pipeline context
+            identityBible: state.identityBible ? {
+              ...state.identityBible,
+              // Ensure characterDescription is always present for verify-character-identity
+              characterDescription: state.identityBible.consistencyPrompt 
+                || state.identityBible.characterIdentity?.description
+                || (state.extractedCharacters?.[0] ? 
+                    `${state.extractedCharacters[0].name}: ${state.extractedCharacters[0].appearance}` : ''),
+            } : undefined,
             masterSceneAnchor,
             goldenFrameData,
             accumulatedAnchors,
@@ -2440,6 +2483,8 @@ async function runProduction(
             qualityTier: request.qualityTier || 'standard',
             sceneImageLookup,
             tierLimits: (request as any)._tierLimits || { maxRetries: 1 },
+            // CRITICAL FIX: Include extractedCharacters for multi-character scenes
+            extractedCharacters: state.extractedCharacters || [],
           },
         });
         

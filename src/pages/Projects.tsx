@@ -137,32 +137,6 @@ function StatCard({
   );
 }
 
-// Global thumbnail cache using sessionStorage for persistence across navigation
-const getSessionCache = (): Map<string, string> => {
-  try {
-    const cached = sessionStorage.getItem('project-thumbnail-cache');
-    if (cached) {
-      return new Map(JSON.parse(cached));
-    }
-  } catch {
-    // Ignore errors
-  }
-  return new Map();
-};
-
-const saveSessionCache = (cache: Map<string, string>) => {
-  try {
-    // Limit cache size to avoid storage issues
-    const entries = Array.from(cache.entries()).slice(-50);
-    sessionStorage.setItem('project-thumbnail-cache', JSON.stringify(entries));
-  } catch {
-    // Ignore errors
-  }
-};
-
-// Initialize from session storage
-const thumbnailCache = getSessionCache();
-
 // ============= PROJECT CARD COMPONENT =============
 
 function ProjectCard({ 
@@ -196,7 +170,7 @@ function ProjectCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   
   const status = project.status as string;
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
@@ -204,101 +178,6 @@ function ProjectCard({
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
-  
-  // Check cache first for instant display - prioritize thumbnail_url from DB
-  const cachedPoster = videoSrc ? thumbnailCache.get(videoSrc) : null;
-  const initialPoster = project.thumbnail_url || cachedPoster || null;
-  const [posterFrame, setPosterFrame] = useState<string | null>(initialPoster);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(Boolean(initialPoster));
-
-  // Load and capture poster frame
-  useEffect(() => {
-    // If we have a thumbnail_url from DB, use it immediately
-    if (project.thumbnail_url) {
-      setPosterFrame(project.thumbnail_url);
-      setIsVideoLoaded(true);
-      return;
-    }
-
-    if (!videoSrc) return;
-    
-    // If already cached, use it immediately
-    if (thumbnailCache.has(videoSrc)) {
-      setPosterFrame(thumbnailCache.get(videoSrc)!);
-      setIsVideoLoaded(true);
-      return;
-    }
-    
-    let isMounted = true;
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.preload = 'metadata';
-    video.muted = true;
-    video.playsInline = true;
-
-    let frameExtracted = false;
-
-    const handleLoadedMetadata = () => {
-      if (!isMounted) return;
-      // Mark as loaded immediately when metadata is available
-      setIsVideoLoaded(true);
-      video.currentTime = Math.min(video.duration * 0.25, 2);
-    };
-
-    const handleSeeked = () => {
-      if (!isMounted || frameExtracted) return;
-      frameExtracted = true;
-      
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 180;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          // Only cache if it looks like a valid image
-          if (dataUrl.length > 100) {
-            thumbnailCache.set(videoSrc, dataUrl);
-            saveSessionCache(thumbnailCache);
-            setPosterFrame(dataUrl);
-          }
-        }
-      } catch {
-        // CORS error - that's ok
-      }
-    };
-
-    const handleCanPlay = () => {
-      if (isMounted) setIsVideoLoaded(true);
-    };
-
-    const handleError = () => {
-      if (isMounted) setIsVideoLoaded(true);
-    };
-
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('seeked', handleSeeked);
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('error', handleError);
-    
-    video.src = videoSrc;
-    video.load();
-
-    const timeout = setTimeout(() => {
-      if (isMounted) setIsVideoLoaded(true);
-    }, 2000);
-
-    return () => {
-      isMounted = false;
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('seeked', handleSeeked);
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('error', handleError);
-      video.src = '';
-      clearTimeout(timeout);
-    };
-  }, [videoSrc, project.thumbnail_url]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -314,13 +193,17 @@ function ProjectCard({
     }
   }, [isHovered, hasVideo]);
 
-  const handleLoadedData = () => {
+  const handleLoadedData = useCallback(() => {
     if (videoRef.current) {
-      setVideoReady(true);
       videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 1);
       setIsVideoLoaded(true);
     }
-  };
+  }, []);
+
+  const handleVideoError = useCallback(() => {
+    // Still mark as loaded so skeleton disappears
+    setIsVideoLoaded(true);
+  }, []);
 
   const getStatusBadge = () => {
     if (hasVideo) {
@@ -495,20 +378,6 @@ function ProjectCard({
           )}
         </AnimatePresence>
 
-        {/* Poster frame (static image - shows immediately when cached/from DB) */}
-        {posterFrame && hasVideo && (
-          <img
-            src={posterFrame}
-            alt=""
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
-              isHovered && videoReady ? "opacity-0" : "opacity-100"
-            )}
-            loading="eager"
-            onError={() => setPosterFrame(null)}
-          />
-        )}
-
         {/* Video/Thumbnail */}
         {hasVideo && videoSrc ? (
           <>
@@ -517,14 +386,15 @@ function ProjectCard({
               src={videoSrc}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-                (isVideoLoaded || videoReady) ? "opacity-100" : "opacity-0",
+                isVideoLoaded ? "opacity-100" : "opacity-0",
                 isHovered && "scale-105"
               )}
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
               onLoadedData={handleLoadedData}
+              onError={handleVideoError}
             />
             
             {/* Cinematic bars on hover */}

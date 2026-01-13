@@ -137,8 +137,31 @@ function StatCard({
   );
 }
 
-// Global thumbnail cache for instant loading on navigation
-const thumbnailCache = new Map<string, string>();
+// Global thumbnail cache using sessionStorage for persistence across navigation
+const getSessionCache = (): Map<string, string> => {
+  try {
+    const cached = sessionStorage.getItem('project-thumbnail-cache');
+    if (cached) {
+      return new Map(JSON.parse(cached));
+    }
+  } catch {
+    // Ignore errors
+  }
+  return new Map();
+};
+
+const saveSessionCache = (cache: Map<string, string>) => {
+  try {
+    // Limit cache size to avoid storage issues
+    const entries = Array.from(cache.entries()).slice(-50);
+    sessionStorage.setItem('project-thumbnail-cache', JSON.stringify(entries));
+  } catch {
+    // Ignore errors
+  }
+};
+
+// Initialize from session storage
+const thumbnailCache = getSessionCache();
 
 // ============= PROJECT CARD COMPONENT =============
 
@@ -173,13 +196,7 @@ function ProjectCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Check cache first for instant display
-  const videoSrcForCache = project.video_clips?.length ? (project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0]) : 
-    (project.video_url && !isManifestUrl(project.video_url) ? project.video_url : null);
-  const cachedPoster = videoSrcForCache ? thumbnailCache.get(videoSrcForCache) : null;
-  const [posterFrame, setPosterFrame] = useState<string | null>(cachedPoster || project.thumbnail_url || null);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(Boolean(cachedPoster || project.thumbnail_url));
+  const [videoReady, setVideoReady] = useState(false);
   
   const status = project.status as string;
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
@@ -187,21 +204,27 @@ function ProjectCard({
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
+  
+  // Check cache first for instant display - prioritize thumbnail_url from DB
+  const cachedPoster = videoSrc ? thumbnailCache.get(videoSrc) : null;
+  const initialPoster = project.thumbnail_url || cachedPoster || null;
+  const [posterFrame, setPosterFrame] = useState<string | null>(initialPoster);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(Boolean(initialPoster));
 
-  // Eagerly load and capture poster frame to prevent black screens
+  // Load and capture poster frame
   useEffect(() => {
+    // If we have a thumbnail_url from DB, use it immediately
+    if (project.thumbnail_url) {
+      setPosterFrame(project.thumbnail_url);
+      setIsVideoLoaded(true);
+      return;
+    }
+
     if (!videoSrc) return;
     
     // If already cached, use it immediately
     if (thumbnailCache.has(videoSrc)) {
       setPosterFrame(thumbnailCache.get(videoSrc)!);
-      setIsVideoLoaded(true);
-      return;
-    }
-
-    // If we have a thumbnail_url, use it
-    if (project.thumbnail_url) {
-      setPosterFrame(project.thumbnail_url);
       setIsVideoLoaded(true);
       return;
     }
@@ -213,12 +236,19 @@ function ProjectCard({
     video.muted = true;
     video.playsInline = true;
 
+    let frameExtracted = false;
+
     const handleLoadedMetadata = () => {
+      if (!isMounted) return;
+      // Mark as loaded immediately when metadata is available
+      setIsVideoLoaded(true);
       video.currentTime = Math.min(video.duration * 0.25, 2);
     };
 
     const handleSeeked = () => {
-      if (!isMounted) return;
+      if (!isMounted || frameExtracted) return;
+      frameExtracted = true;
+      
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 320;
@@ -226,15 +256,21 @@ function ProjectCard({
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          // Cache for future navigation
-          thumbnailCache.set(videoSrc, dataUrl);
-          setPosterFrame(dataUrl);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          // Only cache if it looks like a valid image
+          if (dataUrl.length > 100) {
+            thumbnailCache.set(videoSrc, dataUrl);
+            saveSessionCache(thumbnailCache);
+            setPosterFrame(dataUrl);
+          }
         }
       } catch {
-        // CORS error - fall back to video element
+        // CORS error - that's ok
       }
-      setIsVideoLoaded(true);
+    };
+
+    const handleCanPlay = () => {
+      if (isMounted) setIsVideoLoaded(true);
     };
 
     const handleError = () => {
@@ -243,6 +279,7 @@ function ProjectCard({
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     
     video.src = videoSrc;
@@ -250,12 +287,13 @@ function ProjectCard({
 
     const timeout = setTimeout(() => {
       if (isMounted) setIsVideoLoaded(true);
-    }, 3000);
+    }, 2000);
 
     return () => {
       isMounted = false;
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.src = '';
       clearTimeout(timeout);
@@ -270,13 +308,16 @@ function ProjectCard({
       videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
-      videoRef.current.currentTime = 1;
+      if (videoRef.current.duration) {
+        videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 1);
+      }
     }
   }, [isHovered, hasVideo]);
 
   const handleLoadedData = () => {
     if (videoRef.current) {
-      videoRef.current.currentTime = 1;
+      setVideoReady(true);
+      videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 1);
       setIsVideoLoaded(true);
     }
   };
@@ -454,15 +495,17 @@ function ProjectCard({
           )}
         </AnimatePresence>
 
-        {/* Poster frame (static image) */}
+        {/* Poster frame (static image - shows immediately when cached/from DB) */}
         {posterFrame && hasVideo && (
           <img
             src={posterFrame}
             alt=""
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
-              isHovered ? "opacity-0" : "opacity-100"
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
+              isHovered && videoReady ? "opacity-0" : "opacity-100"
             )}
+            loading="eager"
+            onError={() => setPosterFrame(null)}
           />
         )}
 
@@ -474,13 +517,13 @@ function ProjectCard({
               src={videoSrc}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-                isVideoLoaded ? "opacity-100" : "opacity-0",
+                (isVideoLoaded || videoReady) ? "opacity-100" : "opacity-0",
                 isHovered && "scale-105"
               )}
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               onLoadedData={handleLoadedData}
             />
             

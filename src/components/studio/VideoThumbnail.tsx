@@ -3,8 +3,31 @@ import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Global thumbnail cache to persist across navigation
-const thumbnailCache = new Map<string, string>();
+// Global thumbnail cache to persist across navigation - uses sessionStorage for persistence
+const getSessionCache = (): Map<string, string> => {
+  try {
+    const cached = sessionStorage.getItem('video-thumbnail-cache');
+    if (cached) {
+      return new Map(JSON.parse(cached));
+    }
+  } catch {
+    // Ignore errors
+  }
+  return new Map();
+};
+
+const saveSessionCache = (cache: Map<string, string>) => {
+  try {
+    // Limit cache size to avoid storage issues
+    const entries = Array.from(cache.entries()).slice(-50);
+    sessionStorage.setItem('video-thumbnail-cache', JSON.stringify(entries));
+  } catch {
+    // Ignore errors
+  }
+};
+
+// Initialize from session storage
+const thumbnailCache = getSessionCache();
 
 interface VideoThumbnailProps {
   src: string | null;
@@ -33,25 +56,27 @@ export const VideoThumbnail = memo(function VideoThumbnail({
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
   
-  // Check cache first for instant display
+  // Check cache first for instant display - prioritize thumbnailUrl from DB
   const cachedPoster = src ? thumbnailCache.get(src) : null;
-  const [posterFrame, setPosterFrame] = useState<string | null>(cachedPoster || thumbnailUrl || null);
-  const [isLoaded, setIsLoaded] = useState(Boolean(cachedPoster || thumbnailUrl));
+  const initialPoster = thumbnailUrl || cachedPoster || null;
+  const [posterFrame, setPosterFrame] = useState<string | null>(initialPoster);
+  const [isLoaded, setIsLoaded] = useState(Boolean(initialPoster));
+  const [videoReady, setVideoReady] = useState(false);
 
-  // Load poster frame from video if not cached
+  // Load poster frame from video if not cached or no thumbnailUrl
   useEffect(() => {
-    if (!src) return;
-    
-    // If already cached, use it immediately
-    if (thumbnailCache.has(src)) {
-      setPosterFrame(thumbnailCache.get(src)!);
+    // If we have a thumbnailUrl from DB, we're good - mark as loaded immediately
+    if (thumbnailUrl) {
+      setPosterFrame(thumbnailUrl);
       setIsLoaded(true);
       return;
     }
 
-    // If we have a thumbnail URL, use it immediately
-    if (thumbnailUrl) {
-      setPosterFrame(thumbnailUrl);
+    if (!src) return;
+    
+    // If already cached in memory/session, use it immediately
+    if (thumbnailCache.has(src)) {
+      setPosterFrame(thumbnailCache.get(src)!);
       setIsLoaded(true);
       return;
     }
@@ -65,14 +90,19 @@ export const VideoThumbnail = memo(function VideoThumbnail({
     video.playsInline = true;
 
     let isMounted = true;
+    let frameExtracted = false;
 
     const handleLoadedMetadata = () => {
+      if (!isMounted) return;
+      // Mark as loaded immediately when we have metadata (video dimensions known)
+      setIsLoaded(true);
       // Seek to 25% for a good thumbnail frame
       video.currentTime = Math.min(video.duration * 0.25, 2);
     };
 
     const handleSeeked = () => {
-      if (!isMounted) return;
+      if (!isMounted || frameExtracted) return;
+      frameExtracted = true;
       
       // Try to capture a poster frame from the video
       try {
@@ -82,15 +112,23 @@ export const VideoThumbnail = memo(function VideoThumbnail({
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          // Cache the poster for future use
-          thumbnailCache.set(src, dataUrl);
-          setPosterFrame(dataUrl);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          // Only cache if it looks like a valid image (not empty)
+          if (dataUrl.length > 100) {
+            thumbnailCache.set(src, dataUrl);
+            saveSessionCache(thumbnailCache);
+            setPosterFrame(dataUrl);
+          }
         }
       } catch {
-        // CORS or other error - fall back to video element
+        // CORS or other error - that's ok, video will show directly
       }
-      setIsLoaded(true);
+    };
+
+    const handleCanPlay = () => {
+      if (isMounted) {
+        setIsLoaded(true);
+      }
     };
 
     const handleError = () => {
@@ -101,23 +139,25 @@ export const VideoThumbnail = memo(function VideoThumbnail({
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     
     // Start loading
     video.src = src;
     video.load();
 
-    // Fallback timeout - show loading complete even if poster extraction fails
+    // Fallback timeout - show as loaded even if frame extraction fails
     const timeout = setTimeout(() => {
-      if (isMounted && !isLoaded) {
+      if (isMounted) {
         setIsLoaded(true);
       }
-    }, 3000);
+    }, 2000);
 
     return () => {
       isMounted = false;
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.src = '';
       clearTimeout(timeout);
@@ -127,6 +167,7 @@ export const VideoThumbnail = memo(function VideoThumbnail({
   const handleVideoLoadedData = useCallback(() => {
     const video = videoRef.current;
     if (video) {
+      setVideoReady(true);
       video.currentTime = Math.min(video.duration * 0.25, 2);
     }
   }, []);
@@ -138,11 +179,11 @@ export const VideoThumbnail = memo(function VideoThumbnail({
 
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-    if (videoRef.current && isLoaded && !hasError) {
+    if (videoRef.current && !hasError) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
     }
-  }, [isLoaded, hasError]);
+  }, [hasError]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
@@ -179,33 +220,34 @@ export const VideoThumbnail = memo(function VideoThumbnail({
         )}
       </AnimatePresence>
 
-      {/* Poster frame (static image - shows immediately if cached) */}
+      {/* Poster frame (static image - shows immediately if cached/from DB) */}
       {posterFrame && !hasError && (
         <img
           src={posterFrame}
           alt=""
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
-            isHovered ? "opacity-0" : "opacity-100"
+            isHovered && videoReady ? "opacity-0" : "opacity-100"
           )}
           loading="eager"
+          onError={() => setPosterFrame(null)}
         />
       )}
 
-      {/* Video element - only starts playing on hover */}
+      {/* Video element - preload metadata for faster playback on hover */}
       {src && !hasError ? (
         <video
           ref={videoRef}
           src={src}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-all duration-300",
-            isLoaded ? "opacity-100" : "opacity-0",
+            (isLoaded || videoReady) ? "opacity-100" : "opacity-0",
             isHovered && "scale-105"
           )}
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           onLoadedData={handleVideoLoadedData}
           onError={handleVideoError}
         />

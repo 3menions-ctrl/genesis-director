@@ -1220,7 +1220,9 @@ async function runAssetCreation(
       const imageResult = await callEdgeFunction('generate-scene-images', {
         scenes,
         projectId: state.projectId,
+        userId: request.userId, // For callback continuation
         globalStyle: 'Cinematic film still, professional color grading, high detail',
+        triggerNextStage: true, // CRITICAL: Enable callback continuation to prevent stalls
       });
       
       if (imageResult.images && imageResult.images.length > 0) {

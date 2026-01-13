@@ -71,7 +71,13 @@ serve(async (req) => {
       } else if (currentStage === 'production' || currentStage === 'error' || project.status === 'failed' || project.status === 'generating') {
         resumeFrom = 'production';
       } else if (currentStage === 'assets') {
-        resumeFrom = 'assets';
+        // Check if scene images exist - if so, skip to production
+        if (project.scene_images && Array.isArray(project.scene_images) && project.scene_images.length > 0) {
+          console.log(`[ResumePipeline] Scene images exist (${project.scene_images.length}), resuming from production`);
+          resumeFrom = 'production';
+        } else {
+          resumeFrom = 'assets';
+        }
       } else {
         throw new Error(`Cannot resume from stage: ${currentStage}. Current status: ${project.status}`);
       }

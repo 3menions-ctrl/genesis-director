@@ -1,9 +1,10 @@
-import { Globe, Sparkles, Rocket, Users, BookOpen, Zap } from 'lucide-react';
+import { Globe, Sparkles, Rocket, Users, BookOpen, Zap, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { StudioLayout } from '@/components/layout/StudioLayout';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export default function Universes() {
+  const navigate = useNavigate();
   const features = [
     {
       icon: Globe,
@@ -28,8 +29,21 @@ export default function Universes() {
   ];
 
   return (
-    <StudioLayout>
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Back Button */}
+      <div className="absolute top-6 left-6 z-10">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/projects')}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Projects
+        </Button>
+      </div>
+
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-4xl w-full text-center space-y-12">
           {/* Hero Section */}
           <motion.div
@@ -129,12 +143,12 @@ export default function Universes() {
               Be the first to know when Story Universes becomes available
             </p>
           </motion.div>
-
-          {/* Decorative Elements */}
-          <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none" />
         </div>
       </div>
-    </StudioLayout>
+
+      {/* Decorative Elements */}
+      <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+    </div>
   );
 }

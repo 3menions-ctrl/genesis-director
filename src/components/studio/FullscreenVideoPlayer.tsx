@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   X, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Download, ExternalLink, Edit2,
@@ -66,6 +66,7 @@ export function FullscreenVideoPlayer({
   const [musicVolume, setMusicVolume] = useState(0.4);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [clipDurations, setClipDurations] = useState<number[]>([]); // Track each clip's duration
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -371,6 +372,40 @@ export function FullscreenVideoPlayer({
     }, 3000);
   }, []);
 
+  // Load all clip durations on mount for accurate total time display
+  useEffect(() => {
+    const loadDurations = async () => {
+      const durations: number[] = [];
+      
+      for (const clipUrl of clips) {
+        try {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          
+          await new Promise<void>((resolve) => {
+            video.onloadedmetadata = () => {
+              durations.push(video.duration || 0);
+              resolve();
+            };
+            video.onerror = () => {
+              durations.push(0);
+              resolve();
+            };
+            video.src = clipUrl;
+          });
+        } catch {
+          durations.push(0);
+        }
+      }
+      
+      setClipDurations(durations);
+    };
+    
+    if (clips.length > 1) {
+      loadDurations();
+    }
+  }, [clips]);
+
   // Phase 2: RAF-based timing loop (60fps precision)
   useEffect(() => {
     if (clips.length <= 1) return;
@@ -506,7 +541,26 @@ export function FullscreenVideoPlayer({
     }
   }, [isPlaying, musicUrl, musicVolume, isMusicMuted]);
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Calculate total elapsed time and total duration across all clips
+  const totalDuration = useMemo(() => {
+    if (clips.length === 1) return duration;
+    if (clipDurations.length === clips.length) {
+      return clipDurations.reduce((sum, d) => sum + d, 0);
+    }
+    // Fallback: estimate based on current clip duration
+    return duration * clips.length;
+  }, [clips.length, clipDurations, duration]);
+
+  const totalElapsedTime = useMemo(() => {
+    if (clips.length === 1) return currentTime;
+    // Sum durations of all completed clips + current clip time
+    const completedClipsTime = clipDurations
+      .slice(0, currentClipIndex)
+      .reduce((sum, d) => sum + d, 0);
+    return completedClipsTime + currentTime;
+  }, [clips.length, clipDurations, currentClipIndex, currentTime]);
+
+  const progress = totalDuration > 0 ? (totalElapsedTime / totalDuration) * 100 : 0;
 
   return (
     <div 
@@ -732,9 +786,9 @@ export function FullscreenVideoPlayer({
                 </div>
               )}
 
-              {/* Time */}
-              <span className="text-white/70 text-sm font-medium ml-2">
-                {formatTime(currentTime)} / {formatTime(duration)}
+              {/* Time - shows total elapsed / total duration for multi-clip videos */}
+              <span className="text-white/70 text-sm font-medium ml-2 tabular-nums">
+                {formatTime(totalElapsedTime)} / {formatTime(totalDuration)}
               </span>
             </div>
 

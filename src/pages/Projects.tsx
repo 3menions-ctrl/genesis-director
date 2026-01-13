@@ -171,6 +171,7 @@ function ProjectCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [posterFrame, setPosterFrame] = useState<string | null>(null);
   
   const status = project.status as string;
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
@@ -178,6 +179,61 @@ function ProjectCard({
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
+
+  // Eagerly load and capture poster frame to prevent black screens
+  useEffect(() => {
+    if (!videoSrc) return;
+    
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+
+    const handleCanPlay = () => {
+      video.currentTime = video.duration * 0.25 || 1;
+    };
+
+    const handleSeeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setPosterFrame(dataUrl);
+        }
+      } catch (e) {
+        // CORS error - fall back to video element
+      }
+      setIsVideoLoaded(true);
+    };
+
+    const handleError = () => {
+      setIsVideoLoaded(true);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('error', handleError);
+    
+    video.src = videoSrc;
+    video.load();
+
+    const timeout = setTimeout(() => {
+      setIsVideoLoaded(true);
+    }, 2000);
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('error', handleError);
+      video.src = '';
+      clearTimeout(timeout);
+    };
+  }, [videoSrc]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -357,6 +413,32 @@ function ProjectCard({
         isActive && "ring-2 ring-white/30"
       )}>
         
+        {/* Loading skeleton */}
+        <AnimatePresence>
+          {!isVideoLoaded && hasVideo && videoSrc && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-10 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.08]"
+            >
+              <div className="absolute inset-0 bg-shimmer bg-[length:200%_100%] animate-shimmer" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Poster frame (static image) */}
+        {posterFrame && hasVideo && (
+          <img
+            src={posterFrame}
+            alt=""
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+              isHovered ? "opacity-0" : "opacity-100"
+            )}
+          />
+        )}
+
         {/* Video/Thumbnail */}
         {hasVideo && videoSrc ? (
           <>
@@ -365,6 +447,7 @@ function ProjectCard({
               src={videoSrc}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+                isVideoLoaded ? "opacity-100" : "opacity-0",
                 isHovered && "scale-105"
               )}
               loop

@@ -287,6 +287,7 @@ Return ONLY valid JSON:
   }
   
   try {
+    // Use Gemini 2.5 Pro for superior image analysis
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -294,12 +295,12 @@ Return ONLY valid JSON:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5.2',
+        model: 'google/gemini-2.5-pro',
         messages: [{
           role: 'user',
           content: messageContent,
         }],
-        max_tokens: 1500,
+        max_tokens: 2000,
       }),
     });
     
@@ -444,44 +445,96 @@ Return ONLY valid JSON:
 }
 
 // Build identity description from bible
-// CRITICAL FIX: Accept multiple field name variants for character description
-function buildIdentityDescription(bible: VerifyIdentityRequest['identityBible']): string {
+// v4.0: Now supports hyper-detailed identity bible with separate feature analyses
+function buildIdentityDescription(bible: VerifyIdentityRequest['identityBible'] & {
+  facialFeatures?: any;
+  hairDetails?: any;
+  bodyDetails?: any;
+  clothingDetails?: any;
+  accessoryDetails?: any;
+  enhancedConsistencyPrompt?: string;
+  colorLockPrompt?: string;
+  silhouetteLockPrompt?: string;
+}): string {
   const parts: string[] = [];
   
-  // CRITICAL FIX: Accept characterDescription, consistencyPrompt, or characterIdentity.description
-  const characterDesc = bible.characterDescription 
-    || bible.consistencyPrompt 
-    || bible.characterIdentity?.description
-    || '';
-  
-  if (characterDesc) {
-    parts.push(`CHARACTER: ${characterDesc}`);
+  // v4.0: Use enhanced consistency prompt if available (most detailed)
+  if (bible.enhancedConsistencyPrompt) {
+    parts.push(bible.enhancedConsistencyPrompt);
   }
   
-  // Also extract from characterIdentity if available
-  if (bible.characterIdentity) {
-    const ci = bible.characterIdentity;
-    if (ci.facialFeatures) parts.push(`FACE: ${ci.facialFeatures}`);
-    if (ci.bodyType) parts.push(`BODY TYPE: ${ci.bodyType}`);
-    if (ci.clothing) parts.push(`CLOTHING: ${ci.clothing}`);
-    if (ci.distinctiveMarkers?.length) parts.push(`DISTINCTIVE FEATURES: ${ci.distinctiveMarkers.join(', ')}`);
+  // v4.0: Add color lock for exact matching
+  if (bible.colorLockPrompt) {
+    parts.push(bible.colorLockPrompt);
   }
   
-  if (bible.nonFacialAnchors) {
-    const nfa = bible.nonFacialAnchors;
-    if (nfa.bodyType) parts.push(`BODY TYPE: ${nfa.bodyType}`);
-    if (nfa.clothingDescription || nfa.clothingSignature) parts.push(`CLOTHING: ${nfa.clothingDescription || nfa.clothingSignature}`);
-    if (nfa.clothingColors?.length) parts.push(`CLOTHING COLORS: ${nfa.clothingColors.join(', ')}`);
-    if (nfa.hairColor || nfa.hairStyle) parts.push(`HAIR: ${nfa.hairColor || ''} ${nfa.hairStyle || ''}`);
-    if (nfa.hairFromBehind) parts.push(`HAIR FROM BEHIND: ${nfa.hairFromBehind}`);
-    if (nfa.accessories?.length) parts.push(`ACCESSORIES: ${nfa.accessories.join(', ')}`);
-    if (nfa.overallSilhouette || nfa.silhouetteDescription) parts.push(`SILHOUETTE: ${nfa.overallSilhouette || nfa.silhouetteDescription}`);
-    if (nfa.gait) parts.push(`GAIT: ${nfa.gait}`);
-    if (nfa.posture) parts.push(`POSTURE: ${nfa.posture}`);
+  // v4.0: Add silhouette lock
+  if (bible.silhouetteLockPrompt) {
+    parts.push(bible.silhouetteLockPrompt);
   }
   
-  if (bible.consistencyAnchors?.length) {
-    parts.push(`KEY ANCHORS: ${bible.consistencyAnchors.join(', ')}`);
+  // v4.0: Extract from detailed feature analyses
+  if (bible.facialFeatures) {
+    const f = bible.facialFeatures;
+    parts.push(`FACE DETAILS: ${f.faceShape} face, ${f.skinTone} skin, ${f.eyeShape} ${f.eyeColor} eyes, ${f.eyebrowShape} eyebrows, ${f.noseShape} nose, ${f.lipShape} ${f.lipColor} lips, ${f.expression}. Age: ${f.age}.`);
+  }
+  
+  if (bible.hairDetails) {
+    const h = bible.hairDetails;
+    parts.push(`HAIR DETAILS: ${h.color} ${h.length} ${h.texture} hair, ${h.style} style, ${h.parting} parting, ${h.volume} volume. Back view: ${h.backView}. Movement: ${h.movement}.`);
+  }
+  
+  if (bible.bodyDetails) {
+    const b = bible.bodyDetails;
+    parts.push(`BODY DETAILS: ${b.height} with ${b.build} build, ${b.shoulderWidth} shoulders, ${b.posture}. Silhouette: ${b.silhouette}.`);
+  }
+  
+  if (bible.clothingDetails) {
+    const c = bible.clothingDetails;
+    parts.push(`CLOTHING: ${c.topLayer?.color} ${c.topLayer?.texture} ${c.topLayer?.type}, ${c.bottomLayer?.color} ${c.bottomLayer?.type}, ${c.footwear?.color} ${c.footwear?.type}. Style: ${c.overallStyle}. SIGNATURE: ${c.outfit_signature}.`);
+  }
+  
+  if (bible.accessoryDetails?.items?.length > 0) {
+    const accessories = bible.accessoryDetails.items.map((a: any) => `${a.color} ${a.type} on ${a.position}`).join(', ');
+    parts.push(`ACCESSORIES: ${accessories}. Signature: ${bible.accessoryDetails.signature_accessory}.`);
+  }
+  
+  // Fallback: Accept characterDescription, consistencyPrompt, or characterIdentity.description
+  if (parts.length === 0) {
+    const characterDesc = bible.characterDescription 
+      || bible.consistencyPrompt 
+      || bible.characterIdentity?.description
+      || '';
+    
+    if (characterDesc) {
+      parts.push(`CHARACTER: ${characterDesc}`);
+    }
+    
+    // Also extract from characterIdentity if available
+    if (bible.characterIdentity) {
+      const ci = bible.characterIdentity;
+      if (ci.facialFeatures) parts.push(`FACE: ${ci.facialFeatures}`);
+      if (ci.bodyType) parts.push(`BODY TYPE: ${ci.bodyType}`);
+      if (ci.clothing) parts.push(`CLOTHING: ${ci.clothing}`);
+      if (ci.distinctiveMarkers?.length) parts.push(`DISTINCTIVE FEATURES: ${ci.distinctiveMarkers.join(', ')}`);
+    }
+    
+    if (bible.nonFacialAnchors) {
+      const nfa = bible.nonFacialAnchors;
+      if (nfa.bodyType) parts.push(`BODY TYPE: ${nfa.bodyType}`);
+      if (nfa.clothingDescription || nfa.clothingSignature) parts.push(`CLOTHING: ${nfa.clothingDescription || nfa.clothingSignature}`);
+      if (nfa.clothingColors?.length) parts.push(`CLOTHING COLORS: ${nfa.clothingColors.join(', ')}`);
+      if (nfa.hairColor || nfa.hairStyle) parts.push(`HAIR: ${nfa.hairColor || ''} ${nfa.hairStyle || ''}`);
+      if (nfa.hairFromBehind) parts.push(`HAIR FROM BEHIND: ${nfa.hairFromBehind}`);
+      if (nfa.accessories?.length) parts.push(`ACCESSORIES: ${nfa.accessories.join(', ')}`);
+      if (nfa.overallSilhouette || nfa.silhouetteDescription) parts.push(`SILHOUETTE: ${nfa.overallSilhouette || nfa.silhouetteDescription}`);
+      if (nfa.gait) parts.push(`GAIT: ${nfa.gait}`);
+      if (nfa.posture) parts.push(`POSTURE: ${nfa.posture}`);
+    }
+    
+    if (bible.consistencyAnchors?.length) {
+      parts.push(`KEY ANCHORS: ${bible.consistencyAnchors.join(', ')}`);
+    }
   }
   
   return parts.join('\n');

@@ -3557,6 +3557,56 @@ serve(async (req) => {
     }
 
     // =====================================================
+    // CRITICAL FIX: Recover identityBible from DB if missing
+    // This prevents CHARACTER IDENTITY LOCK from being empty
+    // =====================================================
+    let effectiveIdentityBible = request.identityBible;
+    
+    if (!effectiveIdentityBible?.characterIdentity && !effectiveIdentityBible?.consistencyPrompt) {
+      console.warn(`[SingleClip] ⚠️ identityBible missing from request, attempting DB recovery...`);
+      try {
+        const { data: projectData } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data')
+          .eq('id', request.projectId)
+          .single();
+        
+        const dbIdentityBible = projectData?.pro_features_data?.identityBible;
+        const dbExtractedCharacters = projectData?.pro_features_data?.extractedCharacters;
+        
+        if (dbIdentityBible?.characterIdentity || dbIdentityBible?.consistencyPrompt) {
+          effectiveIdentityBible = dbIdentityBible;
+          console.log(`[SingleClip] ✓ RECOVERED identityBible from DB:`);
+          console.log(`  - characterIdentity: ${dbIdentityBible.characterIdentity ? 'YES' : 'NO'}`);
+          console.log(`  - consistencyPrompt: ${dbIdentityBible.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
+          console.log(`  - consistencyAnchors: ${dbIdentityBible.consistencyAnchors?.length || 0}`);
+        } else if (dbExtractedCharacters?.length > 0) {
+          // Build identity bible from extracted characters as fallback
+          const primaryChar = dbExtractedCharacters[0];
+          effectiveIdentityBible = {
+            characterIdentity: {
+              description: `${primaryChar.name}: ${primaryChar.appearance}`,
+              facialFeatures: primaryChar.distinguishingFeatures || '',
+              clothing: primaryChar.clothing || '',
+            },
+            consistencyPrompt: `${primaryChar.name}, ${primaryChar.appearance}${primaryChar.clothing ? `, wearing ${primaryChar.clothing}` : ''}`,
+            consistencyAnchors: [primaryChar.name, ...(primaryChar.appearance?.split(' ').slice(0, 5) || [])].filter(Boolean),
+          };
+          console.log(`[SingleClip] ✓ BUILT identityBible from extractedCharacters:`);
+          console.log(`  - Primary character: ${primaryChar.name}`);
+          console.log(`  - consistencyPrompt: ${effectiveIdentityBible.consistencyPrompt?.substring(0, 50)}...`);
+        } else {
+          console.warn(`[SingleClip] ⚠️ No identity data available in DB - CHARACTER IDENTITY LOCK will be empty!`);
+        }
+      } catch (recoverErr) {
+        console.error(`[SingleClip] Failed to recover identity data from DB:`, recoverErr);
+      }
+    }
+    
+    // Update request with effective identity bible for downstream use
+    (request as any).identityBible = effectiveIdentityBible;
+
+    // =====================================================
     // CONTENT SAFETY PRE-CHECK: Sanitize prompt before sending to Veo
     // =====================================================
     const safetyCheck = checkContentSafety(request.prompt);

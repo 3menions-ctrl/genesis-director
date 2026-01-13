@@ -1810,7 +1810,46 @@ async function runProduction(
     console.warn(`[Hollywood] ⚠️ PREFLIGHT WARNING: Incomplete scene image coverage (${sceneImageCoverage}/${clips.length})`);
   }
   
-  // Check identity bible
+  // =====================================================
+  // CRITICAL FIX: Recover identityBible from DB if missing from state
+  // This prevents CHARACTER IDENTITY LOCK from being empty in later clips
+  // =====================================================
+  if (!state.identityBible?.characterIdentity && !state.identityBible?.consistencyPrompt) {
+    console.warn(`[Hollywood] ⚠️ identityBible missing from state, attempting DB recovery...`);
+    try {
+      const { data: identityData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data')
+        .eq('id', state.projectId)
+        .single();
+      
+      const dbIdentityBible = identityData?.pro_features_data?.identityBible;
+      const dbExtractedCharacters = identityData?.pro_features_data?.extractedCharacters;
+      const dbReferenceAnalysis = identityData?.pro_features_data?.referenceAnalysis;
+      
+      if (dbIdentityBible?.characterIdentity || dbIdentityBible?.consistencyPrompt) {
+        state.identityBible = dbIdentityBible;
+        console.log(`[Hollywood] ✓ RECOVERED identityBible from DB:`);
+        console.log(`  - characterIdentity: ${dbIdentityBible.characterIdentity ? 'YES' : 'NO'}`);
+        console.log(`  - consistencyPrompt: ${dbIdentityBible.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
+        console.log(`  - consistencyAnchors: ${dbIdentityBible.consistencyAnchors?.length || 0}`);
+      }
+      
+      if (dbExtractedCharacters?.length && !state.extractedCharacters?.length) {
+        state.extractedCharacters = dbExtractedCharacters;
+        console.log(`[Hollywood] ✓ RECOVERED ${dbExtractedCharacters.length} extractedCharacters from DB`);
+      }
+      
+      if (dbReferenceAnalysis && !state.referenceAnalysis) {
+        state.referenceAnalysis = dbReferenceAnalysis;
+        console.log(`[Hollywood] ✓ RECOVERED referenceAnalysis from DB`);
+      }
+    } catch (recoverErr) {
+      console.error(`[Hollywood] Failed to recover identity data from DB:`, recoverErr);
+    }
+  }
+  
+  // Check identity bible (AFTER recovery attempt)
   if (!state.identityBible?.characterIdentity && !state.identityBible?.consistencyPrompt) {
     preflightWarnings.push('No identity bible - character may drift across clips');
     console.warn(`[Hollywood] ⚠️ PREFLIGHT WARNING: No identity bible for character consistency`);

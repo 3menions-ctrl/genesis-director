@@ -180,20 +180,20 @@ export default function Auth() {
             </div>
 
             <h1 className="text-5xl font-display font-bold text-white leading-tight mb-6">
-              Create stunning<br />
-              <span className="text-white/70">AI-powered</span> films
+              Create videos<br />
+              <span className="text-white/70">with AI</span>
             </h1>
             <p className="text-xl text-white/50 max-w-md">
-              Transform your ideas into cinematic experiences with our intelligent filmmaking platform.
+              Transform your ideas into video content with our AI-powered video generation platform.
             </p>
           </div>
 
           {/* Features */}
           <div className="space-y-4">
             {[
-              { icon: Zap, text: 'Generate scripts with AI in seconds' },
-              { icon: Play, text: 'Create videos from text prompts' },
-              { icon: Sparkles, text: 'Professional-grade results' },
+              { icon: Zap, text: 'Generate scripts with AI' },
+              { icon: Play, text: 'Create videos from text or images' },
+              { icon: Sparkles, text: 'Automatic retry system included' },
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 text-white/60">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
@@ -204,18 +204,18 @@ export default function Auth() {
             ))}
           </div>
 
-          {/* Testimonial */}
+          {/* Info Box */}
           <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <p className="text-white/70 text-sm italic mb-4">
-              "AI Film Studio completely transformed how I create content. What used to take days now takes minutes."
+            <p className="text-white/70 text-sm mb-4">
+              Start with 60 free credits to create your first video project. No credit card required.
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-white/60" />
+                <Sparkles className="w-5 h-5 text-white/60" />
               </div>
               <div>
-                <p className="text-white font-medium text-sm">Alex Chen</p>
-                <p className="text-white/40 text-xs">Content Creator</p>
+                <p className="text-white font-medium text-sm">Free Trial</p>
+                <p className="text-white/40 text-xs">60 credits included</p>
               </div>
             </div>
           </div>
@@ -388,8 +388,8 @@ export default function Auth() {
                   <Sparkles className="w-6 h-6 text-background" />
                 </div>
                 <div>
-                  <p className="text-foreground font-semibold">50 Free Credits</p>
-                  <p className="text-muted-foreground text-sm">Start creating amazing content instantly</p>
+                  <p className="text-foreground font-semibold">60 Free Credits</p>
+                  <p className="text-muted-foreground text-sm">Start creating your first video</p>
                 </div>
               </div>
             </div>

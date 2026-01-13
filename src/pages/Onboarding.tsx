@@ -204,8 +204,8 @@ export default function Onboarding() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
-            <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
+          <div className="w-16 h-16 rounded-2xl bg-glossy-black flex items-center justify-center shadow-obsidian">
+            <span className="text-xl font-bold text-white">AS</span>
           </div>
           <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
@@ -259,8 +259,8 @@ export default function Onboarding() {
 
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-obsidian">
-            <Film className="w-7 h-7 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-glossy-black mb-4 shadow-obsidian">
+            <span className="text-lg font-bold text-white">AS</span>
           </div>
           <AnimatePresence mode="wait">
             <motion.div

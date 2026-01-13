@@ -323,7 +323,7 @@ serve(async (req) => {
       outputFormat: 'mp4',
       colorGrading: 'cinematic',
       transitionType: 'dissolve',
-      transitionDuration: 0.5,
+      transitionDuration: 0.15,
       // Pass any music sync data
       musicSyncPlan: proFeatures?.musicSyncPlan,
       sfxPlan: proFeatures?.sfxPlan,

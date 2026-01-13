@@ -23,10 +23,10 @@ const USE_CASES = [
   { id: 'student', label: 'Student', icon: GraduationCap, description: 'Learning, Projects' },
 ];
 
-const ROLES = [
-  { id: 'individual', label: 'Individual Creator', icon: User },
-  { id: 'team', label: 'Part of a Team', icon: Users },
-  { id: 'agency', label: 'Agency/Studio', icon: Building2 },
+const ACCOUNT_TYPES = [
+  { id: 'individual', label: 'Individual', icon: User, description: 'Personal projects and solo creation' },
+  { id: 'team', label: 'Team', icon: Users, description: 'Collaborate with team members' },
+  { id: 'agency', label: 'Agency / Studio', icon: Building2, description: 'Client work and production' },
 ];
 
 // Sanitize text input to prevent XSS
@@ -272,12 +272,12 @@ export default function Onboarding() {
             >
               <h1 className="text-2xl font-display font-bold text-foreground mb-2 tracking-tight">
                 {step === 1 && "Welcome! Let's get to know you"}
-                {step === 2 && "How will you be using Apex Studio?"}
+                {step === 2 && "Select your account type"}
                 {step === 3 && "What will you create?"}
               </h1>
               <p className="text-muted-foreground text-sm">
                 {step === 1 && "This helps us personalize your experience"}
-                {step === 2 && "Select what best describes you"}
+                {step === 2 && "Choose the option that best describes how you'll use Apex Studio"}
                 {step === 3 && "Choose your primary use case"}
               </p>
             </motion.div>
@@ -352,37 +352,40 @@ export default function Onboarding() {
                 </div>
               )}
 
-              {/* Step 2: Role */}
+              {/* Step 2: Account Type */}
               {step === 2 && (
                 <div className="space-y-3">
-                  {ROLES.map((role, index) => (
+                  {ACCOUNT_TYPES.map((accountType, index) => (
                     <motion.button
-                      key={role.id}
+                      key={accountType.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05, duration: 0.2 }}
                       onClick={() => {
-                        setFormData({ ...formData, role: role.id });
+                        setFormData({ ...formData, role: accountType.id });
                         setErrors({});
                       }}
                       className={cn(
                         "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left group",
-                        formData.role === role.id
+                        formData.role === accountType.id
                           ? "border-primary bg-primary/5 shadow-sm"
                           : "border-border hover:border-primary/30 hover:bg-secondary/50"
                       )}
                     >
                       <div className={cn(
                         "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200",
-                        formData.role === role.id 
+                        formData.role === accountType.id 
                           ? "bg-primary text-primary-foreground shadow-obsidian" 
                           : "bg-secondary text-muted-foreground group-hover:bg-muted"
                       )}>
-                        <role.icon className="w-5 h-5" />
+                        <accountType.icon className="w-5 h-5" />
                       </div>
-                      <span className="font-medium text-foreground">{role.label}</span>
-                      {formData.role === role.id && (
-                        <Check className="w-5 h-5 text-primary ml-auto" />
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{accountType.label}</p>
+                        <p className="text-xs text-muted-foreground">{accountType.description}</p>
+                      </div>
+                      {formData.role === accountType.id && (
+                        <Check className="w-5 h-5 text-primary shrink-0" />
                       )}
                     </motion.button>
                   ))}

@@ -400,6 +400,96 @@ async function callEdgeFunction(
   throw lastError || new Error(`${functionName} failed after ${maxRetries} retries`);
 }
 
+/**
+ * AI-Enhanced Narration Generator
+ * 
+ * Takes raw shot descriptions/dialogue and rewrites them into a flowing,
+ * coherent narration that sounds natural when spoken aloud.
+ */
+async function createFlowingNarration(
+  shots: Array<{ shotNumber: number; dialogue: string; description: string; mood: string }>,
+  overallMood: string
+): Promise<string> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  
+  if (!OPENAI_API_KEY) {
+    console.warn("[Hollywood] No OpenAI API key - falling back to basic concatenation");
+    // Fallback: just return dialogues if they exist, otherwise descriptions
+    return shots
+      .map(s => s.dialogue || '')
+      .filter(Boolean)
+      .join(' ') || shots.map(s => s.description).join(' ');
+  }
+  
+  // Build structured input for the AI
+  const shotSummary = shots.map(s => {
+    if (s.dialogue) return `Shot ${s.shotNumber}: "${s.dialogue}"`;
+    return `Shot ${s.shotNumber}: [Visual: ${s.description}]`;
+  }).join('\n');
+  
+  const systemPrompt = `You are a professional narrator creating voiceover for a ${overallMood} video.
+
+Your task: Transform the following shot-by-shot content into ONE flowing narration script.
+
+Rules:
+1. Write in a natural, conversational tone suitable for voiceover
+2. Create smooth transitions between ideas - no choppy sentences
+3. Keep the emotional tone consistent with the ${overallMood} mood
+4. If shots contain dialogue, weave it naturally into the narration
+5. If shots only have visual descriptions, describe what's happening poetically
+6. The narration should feel like ONE cohesive story, not separate scenes
+7. Keep it under 500 words for pacing
+8. Do NOT include any stage directions, shot numbers, or technical notes
+9. Write ONLY the narration text - no quotes, no "Narrator:", just the spoken words`;
+
+  const userPrompt = `Here are the shots to narrate:\n\n${shotSummary}\n\nWrite a flowing narration script:`;
+
+  try {
+    console.log(`[Hollywood] Creating AI-enhanced narration from ${shots.length} shots...`);
+    
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Hollywood] Narration AI error:", response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const narration = data.choices?.[0]?.message?.content?.trim();
+    
+    if (!narration) {
+      throw new Error("Empty narration response");
+    }
+    
+    console.log(`[Hollywood] AI-enhanced narration created: ${narration.length} chars`);
+    return narration;
+    
+  } catch (err) {
+    console.error("[Hollywood] AI narration failed, using fallback:", err);
+    // Fallback: return dialogues or basic descriptions
+    return shots
+      .map(s => s.dialogue || '')
+      .filter(Boolean)
+      .join(' ') || shots.map(s => s.description).filter(Boolean).join('. ');
+  }
+}
+
 // Update project with pipeline progress (includes degradation tracking)
 async function updateProjectProgress(
   supabase: any, 
@@ -1243,34 +1333,48 @@ async function runAssetCreation(
   state.progress = 55;
   await updateProjectProgress(supabase, state.projectId, 'assets', 55);
   
-  // 3b. Generate voice narration (ALWAYS - no optional flag)
-  console.log(`[Hollywood] Generating voice narration...`);
+  // 3b. Generate voice narration with AI-enhanced flow
+  console.log(`[Hollywood] Generating AI-enhanced voice narration...`);
   state.degradation = state.degradation || {};
   
   try {
-    const narrationText = state.script?.shots
-      ?.map(shot => shot.dialogue || shot.description)
-      .join(' ')
-      .substring(0, 2000) || '';
+    // Collect raw shot content for AI rewriting
+    const rawShots = state.script?.shots?.map((shot, i) => ({
+      shotNumber: i + 1,
+      dialogue: shot.dialogue || '',
+      description: shot.description || '',
+      mood: shot.mood || '',
+    })) || [];
     
-    if (narrationText && narrationText.length > 50) {
-      const voiceResult = await callEdgeFunction('generate-voice', {
-        text: narrationText,
-        voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
-        projectId: state.projectId,
-      });
+    if (rawShots.length > 0) {
+      // Use AI to create flowing narration from shot content
+      const enhancedNarration = await createFlowingNarration(rawShots, request.mood || 'cinematic');
       
-      if (voiceResult.audioUrl) {
-        state.assets.voiceUrl = voiceResult.audioUrl;
-        state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
-        console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
+      if (enhancedNarration && enhancedNarration.length > 50) {
+        console.log(`[Hollywood] AI-enhanced narration created: ${enhancedNarration.length} chars`);
+        
+        const voiceResult = await callEdgeFunction('generate-voice', {
+          text: enhancedNarration,
+          voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
+          projectId: state.projectId,
+          voiceType: 'narrator',
+        });
+        
+        if (voiceResult.audioUrl) {
+          state.assets.voiceUrl = voiceResult.audioUrl;
+          state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
+          console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
+        } else {
+          console.error(`[Hollywood] Voice generation returned no URL`);
+          state.degradation.voiceGenerationFailed = true;
+          console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
+        }
       } else {
-        console.error(`[Hollywood] Voice generation returned no URL`);
+        console.warn(`[Hollywood] AI narration enhancement returned insufficient text`);
         state.degradation.voiceGenerationFailed = true;
-        console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
       }
     } else {
-      console.warn(`[Hollywood] No narration text available (${narrationText?.length || 0} chars)`);
+      console.warn(`[Hollywood] No shots available for narration`);
     }
   } catch (err) {
     console.error(`[Hollywood] Voice generation FAILED:`, err);

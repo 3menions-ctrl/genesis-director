@@ -188,7 +188,16 @@ function ProjectCard({
     return null;
   }, [project.video_url, project.video_clips, isDirectVideo]);
 
-  // Handle hover play/pause - videos are always visible, no loading state needed
+  // Force video to show a frame when loaded - browsers need this to display video thumbnail
+  const handleVideoLoaded = useCallback(() => {
+    const video = videoRef.current;
+    if (video && video.duration > 0) {
+      // Seek to 10% of video to get a good thumbnail frame (skip potential black intro)
+      video.currentTime = Math.min(video.duration * 0.1, 1);
+    }
+  }, []);
+
+  // Handle hover play/pause
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
     const video = videoRef.current;
@@ -203,9 +212,9 @@ function ProjectCard({
     const video = videoRef.current;
     if (video) {
       video.pause();
-      // Seek to a position for thumbnail frame
+      // Seek back to thumbnail frame
       if (video.duration && video.duration > 0) {
-        video.currentTime = Math.min(video.duration * 0.25, 1);
+        video.currentTime = Math.min(video.duration * 0.1, 1);
       }
     }
   }, []);
@@ -382,7 +391,9 @@ function ProjectCard({
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
+              onLoadedData={handleVideoLoaded}
+              crossOrigin="anonymous"
             />
             
             {/* Cinematic bars on hover */}

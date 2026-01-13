@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============================================================================
+// APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
+// Ensures every clip is Hollywood-grade regardless of user input
+// ============================================================================
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+
 /**
  * Generate Bridge Clip - Veed-Level Transition Filler
  * 
@@ -100,9 +106,10 @@ serve(async (req) => {
       }
     }
 
-    // Add cinematic transition instructions
-    enhancedPrompt = `Cinematic transition shot: ${enhancedPrompt}. Smooth, gradual camera movement. Professional color grading. Maintain visual continuity with surrounding scenes. No jarring cuts or sudden changes.`;
+    // Add cinematic transition instructions + APEX QUALITY SUFFIX
+    enhancedPrompt = `Cinematic transition shot: ${enhancedPrompt}. Smooth, gradual camera movement. Professional color grading. Maintain visual continuity with surrounding scenes. No jarring cuts or sudden changes${APEX_QUALITY_SUFFIX}`;
 
+    console.log(`[BridgeClip] 🎬 APEX Quality Suffix appended`);
     console.log(`[BridgeClip] Enhanced prompt: ${enhancedPrompt.substring(0, 150)}...`);
 
     // Convert starting frame to base64

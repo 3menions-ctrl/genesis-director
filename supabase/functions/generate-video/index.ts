@@ -428,6 +428,12 @@ const TRANSITION_HINTS: Record<string, string> = {
   "follow-through": "action carries viewer to next scene",
 };
 
+// ============================================================================
+// APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
+// Ensures every clip is Hollywood-grade regardless of user input
+// ============================================================================
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+
 // Build enhanced prompt with APEX Physics Engine, Quality Maximizer, SMART CAMERA ANGLES, and VELOCITY VECTORING
 function buildConsistentPrompt(
   basePrompt: string,
@@ -436,7 +442,9 @@ function buildConsistentPrompt(
   transitionOut?: string,
   qualityTier: number = 10
 ): { prompt: string; negativePrompt: string } {
-  let prompt = basePrompt;
+  // STEP 0: Always append mandatory quality suffix to user prompt FIRST
+  let prompt = basePrompt + APEX_QUALITY_SUFFIX;
+  console.log('[APEX] Mandatory quality suffix appended to prompt');
   
   // Detect scene type for physics profile selection
   const sceneType = detectSceneType(basePrompt);

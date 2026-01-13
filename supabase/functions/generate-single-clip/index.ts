@@ -115,6 +115,12 @@ function buildCharacterSpecificNegatives(nonFacialAnchors?: any): string[] {
 }
 
 // =====================================================
+// APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
+// Ensures every clip is Hollywood-grade regardless of user input
+// =====================================================
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+
+// =====================================================
 // SPATIAL-ACTION LOCK ENGINE (Embedded)
 // Detects chase/pursuit/follow relationships and enforces positioning
 // =====================================================
@@ -3952,7 +3958,9 @@ serve(async (req) => {
         .eq('shot_index', request.clipIndex);
     }
     
-    const safePrompt = safetyCheck.sanitizedPrompt;
+    // Apply APEX MANDATORY QUALITY SUFFIX to every prompt
+    const safePrompt = safetyCheck.sanitizedPrompt + APEX_QUALITY_SUFFIX;
+    console.log(`[SingleClip] 🎬 APEX Quality Suffix appended to prompt`);
 
     // =====================================================
     // SPATIAL-ACTION LOCK: Detect and enforce multi-character positioning

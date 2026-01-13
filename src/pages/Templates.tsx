@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LayoutTemplate, Search, Play, Clock, Users, Sparkles,
-  Film, Megaphone, BookOpen, Smile, Heart, Briefcase,
-  Loader2, ArrowRight, Star, TrendingUp, Zap, Moon, Mountain
+  Film, Megaphone, BookOpen, Smile, Briefcase,
+  Loader2, ArrowRight, Star, TrendingUp, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,12 +32,11 @@ interface Template {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'All Templates', icon: LayoutTemplate },
+  { id: 'all', label: 'All', icon: LayoutTemplate },
   { id: 'cinematic', label: 'Cinematic', icon: Film },
   { id: 'commercial', label: 'Commercial', icon: Megaphone },
   { id: 'educational', label: 'Educational', icon: BookOpen },
   { id: 'entertainment', label: 'Entertainment', icon: Smile },
-  { id: 'lifestyle', label: 'Lifestyle', icon: Heart },
   { id: 'corporate', label: 'Corporate', icon: Briefcase },
 ];
 
@@ -56,6 +54,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'epic',
     genre: 'ad',
     is_featured: true,
+    gradient: 'from-violet-500/20 via-fuchsia-500/20 to-pink-500/20',
   },
   {
     id: 'featured-2',
@@ -69,6 +68,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'documentary',
     is_featured: true,
+    gradient: 'from-amber-500/20 via-orange-500/20 to-red-500/20',
   },
   {
     id: 'featured-3',
@@ -82,6 +82,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'vlog',
     is_featured: true,
+    gradient: 'from-cyan-500/20 via-blue-500/20 to-indigo-500/20',
   },
   {
     id: 'template-edu-1',
@@ -95,6 +96,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'educational',
     is_featured: false,
+    gradient: 'from-emerald-500/20 via-teal-500/20 to-cyan-500/20',
   },
   {
     id: 'template-story-1',
@@ -108,6 +110,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'storytelling',
     is_featured: false,
+    gradient: 'from-rose-500/20 via-pink-500/20 to-fuchsia-500/20',
   },
   {
     id: 'template-noir-1',
@@ -121,17 +124,20 @@ const BUILT_IN_TEMPLATES = [
     mood: 'mysterious',
     genre: 'cinematic',
     is_featured: false,
+    gradient: 'from-slate-500/20 via-gray-500/20 to-zinc-500/20',
   },
 ];
 
 function TemplateCard({ 
   template, 
   onUse, 
-  isFeatured = false 
+  isFeatured = false,
+  index = 0,
 }: { 
-  template: Template | typeof BUILT_IN_TEMPLATES[0];
+  template: typeof BUILT_IN_TEMPLATES[0]; 
   onUse: () => void;
   isFeatured?: boolean;
+  index?: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -146,106 +152,114 @@ function TemplateCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <Card className={cn(
-        "group relative overflow-hidden transition-all duration-300 cursor-pointer",
-        "card-premium hover:shadow-xl",
-        isFeatured && "ring-2 ring-primary/20"
+        "group relative overflow-hidden transition-all duration-500 cursor-pointer border-0",
+        "bg-white/[0.03] hover:bg-white/[0.06]",
+        "hover:shadow-2xl hover:shadow-white/5",
+        isFeatured && "ring-1 ring-white/10"
       )}>
-        {/* Thumbnail / Visual */}
-        <div className="relative aspect-video bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
-          {template.thumbnail_url ? (
-            <img 
-              src={template.thumbnail_url} 
-              alt={template.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
+        {/* Gradient Background */}
+        <div className={cn(
+          "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+          template.gradient || 'from-violet-500/10 to-transparent'
+        )} />
+        
+        {/* Content */}
+        <div className="relative">
+          {/* Visual Header */}
+          <div className={cn(
+            "relative h-40 overflow-hidden bg-gradient-to-br",
+            template.gradient || 'from-white/[0.05] to-white/[0.02]'
+          )}>
+            {/* Icon */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative">
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
-                  "bg-gradient-to-br from-primary/10 to-primary/5",
-                  isHovered && "scale-110"
-                )}>
-                  <CategoryIcon className="w-8 h-8 text-primary/60" />
-                </div>
-              </div>
+              <motion.div 
+                className={cn(
+                  "w-20 h-20 rounded-2xl flex items-center justify-center",
+                  "bg-white/10 backdrop-blur-sm border border-white/10"
+                )}
+                animate={{ scale: isHovered ? 1.1 : 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CategoryIcon className="w-10 h-10 text-white/60" />
+              </motion.div>
             </div>
-          )}
-          
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
-          {/* Featured badge */}
-          {isFeatured && (
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-primary text-primary-foreground shadow-lg">
-                <Star className="w-3 h-3 mr-1" />
-                Featured
+            
+            {/* Featured badge */}
+            {isFeatured && (
+              <div className="absolute top-4 left-4">
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
+                  <Star className="w-3 h-3 mr-1" />
+                  Featured
+                </Badge>
+              </div>
+            )}
+            
+            {/* Mood badge */}
+            <div className="absolute top-4 right-4">
+              <Badge variant="outline" className="bg-black/40 backdrop-blur-sm border-white/20 text-white/80">
+                {template.mood}
               </Badge>
             </div>
-          )}
-          
-          {/* Quick use button */}
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <Button 
-                  onClick={onUse}
-                  className="shadow-xl"
+            
+            {/* Hover overlay with action */}
+            <AnimatePresence>
+              {isHovered && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center"
                 >
-                  <Play className="w-4 h-4 mr-2" />
-                  Use Template
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <Button 
+                    onClick={onUse}
+                    className="bg-white text-black hover:bg-white/90 shadow-xl"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Use Template
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h3 className="font-semibold text-white line-clamp-1 text-lg">
+                {template.name}
+              </h3>
+            </div>
+            
+            <p className="text-sm text-white/50 line-clamp-2 mb-4 min-h-[40px]">
+              {template.description || 'No description available'}
+            </p>
+            
+            <div className="flex items-center gap-4 text-xs text-white/40">
+              {template.clip_count && (
+                <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-full">
+                  <Film className="w-3.5 h-3.5" />
+                  {template.clip_count} clips
+                </span>
+              )}
+              {template.target_duration_minutes && (
+                <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-full">
+                  <Clock className="w-3.5 h-3.5" />
+                  {template.target_duration_minutes} min
+                </span>
+              )}
+              {template.use_count && template.use_count > 0 && (
+                <span className="flex items-center gap-1.5 ml-auto">
+                  <Users className="w-3.5 h-3.5" />
+                  {template.use_count.toLocaleString()}
+                </span>
+              )}
+            </div>
+          </CardContent>
         </div>
-        
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-semibold text-foreground line-clamp-1">
-              {template.name}
-            </h3>
-            <Badge variant="secondary" className="shrink-0 text-xs">
-              {template.category}
-            </Badge>
-          </div>
-          
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {template.description || 'No description available'}
-          </p>
-          
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            {template.clip_count && (
-              <span className="flex items-center gap-1">
-                <Film className="w-3.5 h-3.5" />
-                {template.clip_count} clips
-              </span>
-            )}
-            {template.target_duration_minutes && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {template.target_duration_minutes} min
-              </span>
-            )}
-            {template.use_count && template.use_count > 0 && (
-              <span className="flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
-                {template.use_count.toLocaleString()}
-              </span>
-            )}
-          </div>
-        </CardContent>
       </Card>
     </motion.div>
   );
@@ -282,7 +296,14 @@ export default function Templates() {
     }
   };
 
-  const filteredTemplates = templates.filter(template => {
+  // Combine DB templates with built-in templates
+  const allTemplates = [...BUILT_IN_TEMPLATES, ...templates.map(t => ({
+    ...t,
+    is_featured: false,
+    gradient: 'from-white/[0.05] to-white/[0.02]',
+  }))];
+
+  const filteredTemplates = allTemplates.filter(template => {
     const matchesSearch = !searchQuery || 
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -292,147 +313,184 @@ export default function Templates() {
     return matchesSearch && matchesCategory;
   });
 
+  const featuredTemplates = filteredTemplates.filter(t => t.is_featured);
+  const regularTemplates = filteredTemplates.filter(t => !t.is_featured);
+
   const handleUseTemplate = (templateId: string) => {
     navigate(`/create?template=${templateId}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+    <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-30%] left-[-20%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-violet-500/[0.03] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-30%] right-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-tl from-blue-500/[0.02] to-transparent blur-[180px]" />
+      </div>
+      
       <AppHeader showCreate={false} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 mb-6 shadow-lg shadow-primary/20">
-            <LayoutTemplate className="w-8 h-8 text-primary-foreground" />
+        <motion.div 
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-500 to-fuchsia-500 mb-8 shadow-2xl shadow-violet-500/20">
+            <LayoutTemplate className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white mb-4">
             Video Templates
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-white/50 max-w-2xl mx-auto">
             Start with professionally crafted templates and bring your vision to life faster
           </p>
-        </div>
+        </motion.div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <motion.div 
+          className="flex flex-col sm:flex-row gap-4 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
             <Input
               placeholder="Search templates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-background/80 backdrop-blur-sm border-border/50"
+              className="pl-12 h-12 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 rounded-xl"
             />
           </div>
           
-          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="bg-muted/60 backdrop-blur-sm">
-              {CATEGORIES.slice(0, 4).map((cat) => (
-                <TabsTrigger key={cat.id} value={cat.id} className="gap-1.5">
-                  <cat.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{cat.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Featured Templates */}
-        <section className="mb-12">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-warning" />
-            </div>
-            <h2 className="text-xl font-semibold text-foreground">Popular Templates</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {BUILT_IN_TEMPLATES.filter(t => t.is_featured).map((template) => (
-              <TemplateCard 
-                key={template.id}
-                template={template as any}
-                onUse={() => handleUseTemplate(template.id)}
-                isFeatured
-              />
+          <div className="flex gap-2 flex-wrap">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                  activeCategory === cat.id
+                    ? "bg-white text-black"
+                    : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                )}
+              >
+                <cat.icon className="w-4 h-4" />
+                {cat.label}
+              </button>
             ))}
           </div>
-        </section>
+        </motion.div>
+
+        {/* Featured Templates */}
+        {featuredTemplates.length > 0 && (
+          <section className="mb-16">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Popular Templates</h2>
+                <p className="text-white/40 text-sm">Most used by creators</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredTemplates.map((template, index) => (
+                <TemplateCard 
+                  key={template.id}
+                  template={template}
+                  onUse={() => handleUseTemplate(template.id)}
+                  isFeatured
+                  index={index}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* All Templates */}
         <section>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white/60" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">
-                {activeCategory === 'all' ? 'All Templates' : CATEGORIES.find(c => c.id === activeCategory)?.label}
-              </h2>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {activeCategory === 'all' ? 'All Templates' : CATEGORIES.find(c => c.id === activeCategory)?.label}
+                </h2>
+                <p className="text-white/40 text-sm">{regularTemplates.length} templates available</p>
+              </div>
             </div>
-            <Badge variant="outline" className="text-muted-foreground">
-              {filteredTemplates.length} templates
-            </Badge>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-24">
               <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Loading templates...</p>
+                <Loader2 className="w-10 h-10 animate-spin text-white/40" />
+                <p className="text-white/40">Loading templates...</p>
               </div>
             </div>
-          ) : filteredTemplates.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <LayoutTemplate className="w-8 h-8 text-muted-foreground/50" />
+          ) : regularTemplates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] flex items-center justify-center mb-6">
+                <LayoutTemplate className="w-10 h-10 text-white/20" />
               </div>
-              <h3 className="font-semibold text-foreground mb-2">No templates found</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
+              <h3 className="font-semibold text-white text-xl mb-2">No templates found</h3>
+              <p className="text-white/40 max-w-sm">
                 {searchQuery 
                   ? 'Try adjusting your search or filters'
-                  : 'Templates will appear here once they are created'}
+                  : 'More templates coming soon'}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredTemplates.map((template, index) => (
-                <motion.div
+              {regularTemplates.map((template, index) => (
+                <TemplateCard 
                   key={template.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                >
-                  <TemplateCard 
-                    template={template}
-                    onUse={() => handleUseTemplate(template.id)}
-                  />
-                </motion.div>
+                  template={template}
+                  onUse={() => handleUseTemplate(template.id)}
+                  index={index}
+                />
               ))}
             </div>
           )}
         </section>
 
         {/* CTA Section */}
-        <section className="mt-16 text-center">
-          <Card className="card-premium p-8 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="max-w-2xl mx-auto">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-6 h-6 text-primary" />
+        <motion.section 
+          className="mt-20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Card className="border-0 bg-gradient-to-br from-white/[0.05] to-white/[0.02] overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/10" />
+            <CardContent className="relative py-12 px-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-violet-500/20">
+                <Zap className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
+              <h3 className="text-2xl font-bold text-white mb-3">
                 Can't find what you're looking for?
               </h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-white/50 mb-8 max-w-md mx-auto">
                 Start from scratch and create your own custom video with our AI-powered studio
               </p>
-              <Button onClick={() => navigate('/create')} size="lg">
+              <Button 
+                onClick={() => navigate('/create')} 
+                size="lg"
+                className="bg-white text-black hover:bg-white/90 shadow-xl h-12 px-8"
+              >
                 Create Custom Video
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </div>
+            </CardContent>
           </Card>
-        </section>
+        </motion.section>
       </main>
     </div>
   );

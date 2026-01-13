@@ -1,17 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Palette, Search, Sun, Moon, Sunrise, CloudSun,
-  Building, TreePine, Waves, Mountain, Home, Sparkles,
-  Loader2, Check, Copy, Eye, Plus, Paintbrush, Lightbulb,
-  Camera, Layers, Wand2
+  TreePine, Waves, Mountain, Home, Sparkles,
+  Check, Eye, Wand2, Lightbulb, Camera, Layers,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,13 +31,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'golden_hour',
     },
     colorPalette: {
-      primary: 'hsl(35, 85%, 55%)',
-      secondary: 'hsl(25, 70%, 45%)',
-      accent: 'hsl(45, 90%, 65%)',
-      shadows: 'hsl(20, 40%, 25%)',
+      primary: '#D4A056',
+      secondary: '#B87333',
+      accent: '#F5C563',
+      shadows: '#5C3D2E',
     },
     mood: 'cinematic',
     icon: Sunrise,
+    gradient: 'from-amber-500/30 via-orange-500/20 to-yellow-500/10',
   },
   {
     id: 'neon_noir_city',
@@ -53,13 +53,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'night',
     },
     colorPalette: {
-      primary: 'hsl(280, 80%, 50%)',
-      secondary: 'hsl(190, 85%, 45%)',
-      accent: 'hsl(340, 90%, 55%)',
-      shadows: 'hsl(240, 30%, 10%)',
+      primary: '#9B4DCA',
+      secondary: '#00CED1',
+      accent: '#FF1493',
+      shadows: '#1A1A2E',
     },
     mood: 'dramatic',
     icon: Moon,
+    gradient: 'from-violet-500/30 via-fuchsia-500/20 to-cyan-500/10',
   },
   {
     id: 'coastal_serenity',
@@ -74,13 +75,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'midday',
     },
     colorPalette: {
-      primary: 'hsl(195, 75%, 60%)',
-      secondary: 'hsl(45, 80%, 70%)',
-      accent: 'hsl(150, 50%, 60%)',
-      shadows: 'hsl(200, 30%, 35%)',
+      primary: '#5DADE2',
+      secondary: '#F4D03F',
+      accent: '#58D68D',
+      shadows: '#3498DB',
     },
     mood: 'peaceful',
     icon: Waves,
+    gradient: 'from-cyan-500/30 via-blue-500/20 to-teal-500/10',
   },
   {
     id: 'forest_mystique',
@@ -95,13 +97,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'afternoon',
     },
     colorPalette: {
-      primary: 'hsl(120, 45%, 35%)',
-      secondary: 'hsl(90, 55%, 45%)',
-      accent: 'hsl(45, 70%, 55%)',
-      shadows: 'hsl(150, 35%, 20%)',
+      primary: '#2E7D32',
+      secondary: '#689F38',
+      accent: '#C9A227',
+      shadows: '#1B4332',
     },
     mood: 'mysterious',
     icon: TreePine,
+    gradient: 'from-emerald-500/30 via-green-500/20 to-lime-500/10',
   },
   {
     id: 'modern_minimalist',
@@ -116,13 +119,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'controlled',
     },
     colorPalette: {
-      primary: 'hsl(0, 0%, 95%)',
-      secondary: 'hsl(0, 0%, 85%)',
-      accent: 'hsl(0, 0%, 15%)',
-      shadows: 'hsl(0, 0%, 70%)',
+      primary: '#F5F5F5',
+      secondary: '#D9D9D9',
+      accent: '#2D2D2D',
+      shadows: '#B3B3B3',
     },
     mood: 'professional',
-    icon: Building,
+    icon: Home,
+    gradient: 'from-slate-400/30 via-gray-400/20 to-zinc-400/10',
   },
   {
     id: 'alpine_dawn',
@@ -137,13 +141,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'dawn',
     },
     colorPalette: {
-      primary: 'hsl(210, 60%, 75%)',
-      secondary: 'hsl(35, 70%, 60%)',
-      accent: 'hsl(350, 65%, 55%)',
-      shadows: 'hsl(220, 40%, 30%)',
+      primary: '#87CEEB',
+      secondary: '#DAA520',
+      accent: '#DC143C',
+      shadows: '#4A6FA5',
     },
     mood: 'inspiring',
     icon: Mountain,
+    gradient: 'from-sky-500/30 via-blue-500/20 to-indigo-500/10',
   },
   {
     id: 'cozy_firelight',
@@ -158,13 +163,14 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'evening',
     },
     colorPalette: {
-      primary: 'hsl(25, 90%, 45%)',
-      secondary: 'hsl(15, 85%, 35%)',
-      accent: 'hsl(40, 80%, 55%)',
-      shadows: 'hsl(10, 50%, 15%)',
+      primary: '#CD853F',
+      secondary: '#8B4513',
+      accent: '#DEB887',
+      shadows: '#3D1F0F',
     },
     mood: 'intimate',
-    icon: Home,
+    icon: Sun,
+    gradient: 'from-orange-500/30 via-amber-500/20 to-red-500/10',
   },
   {
     id: 'overcast_drama',
@@ -179,18 +185,19 @@ const ENVIRONMENT_PRESETS = [
       timeOfDay: 'overcast',
     },
     colorPalette: {
-      primary: 'hsl(210, 20%, 60%)',
-      secondary: 'hsl(200, 15%, 50%)',
-      accent: 'hsl(180, 25%, 45%)',
-      shadows: 'hsl(220, 25%, 35%)',
+      primary: '#7F8C8D',
+      secondary: '#6C7A89',
+      accent: '#5D8AA8',
+      shadows: '#4A5568',
     },
     mood: 'contemplative',
     icon: CloudSun,
+    gradient: 'from-slate-500/30 via-gray-500/20 to-zinc-500/10',
   },
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: 'All Environments', icon: Palette },
+  { id: 'all', label: 'All', icon: Palette },
   { id: 'interior', label: 'Interior', icon: Home },
   { id: 'exterior', label: 'Exterior', icon: TreePine },
 ];
@@ -210,14 +217,14 @@ function ColorSwatch({ color, label }: { color: string; label: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="group flex flex-col items-center gap-1 transition-transform hover:scale-105"
+      className="group flex flex-col items-center gap-1.5 transition-transform hover:scale-105"
     >
       <div 
-        className="w-10 h-10 rounded-lg shadow-md border border-border/50 transition-all group-hover:shadow-lg"
+        className="w-12 h-12 rounded-xl shadow-lg border border-white/10 transition-all group-hover:shadow-xl group-hover:scale-110"
         style={{ backgroundColor: color }}
       />
-      <span className="text-[10px] text-muted-foreground capitalize">{label}</span>
-      {copied && <Check className="w-3 h-3 text-success absolute" />}
+      <span className="text-[10px] text-white/40 capitalize font-medium">{label}</span>
+      {copied && <Check className="w-3 h-3 text-emerald-400 absolute -top-1 -right-1" />}
     </button>
   );
 }
@@ -226,10 +233,12 @@ function EnvironmentCard({
   environment,
   onApply,
   onPreview,
+  index = 0,
 }: { 
   environment: typeof ENVIRONMENT_PRESETS[0];
   onApply: () => void;
   onPreview: () => void;
+  index?: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const Icon = environment.icon;
@@ -255,58 +264,73 @@ function EnvironmentCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Card className="group card-premium overflow-hidden transition-all duration-300 hover:shadow-xl">
-        {/* Visual Header */}
+      <Card className={cn(
+        "group relative overflow-hidden transition-all duration-500 cursor-pointer border-0",
+        "bg-white/[0.03] hover:bg-white/[0.06]",
+        "hover:shadow-2xl hover:shadow-white/5"
+      )}>
+        {/* Visual Header with gradient from color palette */}
         <div 
-          className="relative h-32 overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${environment.colorPalette.primary}, ${environment.colorPalette.secondary})`,
-          }}
+          className={cn(
+            "relative h-36 overflow-hidden bg-gradient-to-br",
+            environment.gradient
+          )}
         >
           {/* Pattern overlay */}
-          <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 opacity-30">
             <div className="absolute inset-0" style={{
-              backgroundImage: `radial-gradient(circle at 30% 70%, ${environment.colorPalette.accent} 0%, transparent 50%)`,
+              backgroundImage: `radial-gradient(circle at 30% 70%, ${environment.colorPalette.accent}40 0%, transparent 50%)`,
             }} />
           </div>
           
           {/* Icon */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className={cn(
-              "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
-              "bg-white/20 backdrop-blur-sm",
-              isHovered && "scale-110"
-            )}>
-              <Icon className="w-8 h-8 text-white" />
-            </div>
+            <motion.div 
+              className={cn(
+                "w-18 h-18 rounded-2xl flex items-center justify-center",
+                "bg-white/10 backdrop-blur-sm border border-white/20"
+              )}
+              animate={{ scale: isHovered ? 1.1 : 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Icon className="w-9 h-9 text-white/80" />
+            </motion.div>
           </div>
           
           {/* Category badge */}
           <div className="absolute top-3 left-3">
-            <Badge variant="secondary" className="bg-white/90 text-foreground shadow-sm">
+            <Badge className="bg-black/40 backdrop-blur-sm text-white/90 border-0 capitalize">
               {environment.category}
             </Badge>
           </div>
           
-          {/* Quick actions */}
+          {/* Lighting badge */}
+          <div className="absolute top-3 right-3">
+            <Badge variant="outline" className="bg-black/40 backdrop-blur-sm border-white/20 text-white/80 gap-1">
+              <lightingInfo.icon className="w-3 h-3" />
+              {lightingInfo.label}
+            </Badge>
+          </div>
+          
+          {/* Quick actions on hover */}
           <AnimatePresence>
             {isHovered && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center gap-3"
               >
-                <Button size="sm" variant="secondary" onClick={onPreview}>
-                  <Eye className="w-4 h-4 mr-1" />
+                <Button size="sm" variant="outline" onClick={onPreview} className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <Eye className="w-4 h-4 mr-1.5" />
                   Preview
                 </Button>
-                <Button size="sm" onClick={onApply}>
-                  <Check className="w-4 h-4 mr-1" />
+                <Button size="sm" onClick={onApply} className="bg-white text-black hover:bg-white/90">
+                  <Check className="w-4 h-4 mr-1.5" />
                   Apply
                 </Button>
               </motion.div>
@@ -314,29 +338,25 @@ function EnvironmentCard({
           </AnimatePresence>
         </div>
         
-        <CardContent className="p-4">
+        <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-semibold text-foreground">
+            <h3 className="font-semibold text-white text-lg">
               {environment.name}
             </h3>
-            <Badge variant="outline" className="shrink-0 text-xs gap-1">
-              <lightingInfo.icon className="w-3 h-3" />
-              {lightingInfo.label}
-            </Badge>
           </div>
           
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+          <p className="text-sm text-white/50 line-clamp-2 mb-4 min-h-[40px]">
             {environment.description}
           </p>
           
-          {/* Color Palette */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-muted-foreground font-medium">Palette:</span>
+          {/* Color Palette Preview */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs text-white/30 font-medium">Palette:</span>
             <div className="flex gap-1.5">
               {Object.entries(environment.colorPalette).map(([key, color]) => (
                 <div
                   key={key}
-                  className="w-5 h-5 rounded shadow-sm border border-border/50"
+                  className="w-6 h-6 rounded-lg shadow-md border border-white/10"
                   style={{ backgroundColor: color }}
                   title={`${key}: ${color}`}
                 />
@@ -345,16 +365,18 @@ function EnvironmentCard({
           </div>
           
           {/* Lighting info */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
+          <div className="flex items-center gap-3 text-xs text-white/40">
+            <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-full capitalize">
               <Lightbulb className="w-3.5 h-3.5" />
               {environment.lighting.type}
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-full capitalize">
               <Camera className="w-3.5 h-3.5" />
               {environment.lighting.direction}
             </span>
-            <span className="capitalize">{environment.mood}</span>
+            <Badge variant="outline" className="border-white/10 text-white/50 capitalize ml-auto">
+              {environment.mood}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -382,7 +404,6 @@ export default function Environments() {
   });
 
   const handleApplyEnvironment = (environment: typeof ENVIRONMENT_PRESETS[0]) => {
-    // Navigate to create with environment preset
     navigate(`/create?environment=${environment.id}`);
     toast.success(`Applied "${environment.name}" environment`);
   };
@@ -392,139 +413,175 @@ export default function Environments() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+    <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-30%] left-[-20%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-emerald-500/[0.03] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-30%] right-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-tl from-cyan-500/[0.02] to-transparent blur-[180px]" />
+      </div>
+      
       <AppHeader showCreate={false} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 mb-6 shadow-lg shadow-primary/20">
-            <Palette className="w-8 h-8 text-primary-foreground" />
+        <motion.div 
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500 to-cyan-500 mb-8 shadow-2xl shadow-emerald-500/20">
+            <Palette className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
+          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-white mb-4">
             Environment DNA
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-white/50 max-w-2xl mx-auto">
             Craft your visual atmosphere with lighting, color palettes, and mood settings
           </p>
-        </div>
+        </motion.div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col gap-4 mb-8">
+        <motion.div 
+          className="flex flex-col gap-4 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
               <Input
                 placeholder="Search environments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-background/80 backdrop-blur-sm border-border/50"
+                className="pl-12 h-12 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 rounded-xl"
               />
             </div>
             
-            <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-              <TabsList className="bg-muted/60 backdrop-blur-sm">
-                {CATEGORIES.map((cat) => (
-                  <TabsTrigger key={cat.id} value={cat.id} className="gap-1.5">
-                    <cat.icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{cat.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-          
-          {/* Mood filters */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground font-medium">Mood:</span>
-            <div className="flex gap-1.5 flex-wrap">
-              <Badge
-                variant={activeMood === null ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setActiveMood(null)}
-              >
-                All
-              </Badge>
-              {MOODS.map((mood) => (
-                <Badge
-                  key={mood}
-                  variant={activeMood === mood ? "default" : "outline"}
-                  className="cursor-pointer capitalize"
-                  onClick={() => setActiveMood(mood === activeMood ? null : mood)}
+            <div className="flex gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                    activeCategory === cat.id
+                      ? "bg-white text-black"
+                      : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                  )}
                 >
-                  {mood}
-                </Badge>
+                  <cat.icon className="w-4 h-4" />
+                  {cat.label}
+                </button>
               ))}
             </div>
           </div>
-        </div>
+          
+          {/* Mood filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm text-white/40 font-medium">Mood:</span>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setActiveMood(null)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                  activeMood === null
+                    ? "bg-white text-black"
+                    : "bg-white/[0.05] text-white/50 hover:bg-white/[0.08] hover:text-white"
+                )}
+              >
+                All
+              </button>
+              {MOODS.map((mood) => (
+                <button
+                  key={mood}
+                  onClick={() => setActiveMood(mood === activeMood ? null : mood)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all capitalize",
+                    activeMood === mood
+                      ? "bg-white text-black"
+                      : "bg-white/[0.05] text-white/50 hover:bg-white/[0.08] hover:text-white"
+                  )}
+                >
+                  {mood}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         {/* Environment Grid */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
+        <section className="mb-16">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Layers className="w-4 h-4 text-primary" />
+              <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
+                <Layers className="w-5 h-5 text-white/60" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">
-                {activeCategory === 'all' ? 'All Environments' : CATEGORIES.find(c => c.id === activeCategory)?.label}
-              </h2>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {activeCategory === 'all' ? 'All Environments' : CATEGORIES.find(c => c.id === activeCategory)?.label}
+                </h2>
+                <p className="text-white/40 text-sm">{filteredEnvironments.length} environments available</p>
+              </div>
             </div>
-            <Badge variant="outline" className="text-muted-foreground">
-              {filteredEnvironments.length} environments
-            </Badge>
           </div>
 
           {filteredEnvironments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <Palette className="w-8 h-8 text-muted-foreground/50" />
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] flex items-center justify-center mb-6">
+                <Palette className="w-10 h-10 text-white/20" />
               </div>
-              <h3 className="font-semibold text-foreground mb-2">No environments found</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
+              <h3 className="font-semibold text-white text-xl mb-2">No environments found</h3>
+              <p className="text-white/40 max-w-sm">
                 Try adjusting your search or filters
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredEnvironments.map((environment, index) => (
-                <motion.div
+                <EnvironmentCard 
                   key={environment.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                >
-                  <EnvironmentCard 
-                    environment={environment}
-                    onApply={() => handleApplyEnvironment(environment)}
-                    onPreview={() => handlePreviewEnvironment(environment)}
-                  />
-                </motion.div>
+                  environment={environment}
+                  onApply={() => handleApplyEnvironment(environment)}
+                  onPreview={() => handlePreviewEnvironment(environment)}
+                  index={index}
+                />
               ))}
             </div>
           )}
         </section>
 
         {/* Create Custom CTA */}
-        <section className="mt-16 text-center">
-          <Card className="card-premium p-8 bg-gradient-to-br from-primary/5 to-transparent">
-            <div className="max-w-2xl mx-auto">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Wand2 className="w-6 h-6 text-primary" />
+        <motion.section 
+          className="mt-20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Card className="border-0 bg-gradient-to-br from-white/[0.05] to-white/[0.02] overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
+            <CardContent className="relative py-12 px-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
+                <Wand2 className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
+              <h3 className="text-2xl font-bold text-white mb-3">
                 Build Your Own Environment
               </h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-white/50 mb-8 max-w-md mx-auto">
                 Mix and match lighting, colors, and atmosphere settings to create your unique visual style
               </p>
-              <Button onClick={() => navigate('/create')} size="lg">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button 
+                onClick={() => navigate('/create')} 
+                size="lg"
+                className="bg-white text-black hover:bg-white/90 shadow-xl h-12 px-8"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
                 Create Custom Environment
               </Button>
-            </div>
+            </CardContent>
           </Card>
-        </section>
+        </motion.section>
       </main>
 
       {/* Environment Preview Modal */}
@@ -534,40 +591,46 @@ export default function Environments() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             onClick={() => setSelectedEnvironment(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
+              className="bg-[#1a1a1a] rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-white/10"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Preview header with gradient */}
               <div 
-                className="h-48 relative"
-                style={{
-                  background: `linear-gradient(135deg, ${selectedEnvironment.colorPalette.primary}, ${selectedEnvironment.colorPalette.secondary})`,
-                }}
+                className={cn(
+                  "h-56 relative bg-gradient-to-br",
+                  selectedEnvironment.gradient
+                )}
               >
+                <button
+                  onClick={() => setSelectedEnvironment(null)}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <selectedEnvironment.icon className="w-20 h-20 text-white/80" />
+                  <selectedEnvironment.icon className="w-24 h-24 text-white/60" />
                 </div>
               </div>
               
-              <div className="p-6">
-                <h2 className="text-2xl font-bold text-foreground mb-2">
+              <div className="p-8">
+                <h2 className="text-3xl font-bold text-white mb-2">
                   {selectedEnvironment.name}
                 </h2>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-white/50 mb-8 text-lg">
                   {selectedEnvironment.description}
                 </p>
                 
                 {/* Color palette */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Color Palette</h3>
-                  <div className="flex gap-4">
+                <div className="mb-8">
+                  <h3 className="text-sm font-semibold text-white/70 mb-4 uppercase tracking-wider">Color Palette</h3>
+                  <div className="flex gap-6">
                     {Object.entries(selectedEnvironment.colorPalette).map(([key, color]) => (
                       <ColorSwatch key={key} color={color} label={key} />
                     ))}
@@ -575,36 +638,43 @@ export default function Environments() {
                 </div>
                 
                 {/* Lighting details */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Lighting Settings</h3>
+                <div className="mb-8">
+                  <h3 className="text-sm font-semibold text-white/70 mb-4 uppercase tracking-wider">Lighting Settings</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground">Type</p>
-                      <p className="text-sm font-medium capitalize">{selectedEnvironment.lighting.type}</p>
+                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                      <p className="text-xs text-white/40 mb-1">Type</p>
+                      <p className="text-sm font-medium text-white capitalize">{selectedEnvironment.lighting.type}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground">Direction</p>
-                      <p className="text-sm font-medium capitalize">{selectedEnvironment.lighting.direction}</p>
+                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                      <p className="text-xs text-white/40 mb-1">Direction</p>
+                      <p className="text-sm font-medium text-white capitalize">{selectedEnvironment.lighting.direction}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground">Intensity</p>
-                      <p className="text-sm font-medium capitalize">{selectedEnvironment.lighting.intensity}</p>
+                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                      <p className="text-xs text-white/40 mb-1">Intensity</p>
+                      <p className="text-sm font-medium text-white capitalize">{selectedEnvironment.lighting.intensity}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground">Temperature</p>
-                      <p className="text-sm font-medium capitalize">{selectedEnvironment.lighting.temperature}</p>
+                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                      <p className="text-xs text-white/40 mb-1">Temperature</p>
+                      <p className="text-sm font-medium text-white capitalize">{selectedEnvironment.lighting.temperature}</p>
                     </div>
                   </div>
                 </div>
                 
                 <div className="flex justify-end gap-3">
-                  <Button variant="outline" onClick={() => setSelectedEnvironment(null)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSelectedEnvironment(null)}
+                    className="bg-white/[0.05] border-white/[0.1] text-white hover:bg-white/[0.1]"
+                  >
                     Close
                   </Button>
-                  <Button onClick={() => {
-                    handleApplyEnvironment(selectedEnvironment);
-                    setSelectedEnvironment(null);
-                  }}>
+                  <Button 
+                    onClick={() => {
+                      handleApplyEnvironment(selectedEnvironment);
+                      setSelectedEnvironment(null);
+                    }}
+                    className="bg-white text-black hover:bg-white/90"
+                  >
                     <Check className="w-4 h-4 mr-2" />
                     Apply Environment
                   </Button>

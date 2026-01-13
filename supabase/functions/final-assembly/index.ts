@@ -114,10 +114,10 @@ serve(async (req) => {
 
     console.log(`[FinalAssembly] Found ${clips.length} completed clips`);
 
-    // Step 2: Load project audio tracks
+    // Step 2: Load project audio tracks including narration preference
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
-      .select('voice_audio_url, music_url, pro_features_data, title')
+      .select('voice_audio_url, music_url, pro_features_data, title, include_narration')
       .eq('id', projectId)
       .single();
 
@@ -125,11 +125,13 @@ serve(async (req) => {
       console.warn(`[FinalAssembly] Could not load project:`, projectError);
     }
 
-    const voiceAudioUrl = project?.voice_audio_url;
+    // RESPECT include_narration flag - only include voice if enabled
+    const includeNarration = project?.include_narration !== false; // Default to true if not set
+    const voiceAudioUrl = includeNarration ? project?.voice_audio_url : null;
     const musicUrl = project?.music_url;
     const proFeatures = project?.pro_features_data as any;
 
-    console.log(`[FinalAssembly] Audio: voice=${!!voiceAudioUrl}, music=${!!musicUrl}`);
+    console.log(`[FinalAssembly] Audio: include_narration=${includeNarration}, voice=${!!voiceAudioUrl}, music=${!!musicUrl}`);
 
     // Step 3: Analyze transitions using vision AI
     console.log("[FinalAssembly] Step 2: Analyzing transitions...");

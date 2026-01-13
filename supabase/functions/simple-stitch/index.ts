@@ -79,10 +79,10 @@ serve(async (req) => {
 
     console.log(`[SimpleStitch] Found ${clips.length} completed clips`);
 
-    // Get project details
+    // Get project details including narration preference
     const { data: project } = await supabase
       .from('movie_projects')
-      .select('title, voice_audio_url, music_url, user_id, stitch_attempts')
+      .select('title, voice_audio_url, music_url, user_id, stitch_attempts, include_narration')
       .eq('id', projectId)
       .single();
 
@@ -207,9 +207,12 @@ serve(async (req) => {
 
     console.log(`[SimpleStitch] Mode: ${mode.toUpperCase()} (${clips.length} clips, ${chunkCount} chunk(s))`);
 
-    // Audio config
-    const hasVoice = !!project?.voice_audio_url;
+    // Audio config - RESPECT include_narration flag
+    const includeNarration = project?.include_narration !== false; // Default to true if not set
+    const hasVoice = includeNarration && !!project?.voice_audio_url;
     const hasMusic = !!project?.music_url;
+    
+    console.log(`[SimpleStitch] Audio: include_narration=${includeNarration}, hasVoice=${hasVoice}, hasMusic=${hasMusic}`);
     
     // Background processing
     const backgroundProcess = async () => {
@@ -342,7 +345,8 @@ serve(async (req) => {
           const mergeRequest = {
             projectId,
             chunkUrls: chunkResults,
-            voiceTrackUrl: project?.voice_audio_url || null,
+            // RESPECT include_narration: only include voice if hasVoice is true
+            voiceTrackUrl: hasVoice ? project?.voice_audio_url : null,
             backgroundMusicUrl: project?.music_url || null,
             audioMixParams: {
               musicVolume: hasVoice ? 0.3 : 0.8,
@@ -405,7 +409,8 @@ serve(async (req) => {
               transitionOut: 'fade',
             })),
             audioMixMode: hasVoice ? 'voice_over' : (hasMusic ? 'background_music' : 'mute'),
-            voiceTrackUrl: project?.voice_audio_url || null,
+            // RESPECT include_narration: only include voice if hasVoice is true
+            voiceTrackUrl: hasVoice ? project?.voice_audio_url : null,
             backgroundMusicUrl: project?.music_url || null,
             voiceVolume: 1.0,
             musicVolume: hasVoice ? 0.3 : 0.8,

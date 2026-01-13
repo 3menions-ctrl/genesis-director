@@ -63,6 +63,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
 import { cn } from '@/lib/utils';
+import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
 
 type PipelineMode = 'ai' | 'manual';
 type PipelineStage = 'idle' | 'preproduction' | 'awaiting_approval' | 'qualitygate' | 'assets' | 'production' | 'postproduction' | 'complete' | 'error';
@@ -1070,6 +1071,9 @@ export function UnifiedStudio() {
       </header>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Promotional Banner */}
+        <PromotionalBanner />
+        
         {/* Hero Section */}
         <div className="text-center space-y-3 mb-8">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">

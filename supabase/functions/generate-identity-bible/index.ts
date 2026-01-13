@@ -7,19 +7,15 @@ const corsHeaders = {
 };
 
 /**
- * ENHANCED Identity Bible Generator (v2.0)
+ * SIMPLIFIED Identity Bible Generator (v3.0)
  * 
- * 5-View Character Reference System:
- * - Front view
- * - Side view (profile)
- * - 3/4 view (angled)
- * - Back view (NEW)
- * - Silhouette/outline (NEW)
+ * Removed multi-view image generation - relies on:
+ * 1. Original uploaded reference image (source of truth)
+ * 2. Detailed character description prompts
+ * 3. Non-facial anchors for consistency
  * 
- * Plus Non-Facial Anchors for occlusion handling
+ * This is more reliable than AI-generated multi-views which often drift.
  */
-
-type ViewType = 'front' | 'side' | 'three-quarter' | 'back' | 'silhouette';
 
 interface NonFacialAnchors {
   bodyType: string;
@@ -43,38 +39,27 @@ interface NonFacialAnchors {
   overallSilhouette: string;
 }
 
-interface EnhancedIdentityBibleResult {
+interface IdentityBibleResult {
   success: boolean;
-  version: '2.0';
+  version: '3.0';
   originalImageUrl: string;
   
-  // 5-View System
-  views: {
-    front?: { imageUrl: string; generatedAt: number };
-    side?: { imageUrl: string; generatedAt: number };
-    threeQuarter?: { imageUrl: string; generatedAt: number };
-    back?: { imageUrl: string; generatedAt: number };
-    silhouette?: { imageUrl: string; generatedAt: number };
-  };
-  viewsComplete: boolean;
-  viewCount: number;
-  
-  // Character description
+  // Character description (the core identity)
   characterDescription: string;
   
   // Non-facial anchors (CRITICAL for occlusion handling)
   nonFacialAnchors: NonFacialAnchors;
   
-  // Backward compatible
+  // Consistency anchors (key features list)
   consistencyAnchors: string[];
-  frontViewUrl: string;
-  sideViewUrl: string;
-  threeQuarterViewUrl: string;
   
   // Enhanced prompts
   enhancedConsistencyPrompt: string;
   antiMorphingPrompts: string[];
   occlusionNegatives: string[];
+  
+  // Processing info
+  analysisTimeMs: number;
 }
 
 // Analyze image to extract ENHANCED character description with non-facial anchors
@@ -109,7 +94,7 @@ async function analyzeCharacterEnhanced(imageUrl: string): Promise<{
 
 Return ONLY valid JSON with this exact structure:
 {
-  "description": "Complete paragraph describing the character for regeneration prompts",
+  "description": "Complete paragraph describing the character for regeneration prompts - include face shape, skin tone, hair, eyes, expression, clothing, pose, and any distinctive features",
   "nonFacialAnchors": {
     "bodyType": "athletic build / slim / stocky / etc",
     "bodyProportions": "tall with broad shoulders / petite frame / etc",
@@ -194,130 +179,7 @@ function getDefaultNonFacialAnchors(): NonFacialAnchors {
   };
 }
 
-// Generate a character view using OpenAI gpt-image-1 (ENHANCED for 5 views)
-async function generateCharacterView(
-  characterDescription: string,
-  nonFacialAnchors: NonFacialAnchors,
-  viewType: ViewType,
-  supabase: any
-): Promise<string> {
-  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured');
-  }
-
-  const viewPrompts: Record<ViewType, string> = {
-    'front': 'front-facing portrait view, looking directly at camera, symmetrical face, centered composition',
-    'side': 'profile view, side-facing portrait, 90-degree angle showing full side of face, clean silhouette',
-    'three-quarter': 'three-quarter view portrait, 45-degree angle, showing both eyes with depth and dimension',
-    'back': 'back view, character facing away from camera, showing full back of head and body, clear view of hair from behind and clothing from back',
-    'silhouette': 'dramatic silhouette view, character as dark outline against bright background, showing distinctive body shape and hair outline'
-  };
-
-  // Build enhanced prompt with non-facial anchors for back/silhouette views
-  let characterDetails = characterDescription;
-  
-  if (viewType === 'back' || viewType === 'silhouette') {
-    characterDetails = `${characterDescription}
-
-CRITICAL NON-FACIAL DETAILS (must be visible):
-- Body: ${nonFacialAnchors.bodyType}, ${nonFacialAnchors.bodyProportions}
-- Clothing: ${nonFacialAnchors.clothingDescription}
-- Clothing colors: ${nonFacialAnchors.clothingColors.join(', ')}
-- Hair from behind: ${nonFacialAnchors.hairFromBehind || nonFacialAnchors.hairColor + ' ' + nonFacialAnchors.hairLength}
-- Silhouette: ${nonFacialAnchors.overallSilhouette}
-${nonFacialAnchors.backViewMarkers ? `- Back markers: ${nonFacialAnchors.backViewMarkers}` : ''}
-${nonFacialAnchors.accessories.length > 0 ? `- Accessories: ${nonFacialAnchors.accessories.join(', ')}` : ''}`;
-  }
-
-  const prompt = `Professional character reference sheet, ${viewPrompts[viewType]}.
-
-CHARACTER (MUST MATCH EXACTLY):
-${characterDetails}
-
-STYLE REQUIREMENTS:
-- Studio lighting with soft shadows
-- Neutral gray gradient background
-- High detail, sharp focus
-- Professional reference sheet style for character consistency
-- Same person, same clothing, same accessories as described
-- Photorealistic quality, no stylization
-${viewType === 'silhouette' ? '- Strong backlight creating clear silhouette outline' : ''}`;
-
-  console.log(`[Identity Bible v2] Generating ${viewType} view with OpenAI gpt-image-1...`);
-
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-image-1',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'high',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`[Identity Bible v2] OpenAI error for ${viewType}:`, errorText);
-    throw new Error(`Failed to generate ${viewType} view: ${errorText}`);
-  }
-
-  const data = await response.json();
-  const imageBase64 = data.data?.[0]?.b64_json;
-  
-  if (!imageBase64) {
-    const imageUrl = data.data?.[0]?.url;
-    if (imageUrl) {
-      const imageResponse = await fetch(imageUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const bytes = new Uint8Array(imageBuffer);
-      
-      const fileName = `identity_${viewType}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('character-references')
-        .upload(fileName, bytes, {
-          contentType: 'image/png',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      return `${supabaseUrl}/storage/v1/object/public/character-references/${fileName}`;
-    }
-    throw new Error(`No image generated for ${viewType} view`);
-  }
-
-  const fileName = `identity_${viewType}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
-  const bytes = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
-  
-  const { error: uploadError } = await supabase.storage
-    .from('character-references')
-    .upload(fileName, bytes, {
-      contentType: 'image/png',
-      upsert: true
-    });
-
-  if (uploadError) {
-    console.error(`[Identity Bible v2] Upload error for ${viewType}:`, uploadError);
-    throw uploadError;
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const publicUrl = `${supabaseUrl}/storage/v1/object/public/character-references/${fileName}`;
-  
-  console.log(`[Identity Bible v2] ${viewType} view uploaded:`, publicUrl);
-  return publicUrl;
-}
-
-// Build enhanced consistency prompt
+// Build enhanced consistency prompt from description and anchors
 function buildEnhancedConsistencyPrompt(
   description: string,
   nonFacialAnchors: NonFacialAnchors
@@ -340,7 +202,7 @@ function buildEnhancedConsistencyPrompt(
   return parts.join('\n');
 }
 
-// Get anti-morphing prompts
+// Get anti-morphing prompts (negative prompts to prevent character drift)
 function getAntiMorphingPrompts(): string[] {
   return [
     'character morphing',
@@ -388,7 +250,8 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const { imageUrl, imageBase64, generateBackView = true, generateSilhouette = true } = await req.json();
+    const { imageUrl, imageBase64 } = await req.json();
+    // Note: generateBackView and generateSilhouette params are now ignored (deprecated)
 
     if (!imageUrl && !imageBase64) {
       throw new Error("No image provided");
@@ -415,49 +278,16 @@ serve(async (req) => {
     }
 
     // Step 1: ENHANCED character analysis with non-facial anchors
-    console.log("[Identity Bible v2] Analyzing character with enhanced extraction...");
+    console.log("[Identity Bible v3] Analyzing character (no multi-view generation)...");
     const { description: characterDescription, nonFacialAnchors } = await analyzeCharacterEnhanced(originalImageUrl);
-    console.log("[Identity Bible v2] Character description:", characterDescription.substring(0, 150) + "...");
-    console.log("[Identity Bible v2] Non-facial anchors extracted:", {
+    console.log("[Identity Bible v3] Character description:", characterDescription.substring(0, 150) + "...");
+    console.log("[Identity Bible v3] Non-facial anchors extracted:", {
       bodyType: nonFacialAnchors.bodyType,
       clothingColors: nonFacialAnchors.clothingColors,
       hairColor: nonFacialAnchors.hairColor,
     });
-
-    // Step 2: Generate 5-view system (parallel where possible)
-    console.log("[Identity Bible v2] Generating 5-view reference system...");
     
-    const viewsToGenerate: ViewType[] = ['front', 'side', 'three-quarter'];
-    if (generateBackView) viewsToGenerate.push('back');
-    if (generateSilhouette) viewsToGenerate.push('silhouette');
-    
-    const viewResults = await Promise.allSettled(
-      viewsToGenerate.map(viewType => 
-        generateCharacterView(characterDescription, nonFacialAnchors, viewType, supabase)
-          .then(imageUrl => ({ viewType, imageUrl, success: true }))
-          .catch(error => ({ viewType, error: error.message, success: false }))
-      )
-    );
-    
-    // Build views object
-    const views: EnhancedIdentityBibleResult['views'] = {};
-    let successCount = 0;
-    
-    for (const result of viewResults) {
-      if (result.status === 'fulfilled' && result.value.success) {
-        const { viewType, imageUrl } = result.value as { viewType: ViewType; imageUrl: string; success: true };
-        const key = viewType === 'three-quarter' ? 'threeQuarter' : viewType;
-        views[key as keyof typeof views] = {
-          imageUrl,
-          generatedAt: Date.now(),
-        };
-        successCount++;
-      } else if (result.status === 'fulfilled') {
-        console.warn(`[Identity Bible v2] Failed to generate ${(result.value as any).viewType}:`, (result.value as any).error);
-      }
-    }
-    
-    // Extract consistency anchors (backward compatible)
+    // Extract consistency anchors (key features for quick reference)
     const consistencyAnchors = [
       characterDescription.match(/(?:skin tone|complexion)[^,.]*/i)?.[0] || '',
       characterDescription.match(/(?:hair|hairstyle)[^,.]*/i)?.[0] || '',
@@ -470,15 +300,12 @@ serve(async (req) => {
       nonFacialAnchors.overallSilhouette,
     ].filter(Boolean);
 
-    const result: EnhancedIdentityBibleResult = {
+    const analysisTimeMs = Date.now() - startTime;
+
+    const result: IdentityBibleResult = {
       success: true,
-      version: '2.0',
+      version: '3.0',
       originalImageUrl,
-      
-      // 5-View System
-      views,
-      viewsComplete: successCount >= 3, // At least front, side, three-quarter
-      viewCount: successCount,
       
       // Character description
       characterDescription,
@@ -486,39 +313,35 @@ serve(async (req) => {
       // Non-facial anchors
       nonFacialAnchors,
       
-      // Backward compatible fields
+      // Consistency anchors
       consistencyAnchors,
-      frontViewUrl: views.front?.imageUrl || '',
-      sideViewUrl: views.side?.imageUrl || '',
-      threeQuarterViewUrl: views.threeQuarter?.imageUrl || '',
       
       // Enhanced prompts
       enhancedConsistencyPrompt: buildEnhancedConsistencyPrompt(characterDescription, nonFacialAnchors),
       antiMorphingPrompts: getAntiMorphingPrompts(),
       occlusionNegatives: getOcclusionNegatives(),
+      
+      // Processing info
+      analysisTimeMs,
     };
 
-    const processingTimeMs = Date.now() - startTime;
-    console.log(`[Identity Bible v2] Complete in ${processingTimeMs}ms:`, {
-      viewsGenerated: successCount,
-      hasBackView: !!views.back,
-      hasSilhouette: !!views.silhouette,
+    console.log(`[Identity Bible v3] Complete in ${analysisTimeMs}ms (analysis only, no image generation)`);
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-    return new Response(
-      JSON.stringify({ ...result, processingTimeMs }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
   } catch (error) {
-    console.error("[Identity Bible v2] Error:", error);
+    console.error("[Identity Bible v3] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-        processingTimeMs: Date.now() - startTime,
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });

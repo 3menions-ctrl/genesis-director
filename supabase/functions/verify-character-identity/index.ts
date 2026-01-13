@@ -49,13 +49,8 @@ interface VerifyIdentityRequest {
       gait?: string;
       posture?: string;
     };
-    multiViewUrls?: {
-      frontViewUrl?: string;
-      sideViewUrl?: string;
-      threeQuarterViewUrl?: string;
-      backViewUrl?: string;
-      silhouetteUrl?: string;
-    };
+    // v3.0: Original reference URL (replaces multiViewUrls)
+    originalReferenceUrl?: string;
     views?: {
       front?: { imageUrl: string };
       side?: { imageUrl: string };
@@ -259,9 +254,9 @@ Return ONLY valid JSON:
     });
   }
   
-  // Add reference image if available - check both views and multiViewUrls
-  const referenceImageUrl = identityBible.views?.front?.imageUrl 
-    || identityBible.multiViewUrls?.frontViewUrl;
+  // Add reference image if available - v3.0: use originalReferenceUrl
+  const referenceImageUrl = identityBible.originalReferenceUrl 
+    || identityBible.views?.front?.imageUrl;
   
   if (referenceImageUrl) {
     messageContent.push({

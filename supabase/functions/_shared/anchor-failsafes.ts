@@ -391,29 +391,17 @@ export function validateIdentityBible(bible: any): { valid: boolean; errors: str
   
   const fixed = { ...bible };
   
-  // Validate at least one view URL exists
-  const hasViews = fixed.multiViewUrls?.frontViewUrl || 
-                   fixed.frontViewUrl || 
-                   fixed.views?.front?.imageUrl;
+  // v3.0: Check for originalReferenceUrl or any image source
+  const hasImageSource = fixed.originalReferenceUrl || 
+                         fixed.originalImageUrl;
   
-  if (!hasViews) {
-    errors.push('no view URLs available');
+  if (!hasImageSource) {
+    errors.push('no original reference image URL available');
   }
   
   // Validate character description
   if (!fixed.characterDescription && !fixed.characterIdentity?.description && !fixed.consistencyPrompt) {
     errors.push('no character description available');
-  }
-  
-  // Ensure multiViewUrls exists (backward compatibility)
-  if (!fixed.multiViewUrls && (fixed.frontViewUrl || fixed.sideViewUrl || fixed.threeQuarterViewUrl)) {
-    fixed.multiViewUrls = {
-      frontViewUrl: fixed.frontViewUrl,
-      sideViewUrl: fixed.sideViewUrl,
-      threeQuarterViewUrl: fixed.threeQuarterViewUrl,
-      backViewUrl: fixed.views?.back?.imageUrl,
-      silhouetteUrl: fixed.views?.silhouette?.imageUrl,
-    };
   }
   
   // Ensure consistencyAnchors exist

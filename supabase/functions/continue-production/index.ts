@@ -154,7 +154,7 @@ serve(async (req: Request) => {
           console.log(`  - consistencyPrompt: ${context.identityBible.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
           console.log(`  - consistencyAnchors: ${context.identityBible.consistencyAnchors?.length || 0}`);
           console.log(`  - nonFacialAnchors: ${context.identityBible.nonFacialAnchors ? 'YES' : 'NO'}`);
-          console.log(`  - multiViewUrls: ${context.identityBible.multiViewUrls ? 'YES' : 'NO'}`);
+          console.log(`  - originalReferenceUrl: ${context.identityBible.originalReferenceUrl ? 'YES' : 'NO'}`);
         } else {
           console.warn(`[ContinueProduction] ⚠️ No identityBible found in pro_features_data!`);
         }
@@ -172,8 +172,9 @@ serve(async (req: Request) => {
           ? context.accumulatedAnchors 
           : (proFeatures.accumulatedAnchors || []);
         context.referenceImageUrl = context.referenceImageUrl 
+          || proFeatures.referenceAnalysis?.imageUrl  // FIRST: Original uploaded image
           || proFeatures.goldenFrameData?.goldenFrameUrl
-          || context.identityBible?.multiViewUrls?.frontViewUrl;
+          || context.identityBible?.originalReferenceUrl;
         context.colorGrading = context.colorGrading || 'cinematic';
         context.qualityTier = context.qualityTier || 'standard';
         context.sceneImageLookup = context.sceneImageLookup || {};

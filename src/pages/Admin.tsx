@@ -378,17 +378,18 @@ export default function AdminDashboard() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
       <AppHeader showCreate={false} />
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Premium Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-obsidian">
-              <Shield className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Shield className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Admin Dashboard
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -396,37 +397,37 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-            <Crown className="w-3 h-3 mr-1" />
-            Admin
+          <Badge className="bg-primary/10 text-primary border border-primary/20 shadow-sm">
+            <Crown className="w-3.5 h-3.5 mr-1.5" />
+            Administrator
           </Badge>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
-            <TabsTrigger value="overview" className="gap-2">
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-muted/60 p-1.5 backdrop-blur-sm border border-border/50 shadow-sm">
+            <TabsTrigger value="overview" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" className="gap-2 relative">
+            <TabsTrigger value="messages" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2 relative">
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Messages</span>
               {messages.filter(m => m.status === 'new').length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 bg-destructive text-destructive-foreground text-xs font-semibold rounded-full flex items-center justify-center shadow-sm">
                   {messages.filter(m => m.status === 'new').length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2">
+            <TabsTrigger value="users" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="financials" className="gap-2">
+            <TabsTrigger value="financials" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <DollarSign className="w-4 h-4" />
               <span className="hidden sm:inline">Financials</span>
             </TabsTrigger>
-            <TabsTrigger value="audit" className="gap-2">
+            <TabsTrigger value="audit" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">Audit</span>
             </TabsTrigger>
@@ -435,70 +436,87 @@ export default function AdminDashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="glass-card">
+              <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
+                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
                     Total Users
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats?.total_users?.toLocaleString() || 0}</div>
-                  <p className="text-xs text-muted-foreground">+{stats?.users_today || 0} today</p>
+                  <div className="text-3xl font-bold text-foreground">{stats?.total_users?.toLocaleString() || 0}</div>
+                  <p className="text-sm text-success flex items-center gap-1 mt-1">
+                    <TrendingUp className="w-3 h-3" />
+                    +{stats?.users_today || 0} today
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2">
-                    <FolderKanban className="w-4 h-4" />
+                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
+                      <FolderKanban className="w-4 h-4 text-info" />
+                    </div>
                     Total Projects
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats?.total_projects?.toLocaleString() || 0}</div>
-                  <p className="text-xs text-muted-foreground">+{stats?.projects_today || 0} today</p>
+                  <div className="text-3xl font-bold text-foreground">{stats?.total_projects?.toLocaleString() || 0}</div>
+                  <p className="text-sm text-success flex items-center gap-1 mt-1">
+                    <TrendingUp className="w-3 h-3" />
+                    +{stats?.projects_today || 0} today
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2">
-                    <Coins className="w-4 h-4" />
+                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Coins className="w-4 h-4 text-warning" />
+                    </div>
                     Credits Sold
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats?.total_credits_sold?.toLocaleString() || 0}</div>
-                  <p className="text-xs text-muted-foreground">{stats?.total_credits_used?.toLocaleString() || 0} used</p>
+                  <div className="text-3xl font-bold text-foreground">{stats?.total_credits_sold?.toLocaleString() || 0}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{stats?.total_credits_used?.toLocaleString() || 0} used</p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card">
+              <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
+                  <CardDescription className="flex items-center gap-2 text-muted-foreground">
+                    <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                      <Activity className="w-4 h-4 text-success" />
+                    </div>
                     Active Jobs
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats?.active_generations || 0}</div>
-                  <p className="text-xs text-muted-foreground">{stats?.completed_videos || 0} videos completed</p>
+                  <div className="text-3xl font-bold text-foreground">{stats?.active_generations || 0}</div>
+                  <p className="text-sm text-muted-foreground mt-1">{stats?.completed_videos || 0} videos completed</p>
                 </CardContent>
               </Card>
             </div>
 
-            <Button onClick={fetchStats} variant="outline" size="sm">
+            <Button onClick={fetchStats} variant="outline" size="sm" className="shadow-sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Stats
             </Button>
           </TabsContent>
 
           {/* Messages Tab */}
-          <TabsContent value="messages" className="space-y-4">
+          <TabsContent value="messages" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Support Messages</h2>
-              <Button onClick={fetchMessages} variant="outline" size="sm" disabled={messagesLoading}>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Support Messages</h2>
+                <p className="text-sm text-muted-foreground">Manage customer inquiries and feedback</p>
+              </div>
+              <Button onClick={fetchMessages} variant="outline" size="sm" disabled={messagesLoading} className="shadow-sm">
                 {messagesLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                 Refresh
               </Button>
@@ -506,9 +524,9 @@ export default function AdminDashboard() {
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Message List */}
-              <Card className="h-[600px] overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Inbox</CardTitle>
+              <Card className="card-premium h-[600px] overflow-hidden">
+                <CardHeader className="pb-2 border-b border-border/50">
+                  <CardTitle className="text-base text-foreground">Inbox</CardTitle>
                   <CardDescription>
                     {messages.filter(m => m.status === 'new').length} unread messages
                   </CardDescription>
@@ -559,9 +577,9 @@ export default function AdminDashboard() {
               </Card>
 
               {/* Message Detail */}
-              <Card className="h-[600px] overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-base">Message Details</CardTitle>
+              <Card className="card-premium h-[600px] overflow-hidden">
+                <CardHeader className="border-b border-border/50">
+                  <CardTitle className="text-base text-foreground">Message Details</CardTitle>
                 </CardHeader>
                 <CardContent className="overflow-auto h-[calc(100%-80px)]">
                   {selectedMessage ? (
@@ -909,8 +927,7 @@ export default function AdminDashboard() {
             </Button>
           </TabsContent>
         </Tabs>
-      </div>
-
+      </main>
       {/* Credit Adjustment Dialog */}
       <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: '', reason: '' })}>
         <DialogContent>

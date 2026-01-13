@@ -89,9 +89,46 @@ serve(async (req: Request) => {
     const nextClipIndex = completedClipIndex + 1;
     console.log(`[ContinueProduction] Triggering clip ${nextClipIndex + 1}/${totalClips}...`);
 
-    // Load project data for context if not provided
+    // CRITICAL: Use the context passed from generate-single-clip (includes updated anchors)
     let context = pipelineContext;
-    if (!context) {
+    
+    // Merge completed clip result into context for continuity
+    if (completedClipResult) {
+      context = context || {};
+      
+      // Add completed clip's anchor to accumulated anchors
+      const newAnchor = completedClipResult.continuityManifest || {
+        clipIndex: completedClipIndex,
+        lastFrameUrl: completedClipResult.lastFrameUrl,
+        motionVectors: completedClipResult.motionVectors,
+        timestamp: Date.now(),
+      };
+      
+      context.accumulatedAnchors = context.accumulatedAnchors || [];
+      
+      // Avoid duplicate anchors
+      const hasAnchor = context.accumulatedAnchors.some(
+        (a: any) => a.clipIndex === completedClipIndex
+      );
+      if (!hasAnchor) {
+        context.accumulatedAnchors = [...context.accumulatedAnchors, newAnchor];
+      }
+      
+      // If this was clip 1 (index 0), set the reference image for the chain
+      if (completedClipIndex === 0 && completedClipResult.lastFrameUrl) {
+        context.referenceImageUrl = context.referenceImageUrl || completedClipResult.lastFrameUrl;
+        context.goldenFrameData = context.goldenFrameData || {
+          goldenFrameUrl: completedClipResult.lastFrameUrl,
+          extractedAt: Date.now(),
+          clipIndex: 0,
+        };
+      }
+      
+      console.log(`[ContinueProduction] Merged clip ${completedClipIndex + 1} result: ${context.accumulatedAnchors.length} anchors, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
+    }
+    
+    // If still no context, load from DB as fallback
+    if (!context || !context.referenceImageUrl) {
       console.log(`[ContinueProduction] Loading pipeline context from DB...`);
       const { data: projectData } = await supabase
         .from('movie_projects')
@@ -100,17 +137,18 @@ serve(async (req: Request) => {
         .single();
 
       if (projectData) {
-        context = {
-          identityBible: projectData.pro_features_data?.identityBible,
-          masterSceneAnchor: projectData.pro_features_data?.masterSceneAnchor,
-          goldenFrameData: projectData.pro_features_data?.goldenFrameData,
-          accumulatedAnchors: projectData.pro_features_data?.accumulatedAnchors || [],
-          referenceImageUrl: projectData.pro_features_data?.goldenFrameData?.goldenFrameUrl,
-          colorGrading: 'cinematic',
-          qualityTier: 'standard',
-          sceneImageLookup: {},
-          tierLimits: { maxRetries: 1 },
-        };
+        context = context || {};
+        context.identityBible = context.identityBible || projectData.pro_features_data?.identityBible;
+        context.masterSceneAnchor = context.masterSceneAnchor || projectData.pro_features_data?.masterSceneAnchor;
+        context.goldenFrameData = context.goldenFrameData || projectData.pro_features_data?.goldenFrameData;
+        context.accumulatedAnchors = (context.accumulatedAnchors && context.accumulatedAnchors.length > 0)
+          ? context.accumulatedAnchors 
+          : (projectData.pro_features_data?.accumulatedAnchors || []);
+        context.referenceImageUrl = context.referenceImageUrl || projectData.pro_features_data?.goldenFrameData?.goldenFrameUrl;
+        context.colorGrading = context.colorGrading || 'cinematic';
+        context.qualityTier = context.qualityTier || 'standard';
+        context.sceneImageLookup = context.sceneImageLookup || {};
+        context.tierLimits = context.tierLimits || { maxRetries: 1 };
 
         // Build scene image lookup
         if (projectData.scene_images && Array.isArray(projectData.scene_images)) {
@@ -121,7 +159,38 @@ serve(async (req: Request) => {
           }
         }
 
-        console.log(`[ContinueProduction] Context loaded: ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images`);
+        console.log(`[ContinueProduction] Context loaded from DB: ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
+      }
+    }
+    
+    // CRITICAL VALIDATION: Ensure we have required data for clip 2+
+    if (nextClipIndex > 0 && (!context?.referenceImageUrl || !context?.accumulatedAnchors?.length)) {
+      console.error(`[ContinueProduction] ⚠️ Missing required continuity data for clip ${nextClipIndex + 1}`);
+      console.error(`  referenceImageUrl: ${context?.referenceImageUrl ? 'YES' : 'MISSING'}`);
+      console.error(`  accumulatedAnchors: ${context?.accumulatedAnchors?.length || 0}`);
+      
+      // Try to get from completed clip 1
+      const { data: clip1 } = await supabase
+        .from('video_clips')
+        .select('last_frame_url, motion_vectors')
+        .eq('project_id', projectId)
+        .eq('shot_index', 0)
+        .eq('status', 'completed')
+        .single();
+      
+      if (clip1?.last_frame_url) {
+        console.log(`[ContinueProduction] ✓ Recovered referenceImageUrl from clip 1 in DB`);
+        context = context || {};
+        context.referenceImageUrl = clip1.last_frame_url;
+        context.goldenFrameData = { goldenFrameUrl: clip1.last_frame_url, clipIndex: 0 };
+        context.accumulatedAnchors = context.accumulatedAnchors || [];
+        if (context.accumulatedAnchors.length === 0) {
+          context.accumulatedAnchors.push({
+            clipIndex: 0,
+            lastFrameUrl: clip1.last_frame_url,
+            motionVectors: clip1.motion_vectors,
+          });
+        }
       }
     }
 

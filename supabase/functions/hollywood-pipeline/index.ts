@@ -3044,10 +3044,16 @@ async function runProduction(
                 retriesUsed: identityRetryCount,
               };
               
-              if (verification.passed || verification.overallScore >= 75) {
-                console.log(`[Hollywood] Character identity verified for clip ${i + 1}`);
+              // Premium threshold: 80 for $6/video quality
+              if (verification.passed || verification.overallScore >= 80) {
+                console.log(`[Hollywood] Character identity verified for clip ${i + 1} (premium threshold: 80)`);
                 break;
-              } else if (verification.driftDetected && verification.correctivePrompt && identityRetryCount < maxIdentityRetries - 1) {
+              } else if (verification.overallScore >= 70 && verification.overallScore < 80) {
+                // Borderline case - log warning but try to regenerate
+                console.log(`[Hollywood] ⚠️ Borderline identity score ${verification.overallScore}/100 - attempting regeneration for premium quality`);
+              }
+              
+              if (verification.driftDetected && verification.correctivePrompt && identityRetryCount < maxIdentityRetries - 1) {
                 console.log(`[Hollywood] Identity drift detected in clip ${i + 1}:`);
                 console.log(`  - Drift areas: ${verification.driftAreas?.join(', ') || 'unknown'}`);
                 console.log(`  - Regenerating with corrective prompt...`);

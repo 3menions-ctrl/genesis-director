@@ -699,9 +699,11 @@ async function stitchVideos(request) {
     await updateProgressInDb(projectId, 'crossfading', 40, null, effectiveCallbackUrl, effectiveCallbackKey);
     
     console.log(`[Stitch] Step 3: Applying ${transitionType} crossfades...`);
+    console.log(`[Stitch] Audio mode: ${audioMixMode} (mute=${audioMixMode === 'mute'})`);
     
     const transition = TRANSITION_TYPES[transitionType] || 'fade';
     const xfadeDuration = Math.min(transitionDuration, 1.0);
+    const shouldMuteAudio = audioMixMode === 'mute';
     
     let currentPath = normalizedClips[0].normalizedPath;
     let accumulatedOffset = normalizedClips[0].actualDuration - xfadeDuration;
@@ -712,22 +714,39 @@ async function stitchVideos(request) {
       
       const offset = accumulatedOffset;
       
-      console.log(`[Stitch] Crossfading clip ${i} -> ${i + 1} at offset ${offset.toFixed(2)}s`);
+      console.log(`[Stitch] Crossfading clip ${i} -> ${i + 1} at offset ${offset.toFixed(2)}s (xfade=${xfadeDuration}s)`);
       
-      await runFFmpeg([
-        '-i', currentPath,
-        '-i', nextClip.normalizedPath,
-        '-filter_complex',
-        `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${offset}[outv];[0:a][1:a]acrossfade=d=${xfadeDuration}[outa]`,
-        '-map', '[outv]',
-        '-map', '[outa]',
-        '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '18',
-        '-c:a', 'aac',
-        '-y',
-        outputPath
-      ], `Crossfade transition ${i}/${normalizedClips.length - 1}`);
+      // When muting, use video-only xfade (no audio crossfade)
+      if (shouldMuteAudio) {
+        await runFFmpeg([
+          '-i', currentPath,
+          '-i', nextClip.normalizedPath,
+          '-filter_complex',
+          `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${offset}[outv]`,
+          '-map', '[outv]',
+          '-an',  // No audio output
+          '-c:v', 'libx264',
+          '-preset', 'fast',
+          '-crf', '18',
+          '-y',
+          outputPath
+        ], `Crossfade transition ${i}/${normalizedClips.length - 1} (muted)`);
+      } else {
+        await runFFmpeg([
+          '-i', currentPath,
+          '-i', nextClip.normalizedPath,
+          '-filter_complex',
+          `[0:v][1:v]xfade=transition=${transition}:duration=${xfadeDuration}:offset=${offset}[outv];[0:a][1:a]acrossfade=d=${xfadeDuration}[outa]`,
+          '-map', '[outv]',
+          '-map', '[outa]',
+          '-c:v', 'libx264',
+          '-preset', 'fast',
+          '-crf', '18',
+          '-c:a', 'aac',
+          '-y',
+          outputPath
+        ], `Crossfade transition ${i}/${normalizedClips.length - 1}`);
+      }
       
       currentPath = outputPath;
       accumulatedOffset += nextClip.actualDuration - xfadeDuration;
@@ -742,17 +761,32 @@ async function stitchVideos(request) {
     const colorProfile = customColorProfile || COLOR_PRESETS[colorGrading] || COLOR_PRESETS.cinematic;
     const colorFilter = `eq=${colorProfile.eq},colorbalance=${colorProfile.colorbalance}`;
     
-    await runFFmpeg([
-      '-i', currentPath,
-      '-vf', colorFilter,
-      '-c:v', 'libx264',
-      '-preset', 'fast',
-      '-crf', '18',
-      '-c:a', 'copy',
-      '-movflags', '+faststart',
-      '-y',
-      concatenatedPath
-    ], `Color grading with ${colorGrading}`);
+    // When muting, strip audio entirely
+    if (shouldMuteAudio) {
+      await runFFmpeg([
+        '-i', currentPath,
+        '-vf', colorFilter,
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-an',  // No audio
+        '-movflags', '+faststart',
+        '-y',
+        concatenatedPath
+      ], `Color grading with ${colorGrading} (muted)`);
+    } else {
+      await runFFmpeg([
+        '-i', currentPath,
+        '-vf', colorFilter,
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '18',
+        '-c:a', 'copy',
+        '-movflags', '+faststart',
+        '-y',
+        concatenatedPath
+      ], `Color grading with ${colorGrading}`);
+    }
     
     let finalPath = concatenatedPath;
     const totalDuration = validClips.reduce((sum, c) => sum + (c.durationSeconds || 4), 0);

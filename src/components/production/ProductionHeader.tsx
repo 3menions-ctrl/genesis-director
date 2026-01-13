@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
-  Film, Loader2, CheckCircle2, XCircle, Clock, X, RotateCcw
+  Film, Loader2, CheckCircle2, XCircle, Clock, X, RotateCcw, FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -187,6 +188,14 @@ export function ProductionHeader({
         {/* Top row: Title + Status + Progress */}
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* Projects link */}
+            <Link 
+              to="/projects" 
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+            </Link>
+            
             <div className={cn(
               "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
               isComplete ? "bg-emerald-500/15 text-emerald-400" : 

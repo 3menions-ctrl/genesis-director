@@ -137,6 +137,9 @@ function StatCard({
   );
 }
 
+// Global thumbnail cache for instant loading on navigation
+const thumbnailCache = new Map<string, string>();
+
 // ============= PROJECT CARD COMPONENT =============
 
 function ProjectCard({ 
@@ -170,8 +173,13 @@ function ProjectCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [posterFrame, setPosterFrame] = useState<string | null>(null);
+  
+  // Check cache first for instant display
+  const videoSrcForCache = project.video_clips?.length ? (project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0]) : 
+    (project.video_url && !isManifestUrl(project.video_url) ? project.video_url : null);
+  const cachedPoster = videoSrcForCache ? thumbnailCache.get(videoSrcForCache) : null;
+  const [posterFrame, setPosterFrame] = useState<string | null>(cachedPoster || project.thumbnail_url || null);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(Boolean(cachedPoster || project.thumbnail_url));
   
   const status = project.status as string;
   const hasVideo = Boolean(project.video_clips?.length || project.video_url);
@@ -184,17 +192,33 @@ function ProjectCard({
   useEffect(() => {
     if (!videoSrc) return;
     
+    // If already cached, use it immediately
+    if (thumbnailCache.has(videoSrc)) {
+      setPosterFrame(thumbnailCache.get(videoSrc)!);
+      setIsVideoLoaded(true);
+      return;
+    }
+
+    // If we have a thumbnail_url, use it
+    if (project.thumbnail_url) {
+      setPosterFrame(project.thumbnail_url);
+      setIsVideoLoaded(true);
+      return;
+    }
+    
+    let isMounted = true;
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
-    video.preload = 'auto';
+    video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
 
-    const handleCanPlay = () => {
-      video.currentTime = video.duration * 0.25 || 1;
+    const handleLoadedMetadata = () => {
+      video.currentTime = Math.min(video.duration * 0.25, 2);
     };
 
     const handleSeeked = () => {
+      if (!isMounted) return;
       try {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 320;
@@ -202,20 +226,22 @@ function ProjectCard({
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          // Cache for future navigation
+          thumbnailCache.set(videoSrc, dataUrl);
           setPosterFrame(dataUrl);
         }
-      } catch (e) {
+      } catch {
         // CORS error - fall back to video element
       }
       setIsVideoLoaded(true);
     };
 
     const handleError = () => {
-      setIsVideoLoaded(true);
+      if (isMounted) setIsVideoLoaded(true);
     };
 
-    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('seeked', handleSeeked);
     video.addEventListener('error', handleError);
     
@@ -223,17 +249,18 @@ function ProjectCard({
     video.load();
 
     const timeout = setTimeout(() => {
-      setIsVideoLoaded(true);
-    }, 2000);
+      if (isMounted) setIsVideoLoaded(true);
+    }, 3000);
 
     return () => {
-      video.removeEventListener('canplay', handleCanPlay);
+      isMounted = false;
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('seeked', handleSeeked);
       video.removeEventListener('error', handleError);
       video.src = '';
       clearTimeout(timeout);
     };
-  }, [videoSrc]);
+  }, [videoSrc, project.thumbnail_url]);
 
   useEffect(() => {
     if (!videoRef.current) return;

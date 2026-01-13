@@ -233,8 +233,9 @@
 .animate-scale-in { animation: scale-in 0.35s ease-out forwards; }
 .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
 .animate-slide-down { animation: slide-down 0.5s ease-out forwards; }
-.animate-shimmer { animation: shimmer 2s linear infinite; }
+.animate-shimmer { animation: shimmer-bg 1.5s linear infinite; background-size: 200% 100%; }
 .animate-shimmer-bg { animation: shimmer-bg 2.5s linear infinite; background-size: 200% 100%; }
+.bg-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); }
 .animate-pulse-soft { animation: pulse-soft 2.5s ease-in-out infinite; }
 .animate-pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
 .animate-float { animation: float 3.5s ease-in-out infinite; }

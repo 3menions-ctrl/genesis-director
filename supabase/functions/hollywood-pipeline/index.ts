@@ -1223,98 +1223,21 @@ async function runAssetCreation(
   state.assets = {};
   state.degradation = state.degradation || {};
   
-  // 3a. Generate scene reference images for ALL shots (removed slice limit)
-  console.log(`[Hollywood] Generating scene reference images for ALL shots...`);
+  // 3a. REMOVED: Scene image generation completely removed
+  // Frame extraction now relies ONLY on:
+  // 1. User-uploaded reference image for clip 1
+  // 2. FFmpeg-extracted frames from actual video clips for subsequent clips
+  // This ensures visual consistency comes from real video frames, not AI-generated images
   
-  if (state.script?.shots) {
-    try {
-      // Generate images for ALL shots, not just first 3
-      const scenes = state.script.shots.map((shot, i) => ({
-        sceneNumber: i + 1,
-        title: shot.title,
-        visualDescription: state.auditResult?.optimizedShots[i]?.optimizedDescription || shot.description,
-        mood: shot.mood,
-      }));
-      
-      const imageResult = await callEdgeFunction('generate-scene-images', {
-        scenes,
-        projectId: state.projectId,
-        userId: request.userId, // For callback continuation
-        globalStyle: 'Cinematic film still, professional color grading, high detail',
-        triggerNextStage: true, // CRITICAL: Enable callback continuation to prevent stalls
-      });
-      
-      if (imageResult.images && imageResult.images.length > 0) {
-        state.assets.sceneImages = imageResult.images;
-        console.log(`[Hollywood] Generated ${imageResult.images.length} scene images for ALL shots`);
-        
-        // CRITICAL: Persist scene_images to DB immediately for fallback access
-        try {
-          await supabase
-            .from('movie_projects')
-            .update({ 
-              scene_images: imageResult.images,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', state.projectId);
-          console.log(`[Hollywood] ✓ Scene images persisted to DB for fallback access`);
-        } catch (persistErr) {
-          console.warn(`[Hollywood] Failed to persist scene_images:`, persistErr);
-        }
-        
-        // SAFEGUARD: Track partial scene image failure
-        const expectedCount = state.script.shots.length;
-        const generatedCount = imageResult.images.length;
-        if (generatedCount < expectedCount) {
-          state.degradation.sceneImagePartialFail = expectedCount - generatedCount;
-          console.warn(`[Hollywood] ⚠️ DEGRADATION: Only ${generatedCount}/${expectedCount} scene images generated`);
-        }
-      } else {
-        console.error(`[Hollywood] Scene image generation returned no images`);
-        state.degradation.sceneImagePartialFail = state.script.shots.length;
-        
-        // BULLETPROOF FALLBACK: Use reference image for all scenes if no scene images
-        if (request.referenceImageUrl) {
-          console.log(`[Hollywood] Using reference image as fallback for all scene images...`);
-          state.assets.sceneImages = state.script.shots.map((_, i) => ({
-            sceneNumber: i + 1,
-            imageUrl: request.referenceImageUrl as string,
-          }));
-          
-          // Persist fallback scene images
-          await supabase
-            .from('movie_projects')
-            .update({ 
-              scene_images: state.assets.sceneImages,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', state.projectId);
-          console.log(`[Hollywood] ✓ Fallback scene images (reference image) persisted`);
-        }
-      }
-    } catch (err) {
-      console.error(`[Hollywood] Scene image generation FAILED:`, err);
-      state.degradation.sceneImagePartialFail = state.script?.shots?.length || 0;
-      
-      // BULLETPROOF FALLBACK: Use reference image
-      if (request.referenceImageUrl) {
-        console.log(`[Hollywood] Scene image generation failed - using reference image as universal fallback...`);
-        state.assets.sceneImages = state.script.shots.map((_, i) => ({
-          sceneNumber: i + 1,
-          imageUrl: request.referenceImageUrl as string,
-        }));
-        
-        await supabase
-          .from('movie_projects')
-          .update({ 
-            scene_images: state.assets.sceneImages,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', state.projectId);
-      }
-    }
+  console.log(`[Hollywood] ⚡ Scene image generation DISABLED - using FFmpeg frame extraction only`);
+  console.log(`[Hollywood] Reference image available: ${!!request.referenceImageUrl}`);
+  
+  // Note: Reference image URL is passed directly to production stage via request.referenceImageUrl
+  // No need to store in state.assets since it comes from request
+  if (request.referenceImageUrl) {
+    console.log(`[Hollywood] ✓ Reference image will be used as anchor for first clip`);
   } else {
-    console.error(`[Hollywood] No script shots available for scene images`);
+    console.warn(`[Hollywood] ⚠️ No reference image provided - clip 1 will generate without visual anchor`);
   }
   
   state.progress = 55;

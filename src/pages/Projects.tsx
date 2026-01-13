@@ -7,7 +7,7 @@ import {
   Eye, Heart, Share2, RefreshCw, AlertCircle, Layers,
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
   BarChart3, Activity, Settings2, ChevronDown, X, Check,
-  Pin, PinOff, Archive, List, LayoutList, Command
+  Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -149,6 +149,7 @@ function ProjectCard({
   onDownload,
   onRetryStitch,
   onTogglePin,
+  onTogglePublic,
   isActive,
   isRetrying = false,
   isPinned = false,
@@ -163,6 +164,7 @@ function ProjectCard({
   onDownload: () => void;
   onRetryStitch?: () => void;
   onTogglePin?: () => void;
+  onTogglePublic?: () => void;
   isActive: boolean;
   isRetrying?: boolean;
   isPinned?: boolean;
@@ -339,6 +341,15 @@ function ProjectCard({
                 {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
                 {isPinned ? 'Unpin' : 'Pin'}
               </DropdownMenuItem>
+              {hasVideo && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn(
+                  "focus:bg-white/10",
+                  project.is_public ? "text-emerald-400 focus:text-emerald-300" : "text-white/80 focus:text-white"
+                )}>
+                  {project.is_public ? <Globe className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                  {project.is_public ? 'Public' : 'Share to Feed'}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-white/80 focus:text-white focus:bg-white/10">
                 <Pencil className="w-4 h-4 mr-2" />
                 Rename
@@ -547,6 +558,23 @@ function ProjectCard({
                 <Edit2 className="w-4 h-4" />
                 Edit Project
               </DropdownMenuItem>
+              {hasVideo && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/10 my-1" />
+                  <DropdownMenuItem 
+                    onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }}
+                    className={cn(
+                      "gap-2.5 text-sm rounded-lg py-2.5 px-3",
+                      project.is_public 
+                        ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" 
+                        : "text-white/80 focus:text-white focus:bg-white/10"
+                    )}
+                  >
+                    {project.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    {project.is_public ? 'Public on Feed' : 'Share to Feed'}
+                  </DropdownMenuItem>
+                </>
+              )}
               {status === 'stitching_failed' && onRetryStitch && (
                 <>
                   <DropdownMenuSeparator className="bg-white/10 my-1" />
@@ -664,6 +692,25 @@ export default function Projects() {
       return next;
     });
   }, []);
+
+  // Toggle public visibility
+  const handleTogglePublic = useCallback(async (project: Project) => {
+    const newIsPublic = !project.is_public;
+    try {
+      const { error } = await supabase
+        .from('movie_projects')
+        .update({ is_public: newIsPublic })
+        .eq('id', project.id);
+      
+      if (error) throw error;
+      
+      await refreshProjects();
+      toast.success(newIsPublic ? 'Video shared to Feed!' : 'Video removed from Feed');
+    } catch (err: any) {
+      console.error('Failed to toggle public:', err);
+      toast.error('Failed to update sharing settings');
+    }
+  }, [refreshProjects]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1209,6 +1256,7 @@ export default function Projects() {
                         onDownload={() => handleDownloadAll(project)}
                         onRetryStitch={() => handleGoogleStitch(project.id)}
                         onTogglePin={() => togglePin(project.id)}
+                        onTogglePublic={() => handleTogglePublic(project)}
                         isActive={activeProjectId === project.id}
                         isRetrying={retryingProjectId === project.id}
                         isPinned={pinnedProjects.has(project.id)}
@@ -1230,6 +1278,7 @@ export default function Projects() {
                         onDownload={() => handleDownloadAll(project)}
                         onRetryStitch={() => handleGoogleStitch(project.id)}
                         onTogglePin={() => togglePin(project.id)}
+                        onTogglePublic={() => handleTogglePublic(project)}
                         isActive={activeProjectId === project.id}
                         isRetrying={retryingProjectId === project.id}
                         isPinned={pinnedProjects.has(project.id)}

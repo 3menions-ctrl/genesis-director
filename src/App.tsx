@@ -31,6 +31,7 @@ const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Universes = lazy(() => import("./pages/Universes"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
+const Feed = lazy(() => import("./pages/Feed"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
 const queryClient = new QueryClient({
@@ -62,6 +63,11 @@ const App = () => (
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/feed" element={
+                  <ProtectedRoute>
+                    <Feed />
+                  </ProtectedRoute>
+                } />
                 <Route path="/help" element={<HelpCenter />} />
                 
                 {/* Onboarding - protected but no layout */}

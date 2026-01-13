@@ -318,6 +318,7 @@ export type Database = {
           genre: Database["public"]["Enums"]["movie_genre"]
           id: string
           include_narration: boolean
+          is_public: boolean | null
           is_template: boolean | null
           last_checkpoint_at: string | null
           last_error: string | null
@@ -354,6 +355,7 @@ export type Database = {
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
+          is_public?: boolean | null
           is_template?: boolean | null
           last_checkpoint_at?: string | null
           last_error?: string | null
@@ -390,6 +392,7 @@ export type Database = {
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
+          is_public?: boolean | null
           is_template?: boolean | null
           last_checkpoint_at?: string | null
           last_error?: string | null

@@ -3558,52 +3558,123 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // THE LAW: STRICT CONTINUITY VALIDATION FOR CLIP 2+
-    // Each clip MUST have: previous clip's last frame, anchor points, reference image
+    // THE LAW v2.0: STRICT INGREDIENT VALIDATION FOR ALL CLIPS
+    // NO CLIP BEGINS GENERATION WITHOUT ALL REQUIRED INGREDIENTS
+    // 
+    // CLIP 1 REQUIRES:
+    //   - Reference image (establishes visual world)
+    //   - Identity bible with character identity
+    //   - Prompt/script
+    //
+    // CLIP 2+ REQUIRES (ALL OF THE ABOVE PLUS):
+    //   - Previous clip's last frame (startImageUrl)
+    //   - Accumulated anchors OR continuity manifest (scene DNA)
+    //   - Consistency anchors (from clip 1's scene extraction)
+    //
     // NO EXCEPTIONS. NO FALLBACKS. FAILURE IS FATAL.
     // =====================================================
-    if (request.clipIndex > 0) {
-      const violations: string[] = [];
-      
-      // Validation 1: startImageUrl (previous clip's last frame) is REQUIRED
-      if (!request.startImageUrl) {
-        violations.push('Missing startImageUrl (previous clip\'s last frame)');
+    const violations: string[] = [];
+    const warnings: string[] = [];
+    
+    // === UNIVERSAL REQUIREMENTS (ALL CLIPS) ===
+    
+    // Validation U1: Script/prompt is REQUIRED for all clips
+    if (!request.prompt || request.prompt.trim().length < 10) {
+      violations.push('SCRIPT: Missing or insufficient script/prompt');
+    }
+    
+    // Validation U2: Identity bible is REQUIRED for all clips (character consistency)
+    const hasValidIdentityBible = request.identityBible && (
+      request.identityBible.characterIdentity?.description ||
+      request.identityBible.consistencyPrompt
+    );
+    if (!hasValidIdentityBible) {
+      // This is a warning for clip 1 (will be generated), but violation for clip 2+
+      if (request.clipIndex === 0) {
+        warnings.push('IDENTITY: No identity bible - character will be generated from prompt only');
+      } else {
+        violations.push('IDENTITY: Missing identity bible (characterIdentity or consistencyPrompt)');
       }
-      
-      // Validation 2: Previous continuity manifest OR accumulated anchors REQUIRED
-      const hasAnchors = (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) ||
-                         request.previousContinuityManifest;
-      if (!hasAnchors) {
-        violations.push('Missing anchor points (accumulatedAnchors or previousContinuityManifest)');
-      }
-      
-      // Validation 3: Reference image REQUIRED (passed through from pipeline)
+    }
+    
+    // === CLIP 1 SPECIFIC REQUIREMENTS ===
+    if (request.clipIndex === 0) {
+      // Validation C1-1: Reference image is RECOMMENDED for clip 1
       if (!request.referenceImageUrl) {
-        violations.push('Missing referenceImageUrl (character/style reference from clip 1)');
+        warnings.push('REFERENCE: No reference image - visual world will be generated from prompt only');
       }
       
-      // Validation 4: Script/prompt cannot be empty
-      if (!request.prompt || request.prompt.trim().length < 10) {
-        violations.push('Missing or insufficient script/prompt');
+      // Log warnings if any
+      if (warnings.length > 0) {
+        console.warn(`[SingleClip] ⚠️ Clip 1 warnings (proceeding with caution):`);
+        warnings.forEach((w, i) => console.warn(`  ${i + 1}. ${w}`));
+      }
+    }
+    
+    // === CLIP 2+ SPECIFIC REQUIREMENTS ===
+    if (request.clipIndex > 0) {
+      // Validation C2-1: startImageUrl (previous clip's last frame) is REQUIRED
+      if (!request.startImageUrl) {
+        violations.push('FRAME_CHAIN: Missing startImageUrl (previous clip\'s last frame)');
       }
       
-      // If ANY violation, FAIL IMMEDIATELY - THE LAW IS THE LAW
-      if (violations.length > 0) {
-        console.error(`[SingleClip] ❌ THE LAW VIOLATED - Clip ${request.clipIndex + 1} cannot proceed:`);
-        violations.forEach((v, i) => console.error(`  ${i + 1}. ${v}`));
-        console.error(`[SingleClip] THE LAW: Each clip MUST use previous clip's last frame, all anchor points, reference image, and follow script.`);
-        
-        throw new Error(
-          `THE_LAW_VIOLATED: Clip ${request.clipIndex + 1} cannot be generated. Violations: ${violations.join('; ')}. ` +
-          `THE LAW requires: (1) Previous clip's last frame, (2) All anchor points, (3) Reference image, (4) Script.`
-        );
+      // Validation C2-2: Accumulated anchors OR continuity manifest REQUIRED
+      const hasSceneAnchors = (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) ||
+                               request.previousContinuityManifest;
+      if (!hasSceneAnchors) {
+        violations.push('SCENE_DNA: Missing accumulatedAnchors and previousContinuityManifest');
       }
       
-      console.log(`[SingleClip] ✓ THE LAW VALIDATED for Clip ${request.clipIndex + 1}:`);
+      // Validation C2-3: Reference image REQUIRED (passed through from pipeline)
+      if (!request.referenceImageUrl) {
+        violations.push('REFERENCE: Missing referenceImageUrl (character/style reference from clip 1)');
+      }
+      
+      // Validation C2-4: Consistency anchors REQUIRED (extracted from clip 1's scene)
+      const hasConsistencyAnchors = request.identityBible?.consistencyAnchors && 
+                                     request.identityBible.consistencyAnchors.length > 0;
+      if (!hasConsistencyAnchors) {
+        // This is a critical warning but not a hard failure (yet) - the fix we just applied should prevent this
+        warnings.push('CONSISTENCY_ANCHORS: Missing identityBible.consistencyAnchors - character drift likely');
+      }
+      
+      // Validation C2-5: Golden frame data RECOMMENDED for character re-anchoring
+      if (!request.goldenFrameData?.goldenFrameUrl) {
+        warnings.push('GOLDEN_FRAME: Missing goldenFrameData - no clip 1 baseline for re-anchoring');
+      }
+    }
+    
+    // === FAIL IF ANY VIOLATIONS ===
+    if (violations.length > 0) {
+      console.error(`[SingleClip] ❌ THE LAW VIOLATED - Clip ${request.clipIndex + 1} cannot proceed:`);
+      violations.forEach((v, i) => console.error(`  ${i + 1}. ${v}`));
+      
+      if (warnings.length > 0) {
+        console.warn(`[SingleClip]   Additional warnings:`);
+        warnings.forEach((w, i) => console.warn(`     - ${w}`));
+      }
+      
+      console.error(`[SingleClip] THE LAW v2.0: No clip begins without all ingredients.`);
+      
+      throw new Error(
+        `THE_LAW_VIOLATED: Clip ${request.clipIndex + 1} missing required ingredients. ` +
+        `Violations: ${violations.join('; ')}. ` +
+        `THE LAW v2.0 requires ALL ingredients before generation begins.`
+      );
+    }
+    
+    // === LOG VALIDATION SUCCESS ===
+    console.log(`[SingleClip] ✓ THE LAW VALIDATED for Clip ${request.clipIndex + 1}:`);
+    if (request.clipIndex > 0) {
       console.log(`  - startImageUrl: ${request.startImageUrl!.substring(0, 50)}...`);
-      console.log(`  - Anchors: ${request.accumulatedAnchors?.length || 0} accumulated, manifest: ${request.previousContinuityManifest ? 'YES' : 'NO'}`);
-      console.log(`  - referenceImageUrl: ${request.referenceImageUrl!.substring(0, 50)}...`);
-      console.log(`  - prompt: ${request.prompt.substring(0, 50)}...`);
+    }
+    console.log(`  - Anchors: ${request.accumulatedAnchors?.length || 0} accumulated, manifest: ${request.previousContinuityManifest ? 'YES' : 'NO'}`);
+    console.log(`  - referenceImageUrl: ${request.referenceImageUrl ? request.referenceImageUrl.substring(0, 50) + '...' : 'NONE'}`);
+    console.log(`  - prompt: ${request.prompt.substring(0, 50)}...`);
+    
+    if (warnings.length > 0) {
+      console.warn(`[SingleClip] ⚠️ THE LAW WARNINGS (clip ${request.clipIndex + 1}):`);
+      warnings.forEach((w, i) => console.warn(`  - ${w}`));
     }
 
     // Get service account

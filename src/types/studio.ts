@@ -38,6 +38,7 @@ export interface Project {
   target_duration_minutes?: number;
   thumbnail_url?: string;
   pending_video_tasks?: PendingVideoTask[];
+  is_public?: boolean;
 }
 
 export interface AssetLayer {

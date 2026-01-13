@@ -74,6 +74,7 @@ function mapDbProject(dbProject: any): Project {
     target_duration_minutes: dbProject.target_duration_minutes,
     thumbnail_url: dbProject.thumbnail_url,
     pending_video_tasks: dbProject.pending_video_tasks || [],
+    is_public: dbProject.is_public ?? false,
   };
 }
 

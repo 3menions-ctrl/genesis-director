@@ -428,7 +428,7 @@ export default function Landing() {
                 Ready to try it?
               </h2>
               <p className="text-base sm:text-lg text-white/60 mb-6 sm:mb-8 max-w-xl mx-auto px-4">
-                Start with 60 free credits to create your first video
+                Start with 60 free credits — enough for 1 clip
               </p>
               <Button
                 onClick={() => navigate('/auth')}

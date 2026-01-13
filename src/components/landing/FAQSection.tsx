@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Absolutely! Every new account starts with 50 free credits—enough to create about 2 complete video clips. No credit card required to start. This lets you experience the full platform before committing to a paid plan."
+    answer: "Yes! Every new account starts with 60 free credits — enough for 1 video clip. No credit card required to start. This lets you try the platform before committing to a paid plan."
   },
   {
     question: "What file formats are supported?",

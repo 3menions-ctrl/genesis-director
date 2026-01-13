@@ -39,7 +39,7 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
         </div>
 
         <p className="text-xs text-white/50 mb-4">
-          Sign in to get <span className="text-white font-semibold">50 free credits</span> and start creating Iron-Clad videos.
+          Sign in to get <span className="text-white font-semibold">60 free credits</span> — enough for 1 clip.
         </p>
 
         <Button

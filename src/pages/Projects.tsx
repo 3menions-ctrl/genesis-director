@@ -170,84 +170,45 @@ function ProjectCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   
   const status = project.status as string;
+  // For direct stitched MP4s, use video_url; for manifests/clips, use video_clips array
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
   const hasVideo = Boolean(project.video_clips?.length || isDirectVideo);
-  const videoClips = project.video_clips?.length ? project.video_clips : 
-    (isDirectVideo ? [project.video_url] : []);
-  const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
-
-  // Robust video loading with multiple event handlers and timeout fallback
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoSrc) return;
-
-    let mounted = true;
-
-    const markLoaded = () => {
-      if (mounted && !isVideoLoaded) {
-        setIsVideoLoaded(true);
-        // Seek to 25% for thumbnail frame
-        if (video.duration) {
-          video.currentTime = Math.min(video.duration * 0.25, 1);
-        }
-      }
-    };
-
-    // Multiple events that indicate the video is ready to display
-    const handleLoadedMetadata = () => markLoaded();
-    const handleLoadedData = () => markLoaded();
-    const handleCanPlay = () => markLoaded();
-    const handleError = () => {
-      if (mounted) setIsVideoLoaded(true); // Show placeholder on error
-    };
-
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('error', handleError);
-
-    // Fallback timeout - if video hasn't loaded in 3 seconds, show it anyway
-    // This handles cases where events don't fire due to browser throttling
-    const timeout = setTimeout(() => {
-      if (mounted && !isVideoLoaded) {
-        console.log(`[ProjectCard] Timeout fallback for ${project.name}`);
-        setIsVideoLoaded(true);
-      }
-    }, 3000);
-
-    // If video already has data (cached), mark as loaded immediately
-    if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
-      markLoaded();
+  
+  // Determine video source - prioritize direct video_url for completed projects
+  const videoSrc = useMemo(() => {
+    if (isDirectVideo && project.video_url) {
+      return project.video_url;
     }
+    if (project.video_clips?.length) {
+      // Use second clip if available (more representative), else first
+      return project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0];
+    }
+    return null;
+  }, [project.video_url, project.video_clips, isDirectVideo]);
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('error', handleError);
-    };
-  }, [videoSrc, project.name, isVideoLoaded]);
-
-  // Handle hover play/pause
-  useEffect(() => {
+  // Handle hover play/pause - videos are always visible, no loading state needed
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
     const video = videoRef.current;
-    if (!video) return;
-    
-    if (isHovered && hasVideo && isVideoLoaded) {
+    if (video && hasVideo) {
       video.currentTime = 0;
       video.play().catch(() => {});
-    } else if (!isHovered) {
+    }
+  }, [hasVideo]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    const video = videoRef.current;
+    if (video) {
       video.pause();
-      if (video.duration) {
+      // Seek to a position for thumbnail frame
+      if (video.duration && video.duration > 0) {
         video.currentTime = Math.min(video.duration * 0.25, 1);
       }
     }
-  }, [isHovered, hasVideo, isVideoLoaded]);
+  }, []);
 
   const getStatusBadge = () => {
     if (hasVideo) {
@@ -324,10 +285,10 @@ function ProjectCard({
           <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-white/40">{formatTimeAgo(project.updated_at)}</span>
-            {videoClips.length > 0 && (
+            {(project.video_clips?.length ?? 0) > 0 && (
               <>
                 <span className="text-white/20">•</span>
-                <span className="text-xs text-white/40">{videoClips.length} clips</span>
+                <span className="text-xs text-white/40">{project.video_clips?.length} clips</span>
               </>
             )}
           </div>
@@ -396,8 +357,8 @@ function ProjectCard({
         ease: [0.16, 1, 0.3, 1]
       }}
       className="group relative cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={onPlay}
     >
       <div className={cn(
@@ -408,21 +369,7 @@ function ProjectCard({
         isActive && "ring-2 ring-white/30"
       )}>
         
-        {/* Loading skeleton */}
-        <AnimatePresence>
-          {!isVideoLoaded && hasVideo && videoSrc && (
-            <motion.div
-              initial={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-10 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.08]"
-            >
-              <div className="absolute inset-0 bg-shimmer bg-[length:200%_100%] animate-shimmer" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Video/Thumbnail */}
+        {/* Video/Thumbnail - always visible, no loading state */}
         {hasVideo && videoSrc ? (
           <>
             <video
@@ -430,13 +377,12 @@ function ProjectCard({
               src={videoSrc}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-                isVideoLoaded ? "opacity-100" : "opacity-0",
                 isHovered && "scale-105"
               )}
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
             />
             
             {/* Cinematic bars on hover */}
@@ -524,10 +470,10 @@ function ProjectCard({
                   <Clock className="w-3 h-3" />
                   {formatTimeAgo(project.updated_at)}
                 </span>
-                {videoClips.length > 0 && (
+                {(project.video_clips?.length ?? 0) > 0 && (
                   <span className="flex items-center gap-1">
                     <Film className="w-3 h-3" />
-                    {videoClips.length} clips
+                    {project.video_clips?.length} clips
                   </span>
                 )}
               </div>

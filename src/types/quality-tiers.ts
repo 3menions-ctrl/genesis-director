@@ -1,5 +1,5 @@
 // Quality Tier System Types
-// Standard (25 credits) vs Iron-Clad Professional (40 credits)
+// Premium-Only: $6 per clip (60 credits) - Zero-Waste guarantee on every clip
 
 export type QualityTier = 'standard' | 'professional';
 
@@ -14,36 +14,41 @@ export interface QualityTierConfig {
   includesVisualDebugger: boolean;
 }
 
+// All production is premium quality - no cheap tier
 export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'standard',
-    name: 'Standard',
-    credits: 25,
-    description: 'Fast production with standard quality checks',
+    name: 'Premium',
+    credits: 60, // $6.00 per clip
+    description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
-      'Voice synthesis',
-      'Frame chaining',
-      'Basic quality validation',
-    ],
-    maxRetries: 0,
-    includesAudit: false,
-    includesVisualDebugger: false,
-  },
-  {
-    id: 'professional',
-    name: 'Zero-Waste Premium',
-    credits: 50,
-    description: 'Premium 4s units with Zero-Waste guarantee',
-    features: [
-      'Everything in Standard',
+      'Voice synthesis with emotion',
+      'Frame chaining with motion vectors',
       'Director Audit analysis',
       'Visual Debugger loop',
       'Up to 4 autonomous retries',
       'Physics & identity validation',
-      'Character-First pacing',
-      '1.5s static scenery cap',
-      'Quality Insurance guarantee',
+      'Zero-Waste guarantee',
+    ],
+    maxRetries: 4,
+    includesAudit: true,
+    includesVisualDebugger: true,
+  },
+  {
+    id: 'professional',
+    name: 'Premium',
+    credits: 60, // Same - all clips are premium
+    description: 'Zero-Waste quality with autonomous retries',
+    features: [
+      'Script-to-video generation',
+      'Voice synthesis with emotion',
+      'Frame chaining with motion vectors',
+      'Director Audit analysis',
+      'Visual Debugger loop',
+      'Up to 4 autonomous retries',
+      'Physics & identity validation',
+      'Zero-Waste guarantee',
     ],
     maxRetries: 4,
     includesAudit: true,
@@ -51,19 +56,20 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   },
 ];
 
-// Credit cost breakdown for Professional tier (Zero-Waste Premium)
+// Credit cost breakdown - $6 per clip (60 credits at $0.10/credit)
 export const PROFESSIONAL_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 5,    // Script analysis
-  PRODUCTION: 20,       // Video generation
-  QUALITY_INSURANCE: 25, // Director audit + Visual debugger + 4 retry buffer
-  TOTAL: 50,
+  PRE_PRODUCTION: 10,   // Script analysis, scene optimization
+  PRODUCTION: 35,       // Video generation, voice synthesis
+  QUALITY_INSURANCE: 15, // Director audit + Visual debugger + 4 retry buffer
+  TOTAL: 60,            // = $6.00 per clip
 } as const;
 
-// Standard tier uses original billing
+// All clips are premium quality
 export const STANDARD_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 5,
-  PRODUCTION: 20,
-  TOTAL: 25,
+  PRE_PRODUCTION: 10,
+  PRODUCTION: 35,
+  QUALITY_INSURANCE: 15,
+  TOTAL: 60,
 } as const;
 
 // Visual Debugger result interface

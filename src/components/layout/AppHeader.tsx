@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, LogOut, 
-  Menu, X, Globe
+  Menu, X, Globe, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -174,6 +174,12 @@ export function AppHeader({
                       <HelpCircle className="w-4 h-4" />
                       Help Center
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')} className="text-sm text-amber-400 hover:text-amber-300 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2.5 px-3 gap-2.5">
+                        <Shield className="w-4 h-4" />
+                        Admin Panel
+                      </DropdownMenuItem>
+                    )}
                   </div>
                   <DropdownMenuSeparator className="bg-white/[0.06]" />
                   <DropdownMenuItem onClick={handleSignOut} className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5">

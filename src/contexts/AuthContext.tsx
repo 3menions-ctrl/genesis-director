@@ -28,6 +28,7 @@ interface AuthContextType {
   loading: boolean;
   isSessionVerified: boolean;
   profileError: string | null;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isSessionVerified, setIsSessionVerified] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Ref to track current session for synchronous access
   const sessionRef = useRef<Session | null>(null);
@@ -108,6 +110,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const checkAdminRole = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+      
+      return !!data;
+    } catch (err) {
+      console.error('Admin check failed:', err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     let refreshInterval: NodeJS.Timeout | null = null;
@@ -136,11 +159,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               fetchProfile(newSession.user.id).then((p) => {
                 if (mounted) setProfile(p);
               });
+              // Check admin role
+              checkAdminRole(newSession.user.id).then((admin) => {
+                if (mounted) setIsAdmin(admin);
+              });
             }
           }, 0);
         } else {
           setProfile(null);
           setProfileError(null);
+          setIsAdmin(false);
         }
       }
     );
@@ -160,11 +188,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (existingSession?.user) {
         const profileData = await fetchProfile(existingSession.user.id);
+        const adminStatus = await checkAdminRole(existingSession.user.id);
         if (mounted) {
           setProfile(profileData);
+          setIsAdmin(adminStatus);
           setLoading(false);
         }
       } else {
+        setIsAdmin(false);
         setLoading(false);
       }
     };
@@ -288,6 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isSessionVerified,
       profileError,
+      isAdmin,
       signIn,
       signUp,
       signOut,

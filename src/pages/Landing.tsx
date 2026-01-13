@@ -48,14 +48,14 @@ const FEATURES = [
   },
   {
     icon: Brain,
-    title: 'AI Script Generation',
-    description: 'Let AI craft compelling narratives, screenplays, and shot breakdowns automatically.',
+    title: 'Zero-Waste Quality',
+    description: 'AI automatically retries until every clip is perfect. No extra cost, guaranteed quality.',
     highlight: true,
   },
   {
     icon: Eye,
-    title: 'Character Lock',
-    description: 'Maintain visual identity across all scenes with advanced facial recognition.',
+    title: 'Visual Debugger',
+    description: 'AI validates physics, identity, and cinematic quality on every generated frame.',
   },
   {
     icon: Mic,
@@ -64,8 +64,8 @@ const FEATURES = [
   },
   {
     icon: Layers,
-    title: 'Smart Production',
-    description: 'Automated shot planning, scene breakdown, and cinematic orchestration.',
+    title: 'Director Audit',
+    description: 'Professional-grade scene analysis ensures Hollywood-quality results.',
   },
 ];
 
@@ -244,14 +244,20 @@ export default function Landing() {
 
           {/* Main headline */}
           <div className="text-center max-w-5xl mx-auto mb-8 sm:mb-10">
+            {/* Premium Quality Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-emerald-500/30 bg-emerald-500/10">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-sm font-medium text-emerald-400">Zero-Waste Quality Guarantee</span>
+            </div>
+            
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[6.5rem] font-bold tracking-tighter leading-[0.95] mb-6 sm:mb-8">
-              <span className="block hero-text">Create videos that</span>
+              <span className="block hero-text">Exceptional AI videos.</span>
               <span className="block mt-2 hero-text">
-                captivate the world
+                Every single time.
               </span>
             </h1>
             <p className="text-lg sm:text-xl lg:text-2xl hero-text-secondary max-w-2xl mx-auto leading-relaxed font-light px-4">
-              Transform text or images into cinema. AI writes your script, generates scenes, and produces professional videos.
+              $6 per clip. AI retries until perfect. No compromises on quality.
             </p>
           </div>
 
@@ -272,7 +278,7 @@ export default function Landing() {
               className="w-full sm:w-auto h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl hover:-translate-y-0.5 transition-all"
             >
               <Stars className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
-              See examples
+              See quality examples
             </Button>
           </div>
 

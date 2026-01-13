@@ -1,79 +1,82 @@
-import { Check, Sparkles, Zap, Crown, Building2 } from 'lucide-react';
+import { Check, Sparkles, Zap, Crown, Building2, Shield, RefreshCw, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-// Pricing tiers based on credit packages
+// Premium pricing: $6 per clip (60 credits) - Zero-Waste quality guarantee
 const PRICING_TIERS = [
   {
-    name: 'Free',
+    name: 'Free Trial',
     price: 0,
     period: 'forever',
-    credits: 50,
+    credits: 120,
     icon: Zap,
-    description: 'Perfect for trying out Apex Studio',
+    description: 'Experience premium quality',
     features: [
-      '50 free credits to start',
-      '~2 video clips included',
-      'All AI features unlocked',
-      'HD video export',
-      'Community support',
+      '120 credits to start',
+      '2 premium video clips',
+      'Zero-Waste quality guarantee',
+      'Autonomous AI retries',
+      '4K HDR export',
     ],
-    cta: 'Get Started Free',
+    cta: 'Try Free',
     popular: false,
     gradient: 'from-muted/50 to-muted/30',
   },
   {
-    name: 'Starter',
-    price: 29,
+    name: 'Creator',
+    price: 59,
     period: '/month',
-    credits: 250,
+    credits: 600,
     icon: Sparkles,
-    description: 'For creators getting started',
+    description: 'For serious content creators',
     features: [
-      '250 credits per month',
-      '~10 video clips per month',
-      'Priority video processing',
-      '4K video export',
-      'Email support',
+      '600 credits per month',
+      '10 premium clips per month',
+      'Zero-Waste guarantee',
+      'AI retries until perfect',
+      '4K HDR export',
+      'Priority support',
     ],
     cta: 'Start Creating',
     popular: false,
     gradient: 'from-blue-500/20 to-purple-500/20',
   },
   {
-    name: 'Growth',
-    price: 99,
+    name: 'Pro',
+    price: 149,
     period: '/month',
-    credits: 1000,
+    credits: 1800,
     icon: Crown,
-    description: 'Most popular for serious creators',
+    description: 'Most popular for professionals',
     features: [
-      '1,000 credits per month',
-      '~40 video clips per month',
-      'Fastest processing speed',
-      '4K + HDR export',
+      '1,800 credits per month',
+      '30 premium clips per month',
+      'Zero-Waste guarantee',
+      'Fastest processing queue',
+      '4K HDR + all exports',
       'Priority email support',
       'Custom voice cloning',
     ],
-    cta: 'Go Growth',
+    cta: 'Go Pro',
     popular: true,
     gradient: 'from-amber-500/30 to-orange-500/20',
   },
   {
-    name: 'Agency',
-    price: 249,
+    name: 'Studio',
+    price: 399,
     period: '/month',
-    credits: 3000,
+    credits: 6000,
     icon: Building2,
-    description: 'For teams and agencies',
+    description: 'For studios and agencies',
     features: [
-      '3,000 credits per month',
-      '~120 video clips per month',
+      '6,000 credits per month',
+      '100 premium clips per month',
+      'Zero-Waste guarantee',
       'Dedicated processing queue',
       'All export formats',
-      'Dedicated support manager',
+      'Dedicated account manager',
       'API access',
       'White-label options',
     ],
@@ -83,12 +86,12 @@ const PRICING_TIERS = [
   },
 ];
 
-// Credit cost breakdown
+// Premium quality breakdown - $6 per clip
 const CREDIT_COSTS = [
-  { action: 'Generate 4s video clip', credits: 25, breakdown: '5 pre-prod + 20 production' },
-  { action: 'AI script generation', credits: 2, breakdown: 'Per scene' },
-  { action: 'Voice synthesis', credits: 3, breakdown: 'Per minute' },
-  { action: 'Music generation', credits: 5, breakdown: 'Per track' },
+  { action: 'Premium video clip (6s)', credits: 60, breakdown: '$6/clip • Zero-Waste quality' },
+  { action: 'AI script + scene planning', credits: 'Included', breakdown: 'Part of clip cost' },
+  { action: 'Voice synthesis + emotion', credits: 'Included', breakdown: 'Part of clip cost' },
+  { action: 'Autonomous quality retries', credits: 'Included', breakdown: 'Up to 4 retries/clip' },
 ];
 
 export default function PricingSection() {
@@ -100,14 +103,14 @@ export default function PricingSection() {
         {/* Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-sm font-medium text-foreground">Simple Pricing</span>
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-medium text-foreground">Zero-Waste Quality Guarantee</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Create more, spend less
+            $6 per clip. Exceptional quality.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free with 50 credits. Upgrade anytime for more creative power.
+            Every clip gets AI retries until it's perfect. No compromises, no extra fees.
           </p>
         </div>
 
@@ -180,7 +183,7 @@ export default function PricingSection() {
 
                 {/* CTA */}
                 <Button
-                  onClick={() => navigate(tier.name === 'Agency' ? '/contact' : '/auth')}
+                  onClick={() => navigate(tier.name === 'Studio' ? '/contact' : '/auth')}
                   className={cn(
                     "w-full h-12 rounded-xl font-semibold transition-all",
                     tier.popular
@@ -195,12 +198,42 @@ export default function PricingSection() {
           })}
         </div>
 
-        {/* Credit Cost Breakdown */}
-        <div className="max-w-3xl mx-auto">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 lg:p-8">
-            <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
-              How Credits Work
-            </h3>
+        {/* Zero-Waste Quality Promise */}
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 lg:p-8">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground">
+                Zero-Waste Quality Guarantee
+              </h3>
+            </div>
+            
+            <div className="grid sm:grid-cols-3 gap-6 mb-6">
+              <div className="text-center">
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
+                  <RefreshCw className="w-5 h-5 text-amber-400" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">Autonomous Retries</p>
+                <p className="text-xs text-muted-foreground">AI regenerates until perfect</p>
+              </div>
+              <div className="text-center">
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
+                  <Eye className="w-5 h-5 text-blue-400" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">Visual Debugger</p>
+                <p className="text-xs text-muted-foreground">AI validates every frame</p>
+              </div>
+              <div className="text-center">
+                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mx-auto mb-3">
+                  <Crown className="w-5 h-5 text-purple-400" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">Director Audit</p>
+                <p className="text-xs text-muted-foreground">Cinematic quality checks</p>
+              </div>
+            </div>
+            
             <div className="grid sm:grid-cols-2 gap-4">
               {CREDIT_COSTS.map((item, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
@@ -215,8 +248,9 @@ export default function PricingSection() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Credits never expire. Buy more anytime or subscribe for monthly refills.
+            
+            <p className="text-sm text-center mt-6 text-emerald-400 font-medium">
+              Every clip is premium quality. No cheap tier. No compromises.
             </p>
           </div>
         </div>

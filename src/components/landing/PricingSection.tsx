@@ -99,7 +99,7 @@ export default function PricingSection() {
       <div className="max-w-7xl mx-auto">
         {/* Promotional Banner */}
         <div className="max-w-3xl mx-auto mb-12">
-          <PromotionalBanner />
+          <PromotionalBanner variant="dark" />
         </div>
 
         {/* Header */}

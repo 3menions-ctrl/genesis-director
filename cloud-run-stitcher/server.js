@@ -900,33 +900,47 @@ async function stitchVideos(request) {
     // Update progress: uploading
     await updateProgressInDb(projectId, 'uploading', 85, null, effectiveCallbackUrl, effectiveCallbackKey);
     
-    console.log('[Stitch] Step 6: Getting signed upload URL...');
+    console.log('[Stitch] Step 6: Uploading videos...');
     
-    const finalFileName = `stitched_${projectId}_${Date.now()}.mp4`;
-    // CRITICAL FIX: Use Lovable Cloud URL for generate-upload-url edge function
-    // The edge function lives on Lovable Cloud, not external Supabase
-    const uploadUrlData = await getSignedUploadUrl(projectId, finalFileName, lovableCloudBaseUrl, effectiveCallbackKey);
+    const timestamp = Date.now();
     
-    if (!uploadUrlData.success || !uploadUrlData.signedUrl) {
-      throw new Error(`Failed to get upload URL: ${JSON.stringify(uploadUrlData)}`);
+    // ALWAYS upload the no-audio version first (this is the primary video)
+    const noAudioFileName = `stitched_${projectId}_${timestamp}_noaudio.mp4`;
+    const noAudioUploadData = await getSignedUploadUrl(projectId, noAudioFileName, lovableCloudBaseUrl, effectiveCallbackKey);
+    
+    if (!noAudioUploadData.success || !noAudioUploadData.signedUrl) {
+      throw new Error(`Failed to get upload URL for no-audio: ${JSON.stringify(noAudioUploadData)}`);
     }
     
-    console.log(`[Stitch] Got signed URL, uploading ${finalFileName}...`);
+    console.log(`[Stitch] Uploading no-audio version: ${noAudioFileName}...`);
+    const noAudioBuffer = await fs.readFile(concatenatedPath);
+    await uploadToSignedUrl(noAudioUploadData.signedUrl, noAudioBuffer);
+    const noAudioUrl = noAudioUploadData.publicUrl;
+    console.log(`[Stitch] No-audio upload complete: ${noAudioUrl}`);
     
-    const fileBuffer = await fs.readFile(finalPath);
-    
-    await uploadToSignedUrl(uploadUrlData.signedUrl, fileBuffer);
-    
-    const finalVideoUrl = uploadUrlData.publicUrl;
-    console.log(`[Stitch] Upload complete: ${finalVideoUrl}`);
+    // Upload with-audio version if audio was mixed
+    let withAudioUrl = null;
+    if (finalPath !== concatenatedPath) {
+      const withAudioFileName = `stitched_${projectId}_${timestamp}.mp4`;
+      const withAudioUploadData = await getSignedUploadUrl(projectId, withAudioFileName, lovableCloudBaseUrl, effectiveCallbackKey);
+      
+      if (withAudioUploadData.success && withAudioUploadData.signedUrl) {
+        console.log(`[Stitch] Uploading with-audio version: ${withAudioFileName}...`);
+        const withAudioBuffer = await fs.readFile(finalPath);
+        await uploadToSignedUrl(withAudioUploadData.signedUrl, withAudioBuffer);
+        withAudioUrl = withAudioUploadData.publicUrl;
+        console.log(`[Stitch] With-audio upload complete: ${withAudioUrl}`);
+      }
+    }
     
     // Update progress: complete
     await updateProgressInDb(projectId, 'complete', 100, null, effectiveCallbackUrl, effectiveCallbackKey);
     
     console.log('[Stitch] Step 7: Finalizing project...');
     
-    // CRITICAL FIX: Use callbackUrl + callbackKey (Lovable Cloud) for finalize-stitch
-    await finalizeStitch(projectId, finalVideoUrl, totalDuration, validClips.length, 'completed', null, effectiveCallbackUrl, effectiveCallbackKey);
+    // CRITICAL: Pass the NO-AUDIO URL as the primary video URL
+    // The with-audio URL is returned separately for reference
+    await finalizeStitch(projectId, noAudioUrl, totalDuration, validClips.length, 'completed', null, effectiveCallbackUrl, effectiveCallbackKey);
     
     await fs.rm(workDir, { recursive: true, force: true });
     
@@ -934,7 +948,8 @@ async function stitchVideos(request) {
     
     return {
       success: true,
-      finalVideoUrl,
+      finalVideoUrl: noAudioUrl,  // Primary video is no-audio
+      withAudioUrl,               // With-audio version if available
       durationSeconds: totalDuration,
       clipsProcessed: validClips.length,
       invalidClips: invalidClips.length > 0 ? invalidClips : undefined

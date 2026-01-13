@@ -4,29 +4,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { QualityTier } from '@/types/quality-tiers';
 
-// Premium pricing: $6 per clip = 60 credits (10 credits = $1)
+// Premium pricing: $6 per video (6 clips) = 60 credits = 10 credits per clip
 // Every clip gets full Zero-Waste quality treatment with autonomous retries
 export const CREDIT_COSTS = {
-  PRE_PRODUCTION: 10,   // Script analysis, scene optimization
-  PRODUCTION: 35,       // Video generation, voice synthesis
-  QUALITY_ASSURANCE: 15, // Director audit, visual debugger, retries
-  TOTAL_PER_SHOT: 60,   // = $6.00 per clip (premium quality)
+  PRE_PRODUCTION: 2,    // Script analysis, scene optimization per clip
+  PRODUCTION: 6,        // Video generation, voice synthesis per clip
+  QUALITY_ASSURANCE: 2, // Director audit, visual debugger, retries per clip
+  TOTAL_PER_SHOT: 10,   // 10 credits per clip × 6 clips = 60 credits = $6/video
 } as const;
 
 // Quality Tier Credits - Premium-only model
 // All clips get Zero-Waste quality with autonomous retries
 export const TIER_CREDIT_COSTS = {
   standard: {
-    PRE_PRODUCTION: 10,
-    PRODUCTION: 35,
-    QUALITY_INSURANCE: 15, // Includes retries until perfect
-    TOTAL_PER_SHOT: 60,    // $6.00 per clip
+    PRE_PRODUCTION: 2,
+    PRODUCTION: 6,
+    QUALITY_INSURANCE: 2,
+    TOTAL_PER_SHOT: 10,    // 10 credits per clip
   },
   professional: {
-    PRE_PRODUCTION: 10,
-    PRODUCTION: 35,
-    QUALITY_INSURANCE: 15,
-    TOTAL_PER_SHOT: 60,    // Same price - all clips are premium
+    PRE_PRODUCTION: 2,
+    PRODUCTION: 6,
+    QUALITY_INSURANCE: 2,
+    TOTAL_PER_SHOT: 10,    // Same - all clips are premium
   },
 } as const;
 

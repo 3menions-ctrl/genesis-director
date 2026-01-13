@@ -257,7 +257,7 @@ export default function Landing() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl lg:text-2xl hero-text-secondary max-w-2xl mx-auto leading-relaxed font-light px-4">
-              $6 per clip. AI retries until perfect. No compromises on quality.
+              $6 per video. 6 clips stitched. AI retries until perfect.
             </p>
           </div>
 

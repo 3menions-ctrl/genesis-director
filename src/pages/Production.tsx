@@ -25,6 +25,7 @@ import { ProductionFinalVideo } from '@/components/production/ProductionFinalVid
 
 // Existing components - Keep for specialized functionality
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppLoader } from '@/components/ui/app-loader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
@@ -760,20 +761,7 @@ export default function Production() {
   const isError = projectStatus === 'failed';
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          className="flex flex-col items-center gap-4"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
-          </div>
-          <p className="text-zinc-500 text-sm">Loading production...</p>
-        </motion.div>
-      </div>
-    );
+    return <AppLoader message="Loading production..." />;
   }
 
   return (

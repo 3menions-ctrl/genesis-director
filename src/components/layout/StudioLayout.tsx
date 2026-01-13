@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils';
 const MAIN_NAV = [
   { title: 'Projects', url: '/projects', icon: Folder },
   { title: 'Templates', url: '/templates', icon: LayoutTemplate },
+  { title: 'Environments', url: '/environments', icon: Sparkles },
   { title: 'Universes', url: '/universes', icon: Globe },
 ];
 

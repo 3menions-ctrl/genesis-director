@@ -178,39 +178,76 @@ function ProjectCard({
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
-  
-  // Debug logging
-  useEffect(() => {
-    if (project.video_url) {
-      console.log(`[ProjectCard] ${project.name}: hasVideo=${hasVideo}, videoSrc=${videoSrc?.substring(0, 50)}...`);
-    }
-  }, [project.name, hasVideo, videoSrc, project.video_url]);
 
+  // Robust video loading with multiple event handlers and timeout fallback
   useEffect(() => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video || !videoSrc) return;
+
+    let mounted = true;
+
+    const markLoaded = () => {
+      if (mounted && !isVideoLoaded) {
+        setIsVideoLoaded(true);
+        // Seek to 25% for thumbnail frame
+        if (video.duration) {
+          video.currentTime = Math.min(video.duration * 0.25, 1);
+        }
+      }
+    };
+
+    // Multiple events that indicate the video is ready to display
+    const handleLoadedMetadata = () => markLoaded();
+    const handleLoadedData = () => markLoaded();
+    const handleCanPlay = () => markLoaded();
+    const handleError = () => {
+      if (mounted) setIsVideoLoaded(true); // Show placeholder on error
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+
+    // Fallback timeout - if video hasn't loaded in 3 seconds, show it anyway
+    // This handles cases where events don't fire due to browser throttling
+    const timeout = setTimeout(() => {
+      if (mounted && !isVideoLoaded) {
+        console.log(`[ProjectCard] Timeout fallback for ${project.name}`);
+        setIsVideoLoaded(true);
+      }
+    }, 3000);
+
+    // If video already has data (cached), mark as loaded immediately
+    if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
+      markLoaded();
+    }
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+    };
+  }, [videoSrc, project.name, isVideoLoaded]);
+
+  // Handle hover play/pause
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
     
-    if (isHovered && hasVideo) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-      if (videoRef.current.duration) {
-        videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 1);
+    if (isHovered && hasVideo && isVideoLoaded) {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    } else if (!isHovered) {
+      video.pause();
+      if (video.duration) {
+        video.currentTime = Math.min(video.duration * 0.25, 1);
       }
     }
-  }, [isHovered, hasVideo]);
-
-  const handleLoadedData = useCallback(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 1);
-      setIsVideoLoaded(true);
-    }
-  }, []);
-
-  const handleVideoError = useCallback(() => {
-    // Still mark as loaded so skeleton disappears
-    setIsVideoLoaded(true);
-  }, []);
+  }, [isHovered, hasVideo, isVideoLoaded]);
 
   const getStatusBadge = () => {
     if (hasVideo) {
@@ -400,8 +437,6 @@ function ProjectCard({
               muted
               playsInline
               preload="auto"
-              onLoadedData={handleLoadedData}
-              onError={handleVideoError}
             />
             
             {/* Cinematic bars on hover */}

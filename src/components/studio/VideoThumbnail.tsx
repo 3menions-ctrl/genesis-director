@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, memo } from 'react';
+import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,34 +31,76 @@ export const VideoThumbnail = memo(function VideoThumbnail({
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleVideoLoadedData = useCallback(() => {
+  // Robust video loading with multiple event handlers and timeout fallback
+  useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      // Seek to a frame for the thumbnail preview
-      video.currentTime = Math.min(video.duration * 0.25, 2);
-      setIsLoaded(true);
-    }
-  }, []);
+    if (!video || !src) return;
 
-  const handleVideoError = useCallback(() => {
-    setHasError(true);
-    setIsLoaded(true);
-  }, []);
+    let mounted = true;
+
+    const markLoaded = () => {
+      if (mounted && !isLoaded) {
+        setIsLoaded(true);
+        // Seek to 25% for thumbnail frame
+        if (video.duration) {
+          video.currentTime = Math.min(video.duration * 0.25, 2);
+        }
+      }
+    };
+
+    const handleLoadedMetadata = () => markLoaded();
+    const handleLoadedData = () => markLoaded();
+    const handleCanPlay = () => markLoaded();
+    const handleError = () => {
+      if (mounted) {
+        setHasError(true);
+        setIsLoaded(true);
+      }
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+
+    // Fallback timeout
+    const timeout = setTimeout(() => {
+      if (mounted && !isLoaded) {
+        setIsLoaded(true);
+      }
+    }, 3000);
+
+    // If video already has data (cached), mark as loaded immediately
+    if (video.readyState >= 2) {
+      markLoaded();
+    }
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+    };
+  }, [src, isLoaded]);
 
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-    if (videoRef.current && !hasError) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+    const video = videoRef.current;
+    if (video && !hasError && isLoaded) {
+      video.currentTime = 0;
+      video.play().catch(() => {});
     }
-  }, [hasError]);
+  }, [hasError, isLoaded]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-      if (videoRef.current.duration) {
-        videoRef.current.currentTime = Math.min(videoRef.current.duration * 0.25, 2);
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      if (video.duration) {
+        video.currentTime = Math.min(video.duration * 0.25, 2);
       }
     }
   }, []);
@@ -101,9 +143,7 @@ export const VideoThumbnail = memo(function VideoThumbnail({
           muted
           loop
           playsInline
-          preload="metadata"
-          onLoadedData={handleVideoLoadedData}
-          onError={handleVideoError}
+          preload="auto"
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">

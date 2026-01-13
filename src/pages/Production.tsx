@@ -771,13 +771,15 @@ export default function Production() {
 
       {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <ProductionSidebar
-          projects={allProductionProjects}
-          activeProjectId={projectId}
-          isCollapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {/* Sidebar - Hidden on mobile */}
+        <div className="hidden md:block">
+          <ProductionSidebar
+            projects={allProductionProjects}
+            activeProjectId={projectId}
+            isCollapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        </div>
 
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden bg-zinc-900">

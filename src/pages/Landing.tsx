@@ -36,8 +36,8 @@ const CAPABILITIES = [
 const FEATURES = [
   {
     icon: Video,
-    title: 'Text-to-Video',
-    description: 'Transform text descriptions into video clips using AI generation technology.',
+    title: 'Powered by Veo',
+    description: 'Generate video clips using Google\'s latest Veo AI model for high-quality results.',
     highlight: true,
   },
   {
@@ -47,15 +47,15 @@ const FEATURES = [
     highlight: true,
   },
   {
-    icon: Brain,
-    title: 'Automatic Retries',
-    description: 'AI automatically retries clip generation to help ensure quality results.',
+    icon: Layers,
+    title: 'Cloud Stitch',
+    description: 'Seamlessly combine multiple clips into a single video with our cloud stitching technology.',
     highlight: true,
   },
   {
-    icon: Eye,
-    title: 'Quality Checks',
-    description: 'AI analyzes generated clips to help identify and address quality issues.',
+    icon: Brain,
+    title: 'Automatic Retries',
+    description: 'AI automatically retries clip generation to help ensure quality results.',
   },
   {
     icon: Mic,
@@ -63,9 +63,9 @@ const FEATURES = [
     description: 'Add AI-generated voice narration to your video projects.',
   },
   {
-    icon: Layers,
-    title: 'Scene Analysis',
-    description: 'AI-powered scene breakdown helps structure your video content.',
+    icon: Eye,
+    title: 'Quality Checks',
+    description: 'AI analyzes generated clips to help identify and address quality issues.',
   },
 ];
 

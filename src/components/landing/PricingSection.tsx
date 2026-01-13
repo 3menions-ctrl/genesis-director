@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
 
 // Pricing tiers - credits-based system
 const PRICING_TIERS = [
@@ -96,6 +97,11 @@ export default function PricingSection() {
   return (
     <section id="pricing" className="relative z-10 py-24 px-4 lg:px-8">
       <div className="max-w-7xl mx-auto">
+        {/* Promotional Banner */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <PromotionalBanner />
+        </div>
+
         {/* Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">

@@ -387,8 +387,9 @@ Requirements:
       if (projectData?.pro_features_data) {
         const proData = projectData.pro_features_data;
         const possibleUrls = [
+          proData.referenceAnalysis?.imageUrl,  // FIRST: Original uploaded
           proData.goldenFrameData?.goldenFrameUrl,
-          proData.identityBible?.multiViewUrls?.frontViewUrl,
+          proData.identityBible?.originalReferenceUrl,
           proData.masterSceneAnchor?.frameUrl,
         ].filter(url => isValidImageUrl(url));
         

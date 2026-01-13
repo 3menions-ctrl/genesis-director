@@ -114,13 +114,8 @@ interface PipelineState {
       distinctiveMarkers?: string[];
     };
     consistencyPrompt?: string;
-    multiViewUrls?: {
-      frontViewUrl: string;
-      sideViewUrl: string;
-      threeQuarterViewUrl: string;
-      backViewUrl?: string;
-      silhouetteUrl?: string;
-    };
+    // v3.0: Original reference URL (replaces multiViewUrls)
+    originalReferenceUrl?: string;
     consistencyAnchors?: string[];
     styleAnchor?: any;
     // Enhanced identity bible fields (5-layer system)
@@ -826,14 +821,7 @@ async function runPreProduction(
       };
       
       if (identityResult?.success) {
-        // Enhanced 5-view system (v2.0)
-        state.identityBible.multiViewUrls = {
-          frontViewUrl: identityResult.views?.front?.imageUrl || identityResult.frontViewUrl,
-          sideViewUrl: identityResult.views?.side?.imageUrl || identityResult.sideViewUrl,
-          threeQuarterViewUrl: identityResult.views?.threeQuarter?.imageUrl || identityResult.threeQuarterViewUrl,
-          backViewUrl: identityResult.views?.back?.imageUrl,
-          silhouetteUrl: identityResult.views?.silhouette?.imageUrl,
-        };
+        // v3.0: No multi-view generation - use original reference + detailed prompts
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];
         
         // Non-facial anchors for occlusion handling
@@ -859,7 +847,10 @@ async function runPreProduction(
           state.identityBible.consistencyPrompt = identityResult.enhancedConsistencyPrompt || identityResult.characterDescription;
         }
         
-        console.log(`[Hollywood] Identity Bible v2.0 generated: ${identityResult.viewCount || 3} views, non-facial anchors=${!!identityResult.nonFacialAnchors}`);
+        // Store original reference URL for all clips to use
+        state.identityBible.originalReferenceUrl = request.referenceImageUrl;
+        
+        console.log(`[Hollywood] Identity Bible v3.0 generated: analysis-only mode, non-facial anchors=${!!identityResult.nonFacialAnchors}`);
       }
       
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
@@ -1704,12 +1695,12 @@ async function runProduction(
   // The user's uploaded image is the source of truth for character identity
   let referenceImageUrl = request.referenceImageAnalysis?.imageUrl  // FIRST: Original uploaded image
     || request.referenceImageUrl                                     // Second: Explicit reference URL
-    || state.identityBible?.multiViewUrls?.frontViewUrl;             // Third: Generated multi-view (may be null)
+    || state.identityBible?.originalReferenceUrl;                    // Third: Stored original reference
   
   console.log(`[Hollywood] Reference image sources:`);
   console.log(`  - referenceImageAnalysis.imageUrl: ${request.referenceImageAnalysis?.imageUrl?.substring(0, 60) || 'NONE'}`);
   console.log(`  - request.referenceImageUrl: ${request.referenceImageUrl?.substring(0, 60) || 'NONE'}`);
-  console.log(`  - identityBible.multiViewUrls.frontViewUrl: ${state.identityBible?.multiViewUrls?.frontViewUrl?.substring(0, 60) || 'NONE'}`);
+  console.log(`  - identityBible.originalReferenceUrl: ${state.identityBible?.originalReferenceUrl?.substring(0, 60) || 'NONE'}`);
   console.log(`  - SELECTED: ${referenceImageUrl?.substring(0, 60) || 'NONE'}`);
   
   // CRITICAL: If no reference image, try to fetch from project record
@@ -1725,7 +1716,7 @@ async function runProduction(
       const possibleRefs = [
         projectRefData?.pro_features_data?.referenceAnalysis?.imageUrl, // FIRST: Original uploaded
         projectRefData?.pro_features_data?.goldenFrameData?.goldenFrameUrl,
-        projectRefData?.pro_features_data?.identityBible?.multiViewUrls?.frontViewUrl,
+        projectRefData?.pro_features_data?.identityBible?.originalReferenceUrl,
         projectRefData?.pro_features_data?.masterSceneAnchor?.frameUrl,
         projectRefData?.scene_images?.[0]?.imageUrl,
       ].filter(Boolean);
@@ -3059,17 +3050,9 @@ async function runProduction(
                 ].join(', ');
                 correctedPrompt = `${correctedPrompt}. [AVOID: ${occlusionNegatives}]`;
                 
-                // Determine which reference to use based on pose
-                let regenerationStartImage = i === 0 ? referenceImageUrl : previousLastFrameUrl;
-                
-                // If back-facing detected, use back-view reference if available
-                if (verification.detectedPose === 'back' && state.identityBible?.multiViewUrls?.backViewUrl) {
-                  regenerationStartImage = state.identityBible.multiViewUrls.backViewUrl;
-                  console.log(`[Hollywood] Using back-view reference for regeneration`);
-                } else if (verification.detectedPose === 'side' && state.identityBible?.multiViewUrls?.sideViewUrl) {
-                  regenerationStartImage = state.identityBible.multiViewUrls.sideViewUrl;
-                  console.log(`[Hollywood] Using side-view reference for regeneration`);
-                }
+                // v3.0: Always use original reference or previous frame - no multi-view images
+                const regenerationStartImage = i === 0 ? referenceImageUrl : previousLastFrameUrl;
+                console.log(`[Hollywood] Regeneration using ${i === 0 ? 'reference image' : 'previous frame'}`);
                 
                 const regenResult = await callEdgeFunction('generate-single-clip', {
                   userId: request.userId,

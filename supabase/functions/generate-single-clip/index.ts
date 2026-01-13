@@ -1808,15 +1808,12 @@ function buildTotalAnchorInjection(
       if (views.back?.imageUrl) identityViews.push(views.back.imageUrl);
       if (views.silhouette?.imageUrl) identityViews.push(views.silhouette.imageUrl);
     }
-    if (identityBible.multiViewUrls) {
-      const mv = identityBible.multiViewUrls;
-      if (mv.frontViewUrl) identityViews.push(mv.frontViewUrl);
-      if (mv.sideViewUrl) identityViews.push(mv.sideViewUrl);
-      if (mv.threeQuarterViewUrl) identityViews.push(mv.threeQuarterViewUrl);
-      if (mv.backViewUrl) identityViews.push(mv.backViewUrl);
+    // v3.0: Use original reference URL instead of multi-view URLs
+    if (identityBible.originalReferenceUrl) {
+      identityViews.push(identityBible.originalReferenceUrl);
     }
     // Golden frame from identity bible
-    goldenFrame = identityBible.goldenFrameUrl || identityBible.multiViewUrls?.frontViewUrl || null;
+    goldenFrame = identityBible.goldenFrameUrl || identityBible.originalReferenceUrl || null;
   }
   
   return {
@@ -2586,14 +2583,8 @@ interface GenerateSingleClipRequest {
       previousAction?: string;
       nextAction?: string;
     };
-    // Enhanced identity bible v2.0 fields
-    multiViewUrls?: {
-      frontViewUrl?: string;
-      sideViewUrl?: string;
-      threeQuarterViewUrl?: string;
-      backViewUrl?: string;
-      silhouetteUrl?: string;
-    };
+    // v3.0: Original reference URL (replaces multiViewUrls)
+    originalReferenceUrl?: string;
     nonFacialAnchors?: {
       bodyType?: string;
       clothingSignature?: string;
@@ -4201,7 +4192,7 @@ serve(async (req) => {
           sceneImageUrl: request.sceneImageUrl,
           referenceImageUrl: request.referenceImageUrl,
           goldenFrameUrl: (request as any).goldenFrameData?.goldenFrameUrl,
-          identityBibleFrontUrl: request.identityBible?.multiViewUrls?.frontViewUrl,
+          identityBibleReferenceUrl: request.identityBible?.originalReferenceUrl,
           position: 'last',
         }),
       });
@@ -4232,7 +4223,7 @@ serve(async (req) => {
         { name: 'startImageUrl', url: request.startImageUrl },
         { name: 'referenceImageUrl', url: request.referenceImageUrl },
         { name: 'goldenFrameUrl', url: (request as any).goldenFrameData?.goldenFrameUrl },
-        { name: 'identityBibleFront', url: request.identityBible?.multiViewUrls?.frontViewUrl },
+        { name: 'identityBibleRef', url: request.identityBible?.originalReferenceUrl },
       ].filter(s => s.url && !s.url.endsWith('.mp4'));
       
       if (fallbackSources.length > 0) {
@@ -4259,8 +4250,9 @@ serve(async (req) => {
           if (!lastFrameUrl && projectData?.pro_features_data) {
             const proData = projectData.pro_features_data;
             const possibleUrls = [
+              proData.referenceAnalysis?.imageUrl,  // FIRST: Original uploaded
               proData.goldenFrameData?.goldenFrameUrl,
-              proData.identityBible?.multiViewUrls?.frontViewUrl,
+              proData.identityBible?.originalReferenceUrl,
             ].filter(Boolean);
             
             if (possibleUrls.length > 0) {

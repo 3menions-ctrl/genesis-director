@@ -36,6 +36,8 @@ interface ContinueProductionRequest {
     qualityTier?: string;
     sceneImageLookup?: Record<number, string>;
     tierLimits?: any;
+    // CRITICAL FIX: Add extractedCharacters to context interface
+    extractedCharacters?: any[];
   };
 }
 
@@ -128,7 +130,7 @@ serve(async (req: Request) => {
     }
     
     // If still no context, load from DB as fallback
-    if (!context || !context.referenceImageUrl) {
+    if (!context || !context.referenceImageUrl || !context.identityBible) {
       console.log(`[ContinueProduction] Loading pipeline context from DB...`);
       const { data: projectData } = await supabase
         .from('movie_projects')
@@ -138,13 +140,40 @@ serve(async (req: Request) => {
 
       if (projectData) {
         context = context || {};
-        context.identityBible = context.identityBible || projectData.pro_features_data?.identityBible;
-        context.masterSceneAnchor = context.masterSceneAnchor || projectData.pro_features_data?.masterSceneAnchor;
-        context.goldenFrameData = context.goldenFrameData || projectData.pro_features_data?.goldenFrameData;
+        
+        // CRITICAL FIX: Load ALL identity-related data from pro_features_data
+        const proFeatures = projectData.pro_features_data || {};
+        
+        // Load identity bible with all its fields
+        context.identityBible = context.identityBible || proFeatures.identityBible;
+        
+        // CRITICAL: Log what we loaded for debugging
+        if (context.identityBible) {
+          console.log(`[ContinueProduction] ✓ Loaded identityBible from DB:`);
+          console.log(`  - characterDescription: ${context.identityBible.characterDescription?.substring(0, 50) || 'NONE'}...`);
+          console.log(`  - consistencyPrompt: ${context.identityBible.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
+          console.log(`  - consistencyAnchors: ${context.identityBible.consistencyAnchors?.length || 0}`);
+          console.log(`  - nonFacialAnchors: ${context.identityBible.nonFacialAnchors ? 'YES' : 'NO'}`);
+          console.log(`  - multiViewUrls: ${context.identityBible.multiViewUrls ? 'YES' : 'NO'}`);
+        } else {
+          console.warn(`[ContinueProduction] ⚠️ No identityBible found in pro_features_data!`);
+        }
+        
+        // Load extracted characters for prompt enhancement
+        const extractedChars = proFeatures.extractedCharacters || [];
+        context.extractedCharacters = extractedChars;
+        if (extractedChars.length > 0) {
+          console.log(`[ContinueProduction] ✓ Loaded ${extractedChars.length} extractedCharacters from DB`);
+        }
+        
+        context.masterSceneAnchor = context.masterSceneAnchor || proFeatures.masterSceneAnchor;
+        context.goldenFrameData = context.goldenFrameData || proFeatures.goldenFrameData;
         context.accumulatedAnchors = (context.accumulatedAnchors && context.accumulatedAnchors.length > 0)
           ? context.accumulatedAnchors 
-          : (projectData.pro_features_data?.accumulatedAnchors || []);
-        context.referenceImageUrl = context.referenceImageUrl || projectData.pro_features_data?.goldenFrameData?.goldenFrameUrl;
+          : (proFeatures.accumulatedAnchors || []);
+        context.referenceImageUrl = context.referenceImageUrl 
+          || proFeatures.goldenFrameData?.goldenFrameUrl
+          || context.identityBible?.multiViewUrls?.frontViewUrl;
         context.colorGrading = context.colorGrading || 'cinematic';
         context.qualityTier = context.qualityTier || 'standard';
         context.sceneImageLookup = context.sceneImageLookup || {};
@@ -159,7 +188,7 @@ serve(async (req: Request) => {
           }
         }
 
-        console.log(`[ContinueProduction] Context loaded from DB: ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
+        console.log(`[ContinueProduction] Context loaded from DB: identityBible: ${context.identityBible ? 'YES' : 'NO'}, ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
       }
     }
     
@@ -235,6 +264,14 @@ serve(async (req: Request) => {
     const previousMotionVectors = completedClipResult?.motionVectors;
     const previousContinuityManifest = completedClipResult?.continuityManifest;
 
+    // CRITICAL FIX: Inject identity bible into prompt for character consistency
+    // This ensures character description propagates to all clips
+    if (context?.identityBible?.characterDescription || context?.identityBible?.consistencyPrompt) {
+      const charDesc = context.identityBible.characterDescription || context.identityBible.consistencyPrompt;
+      nextClipPrompt = `[CHARACTER IDENTITY - MANDATORY: ${charDesc}]\n${nextClipPrompt}`;
+      console.log(`[ContinueProduction] Injected character identity into prompt`);
+    }
+
     // Add visual continuity to prompt
     if (previousMotionVectors?.continuityPrompt) {
       nextClipPrompt = `[MANDATORY CONTINUATION: ${previousMotionVectors.continuityPrompt}]\n${nextClipPrompt}`;
@@ -291,8 +328,15 @@ serve(async (req: Request) => {
 
     console.log(`[ContinueProduction] Calling generate-single-clip for clip ${nextClipIndex + 1}...`);
     console.log(`[ContinueProduction] Start image: ${startImageUrl?.substring(0, 60) || 'none'}...`);
+    console.log(`[ContinueProduction] Identity Bible: ${context?.identityBible ? 'YES' : 'NO'}`);
+    if (context?.identityBible) {
+      console.log(`[ContinueProduction]   - characterDescription: ${context.identityBible.characterDescription?.substring(0, 40) || 'NONE'}...`);
+      console.log(`[ContinueProduction]   - consistencyPrompt: ${context.identityBible.consistencyPrompt?.substring(0, 40) || 'NONE'}...`);
+      console.log(`[ContinueProduction]   - nonFacialAnchors: ${context.identityBible.nonFacialAnchors ? 'YES' : 'NO'}`);
+    }
 
     // Call generate-single-clip with callback enabled
+    // CRITICAL: Pass complete identityBible with all fields for character consistency
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
@@ -303,6 +347,7 @@ serve(async (req: Request) => {
       previousMotionVectors,
       previousContinuityManifest,
       goldenFrameData: context?.goldenFrameData,
+      // CRITICAL: Pass full identityBible with characterDescription
       identityBible: context?.identityBible,
       colorGrading: context?.colorGrading || 'cinematic',
       qualityTier: context?.qualityTier || 'standard',
@@ -311,6 +356,7 @@ serve(async (req: Request) => {
       accumulatedAnchors: context?.accumulatedAnchors || [],
       // CRITICAL: Enable callback continuation
       triggerNextClip: true,
+      // CRITICAL: Pass full context including extractedCharacters
       pipelineContext: context,
     });
 

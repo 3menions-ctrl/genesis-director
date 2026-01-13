@@ -3227,43 +3227,79 @@ async function runProduction(
     // =====================================================
     const frameToSave = result.lastFrameUrl || previousLastFrameUrl || sceneImageLookup[i] || sceneImageLookup[0] || referenceImageUrl;
     
-    if (frameToSave) {
+    // =====================================================
+    // CRITICAL FIX: Save BOTH video_url AND last_frame_url
+    // After quality/identity retries, the result object has the FINAL video_url
+    // but the DB still has the FIRST video_url - we must update it!
+    // =====================================================
+    const videoUrlToSave = result.videoUrl;
+    
+    if (videoUrlToSave) {
       try {
-        // Save with verification
+        // Update BOTH video_url and last_frame_url together
+        const updateData: Record<string, any> = {
+          video_url: videoUrlToSave,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+        };
+        
+        if (frameToSave) {
+          updateData.last_frame_url = frameToSave;
+        }
+        
         const { error: updateError } = await supabase
           .from('video_clips')
-          .update({ last_frame_url: frameToSave })
+          .update(updateData)
           .eq('project_id', state.projectId)
           .eq('shot_index', i);
         
         if (updateError) {
-          console.error(`[Hollywood] ⚠️ Failed to persist last_frame_url:`, updateError);
+          console.error(`[Hollywood] ⚠️ Failed to persist final clip data:`, updateError);
         } else {
           // VERIFY the save was successful
           const { data: verifyData } = await supabase
             .from('video_clips')
-            .select('last_frame_url')
+            .select('video_url, last_frame_url')
             .eq('project_id', state.projectId)
             .eq('shot_index', i)
             .single();
           
-          if (verifyData?.last_frame_url === frameToSave) {
-            console.log(`[Hollywood] ✓ VERIFIED last_frame_url persisted for clip ${i + 1}: ${frameToSave.substring(0, 50)}...`);
+          const videoUrlMatch = verifyData?.video_url === videoUrlToSave;
+          const frameUrlMatch = !frameToSave || verifyData?.last_frame_url === frameToSave;
+          
+          if (videoUrlMatch && frameUrlMatch) {
+            console.log(`[Hollywood] ✓ VERIFIED final clip ${i + 1} persisted:`);
+            console.log(`[Hollywood]   video_url: ${videoUrlToSave.substring(0, 60)}...`);
+            if (frameToSave) {
+              console.log(`[Hollywood]   last_frame_url: ${frameToSave.substring(0, 50)}...`);
+            }
           } else {
-            console.warn(`[Hollywood] ⚠️ Frame save verification FAILED - retry...`);
+            console.warn(`[Hollywood] ⚠️ Final clip save verification FAILED - retry...`);
             // Retry once
             await supabase
               .from('video_clips')
-              .update({ last_frame_url: frameToSave })
+              .update(updateData)
               .eq('project_id', state.projectId)
               .eq('shot_index', i);
           }
         }
       } catch (dbErr) {
+        console.error(`[Hollywood] Failed to persist final clip data:`, dbErr);
+      }
+    } else if (frameToSave) {
+      // No video but have frame - just save frame (edge case)
+      try {
+        await supabase
+          .from('video_clips')
+          .update({ last_frame_url: frameToSave })
+          .eq('project_id', state.projectId)
+          .eq('shot_index', i);
+        console.log(`[Hollywood] Saved last_frame_url only (no video_url available)`);
+      } catch (dbErr) {
         console.error(`[Hollywood] Failed to persist last_frame_url:`, dbErr);
       }
     } else {
-      console.error(`[Hollywood] ⚠️ CRITICAL: No frame to save for clip ${i + 1}! Resume will have no visual reference.`);
+      console.error(`[Hollywood] ⚠️ CRITICAL: No video_url or frame to save for clip ${i + 1}!`);
     }
     
     previousMotionVectors = result.motionVectors;

@@ -322,6 +322,7 @@ export type Database = {
           is_template: boolean | null
           last_checkpoint_at: string | null
           last_error: string | null
+          likes_count: number | null
           mood: string | null
           movie_intro_style: string | null
           music_url: string | null
@@ -359,6 +360,7 @@ export type Database = {
           is_template?: boolean | null
           last_checkpoint_at?: string | null
           last_error?: string | null
+          likes_count?: number | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           is_template?: boolean | null
           last_checkpoint_at?: string | null
           last_error?: string | null
+          likes_count?: number | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
@@ -1289,6 +1292,35 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_likes: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
             referencedColumns: ["id"]
           },
         ]

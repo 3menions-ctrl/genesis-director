@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, User, Clock, Eye, Heart, Share2, Film, Search, Filter, TrendingUp } from 'lucide-react';
+import { Play, Clock, Heart, Film, Search, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface PublicVideo {
   id: string;
@@ -22,11 +24,14 @@ interface PublicVideo {
   created_at: string;
   target_duration_minutes: number;
   user_id: string;
+  likes_count: number;
 }
 
 type SortOption = 'recent' | 'popular';
 
 export default function Discover() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [selectedVideo, setSelectedVideo] = useState<PublicVideo | null>(null);
@@ -36,16 +41,67 @@ export default function Discover() {
     queryFn: async () => {
       const query = supabase
         .from('movie_projects')
-        .select('id, title, synopsis, thumbnail_url, video_url, genre, mood, created_at, target_duration_minutes, user_id')
+        .select('id, title, synopsis, thumbnail_url, video_url, genre, mood, created_at, target_duration_minutes, user_id, likes_count')
         .eq('is_public', true)
         .not('video_url', 'is', null)
-        .order('created_at', { ascending: false });
+        .order(sortBy === 'popular' ? 'likes_count' : 'created_at', { ascending: false });
 
       const { data, error } = await query;
       if (error) throw error;
       return data as PublicVideo[];
     },
   });
+
+  // Fetch user's likes
+  const { data: userLikes } = useQuery({
+    queryKey: ['user-likes', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('video_likes')
+        .select('project_id')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data.map(like => like.project_id);
+    },
+    enabled: !!user,
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async ({ projectId, isLiked }: { projectId: string; isLiked: boolean }) => {
+      if (!user) throw new Error('Must be logged in to like');
+      
+      if (isLiked) {
+        const { error } = await supabase
+          .from('video_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('project_id', projectId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('video_likes')
+          .insert({ user_id: user.id, project_id: projectId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['public-videos'] });
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update like');
+    },
+  });
+
+  const handleLike = (e: React.MouseEvent, projectId: string, isLiked: boolean) => {
+    e.stopPropagation();
+    if (!user) {
+      toast.error('Please log in to like videos');
+      return;
+    }
+    likeMutation.mutate({ projectId, isLiked });
+  };
 
   const filteredVideos = videos?.filter(video =>
     video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,6 +210,8 @@ export default function Discover() {
                 video={video}
                 formatGenre={formatGenre}
                 onPlay={() => setSelectedVideo(video)}
+                isLiked={userLikes?.includes(video.id) || false}
+                onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false)}
               />
             ))}
           </motion.div>
@@ -183,6 +241,8 @@ export default function Discover() {
             video={selectedVideo}
             formatGenre={formatGenre}
             onClose={() => setSelectedVideo(null)}
+            isLiked={userLikes?.includes(selectedVideo.id) || false}
+            onLike={(e) => handleLike(e, selectedVideo.id, userLikes?.includes(selectedVideo.id) || false)}
           />
         )}
       </AnimatePresence>
@@ -194,9 +254,11 @@ interface VideoCardProps {
   video: PublicVideo;
   formatGenre: (genre: string) => string;
   onPlay: () => void;
+  isLiked: boolean;
+  onLike: (e: React.MouseEvent) => void;
 }
 
-function VideoCard({ video, formatGenre, onPlay }: VideoCardProps) {
+function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -250,6 +312,19 @@ function VideoCard({ video, formatGenre, onPlay }: VideoCardProps) {
         >
           {formatGenre(video.genre)}
         </Badge>
+
+        {/* Like Button */}
+        <button
+          onClick={onLike}
+          className={cn(
+            "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all",
+            isLiked 
+              ? "bg-red-500/90 text-white" 
+              : "bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-black/70"
+          )}
+        >
+          <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+        </button>
       </div>
 
       {/* Info */}
@@ -257,9 +332,15 @@ function VideoCard({ video, formatGenre, onPlay }: VideoCardProps) {
         <h3 className="font-semibold text-white truncate group-hover:text-white/90 transition-colors">
           {video.title}
         </h3>
-        <div className="flex items-center gap-2 text-sm text-white/50">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}</span>
+        <div className="flex items-center gap-3 text-sm text-white/50">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
+          </span>
+          <span className="flex items-center gap-1">
+            <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-current text-red-400")} />
+            {video.likes_count || 0}
+          </span>
         </div>
         {video.synopsis && (
           <p className="text-sm text-white/40 line-clamp-2">{video.synopsis}</p>
@@ -273,9 +354,11 @@ interface VideoModalProps {
   video: PublicVideo;
   formatGenre: (genre: string) => string;
   onClose: () => void;
+  isLiked: boolean;
+  onLike: (e: React.MouseEvent) => void;
 }
 
-function VideoModal({ video, formatGenre, onClose }: VideoModalProps) {
+function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModalProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -336,6 +419,22 @@ function VideoModal({ video, formatGenre, onClose }: VideoModalProps) {
                 <p className="text-white/60">{video.synopsis}</p>
               )}
             </div>
+            
+            {/* Like Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLike}
+              className={cn(
+                "gap-2 rounded-full",
+                isLiked 
+                  ? "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 hover:text-red-300" 
+                  : "border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+              {video.likes_count || 0} {video.likes_count === 1 ? 'Like' : 'Likes'}
+            </Button>
           </div>
         </div>
 

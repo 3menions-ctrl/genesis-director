@@ -1,5 +1,5 @@
 // Quality Tier System Types
-// Premium-Only: $6 per clip (60 credits) - Zero-Waste guarantee on every clip
+// Premium: $6 per video (6 clips) = 60 credits total = 10 credits per clip
 
 export type QualityTier = 'standard' | 'professional';
 
@@ -19,7 +19,7 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'standard',
     name: 'Premium',
-    credits: 60, // $6.00 per clip
+    credits: 10, // 10 credits per clip × 6 = 60 credits = $6/video
     description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
@@ -38,7 +38,7 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'professional',
     name: 'Premium',
-    credits: 60, // Same - all clips are premium
+    credits: 10, // Same - all clips are premium
     description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
@@ -56,20 +56,20 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   },
 ];
 
-// Credit cost breakdown - $6 per clip (60 credits at $0.10/credit)
+// Credit cost breakdown - $6 per video (6 clips at 10 credits each)
 export const PROFESSIONAL_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 10,   // Script analysis, scene optimization
-  PRODUCTION: 35,       // Video generation, voice synthesis
-  QUALITY_INSURANCE: 15, // Director audit + Visual debugger + 4 retry buffer
-  TOTAL: 60,            // = $6.00 per clip
+  PRE_PRODUCTION: 2,    // Script analysis per clip
+  PRODUCTION: 6,        // Video generation per clip
+  QUALITY_INSURANCE: 2, // Audit + debugger + retries per clip
+  TOTAL: 10,            // = 10 credits per clip
 } as const;
 
 // All clips are premium quality
 export const STANDARD_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 10,
-  PRODUCTION: 35,
-  QUALITY_INSURANCE: 15,
-  TOTAL: 60,
+  PRE_PRODUCTION: 2,
+  PRODUCTION: 6,
+  QUALITY_INSURANCE: 2,
+  TOTAL: 10,
 } as const;
 
 // Visual Debugger result interface

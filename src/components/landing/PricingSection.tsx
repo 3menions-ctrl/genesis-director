@@ -4,18 +4,18 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-// Premium pricing: $6 per clip (60 credits) - Zero-Waste quality guarantee
+// Premium pricing: $6 per video (6 clips stitched) = 60 credits
 const PRICING_TIERS = [
   {
     name: 'Free Trial',
     price: 0,
     period: 'forever',
-    credits: 120,
+    credits: 60,
     icon: Zap,
     description: 'Experience premium quality',
     features: [
-      '120 credits to start',
-      '2 premium video clips',
+      '60 credits to start',
+      '1 complete video (6 clips)',
       'Zero-Waste quality guarantee',
       'Autonomous AI retries',
       '4K HDR export',
@@ -33,7 +33,7 @@ const PRICING_TIERS = [
     description: 'For serious content creators',
     features: [
       '600 credits per month',
-      '10 premium clips per month',
+      '10 videos per month',
       'Zero-Waste guarantee',
       'AI retries until perfect',
       '4K HDR export',
@@ -52,7 +52,7 @@ const PRICING_TIERS = [
     description: 'Most popular for professionals',
     features: [
       '1,800 credits per month',
-      '30 premium clips per month',
+      '30 videos per month',
       'Zero-Waste guarantee',
       'Fastest processing queue',
       '4K HDR + all exports',
@@ -72,7 +72,7 @@ const PRICING_TIERS = [
     description: 'For studios and agencies',
     features: [
       '6,000 credits per month',
-      '100 premium clips per month',
+      '100 videos per month',
       'Zero-Waste guarantee',
       'Dedicated processing queue',
       'All export formats',
@@ -86,11 +86,11 @@ const PRICING_TIERS = [
   },
 ];
 
-// Premium quality breakdown - $6 per clip
+// Premium quality breakdown - $6 per video (6 clips)
 const CREDIT_COSTS = [
-  { action: 'Premium video clip (6s)', credits: 60, breakdown: '$6/clip • Zero-Waste quality' },
-  { action: 'AI script + scene planning', credits: 'Included', breakdown: 'Part of clip cost' },
-  { action: 'Voice synthesis + emotion', credits: 'Included', breakdown: 'Part of clip cost' },
+  { action: 'Complete video (6 clips)', credits: 60, breakdown: '$6/video • Zero-Waste quality' },
+  { action: 'Per clip cost', credits: 10, breakdown: 'Included in video price' },
+  { action: 'Voice + music + stitching', credits: 'Included', breakdown: 'All in one price' },
   { action: 'Autonomous quality retries', credits: 'Included', breakdown: 'Up to 4 retries/clip' },
 ];
 
@@ -107,10 +107,10 @@ export default function PricingSection() {
             <span className="text-sm font-medium text-foreground">Zero-Waste Quality Guarantee</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            $6 per clip. Exceptional quality.
+            $6 per video. Exceptional quality.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every clip gets AI retries until it's perfect. No compromises, no extra fees.
+            Every video gets 6 clips with AI retries until perfect. No compromises.
           </p>
         </div>
 

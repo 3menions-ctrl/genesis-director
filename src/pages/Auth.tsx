@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from 'lucide-react';
 import { z } from 'zod';
@@ -41,9 +42,10 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; terms?: string }>({});
   const [hasRedirected, setHasRedirected] = useState(false);
   const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -111,6 +113,13 @@ export default function Auth() {
     e.preventDefault();
     
     if (!validateForm()) {
+      return;
+    }
+
+    // Check terms agreement for signup
+    if (!isLogin && !agreedToTerms) {
+      setErrors(prev => ({ ...prev, terms: 'You must agree to the Terms of Service and Privacy Policy' }));
+      toast.error('Please agree to the Terms of Service and Privacy Policy');
       return;
     }
 
@@ -338,12 +347,45 @@ export default function Auth() {
                   <p className="text-destructive text-xs mt-1">{errors.password}</p>
                 )}
               </div>
-              {!isLogin && password && (
+            {!isLogin && password && (
                 <div className="mt-3 p-3 rounded-lg bg-muted border border-border">
                   <PasswordStrength password={password} />
                 </div>
               )}
             </div>
+
+            {/* Terms Agreement Checkbox - Only for Signup */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => {
+                      setAgreedToTerms(checked === true);
+                      if (errors.terms) setErrors(prev => ({ ...prev, terms: undefined }));
+                    }}
+                    className={`mt-0.5 ${errors.terms ? 'border-destructive' : ''}`}
+                  />
+                  <Label 
+                    htmlFor="terms" 
+                    className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                  >
+                    I agree to the{' '}
+                    <Link to="/terms" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
+                      Terms of Service
+                    </Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+                {errors.terms && (
+                  <p className="text-destructive text-xs ml-7">{errors.terms}</p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"

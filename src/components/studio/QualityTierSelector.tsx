@@ -130,8 +130,8 @@ export function QualityTierSelector({
                 Quality Insurance Included
               </h4>
               <p className="text-sm text-muted-foreground mt-1">
-                The extra 15 credits per shot cover Director Audit, Visual Debugger analysis, 
-                and up to 2 autonomous retry attempts. If a shot fails quality checks, the system 
+                Each 10-credit clip includes 2 credits for Quality Assurance: Director Audit, Visual Debugger analysis, 
+                and up to 4 autonomous retry attempts. If a shot fails quality checks, the system 
                 will automatically regenerate it with corrective prompts—at no extra cost to you.
               </p>
             </div>

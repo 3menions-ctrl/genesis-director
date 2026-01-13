@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { QualityTier } from '@/types/quality-tiers';
 
-// Premium pricing: $6 per video (6 clips) = 60 credits = 10 credits per clip
-// Every clip gets full Zero-Waste quality treatment with autonomous retries
+// Pricing: 10 credits per clip, 60 credits per video (6 clips), $6 per video
+// $0.10 per credit = 10 credits per clip = $1 per clip = $6 per 6-clip video
 export const CREDIT_COSTS = {
   PRE_PRODUCTION: 2,    // Script analysis, scene optimization per clip
   PRODUCTION: 6,        // Video generation, voice synthesis per clip

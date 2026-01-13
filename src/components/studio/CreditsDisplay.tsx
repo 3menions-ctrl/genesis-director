@@ -39,7 +39,7 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
         </div>
 
         <p className="text-xs text-white/50 mb-4">
-          Sign in to get <span className="text-white font-semibold">60 free credits</span> — enough for 1 clip.
+          Sign in to get <span className="text-white font-semibold">60 free credits</span> — enough for 1 complete video (6 clips).
         </p>
 
         <Button
@@ -80,7 +80,7 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
           </span>
         </div>
         <p className="text-[10px] text-white/50 mt-1">
-          ≈ {affordableShots} Iron-Clad shots available
+          ≈ {Math.floor(credits.remaining / 60)} videos ({affordableShots} clips)
         </p>
       </div>
 

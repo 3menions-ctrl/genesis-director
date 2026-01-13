@@ -347,7 +347,7 @@ export function BillingSettings() {
         {autoRecharge && (
           <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <p className="text-sm text-amber-400">
-              When your balance drops below 10 credits, we'll automatically add 100 credits to your account.
+              When your balance drops below 60 credits (1 video), we'll automatically add 250 credits to your account.
             </p>
           </div>
         )}

@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import { Sparkles, X, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface PromotionalBannerProps {
   onDismiss?: () => void;
+  variant?: 'default' | 'dark';
 }
 
-export const PromotionalBanner = ({ onDismiss }: PromotionalBannerProps) => {
+export const PromotionalBanner = ({ onDismiss, variant = 'default' }: PromotionalBannerProps) => {
   const [isDismissed, setIsDismissed] = useState(false);
 
   if (isDismissed) return null;
@@ -21,10 +23,20 @@ export const PromotionalBanner = ({ onDismiss }: PromotionalBannerProps) => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-amber-500/30 p-4"
+      className={cn(
+        "relative overflow-hidden rounded-xl p-4",
+        variant === 'dark' 
+          ? "bg-black border border-amber-500/40" 
+          : "bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-amber-500/30"
+      )}
     >
       {/* Animated background glow */}
-      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 animate-pulse" />
+      <div className={cn(
+        "absolute inset-0 animate-pulse",
+        variant === 'dark'
+          ? "bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-rose-500/5"
+          : "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10"
+      )} />
       
       {/* Sparkle decorations */}
       <div className="absolute top-2 left-4">

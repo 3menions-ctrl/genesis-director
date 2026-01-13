@@ -278,33 +278,33 @@ export function ProductionPipeline({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Header Stats */}
+      {/* Header Stats - Mobile optimized */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-8"
+        className="flex items-center justify-between mb-4 sm:mb-8"
       >
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            <span className="font-mono text-sm">{formatTime(elapsedTime)}</span>
+        <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="font-mono text-xs sm:text-sm">{formatTime(elapsedTime)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">{progress}%</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+            <span className="text-xs sm:text-sm font-medium">{progress}%</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {projectId && (
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => setShowClipsDialog(true)}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground h-8 sm:h-9 px-2 sm:px-3"
             >
-              <Video className="w-4 h-4 mr-2" />
-              View Clips
+              <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">View Clips</span>
             </Button>
           )}
           
@@ -315,13 +315,14 @@ export function ProductionPipeline({
               size="sm" 
               onClick={onCancel} 
               className={cn(
+                "h-8 sm:h-9 px-2 sm:px-3",
                 isRunning 
                   ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
                   : ""
               )}
             >
-              <X className="w-4 h-4 mr-2" />
-              {isRunning ? 'Cancel' : 'Reset'}
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{isRunning ? 'Cancel' : 'Reset'}</span>
             </Button>
           )}
         </div>
@@ -329,9 +330,9 @@ export function ProductionPipeline({
 
       {/* Main Pipeline Visualization */}
       <div className="relative">
-        {/* Background glow effect */}
+        {/* Background glow effect - hidden on mobile for performance */}
         {isRunning && (
-          <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 -z-10 hidden sm:block">
             <div 
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] rounded-full opacity-20 blur-3xl"
               style={{
@@ -341,8 +342,8 @@ export function ProductionPipeline({
           </div>
         )}
 
-        {/* Connection Lines */}
-        <div className="absolute top-[72px] left-[60px] right-[60px] h-[2px] hidden md:block">
+        {/* Connection Lines - Desktop only */}
+        <div className="absolute top-[72px] left-[60px] right-[60px] h-[2px] hidden lg:block">
           {/* Base line */}
           <div className="absolute inset-0 bg-border/50 rounded-full" />
           
@@ -358,8 +359,8 @@ export function ProductionPipeline({
           </motion.div>
         </div>
 
-        {/* Stage Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Stage Cards - 3 columns on mobile for compact view */}
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
           {stages.map((stage, index) => {
             const Icon = STAGE_ICONS[index];
             const isActive = stage.status === 'active';
@@ -373,17 +374,17 @@ export function ProductionPipeline({
                 key={stage.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
                 className={cn(
                   "relative group",
                   isClickable && "cursor-pointer"
                 )}
                 onClick={() => isClickable && setSelectedStage(index)}
               >
-                {/* Card */}
+                {/* Card - Compact on mobile */}
                 <motion.div
                   className={cn(
-                    "relative flex flex-col items-center p-6 rounded-2xl transition-all duration-500",
+                    "relative flex flex-col items-center p-3 sm:p-6 rounded-xl sm:rounded-2xl transition-all duration-500",
                     "border bg-card/50 backdrop-blur-sm",
                     isPending && "border-border/50 opacity-50",
                     isActive && "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10",
@@ -402,7 +403,7 @@ export function ProductionPipeline({
                 >
                   {/* Breathing indicator for active */}
                   {isActive && (
-                    <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                    <div className="absolute inset-0 rounded-xl sm:rounded-2xl overflow-hidden">
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent"
                         animate={{ opacity: [0.3, 0.6, 0.3] }}
@@ -411,9 +412,9 @@ export function ProductionPipeline({
                     </div>
                   )}
 
-                  {/* Icon Container */}
+                  {/* Icon Container - Smaller on mobile */}
                   <div className={cn(
-                    "relative w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500",
+                    "relative w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-4 transition-all duration-500",
                     isPending && "bg-muted text-muted-foreground",
                     isActive && "bg-primary/10 text-primary",
                     isComplete && "bg-success/10 text-success",
@@ -421,9 +422,9 @@ export function ProductionPipeline({
                   )}>
                     {isActive ? (
                       <div className="relative">
-                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <Loader2 className="w-4 h-4 sm:w-6 sm:h-6 animate-spin" />
                         <motion.div
-                          className="absolute inset-0 rounded-full border-2 border-primary/30"
+                          className="absolute inset-0 rounded-full border-2 border-primary/30 hidden sm:block"
                           animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
                         />
@@ -434,18 +435,18 @@ export function ProductionPipeline({
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 200 }}
                       >
-                        <CheckCircle2 className="w-6 h-6" />
+                        <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
                       </motion.div>
                     ) : isError ? (
-                      <XCircle className="w-6 h-6" />
+                      <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
                     ) : (
-                      <Icon className="w-6 h-6" />
+                      <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
                     )}
                   </div>
 
-                  {/* Label */}
+                  {/* Label - Smaller on mobile */}
                   <h3 className={cn(
-                    "text-sm font-medium text-center transition-colors",
+                    "text-[10px] sm:text-sm font-medium text-center transition-colors leading-tight",
                     isPending && "text-muted-foreground",
                     isActive && "text-primary",
                     isComplete && "text-success",
@@ -454,12 +455,12 @@ export function ProductionPipeline({
                     {stage.shortName}
                   </h3>
 
-                  {/* Details badge */}
+                  {/* Details badge - Hidden on mobile */}
                   {stage.details && (
                     <Badge 
                       variant="secondary" 
                       className={cn(
-                        "mt-2 text-[10px] px-2 py-0.5",
+                        "mt-1 sm:mt-2 text-[8px] sm:text-[10px] px-1.5 sm:px-2 py-0 sm:py-0.5 hidden sm:inline-flex",
                         isComplete && "bg-success/10 text-success border-success/20"
                       )}
                     >
@@ -467,17 +468,17 @@ export function ProductionPipeline({
                     </Badge>
                   )}
 
-                  {/* Click hint */}
+                  {/* Click hint - Hidden on mobile */}
                   {isClickable && (
-                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                       <Eye className="w-3 h-3 text-muted-foreground" />
                     </div>
                   )}
                 </motion.div>
 
-                {/* Step number */}
+                {/* Step number - Smaller on mobile */}
                 <div className={cn(
-                  "absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                  "absolute -top-1 -left-1 sm:-top-2 sm:-left-2 w-4 h-4 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[9px] sm:text-xs font-bold",
                   isPending && "bg-muted text-muted-foreground",
                   isActive && "bg-primary text-primary-foreground",
                   isComplete && "bg-success text-success-foreground",

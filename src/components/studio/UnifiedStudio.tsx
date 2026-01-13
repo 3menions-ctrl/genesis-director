@@ -1008,61 +1008,61 @@ export function UnifiedStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-32 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] pb-24 sm:pb-32 relative overflow-hidden">
+      {/* Background effects - Hidden on mobile for performance */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden hidden sm:block">
         <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-500/[0.03] to-transparent blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-blue-500/[0.02] to-transparent blur-[150px]" />
       </div>
-      {/* Professional Dark Header */}
+      {/* Professional Dark Header - Compact on mobile */}
       <header className="sticky top-0 z-50">
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="h-16 flex items-center justify-between">
+          <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="h-14 sm:h-16 flex items-center justify-between">
               {/* Left - Logo & Branding */}
               <button 
                 onClick={() => navigate('/projects')} 
-                className="flex items-center gap-3 group"
+                className="flex items-center gap-2 sm:gap-3 group"
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative w-10 h-10 rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
-                    <Film className="w-5 h-5 text-white/80" />
+                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
+                    <Film className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
                   </div>
                 </div>
-                <div className="hidden sm:block">
+                <div className="hidden md:block">
                   <span className="text-lg font-bold text-white tracking-tight">Create</span>
                   <p className="text-[11px] text-white/40 -mt-0.5">AI Video Studio</p>
                 </div>
               </button>
               
-              {/* Center - Stats Pills */}
-              <div className="flex items-center gap-2">
+              {/* Center - Stats Pills - Compact on mobile */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm">
                   <Clock className="w-3.5 h-3.5 text-white/50" />
                   <span className="font-medium text-white/80">{totalDuration}s</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm">
-                  <Layers className="w-3.5 h-3.5 text-white/50" />
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs sm:text-sm">
+                  <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/50" />
                   <span className="font-medium text-white/80">{clipCount}</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-black text-sm font-semibold shadow-lg shadow-white/10">
-                  <Coins className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-black text-xs sm:text-sm font-semibold shadow-lg shadow-white/10">
+                  <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>~{estimatedCredits}</span>
                 </div>
               </div>
               
-              {/* Right - Navigation */}
-              <div className="flex items-center gap-2">
+              {/* Right - Navigation - Hidden on mobile, icon only on small screens */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => navigate('/projects')}
-                  className="h-9 px-4 text-white/60 hover:text-white hover:bg-white/[0.06] rounded-full text-sm font-medium"
+                  className="h-8 sm:h-9 px-2 sm:px-4 text-white/60 hover:text-white hover:bg-white/[0.06] rounded-full text-sm font-medium"
                 >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Library
+                  <Eye className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Library</span>
                 </Button>
               </div>
             </div>
@@ -1070,49 +1070,51 @@ export function UnifiedStudio() {
         </div>
       </header>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Promotional Banner */}
-        <PromotionalBanner />
+      <div className="relative z-10 max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
+        {/* Promotional Banner - Hidden on mobile */}
+        <div className="hidden sm:block">
+          <PromotionalBanner />
+        </div>
         
-        {/* Hero Section */}
-        <div className="text-center space-y-3 mb-8">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+        {/* Hero Section - Compact on mobile */}
+        <div className="text-center space-y-2 sm:space-y-3 mb-4 sm:mb-8">
+          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">
             What will you create?
           </h2>
-          <p className="text-white/50 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-white/50 max-w-xl mx-auto hidden sm:block">
             Transform your ideas into stunning videos with AI-powered production
           </p>
           
-          {/* Template/Environment Applied Indicator */}
+          {/* Template/Environment Applied Indicator - Compact on mobile */}
           {(appliedTemplateName || appliedEnvironmentName) && (
-            <div className="flex items-center justify-center gap-2 pt-2">
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 pt-1 sm:pt-2 flex-wrap">
               {appliedTemplateName && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/20 border border-violet-500/30">
-                  <LayoutTemplate className="w-3.5 h-3.5 text-violet-400" />
-                  <span className="text-sm font-medium text-violet-300">{appliedTemplateName}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-violet-500/20 border border-violet-500/30">
+                  <LayoutTemplate className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400" />
+                  <span className="text-xs sm:text-sm font-medium text-violet-300 truncate max-w-[100px] sm:max-w-none">{appliedTemplateName}</span>
                   <button 
                     onClick={() => {
                       setAppliedTemplateName(null);
                       setConcept('');
                     }}
-                    className="ml-1 text-violet-400 hover:text-violet-300"
+                    className="ml-0.5 sm:ml-1 text-violet-400 hover:text-violet-300"
                   >
-                    <XCircle className="w-3.5 h-3.5" />
+                    <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </div>
               )}
               {appliedEnvironmentName && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                  <TreePine className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-sm font-medium text-emerald-300">{appliedEnvironmentName}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                  <TreePine className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
+                  <span className="text-xs sm:text-sm font-medium text-emerald-300 truncate max-w-[100px] sm:max-w-none">{appliedEnvironmentName}</span>
                   <button 
                     onClick={() => {
                       setAppliedEnvironmentName(null);
                       setEnvironmentPrompt('');
                     }}
-                    className="ml-1 text-emerald-400 hover:text-emerald-300"
+                    className="ml-0.5 sm:ml-1 text-emerald-400 hover:text-emerald-300"
                   >
-                    <XCircle className="w-3.5 h-3.5" />
+                    <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </div>
               )}
@@ -1120,35 +1122,36 @@ export function UnifiedStudio() {
           )}
         </div>
 
-        {/* Mode Selection Tabs */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden backdrop-blur-sm">
+        {/* Mode Selection Tabs - Compact on mobile */}
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-sm">
           <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-            <div className="border-b border-white/[0.06] bg-white/[0.02] p-3">
-              <TabsList className="grid w-full grid-cols-2 h-12 bg-white/[0.03] p-1 rounded-xl border border-white/[0.05]">
+            <div className="border-b border-white/[0.06] bg-white/[0.02] p-2 sm:p-3">
+              <TabsList className="grid w-full grid-cols-2 h-10 sm:h-12 bg-white/[0.03] p-1 rounded-lg sm:rounded-xl border border-white/[0.05]">
                 <TabsTrigger 
                   value="ai" 
                   disabled={isRunning}
-                  className="gap-2.5 rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300"
+                  className="gap-1.5 sm:gap-2.5 rounded-md sm:rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
                 >
-                  <Zap className="w-4 h-4" />
-                  <span className="font-semibold">AI Hollywood</span>
-                  <Badge className="text-[10px] px-1.5 py-0 h-4 hidden sm:flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="font-semibold">AI</span>
+                  <span className="hidden sm:inline font-semibold">Hollywood</span>
+                  <Badge className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 h-3.5 sm:h-4 hidden md:flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
                     PRO
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="manual" 
                   disabled={isRunning}
-                  className="gap-2.5 rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300"
+                  className="gap-1.5 sm:gap-2.5 rounded-md sm:rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
                 >
-                  <Clapperboard className="w-4 h-4" />
-                  <span className="font-semibold">Manual Mode</span>
+                  <Clapperboard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="font-semibold">Manual</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* AI Mode */}
-            <TabsContent value="ai" className="m-0 p-5 sm:p-6 space-y-6 bg-white/[0.01]">
+            <TabsContent value="ai" className="m-0 p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white/[0.01]">
               {/* Concept Input - Hero Section */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold flex items-center gap-2 text-white/90">

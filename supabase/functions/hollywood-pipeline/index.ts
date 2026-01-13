@@ -3007,6 +3007,37 @@ async function runProduction(
               }
               state.identityBible.masterSceneAnchor = masterSceneAnchor;
               
+              // =====================================================
+              // CRITICAL FIX: Populate consistencyAnchors from scene anchor
+              // Without this, Clip 2+ receives consistencyAnchorsCount: 0
+              // causing character identity drift
+              // =====================================================
+              const sceneBasedAnchors: string[] = [];
+              
+              // Extract visual consistency anchors from scene DNA
+              if (newAnchor.lighting?.promptFragment) {
+                sceneBasedAnchors.push(`LIGHTING: ${newAnchor.lighting.promptFragment}`);
+              }
+              if (newAnchor.colorPalette?.promptFragment) {
+                sceneBasedAnchors.push(`COLOR: ${newAnchor.colorPalette.promptFragment}`);
+              }
+              if (newAnchor.depthCues?.promptFragment) {
+                sceneBasedAnchors.push(`DEPTH: ${newAnchor.depthCues.promptFragment}`);
+              }
+              if (newAnchor.keyObjects?.settingDescription) {
+                sceneBasedAnchors.push(`ENVIRONMENT: ${newAnchor.keyObjects.settingDescription}`);
+              }
+              
+              // Merge into identityBible.consistencyAnchors
+              const existingAnchors = state.identityBible.consistencyAnchors || [];
+              state.identityBible.consistencyAnchors = [
+                ...existingAnchors,
+                ...sceneBasedAnchors,
+              ];
+              
+              console.log(`[Hollywood] ✓ CRITICAL: Populated ${sceneBasedAnchors.length} consistencyAnchors from scene DNA`);
+              console.log(`[Hollywood]   Total consistencyAnchors: ${state.identityBible.consistencyAnchors.length}`);
+              
             } else {
               // CLIP 2+: Merge new anchor data but preserve master DNA
               // Only update if significant drift detected (allows natural scene evolution)

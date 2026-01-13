@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,19 +28,85 @@ export function VideoThumbnail({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [posterFrame, setPosterFrame] = useState<string | null>(null);
 
-  const handleLoadedData = useCallback(() => {
+  // Eagerly load video and capture a poster frame
+  useEffect(() => {
+    if (!src) return;
+    
+    setIsLoaded(false);
+    setHasError(false);
+    setPosterFrame(null);
+
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+
+    const handleCanPlay = () => {
+      // Seek to 25% for a good thumbnail frame
+      video.currentTime = video.duration * 0.25;
+    };
+
+    const handleSeeked = () => {
+      // Try to capture a poster frame from the video
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setPosterFrame(dataUrl);
+        }
+      } catch (e) {
+        // CORS or other error - fall back to video element
+      }
+      setIsLoaded(true);
+    };
+
+    const handleError = () => {
+      setHasError(true);
+      setIsLoaded(true);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('error', handleError);
+    
+    // Start loading
+    video.src = src;
+    video.load();
+
+    // Fallback timeout - show video even if poster extraction fails
+    const timeout = setTimeout(() => {
+      if (!isLoaded) {
+        setIsLoaded(true);
+      }
+    }, 2000);
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('error', handleError);
+      video.src = '';
+      clearTimeout(timeout);
+    };
+  }, [src]);
+
+  const handleVideoLoadedData = useCallback(() => {
     const video = videoRef.current;
     if (video) {
       // Seek to 25% to get a good thumbnail frame
       video.currentTime = video.duration * 0.25;
-      setIsLoaded(true);
     }
   }, []);
 
-  const handleError = useCallback(() => {
+  const handleVideoError = useCallback(() => {
     setHasError(true);
-    setIsLoaded(true); // Stop showing skeleton
+    setIsLoaded(true);
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -84,6 +150,18 @@ export function VideoThumbnail({
         )}
       </AnimatePresence>
 
+      {/* Poster frame (static image captured from video) */}
+      {posterFrame && !hasError && (
+        <img
+          src={posterFrame}
+          alt=""
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+            isHovered ? "opacity-0" : "opacity-100"
+          )}
+        />
+      )}
+
       {/* Video element */}
       {src && !hasError ? (
         <video
@@ -98,8 +176,8 @@ export function VideoThumbnail({
           loop
           playsInline
           preload="auto"
-          onLoadedData={handleLoadedData}
-          onError={handleError}
+          onLoadedData={handleVideoLoadedData}
+          onError={handleVideoError}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">

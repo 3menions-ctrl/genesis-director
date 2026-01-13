@@ -74,6 +74,7 @@ interface VerificationResult {
   hairScore: number;
   accessoryScore: number;
   silhouetteScore: number;
+  physicsScore: number;  // NEW: Physics/motion coherence score
   issues: Array<{
     type: string;
     severity: 'minor' | 'moderate' | 'severe';
@@ -91,15 +92,18 @@ interface VerificationResult {
   clothingHardFail: boolean;
   hairHardFail: boolean;
   bodyHardFail: boolean;
+  physicsHardFail: boolean;  // NEW: Physics violation hard fail
 }
 
-// STRICT THRESHOLDS for character consistency
+// PREMIUM THRESHOLDS for $6/video character consistency
+// These are strict because users pay premium for quality
 const THRESHOLDS = {
-  OVERALL_PASS: 65,         // Lowered from 70
-  CLOTHING_HARD_FAIL: 50,   // Clothing score below this = MUST regenerate
-  HAIR_HARD_FAIL: 50,       // Hair score below this = MUST regenerate
-  BODY_HARD_FAIL: 55,       // Body score below this = MUST regenerate
-  FACE_HARD_FAIL: 60,       // Face score below this (if visible) = MUST regenerate
+  OVERALL_PASS: 80,         // Raised to 80 for premium quality
+  CLOTHING_HARD_FAIL: 65,   // Clothing score below this = MUST regenerate
+  HAIR_HARD_FAIL: 65,       // Hair score below this = MUST regenerate
+  BODY_HARD_FAIL: 65,       // Body score below this = MUST regenerate
+  FACE_HARD_FAIL: 70,       // Face score below this (if visible) = MUST regenerate
+  PHYSICS_HARD_FAIL: 60,    // Physics/motion coherence below this = MUST regenerate
   MAX_REGENERATIONS: 3,
 };
 
@@ -182,6 +186,7 @@ async function analyzeIdentityConsistency(
       hairScore: 75,
       accessoryScore: 75,
       silhouetteScore: 75,
+      physicsScore: 75,
       issues: [],
       shouldRegenerate: false,
       regenerationHints: [],
@@ -193,6 +198,7 @@ async function analyzeIdentityConsistency(
       clothingHardFail: false,
       hairHardFail: false,
       bodyHardFail: false,
+      physicsHardFail: false,
     };
   }
   
@@ -203,26 +209,36 @@ async function analyzeIdentityConsistency(
   const messageContent: any[] = [
     {
       type: 'text',
-      text: `You are an expert character consistency analyst for AI-generated videos.
+      text: `You are an expert visual quality analyst for AI-generated videos. You must be STRICT - users pay $6 per video and expect perfection.
 
 REFERENCE CHARACTER IDENTITY:
 ${identityDescription}
 
-TASK: Analyze the video frame(s) below and verify if the character matches the reference identity.
+TASK: Analyze the video frame(s) below and verify BOTH character identity AND physics/motion coherence.
 
-Score each aspect from 0-100:
-1. FACE: Facial features, expression consistency
-2. BODY: Body type, proportions, posture
-3. CLOTHING: Outfit, colors, patterns, textures
-4. HAIR: Color, style, length, texture
+Score each aspect from 0-100 (be HARSH - 70+ should be EXCELLENT):
+1. FACE: Facial features, expression consistency (0 if not visible)
+2. BODY: Body type, proportions, posture, anatomical correctness
+3. CLOTHING: Outfit, colors, patterns, textures - MUST match exactly
+4. HAIR: Color, style, length, texture - MUST be consistent
 5. ACCESSORIES: Jewelry, bags, watches, etc.
 6. SILHOUETTE: Overall body shape/outline
+7. PHYSICS: Motion coherence, realistic physics, no floating/clipping/impossible poses
+
+CRITICAL - FAIL IMMEDIATELY IF ANY OF THESE OCCUR:
+- Extra limbs, missing limbs, deformed limbs
+- Impossible body poses or contortions
+- Clothing that defies physics (floating, clipping through body)
+- Face morphing or different person
+- Hair color/style completely changed
+- Body proportions drastically different
 
 IMPORTANT RULES:
 - If face is not visible (turned away, occluded), score based on other visible features
 - A character can still pass if face is hidden but body/clothing match perfectly
 - Weight clothing and body type HEAVILY when face is not visible
 - Look for ANY sign of character morphing or identity drift
+- Physics issues are SEVERE - unrealistic motion = fail
 
 Return ONLY valid JSON:
 {
@@ -232,10 +248,11 @@ Return ONLY valid JSON:
   "hairScore": number,
   "accessoryScore": number,
   "silhouetteScore": number,
+  "physicsScore": number,
   "faceVisible": boolean,
   "issues": [
     {
-      "type": "face_changed|clothing_changed|hair_changed|body_changed|accessory_missing|silhouette_mismatch",
+      "type": "face_changed|clothing_changed|hair_changed|body_changed|accessory_missing|silhouette_mismatch|physics_violation|anatomy_error",
       "severity": "minor|moderate|severe",
       "description": "specific description of the issue"
     }
@@ -303,27 +320,34 @@ Return ONLY valid JSON:
     
     const analysis = JSON.parse(jsonMatch[0]);
     
-    // Calculate overall score (weighted)
+    // Calculate overall score (weighted - includes physics)
     const weights = {
-      face: analysis.faceVisible ? 0.25 : 0.05, // Low weight if face not visible
-      body: analysis.faceVisible ? 0.15 : 0.25,
-      clothing: analysis.faceVisible ? 0.20 : 0.30,
-      hair: 0.15,
-      accessory: 0.10,
-      silhouette: analysis.faceVisible ? 0.15 : 0.20,
+      face: analysis.faceVisible ? 0.20 : 0.05, // Low weight if face not visible
+      body: analysis.faceVisible ? 0.15 : 0.20,
+      clothing: analysis.faceVisible ? 0.18 : 0.25,
+      hair: 0.12,
+      accessory: 0.08,
+      silhouette: analysis.faceVisible ? 0.12 : 0.15,
+      physics: 0.15, // Physics always matters
     };
     
+    const physicsScore = analysis.physicsScore || 70;
+    
     const overallScore = Math.round(
-      analysis.faceScore * weights.face +
-      analysis.bodyScore * weights.body +
-      analysis.clothingScore * weights.clothing +
-      analysis.hairScore * weights.hair +
-      analysis.accessoryScore * weights.accessory +
-      analysis.silhouetteScore * weights.silhouette
+      (analysis.faceScore || 0) * weights.face +
+      (analysis.bodyScore || 0) * weights.body +
+      (analysis.clothingScore || 0) * weights.clothing +
+      (analysis.hairScore || 0) * weights.hair +
+      (analysis.accessoryScore || 0) * weights.accessory +
+      (analysis.silhouetteScore || 0) * weights.silhouette +
+      physicsScore * weights.physics
     );
     
     // Determine if severe issues exist
     const hasSevereIssues = analysis.issues?.some((i: any) => i.severity === 'severe') || false;
+    const hasPhysicsViolation = analysis.issues?.some((i: any) => 
+      i.type === 'physics_violation' || i.type === 'anatomy_error'
+    ) || false;
     const hasModerateIssues = analysis.issues?.filter((i: any) => i.severity === 'moderate').length >= 2;
     
     // Build drift areas from issues
@@ -341,12 +365,13 @@ Return ONLY valid JSON:
     const hairHardFail = hairScore < THRESHOLDS.HAIR_HARD_FAIL;
     const bodyHardFail = bodyScore < THRESHOLDS.BODY_HARD_FAIL;
     const faceHardFail = analysis.faceVisible && faceScore < THRESHOLDS.FACE_HARD_FAIL;
+    const physicsHardFail = physicsScore < THRESHOLDS.PHYSICS_HARD_FAIL || hasPhysicsViolation;
     
     // Determine if drift occurred (use stricter threshold)
-    const driftDetected = overallScore < THRESHOLDS.OVERALL_PASS || hasSevereIssues || hasModerateIssues;
+    const driftDetected = overallScore < THRESHOLDS.OVERALL_PASS || hasSevereIssues || hasModerateIssues || hasPhysicsViolation;
     
     // Should regenerate if any hard fail or overall too low
-    const shouldRegenerate = clothingHardFail || hairHardFail || bodyHardFail || faceHardFail ||
+    const shouldRegenerate = clothingHardFail || hairHardFail || bodyHardFail || faceHardFail || physicsHardFail ||
       overallScore < THRESHOLDS.OVERALL_PASS || hasSevereIssues || hasModerateIssues;
     
     // Build corrective prompt from hints
@@ -366,7 +391,7 @@ Return ONLY valid JSON:
     }
     
     return {
-      passed: overallScore >= THRESHOLDS.OVERALL_PASS && !hasSevereIssues && !clothingHardFail && !hairHardFail && !bodyHardFail,
+      passed: overallScore >= THRESHOLDS.OVERALL_PASS && !hasSevereIssues && !clothingHardFail && !hairHardFail && !bodyHardFail && !physicsHardFail,
       overallScore,
       faceScore,
       bodyScore,
@@ -374,6 +399,7 @@ Return ONLY valid JSON:
       hairScore,
       accessoryScore: analysis.accessoryScore || 75,
       silhouetteScore: analysis.silhouetteScore || 75,
+      physicsScore,
       issues: analysis.issues || [],
       shouldRegenerate,
       regenerationHints: analysis.regenerationHints || [],
@@ -385,6 +411,7 @@ Return ONLY valid JSON:
       clothingHardFail,
       hairHardFail,
       bodyHardFail,
+      physicsHardFail,
     };
     
   } catch (err) {
@@ -399,6 +426,7 @@ Return ONLY valid JSON:
       hairScore: 70,
       accessoryScore: 70,
       silhouetteScore: 70,
+      physicsScore: 70,
       issues: [],
       shouldRegenerate: false,
       regenerationHints: [],
@@ -410,6 +438,7 @@ Return ONLY valid JSON:
       clothingHardFail: false,
       hairHardFail: false,
       bodyHardFail: false,
+      physicsHardFail: false,
     };
   }
 }

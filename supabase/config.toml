@@ -161,3 +161,6 @@ verify_jwt = false
 
 [functions.extract-continuity-manifest]
 verify_jwt = false
+
+[functions.continue-production]
+verify_jwt = false

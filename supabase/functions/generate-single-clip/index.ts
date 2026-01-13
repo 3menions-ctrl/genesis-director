@@ -2624,6 +2624,7 @@ interface GenerateSingleClipRequest {
   storyPosition?: 'opening' | 'setup' | 'catalyst' | 'rising' | 'climax' | 'resolution';
   previousClipSummary?: string;
   isRetry?: boolean;
+  retryAttempt?: number;
   // Accumulated scene anchors for visual consistency
   accumulatedAnchors?: {
     lighting?: { promptFragment?: string; timeOfDay?: string };
@@ -2631,6 +2632,10 @@ interface GenerateSingleClipRequest {
     keyObjects?: { promptFragment?: string; environmentType?: string };
     masterConsistencyPrompt?: string;
   }[];
+  // CALLBACK CHAINING: When true, triggers continue-production after completion
+  triggerNextClip?: boolean;
+  // Pipeline context to pass to continue-production
+  pipelineContext?: any;
 }
 
 interface ClipResult {
@@ -4437,6 +4442,48 @@ serve(async (req) => {
     };
 
     console.log(`[SingleClip] Clip ${request.clipIndex + 1} completed successfully${extractedManifest ? ' with continuity manifest' : ''}`);
+
+    // =====================================================
+    // CALLBACK CHAINING: Trigger next clip generation
+    // This prevents edge function timeouts by generating one clip per invocation
+    // =====================================================
+    if (request.triggerNextClip) {
+      const isLastClip = request.clipIndex + 1 >= request.totalClips;
+      console.log(`[SingleClip] 🔗 CALLBACK CHAIN: Triggering continue-production (${isLastClip ? 'post-production' : `clip ${request.clipIndex + 2}/${request.totalClips}`})...`);
+      
+      // Fire-and-forget: trigger next step in background
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      
+      // Use setTimeout with 0 to push to next tick, allowing response to be sent first
+      setTimeout(async () => {
+        try {
+          const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              projectId: request.projectId,
+              userId: request.userId,
+              completedClipIndex: request.clipIndex,
+              completedClipResult: clipResult,
+              totalClips: request.totalClips,
+              pipelineContext: request.pipelineContext,
+            }),
+          });
+          
+          if (response.ok) {
+            console.log(`[SingleClip] ✓ continue-production triggered successfully`);
+          } else {
+            console.error(`[SingleClip] ⚠️ continue-production failed: ${response.status}`);
+          }
+        } catch (err) {
+          console.error(`[SingleClip] ⚠️ Failed to trigger continue-production:`, err);
+        }
+      }, 100); // Small delay to ensure response is sent first
+    }
 
     return new Response(
       JSON.stringify({

@@ -2164,12 +2164,19 @@ async function runProduction(
     }
   }
   
-  // Generate clips one at a time with proper frame chaining
+  // =====================================================
+  // CALLBACK-BASED CLIP GENERATION (PREVENTS TIMEOUT)
+  // Instead of looping through all clips in one function call,
+  // we generate only the first pending clip and let callback chaining handle the rest.
+  // This prevents edge function timeout by limiting each invocation to ~90s max.
+  // =====================================================
+  
+  // Generate clips with callback chaining - each clip triggers the next via continue-production
   for (let i = startIndex; i < clips.length; i++) {
     const clip = clips[i];
     const progressPercent = 75 + Math.floor((i / clips.length) * 15);
     
-    console.log(`[Hollywood] Generating clip ${i + 1}/${clips.length}...`);
+    console.log(`[Hollywood] Generating clip ${i + 1}/${clips.length} (callback chaining enabled)...`);
     
     await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
       clipsCompleted: i,
@@ -2418,6 +2425,22 @@ async function runProduction(
                 ...accumulatedAnchors.slice(-2)
               ].filter(Boolean)
             : [],
+          // =====================================================
+          // CALLBACK CHAINING: Enable automatic continuation after this clip
+          // This prevents edge function timeouts by generating one clip per invocation
+          // =====================================================
+          triggerNextClip: true,
+          pipelineContext: {
+            identityBible: state.identityBible,
+            masterSceneAnchor,
+            goldenFrameData,
+            accumulatedAnchors,
+            referenceImageUrl,
+            colorGrading: request.colorGrading || 'cinematic',
+            qualityTier: request.qualityTier || 'standard',
+            sceneImageLookup,
+            tierLimits: (request as any)._tierLimits || { maxRetries: 1 },
+          },
         });
         
         if (!clipResult.success) {

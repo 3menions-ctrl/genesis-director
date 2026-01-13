@@ -42,6 +42,8 @@ interface PipelineRequest {
   // Story-first flow
   approvedStory?: string;
   storyTitle?: string;
+  // Environment DNA - for consistent visual atmosphere
+  environmentPrompt?: string;
 }
 
 interface ExtractedCharacter {
@@ -573,6 +575,8 @@ async function runPreProduction(
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
         characterLock, // Pass character lock for consistency
+        // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
+        environmentPrompt: request.environmentPrompt,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -664,6 +668,8 @@ async function runPreProduction(
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
         characterLock, // Pass character lock for consistency
+        // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
+        environmentPrompt: request.environmentPrompt,
       });
       
       if (scriptResult.shots || scriptResult.clips) {

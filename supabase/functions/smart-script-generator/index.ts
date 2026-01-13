@@ -39,6 +39,8 @@ interface SmartScriptRequest {
   userDialogue?: string[];     // User's exact dialogue lines
   userScript?: string;         // User's complete script (use as-is)
   preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
+  // Environment DNA - full environment description for visual consistency
+  environmentPrompt?: string;
 }
 
 interface SceneClip {
@@ -252,6 +254,12 @@ SCENE:
 ${request.approvedScene}
 """
 
+${request.environmentPrompt ? `
+ENVIRONMENT DNA (MANDATORY - ALL clips MUST use this EXACT environment):
+${request.environmentPrompt}
+CRITICAL: Every clip MUST take place in this exact environment with this exact lighting and atmosphere. Copy this environment description to EVERY clip's locationDescription and lightingDescription fields.
+` : ''}
+
 ${request.characterLock ? `
 CHARACTER (use EXACTLY in all 6 clips):
 ${request.characterLock.description}
@@ -284,6 +292,7 @@ REQUIREMENTS:
 - Each clip = 6 seconds of the continuous action
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
+${request.environmentPrompt ? '- MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription' : ''}
 ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dialogue" field' : '- Keep dialogue/narration in the appropriate clips'}
 
 Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
@@ -297,6 +306,12 @@ ${request.style ? `STYLE: ${request.style}` : ''}
 ${request.genre ? `GENRE: ${request.genre}` : ''}
 ${request.mainSubjects?.length ? `MAIN SUBJECTS: ${request.mainSubjects.join(', ')}` : ''}
 ${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.join(', ')}` : ''}
+
+${request.environmentPrompt ? `
+ENVIRONMENT DNA (MANDATORY - ALL clips MUST use this EXACT environment):
+${request.environmentPrompt}
+CRITICAL: Every clip MUST take place in this exact environment with this exact lighting and atmosphere. Copy this environment description to EVERY clip's locationDescription and lightingDescription fields.
+` : ''}
 
 ${request.characterLock ? `
 CHARACTER (use EXACTLY in all ${recommendedClips} clips):
@@ -329,6 +344,7 @@ Create ONE continuous scene with ${recommendedClips} progressive clips. Each cli
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
+${request.environmentPrompt ? 'MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription.' : ''}
 ${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
 
 Output ONLY valid JSON with exactly ${recommendedClips} clips.`;

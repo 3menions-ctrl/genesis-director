@@ -634,17 +634,48 @@ export default function Production() {
     setIsResuming(true);
     
     try {
+      // Determine best resume stage based on current state
+      let resumeFrom: 'qualitygate' | 'assets' | 'production' | 'postproduction' = 'production';
+      
+      // If we have completed clips, resume from production
+      const completedCount = clipResults.filter(c => c.status === 'completed').length;
+      if (completedCount > 0 && completedCount === expectedClipCount) {
+        // All clips done but no final video - resume from postproduction
+        resumeFrom = 'postproduction';
+      } else if (pipelineStage === 'assets' || (scriptShots && scriptShots.length > 0 && completedCount === 0)) {
+        // Has script but no clips - check if assets stage
+        resumeFrom = 'assets';
+      }
+      
+      addLog(`Resuming pipeline from ${resumeFrom}...`, 'info');
+      
       const { data, error } = await supabase.functions.invoke('resume-pipeline', {
-        body: { userId: user.id, projectId, resumeFrom: 'production' },
+        body: { 
+          userId: user.id, 
+          projectId, 
+          resumeFrom,
+          // Pass the current script if available for consistency
+          approvedShots: scriptShots?.map(shot => ({
+            id: shot.id,
+            title: shot.title,
+            description: shot.description,
+            durationSeconds: shot.durationSeconds,
+          })),
+        },
       });
       
       if (error) throw error;
       if (data?.success) {
-        toast.success('Resumed');
+        toast.success(`Resumed from ${resumeFrom}`);
         setProjectStatus('generating');
+        addLog(`Pipeline resumed successfully`, 'success');
+      } else if (data?.error) {
+        throw new Error(data.error);
       }
-    } catch {
-      toast.error('Resume failed');
+    } catch (err: any) {
+      const errorMsg = err.message || 'Resume failed';
+      toast.error(errorMsg);
+      addLog(`Resume failed: ${errorMsg}`, 'error');
     } finally {
       setIsResuming(false);
     }
@@ -756,9 +787,11 @@ export default function Production() {
     }
   };
 
-  const isRunning = !['completed', 'failed', 'draft'].includes(projectStatus);
-  const isComplete = projectStatus === 'completed';
-  const isError = projectStatus === 'failed';
+  // Determine running/complete/error states with better granularity
+  const isRunning = ['generating', 'producing', 'rendering', 'stitching', 'assembling'].includes(projectStatus);
+  const isComplete = projectStatus === 'completed' && !!finalVideoUrl;
+  const isError = projectStatus === 'failed' || projectStatus === 'stitching_failed';
+  const canResume = isError || (projectStatus === 'failed' && clipResults.some(c => c.status === 'completed'));
 
   if (isLoading) {
     return <AppLoader message="Loading production..." />;

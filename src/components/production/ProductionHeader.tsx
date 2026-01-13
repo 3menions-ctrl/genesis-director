@@ -97,7 +97,8 @@ export function ProductionHeader({
   onCancel,
   onResume,
 }: ProductionHeaderProps) {
-  const showResumeButton = hasClips && !isComplete && !isRunning;
+  // Show resume button for failed projects (with or without clips) or stalled projects
+  const showResumeButton = !isComplete && !isRunning && (isError || hasClips);
   const showCancelButton = isRunning;
 
   return (

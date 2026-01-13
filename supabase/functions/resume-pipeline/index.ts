@@ -60,16 +60,32 @@ serve(async (req) => {
 
     const pendingTasks = project.pending_video_tasks || {};
     const currentStage = pendingTasks.stage;
+    const lastCompletedStage = pendingTasks.lastCompletedStage;
+    const suggestedResumeFrom = pendingTasks.suggestedResumeFrom;
     
     // Determine resume stage based on current state and explicit request
     let resumeFrom = request.resumeFrom;
     
     if (!resumeFrom) {
+      // Use suggested resume stage if available (from error state)
+      if (suggestedResumeFrom) {
+        resumeFrom = suggestedResumeFrom;
+        console.log(`[ResumePipeline] Using suggested resume stage: ${resumeFrom}`);
+      }
       // Auto-detect based on current stage
-      if (currentStage === 'awaiting_approval') {
+      else if (currentStage === 'awaiting_approval') {
         resumeFrom = 'qualitygate';
       } else if (currentStage === 'production' || currentStage === 'error' || project.status === 'failed' || project.status === 'generating') {
-        resumeFrom = 'production';
+        // For error states, determine best resume point
+        if (lastCompletedStage === 'assets' || lastCompletedStage === 'production') {
+          resumeFrom = 'production';
+        } else if (lastCompletedStage === 'qualitygate') {
+          resumeFrom = 'assets';
+        } else if (lastCompletedStage === 'preproduction') {
+          resumeFrom = 'qualitygate';
+        } else {
+          resumeFrom = 'production'; // Default
+        }
       } else if (currentStage === 'assets') {
         // Check if scene images exist - if so, skip to production
         if (project.scene_images && Array.isArray(project.scene_images) && project.scene_images.length > 0) {
@@ -78,8 +94,22 @@ serve(async (req) => {
         } else {
           resumeFrom = 'assets';
         }
+      } else if (currentStage === 'postproduction' || currentStage === 'stitching') {
+        resumeFrom = 'postproduction';
+      } else if (currentStage === 'complete' && !project.video_url) {
+        // Completed stage but no video - retry postproduction
+        resumeFrom = 'postproduction';
+      } else if (!currentStage && project.status === 'failed') {
+        // No stage info but failed - check for clips
+        resumeFrom = 'production';
+      } else if (!currentStage && project.status === 'draft') {
+        // Draft project - start from beginning
+        console.log(`[ResumePipeline] Draft project, cannot resume - please start generation`);
+        throw new Error(`Project is in draft state. Please start generation from the studio.`);
       } else {
-        throw new Error(`Cannot resume from stage: ${currentStage}. Current status: ${project.status}`);
+        // Fallback: try to resume from production as it's most common failure point
+        console.warn(`[ResumePipeline] Unknown stage '${currentStage}' with status '${project.status}', defaulting to production`);
+        resumeFrom = 'production';
       }
     }
     
@@ -107,9 +137,37 @@ serve(async (req) => {
       console.log("[ResumePipeline] Using user-edited shots:", request.approvedShots.length);
     }
     
+    // FAIL-SAFE: If still no script, try to rebuild from video_clips prompts
     if (!script?.shots || script.shots.length === 0) {
-      throw new Error(`No script found for project. Cannot resume.`);
+      console.warn(`[ResumePipeline] No script found, attempting to rebuild from video_clips...`);
+      
+      const { data: existingClips } = await supabase
+        .from('video_clips')
+        .select('shot_index, prompt, duration_seconds')
+        .eq('project_id', request.projectId)
+        .order('shot_index');
+      
+      if (existingClips && existingClips.length > 0) {
+        script = {
+          shots: existingClips.map((clip: any) => ({
+            id: `shot_${clip.shot_index + 1}`,
+            title: `Clip ${clip.shot_index + 1}`,
+            description: clip.prompt,
+            durationSeconds: clip.duration_seconds || 6,
+          }))
+        };
+        console.log(`[ResumePipeline] Rebuilt script from ${existingClips.length} video_clips`);
+      } else {
+        throw new Error(`No script found for project and no video clips to rebuild from. Cannot resume.`);
+      }
     }
+    
+    // Restore preserved identity data from pending_video_tasks or pro_features_data
+    const identityBible = pendingTasks.identityBible || (project.pro_features_data as any)?.identityBible;
+    const extractedCharacters = pendingTasks.extractedCharacters || (project.pro_features_data as any)?.extractedCharacters;
+    const referenceAnalysis = pendingTasks.referenceAnalysis || (project.pro_features_data as any)?.referenceAnalysis;
+    
+    console.log(`[ResumePipeline] Restored identity data: bible=${!!identityBible}, chars=${extractedCharacters?.length || 0}, ref=${!!referenceAnalysis}`);
 
     // Update project to indicate resumption
     await supabase
@@ -162,17 +220,21 @@ serve(async (req) => {
       // CRITICAL: Include manualPrompts OR concept so hollywood-pipeline doesn't reject
       manualPrompts: manualPrompts.length > 0 ? manualPrompts : undefined,
       concept: project.synopsis || project.title || 'Continue video generation',
-      // Pass through original config from pending tasks
-      includeVoice: pendingTasks.config?.includeVoice ?? false, // Don't regenerate voice on resume
-      includeMusic: pendingTasks.config?.includeMusic ?? false, // Don't regenerate music on resume
+      // Pass through original config from pending tasks (with sensible defaults)
+      includeVoice: pendingTasks.config?.includeVoice ?? pendingTasks.assets?.voiceUrl ? false : true,
+      includeMusic: pendingTasks.config?.includeMusic ?? pendingTasks.assets?.musicUrl ? false : true,
       genre: pendingTasks.config?.genre || project.genre || 'cinematic',
       mood: pendingTasks.config?.mood || project.mood || 'epic',
       colorGrading: pendingTasks.config?.colorGrading || 'cinematic',
+      qualityTier: pendingTasks.config?.qualityTier || project.quality_tier || 'standard',
       clipCount: script?.shots?.length || pendingTasks.clipCount || 6,
-      referenceImageAnalysis: pendingTasks.referenceAnalysis,
-      identityBible: pendingTasks.identityBible,
-      extractedCharacters: pendingTasks.extractedCharacters,
+      // Restore identity and reference data for consistency
+      referenceImageAnalysis: referenceAnalysis,
+      identityBible: identityBible,
+      extractedCharacters: extractedCharacters,
       resumeFromClipIndex, // Tell pipeline which clip to start from
+      // Pass existing assets to avoid regeneration
+      existingAssets: pendingTasks.assets,
     };
 
     console.log("[ResumePipeline] Calling hollywood-pipeline with resume config:", resumeFrom);

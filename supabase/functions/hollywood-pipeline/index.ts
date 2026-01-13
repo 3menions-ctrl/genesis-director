@@ -4456,20 +4456,132 @@ async function executePipelineInBackground(
   } catch (error) {
     console.error("[Hollywood] Background pipeline error:", error);
     
-    // Update project as failed
+    // RESUMABLE FAILURE STATE: Preserve ALL pipeline state for resumption
+    // This ensures users can always resume from where the pipeline failed
+    const errorMessage = error instanceof Error ? error.message : 'Pipeline failed';
+    const lastCompletedStage = determineLastCompletedStage(state);
+    
+    console.log(`[Hollywood] Saving resumable state: lastStage=${lastCompletedStage}, progress=${state.progress}%`);
+    
+    // Get existing pro_features_data to preserve identity data
+    const { data: existingProject } = await supabase
+      .from('movie_projects')
+      .select('pro_features_data, scene_images')
+      .eq('id', projectId)
+      .single();
+    
+    const existingProFeatures = existingProject?.pro_features_data || {};
+    
+    // Merge and preserve all identity and state data
+    const preservedProFeatures = {
+      ...existingProFeatures,
+      identityBible: state.identityBible || existingProFeatures.identityBible,
+      extractedCharacters: state.extractedCharacters || existingProFeatures.extractedCharacters,
+      referenceAnalysis: state.referenceAnalysis || existingProFeatures.referenceAnalysis,
+      sceneConsistency: state.sceneConsistency || existingProFeatures.sceneConsistency,
+      goldenFrameData: existingProFeatures.goldenFrameData,
+      masterSceneAnchor: existingProFeatures.masterSceneAnchor,
+      failedAt: new Date().toISOString(),
+      lastError: errorMessage,
+    };
+    
+    // Count completed clips for progress info
+    const completedClipsCount = state.production?.clipResults?.filter(c => c.status === 'completed').length || 0;
+    const failedClipsCount = state.production?.clipResults?.filter(c => c.status === 'failed').length || 0;
+    
+    // Update project with FULL resumable state
     await supabase
       .from('movie_projects')
       .update({
         status: 'failed',
+        last_error: errorMessage,
+        // Preserve generated script for resumption
+        generated_script: state.script ? JSON.stringify(state.script) : null,
+        // Preserve scene images if they exist
+        scene_images: state.assets?.sceneImages || existingProject?.scene_images || null,
+        // Preserve pro features data
+        pro_features_data: preservedProFeatures,
+        // CRITICAL: Full state preservation for resumption
         pending_video_tasks: {
           stage: 'error',
+          lastCompletedStage,
           progress: state.progress,
-          error: error instanceof Error ? error.message : 'Pipeline failed',
+          error: errorMessage,
+          // Preserve script for resumption
+          script: state.script,
+          clipCount: state.clipCount,
+          clipDuration: state.clipDuration,
+          totalCredits: state.totalCredits,
+          // Preserve identity data for resumption
+          identityBible: state.identityBible,
+          extractedCharacters: state.extractedCharacters,
+          referenceAnalysis: state.referenceAnalysis,
+          sceneConsistency: state.sceneConsistency,
+          // Preserve audit results
+          auditResult: state.auditResult,
+          // Preserve asset URLs (if generated before failure)
+          assets: state.assets,
+          // Production progress info
+          clipsCompleted: completedClipsCount,
+          clipsFailed: failedClipsCount,
+          // Config for resumption
+          config: {
+            includeVoice: request.includeVoice,
+            includeMusic: request.includeMusic,
+            genre: request.genre,
+            mood: request.mood,
+            colorGrading: request.colorGrading,
+            qualityTier: request.qualityTier,
+          },
+          // Resumption metadata
+          failedAt: new Date().toISOString(),
+          resumable: true,
+          suggestedResumeFrom: getSuggestedResumeStage(lastCompletedStage, errorMessage),
         },
         updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
+    
+    console.log(`[Hollywood] Resumable failure state saved. Resume from: ${getSuggestedResumeStage(lastCompletedStage, errorMessage)}`);
   }
+}
+
+// Helper: Determine the last successfully completed stage
+function determineLastCompletedStage(state: PipelineState): string {
+  if (state.finalVideoUrl) return 'postproduction';
+  if (state.production?.clipResults?.some(c => c.status === 'completed')) return 'production';
+  if (state.assets?.sceneImages?.length || state.assets?.voiceUrl || state.assets?.musicUrl) return 'assets';
+  if (state.auditResult?.overallScore) return 'qualitygate';
+  if (state.script?.shots?.length) return 'preproduction';
+  return 'initializing';
+}
+
+// Helper: Suggest the best stage to resume from based on state and error
+function getSuggestedResumeStage(lastCompletedStage: string, errorMessage: string): string {
+  // If error is in video generation, resume from production
+  if (errorMessage.toLowerCase().includes('video') || 
+      errorMessage.toLowerCase().includes('clip') ||
+      errorMessage.toLowerCase().includes('veo') ||
+      errorMessage.toLowerCase().includes('generation')) {
+    return 'production';
+  }
+  
+  // If error is in stitching, resume from postproduction
+  if (errorMessage.toLowerCase().includes('stitch') || 
+      errorMessage.toLowerCase().includes('assembly')) {
+    return 'postproduction';
+  }
+  
+  // Otherwise, resume from the stage after the last completed one
+  const stageOrder = ['initializing', 'preproduction', 'qualitygate', 'assets', 'production', 'postproduction'];
+  const lastIndex = stageOrder.indexOf(lastCompletedStage);
+  
+  if (lastIndex >= 0 && lastIndex < stageOrder.length - 1) {
+    return stageOrder[lastIndex + 1];
+  }
+  
+  // Default to production as it's the most common failure point
+  return 'production';
 }
 
 // Handle shutdown gracefully

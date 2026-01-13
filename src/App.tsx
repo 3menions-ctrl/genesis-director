@@ -28,6 +28,8 @@ const Production = lazy(() => import("./pages/Production"));
 const Clips = lazy(() => import("./pages/Clips"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Universes = lazy(() => import("./pages/Universes"));
+const Templates = lazy(() => import("./pages/Templates"));
+const Environments = lazy(() => import("./pages/Environments"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
 // Loading fallback component
@@ -132,6 +134,20 @@ const App = () => (
                 <Route path="/universes" element={
                   <ProtectedRoute>
                     <Universes />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Templates Gallery */}
+                <Route path="/templates" element={
+                  <ProtectedRoute>
+                    <Templates />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Environments DNA */}
+                <Route path="/environments" element={
+                  <ProtectedRoute>
+                    <Environments />
                   </ProtectedRoute>
                 } />
                 

@@ -705,7 +705,7 @@ export default function Projects() {
       if (error) throw error;
       
       await refreshProjects();
-      toast.success(newIsPublic ? 'Video shared to Feed!' : 'Video removed from Feed');
+      toast.success(newIsPublic ? 'Video shared to Discover!' : 'Video removed from Discover');
     } catch (err: any) {
       console.error('Failed to toggle public:', err);
       toast.error('Failed to update sharing settings');

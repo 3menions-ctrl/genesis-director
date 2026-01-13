@@ -15,7 +15,7 @@ const PRICING_TIERS = [
     description: 'Try the platform',
     features: [
       '60 credits to start',
-      'Create sample videos',
+      '1 video clip included',
       'Automatic retry system',
       '4K export available',
     ],
@@ -32,7 +32,7 @@ const PRICING_TIERS = [
     description: 'For regular content creation',
     features: [
       '600 credits per month',
-      'Approximately 10 videos',
+      'Approximately 10 clips',
       'Automatic retry system',
       '4K export',
       'Email support',
@@ -50,7 +50,7 @@ const PRICING_TIERS = [
     description: 'For frequent creators',
     features: [
       '1,800 credits per month',
-      'Approximately 30 videos',
+      'Approximately 30 clips',
       'Priority processing',
       'All export formats',
       'Priority support',
@@ -69,7 +69,7 @@ const PRICING_TIERS = [
     description: 'For teams and agencies',
     features: [
       '6,000 credits per month',
-      'Approximately 100 videos',
+      'Approximately 100 clips',
       'Dedicated processing',
       'All export formats',
       'Dedicated support',
@@ -84,9 +84,9 @@ const PRICING_TIERS = [
 
 // Credit cost breakdown
 const CREDIT_COSTS = [
-  { action: 'Video (6 clips)', credits: 60, breakdown: 'Approximately $6 per video' },
-  { action: 'Per clip', credits: 10, breakdown: 'Included in video price' },
-  { action: 'Voice + music + stitching', credits: 'Included', breakdown: 'Bundled with video' },
+  { action: 'Single video clip', credits: 60, breakdown: '60 credits per clip' },
+  { action: 'Voice narration', credits: 10, breakdown: 'Per minute of audio' },
+  { action: 'Music generation', credits: 15, breakdown: 'Per track' },
   { action: 'Automatic retries', credits: 'Included', breakdown: 'Up to 4 retries per clip' },
 ];
 
@@ -106,7 +106,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. Each video uses approximately 60 credits.
+            Pay for what you use. Each clip costs 60 credits.
           </p>
         </div>
 

@@ -207,7 +207,7 @@ export default function Auth() {
           {/* Info Box */}
           <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
             <p className="text-white/70 text-sm mb-4">
-              Start with 60 free credits to create your first video project. No credit card required.
+              Start with 60 free credits to create your first clip. No credit card required.
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -215,7 +215,7 @@ export default function Auth() {
               </div>
               <div>
                 <p className="text-white font-medium text-sm">Free Trial</p>
-                <p className="text-white/40 text-xs">60 credits included</p>
+                <p className="text-white/40 text-xs">1 clip included</p>
               </div>
             </div>
           </div>
@@ -389,7 +389,7 @@ export default function Auth() {
                 </div>
                 <div>
                   <p className="text-foreground font-semibold">60 Free Credits</p>
-                  <p className="text-muted-foreground text-sm">Start creating your first video</p>
+                  <p className="text-muted-foreground text-sm">Enough for 1 video clip</p>
                 </div>
               </div>
             </div>

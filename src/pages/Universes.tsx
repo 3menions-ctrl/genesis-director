@@ -1,325 +1,139 @@
-import { useState } from 'react';
-import { Plus, Globe, Search, Filter, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Globe, Sparkles, Rocket, Users, BookOpen, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { StudioLayout } from '@/components/layout/StudioLayout';
-import { UniverseCard } from '@/components/universes/UniverseCard';
-import { UniverseTimeline } from '@/components/universes/UniverseTimeline';
-import { CharacterLendingPanel } from '@/components/universes/CharacterLendingPanel';
-import { UniverseActivityFeed } from '@/components/universes/UniverseActivityFeed';
-import { useUniverses, useUniverseMembers } from '@/hooks/useUniverses';
-import { useAuth } from '@/contexts/AuthContext';
-import type { Universe } from '@/types/universe';
+import { Button } from '@/components/ui/button';
 
 export default function Universes() {
-  const { user } = useAuth();
-  const { universes, isLoading, createUniverse, deleteUniverse } = useUniverses();
-  const [selectedUniverse, setSelectedUniverse] = useState<Universe | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newUniverse, setNewUniverse] = useState({
-    name: '',
-    description: '',
-    setting: '',
-    time_period: '',
-    is_public: false,
-    tags: '',
-  });
-
-  const { members } = useUniverseMembers(selectedUniverse?.id);
-
-  const myUniverses = universes?.filter(u => u.user_id === user?.id) || [];
-  const sharedUniverses = universes?.filter(u => u.user_id !== user?.id) || [];
-  const publicUniverses = universes?.filter(u => u.is_public && u.user_id !== user?.id) || [];
-
-  const filteredUniverses = (list: Universe[]) => 
-    list.filter(u => 
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-  const handleCreate = async () => {
-    await createUniverse.mutateAsync({
-      name: newUniverse.name,
-      description: newUniverse.description,
-      setting: newUniverse.setting,
-      time_period: newUniverse.time_period,
-      is_public: newUniverse.is_public,
-      tags: newUniverse.tags.split(',').map(t => t.trim()).filter(Boolean),
-    });
-    setNewUniverse({ name: '', description: '', setting: '', time_period: '', is_public: false, tags: '' });
-    setIsCreating(false);
-  };
-
-  const isOwner = selectedUniverse?.user_id === user?.id;
+  const features = [
+    {
+      icon: Globe,
+      title: 'Shared Worlds',
+      description: 'Create persistent universes with consistent settings, physics, and aesthetics across all your videos',
+    },
+    {
+      icon: Users,
+      title: 'Character Lending',
+      description: 'Share your characters with collaborators while maintaining ownership and creative control',
+    },
+    {
+      icon: BookOpen,
+      title: 'Living Lore',
+      description: 'Build detailed lore documents that automatically influence story generation and maintain continuity',
+    },
+    {
+      icon: Zap,
+      title: 'Cross-Project Continuity',
+      description: 'Events in one video automatically affect the timeline and state of your entire universe',
+    },
+  ];
 
   return (
     <StudioLayout>
-      <div className="container py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Globe className="h-8 w-8 text-primary" />
-              Story Universes
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Create shared worlds with consistent characters, settings, and lore
-            </p>
-          </div>
-          <Dialog open={isCreating} onOpenChange={setIsCreating}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Universe
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
+        <div className="max-w-4xl w-full text-center space-y-12">
+          {/* Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
+          >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Coming Soon</span>
+            </motion.div>
+
+            {/* Icon */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="relative mx-auto w-24 h-24"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl rotate-6" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10 rounded-3xl -rotate-3" />
+              <div className="relative w-full h-full bg-background border border-primary/20 rounded-3xl flex items-center justify-center shadow-lg">
+                <Globe className="h-10 w-10 text-primary" />
+              </div>
+            </motion.div>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="space-y-4"
+            >
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+                Story Universes
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Create expansive, interconnected worlds where your characters, settings, and stories 
+                exist in perfect continuity across every video you produce.
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Features Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="grid md:grid-cols-2 gap-6"
+          >
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 + index * 0.1, duration: 0.5 }}
+                className="group relative p-6 rounded-2xl bg-gradient-to-br from-muted/50 to-transparent border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-left"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <feature.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-foreground">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1, duration: 0.5 }}
+            className="space-y-4 pt-4"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                size="lg"
+                className="gap-2 px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                disabled
+              >
+                <Rocket className="h-5 w-5" />
+                Get Notified at Launch
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Universe</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input
-                    placeholder="My Sci-Fi Universe"
-                    value={newUniverse.name}
-                    onChange={(e) => setNewUniverse({ ...newUniverse, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    placeholder="A galaxy far, far away..."
-                    value={newUniverse.description}
-                    onChange={(e) => setNewUniverse({ ...newUniverse, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Setting</Label>
-                    <Input
-                      placeholder="Space station"
-                      value={newUniverse.setting}
-                      onChange={(e) => setNewUniverse({ ...newUniverse, setting: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Time Period</Label>
-                    <Input
-                      placeholder="Year 3000"
-                      value={newUniverse.time_period}
-                      onChange={(e) => setNewUniverse({ ...newUniverse, time_period: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Tags (comma-separated)</Label>
-                  <Input
-                    placeholder="sci-fi, space, adventure"
-                    value={newUniverse.tags}
-                    onChange={(e) => setNewUniverse({ ...newUniverse, tags: e.target.value })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Make Public</Label>
-                    <p className="text-sm text-muted-foreground">Allow others to discover and join</p>
-                  </div>
-                  <Switch
-                    checked={newUniverse.is_public}
-                    onCheckedChange={(c) => setNewUniverse({ ...newUniverse, is_public: c })}
-                  />
-                </div>
-                <Button 
-                  className="w-full" 
-                  onClick={handleCreate}
-                  disabled={!newUniverse.name.trim() || createUniverse.isPending}
-                >
-                  Create Universe
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search universes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        {selectedUniverse ? (
-          // Universe detail view
-          <div className="space-y-6">
-            <Button variant="ghost" onClick={() => setSelectedUniverse(null)}>
-              ← Back to Universes
-            </Button>
-
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Main content */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-card rounded-lg p-6 border">
-                  <h2 className="text-2xl font-bold">{selectedUniverse.name}</h2>
-                  {selectedUniverse.description && (
-                    <p className="text-muted-foreground mt-2">{selectedUniverse.description}</p>
-                  )}
-                  <div className="flex gap-4 mt-4 text-sm text-muted-foreground">
-                    {selectedUniverse.setting && <span>📍 {selectedUniverse.setting}</span>}
-                    {selectedUniverse.time_period && <span>⏰ {selectedUniverse.time_period}</span>}
-                  </div>
-                </div>
-
-                <UniverseTimeline universeId={selectedUniverse.id} canEdit={isOwner} />
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Activity Feed for this universe */}
-                <UniverseActivityFeed universeId={selectedUniverse.id} maxItems={10} />
-
-                <div className="bg-card rounded-lg p-4 border">
-                  <h3 className="font-semibold mb-3">Members ({members?.length || 1})</h3>
-                  <div className="space-y-2">
-                    {members?.map((member) => (
-                      <div key={member.id} className="flex items-center gap-2 text-sm">
-                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                          {member.profile?.display_name?.slice(0, 1) || 'U'}
-                        </div>
-                        <span>{member.profile?.display_name || 'Unknown'}</span>
-                        <span className="text-muted-foreground ml-auto">{member.role}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedUniverse.lore_document && (
-                  <div className="bg-card rounded-lg p-4 border">
-                    <h3 className="font-semibold mb-2">Lore Document</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {selectedUniverse.lore_document}
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
-          </div>
-        ) : (
-          // Universe list view
-          <Tabs defaultValue="feed" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="feed" className="gap-1.5">
-                <Sparkles className="h-4 w-4" />
-                Feed
-              </TabsTrigger>
-              <TabsTrigger value="my-universes">My Universes</TabsTrigger>
-              <TabsTrigger value="shared">Shared With Me</TabsTrigger>
-              <TabsTrigger value="discover">Discover</TabsTrigger>
-              <TabsTrigger value="character-lending">Character Lending</TabsTrigger>
-            </TabsList>
+            <p className="text-sm text-muted-foreground">
+              Be the first to know when Story Universes becomes available
+            </p>
+          </motion.div>
 
-            <TabsContent value="feed">
-              <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <UniverseActivityFeed maxItems={30} />
-                </div>
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-                    Your Universes
-                  </h3>
-                  {myUniverses.slice(0, 3).map((universe) => (
-                    <UniverseCard
-                      key={universe.id}
-                      universe={universe}
-                      onSelect={setSelectedUniverse}
-                      isOwner
-                    />
-                  ))}
-                  {myUniverses.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Create your first universe to get started
-                    </p>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="my-universes">
-              {isLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : filteredUniverses(myUniverses).length === 0 ? (
-                <div className="text-center py-12">
-                  <Globe className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium">No universes yet</h3>
-                  <p className="text-muted-foreground">Create your first shared world</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredUniverses(myUniverses).map((universe) => (
-                    <UniverseCard
-                      key={universe.id}
-                      universe={universe}
-                      onSelect={setSelectedUniverse}
-                      onDelete={(u) => deleteUniverse.mutate(u.id)}
-                      isOwner
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="shared">
-              {sharedUniverses.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  No shared universes yet. Get invited to collaborate!
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredUniverses(sharedUniverses).map((universe) => (
-                    <UniverseCard
-                      key={universe.id}
-                      universe={universe}
-                      onSelect={setSelectedUniverse}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="discover">
-              {publicUniverses.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  No public universes to discover yet.
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredUniverses(publicUniverses).map((universe) => (
-                    <UniverseCard
-                      key={universe.id}
-                      universe={universe}
-                      onSelect={setSelectedUniverse}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="character-lending">
-              <CharacterLendingPanel />
-            </TabsContent>
-          </Tabs>
-        )}
+          {/* Decorative Elements */}
+          <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none" />
+        </div>
       </div>
     </StudioLayout>
   );

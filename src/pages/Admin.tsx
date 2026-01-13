@@ -38,6 +38,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 interface ProfitData {
   date: string;
@@ -303,6 +304,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <AppHeader showCreate={false} />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

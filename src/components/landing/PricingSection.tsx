@@ -6,76 +6,74 @@ import { motion } from 'framer-motion';
 import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
 
 // Pricing tiers - credits-based system
+// 10 credits per clip, 60 credits per video (6 clips), $6 per video
 const PRICING_TIERS = [
   {
-    name: 'Free Trial',
-    price: 0,
-    period: 'to start',
-    credits: 60,
+    name: 'Starter',
+    price: 29,
+    period: 'one-time',
+    credits: 250,
     icon: Zap,
-    description: 'Try the platform',
+    description: 'Get started creating',
     features: [
-      '60 credits to start',
-      '1 video clip included',
+      '250 credits',
+      '~4 complete videos',
       'Automatic retry system',
       '4K export available',
     ],
-    cta: 'Try Free',
+    cta: 'Get Started',
     popular: false,
     gradient: 'from-muted/50 to-muted/30',
   },
   {
-    name: 'Creator',
-    price: 59,
-    period: '/month',
-    credits: 600,
+    name: 'Growth',
+    price: 99,
+    period: 'one-time',
+    credits: 1000,
     icon: Sparkles,
-    description: 'For regular content creation',
+    description: 'For regular creators',
     features: [
-      '600 credits per month',
-      'Approximately 10 clips',
+      '1,000 credits',
+      '~16 complete videos',
       'Automatic retry system',
       '4K export',
       'Email support',
     ],
-    cta: 'Get Started',
-    popular: false,
-    gradient: 'from-blue-500/20 to-purple-500/20',
-  },
-  {
-    name: 'Pro',
-    price: 149,
-    period: '/month',
-    credits: 1800,
-    icon: Crown,
-    description: 'For frequent creators',
-    features: [
-      '1,800 credits per month',
-      'Approximately 30 clips',
-      'Priority processing',
-      'All export formats',
-      'Priority support',
-      'Voice cloning feature',
-    ],
-    cta: 'Go Pro',
+    cta: 'Best Value',
     popular: true,
     gradient: 'from-amber-500/30 to-orange-500/20',
   },
   {
-    name: 'Studio',
-    price: 399,
-    period: '/month',
-    credits: 6000,
-    icon: Building2,
+    name: 'Agency',
+    price: 249,
+    period: 'one-time',
+    credits: 3000,
+    icon: Crown,
     description: 'For teams and agencies',
     features: [
-      '6,000 credits per month',
-      'Approximately 100 clips',
-      'Dedicated processing',
+      '3,000 credits',
+      '~50 complete videos',
+      'Priority processing',
       'All export formats',
+      'Priority support',
+    ],
+    cta: 'Go Agency',
+    popular: false,
+    gradient: 'from-purple-500/20 to-pink-500/20',
+  },
+  {
+    name: 'Enterprise',
+    price: null,
+    period: 'custom',
+    credits: null,
+    icon: Building2,
+    description: 'Custom solutions',
+    features: [
+      'Custom credit volume',
       'Dedicated support',
       'API access',
-      'Custom branding options',
+      'Custom branding',
+      'SLA guarantee',
     ],
     cta: 'Contact Sales',
     popular: false,
@@ -83,11 +81,11 @@ const PRICING_TIERS = [
   },
 ];
 
-// Credit cost breakdown
+// Credit cost breakdown - 10 credits per clip, 60 per video
 const CREDIT_COSTS = [
-  { action: 'Single video clip', credits: 60, breakdown: '60 credits per clip' },
-  { action: 'Voice narration', credits: 10, breakdown: 'Per minute of audio' },
-  { action: 'Music generation', credits: 15, breakdown: 'Per track' },
+  { action: 'Single video clip', credits: 10, breakdown: '10 credits per clip' },
+  { action: 'Complete video (6 clips)', credits: 60, breakdown: '$6 per video' },
+  { action: 'Voice narration', credits: 'Included', breakdown: 'With each clip' },
   { action: 'Automatic retries', credits: 'Included', breakdown: 'Up to 4 retries per clip' },
 ];
 
@@ -112,7 +110,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. Each clip costs 60 credits.
+            Pay for what you use. 10 credits per clip. $6 per complete video.
           </p>
         </div>
 
@@ -158,20 +156,28 @@ export default function PricingSection() {
                 {/* Name & Price */}
                 <h3 className="text-xl font-bold text-foreground mb-1">{tier.name}</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-bold text-foreground">
-                    ${tier.price}
-                  </span>
-                  <span className="text-muted-foreground">{tier.period}</span>
+                  {tier.price !== null ? (
+                    <>
+                      <span className="text-4xl font-bold text-foreground">
+                        ${tier.price}
+                      </span>
+                      <span className="text-muted-foreground">{tier.period}</span>
+                    </>
+                  ) : (
+                    <span className="text-2xl font-bold text-foreground">Custom</span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
 
                 {/* Credits badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 mb-6">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-sm font-medium text-foreground">
-                    {tier.credits.toLocaleString()} credits
-                  </span>
-                </div>
+                {tier.credits !== null && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 mb-6">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-sm font-medium text-foreground">
+                      {tier.credits.toLocaleString()} credits
+                    </span>
+                  </div>
+                )}
 
                 {/* Features */}
                 <ul className="space-y-3 mb-6">

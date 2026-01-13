@@ -106,8 +106,9 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return Math.round(((basePrice - pkgPrice) / basePrice) * 100);
   };
 
-  const getIronCladVideos = (credits: number) => {
-    return Math.floor(credits / CREDIT_COSTS.TOTAL_PER_SHOT);
+  // Calculate complete videos (60 credits per video = 6 clips at 10 credits each)
+  const getCompleteVideos = (credits: number) => {
+    return Math.floor(credits / 60);
   };
 
   const getTierStyle = (name: string) => {
@@ -142,9 +143,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                 <span className="text-sm font-semibold">How Credits Work</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Each Iron-Clad shot costs <span className="text-foreground font-semibold">25 credits</span> total: 
-                5 credits for pre-production (script & image) + 20 credits for production (video & voice).
-                Failed generations are automatically refunded.
+                Each clip costs <span className="text-foreground font-semibold">10 credits</span> (2 pre-production + 6 production + 2 quality assurance).
+                A complete 6-clip video = 60 credits = $6. Failed generations are automatically refunded.
               </p>
             </div>
 
@@ -153,7 +153,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
               {packages.map((pkg) => {
                 const tierStyle = getTierStyle(pkg.name);
                 const savings = getSavingsPercent(pkg, packages);
-                const videos = getIronCladVideos(pkg.credits);
+                const videos = getCompleteVideos(pkg.credits);
                 
                 return (
                   <div
@@ -229,7 +229,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                       <div className="flex flex-wrap gap-2">
                         <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1.5">
                           <Film className="w-3 h-3" />
-                          {videos} Iron-Clad videos
+                          ~{videos} complete videos
                         </span>
                         <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
                           <Mic className="w-3 h-3" />

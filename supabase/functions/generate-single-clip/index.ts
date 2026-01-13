@@ -2852,11 +2852,13 @@ async function generateClip(
 }
 
 // Poll for operation completion
+// CRITICAL: Extended timeout to handle Veo 3.1 generation times
+// Veo typically takes 60-120 seconds for a 6-second clip
 async function pollOperation(
   accessToken: string,
   operationName: string,
-  maxAttempts = 120,
-  pollInterval = 5000
+  maxAttempts = 60,      // 60 attempts x 3 seconds = 180 seconds max
+  pollInterval = 3000    // 3 second intervals for faster feedback
 ): Promise<{ videoUrl: string }> {
   const match = operationName.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
   if (!match) {
@@ -3534,6 +3536,11 @@ function injectVelocityContinuity(
   const continuityPrefix = `[MOTION CONTINUITY: Subject maintains ${previousMotionVectors.endVelocity} moving ${previousMotionVectors.endDirection}, camera ${previousMotionVectors.cameraMomentum}]`;
   return `${continuityPrefix} ${prompt}`;
 }
+
+// Declare EdgeRuntime for TypeScript
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<void>) => void;
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -4741,8 +4748,9 @@ serve(async (req) => {
       
       console.log(`[SingleClip] Updated context: ${updatedPipelineContext.accumulatedAnchors.length} anchors, ref: ${updatedPipelineContext.referenceImageUrl ? 'YES' : 'NO'}`);
       
-      // Use setTimeout with 0 to push to next tick, allowing response to be sent first
-      setTimeout(async () => {
+      // CRITICAL FIX: Use EdgeRuntime.waitUntil to keep function alive for callback
+      // setTimeout alone fails because function shuts down immediately after response
+      const callContinueProduction = async () => {
         try {
           const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
             method: 'POST',
@@ -4768,7 +4776,15 @@ serve(async (req) => {
         } catch (err) {
           console.error(`[SingleClip] ⚠️ Failed to trigger continue-production:`, err);
         }
-      }, 100); // Small delay to ensure response is sent first
+      };
+      
+      // Use waitUntil to keep function alive for the callback
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        EdgeRuntime.waitUntil(callContinueProduction());
+      } else {
+        // Fallback for local dev - just call it
+        callContinueProduction();
+      }
     }
 
     return new Response(

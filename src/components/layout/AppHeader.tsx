@@ -215,6 +215,7 @@ export function AppHeader({
               </button>
             ))}
             
+            {/* Create & Credits Row */}
             <div className="pt-2 border-t border-white/[0.06] flex items-center gap-3">
               {showCreate && (
                 <Button 
@@ -244,6 +245,62 @@ export function AppHeader({
                   <span className="text-sm font-bold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
                 </button>
               )}
+            </div>
+
+            {/* User Menu Items */}
+            <div className="pt-2 border-t border-white/[0.06] space-y-1">
+              <button
+                onClick={() => {
+                  navigate('/profile');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              >
+                <User className="w-4 h-4" />
+                Profile
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/settings');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/help');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Help Center
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    navigate('/admin');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin Panel
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  handleSignOut();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
           </div>
         </div>

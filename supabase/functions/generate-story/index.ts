@@ -133,6 +133,8 @@ interface StoryRequest {
   userDialogue?: string[];     // User's exact dialogue lines  
   userScript?: string;         // User's complete script (use as-is)
   preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
+  // ENVIRONMENT DNA - Applied from Environments page
+  environmentPrompt?: string;  // Full environment description for scene consistency
 }
 
 interface SceneDescription {
@@ -337,13 +339,22 @@ End with a moment that leads into the next episode.
       }
     }
 
+    // Build environment context if provided
+    let environmentContext = '';
+    if (request.environmentPrompt) {
+      environmentContext = `\n\nENVIRONMENT DNA (MANDATORY - ALL clips MUST be set in this environment):
+${request.environmentPrompt}
+CRITICAL: Every clip MUST take place in this exact environment with this exact lighting and atmosphere. Do NOT change the setting.`;
+      console.log('[GenerateStory] Environment DNA injected:', request.environmentPrompt.substring(0, 100));
+    }
+
     const userPrompt = `Write ONE CONTINUOUS SCENE based on this concept:
 
 "${request.prompt}"
 
 ${request.genre ? `Genre: ${request.genre}` : ''}
 ${request.mood ? `Mood/Tone: ${request.mood}` : ''}
-${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}
+${request.style ? `Visual Style: ${request.style}` : ''}${referenceContext}${environmentContext}
 ${hasUserNarration ? `
 USER'S NARRATION (USE EXACTLY - DO NOT CHANGE OR PARAPHRASE):
 """
@@ -360,6 +371,7 @@ Include these dialogue lines in the appropriate clips. Use the EXACT words provi
 This scene will be a ${targetDuration}-second video made of 6 clips (6 seconds each).
 All 6 clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
 ${mustPreserveContent ? 'CRITICAL: Preserve the user\'s narration/dialogue EXACTLY as written - only add visual descriptions.' : ''}
+${request.environmentPrompt ? 'CRITICAL: Use the EXACT environment, lighting, and atmosphere specified in ENVIRONMENT DNA for ALL clips.' : ''}
 
 ${sceneMode === 'episode' && request.previousSceneSummary ? `
 CONTINUE FROM: ${request.previousSceneSummary}

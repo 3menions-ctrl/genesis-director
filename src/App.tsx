@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AppLoader } from "@/components/ui/app-loader";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -32,16 +33,6 @@ const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
-// Loading fallback component
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-sm text-muted-foreground">Loading...</p>
-    </div>
-  </div>
-);
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -61,7 +52,7 @@ const App = () => (
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <StudioProvider>
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<AppLoader message="Starting Apex Studio..." />}>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
@@ -100,7 +91,7 @@ const App = () => (
                 {/* Video Generator Route */}
                 <Route path="/create" element={
                   <ProtectedRoute>
-                    <Suspense fallback={<PageLoader />}>
+                    <Suspense fallback={<AppLoader message="Loading studio..." />}>
                       <StudioLayout><LongVideo /></StudioLayout>
                     </Suspense>
                   </ProtectedRoute>

@@ -173,11 +173,18 @@ function ProjectCard({
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   
   const status = project.status as string;
-  const hasVideo = Boolean(project.video_clips?.length || project.video_url);
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
+  const hasVideo = Boolean(project.video_clips?.length || isDirectVideo);
   const videoClips = project.video_clips?.length ? project.video_clips : 
     (isDirectVideo ? [project.video_url] : []);
   const videoSrc = videoClips.length > 1 ? videoClips[1] : videoClips[0];
+  
+  // Debug logging
+  useEffect(() => {
+    if (project.video_url) {
+      console.log(`[ProjectCard] ${project.name}: hasVideo=${hasVideo}, videoSrc=${videoSrc?.substring(0, 50)}...`);
+    }
+  }, [project.name, hasVideo, videoSrc, project.video_url]);
 
   useEffect(() => {
     if (!videoRef.current) return;

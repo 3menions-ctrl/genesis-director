@@ -944,6 +944,49 @@ async function runPreProduction(
       }
       
       console.log(`[Hollywood] Reference analyzed: ${analysis.consistencyPrompt?.substring(0, 50)}...`);
+      
+      // =====================================================
+      // IMMEDIATE PERSISTENCE: Save identity bible to DB RIGHT NOW
+      // This ensures it's available even if pipeline crashes/restarts
+      // =====================================================
+      if (state.identityBible) {
+        try {
+          const identityToSave = {
+            ...state.identityBible,
+            characterDescription: state.identityBible.consistencyPrompt 
+              || state.identityBible.characterIdentity?.description
+              || '',
+            savedAt: new Date().toISOString(),
+            savedStage: 'reference_analysis',
+          };
+          
+          const { data: currentData } = await supabase
+            .from('movie_projects')
+            .select('pro_features_data')
+            .eq('id', state.projectId)
+            .single();
+          
+          await supabase
+            .from('movie_projects')
+            .update({
+              pro_features_data: {
+                ...(currentData?.pro_features_data || {}),
+                identityBible: identityToSave,
+                referenceAnalysis: state.referenceAnalysis,
+                identitySavedAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', state.projectId);
+          
+          console.log(`[Hollywood] ✓ IMMEDIATE SAVE: identityBible persisted to DB`);
+          console.log(`[Hollywood]   consistencyPrompt: ${identityToSave.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
+          console.log(`[Hollywood]   characterIdentity: ${identityToSave.characterIdentity ? 'YES' : 'NO'}`);
+          console.log(`[Hollywood]   nonFacialAnchors: ${identityToSave.nonFacialAnchors ? 'YES' : 'NO'}`);
+        } catch (saveErr) {
+          console.error(`[Hollywood] ⚠️ IMMEDIATE SAVE FAILED:`, saveErr);
+        }
+      }
     } catch (err) {
       console.warn(`[Hollywood] Reference analysis failed:`, err);
       state.degradation = state.degradation || {};

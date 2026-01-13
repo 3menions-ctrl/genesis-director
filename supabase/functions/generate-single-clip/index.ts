@@ -821,106 +821,148 @@ function injectAllIdentityAnchors(
   parts: string[],
   count: { value: number }
 ): void {
-  if (!identityBible) return;
+  if (!identityBible) {
+    console.warn(`[AnchorInjection] ⚠️ identityBible is NULL - CHARACTER IDENTITY LOCK will be empty!`);
+    return;
+  }
+  
+  // Log what we received for debugging
+  console.log(`[AnchorInjection] identityBible received:`, {
+    hasCharacterDescription: !!identityBible.characterDescription,
+    hasConsistencyPrompt: !!identityBible.consistencyPrompt,
+    hasCharacterIdentity: !!identityBible.characterIdentity,
+    hasNonFacialAnchors: !!identityBible.nonFacialAnchors,
+    consistencyAnchorsCount: identityBible.consistencyAnchors?.length || 0,
+  });
   
   parts.push('');
   parts.push('╔════════════ CHARACTER IDENTITY LOCK ════════════╗');
   
-  // Core description
-  if (identityBible.characterDescription) {
-    parts.push(`[IDENTITY CORE: ${identityBible.characterDescription}]`);
+  let injectedCount = 0;
+  
+  // PRIORITY 1: consistencyPrompt - THE MOST IMPORTANT ANCHOR
+  // This is the primary character description and should ALWAYS be present
+  if (identityBible.consistencyPrompt) {
+    parts.push(`[MASTER IDENTITY: ${identityBible.consistencyPrompt}]`);
     count.value++;
+    injectedCount++;
   }
   
-  // Consistency anchors
+  // PRIORITY 2: Core description (alternative field name)
+  if (identityBible.characterDescription && identityBible.characterDescription !== identityBible.consistencyPrompt) {
+    parts.push(`[IDENTITY CORE: ${identityBible.characterDescription}]`);
+    count.value++;
+    injectedCount++;
+  }
+  
+  // PRIORITY 3: Consistency anchors - visual keyword list
   if (identityBible.consistencyAnchors?.length) {
     parts.push(`[VISUAL ANCHORS: ${identityBible.consistencyAnchors.join(', ')}]`);
     count.value += identityBible.consistencyAnchors.length;
+    injectedCount += identityBible.consistencyAnchors.length;
   }
   
-  // Enhanced consistency prompt
+  // PRIORITY 4: Enhanced consistency prompt
   if (identityBible.enhancedConsistencyPrompt) {
     parts.push(`[ENHANCED IDENTITY: ${identityBible.enhancedConsistencyPrompt}]`);
     count.value++;
+    injectedCount++;
   }
   
-  // Character identity details
+  // PRIORITY 5: Character identity details object
   if (identityBible.characterIdentity) {
     const ci = identityBible.characterIdentity;
     if (ci.description) {
       parts.push(`[CHARACTER: ${ci.description}]`);
       count.value++;
+      injectedCount++;
     }
     if (ci.facialFeatures) {
       parts.push(`[FACE: ${ci.facialFeatures}]`);
       count.value++;
+      injectedCount++;
     }
     if (ci.bodyType) {
       parts.push(`[BODY: ${ci.bodyType}]`);
       count.value++;
+      injectedCount++;
     }
     if (ci.clothing) {
       parts.push(`[CLOTHING: ${ci.clothing}]`);
       count.value++;
+      injectedCount++;
     }
     if (ci.distinctiveMarkers?.length) {
       parts.push(`[MARKERS: ${ci.distinctiveMarkers.join(', ')}]`);
       count.value += ci.distinctiveMarkers.length;
+      injectedCount += ci.distinctiveMarkers.length;
     }
   }
   
-  // Non-facial anchors (CRITICAL for any angle)
+  // PRIORITY 6: Non-facial anchors (CRITICAL for any angle)
   if (identityBible.nonFacialAnchors) {
     const nfa = identityBible.nonFacialAnchors;
     parts.push('');
     parts.push('--- NON-FACIAL ANCHORS (All Angles) ---');
     
-    if (nfa.bodyType) { parts.push(`[BODY TYPE: ${nfa.bodyType}]`); count.value++; }
-    if (nfa.bodyProportions) { parts.push(`[PROPORTIONS: ${nfa.bodyProportions}]`); count.value++; }
-    if (nfa.posture) { parts.push(`[POSTURE: ${nfa.posture}]`); count.value++; }
-    if (nfa.gait) { parts.push(`[GAIT: ${nfa.gait}]`); count.value++; }
-    if (nfa.height) { parts.push(`[HEIGHT: ${nfa.height}]`); count.value++; }
+    if (nfa.bodyType) { parts.push(`[BODY TYPE: ${nfa.bodyType}]`); count.value++; injectedCount++; }
+    if (nfa.bodyProportions) { parts.push(`[PROPORTIONS: ${nfa.bodyProportions}]`); count.value++; injectedCount++; }
+    if (nfa.posture) { parts.push(`[POSTURE: ${nfa.posture}]`); count.value++; injectedCount++; }
+    if (nfa.gait) { parts.push(`[GAIT: ${nfa.gait}]`); count.value++; injectedCount++; }
+    if (nfa.height) { parts.push(`[HEIGHT: ${nfa.height}]`); count.value++; injectedCount++; }
     
     // Clothing (CRITICAL)
-    if (nfa.clothingDescription) { parts.push(`[CLOTHING: ${nfa.clothingDescription}]`); count.value++; }
-    if (nfa.clothingSignature) { parts.push(`[CLOTHING SIGNATURE: ${nfa.clothingSignature}]`); count.value++; }
+    if (nfa.clothingDescription) { parts.push(`[CLOTHING: ${nfa.clothingDescription}]`); count.value++; injectedCount++; }
+    if (nfa.clothingSignature) { parts.push(`[CLOTHING SIGNATURE: ${nfa.clothingSignature}]`); count.value++; injectedCount++; }
     if (nfa.clothingColors?.length) {
       parts.push(`[CLOTHING COLORS: ${nfa.clothingColors.join(', ')}]`);
       count.value += nfa.clothingColors.length;
+      injectedCount += nfa.clothingColors.length;
     }
     if (nfa.clothingPatterns?.length) {
       parts.push(`[CLOTHING PATTERNS: ${nfa.clothingPatterns.join(', ')}]`);
       count.value += nfa.clothingPatterns.length;
+      injectedCount += nfa.clothingPatterns.length;
     }
     if (nfa.clothingTextures?.length) {
       parts.push(`[CLOTHING TEXTURES: ${nfa.clothingTextures.join(', ')}]`);
       count.value += nfa.clothingTextures.length;
+      injectedCount += nfa.clothingTextures.length;
     }
-    if (nfa.clothingDistinctive) { parts.push(`[DISTINCTIVE CLOTHING: ${nfa.clothingDistinctive}]`); count.value++; }
+    if (nfa.clothingDistinctive) { parts.push(`[DISTINCTIVE CLOTHING: ${nfa.clothingDistinctive}]`); count.value++; injectedCount++; }
     
     // Hair from ALL angles
-    if (nfa.hairColor) { parts.push(`[HAIR COLOR: ${nfa.hairColor}]`); count.value++; }
-    if (nfa.hairLength) { parts.push(`[HAIR LENGTH: ${nfa.hairLength}]`); count.value++; }
-    if (nfa.hairStyle) { parts.push(`[HAIR STYLE: ${nfa.hairStyle}]`); count.value++; }
-    if (nfa.hairFromBehind) { parts.push(`[HAIR FROM BEHIND: ${nfa.hairFromBehind}]`); count.value++; }
-    if (nfa.hairSilhouette) { parts.push(`[HAIR SILHOUETTE: ${nfa.hairSilhouette}]`); count.value++; }
-    if (nfa.silhouetteDescription) { parts.push(`[SILHOUETTE: ${nfa.silhouetteDescription}]`); count.value++; }
+    if (nfa.hairColor) { parts.push(`[HAIR COLOR: ${nfa.hairColor}]`); count.value++; injectedCount++; }
+    if (nfa.hairLength) { parts.push(`[HAIR LENGTH: ${nfa.hairLength}]`); count.value++; injectedCount++; }
+    if (nfa.hairStyle) { parts.push(`[HAIR STYLE: ${nfa.hairStyle}]`); count.value++; injectedCount++; }
+    if (nfa.hairFromBehind) { parts.push(`[HAIR FROM BEHIND: ${nfa.hairFromBehind}]`); count.value++; injectedCount++; }
+    if (nfa.hairSilhouette) { parts.push(`[HAIR SILHOUETTE: ${nfa.hairSilhouette}]`); count.value++; injectedCount++; }
+    if (nfa.silhouetteDescription) { parts.push(`[SILHOUETTE: ${nfa.silhouetteDescription}]`); count.value++; injectedCount++; }
     
     // Accessories
     if (nfa.accessories?.length) {
       parts.push(`[ACCESSORIES: ${nfa.accessories.join(', ')}]`);
       count.value += nfa.accessories.length;
+      injectedCount += nfa.accessories.length;
     }
-    if (nfa.accessoryPositions) { parts.push(`[ACCESSORY POSITIONS: ${nfa.accessoryPositions}]`); count.value++; }
+    if (nfa.accessoryPositions) { parts.push(`[ACCESSORY POSITIONS: ${nfa.accessoryPositions}]`); count.value++; injectedCount++; }
     
     // Back view markers
-    if (nfa.backViewMarkers) { parts.push(`[BACK VIEW MARKERS: ${nfa.backViewMarkers}]`); count.value++; }
+    if (nfa.backViewMarkers) { parts.push(`[BACK VIEW MARKERS: ${nfa.backViewMarkers}]`); count.value++; injectedCount++; }
     
     // Silhouette
-    if (nfa.overallSilhouette) { parts.push(`[OVERALL SILHOUETTE: ${nfa.overallSilhouette}]`); count.value++; }
+    if (nfa.overallSilhouette) { parts.push(`[OVERALL SILHOUETTE: ${nfa.overallSilhouette}]`); count.value++; injectedCount++; }
   }
   
   parts.push('╚════════════ END CHARACTER IDENTITY ════════════╝');
+  
+  // Log injection results
+  if (injectedCount === 0) {
+    console.error(`[AnchorInjection] ❌ ZERO identity anchors injected! identityBible structure may be invalid.`);
+    console.error(`[AnchorInjection] identityBible keys:`, Object.keys(identityBible || {}));
+  } else {
+    console.log(`[AnchorInjection] ✓ Injected ${injectedCount} identity anchors`);
+  }
 }
 
 // Inject all spatial anchors
@@ -929,41 +971,49 @@ function injectAllSpatialAnchors(
   parts: string[],
   count: { value: number }
 ): number {
-  if (!manifest?.spatial) return 0;
-  
-  const sp = manifest.spatial;
   let spatialCount = 0;
   
   parts.push('');
   parts.push('╔════════════ SPATIAL CONTINUITY ════════════╗');
   
-  // Primary character position
-  if (sp.primaryCharacter) {
-    const pc = sp.primaryCharacter;
-    parts.push(`[SCREEN POSITION: ${pc.screenPosition}]`);
-    parts.push(`[DEPTH: ${pc.depth}]`);
-    parts.push(`[VERTICAL: ${pc.verticalPosition}]`);
-    parts.push(`[FACING: ${pc.facingDirection}]`);
-    parts.push(`[BODY ANGLE: ${pc.bodyAngle}° from camera]`);
-    spatialCount += 5;
-  }
-  
-  // Secondary characters
-  if (sp.secondaryCharacters?.length) {
-    sp.secondaryCharacters.forEach((sc: any, i: number) => {
-      parts.push(`[SECONDARY ${i + 1}: ${sc.position.screenPosition}, ${sc.position.depth}, facing ${sc.position.facingDirection}]`);
-      spatialCount++;
-    });
-  }
-  
-  // Camera distance
-  parts.push(`[CAMERA: ${sp.cameraDistance}]`);
-  spatialCount++;
-  
-  // Eye line
-  if (sp.eyeLineDirection) {
-    parts.push(`[EYE LINE: ${sp.eyeLineDirection}]`);
+  if (manifest?.spatial) {
+    const sp = manifest.spatial;
+    
+    // Primary character position
+    if (sp.primaryCharacter) {
+      const pc = sp.primaryCharacter;
+      parts.push(`[SCREEN POSITION: ${pc.screenPosition}]`);
+      parts.push(`[DEPTH: ${pc.depth}]`);
+      parts.push(`[VERTICAL: ${pc.verticalPosition}]`);
+      parts.push(`[FACING: ${pc.facingDirection}]`);
+      parts.push(`[BODY ANGLE: ${pc.bodyAngle}° from camera]`);
+      spatialCount += 5;
+    }
+    
+    // Secondary characters
+    if (sp.secondaryCharacters?.length) {
+      sp.secondaryCharacters.forEach((sc: any, i: number) => {
+        parts.push(`[SECONDARY ${i + 1}: ${sc.position.screenPosition}, ${sc.position.depth}, facing ${sc.position.facingDirection}]`);
+        spatialCount++;
+      });
+    }
+    
+    // Camera distance
+    parts.push(`[CAMERA: ${sp.cameraDistance}]`);
     spatialCount++;
+    
+    // Eye line
+    if (sp.eyeLineDirection) {
+      parts.push(`[EYE LINE: ${sp.eyeLineDirection}]`);
+      spatialCount++;
+    }
+  } else {
+    // FALLBACK: No manifest, provide default spatial guidance
+    console.warn(`[AnchorInjection] ⚠️ No spatial manifest - using defaults`);
+    parts.push(`[MAINTAIN: Character position consistency with previous clip]`);
+    parts.push(`[CAMERA: Consistent shot scale and angle]`);
+    parts.push(`[DIRECTION: Maintain established screen direction]`);
+    spatialCount += 3;
   }
   
   parts.push('╚════════════ END SPATIAL ════════════╝');
@@ -1010,6 +1060,15 @@ function injectAllLightingAnchors(
       parts.push(`[LIGHTING DNA: ${sl.promptFragment}]`);
     }
     lightingCount += 6;
+  }
+  
+  // FALLBACK: If no manifest or scene anchor, inject default lighting guidance
+  if (lightingCount === 0) {
+    console.warn(`[AnchorInjection] ⚠️ No lighting data from manifest or sceneAnchor - using defaults`);
+    parts.push(`[MAINTAIN: Consistent lighting throughout sequence]`);
+    parts.push(`[SHADOW DIRECTION: Match previous clip]`);
+    parts.push(`[COLOR TEMPERATURE: Maintain established warmth/coolness]`);
+    lightingCount += 3;
   }
   
   parts.push('╚════════════ END LIGHTING ════════════╝');
@@ -1300,6 +1359,15 @@ function injectAllEnvironmentAnchors(
       parts.push(`[ENV DNA: ${ko.promptFragment}]`);
       envCount++;
     }
+  }
+  
+  // FALLBACK: If no environment data, provide default guidance
+  if (envCount === 0) {
+    console.warn(`[AnchorInjection] ⚠️ No environment data from manifest or sceneAnchor - using defaults`);
+    parts.push(`[MAINTAIN: Environment consistency with previous clip]`);
+    parts.push(`[BACKGROUND: Same background elements and architecture]`);
+    parts.push(`[ATMOSPHERE: Consistent atmospheric conditions]`);
+    envCount += 3;
   }
   
   parts.push('╚════════════ END ENVIRONMENT ════════════╝');
@@ -3562,7 +3630,22 @@ serve(async (req) => {
     // =====================================================
     let effectiveIdentityBible = request.identityBible;
     
-    if (!effectiveIdentityBible?.characterIdentity && !effectiveIdentityBible?.consistencyPrompt) {
+    // Log what we received from the pipeline
+    console.log(`[SingleClip] identityBible from request:`, {
+      hasIdentityBible: !!request.identityBible,
+      hasCharacterIdentity: !!request.identityBible?.characterIdentity,
+      hasConsistencyPrompt: !!request.identityBible?.consistencyPrompt,
+      consistencyPromptLength: request.identityBible?.consistencyPrompt?.length || 0,
+      consistencyAnchorsCount: request.identityBible?.consistencyAnchors?.length || 0,
+      hasNonFacialAnchors: !!request.identityBible?.nonFacialAnchors,
+    });
+    
+    // Check if we need to recover from DB
+    const needsRecovery = !effectiveIdentityBible?.characterIdentity && 
+                          !effectiveIdentityBible?.consistencyPrompt &&
+                          !(effectiveIdentityBible as any)?.characterDescription;
+    
+    if (needsRecovery) {
       console.warn(`[SingleClip] ⚠️ identityBible missing from request, attempting DB recovery...`);
       try {
         const { data: projectData } = await supabase
@@ -3571,6 +3654,13 @@ serve(async (req) => {
           .eq('id', request.projectId)
           .single();
         
+        console.log(`[SingleClip] DB pro_features_data:`, {
+          hasProFeaturesData: !!projectData?.pro_features_data,
+          hasIdentityBible: !!projectData?.pro_features_data?.identityBible,
+          hasExtractedCharacters: !!projectData?.pro_features_data?.extractedCharacters,
+          identitySavedAt: projectData?.pro_features_data?.identitySavedAt || 'NEVER',
+        });
+        
         const dbIdentityBible = projectData?.pro_features_data?.identityBible;
         const dbExtractedCharacters = projectData?.pro_features_data?.extractedCharacters;
         
@@ -3578,8 +3668,9 @@ serve(async (req) => {
           effectiveIdentityBible = dbIdentityBible;
           console.log(`[SingleClip] ✓ RECOVERED identityBible from DB:`);
           console.log(`  - characterIdentity: ${dbIdentityBible.characterIdentity ? 'YES' : 'NO'}`);
-          console.log(`  - consistencyPrompt: ${dbIdentityBible.consistencyPrompt?.substring(0, 50) || 'NONE'}...`);
+          console.log(`  - consistencyPrompt: ${dbIdentityBible.consistencyPrompt?.substring(0, 100) || 'NONE'}...`);
           console.log(`  - consistencyAnchors: ${dbIdentityBible.consistencyAnchors?.length || 0}`);
+          console.log(`  - nonFacialAnchors: ${dbIdentityBible.nonFacialAnchors ? 'YES' : 'NO'}`);
         } else if (dbExtractedCharacters?.length > 0) {
           // Build identity bible from extracted characters as fallback
           const primaryChar = dbExtractedCharacters[0];
@@ -3594,13 +3685,17 @@ serve(async (req) => {
           };
           console.log(`[SingleClip] ✓ BUILT identityBible from extractedCharacters:`);
           console.log(`  - Primary character: ${primaryChar.name}`);
-          console.log(`  - consistencyPrompt: ${effectiveIdentityBible.consistencyPrompt?.substring(0, 50)}...`);
+          console.log(`  - consistencyPrompt: ${effectiveIdentityBible.consistencyPrompt?.substring(0, 100)}...`);
         } else {
-          console.warn(`[SingleClip] ⚠️ No identity data available in DB - CHARACTER IDENTITY LOCK will be empty!`);
+          console.error(`[SingleClip] ❌ CRITICAL: No identity data in request OR DB!`);
+          console.error(`[SingleClip] pro_features_data keys:`, Object.keys(projectData?.pro_features_data || {}));
+          console.warn(`[SingleClip] ⚠️ CHARACTER IDENTITY LOCK will be empty - character consistency at risk!`);
         }
       } catch (recoverErr) {
         console.error(`[SingleClip] Failed to recover identity data from DB:`, recoverErr);
       }
+    } else {
+      console.log(`[SingleClip] ✓ identityBible received from pipeline - no recovery needed`);
     }
     
     // Update request with effective identity bible for downstream use

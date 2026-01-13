@@ -26,7 +26,7 @@ interface PublicVideo {
 
 type SortOption = 'recent' | 'popular';
 
-export default function Feed() {
+export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [selectedVideo, setSelectedVideo] = useState<PublicVideo | null>(null);

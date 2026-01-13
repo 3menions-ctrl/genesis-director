@@ -1,7 +1,8 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { AppLoader } from '@/components/ui/app-loader';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ProtectedRouteProps {
@@ -12,21 +13,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Track if we've shown the loader to prevent re-renders
+  const hasShownLoader = useRef(false);
 
   // Redirect to auth only when we're certain there's no session
-  // This runs after loading is complete AND session verification is done
   useEffect(() => {
-    // Wait for auth to fully initialize
     if (loading || !isSessionVerified) return;
-
-    // Only redirect if definitively no session after full verification
     if (!session && !user) {
-      console.log('[ProtectedRoute] No session after verification, redirecting to auth');
       navigate('/auth', { replace: true });
     }
   }, [loading, isSessionVerified, session, user, navigate]);
 
-  // Handle onboarding redirect separately
+  // Handle onboarding redirect
   useEffect(() => {
     if (!loading && isSessionVerified && user && profile && !profile.onboarding_completed) {
       if (location.pathname !== '/onboarding') {
@@ -35,28 +34,24 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // CRITICAL FIX: If we already have a session in state, don't show loading
-  // This prevents the blink when navigating between protected routes
+  // CRITICAL: If we already have a session, render children immediately
+  // This prevents any loading flash when navigating between protected routes
   const hasSessionInState = !!session || !!user;
   
-  // Only show loading during INITIAL auth check (no session data yet)
-  // Once we have session data, trust it and render children immediately
+  // Determine what message to show during loading
+  const getLoadingMessage = () => {
+    if (!hasSessionInState) return 'Authenticating...';
+    if (!profile) return 'Loading your workspace...';
+    return 'Almost there...';
+  };
+
+  // Only show loader during INITIAL auth check (no session data yet)
   if ((loading || !isSessionVerified) && !hasSessionInState) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
-              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
-            </div>
-          </div>
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        </div>
-      </div>
-    );
+    hasShownLoader.current = true;
+    return <AppLoader message={getLoadingMessage()} />;
   }
 
-  // No user after loading = will redirect (don't render children)
+  // No user after loading = will redirect
   if (!user && !session) {
     return null;
   }
@@ -64,7 +59,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Profile fetch error - show retry option
   if (user && profileError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
             <RefreshCw className="w-8 h-8 text-destructive" />
@@ -86,21 +81,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Wait for profile to load before checking onboarding status
-  // This prevents white screen while profile is being fetched
+  // Wait for profile but use unified loader
   if (user && !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse">
-              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
-            </div>
-          </div>
-          <p className="text-muted-foreground text-sm">Loading profile...</p>
-        </div>
-      </div>
-    );
+    // If we already showed a loader, just return null briefly to prevent double-flash
+    if (hasShownLoader.current) {
+      return <AppLoader message="Loading your workspace..." />;
+    }
+    return <AppLoader message="Loading your workspace..." />;
   }
 
   // If onboarding not completed, don't render (will redirect)

@@ -271,11 +271,23 @@
 
   body {
     @apply text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     background: hsl(0 0% 97%);
     min-height: 100vh;
     font-feature-settings: "cv11", "ss01";
     font-variation-settings: "opsz" 32;
+  }
+
+  /* Display typography - Premium headlines */
+  h1, h2, h3, .font-display {
+    font-family: 'Sora', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
   /* Ultra-refined scrollbar */

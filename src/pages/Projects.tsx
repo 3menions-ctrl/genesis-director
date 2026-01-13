@@ -45,6 +45,7 @@ import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
+import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
@@ -435,40 +436,39 @@ function ProjectCard({
           </div>
         )}
 
-        {/* Content overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 mb-2"
-          >
-            {getStatusBadge()}
-          </motion.div>
+        {/* Content overlay - hidden until hover for premium feel */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.25 }}
+              className="absolute bottom-0 left-0 right-0 p-4 z-20"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {getStatusBadge()}
+              </div>
 
-          <h3 className={cn(
-            "font-bold text-white tracking-tight line-clamp-1 text-base transition-all duration-300",
-            isHovered && "text-shadow-lg"
-          )}>
-            {project.name}
-          </h3>
+              <h3 className="font-bold text-white tracking-tight line-clamp-1 text-base drop-shadow-lg">
+                {project.name}
+              </h3>
 
-          <motion.div
-            initial={{ opacity: 0.5 }}
-            animate={{ opacity: isHovered ? 1 : 0.5 }}
-            className="flex items-center gap-3 mt-1.5 text-white/50 text-xs"
-          >
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatTimeAgo(project.updated_at)}
-            </span>
-            {videoClips.length > 0 && (
-              <span className="flex items-center gap-1">
-                <Film className="w-3 h-3" />
-                {videoClips.length} clips
-              </span>
-            )}
-          </motion.div>
-        </div>
+              <div className="flex items-center gap-3 mt-1.5 text-white/70 text-xs">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {formatTimeAgo(project.updated_at)}
+                </span>
+                {videoClips.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Film className="w-3 h-3" />
+                    {videoClips.length} clips
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Quick actions - top right */}
         <div className={cn(

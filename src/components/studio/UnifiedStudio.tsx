@@ -145,8 +145,8 @@ export function UnifiedStudio() {
   
   // Shared options
   const [colorGrading, setColorGrading] = useState('cinematic');
-  const [includeVoice, setIncludeVoice] = useState(true);
-  const [includeMusic, setIncludeMusic] = useState(true);
+  const [includeVoice, setIncludeVoice] = useState(false);
+  const [includeMusic, setIncludeMusic] = useState(false);
   const [includeSfx, setIncludeSfx] = useState(false); // SFX only for pro tier
   const [referenceImageAnalysis, setReferenceImageAnalysis] = useState<ReferenceImageAnalysis | undefined>();
   const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');

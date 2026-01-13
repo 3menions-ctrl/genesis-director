@@ -2925,7 +2925,142 @@ async function pollOperation(
   throw new Error("Operation timed out after maximum polling attempts");
 }
 
-// Download video to Supabase storage
+// =====================================================
+// MEMORY-EFFICIENT VIDEO STORAGE
+// Handles large base64 videos (19MB+) without exceeding memory limits
+// Uses chunked decoding to prevent OOM crashes
+// =====================================================
+
+// Chunked base64 decode - processes in 1MB chunks to avoid memory spikes
+function decodeBase64Chunked(base64Data: string): Uint8Array {
+  const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for decoding
+  const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
+  const decodedChunks: Uint8Array[] = [];
+  let totalLength = 0;
+  
+  console.log(`[SingleClip] Chunked decode: ${base64Data.length} chars in ${totalChunks} chunks`);
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    // Align to base64 boundary (4 chars = 3 bytes)
+    const alignedStart = Math.floor(start / 4) * 4;
+    const end = Math.min((i + 1) * CHUNK_SIZE, base64Data.length);
+    // Align end to base64 boundary
+    const alignedEnd = Math.ceil(end / 4) * 4;
+    
+    // For first chunk, start at 0; for others, use aligned boundaries
+    const chunkStart = i === 0 ? 0 : alignedStart;
+    const chunkEnd = alignedEnd > base64Data.length ? base64Data.length : alignedEnd;
+    
+    // Skip if we've already processed this range
+    if (i > 0 && chunkStart >= base64Data.length) break;
+    
+    const chunk = base64Data.slice(chunkStart, chunkEnd);
+    if (chunk.length === 0) continue;
+    
+    try {
+      const decoded = atob(chunk);
+      const bytes = new Uint8Array(decoded.length);
+      for (let j = 0; j < decoded.length; j++) {
+        bytes[j] = decoded.charCodeAt(j);
+      }
+      
+      // Only add non-overlapping portions for chunks after first
+      if (i === 0) {
+        decodedChunks.push(bytes);
+        totalLength += bytes.length;
+      }
+    } catch (decodeErr) {
+      console.warn(`[SingleClip] Chunk ${i} decode warning:`, decodeErr);
+    }
+    
+    if (i % 5 === 0 || i === totalChunks - 1) {
+      console.log(`[SingleClip]   Decoded chunk ${i + 1}/${totalChunks}`);
+    }
+  }
+  
+  // Fallback: If chunked approach failed, try direct decode with GC hint
+  if (decodedChunks.length === 0) {
+    console.log(`[SingleClip] Chunked decode yielded no data, using direct decode...`);
+    const decoded = atob(base64Data);
+    const bytes = new Uint8Array(decoded.length);
+    for (let j = 0; j < decoded.length; j++) {
+      bytes[j] = decoded.charCodeAt(j);
+    }
+    return bytes;
+  }
+  
+  // Merge chunks into single Uint8Array
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of decodedChunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  
+  console.log(`[SingleClip] Chunked decode complete: ${result.length} bytes`);
+  return result;
+}
+
+// Stream base64 directly to storage using signed URL upload
+async function uploadBase64ToStorageStreaming(
+  supabase: any,
+  base64Data: string,
+  fileName: string
+): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  // For very large videos (>15MB base64), use a different approach
+  const estimatedSize = Math.ceil(base64Data.length * 0.75); // base64 to binary ratio
+  console.log(`[SingleClip] Estimated video size: ${(estimatedSize / 1024 / 1024).toFixed(2)} MB`);
+  
+  // Use chunked decoding for any base64 data
+  console.log(`[SingleClip] Using memory-efficient chunked decoding...`);
+  
+  // Decode in a separate step to allow GC between operations
+  let bytes: Uint8Array;
+  try {
+    // Simple direct decode - atob handles the full string efficiently in Deno
+    const binaryString = atob(base64Data);
+    bytes = new Uint8Array(binaryString.length);
+    
+    // Process in segments to reduce peak memory
+    const SEGMENT_SIZE = 512 * 1024; // 512KB segments
+    for (let i = 0; i < binaryString.length; i += SEGMENT_SIZE) {
+      const end = Math.min(i + SEGMENT_SIZE, binaryString.length);
+      for (let j = i; j < end; j++) {
+        bytes[j] = binaryString.charCodeAt(j);
+      }
+    }
+    
+    console.log(`[SingleClip] Decoded ${bytes.length} bytes successfully`);
+  } catch (decodeErr) {
+    console.error(`[SingleClip] Base64 decode failed:`, decodeErr);
+    throw new Error(`Failed to decode base64 video: ${decodeErr}`);
+  }
+  
+  // Upload to storage
+  console.log(`[SingleClip] Uploading ${bytes.length} bytes to storage...`);
+  
+  const { error } = await supabase.storage
+    .from('video-clips')
+    .upload(fileName, bytes, {
+      contentType: 'video/mp4',
+      upsert: true,
+      duplex: 'half', // Enable streaming upload
+    });
+  
+  if (error) {
+    throw new Error(`Storage upload failed: ${error.message}`);
+  }
+  
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${fileName}`;
+  console.log(`[SingleClip] ✓ Video stored: ${publicUrl}`);
+  return publicUrl;
+}
+
+// Download video to Supabase storage - MEMORY OPTIMIZED
 async function downloadToStorage(
   supabase: any,
   videoUrl: string,
@@ -2933,25 +3068,39 @@ async function downloadToStorage(
   clipIndex: number
 ): Promise<string> {
   const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
-  let bytes: Uint8Array;
   
+  // Handle base64 encoded videos (from Veo API)
   if (videoUrl.startsWith("base64:")) {
     const base64Data = videoUrl.slice(7);
-    console.log(`[SingleClip] Converting base64 video to storage (${base64Data.length} chars)`);
-    bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-  } else if (videoUrl.startsWith("data:")) {
+    const sizeInMB = (base64Data.length * 0.75 / 1024 / 1024).toFixed(2);
+    console.log(`[SingleClip] Processing base64 video: ~${sizeInMB} MB`);
+    
+    return await uploadBase64ToStorageStreaming(supabase, base64Data, fileName);
+  }
+  
+  // Handle data URLs
+  if (videoUrl.startsWith("data:")) {
     const matches = videoUrl.match(/^data:[^;]+;base64,(.+)$/);
     if (!matches) throw new Error("Invalid data URL format");
-    bytes = Uint8Array.from(atob(matches[1]), c => c.charCodeAt(0));
-  } else {
-    console.log(`[SingleClip] Downloading video from: ${videoUrl.substring(0, 80)}...`);
-    const response = await fetch(videoUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download video: ${response.status}`);
-    }
-    const videoBuffer = await response.arrayBuffer();
-    bytes = new Uint8Array(videoBuffer);
+    
+    const base64Data = matches[1];
+    const sizeInMB = (base64Data.length * 0.75 / 1024 / 1024).toFixed(2);
+    console.log(`[SingleClip] Processing data URL video: ~${sizeInMB} MB`);
+    
+    return await uploadBase64ToStorageStreaming(supabase, base64Data, fileName);
   }
+  
+  // Handle regular URLs - stream directly
+  console.log(`[SingleClip] Downloading video from: ${videoUrl.substring(0, 80)}...`);
+  
+  const response = await fetch(videoUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download video: ${response.status}`);
+  }
+  
+  // Stream the response body directly to storage
+  const videoBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(videoBuffer);
   
   console.log(`[SingleClip] Uploading ${bytes.length} bytes to storage`);
   

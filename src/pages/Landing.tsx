@@ -37,35 +37,35 @@ const FEATURES = [
   {
     icon: Video,
     title: 'Text-to-Video',
-    description: 'Transform any description into cinematic footage with state-of-the-art AI models.',
+    description: 'Transform text descriptions into video clips using AI generation technology.',
     highlight: true,
   },
   {
     icon: Image,
     title: 'Image-to-Video',
-    description: 'Animate your reference images into dynamic video scenes with perfect consistency.',
+    description: 'Animate your reference images into video scenes with AI-powered motion.',
     highlight: true,
   },
   {
     icon: Brain,
-    title: 'Zero-Waste Quality',
-    description: 'AI automatically retries until every clip is perfect. No extra cost, guaranteed quality.',
+    title: 'Automatic Retries',
+    description: 'AI automatically retries clip generation to help ensure quality results.',
     highlight: true,
   },
   {
     icon: Eye,
-    title: 'Visual Debugger',
-    description: 'AI validates physics, identity, and cinematic quality on every generated frame.',
+    title: 'Quality Checks',
+    description: 'AI analyzes generated clips to help identify and address quality issues.',
   },
   {
     icon: Mic,
-    title: 'Neural Voice',
-    description: 'Ultra-realistic voice synthesis with emotional range and perfect timing.',
+    title: 'Voice Synthesis',
+    description: 'Add AI-generated voice narration to your video projects.',
   },
   {
     icon: Layers,
-    title: 'Director Audit',
-    description: 'Professional-grade scene analysis ensures Hollywood-quality results.',
+    title: 'Scene Analysis',
+    description: 'AI-powered scene breakdown helps structure your video content.',
   },
 ];
 
@@ -244,20 +244,20 @@ export default function Landing() {
 
           {/* Main headline */}
           <div className="text-center max-w-5xl mx-auto mb-8 sm:mb-10">
-            {/* Premium Quality Badge */}
+            {/* Quality Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-emerald-500/30 bg-emerald-500/10">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium text-emerald-400">Zero-Waste Quality Guarantee</span>
+              <span className="text-sm font-medium text-emerald-400">Automatic Retry System Included</span>
             </div>
             
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[6.5rem] font-bold tracking-tighter leading-[0.95] mb-6 sm:mb-8">
-              <span className="block hero-text">Exceptional AI videos.</span>
+              <span className="block hero-text">AI Video Generation.</span>
               <span className="block mt-2 hero-text">
-                Every single time.
+                Simple and Fast.
               </span>
             </h1>
             <p className="text-lg sm:text-xl lg:text-2xl hero-text-secondary max-w-2xl mx-auto leading-relaxed font-light px-4">
-              $6 per video. 6 clips stitched. AI retries until perfect.
+              Create videos from text or images. Automatic retries help ensure quality.
             </p>
           </div>
 
@@ -324,7 +324,7 @@ export default function Landing() {
                   </div>
                   <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3">Text-to-Video</h3>
                   <p className="text-base sm:text-lg text-white/60 max-w-md leading-relaxed">
-                    Describe any scene and watch AI bring it to life with stunning cinematic quality.
+                    Describe a scene and our AI generates video content from your text description.
                   </p>
                   
                   <div className="mt-6 sm:mt-8 flex items-center gap-3 text-white/40">
@@ -425,10 +425,10 @@ export default function Landing() {
             
             <div className="relative">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-                Ready to create?
+                Ready to try it?
               </h2>
               <p className="text-base sm:text-lg text-white/60 mb-6 sm:mb-8 max-w-xl mx-auto px-4">
-                Join thousands of creators making stunning videos with AI
+                Start with 60 free credits to create your first video
               </p>
               <Button
                 onClick={() => navigate('/auth')}

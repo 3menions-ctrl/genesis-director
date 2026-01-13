@@ -24,8 +24,8 @@ const STEPS = [
   {
     number: '03',
     icon: Film,
-    title: 'Videos Come to Life',
-    description: 'State-of-the-art AI models generate each scene with cinematic quality. Character consistency, smooth transitions, all handled.',
+    title: 'Videos Generated',
+    description: 'AI models generate each scene as video clips. The system handles transitions and stitching.',
     color: 'from-amber-500/20 to-orange-500/20',
     iconBg: 'bg-amber-500/20',
     iconColor: 'text-amber-400',

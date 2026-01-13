@@ -4201,7 +4201,17 @@ async function executePipelineInBackground(
     }
     
     // Build pro_features_data for database storage (now tracks all tiers)
-    const proFeaturesData = {
+    // CRITICAL FIX: Merge with existing data instead of replacing!
+    // This preserves identityBible, extractedCharacters, goldenFrameData, etc.
+    const { data: existingProject } = await supabase
+      .from('movie_projects')
+      .select('pro_features_data')
+      .eq('id', projectId)
+      .single();
+    
+    const existingProFeatures = existingProject?.pro_features_data || {};
+    
+    const proFeaturesUpdate = {
       tier: request.qualityTier || 'standard',
       musicSync: { 
         enabled: !!(state as any).musicSyncPlan, 
@@ -4259,6 +4269,28 @@ async function executePipelineInBackground(
       },
     };
     
+    // CRITICAL: Merge with existing data - preserve identityBible, goldenFrameData, etc.
+    const mergedProFeatures = {
+      ...existingProFeatures,  // Keep existing identity data, anchors, etc.
+      ...proFeaturesUpdate,    // Add/update feature tracking flags
+      // Re-inject critical identity data from state if available (in case it was lost)
+      identityBible: state.identityBible || existingProFeatures.identityBible,
+      extractedCharacters: state.extractedCharacters || existingProFeatures.extractedCharacters,
+      referenceAnalysis: state.referenceAnalysis || existingProFeatures.referenceAnalysis,
+      sceneConsistency: state.sceneConsistency || existingProFeatures.sceneConsistency,
+      // Preserve golden frame and anchor data
+      goldenFrameData: existingProFeatures.goldenFrameData,
+      accumulatedAnchors: existingProFeatures.accumulatedAnchors,
+      masterSceneAnchor: existingProFeatures.masterSceneAnchor,
+      // Timestamp
+      completedAt: new Date().toISOString(),
+    };
+    
+    console.log(`[Hollywood] Merging pro_features_data - preserving identity data:`);
+    console.log(`  - identityBible: ${mergedProFeatures.identityBible ? 'YES' : 'NO'}`);
+    console.log(`  - goldenFrameData: ${mergedProFeatures.goldenFrameData ? 'YES' : 'NO'}`);
+    console.log(`  - extractedCharacters: ${mergedProFeatures.extractedCharacters?.length || 0}`);
+    
     // Update project as completed
     await supabase
       .from('movie_projects')
@@ -4266,7 +4298,7 @@ async function executePipelineInBackground(
         video_url: state.finalVideoUrl,
         music_url: state.assets?.musicUrl,
         quality_tier: request.qualityTier || 'standard',
-        pro_features_data: proFeaturesData,
+        pro_features_data: mergedProFeatures,
         status: state.finalVideoUrl ? 'completed' : 'failed',
         generated_script: state.script ? JSON.stringify(state.script) : null,
         scene_images: state.assets?.sceneImages || null,
@@ -4293,7 +4325,7 @@ async function executePipelineInBackground(
               clipsFailed: state.production?.clipResults?.filter(c => c.status === 'failed').length || 0,
             },
           },
-          proFeaturesUsed: proFeaturesData,
+          proFeaturesUsed: proFeaturesUpdate,
           creditsCharged: state.finalVideoUrl && !request.skipCreditDeduction ? state.totalCredits : 0,
         },
         updated_at: new Date().toISOString(),

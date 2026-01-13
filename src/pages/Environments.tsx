@@ -14,14 +14,24 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
-// Environment presets with images
+// Import generated environment images
+import goldenHourStudioImg from '@/assets/environments/golden-hour-studio.jpg';
+import neonNoirCityImg from '@/assets/environments/neon-noir-city.jpg';
+import coastalSerenityImg from '@/assets/environments/coastal-serenity.jpg';
+import forestMystiqueImg from '@/assets/environments/forest-mystique.jpg';
+import modernMinimalistImg from '@/assets/environments/modern-minimalist.jpg';
+import alpineDawnImg from '@/assets/environments/alpine-dawn.jpg';
+import cozyFirelightImg from '@/assets/environments/cozy-firelight.jpg';
+import overcastDramaImg from '@/assets/environments/overcast-drama.jpg';
+
+// Environment presets with generated images
 const ENVIRONMENT_PRESETS = [
   {
     id: 'golden_hour_studio',
     name: 'Golden Hour Studio',
     description: 'Warm natural light streaming through floor-to-ceiling windows, casting long golden shadows',
     category: 'interior',
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&q=80',
+    image: goldenHourStudioImg,
     lighting: { type: 'natural', direction: 'side', intensity: 'soft', temperature: 'warm', timeOfDay: 'golden_hour' },
     colorPalette: { primary: '#D4A056', secondary: '#B87333', accent: '#F5C563', shadows: '#5C3D2E' },
     mood: 'cinematic',
@@ -32,7 +42,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Neon Noir City',
     description: 'Rain-slicked streets reflecting vibrant neon signs, moody urban atmosphere',
     category: 'exterior',
-    image: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80',
+    image: neonNoirCityImg,
     lighting: { type: 'artificial', direction: 'multi', intensity: 'high_contrast', temperature: 'mixed', timeOfDay: 'night' },
     colorPalette: { primary: '#9B4DCA', secondary: '#00CED1', accent: '#FF1493', shadows: '#1A1A2E' },
     mood: 'dramatic',
@@ -43,7 +53,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Coastal Serenity',
     description: 'Soft diffused light with ocean breeze, peaceful beach villa atmosphere',
     category: 'exterior',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    image: coastalSerenityImg,
     lighting: { type: 'natural', direction: 'overhead', intensity: 'bright', temperature: 'neutral', timeOfDay: 'midday' },
     colorPalette: { primary: '#5DADE2', secondary: '#F4D03F', accent: '#58D68D', shadows: '#3498DB' },
     mood: 'peaceful',
@@ -54,7 +64,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Forest Mystique',
     description: 'Dappled sunlight through dense canopy, enchanting woodland setting',
     category: 'exterior',
-    image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80',
+    image: forestMystiqueImg,
     lighting: { type: 'natural', direction: 'scattered', intensity: 'dappled', temperature: 'cool', timeOfDay: 'afternoon' },
     colorPalette: { primary: '#2E7D32', secondary: '#689F38', accent: '#C9A227', shadows: '#1B4332' },
     mood: 'mysterious',
@@ -65,7 +75,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Modern Minimalist',
     description: 'Clean lines, neutral tones, and carefully controlled studio lighting',
     category: 'interior',
-    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80',
+    image: modernMinimalistImg,
     lighting: { type: 'artificial', direction: 'diffused', intensity: 'even', temperature: 'neutral', timeOfDay: 'controlled' },
     colorPalette: { primary: '#F5F5F5', secondary: '#D9D9D9', accent: '#2D2D2D', shadows: '#B3B3B3' },
     mood: 'professional',
@@ -76,7 +86,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Alpine Dawn',
     description: 'Crisp mountain air with early morning light painting snow-capped peaks',
     category: 'exterior',
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
+    image: alpineDawnImg,
     lighting: { type: 'natural', direction: 'low_angle', intensity: 'soft', temperature: 'cool', timeOfDay: 'dawn' },
     colorPalette: { primary: '#87CEEB', secondary: '#DAA520', accent: '#DC143C', shadows: '#4A6FA5' },
     mood: 'inspiring',
@@ -87,7 +97,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Cozy Firelight',
     description: 'Warm flickering glow from fireplace, intimate cabin interior',
     category: 'interior',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    image: cozyFirelightImg,
     lighting: { type: 'fire', direction: 'point', intensity: 'low', temperature: 'very_warm', timeOfDay: 'evening' },
     colorPalette: { primary: '#CD853F', secondary: '#8B4513', accent: '#DEB887', shadows: '#3D1F0F' },
     mood: 'intimate',
@@ -98,7 +108,7 @@ const ENVIRONMENT_PRESETS = [
     name: 'Overcast Drama',
     description: 'Soft diffused light from cloudy sky, moody and contemplative atmosphere',
     category: 'exterior',
-    image: 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80',
+    image: overcastDramaImg,
     lighting: { type: 'natural', direction: 'overhead', intensity: 'soft', temperature: 'cool', timeOfDay: 'overcast' },
     colorPalette: { primary: '#7F8C8D', secondary: '#6C7A89', accent: '#5D8AA8', shadows: '#4A5568' },
     mood: 'contemplative',

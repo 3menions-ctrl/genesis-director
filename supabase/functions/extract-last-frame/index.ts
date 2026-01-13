@@ -7,17 +7,15 @@ const corsHeaders = {
 };
 
 /**
- * BULLETPROOF FRAME EXTRACTION v3.0
+ * BULLETPROOF FRAME EXTRACTION v4.0 - NO AI GENERATION
  * 
- * Guarantees a frame URL is ALWAYS returned through multi-tier fallback:
+ * Frame extraction MUST succeed via Cloud Run FFmpeg.
+ * Retries aggressively until success - NO fallback to AI image generation.
  * 
- * TIER 1: Cloud Run FFmpeg (pixel-perfect, ~2-5s)
- * TIER 2: Lovable AI Video Analysis + Generation (semantic match, ~5-10s)
- * TIER 3: Scene image fallback (pre-generated, instant)
- * TIER 4: Reference image fallback (original upload, instant)
- * TIER 5: Project database fallback (any available image, instant)
+ * TIER 1: Cloud Run FFmpeg with AGGRESSIVE RETRY (up to 10 attempts)
+ * TIER 2: Existing frame URLs from database (scene images, reference, etc.)
  * 
- * NEVER returns null - always provides SOME visual reference for continuity
+ * NEVER generates images - only extracts real frames or uses existing images.
  */
 
 interface ExtractLastFrameRequest {
@@ -35,15 +33,18 @@ interface ExtractLastFrameRequest {
 interface ExtractLastFrameResult {
   success: boolean;
   frameUrl: string | null;
-  method: 'cloud-run-ffmpeg' | 'ai-generated' | 'scene-fallback' | 'reference-fallback' | 'db-fallback' | 'failed';
+  method: 'cloud-run-ffmpeg' | 'scene-fallback' | 'reference-fallback' | 'db-fallback' | 'failed';
   confidence: 'high' | 'medium' | 'low';
   error?: string;
   retryCount?: number;
 }
 
-// Exponential backoff calculator
-function calculateBackoff(attempt: number, baseMs = 1000, maxMs = 8000): number {
-  return Math.min(baseMs * Math.pow(2, attempt), maxMs);
+// Exponential backoff calculator with jitter
+function calculateBackoff(attempt: number, baseMs = 2000, maxMs = 30000): number {
+  const exponentialDelay = Math.min(baseMs * Math.pow(2, attempt), maxMs);
+  // Add 10-30% jitter to prevent thundering herd
+  const jitter = exponentialDelay * (0.1 + Math.random() * 0.2);
+  return Math.floor(exponentialDelay + jitter);
 }
 
 // Validate that a URL is an actual image, not a video
@@ -67,7 +68,6 @@ serve(async (req) => {
       videoUrl, 
       projectId, 
       shotIndex, 
-      shotPrompt, 
       sceneImageUrl, 
       referenceImageUrl,
       goldenFrameUrl,
@@ -79,11 +79,11 @@ serve(async (req) => {
       throw new Error("videoUrl is required");
     }
 
-    console.log(`[ExtractFrame] Shot ${shotIndex}: BULLETPROOF extraction starting`);
+    console.log(`[ExtractFrame] Shot ${shotIndex}: BULLETPROOF extraction starting (NO AI GENERATION)`);
     console.log(`[ExtractFrame] Video: ${videoUrl.substring(0, 80)}...`);
-    console.log(`[ExtractFrame] Fallbacks available: scene=${!!sceneImageUrl}, ref=${!!referenceImageUrl}, golden=${!!goldenFrameUrl}`);
+    console.log(`[ExtractFrame] Fallbacks: scene=${!!sceneImageUrl}, ref=${!!referenceImageUrl}, golden=${!!goldenFrameUrl}`);
 
-    // Initialize Supabase client for Lovable Cloud
+    // Initialize Supabase client
     const lovableSupabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -134,29 +134,31 @@ serve(async (req) => {
     };
 
     // ============================================================
-    // TIER 1: Cloud Run FFmpeg (with retry and exponential backoff)
+    // TIER 1: Cloud Run FFmpeg - AGGRESSIVE RETRY (10 attempts)
+    // This MUST succeed. We do not fall back to AI generation.
     // ============================================================
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
+    const MAX_RETRIES = 10; // Aggressive retry - frame extraction is critical
     
     if (cloudRunUrl) {
-      const MAX_CLOUD_RUN_RETRIES = 3;
-      
-      for (let attempt = 0; attempt < MAX_CLOUD_RUN_RETRIES; attempt++) {
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
-          // Exponential backoff on retries
+          // Exponential backoff with jitter on retries
           if (attempt > 0) {
             const backoffMs = calculateBackoff(attempt - 1);
-            console.log(`[ExtractFrame] Cloud Run retry ${attempt + 1}/${MAX_CLOUD_RUN_RETRIES}, waiting ${backoffMs}ms...`);
+            console.log(`[ExtractFrame] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
             await new Promise(resolve => setTimeout(resolve, backoffMs));
           }
           
           const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
           const extractEndpoint = `${normalizedUrl}/extract-frame`;
           
-          console.log(`[ExtractFrame] TIER 1: Cloud Run FFmpeg (attempt ${attempt + 1})`);
+          console.log(`[ExtractFrame] TIER 1: Cloud Run FFmpeg attempt ${attempt + 1}/${MAX_RETRIES}`);
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          // Increase timeout on later attempts (30s base, up to 60s)
+          const timeoutMs = 30000 + (attempt * 5000);
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
           
           const response = await fetch(extractEndpoint, {
             method: 'POST',
@@ -176,13 +178,13 @@ serve(async (req) => {
           if (response.ok) {
             const result = await response.json();
             
-            // Handle base64 response
+            // Handle base64 response (preferred)
             if (result.frameBase64) {
               const frameUrl = await uploadBase64Frame(result.frameBase64);
               
               if (frameUrl && isValidImageUrl(frameUrl)) {
                 await saveFrameToDb(frameUrl);
-                console.log(`[ExtractFrame] ✓ TIER 1 SUCCESS: ${frameUrl.substring(0, 80)}...`);
+                console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS on attempt ${attempt + 1}: ${frameUrl.substring(0, 80)}...`);
                 
                 return new Response(
                   JSON.stringify({
@@ -197,11 +199,11 @@ serve(async (req) => {
               }
             }
             
-            // Handle direct URL response
+            // Handle direct URL response (legacy)
             const frameUrl = result.lastFrameUrl || result.frameUrl;
             if (frameUrl && isValidImageUrl(frameUrl)) {
               await saveFrameToDb(frameUrl);
-              console.log(`[ExtractFrame] ✓ TIER 1 SUCCESS (direct): ${frameUrl.substring(0, 80)}...`);
+              console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS (direct URL) on attempt ${attempt + 1}: ${frameUrl.substring(0, 80)}...`);
               
               return new Response(
                 JSON.stringify({
@@ -214,115 +216,43 @@ serve(async (req) => {
                 { headers: { ...corsHeaders, "Content-Type": "application/json" } }
               );
             }
+            
+            // Response OK but no valid frame - retry
+            console.warn(`[ExtractFrame] Attempt ${attempt + 1}: OK response but no valid frame, retrying...`);
+            continue;
           } else {
             const errorText = await response.text();
-            console.warn(`[ExtractFrame] Cloud Run HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+            console.warn(`[ExtractFrame] Attempt ${attempt + 1}: HTTP ${response.status} - ${errorText.substring(0, 100)}`);
             
-            // Rate limit - worth retrying
-            if (response.status === 429) {
-              continue;
+            // 4xx errors (except 429) are client errors - may not be worth retrying
+            if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+              console.warn(`[ExtractFrame] Client error ${response.status}, but will still retry...`);
             }
+            
+            continue;
           }
         } catch (cloudRunError) {
           const errorMsg = cloudRunError instanceof Error ? cloudRunError.message : 'Unknown error';
-          console.warn(`[ExtractFrame] Cloud Run attempt ${attempt + 1} failed:`, errorMsg);
+          console.warn(`[ExtractFrame] Attempt ${attempt + 1} error: ${errorMsg}`);
           
-          // Abort/timeout - worth retrying
-          if (errorMsg.includes('abort') || errorMsg.includes('timeout')) {
-            continue;
-          }
+          // Always retry on any error type
+          continue;
         }
       }
       
-      console.warn(`[ExtractFrame] TIER 1 FAILED after ${MAX_CLOUD_RUN_RETRIES} attempts`);
+      console.error(`[ExtractFrame] ❌ TIER 1 FAILED after ${MAX_RETRIES} attempts - Cloud Run extraction exhausted`);
     } else {
-      console.warn(`[ExtractFrame] TIER 1 SKIPPED: CLOUD_RUN_STITCHER_URL not configured`);
+      console.error(`[ExtractFrame] ❌ CLOUD_RUN_STITCHER_URL not configured - cannot extract frames!`);
     }
 
     // ============================================================
-    // TIER 2: Lovable AI Video Analysis + Frame Generation
-    // Uses Gemini to analyze video and generate matching frame
+    // TIER 2: Existing Image Fallback Chain
+    // Use pre-existing images from scene generation or reference upload
+    // These are REAL images, not AI-generated as fallback
     // ============================================================
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    console.log(`[ExtractFrame] TIER 2: Using existing image fallbacks...`);
     
-    if (LOVABLE_API_KEY && shotPrompt) {
-      console.log(`[ExtractFrame] TIER 2: AI Frame Generation`);
-      
-      try {
-        // Generate a frame that matches the video's end state
-        const positionDesc = position === 'first' 
-          ? 'OPENING frame - the very first moment'
-          : 'FINAL frame - the last moment before the video ends';
-        
-        const generationPrompt = `Generate a photorealistic video frame that represents the ${positionDesc} of this scene:
-
-Scene: ${shotPrompt}
-
-Requirements:
-- Photorealistic, cinematic quality
-- 16:9 aspect ratio (1920x1080)
-- Natural lighting, sharp focus
-- Capture the exact moment as described
-- No text, watermarks, or UI elements
-- This will be used as a reference for the next video clip, so continuity is critical`;
-
-        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-3-pro-image-preview',
-            messages: [
-              { role: 'user', content: generationPrompt }
-            ],
-          }),
-        });
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          
-          // Extract image from response (handle various formats)
-          const generatedImage = 
-            imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
-            imageData.choices?.[0]?.message?.content?.match(/data:image[^"]+/)?.[0] ||
-            imageData.data?.[0]?.b64_json;
-          
-          if (generatedImage) {
-            const frameUrl = await uploadBase64Frame(
-              generatedImage.startsWith('data:') ? generatedImage : `data:image/png;base64,${generatedImage}`
-            );
-            
-            if (frameUrl && isValidImageUrl(frameUrl)) {
-              await saveFrameToDb(frameUrl);
-              console.log(`[ExtractFrame] ✓ TIER 2 SUCCESS: ${frameUrl.substring(0, 80)}...`);
-              
-              return new Response(
-                JSON.stringify({
-                  success: true,
-                  frameUrl,
-                  method: 'ai-generated',
-                  confidence: 'medium',
-                } as ExtractLastFrameResult),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-              );
-            }
-          }
-        } else {
-          console.warn(`[ExtractFrame] AI generation failed: HTTP ${imageResponse.status}`);
-        }
-      } catch (aiError) {
-        console.warn(`[ExtractFrame] TIER 2 failed:`, aiError);
-      }
-    }
-
-    // ============================================================
-    // TIER 3-5: Fallback Chain (guaranteed to return SOMETHING)
-    // ============================================================
-    console.log(`[ExtractFrame] Using fallback chain...`);
-    
-    // Build prioritized fallback list
+    // Build prioritized fallback list of EXISTING images only
     const fallbackSources = [
       { name: 'scene', url: sceneImageUrl, confidence: 'medium' as const },
       { name: 'reference', url: referenceImageUrl, confidence: 'medium' as const },
@@ -330,13 +260,12 @@ Requirements:
       { name: 'identity', url: identityBibleFrontUrl, confidence: 'low' as const },
     ].filter(s => isValidImageUrl(s.url));
     
-    // Use immediate fallback if available
     if (fallbackSources.length > 0) {
       const best = fallbackSources[0];
       const frameUrl = best.url!;
       
       await saveFrameToDb(frameUrl);
-      console.log(`[ExtractFrame] ✓ TIER 3 SUCCESS (${best.name}): ${frameUrl.substring(0, 80)}...`);
+      console.log(`[ExtractFrame] ✅ TIER 2 SUCCESS (${best.name}): ${frameUrl.substring(0, 80)}...`);
       
       return new Response(
         JSON.stringify({
@@ -350,10 +279,10 @@ Requirements:
     }
     
     // ============================================================
-    // TIER 5: Database Recovery (last resort)
-    // Query project for ANY available image
+    // TIER 3: Database Recovery
+    // Query project for ANY existing image (no AI generation)
     // ============================================================
-    console.log(`[ExtractFrame] TIER 5: Database recovery...`);
+    console.log(`[ExtractFrame] TIER 3: Database recovery...`);
     
     try {
       const { data: projectData } = await lovableSupabase
@@ -362,14 +291,14 @@ Requirements:
         .eq('id', projectId)
         .single();
       
-      // Try scene images
+      // Try scene images from database
       if (projectData?.scene_images && Array.isArray(projectData.scene_images)) {
         const sceneImage = projectData.scene_images.find((s: any) => s.sceneNumber === shotIndex + 1)
           || projectData.scene_images[0];
         
         if (sceneImage?.imageUrl && isValidImageUrl(sceneImage.imageUrl)) {
           await saveFrameToDb(sceneImage.imageUrl);
-          console.log(`[ExtractFrame] ✓ TIER 5 SUCCESS (DB scene_images): ${sceneImage.imageUrl.substring(0, 60)}...`);
+          console.log(`[ExtractFrame] ✅ TIER 3 SUCCESS (scene_images): ${sceneImage.imageUrl.substring(0, 60)}...`);
           
           return new Response(
             JSON.stringify({
@@ -383,11 +312,11 @@ Requirements:
         }
       }
       
-      // Try pro_features_data
+      // Try pro_features_data for original uploaded images
       if (projectData?.pro_features_data) {
         const proData = projectData.pro_features_data;
         const possibleUrls = [
-          proData.referenceAnalysis?.imageUrl,  // FIRST: Original uploaded
+          proData.referenceAnalysis?.imageUrl,
           proData.goldenFrameData?.goldenFrameUrl,
           proData.identityBible?.originalReferenceUrl,
           proData.masterSceneAnchor?.frameUrl,
@@ -396,7 +325,7 @@ Requirements:
         if (possibleUrls.length > 0) {
           const frameUrl = possibleUrls[0];
           await saveFrameToDb(frameUrl);
-          console.log(`[ExtractFrame] ✓ TIER 5 SUCCESS (DB pro_features): ${frameUrl.substring(0, 60)}...`);
+          console.log(`[ExtractFrame] ✅ TIER 3 SUCCESS (pro_features): ${frameUrl.substring(0, 60)}...`);
           
           return new Response(
             JSON.stringify({
@@ -410,37 +339,41 @@ Requirements:
         }
       }
       
-      // Try previous clip's frame
-      const { data: prevClip } = await lovableSupabase
-        .from('video_clips')
-        .select('last_frame_url')
-        .eq('project_id', projectId)
-        .eq('shot_index', shotIndex - 1)
-        .single();
-      
-      if (prevClip?.last_frame_url && isValidImageUrl(prevClip.last_frame_url)) {
-        await saveFrameToDb(prevClip.last_frame_url);
-        console.log(`[ExtractFrame] ✓ TIER 5 SUCCESS (prev clip): ${prevClip.last_frame_url.substring(0, 60)}...`);
+      // Try previous clip's last frame
+      if (shotIndex > 0) {
+        const { data: prevClip } = await lovableSupabase
+          .from('video_clips')
+          .select('last_frame_url')
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex - 1)
+          .single();
         
-        return new Response(
-          JSON.stringify({
-            success: true,
-            frameUrl: prevClip.last_frame_url,
-            method: 'db-fallback',
-            confidence: 'low',
-          } as ExtractLastFrameResult),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (prevClip?.last_frame_url && isValidImageUrl(prevClip.last_frame_url)) {
+          await saveFrameToDb(prevClip.last_frame_url);
+          console.log(`[ExtractFrame] ✅ TIER 3 SUCCESS (prev clip): ${prevClip.last_frame_url.substring(0, 60)}...`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              frameUrl: prevClip.last_frame_url,
+              method: 'db-fallback',
+              confidence: 'low',
+            } as ExtractLastFrameResult),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     } catch (dbError) {
-      console.warn(`[ExtractFrame] DB recovery failed:`, dbError);
+      console.warn(`[ExtractFrame] Database recovery failed:`, dbError);
     }
 
     // ============================================================
-    // ABSOLUTE FAILURE - This should NEVER happen with proper setup
+    // ALL TIERS FAILED - Return error for retry at higher level
     // ============================================================
     console.error(`[ExtractFrame] ❌ ALL TIERS FAILED for shot ${shotIndex}`);
-    console.error(`[ExtractFrame] This indicates missing fallback images - check scene_images and reference_image`);
+    console.error(`[ExtractFrame] Cloud Run: ${MAX_RETRIES} attempts exhausted`);
+    console.error(`[ExtractFrame] No existing fallback images available`);
+    console.error(`[ExtractFrame] Caller should retry this entire operation`);
     
     return new Response(
       JSON.stringify({
@@ -448,7 +381,8 @@ Requirements:
         frameUrl: null,
         method: 'failed',
         confidence: 'low',
-        error: 'All extraction methods failed. Ensure scene images or reference image are available.',
+        error: `Frame extraction failed after ${MAX_RETRIES} Cloud Run attempts. No existing images available as fallback. Retry the entire clip generation.`,
+        retryCount: MAX_RETRIES,
       } as ExtractLastFrameResult),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

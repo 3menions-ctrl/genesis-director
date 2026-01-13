@@ -36,8 +36,8 @@ export default function Universes() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${universeBackground})` }}
       />
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+      {/* Subtle overlay for readability */}
+      <div className="absolute inset-0 bg-black/30" />
       
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">

@@ -4455,6 +4455,47 @@ serve(async (req) => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       
+      // =====================================================
+      // CRITICAL FIX: Update pipelineContext with THIS clip's results
+      // For clip 1: Set referenceImageUrl and create first anchor
+      // For clips 2+: Add to accumulated anchors
+      // =====================================================
+      const updatedPipelineContext = request.pipelineContext ? { ...request.pipelineContext } : {
+        identityBible: request.identityBible,
+        goldenFrameData: request.goldenFrameData,
+        colorGrading: request.colorGrading || 'cinematic',
+        qualityTier: request.qualityTier || 'standard',
+        accumulatedAnchors: [],
+        sceneImageLookup: {},
+        tierLimits: { maxRetries: 1 },
+      };
+      
+      // Add this clip's anchor to accumulated anchors
+      const newAnchor = clipResult.continuityManifest || {
+        clipIndex: request.clipIndex,
+        lastFrameUrl: clipResult.lastFrameUrl,
+        motionVectors: clipResult.motionVectors,
+        timestamp: Date.now(),
+      };
+      
+      updatedPipelineContext.accumulatedAnchors = [
+        ...(updatedPipelineContext.accumulatedAnchors || []),
+        newAnchor,
+      ];
+      
+      // For clip 1: Set the reference image URL for all future clips
+      if (request.clipIndex === 0 && clipResult.lastFrameUrl) {
+        updatedPipelineContext.referenceImageUrl = clipResult.lastFrameUrl;
+        updatedPipelineContext.goldenFrameData = {
+          goldenFrameUrl: clipResult.lastFrameUrl,
+          extractedAt: Date.now(),
+          clipIndex: 0,
+        };
+        console.log(`[SingleClip] ✓ Clip 1 complete - setting referenceImageUrl for chain: ${clipResult.lastFrameUrl.substring(0, 50)}...`);
+      }
+      
+      console.log(`[SingleClip] Updated context: ${updatedPipelineContext.accumulatedAnchors.length} anchors, ref: ${updatedPipelineContext.referenceImageUrl ? 'YES' : 'NO'}`);
+      
       // Use setTimeout with 0 to push to next tick, allowing response to be sent first
       setTimeout(async () => {
         try {
@@ -4470,7 +4511,7 @@ serve(async (req) => {
               completedClipIndex: request.clipIndex,
               completedClipResult: clipResult,
               totalClips: request.totalClips,
-              pipelineContext: request.pipelineContext,
+              pipelineContext: updatedPipelineContext,
             }),
           });
           

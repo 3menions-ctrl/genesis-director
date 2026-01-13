@@ -34,6 +34,11 @@ import {
   Minus,
   Crown,
   AlertTriangle,
+  MessageSquare,
+  Mail,
+  CheckCircle,
+  Eye,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Navigate } from 'react-router-dom';
@@ -85,6 +90,18 @@ interface AuditLogEntry {
   created_at: string;
 }
 
+interface SupportMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  source: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -112,6 +129,11 @@ export default function AdminDashboard() {
   
   // Audit log state
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+  
+  // Messages state
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null);
 
   // Check admin status on mount
   useEffect(() => {
@@ -140,6 +162,9 @@ export default function AdminDashboard() {
   // Fetch data based on active tab
   useEffect(() => {
     if (!isAdmin) return;
+    
+    // Always fetch messages for the badge count
+    fetchMessages();
     
     if (activeTab === 'overview') {
       fetchStats();
@@ -204,6 +229,56 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to fetch audit log:', err);
       toast.error('Failed to load audit log');
+    }
+  };
+
+  const fetchMessages = async () => {
+    setMessagesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setMessages((data || []) as SupportMessage[]);
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+      toast.error('Failed to load messages');
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  const updateMessageStatus = async (messageId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('support_messages')
+        .update({ status })
+        .eq('id', messageId);
+      if (error) throw error;
+      toast.success(`Message marked as ${status}`);
+      fetchMessages();
+      setSelectedMessage(null);
+    } catch (err) {
+      console.error('Failed to update message:', err);
+      toast.error('Failed to update message status');
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('support_messages')
+        .delete()
+        .eq('id', messageId);
+      if (error) throw error;
+      toast.success('Message deleted');
+      fetchMessages();
+      setSelectedMessage(null);
+    } catch (err) {
+      console.error('Failed to delete message:', err);
+      toast.error('Failed to delete message');
     }
   };
 
@@ -329,10 +404,19 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2 relative">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Messages</span>
+              {messages.filter(m => m.status === 'new').length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {messages.filter(m => m.status === 'new').length}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
@@ -344,7 +428,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <History className="w-4 h-4" />
-              <span className="hidden sm:inline">Audit Log</span>
+              <span className="hidden sm:inline">Audit</span>
             </TabsTrigger>
           </TabsList>
 
@@ -408,6 +492,149 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Stats
             </Button>
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Support Messages</h2>
+              <Button onClick={fetchMessages} variant="outline" size="sm" disabled={messagesLoading}>
+                {messagesLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Refresh
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Message List */}
+              <Card className="h-[600px] overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Inbox</CardTitle>
+                  <CardDescription>
+                    {messages.filter(m => m.status === 'new').length} unread messages
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 overflow-auto h-[calc(100%-80px)]">
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <Mail className="w-12 h-12 mb-4 opacity-50" />
+                      <p>No messages yet</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {messages.map((msg) => (
+                        <button
+                          key={msg.id}
+                          onClick={() => setSelectedMessage(msg)}
+                          className={cn(
+                            "w-full text-left p-4 hover:bg-muted/50 transition-colors",
+                            selectedMessage?.id === msg.id && "bg-muted",
+                            msg.status === 'new' && "border-l-2 border-l-primary"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "font-medium truncate",
+                                msg.status === 'new' && "text-foreground"
+                              )}>
+                                {msg.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">{msg.subject}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(msg.created_at).toLocaleDateString()} • {msg.source}
+                              </p>
+                            </div>
+                            <Badge 
+                              variant={msg.status === 'new' ? 'default' : msg.status === 'resolved' ? 'success' : 'secondary'}
+                              className="shrink-0"
+                            >
+                              {msg.status}
+                            </Badge>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Message Detail */}
+              <Card className="h-[600px] overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-base">Message Details</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-auto h-[calc(100%-80px)]">
+                  {selectedMessage ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{selectedMessage.subject}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            From: {selectedMessage.name} ({selectedMessage.email})
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(selectedMessage.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={selectedMessage.source === 'contact' ? 'info' : 'secondary'}
+                        >
+                          {selectedMessage.source}
+                        </Badge>
+                      </div>
+                      
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="whitespace-pre-wrap">{selectedMessage.message}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-4 border-t">
+                        {selectedMessage.status === 'new' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Mark Read
+                          </Button>
+                        )}
+                        {selectedMessage.status !== 'resolved' && (
+                          <Button 
+                            size="sm"
+                            onClick={() => updateMessageStatus(selectedMessage.id, 'resolved')}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Mark Resolved
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          asChild
+                        >
+                          <a href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Reply
+                          </a>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteMessage(selectedMessage.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
+                      <p>Select a message to view details</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Users Tab */}

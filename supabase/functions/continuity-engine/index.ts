@@ -161,7 +161,7 @@ Return JSON:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'openai/gpt-5.2',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 500,
       }),
@@ -218,7 +218,7 @@ Return JSON with the MOST COMMON or MOST PROMINENT settings:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-lite',
+        model: 'openai/gpt-5.2',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 300,
       }),

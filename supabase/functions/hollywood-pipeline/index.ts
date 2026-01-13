@@ -2528,7 +2528,7 @@ async function runProduction(
             await supabase.from('movie_projects').update({
               status: 'failed',
               last_error: `STRICT_CONTINUITY_FAILURE: Clip ${i + 1} requires valid last frame from clip ${i}. ${errorDetails}`,
-              pipeline_stage: 'continuity_failure',
+              pipeline_stage: 'failed',
               updated_at: new Date().toISOString(),
             }).eq('id', state.projectId);
             

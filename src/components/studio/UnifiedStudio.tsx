@@ -652,6 +652,8 @@ export function UnifiedStudio() {
           targetDurationSeconds: clipCount * CLIP_DURATION,
           referenceAnalysis: referenceImageAnalysis,
           environmentPrompt: environmentPrompt || undefined,
+          // CRITICAL: Pass includeVoice to prevent dialogue/narration when disabled
+          includeVoice,
         },
       });
 

@@ -7,6 +7,7 @@ import {
   Home, Activity, TrendingUp, Video,
   LayoutTemplate, Clock, Plus, Sparkles, Globe
 } from 'lucide-react';
+import { LowCreditsWarningBanner } from '@/components/studio/LowCreditsWarningBanner';
 
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -678,6 +679,9 @@ export function StudioLayout({ children }: { children: ReactNode }) {
 
         {/* Main content area - flex-1 ensures it takes remaining space */}
         <div className="flex-1 flex flex-col min-h-screen min-w-0 relative z-10">
+          {/* Low credits warning banner */}
+          <LowCreditsWarningBanner />
+          
           <main className="flex-1 overflow-auto relative">
             {children}
           </main>

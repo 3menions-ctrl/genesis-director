@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Folder, FileText, Play,
-  ChevronRight, User, LogOut, Settings,
+  ChevronRight, User, Settings,
   Check, Zap, HelpCircle, Keyboard, Coins,
   Home, Activity, TrendingUp, Video,
   LayoutTemplate, Clock, Plus, Sparkles, Globe
@@ -41,6 +41,7 @@ import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { SignOutDialog } from '@/components/auth/SignOutDialog';
 
 // Main navigation - simplified
 const MAIN_NAV = [
@@ -431,13 +432,8 @@ function StudioSidebar() {
 }
 
 function UserMenu() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
 
   const handleProfile = () => {
     navigate('/profile');
@@ -534,13 +530,14 @@ function UserMenu() {
         
         <DropdownMenuSeparator className="bg-border my-1" />
         
-        <DropdownMenuItem 
-          onClick={handleSignOut}
-          className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-destructive hover:bg-destructive/10"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm">Sign out</span>
-        </DropdownMenuItem>
+        <SignOutDialog>
+          <DropdownMenuItem 
+            onSelect={(e) => e.preventDefault()}
+            className="gap-2.5 py-2 px-2 rounded-lg cursor-pointer text-destructive hover:bg-destructive/10"
+          >
+            <span className="text-sm">Sign out</span>
+          </DropdownMenuItem>
+        </SignOutDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -19,6 +19,7 @@ interface ResumeRequest {
   projectId: string;
   userId: string;
   resumeFrom?: 'qualitygate' | 'assets' | 'production' | 'postproduction';
+  // Support both formats for backwards compatibility
   approvedShots?: Array<{
     id: string;
     title: string;
@@ -28,6 +29,18 @@ interface ResumeRequest {
     mood?: string;
     [key: string]: any;
   }>;
+  // Also accept approvedScript.shots format from frontend
+  approvedScript?: {
+    shots: Array<{
+      id: string;
+      title: string;
+      description: string;
+      durationSeconds: number;
+      dialogue?: string;
+      mood?: string;
+      [key: string]: any;
+    }>;
+  };
 }
 
 serve(async (req) => {
@@ -37,7 +50,11 @@ serve(async (req) => {
 
   try {
     const request: ResumeRequest = await req.json();
-    console.log("[ResumePipeline] Resuming project:", request.projectId);
+    console.log("[ResumePipeline] Resuming project:", request.projectId, "resumeFrom:", request.resumeFrom);
+    console.log("[ResumePipeline] Received approvedScript:", !!request.approvedScript, "approvedShots:", !!request.approvedShots);
+    if (request.approvedScript?.shots) {
+      console.log("[ResumePipeline] approvedScript.shots count:", request.approvedScript.shots.length);
+    }
 
     if (!request.projectId || !request.userId) {
       throw new Error("Missing projectId or userId");
@@ -132,9 +149,11 @@ serve(async (req) => {
     }
     
     // Update shots if user made edits (only for script approval)
-    if (request.approvedShots && request.approvedShots.length > 0) {
-      script = { shots: request.approvedShots };
-      console.log("[ResumePipeline] Using user-edited shots:", request.approvedShots.length);
+    // Support both approvedShots and approvedScript.shots formats
+    const userApprovedShots = request.approvedShots || request.approvedScript?.shots;
+    if (userApprovedShots && userApprovedShots.length > 0) {
+      script = { shots: userApprovedShots };
+      console.log("[ResumePipeline] Using user-approved shots:", userApprovedShots.length);
     }
     
     // FAIL-SAFE: If still no script, try to rebuild from video_clips prompts

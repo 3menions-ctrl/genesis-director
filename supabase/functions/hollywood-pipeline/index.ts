@@ -186,11 +186,12 @@ const MAX_CLIP_DURATION = 8;
 // Tier-based clip limits (fail-safe defaults if DB unavailable)
 // NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts
 // Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
+// IMPORTANT: Max clips is 6 for all tiers to ensure consistency
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 10, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
-  'pro': { maxClips: 15, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
-  'growth': { maxClips: 30, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
-  'agency': { maxClips: 30, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
+  'free': { maxClips: 6, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
+  'pro': { maxClips: 6, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
+  'growth': { maxClips: 6, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  'agency': { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
 };
 
 const MIN_CLIPS_PER_PROJECT = 2;
@@ -4247,16 +4248,23 @@ async function executePipelineInBackground(
         state.extractedCharacters = (request as any).extractedCharacters || tasks.extractedCharacters;
         state.identityBible = (request as any).identityBible || tasks.identityBible;
         state.referenceAnalysis = (request as any).referenceImageAnalysis || tasks.referenceAnalysis;
-        state.clipCount = tasks.clipCount || state.clipCount;
+        // CRITICAL: Use script shots length as source of truth for clipCount
+        // This ensures user-approved shot count is respected
+        const scriptShotsCount = state.script?.shots?.length || 0;
+        state.clipCount = scriptShotsCount > 0 ? scriptShotsCount : (tasks.clipCount || state.clipCount);
         state.clipDuration = tasks.clipDuration || state.clipDuration;
-        console.log(`[Hollywood] Loaded existing state: ${state.script?.shots?.length || 0} shots, clipCount=${state.clipCount}`);
+        console.log(`[Hollywood] Loaded existing state: ${scriptShotsCount} shots, clipCount=${state.clipCount}`);
       }
       
       // Also try to parse generated_script if script not in pending_video_tasks
       if (!state.script?.shots && project?.generated_script) {
         try {
           state.script = JSON.parse(project.generated_script);
-          console.log(`[Hollywood] Loaded script from generated_script field: ${state.script?.shots?.length || 0} shots`);
+          // CRITICAL: Also sync clipCount from generated_script
+          if (state.script?.shots?.length) {
+            state.clipCount = state.script.shots.length;
+          }
+          console.log(`[Hollywood] Loaded script from generated_script field: ${state.script?.shots?.length || 0} shots, clipCount=${state.clipCount}`);
         } catch (e) {
           console.warn(`[Hollywood] Failed to parse generated_script`);
         }

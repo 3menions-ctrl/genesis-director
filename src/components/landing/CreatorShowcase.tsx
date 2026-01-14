@@ -24,12 +24,6 @@ const CREATOR_VIDEOS = [
     genre: 'Cinematic',
   },
   {
-    id: '2b6fb5c2-ca02-4c06-8341-ec32286c9e60',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2b6fb5c2-ca02-4c06-8341-ec32286c9e60_1768303542610.mp4',
-    title: 'Creative Space of Confidence',
-    genre: 'Ad',
-  },
-  {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
     title: 'Snowy Cabin',

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, X, Zap } from 'lucide-react';
+import { X, Zap, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -24,57 +24,87 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className={cn(
-        "relative overflow-hidden rounded-xl p-4",
+        "relative overflow-hidden rounded-xl",
         variant === 'dark' 
-          ? "bg-black border border-amber-500/40" 
-          : "bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-amber-500/30"
+          ? "bg-glossy-black shadow-obsidian border border-white/10" 
+          : "glass-card border-foreground/10"
       )}
     >
-      {/* Animated background glow */}
+      {/* Subtle gradient overlay */}
       <div className={cn(
-        "absolute inset-0 animate-pulse",
+        "absolute inset-0 pointer-events-none",
         variant === 'dark'
-          ? "bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-rose-500/5"
-          : "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10"
+          ? "bg-gradient-to-r from-white/[0.03] via-transparent to-white/[0.03]"
+          : "bg-gradient-to-r from-foreground/[0.02] via-transparent to-foreground/[0.02]"
       )} />
-      
-      {/* Sparkle decorations */}
-      <div className="absolute top-2 left-4">
-        <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-      </div>
-      <div className="absolute bottom-2 right-12">
-        <Sparkles className="w-3 h-3 text-orange-400 animate-pulse delay-300" />
-      </div>
 
-      <div className="relative flex items-center justify-between gap-4">
+      <div className="relative flex items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
-            <Zap className="w-5 h-5 text-white" />
+          <div className={cn(
+            "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+            variant === 'dark'
+              ? "bg-white/10 backdrop-blur-sm"
+              : "bg-foreground text-background shadow-lg"
+          )}>
+            <Zap className={cn("w-5 h-5", variant === 'dark' ? "text-white" : "")} />
           </div>
           
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-black bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent">
-                BEST VALUE
+              <span className={cn(
+                "text-lg sm:text-xl font-bold",
+                variant === 'dark' ? "text-white" : "hero-text"
+              )}>
+                Best Value
               </span>
-              <span className="px-2 py-0.5 text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30">
+              <span className={cn(
+                "px-2.5 py-1 text-xs font-semibold uppercase tracking-wide rounded-full",
+                variant === 'dark'
+                  ? "bg-white/10 text-white/80 border border-white/20"
+                  : "bg-foreground/10 text-foreground border border-foreground/20"
+              )}>
                 $6 per video
               </span>
             </div>
-            <div className="text-sm text-white/70">
-              Only <span className="text-white font-medium">10 credits</span> per clip
-              <span className="hidden sm:inline text-white/50 ml-1">• 60 credits = complete video</span>
+            <div className={cn(
+              "text-sm",
+              variant === 'dark' ? "text-white/60" : "hero-text-secondary"
+            )}>
+              Only <span className={cn("font-medium", variant === 'dark' ? "text-white" : "hero-text")}>10 credits</span> per clip
+              <span className={cn(
+                "hidden sm:inline ml-1",
+                variant === 'dark' ? "text-white/40" : "text-muted-foreground"
+              )}>• 60 credits = complete video</span>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={handleDismiss}
-          className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
-          aria-label="Dismiss banner"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <a 
+            href="#pricing" 
+            className={cn(
+              "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+              variant === 'dark'
+                ? "bg-white/10 text-white hover:bg-white/20"
+                : "bg-foreground text-background hover:bg-foreground/90"
+            )}
+          >
+            View Pricing
+            <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+          <button
+            onClick={handleDismiss}
+            className={cn(
+              "flex-shrink-0 p-1.5 rounded-lg transition-colors",
+              variant === 'dark'
+                ? "hover:bg-white/10 text-white/40 hover:text-white/70"
+                : "hover:bg-foreground/10 text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="Dismiss banner"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

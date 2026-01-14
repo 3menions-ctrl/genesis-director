@@ -168,7 +168,12 @@ export function CostAnalysisDashboard() {
           case 'gemini':
             apiAggregated[key].calculated_cost_cents += GEMINI_FLASH_COST_CENTS;
             break;
+          case 'music-generation':
+            // Skipped music generation has no cost but still track it
+            apiAggregated[key].calculated_cost_cents += 0;
+            break;
           default:
+            // Use logged cost if service not recognized
             apiAggregated[key].calculated_cost_cents += row.real_cost_cents || 0;
         }
       });
@@ -291,17 +296,32 @@ export function CostAnalysisDashboard() {
 
   // Calculate totals - separate successful vs wasted
   const successfulApiCosts = apiCosts.filter(c => c.status === 'completed');
-  const failedApiCosts = apiCosts.filter(c => c.status === 'failed' || c.status === 'skipped');
+  const failedApiCosts = apiCosts.filter(c => c.status === 'failed');
+  const skippedApiCosts = apiCosts.filter(c => c.status === 'skipped');
   
   const totalSuccessfulApiCostCents = successfulApiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
   const totalFailedApiCostCents = failedApiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
+  const totalSkippedApiCostCents = skippedApiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
   const totalApiCostCents = apiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
   
-  // Add retry costs
+  // Add retry costs - each retry is a failed+retried Veo call
   const totalRetryCostCents = retryData.retry_cost_cents;
   
-  // Total wasted = failed + retries
+  // Total wasted = failed API calls + retry costs (skipped don't cost money)
   const totalWastedCostCents = totalFailedApiCostCents + totalRetryCostCents;
+  
+  // Debug logging
+  console.log('Cost Analysis Debug:', {
+    apiCosts,
+    successfulApiCosts,
+    failedApiCosts,
+    skippedApiCosts,
+    totalSuccessfulApiCostCents,
+    totalFailedApiCostCents,
+    totalRetryCostCents,
+    totalWastedCostCents,
+    retryData,
+  });
   
   const totalStorageMB = storageCosts.reduce((sum, s) => sum + s.size_mb, 0);
   const totalStorageCostCents = Math.round((totalStorageMB / 1024) * STORAGE_COST_PER_GB_CENTS * 100);
@@ -319,14 +339,15 @@ export function CostAnalysisDashboard() {
   const estimatedRevenueCents = Math.round(totalCreditsCharged * CREDIT_PRICE_CENTS);
   
   // Subtract refunds from revenue
-  const refundValueCents = Math.round(refundData.refund_credits * CREDIT_PRICE_CENTS);
+  const refundValueCents = Math.round(Math.abs(refundData.refund_credits) * CREDIT_PRICE_CENTS);
   const adjustedRevenueCents = estimatedRevenueCents - refundValueCents;
   
   const netProfitCents = adjustedRevenueCents - totalMonthlyCostCents;
   const profitMargin = adjustedRevenueCents > 0 ? (netProfitCents / adjustedRevenueCents) * 100 : 0;
   
-  // Waste percentage
-  const wastePercentage = totalMonthlyCostCents > 0 ? (totalWastedCostCents / totalMonthlyCostCents) * 100 : 0;
+  // Waste percentage of API costs only (not platform costs)
+  const apiOnlyCosts = totalApiCostCents + totalRetryCostCents;
+  const wastePercentage = apiOnlyCosts > 0 ? (totalWastedCostCents / apiOnlyCosts) * 100 : 0;
 
   const getServiceIcon = (service: string) => {
     switch (service) {

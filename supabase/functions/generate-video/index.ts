@@ -288,8 +288,9 @@ function buildQualityMaximizer(tier: number = 10): string {
 }
 
 // ============================================================================
-// HUMAN ANATOMY LOCK - Guarantees realistic human proportions at ANY distance
+// HUMAN ANATOMY LOCK v2.0 - Guarantees realistic human proportions at ANY distance
 // Critical for wide shots where AI tends to distort human bodies
+// Enhanced with temporal consistency anchors for multi-clip videos
 // ============================================================================
 
 const HUMAN_ANATOMY_ENFORCEMENT = {
@@ -300,6 +301,8 @@ const HUMAN_ANATOMY_ENFORCEMENT = {
     "head-to-body ratio 1:7.5 adult proportions",
     "natural limb lengths",
     "correct joint positions",
+    "proportional hands and feet",
+    "realistic shoulder width",
   ],
   
   // Distance-specific enforcement (wide shots)
@@ -308,40 +311,60 @@ const HUMAN_ANATOMY_ENFORCEMENT = {
     "recognizable human silhouettes",
     "natural human scale relative to environment",
     "proper perspective scaling for distance",
+    "distinguishable human features at any range",
   ],
   
-  // Movement enforcement
+  // Movement enforcement - ENHANCED for smoothness
   movement: [
     "natural human gait and walking motion",
     "realistic arm swing while walking",
     "proper weight transfer during movement",
     "natural head and body posture",
     "believable human locomotion",
+    "smooth continuous motion without stuttering",
+    "realistic acceleration and deceleration",
+    "natural momentum and follow-through",
+    "proper weight distribution on each foot",
   ],
   
-  // Face/body integrity
+  // Face/body integrity - ENHANCED temporal consistency
   integrity: [
     "consistent facial features throughout",
     "stable body structure no morphing",
     "fixed number of limbs two arms two legs",
     "hands with five fingers each",
     "symmetrical human features",
+    "consistent body mass throughout clip",
+    "stable clothing and accessories",
+    "fixed hairstyle and color",
+    "persistent scars marks tattoos",
+  ],
+  
+  // NEW: Temporal consistency anchors
+  temporal: [
+    "identical appearance from start to end of clip",
+    "no gradual transformation of features",
+    "consistent skin tone throughout",
+    "stable eye color and shape",
+    "fixed facial structure no morphing",
   ],
 };
 
-// Build human anatomy enforcement prompt
+// Build human anatomy enforcement prompt - ENHANCED with temporal anchors
 function buildHumanAnatomyPrompt(isWideShot: boolean = false): string {
   const parts = [
     ...HUMAN_ANATOMY_ENFORCEMENT.proportions,
     ...HUMAN_ANATOMY_ENFORCEMENT.movement,
     ...HUMAN_ANATOMY_ENFORCEMENT.integrity,
+    ...HUMAN_ANATOMY_ENFORCEMENT.temporal,
   ];
   
   if (isWideShot) {
     parts.push(...HUMAN_ANATOMY_ENFORCEMENT.wideShot);
   }
   
-  return `[HUMAN ANATOMY LOCK: ${parts.slice(0, 8).join(', ')}]`;
+  // Select more anchors for stronger enforcement
+  return `[HUMAN ANATOMY LOCK: ${parts.slice(0, 12).join(', ')}]`;
 }
 
 // Detect if prompt describes a wide/distant shot
@@ -358,7 +381,8 @@ function isWideOrDistantShot(prompt: string): boolean {
 }
 
 // ============================================================================
-// ANTI-PHYSICS VIOLATION NEGATIVE PROMPTS - 150+ Anti-Drift Terms
+// ANTI-PHYSICS VIOLATION NEGATIVE PROMPTS v2.0 - 200+ Anti-Drift Terms
+// ENHANCED with transition artifacts, identity drift, and temporal coherence
 // ============================================================================
 
 const PHYSICS_VIOLATIONS = {
@@ -367,14 +391,18 @@ const PHYSICS_VIOLATIONS = {
     "defying gravity", "floating unnaturally", "objects suspended in air",
     "impossible levitation", "anti-gravity glitch", "falling upward",
     "gravity-defying without explanation", "objects hovering incorrectly",
+    "items floating mid-air", "suspended without support",
   ],
   
-  // Motion violations
+  // Motion violations - ENHANCED for smoothness
   motion: [
     "instant teleportation", "speed ramping artifacts", "stuttering motion",
     "frame skipping", "motion blur inconsistency", "jittery movement",
     "unnatural acceleration", "impossible deceleration", "motion judder",
     "temporal aliasing", "motion ghosting", "strobing effect",
+    "jerky movement", "choppy animation", "skipped frames",
+    "sudden position change", "discontinuous motion", "motion freezing",
+    "stutter stepping", "motion warping",
   ],
   
   // Body physics violations - ENHANCED for human realism
@@ -384,13 +412,13 @@ const PHYSICS_VIOLATIONS = {
     "rubber limbs", "stretching body parts", "shrinking body parts",
     "extra fingers", "missing fingers", "hands merging", "face melting",
     "eyes in wrong position", "asymmetric face distortion",
-    // NEW: Wide shot human distortion prevention
     "distorted human proportions", "wrong head size", "elongated limbs",
     "shortened limbs", "giant head", "tiny head", "blob humans",
     "featureless humans", "mannequin people", "puppet-like movement",
     "wrong number of limbs", "extra arms", "extra legs", "missing limbs",
     "human-shaped blobs", "indistinct human forms", "melting humans",
     "morphing body parts", "unstable human form", "floating limbs",
+    "twisted spine", "broken neck angle", "impossible torso rotation",
   ],
   
   // Object physics violations
@@ -399,23 +427,27 @@ const PHYSICS_VIOLATIONS = {
     "impossible object intersection", "solid objects merging",
     "objects teleporting", "spontaneous object generation",
     "objects disappearing", "scale inconsistency", "size shifting",
-    "proportion changes mid-shot",
+    "proportion changes mid-shot", "objects phasing through surfaces",
   ],
   
-  // Cloth/hair physics violations
+  // Cloth/hair physics violations - ENHANCED
   cloth: [
     "stiff cloth", "cloth not responding to movement", "frozen fabric",
     "hair not moving", "rigid hair", "cloth clipping through body",
     "impossible fabric folds", "weightless cloth behavior",
-    "hair passing through solid objects",
+    "hair passing through solid objects", "static hair in wind",
+    "frozen clothing in motion", "fabric ignoring gravity",
+    "hair changing length", "clothing changing style",
   ],
   
-  // Light physics violations
+  // Light physics violations - ENHANCED
   light: [
     "shadows in wrong direction", "missing shadows", "double shadows",
     "inconsistent lighting", "light source contradiction",
     "impossible reflections", "broken refraction", "light bleeding",
     "exposure flickering", "white balance shifts mid-shot",
+    "shadow direction change", "lighting jumping", "sudden brightness change",
+    "inconsistent ambient light", "light source teleporting",
   ],
   
   // Fluid physics violations
@@ -424,13 +456,16 @@ const PHYSICS_VIOLATIONS = {
     "fluid flowing upward without cause", "splash without impact",
     "liquid disappearing", "fire burning incorrectly",
     "smoke moving against wind", "particle system glitches",
+    "fire direction inconsistency", "smoke density changing instantly",
   ],
   
-  // Temporal violations
+  // Temporal violations - ENHANCED for multi-clip coherence
   temporal: [
     "time discontinuity", "causality violation", "action before cause",
     "temporal artifacts", "frame rate inconsistency", "time jumping",
-    "sequence breaks", "continuity errors",
+    "sequence breaks", "continuity errors", "timeline inconsistency",
+    "temporal drift", "scene time jumping", "daylight inconsistency",
+    "sudden weather change", "instant day to night",
   ],
   
   // Quality violations
@@ -443,17 +478,27 @@ const PHYSICS_VIOLATIONS = {
     "datamosh", "corrupted frames", "encoding artifacts",
   ],
   
-  // AI-specific violations - ENHANCED for human generation
+  // AI-specific violations - ENHANCED for identity preservation
   aiArtifacts: [
     "morphing faces", "identity shifting", "character inconsistency",
     "style drift", "aesthetic wandering", "unintended transformation",
     "reality warping", "dimension shifting", "perspective breaking",
     "AI hallucination", "generation artifacts", "diffusion noise",
     "denoising artifacts", "prompt bleeding",
-    // NEW: Human-specific AI artifacts
     "uncanny valley humans", "plastic skin", "waxy faces",
     "dead eyes", "soulless expression", "robotic movement",
     "unnatural skin texture", "wrong skin color shifts",
+    "face swap mid-shot", "age morphing", "gender drift",
+    "ethnicity change", "feature migration", "identity swap",
+  ],
+  
+  // NEW: Scene transition violations
+  transition: [
+    "jarring cut", "mismatched angles", "position jump between cuts",
+    "lighting discontinuity at cut", "color temperature jump",
+    "costume change at cut", "prop disappearance", "background jump",
+    "scale mismatch between shots", "eyeline mismatch",
+    "action discontinuity", "momentum break at cut",
   ],
 };
 
@@ -510,26 +555,39 @@ const TRANSITION_HINTS: Record<string, string> = {
 };
 
 // ============================================================================
-// APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
+// APEX MANDATORY QUALITY SUFFIX v2.0 - Always appended to ALL prompts
 // Ensures every clip is Hollywood-grade regardless of user input
+// ENHANCED with temporal consistency and professional finishing
 // ============================================================================
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, consistent throughout entire clip, temporally stable, no flickering, smooth motion";
 
 // ============================================================================
-// RICH COLOR ENFORCEMENT - Guarantees vibrant, consistent colors
+// SCENE TRANSITION QUALITY - Ensures clips connect seamlessly
+// ============================================================================
+const TRANSITION_QUALITY_SUFFIX = ". TRANSITION REQUIREMENTS: Smooth continuous action, consistent momentum, matching lighting direction, stable camera perspective, seamless visual flow.";
+
+// ============================================================================
+// RICH COLOR ENFORCEMENT v2.0 - Guarantees vibrant, consistent colors
 // Colors should NEVER degrade across clips, only improve
+// ENHANCED with cross-clip consistency
 // ============================================================================
-const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated colors, vibrant color palette, deep blacks, clean highlights, professional color grading. Colors must be VIVID and RICH throughout entire clip. NO washed out colors, NO gray tones, NO color degradation. Maintain consistent color temperature.";
+const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated colors, vibrant color palette, deep blacks, clean highlights, professional color grading. Colors must be VIVID and RICH throughout entire clip. NO washed out colors, NO gray tones, NO color degradation. Maintain consistent color temperature. Lock color palette from start to end.";
 
-// Anti-color-degradation terms for negative prompt
+// ============================================================================
+// CHARACTER CONSISTENCY ENFORCEMENT - Prevents identity drift
+// ============================================================================
+const CHARACTER_CONSISTENCY_SUFFIX = ". CHARACTER LOCK: Same exact person throughout clip. No face changes. No body transformation. Identical clothing. Identical hair. Fixed skin tone. Stable identity from first frame to last frame.";
+
+// Anti-color-degradation terms for negative prompt - ENHANCED
 const COLOR_DEGRADATION_NEGATIVES = [
   "washed out colors", "desaturated", "gray tones", "muddy colors", "flat colors",
   "color banding", "color shift", "inconsistent colors", "dull colors", "faded colors",
   "low saturation", "color degradation", "color drift", "bleached", "overexposed colors",
   "underexposed colors", "color noise", "color artifacts", "uneven color temperature",
+  "color temperature jump", "white balance drift", "color grading change mid-clip",
 ];
 
-// Build enhanced prompt with APEX Physics Engine, Quality Maximizer, SMART CAMERA ANGLES, and VELOCITY VECTORING
+// Build enhanced prompt with APEX Physics Engine, Quality Maximizer, SMART CAMERA ANGLES, VELOCITY VECTORING, and CHARACTER CONSISTENCY
 function buildConsistentPrompt(
   basePrompt: string,
   sceneContext?: SceneContext,
@@ -537,9 +595,10 @@ function buildConsistentPrompt(
   transitionOut?: string,
   qualityTier: number = 10
 ): { prompt: string; negativePrompt: string } {
-  // STEP 0: Always append mandatory quality suffix and color enforcement to user prompt FIRST
-  let prompt = basePrompt + APEX_QUALITY_SUFFIX + COLOR_ENFORCEMENT_SUFFIX;
-  console.log('[APEX] Mandatory quality + color enforcement suffix appended to prompt');
+  // STEP 0: Always append ALL mandatory suffixes to user prompt FIRST
+  // Order: Quality → Color → Character Consistency → Transition
+  let prompt = basePrompt + APEX_QUALITY_SUFFIX + COLOR_ENFORCEMENT_SUFFIX + CHARACTER_CONSISTENCY_SUFFIX + TRANSITION_QUALITY_SUFFIX;
+  console.log('[APEX v2.0] Full quality stack appended: quality + color + character + transition');
   
   // ============================================================================
   // HUMAN ANATOMY ENFORCEMENT - Guarantees realistic humans at any distance

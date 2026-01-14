@@ -115,10 +115,20 @@ function buildCharacterSpecificNegatives(nonFacialAnchors?: any): string[] {
 }
 
 // =====================================================
-// APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
+// APEX MANDATORY QUALITY SUFFIX v2.0 - Always appended to ALL prompts
 // Ensures every clip is Hollywood-grade regardless of user input
+// ENHANCED with temporal consistency, character lock, and transition quality
 // =====================================================
-const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
+const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading, consistent throughout entire clip, temporally stable, no flickering, smooth motion";
+
+// Scene transition quality for seamless multi-clip videos
+const TRANSITION_QUALITY_SUFFIX = ". TRANSITION REQUIREMENTS: Smooth continuous action, consistent momentum, matching lighting direction, stable camera perspective, seamless visual flow.";
+
+// Character consistency enforcement - CRITICAL for multi-clip identity
+const CHARACTER_CONSISTENCY_SUFFIX = ". CHARACTER LOCK: Same exact person throughout clip. No face changes. No body transformation. Identical clothing. Identical hair. Fixed skin tone. Stable identity from first frame to last frame.";
+
+// Rich color enforcement for vibrant output
+const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated colors, vibrant color palette, deep blacks, clean highlights, professional color grading. Colors must be VIVID and RICH throughout entire clip. NO washed out colors, NO gray tones, NO color degradation. Maintain consistent color temperature. Lock color palette from start to end.";
 
 // =====================================================
 // SPATIAL-ACTION LOCK ENGINE (Embedded)
@@ -615,8 +625,9 @@ function buildQualityMaximizer(tier: number = 10): string {
 }
 
 // ============================================================================
-// ANTI-PHYSICS VIOLATION NEGATIVE PROMPTS - 150+ Anti-Drift Terms
-// Comprehensive list of physics violations, quality issues, and AI artifacts
+// ANTI-PHYSICS VIOLATION NEGATIVE PROMPTS v2.0 - 200+ Anti-Drift Terms
+// Comprehensive list of physics violations, quality issues, AI artifacts, and identity drift
+// ENHANCED with transition artifacts and multi-clip consistency
 // ============================================================================
 
 const PHYSICS_VIOLATIONS = {
@@ -624,12 +635,16 @@ const PHYSICS_VIOLATIONS = {
     "defying gravity", "floating unnaturally", "objects suspended in air",
     "impossible levitation", "anti-gravity glitch", "falling upward",
     "gravity-defying without explanation", "objects hovering incorrectly",
+    "items floating mid-air", "suspended without support",
   ],
   motion: [
     "instant teleportation", "speed ramping artifacts", "stuttering motion",
     "frame skipping", "motion blur inconsistency", "jittery movement",
     "unnatural acceleration", "impossible deceleration", "motion judder",
     "temporal aliasing", "motion ghosting", "strobing effect",
+    "jerky movement", "choppy animation", "skipped frames",
+    "sudden position change", "discontinuous motion", "motion freezing",
+    "stutter stepping", "motion warping",
   ],
   body: [
     "limbs bending wrong", "impossible body positions", "joints hyperextending",
@@ -637,25 +652,33 @@ const PHYSICS_VIOLATIONS = {
     "rubber limbs", "stretching body parts", "shrinking body parts",
     "extra fingers", "missing fingers", "hands merging", "face melting",
     "eyes in wrong position", "asymmetric face distortion",
+    "distorted human proportions", "wrong head size", "elongated limbs",
+    "shortened limbs", "giant head", "tiny head", "blob humans",
+    "featureless humans", "mannequin people", "puppet-like movement",
+    "wrong number of limbs", "extra arms", "extra legs", "missing limbs",
+    "twisted spine", "broken neck angle", "impossible torso rotation",
   ],
   objects: [
     "clipping through objects", "objects passing through each other",
     "impossible object intersection", "solid objects merging",
     "objects teleporting", "spontaneous object generation",
     "objects disappearing", "scale inconsistency", "size shifting",
-    "proportion changes mid-shot",
+    "proportion changes mid-shot", "objects phasing through surfaces",
   ],
   cloth: [
     "stiff cloth", "cloth not responding to movement", "frozen fabric",
     "hair not moving", "rigid hair", "cloth clipping through body",
     "impossible fabric folds", "weightless cloth behavior",
-    "hair passing through solid objects",
+    "hair passing through solid objects", "static hair in wind",
+    "frozen clothing in motion", "fabric ignoring gravity",
+    "hair changing length", "clothing changing style",
   ],
   light: [
     "shadows in wrong direction", "missing shadows", "double shadows",
     "inconsistent lighting", "light source contradiction",
     "impossible reflections", "broken refraction", "light bleeding",
     "exposure flickering", "white balance shifts mid-shot",
+    "shadow direction change", "lighting jumping", "sudden brightness change",
   ],
   fluid: [
     "water defying physics", "impossible liquid behavior",
@@ -666,7 +689,8 @@ const PHYSICS_VIOLATIONS = {
   temporal: [
     "time discontinuity", "causality violation", "action before cause",
     "temporal artifacts", "frame rate inconsistency", "time jumping",
-    "sequence breaks", "continuity errors",
+    "sequence breaks", "continuity errors", "timeline inconsistency",
+    "temporal drift", "scene time jumping",
   ],
   quality: [
     "blurry", "low quality", "pixelated", "compressed artifacts",
@@ -682,6 +706,22 @@ const PHYSICS_VIOLATIONS = {
     "reality warping", "dimension shifting", "perspective breaking",
     "AI hallucination", "generation artifacts", "diffusion noise",
     "denoising artifacts", "prompt bleeding",
+    "uncanny valley humans", "plastic skin", "waxy faces",
+    "dead eyes", "soulless expression", "robotic movement",
+    "face swap mid-shot", "age morphing", "gender drift",
+    "ethnicity change", "feature migration", "identity swap",
+  ],
+  transition: [
+    "jarring cut", "mismatched angles", "position jump between cuts",
+    "lighting discontinuity at cut", "color temperature jump",
+    "costume change at cut", "prop disappearance", "background jump",
+    "scale mismatch between shots", "eyeline mismatch",
+    "action discontinuity", "momentum break at cut",
+  ],
+  color: [
+    "washed out colors", "desaturated", "gray tones", "muddy colors",
+    "color banding", "color shift", "inconsistent colors", "dull colors",
+    "color degradation", "color drift", "bleached", "color temperature jump",
   ],
 };
 
@@ -3958,9 +3998,10 @@ serve(async (req) => {
         .eq('shot_index', request.clipIndex);
     }
     
-    // Apply APEX MANDATORY QUALITY SUFFIX to every prompt
-    const safePrompt = safetyCheck.sanitizedPrompt + APEX_QUALITY_SUFFIX;
-    console.log(`[SingleClip] 🎬 APEX Quality Suffix appended to prompt`);
+    // Apply ALL APEX MANDATORY SUFFIXES to every prompt
+    // Order: Quality → Color → Character Consistency → Transition
+    const safePrompt = safetyCheck.sanitizedPrompt + APEX_QUALITY_SUFFIX + COLOR_ENFORCEMENT_SUFFIX + CHARACTER_CONSISTENCY_SUFFIX + TRANSITION_QUALITY_SUFFIX;
+    console.log(`[SingleClip] 🎬 APEX v2.0 Full Quality Stack appended: quality + color + character + transition`);
 
     // =====================================================
     // SPATIAL-ACTION LOCK: Detect and enforce multi-character positioning

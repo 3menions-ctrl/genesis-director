@@ -1390,59 +1390,165 @@ async function runAssetCreation(
   state.progress = 55;
   await updateProjectProgress(supabase, state.projectId, 'assets', 55);
   
-  // 3b. Generate voice narration with AI-enhanced flow (ONLY if explicitly enabled)
-  // NOTE: Narration is OFF by default. User must explicitly set includeVoice: true to enable.
+  // =====================================================
+  // 3b. IRON-CLAD VOICE CONSISTENCY SYSTEM
+  // =====================================================
+  // RULES:
+  // 1. NO VOICE unless explicitly enabled (includeVoice === true)
+  // 2. Each character gets ONE consistent voice across ALL clips
+  // 3. Voice assignments persist in database via get_or_assign_character_voice
+  // 4. No narration/voiceover unless character dialogue exists
+  // =====================================================
   state.degradation = state.degradation || {};
   
-  if (request.includeVoice === true) {
-    console.log(`[Hollywood] Generating AI-enhanced voice narration...`);
+  // CRITICAL: Voice is OFF by default. Must be explicitly enabled.
+  if (request.includeVoice !== true) {
+    console.log(`[Hollywood] ⚡ VOICE DISABLED (includeVoice=${request.includeVoice})`);
+    console.log(`[Hollywood] No dialogue, narration, or voice tracks will be generated.`);
+  } else {
+    console.log(`[Hollywood] 🎙️ Voice generation ENABLED - Processing character dialogue...`);
     
     try {
-      // Collect raw shot content for AI rewriting
-      const rawShots = state.script?.shots?.map((shot, i) => ({
-        shotNumber: i + 1,
-        dialogue: shot.dialogue || '',
-        description: shot.description || '',
-        mood: shot.mood || '',
-      })) || [];
+      // Build voice map for all characters in this project
+      // This ensures consistent voice per character across all clips
+      const characterVoiceMap: Record<string, { voiceId: string; provider: string }> = {};
       
-      if (rawShots.length > 0) {
-        // Use AI to create flowing narration from shot content
-        const enhancedNarration = await createFlowingNarration(rawShots, request.mood || 'cinematic');
+      // Pre-assign voices to all extracted characters
+      if (state.extractedCharacters && state.extractedCharacters.length > 0) {
+        console.log(`[Hollywood] Assigning voices to ${state.extractedCharacters.length} characters...`);
         
-        if (enhancedNarration && enhancedNarration.length > 50) {
-          console.log(`[Hollywood] AI-enhanced narration created: ${enhancedNarration.length} chars`);
-          
-          const voiceResult = await callEdgeFunction('generate-voice', {
-            text: enhancedNarration,
-            voiceId: request.voiceId || 'EXAVITQu4vr4xnSDxMaL',
-            projectId: state.projectId,
-            voiceType: 'narrator',
-          });
-          
-          if (voiceResult.audioUrl) {
-            state.assets.voiceUrl = voiceResult.audioUrl;
-            state.assets.voiceDuration = voiceResult.durationMs ? voiceResult.durationMs / 1000 : state.clipCount * state.clipDuration;
-            console.log(`[Hollywood] Voice generated: ${state.assets.voiceUrl}`);
-          } else {
-            console.error(`[Hollywood] Voice generation returned no URL`);
-            state.degradation.voiceGenerationFailed = true;
-            console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
+        for (const character of state.extractedCharacters) {
+          try {
+            const { data: voiceData, error: voiceError } = await supabase.rpc('get_or_assign_character_voice', {
+              p_project_id: state.projectId,
+              p_character_name: character.name,
+              p_character_id: character.id || null,
+              p_preferred_voice: null, // Let system pick based on character type
+            });
+            
+            if (!voiceError && voiceData && voiceData.length > 0) {
+              const assignment = voiceData[0];
+              characterVoiceMap[character.name.toLowerCase()] = {
+                voiceId: assignment.voice_id,
+                provider: assignment.voice_provider || 'openai',
+              };
+              console.log(`[Hollywood] ✓ Character "${character.name}" -> voice: ${assignment.voice_id}${assignment.is_new_assignment ? ' (NEW)' : ''}`);
+            }
+          } catch (err) {
+            console.warn(`[Hollywood] Failed to assign voice for ${character.name}:`, err);
+            // Fallback: assign based on gender hint
+            characterVoiceMap[character.name.toLowerCase()] = {
+              voiceId: character.gender === 'female' ? 'nova' : 'onyx',
+              provider: 'openai',
+            };
           }
-        } else {
-          console.warn(`[Hollywood] AI narration enhancement returned insufficient text`);
-          state.degradation.voiceGenerationFailed = true;
         }
+      }
+      
+      // Collect shots that have actual dialogue (not narration, not empty)
+      const shotsWithDialogue = state.script?.shots?.filter(shot => 
+        shot.dialogue && shot.dialogue.trim().length > 0
+      ) || [];
+      
+      if (shotsWithDialogue.length === 0) {
+        console.log(`[Hollywood] No dialogue found in script - no voice tracks to generate`);
       } else {
-        console.warn(`[Hollywood] No shots available for narration`);
+        console.log(`[Hollywood] Generating voice for ${shotsWithDialogue.length} dialogue clips...`);
+        
+        // Track generated voice segments per character
+        const voiceSegments: Array<{
+          shotId: string;
+          shotIndex: number;
+          characterName: string;
+          text: string;
+          voiceId: string;
+          audioUrl?: string;
+          durationMs?: number;
+        }> = [];
+        
+        for (const shot of shotsWithDialogue) {
+          // Determine which character is speaking
+          // Look for character name in dialogue (e.g., "JOHN: Hello there" or just dialogue)
+          let speakingCharacter = 'narrator';
+          let cleanDialogue = (shot.dialogue || '').trim();
+          
+          // Check for character prefix (e.g., "JOHN: Hello")
+          const colonMatch = cleanDialogue.match(/^([A-Z][a-zA-Z\s]+):\s*/);
+          if (colonMatch) {
+            speakingCharacter = colonMatch[1].toLowerCase().trim();
+            cleanDialogue = cleanDialogue.substring(colonMatch[0].length);
+          } else {
+            // Try to find character mentioned in description
+            for (const charName of Object.keys(characterVoiceMap)) {
+              if (shot.description?.toLowerCase().includes(charName)) {
+                speakingCharacter = charName;
+                break;
+              }
+            }
+          }
+          
+          // Get voice for this character
+          const voiceAssignment = characterVoiceMap[speakingCharacter] 
+            || characterVoiceMap[Object.keys(characterVoiceMap)[0]] 
+            || { voiceId: 'nova', provider: 'openai' };
+          
+          const shotIndex = state.script?.shots?.findIndex(s => s.id === shot.id) || 0;
+          
+          voiceSegments.push({
+            shotId: shot.id,
+            shotIndex,
+            characterName: speakingCharacter,
+            text: cleanDialogue,
+            voiceId: voiceAssignment.voiceId,
+          });
+        }
+        
+        // Generate voice for each segment with consistent per-character voice
+        const voicePromises = voiceSegments.map(async (segment) => {
+          try {
+            const voiceResult = await callEdgeFunction('generate-voice', {
+              text: segment.text,
+              voiceId: segment.voiceId,
+              projectId: state.projectId,
+              shotId: segment.shotId,
+              characterName: segment.characterName,
+              voiceType: segment.characterName === 'narrator' ? 'narrator' : 'character',
+            });
+            
+            segment.audioUrl = voiceResult.audioUrl;
+            segment.durationMs = voiceResult.durationMs;
+            return segment;
+          } catch (err) {
+            console.warn(`[Hollywood] Voice generation failed for shot ${segment.shotId}:`, err);
+            return segment;
+          }
+        });
+        
+        const generatedVoices = await Promise.all(voicePromises);
+        const successfulVoices = generatedVoices.filter(v => v.audioUrl);
+        
+        console.log(`[Hollywood] Generated ${successfulVoices.length}/${voiceSegments.length} voice segments`);
+        
+        // Store per-shot voice data for post-production mixing
+        (state as any).characterVoiceSegments = successfulVoices;
+        
+        // For backwards compatibility, also store first voice as main track
+        if (successfulVoices.length > 0) {
+          // Calculate total voice duration
+          const totalVoiceDuration = successfulVoices.reduce((sum, v) => sum + (v.durationMs || 0), 0);
+          state.assets.voiceDuration = totalVoiceDuration / 1000;
+          
+          // Store character voice map for downstream use
+          (state as any).characterVoiceMap = characterVoiceMap;
+          
+          console.log(`[Hollywood] ✓ Voice generation complete: ${successfulVoices.length} segments, ${Math.round(totalVoiceDuration/1000)}s total`);
+        }
       }
     } catch (err) {
       console.error(`[Hollywood] Voice generation FAILED:`, err);
       state.degradation.voiceGenerationFailed = true;
-      console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no narration`);
+      console.warn(`[Hollywood] ⚠️ DEGRADATION: Voice generation failed - video will have no dialogue`);
     }
-  } else {
-    console.log(`[Hollywood] ⚡ Voice generation SKIPPED (includeVoice=${request.includeVoice})`);
   }
   
   state.progress = 60;

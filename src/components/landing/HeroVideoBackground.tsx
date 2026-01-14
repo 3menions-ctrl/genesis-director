@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 // Curated showcase videos - Cloud Run stitched final videos only
@@ -29,8 +29,29 @@ export default function HeroVideoBackground({
   const [isLoaded, setIsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const nextVideoRef = useRef<HTMLVideoElement>(null);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasEndedRef = useRef(false);
 
-  // Preload next video
+  // Stable transition handler
+  const advanceToNextVideo = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    
+    setIsTransitioning(true);
+    
+    // Clear any existing timeout
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    
+    transitionTimeoutRef.current = setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % SHOWCASE_VIDEOS.length);
+      setIsTransitioning(false);
+      hasEndedRef.current = false;
+    }, 500);
+  }, []);
+
+  // Preload next video (only once per index change)
   useEffect(() => {
     const nextIndex = (currentIndex + 1) % SHOWCASE_VIDEOS.length;
     if (nextVideoRef.current) {
@@ -39,44 +60,62 @@ export default function HeroVideoBackground({
     }
   }, [currentIndex]);
 
-  // Handle video end - smooth transition to next
-  const handleVideoEnd = () => {
-    setIsTransitioning(true);
-    
-    // Short transition delay for smooth crossfade
-    setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % SHOWCASE_VIDEOS.length);
-      setIsTransitioning(false);
-    }, 500);
-  };
-
-  // Auto-advance after video plays (with fallback timer)
+  // Set up video event listeners - runs once on mount
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleCanPlay = () => setIsLoaded(true);
+    const handleEnded = () => advanceToNextVideo();
+    
     video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('ended', handleVideoEnd);
-
-    // Fallback: if video is longer than 10 seconds, transition anyway
-    const fallbackTimer = setTimeout(() => {
-      handleVideoEnd();
-    }, 10000);
+    video.addEventListener('ended', handleEnded);
 
     return () => {
       video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('ended', handleVideoEnd);
-      clearTimeout(fallbackTimer);
+      video.removeEventListener('ended', handleEnded);
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
     };
+  }, [advanceToNextVideo]);
+
+  // Reset loaded state when video source changes
+  useEffect(() => {
+    setIsLoaded(false);
+    hasEndedRef.current = false;
+    
+    const video = videoRef.current;
+    if (video) {
+      video.load();
+      video.play().catch(() => {
+        // Autoplay blocked, that's fine
+      });
+    }
   }, [currentIndex]);
+
+  const handleDotClick = useCallback((index: number) => {
+    if (index === currentIndex || isTransitioning) return;
+    
+    setIsTransitioning(true);
+    hasEndedRef.current = true;
+    
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    
+    transitionTimeoutRef.current = setTimeout(() => {
+      setCurrentIndex(index);
+      setIsTransitioning(false);
+      hasEndedRef.current = false;
+    }, 300);
+  }, [currentIndex, isTransitioning]);
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)}>
       {/* Main video player */}
       <video
         ref={videoRef}
-        key={currentIndex}
         autoPlay
         muted
         playsInline
@@ -129,13 +168,7 @@ export default function HeroVideoBackground({
         {SHOWCASE_VIDEOS.map((_, i) => (
           <button
             key={i}
-            onClick={() => {
-              setIsTransitioning(true);
-              setTimeout(() => {
-                setCurrentIndex(i);
-                setIsTransitioning(false);
-              }, 300);
-            }}
+            onClick={() => handleDotClick(i)}
             className={cn(
               "w-1.5 h-1.5 rounded-full transition-all duration-300",
               i === currentIndex 

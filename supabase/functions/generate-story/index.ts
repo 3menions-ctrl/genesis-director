@@ -235,38 +235,49 @@ serve(async (req) => {
 
     const targetDuration = request.targetDurationSeconds || (detectedContent.recommendedClipCount * 6);
     const sceneMode = request.sceneMode || 'single_scene';
-    const recommendedClips = detectedContent.recommendedClipCount;
+    
+    // Calculate EXACT clip count from targetDuration - this is the user's selection
+    const CLIP_DURATION = 6;
+    const requestedClips = Math.round(targetDuration / CLIP_DURATION);
+    const clipCount = requestedClips > 0 ? requestedClips : 6; // Default to 6 only if no duration specified
+    console.log(`[GenerateStory] Using ${clipCount} clips (targetDuration: ${targetDuration}s)`);
 
-    // SCENE-BASED SYSTEM PROMPT
-    const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across 6 connected clips.
+    // SCENE-BASED SYSTEM PROMPT - use dynamic clip count
+    const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across EXACTLY ${clipCount} connected clips.
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
 The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
 DO NOT paraphrase, summarize, or rewrite the user's text.
 Your job is to create VISUAL descriptions that accompany the user's exact words.
-Distribute the user's narration/dialogue across the 6 clips appropriately.
+Distribute the user's narration/dialogue across the ${clipCount} clips appropriately.
 ` : ''}
+
+CRITICAL CLIP COUNT REQUIREMENT:
+- You MUST output EXACTLY ${clipCount} clips - no more, no less
+- Label them [CLIP 1] through [CLIP ${clipCount}]
+- This is non-negotiable
 
 CRITICAL CONCEPT: SCENE vs STORY
 - A SCENE is ONE continuous moment in ONE location with ONE action sequence
 - A STORY spans multiple scenes/episodes
-- Each 36-second video = 1 SCENE = 6 clips of 6 seconds each
-- The 6 clips show PROGRESSIVE ACTION within the SAME moment
+- Each ${targetDuration}-second video = 1 SCENE = ${clipCount} clips of 6 seconds each
+- The ${clipCount} clips show PROGRESSIVE ACTION within the SAME moment
 
-SCENE STRUCTURE (6 PROGRESSIVE CLIPS):
+SCENE STRUCTURE (${clipCount} PROGRESSIVE CLIPS):
 Each clip must be a CONTINUATION of the previous clip, like frames in a movie:
 
 CLIP 1 - ESTABLISH: Set the scene. Character in location. Initial state.
 CLIP 2 - INITIATE: Action begins. First movement or change.
-CLIP 3 - DEVELOP: Action progresses. Continuation of movement.
-CLIP 4 - ESCALATE: Intensity increases. Action builds momentum.
-CLIP 5 - PEAK: Highest point of action in this scene.
-CLIP 6 - SETTLE: Action concludes for this scene. Holds for next scene.
+${clipCount >= 3 ? `CLIP 3 - DEVELOP: Action progresses. Continuation of movement.` : ''}
+${clipCount >= 4 ? `CLIP 4 - ESCALATE: Intensity increases. Action builds momentum.` : ''}
+${clipCount >= 5 ? `CLIP 5 - PEAK: Highest point of action in this scene.` : ''}
+${clipCount >= 6 ? `CLIP 6 - SETTLE: Action concludes for this scene. Holds for next scene.` : ''}
+${clipCount === 5 ? `The final clip should serve as both peak and settle.` : ''}
 
 CRITICAL RULES FOR CONTINUOUS FLOW:
 
-1. SAME LOCATION: All 6 clips are in the EXACT same place
+1. SAME LOCATION: All ${clipCount} clips are in the EXACT same place
    - NO location changes within a scene
    - Same room, same street, same forest clearing
    - Background elements stay consistent
@@ -335,7 +346,7 @@ End with a moment that leads into the next episode.
       }
       
       if (parts.length > 0) {
-        referenceContext = `\n\nVISUAL REFERENCE (incorporate EXACTLY into ALL 6 clips):\n${parts.join('\n')}`;
+        referenceContext = `\n\nVISUAL REFERENCE (incorporate EXACTLY into ALL ${clipCount} clips):\n${parts.join('\n')}`;
       }
     }
 
@@ -360,7 +371,7 @@ USER'S NARRATION (USE EXACTLY - DO NOT CHANGE OR PARAPHRASE):
 """
 ${request.userNarration}
 """
-Distribute this narration across the 6 clips. Use the EXACT words provided.
+Distribute this narration across the ${clipCount} clips. Use the EXACT words provided.
 ` : ''}
 ${hasUserDialogue && request.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE OR PARAPHRASE):
@@ -368,8 +379,8 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include these dialogue lines in the appropriate clips. Use the EXACT words provided.
 ` : ''}
 
-This scene will be a ${targetDuration}-second video made of 6 clips (6 seconds each).
-All 6 clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
+This scene will be a ${targetDuration}-second video made of ${clipCount} clips (6 seconds each).
+All ${clipCount} clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
 ${mustPreserveContent ? 'CRITICAL: Preserve the user\'s narration/dialogue EXACTLY as written - only add visual descriptions.' : ''}
 ${request.environmentPrompt ? 'CRITICAL: Use the EXACT environment, lighting, and atmosphere specified in ENVIRONMENT DNA for ALL clips.' : ''}
 
@@ -377,7 +388,7 @@ ${sceneMode === 'episode' && request.previousSceneSummary ? `
 CONTINUE FROM: ${request.previousSceneSummary}
 ` : ''}
 
-Write the scene now with [CLIP 1] through [CLIP 6] labels:`;
+Write the scene now with [CLIP 1] through [CLIP ${clipCount}] labels:`;
 
     console.log("[GenerateStory] Calling OpenAI API for scene-based generation...");
 
@@ -483,7 +494,7 @@ Write the scene now with [CLIP 1] through [CLIP 6] labels:`;
       story,
       title,
       synopsis,
-      estimatedScenes: 6, // Always 6 clips per scene
+      estimatedScenes: clipCount, // Use dynamic clip count
       sceneMode,
       sceneDescription,
     };
@@ -494,7 +505,7 @@ Write the scene now with [CLIP 1] through [CLIP 6] labels:`;
         totalEpisodes: request.totalEpisodes || 5,
         episodeTitle: title,
         previousSummary: request.previousSceneSummary,
-        nextTeaser: actionProgression[5] || 'To be continued...',
+        nextTeaser: actionProgression[clipCount - 1] || 'To be continued...',
       };
     }
 

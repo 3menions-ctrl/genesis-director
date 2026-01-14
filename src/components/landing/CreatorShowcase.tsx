@@ -3,78 +3,78 @@ import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX } fr
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Sample videos generated with Apex Studio
+// Sample videos generated with Apex Studio (from demo & admin accounts)
 const CREATOR_VIDEOS = [
   {
-    id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
-    title: 'Snowy Mountain Landscape',
-    genre: 'Motivational',
+    id: '71e83837-9ae4-4e79-a4f2-599163741b03',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    title: 'Sunset Dreams on Winding Roads',
+    genre: 'Cinematic',
   },
   {
-    id: 'ed88401a-7a11-404c-acbc-55e375aee05d',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
-    title: 'Atmospheric Scene',
+    id: 'ad10b35f-1a39-47c5-8323-3b57b97c9968',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ad10b35f-1a39-47c5-8323-3b57b97c9968_1768351244978.mp4',
+    title: 'Morning Reflections on the River',
     genre: 'Cinematic',
+  },
+  {
+    id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
+    title: 'Whispers by the River',
+    genre: 'Cinematic',
+  },
+  {
+    id: '9fd85630-6a38-4dee-8fec-9da9737a8082',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4',
+    title: 'Whispers of the Verdant Heart',
+    genre: 'Cinematic',
+  },
+  {
+    id: '2b6fb5c2-ca02-4c06-8341-ec32286c9e60',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2b6fb5c2-ca02-4c06-8341-ec32286c9e60_1768303542610.mp4',
+    title: 'Creative Space of Confidence',
+    genre: 'Ad',
+  },
+  {
+    id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
+    title: 'Snowy Cabin',
+    genre: 'Cinematic',
+  },
+  {
+    id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4',
+    title: 'Whispers of the Verdant Grove',
+    genre: 'Cinematic',
+  },
+  {
+    id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171807679.mp4',
+    title: 'Soaring Above Snowy Serenity',
+    genre: 'Motivational',
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
-    title: 'Animated Story',
-    genre: 'Storytelling',
-  },
-  {
-    id: '2e3503b6-a687-4d3e-bd97-9a1c264a7af2',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
-    title: 'Dramatic Scene',
+    title: 'Whimsical Chocolate Adventures',
     genre: 'Cinematic',
-  },
-  {
-    id: '56f2b0ca-e570-4ab0-b73d-39318a6c2ea8',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
-    title: 'Explainer Video',
-    genre: 'Explainer',
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
-    title: 'Scenic Composition',
+    title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
-    title: 'Aerial Landscape',
+    title: 'Skyward Over Fiery Majesty',
     genre: 'Cinematic',
   },
   {
-    id: '171d8bf6-2911-4c6a-b715-6ed0e93ff226',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
-    title: 'Product Showcase',
-    genre: 'Ad',
-  },
-  {
-    id: '9ee134ca-5526-4e7f-9c10-1345f7b7b01f',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
-    title: 'Nature Scene',
-    genre: 'Cinematic',
-  },
-  {
-    id: '5d530ba0-a1e7-4954-8d90-05ffb5a346c2',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
-    title: 'Wildlife Scene',
-    genre: 'Cinematic',
-  },
-  {
-    id: 'f47e40c4-26cd-4746-8f98-144d830e2303',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f47e40c4-26cd-4746-8f98-144d830e2303_1768091719237.mp4',
-    title: 'Forest Landscape',
-    genre: 'Cinematic',
-  },
-  {
-    id: 'df957e60-7589-46be-b044-d6d52e342316',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_df957e60-7589-46be-b044-d6d52e342316_1768084359189.mp4',
-    title: 'Volcano Landscape',
+    id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4',
+    title: "Owl of Wisdom's Twilight",
     genre: 'Cinematic',
   },
 ];

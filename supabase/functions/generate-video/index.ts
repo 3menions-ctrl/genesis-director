@@ -288,6 +288,76 @@ function buildQualityMaximizer(tier: number = 10): string {
 }
 
 // ============================================================================
+// HUMAN ANATOMY LOCK - Guarantees realistic human proportions at ANY distance
+// Critical for wide shots where AI tends to distort human bodies
+// ============================================================================
+
+const HUMAN_ANATOMY_ENFORCEMENT = {
+  // Mandatory prompt additions for human subjects
+  proportions: [
+    "anatomically correct human proportions",
+    "realistic human body ratios",
+    "head-to-body ratio 1:7.5 adult proportions",
+    "natural limb lengths",
+    "correct joint positions",
+  ],
+  
+  // Distance-specific enforcement (wide shots)
+  wideShot: [
+    "humans clearly visible at distance with correct proportions",
+    "recognizable human silhouettes",
+    "natural human scale relative to environment",
+    "proper perspective scaling for distance",
+  ],
+  
+  // Movement enforcement
+  movement: [
+    "natural human gait and walking motion",
+    "realistic arm swing while walking",
+    "proper weight transfer during movement",
+    "natural head and body posture",
+    "believable human locomotion",
+  ],
+  
+  // Face/body integrity
+  integrity: [
+    "consistent facial features throughout",
+    "stable body structure no morphing",
+    "fixed number of limbs two arms two legs",
+    "hands with five fingers each",
+    "symmetrical human features",
+  ],
+};
+
+// Build human anatomy enforcement prompt
+function buildHumanAnatomyPrompt(isWideShot: boolean = false): string {
+  const parts = [
+    ...HUMAN_ANATOMY_ENFORCEMENT.proportions,
+    ...HUMAN_ANATOMY_ENFORCEMENT.movement,
+    ...HUMAN_ANATOMY_ENFORCEMENT.integrity,
+  ];
+  
+  if (isWideShot) {
+    parts.push(...HUMAN_ANATOMY_ENFORCEMENT.wideShot);
+  }
+  
+  return `[HUMAN ANATOMY LOCK: ${parts.slice(0, 8).join(', ')}]`;
+}
+
+// Detect if prompt describes a wide/distant shot
+function isWideOrDistantShot(prompt: string): boolean {
+  const wideIndicators = [
+    'wide shot', 'wide angle', 'establishing shot', 'distant', 'far away',
+    'aerial', 'drone', 'overhead', 'panoramic', 'landscape with people',
+    'crowd', 'group of people', 'from afar', 'in the distance',
+    'extreme wide', 'long shot', 'full body', 'silhouette',
+  ];
+  
+  const promptLower = prompt.toLowerCase();
+  return wideIndicators.some(indicator => promptLower.includes(indicator));
+}
+
+// ============================================================================
 // ANTI-PHYSICS VIOLATION NEGATIVE PROMPTS - 150+ Anti-Drift Terms
 // ============================================================================
 
@@ -307,13 +377,20 @@ const PHYSICS_VIOLATIONS = {
     "temporal aliasing", "motion ghosting", "strobing effect",
   ],
   
-  // Body physics violations
+  // Body physics violations - ENHANCED for human realism
   body: [
     "limbs bending wrong", "impossible body positions", "joints hyperextending",
     "body clipping through itself", "anatomically impossible poses",
     "rubber limbs", "stretching body parts", "shrinking body parts",
     "extra fingers", "missing fingers", "hands merging", "face melting",
     "eyes in wrong position", "asymmetric face distortion",
+    // NEW: Wide shot human distortion prevention
+    "distorted human proportions", "wrong head size", "elongated limbs",
+    "shortened limbs", "giant head", "tiny head", "blob humans",
+    "featureless humans", "mannequin people", "puppet-like movement",
+    "wrong number of limbs", "extra arms", "extra legs", "missing limbs",
+    "human-shaped blobs", "indistinct human forms", "melting humans",
+    "morphing body parts", "unstable human form", "floating limbs",
   ],
   
   // Object physics violations
@@ -366,13 +443,17 @@ const PHYSICS_VIOLATIONS = {
     "datamosh", "corrupted frames", "encoding artifacts",
   ],
   
-  // AI-specific violations
+  // AI-specific violations - ENHANCED for human generation
   aiArtifacts: [
     "morphing faces", "identity shifting", "character inconsistency",
     "style drift", "aesthetic wandering", "unintended transformation",
     "reality warping", "dimension shifting", "perspective breaking",
     "AI hallucination", "generation artifacts", "diffusion noise",
     "denoising artifacts", "prompt bleeding",
+    // NEW: Human-specific AI artifacts
+    "uncanny valley humans", "plastic skin", "waxy faces",
+    "dead eyes", "soulless expression", "robotic movement",
+    "unnatural skin texture", "wrong skin color shifts",
   ],
 };
 
@@ -459,6 +540,14 @@ function buildConsistentPrompt(
   // STEP 0: Always append mandatory quality suffix and color enforcement to user prompt FIRST
   let prompt = basePrompt + APEX_QUALITY_SUFFIX + COLOR_ENFORCEMENT_SUFFIX;
   console.log('[APEX] Mandatory quality + color enforcement suffix appended to prompt');
+  
+  // ============================================================================
+  // HUMAN ANATOMY ENFORCEMENT - Guarantees realistic humans at any distance
+  // ============================================================================
+  const isWide = isWideOrDistantShot(basePrompt);
+  const anatomyPrompt = buildHumanAnatomyPrompt(isWide);
+  prompt = `${anatomyPrompt} ${prompt}`;
+  console.log(`[APEX] Human anatomy lock applied (wide shot: ${isWide})`);
   
   // Detect scene type for physics profile selection
   const sceneType = detectSceneType(basePrompt);

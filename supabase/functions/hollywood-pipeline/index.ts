@@ -196,19 +196,20 @@ const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; 
 
 const MIN_CLIPS_PER_PROJECT = 2;
 
-// Tier-aware credit costs (matches frontend useCreditBilling.ts)
+// Tier-aware credit costs (MUST match frontend useCreditBilling.ts)
+// Pricing: 10 credits per clip = $1 per clip
 const TIER_CREDIT_COSTS = {
   standard: {
-    PRE_PRODUCTION: 5,
-    PRODUCTION: 20,
-    QUALITY_INSURANCE: 0,
-    TOTAL_PER_SHOT: 25,
+    PRE_PRODUCTION: 2,
+    PRODUCTION: 6,
+    QUALITY_INSURANCE: 2,
+    TOTAL_PER_SHOT: 10,    // 10 credits per clip
   },
   professional: {
-    PRE_PRODUCTION: 5,
-    PRODUCTION: 20,
-    QUALITY_INSURANCE: 25, // Audit + Visual Debugger + 4 retry buffer
-    TOTAL_PER_SHOT: 50,
+    PRE_PRODUCTION: 2,
+    PRODUCTION: 6,
+    QUALITY_INSURANCE: 2,
+    TOTAL_PER_SHOT: 10,    // Same - all clips are premium quality
   },
 } as const;
 

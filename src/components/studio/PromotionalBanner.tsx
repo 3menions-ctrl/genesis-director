@@ -55,15 +55,15 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent">
-                50% OFF
+                BEST VALUE
               </span>
               <span className="px-2 py-0.5 text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30">
-                Limited Time
+                $6 per video
               </span>
             </div>
             <div className="text-sm text-white/70">
-              Production costs slashed! <span className="text-white font-medium">Only 12 credits</span> per clip
-              <span className="hidden sm:inline text-white/50 ml-1">(was 25 credits)</span>
+              Only <span className="text-white font-medium">10 credits</span> per clip
+              <span className="hidden sm:inline text-white/50 ml-1">• 60 credits = complete video</span>
             </div>
           </div>
         </div>

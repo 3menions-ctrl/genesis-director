@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip costs 25 credits (5 for pre-production + 20 for generation). Script generation costs 2 credits per scene, voice synthesis costs 3 credits per minute, and music generation costs 5 credits per track. Credits never expire and you can buy more anytime."
+    answer: "Credits are our usage currency. Each video clip costs 10 credits (2 for pre-production + 6 for generation + 2 for quality assurance). A complete 6-clip video costs 60 credits ($6). Voice narration and automatic retries are included at no extra cost. Credits never expire and you can buy more anytime."
   },
   {
     question: "What video quality can I expect?",
@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes! Every new account starts with 60 free credits — enough for 1 video clip. No credit card required to start. This lets you try the platform before committing to a paid plan."
+    answer: "Yes! Every new account starts with 50 free credits — enough for 5 video clips or nearly a complete video. No credit card required to start. This lets you try the platform before committing to a paid plan."
   },
   {
     question: "What file formats are supported?",

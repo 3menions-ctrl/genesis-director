@@ -122,6 +122,7 @@ export function CostAnalysisDashboard() {
   const [wastedCosts, setWastedCosts] = useState<WastedCostData[]>([]);
   const [retryData, setRetryData] = useState<RetryData>({ total_retries: 0, clips_with_retries: 0, retry_cost_cents: 0 });
   const [refundData, setRefundData] = useState<RefundData>({ total_refunds: 0, refund_credits: 0 });
+  const [actualRevenueCents, setActualRevenueCents] = useState(0);
   const [devHours, setDevHours] = useState(0);
   const [projectStartDate] = useState(new Date('2026-01-07')); // Update to your start date
   
@@ -280,6 +281,29 @@ export function CostAnalysisDashboard() {
         refund_credits: refunds.reduce((sum, r) => sum + (r.amount || 0), 0),
       });
 
+      // Fetch actual revenue from Stripe purchases only (with date filter)
+      let purchasesQuery = supabase
+        .from('credit_transactions')
+        .select('amount, created_at, stripe_payment_id')
+        .eq('transaction_type', 'purchase')
+        .not('stripe_payment_id', 'is', null);
+      
+      if (start) {
+        purchasesQuery = purchasesQuery.gte('created_at', start.toISOString());
+      }
+      if (end) {
+        purchasesQuery = purchasesQuery.lte('created_at', end.toISOString());
+      }
+      
+      const { data: purchasesData } = await purchasesQuery;
+      
+      // Calculate actual revenue from credit packages pricing
+      // Based on credit_packages table: credits / price_cents ratio
+      const CREDIT_PRICE_CENTS = 11.6; // Average $0.116 per credit
+      const purchases = purchasesData || [];
+      const totalPurchasedCredits = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+      setActualRevenueCents(Math.round(totalPurchasedCredits * CREDIT_PRICE_CENTS));
+
       // Calculate wasted costs
       const wastedItems: WastedCostData[] = [];
       
@@ -405,14 +429,10 @@ export function CostAnalysisDashboard() {
   const totalMonthlyCostCents = totalApiCostCents + totalRetryCostCents + totalStorageCostCents + lovableCostCents + supabaseCostCents;
   const totalWithDevCents = totalMonthlyCostCents + devCostCents;
 
-  // Revenue calculation (credits sold * price per credit)
-  const CREDIT_PRICE_CENTS = 11.6; // $0.116 per credit (based on credit packages)
-  const totalCreditsCharged = apiCosts.reduce((sum, c) => sum + c.total_credits, 0);
-  const estimatedRevenueCents = Math.round(totalCreditsCharged * CREDIT_PRICE_CENTS);
-  
-  // Subtract refunds from revenue
+  // Revenue calculation - ONLY actual Stripe purchases
+  const CREDIT_PRICE_CENTS = 11.6; // $0.116 per credit (for refund calculation)
   const refundValueCents = Math.round(Math.abs(refundData.refund_credits) * CREDIT_PRICE_CENTS);
-  const adjustedRevenueCents = estimatedRevenueCents - refundValueCents;
+  const adjustedRevenueCents = actualRevenueCents - refundValueCents;
   
   const netProfitCents = adjustedRevenueCents - totalMonthlyCostCents;
   const profitMargin = adjustedRevenueCents > 0 ? (netProfitCents / adjustedRevenueCents) * 100 : 0;
@@ -582,7 +602,8 @@ export function CostAnalysisDashboard() {
             <div className="text-2xl font-bold">{formatCurrency(adjustedRevenueCents)}</div>
             <p className="text-xs text-muted-foreground">
               {refundData.total_refunds > 0 && <span className="text-destructive">-{refundData.refund_credits} refunded</span>}
-              {refundData.total_refunds === 0 && <span>{totalCreditsCharged.toLocaleString()} credits</span>}
+              {refundData.total_refunds === 0 && actualRevenueCents === 0 && <span>No Stripe purchases yet</span>}
+              {refundData.total_refunds === 0 && actualRevenueCents > 0 && <span>From Stripe purchases</span>}
             </p>
           </CardContent>
         </Card>
@@ -1169,15 +1190,15 @@ export function CostAnalysisDashboard() {
                   </div>
                   <div className="flex justify-between pt-2">
                     <span>Revenue Generated</span>
-                    <span className="font-mono text-success">{formatCurrency(estimatedRevenueCents)}</span>
+                    <span className="font-mono text-success">{formatCurrency(adjustedRevenueCents)}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
                     <span className="font-medium">Net Position</span>
                     <span className={cn(
                       "font-mono font-bold",
-                      estimatedRevenueCents - totalWithDevCents >= 0 ? "text-success" : "text-destructive"
+                      adjustedRevenueCents - totalWithDevCents >= 0 ? "text-success" : "text-destructive"
                     )}>
-                      {formatCurrency(estimatedRevenueCents - totalWithDevCents)}
+                      {formatCurrency(adjustedRevenueCents - totalWithDevCents)}
                     </span>
                   </div>
                 </div>

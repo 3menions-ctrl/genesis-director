@@ -1382,7 +1382,8 @@ async function runAssetCreation(
   state.progress = 55;
   await updateProjectProgress(supabase, state.projectId, 'assets', 55);
   
-  // 3b. Generate voice narration with AI-enhanced flow (ONLY if includeVoice is true)
+  // 3b. Generate voice narration with AI-enhanced flow (ONLY if explicitly enabled)
+  // NOTE: Narration is OFF by default. User must explicitly set includeVoice: true to enable.
   state.degradation = state.degradation || {};
   
   if (request.includeVoice === true) {

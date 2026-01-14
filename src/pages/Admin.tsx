@@ -224,37 +224,53 @@ export default function AdminDashboard() {
         .select('amount')
         .eq('transaction_type', 'refund');
 
-      // Calculate totals
+      // Calculate totals using per-call rates (same as CostAnalysisDashboard)
       let totalApiCost = 0;
       let failedApiCost = 0;
       let failedClips = 0;
 
-      (apiData || []).forEach((log: { status: string; real_cost_cents: number }) => {
-        totalApiCost += log.real_cost_cents || 0;
-        if (log.status === 'failed' || log.status === 'skipped') {
-          failedApiCost += log.real_cost_cents || 0;
+      (apiData || []).forEach((log: { service: string; status: string; real_cost_cents: number }) => {
+        // Calculate cost per call based on service type
+        let costPerCall = 0;
+        switch (log.service) {
+          case 'google_veo': costPerCall = VEO_COST_PER_CLIP_CENTS; break;
+          case 'openai-tts': costPerCall = 2; break;
+          case 'cloud_run_stitcher': costPerCall = 2; break;
+          case 'openai': costPerCall = 12; break;
+          case 'dalle': costPerCall = 4; break;
+          case 'gemini': costPerCall = 1; break;
+          case 'music-generation': costPerCall = 0; break;
+          default: costPerCall = log.real_cost_cents || 0;
+        }
+        
+        totalApiCost += costPerCall;
+        if (log.status === 'failed') {
+          failedApiCost += costPerCall;
           failedClips++;
         }
       });
 
-      // Calculate retry costs
+      // Calculate retry costs - each retry is a Veo call
       let totalRetries = 0;
       (clipsData || []).forEach((clip: { retry_count: number | null }) => {
         totalRetries += clip.retry_count || 0;
       });
       const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
 
-      // Calculate refunds
+      // Calculate refunds (use absolute value since refunds are negative)
       const totalRefundCredits = (refundsData || []).reduce(
         (sum: number, r: { amount: number }) => sum + Math.abs(r.amount || 0), 
         0
       );
 
+      // Total wasted = failed API calls + retry costs
       const totalWastedCost = failedApiCost + retryCost;
-      const wastePercentage = totalApiCost > 0 ? (totalWastedCost / totalApiCost) * 100 : 0;
+      const wastePercentage = (totalApiCost + retryCost) > 0 
+        ? (totalWastedCost / (totalApiCost + retryCost)) * 100 
+        : 0;
 
       setCostSummary({
-        totalApiCost,
+        totalApiCost: totalApiCost + retryCost, // Include retries in total
         totalWastedCost,
         totalRetries,
         totalRefunds: totalRefundCredits,

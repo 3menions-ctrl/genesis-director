@@ -28,7 +28,7 @@ interface StudioContextType {
   isLoading: boolean;
   hasLoadedOnce: boolean; // True after first successful load attempt
   setActiveProjectId: (id: string) => void;
-  createProject: () => Promise<void>;
+  createProject: () => Promise<string | null>;
   deleteProject: (id: string) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   updateSettings: (settings: Partial<StudioSettings>) => void;
@@ -210,13 +210,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [profile]);
 
-  const createProject = async () => {
+  const createProject = async (): Promise<string | null> => {
     // Verify we have a valid session before creating
     const { data: { session: currentSession } } = await supabase.auth.getSession();
     
     if (!currentSession?.user) {
       toast.error('Please sign in to create a project');
-      return;
+      return null;
     }
     
     try {
@@ -237,9 +237,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setProjects((prev) => [newProject, ...prev]);
       setActiveProjectId(newProject.id);
       toast.success('New project created');
+      return newProject.id;
     } catch (err) {
       console.error('Error creating project:', err);
       toast.error('Failed to create project');
+      return null;
     }
   };
 

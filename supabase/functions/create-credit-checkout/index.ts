@@ -41,9 +41,22 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { packageId } = await req.json();
-    if (!packageId || !CREDIT_PACKAGES[packageId]) {
-      throw new Error(`Invalid package ID: ${packageId}`);
+    // Parse and validate input
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      throw new Error("Invalid JSON body");
+    }
+
+    // Validate packageId is a string and exists in allowed packages
+    const packageId = typeof body === 'object' && body !== null && 'packageId' in body 
+      ? String((body as Record<string, unknown>).packageId).toLowerCase().trim()
+      : null;
+    
+    if (!packageId || packageId.length > 50 || !CREDIT_PACKAGES[packageId]) {
+      logStep("Invalid package ID rejected", { received: packageId });
+      throw new Error("Invalid package ID");
     }
 
     const pkg = CREDIT_PACKAGES[packageId];

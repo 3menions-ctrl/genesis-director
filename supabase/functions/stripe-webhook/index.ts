@@ -46,14 +46,39 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       logStep("Checkout session completed", { sessionId: session.id, customerEmail: session.customer_email });
 
-      // Get user_id and credits from metadata
-      const userId = session.metadata?.user_id;
-      const credits = parseInt(session.metadata?.credits || "0", 10);
-      const packageId = session.metadata?.package_id;
+      // Validate session has required metadata
+      if (!session.metadata) {
+        logStep("Missing session metadata");
+        return new Response(JSON.stringify({ error: "Missing session metadata" }), { status: 400 });
+      }
 
-      if (!userId || !credits) {
-        logStep("Missing metadata", { userId, credits, packageId });
-        return new Response(JSON.stringify({ error: "Missing metadata" }), { status: 400 });
+      // Get and validate user_id (must be valid UUID format)
+      const userId = session.metadata.user_id;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!userId || !uuidRegex.test(userId)) {
+        logStep("Invalid user_id in metadata", { userId });
+        return new Response(JSON.stringify({ error: "Invalid user_id" }), { status: 400 });
+      }
+
+      // Validate credits is a positive integer within reasonable bounds
+      const credits = parseInt(session.metadata.credits || "0", 10);
+      if (isNaN(credits) || credits <= 0 || credits > 100000) {
+        logStep("Invalid credits value", { credits: session.metadata.credits });
+        return new Response(JSON.stringify({ error: "Invalid credits value" }), { status: 400 });
+      }
+
+      // Validate package_id is a simple alphanumeric string
+      const packageId = session.metadata.package_id;
+      if (!packageId || !/^[a-z0-9_-]{1,50}$/i.test(packageId)) {
+        logStep("Invalid package_id", { packageId });
+        return new Response(JSON.stringify({ error: "Invalid package_id" }), { status: 400 });
+      }
+
+      // Validate payment_intent or session.id for stripe_payment_id
+      const stripePaymentId = (session.payment_intent as string) || session.id;
+      if (!stripePaymentId || stripePaymentId.length > 255) {
+        logStep("Invalid payment reference");
+        return new Response(JSON.stringify({ error: "Invalid payment reference" }), { status: 400 });
       }
 
       logStep("Adding credits", { userId, credits, packageId });
@@ -70,7 +95,7 @@ serve(async (req) => {
         p_user_id: userId,
         p_amount: credits,
         p_description: `Purchased ${credits} credits (${packageId} package)`,
-        p_stripe_payment_id: session.payment_intent as string || session.id,
+        p_stripe_payment_id: stripePaymentId,
       });
 
       if (error) {

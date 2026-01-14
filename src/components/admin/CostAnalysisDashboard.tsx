@@ -76,6 +76,7 @@ const SUPABASE_MONTHLY_COST_DOLLARS = 25;
 interface ApiCostData {
   service: string;
   operation: string;
+  status: string;
   total_calls: number;
   total_credits: number;
   logged_cost_cents: number;
@@ -89,39 +90,53 @@ interface StorageData {
   cost_per_month_cents: number;
 }
 
-interface DailyBreakdown {
-  date: string;
-  service: string;
-  operation: string;
-  calls: number;
+interface WastedCostData {
+  category: string;
+  description: string;
+  count: number;
   cost_cents: number;
+  credits_lost: number;
+}
+
+interface RetryData {
+  total_retries: number;
+  clips_with_retries: number;
+  retry_cost_cents: number;
+}
+
+interface RefundData {
+  total_refunds: number;
+  refund_credits: number;
 }
 
 export function CostAnalysisDashboard() {
   const [loading, setLoading] = useState(true);
   const [apiCosts, setApiCosts] = useState<ApiCostData[]>([]);
   const [storageCosts, setStorageCosts] = useState<StorageData[]>([]);
-  const [dailyBreakdown, setDailyBreakdown] = useState<DailyBreakdown[]>([]);
+  const [wastedCosts, setWastedCosts] = useState<WastedCostData[]>([]);
+  const [retryData, setRetryData] = useState<RetryData>({ total_retries: 0, clips_with_retries: 0, retry_cost_cents: 0 });
+  const [refundData, setRefundData] = useState<RefundData>({ total_refunds: 0, refund_credits: 0 });
   const [devHours, setDevHours] = useState(0);
   const [projectStartDate] = useState(new Date('2026-01-07')); // Update to your start date
   
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      // Fetch API costs grouped by service/operation
+      // Fetch API costs with status - includes failed and skipped
       const { data: apiData } = await supabase
         .from('api_cost_logs')
-        .select('service, operation, credits_charged, real_cost_cents')
+        .select('service, operation, status, credits_charged, real_cost_cents')
         .order('created_at', { ascending: false });
       
-      // Aggregate API costs
+      // Aggregate API costs by service, operation, and status
       const apiAggregated: Record<string, ApiCostData> = {};
       (apiData || []).forEach((row: any) => {
-        const key = `${row.service}|${row.operation}`;
+        const key = `${row.service}|${row.operation}|${row.status}`;
         if (!apiAggregated[key]) {
           apiAggregated[key] = {
             service: row.service,
             operation: row.operation,
+            status: row.status || 'completed',
             total_calls: 0,
             total_credits: 0,
             logged_cost_cents: 0,
@@ -132,7 +147,8 @@ export function CostAnalysisDashboard() {
         apiAggregated[key].total_credits += row.credits_charged || 0;
         apiAggregated[key].logged_cost_cents += row.real_cost_cents || 0;
         
-        // Calculate real costs based on service
+        // Calculate real costs based on service - EVEN FOR FAILED CALLS
+        // Failed API calls still cost us money!
         switch (row.service) {
           case 'google_veo':
             apiAggregated[key].calculated_cost_cents += VEO_COST_PER_CLIP_CENTS;
@@ -153,15 +169,89 @@ export function CostAnalysisDashboard() {
             apiAggregated[key].calculated_cost_cents += GEMINI_FLASH_COST_CENTS;
             break;
           default:
-            // Use logged cost if available
             apiAggregated[key].calculated_cost_cents += row.real_cost_cents || 0;
         }
       });
       
       setApiCosts(Object.values(apiAggregated).sort((a, b) => b.calculated_cost_cents - a.calculated_cost_cents));
 
-      // Storage data - calculated from actual usage
-      // TODO: Create an admin edge function to get real-time storage stats
+      // Fetch video clips data for retry analysis
+      const { data: clipsData } = await supabase
+        .from('video_clips')
+        .select('id, status, retry_count');
+      
+      const clips = clipsData || [];
+      const totalRetries = clips.reduce((sum, c) => sum + (c.retry_count || 0), 0);
+      const clipsWithRetries = clips.filter(c => (c.retry_count || 0) > 0).length;
+      const retryCostCents = totalRetries * VEO_COST_PER_CLIP_CENTS; // Each retry is a Veo call
+      
+      setRetryData({
+        total_retries: totalRetries,
+        clips_with_retries: clipsWithRetries,
+        retry_cost_cents: retryCostCents,
+      });
+
+      // Fetch refund data
+      const { data: refundsData } = await supabase
+        .from('credit_transactions')
+        .select('amount')
+        .eq('transaction_type', 'refund');
+      
+      const refunds = refundsData || [];
+      setRefundData({
+        total_refunds: refunds.length,
+        refund_credits: refunds.reduce((sum, r) => sum + (r.amount || 0), 0),
+      });
+
+      // Calculate wasted costs
+      const wastedItems: WastedCostData[] = [];
+      
+      // Failed API calls
+      const failedCalls = Object.values(apiAggregated).filter(c => c.status === 'failed');
+      if (failedCalls.length > 0) {
+        const totalFailedCost = failedCalls.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
+        const totalFailedCount = failedCalls.reduce((sum, c) => sum + c.total_calls, 0);
+        wastedItems.push({
+          category: 'Failed API Calls',
+          description: 'API calls that failed but still incurred costs',
+          count: totalFailedCount,
+          cost_cents: totalFailedCost,
+          credits_lost: failedCalls.reduce((sum, c) => sum + c.total_credits, 0),
+        });
+      }
+
+      // Skipped operations (still used compute resources)
+      const skippedCalls = Object.values(apiAggregated).filter(c => c.status === 'skipped');
+      if (skippedCalls.length > 0) {
+        const totalSkippedCount = skippedCalls.reduce((sum, c) => sum + c.total_calls, 0);
+        wastedItems.push({
+          category: 'Skipped Operations',
+          description: 'Operations that were skipped (e.g., no music provider)',
+          count: totalSkippedCount,
+          cost_cents: 0, // Skipped usually means no cost
+          credits_lost: 0,
+        });
+      }
+
+      // Retry costs (extra Veo calls)
+      if (totalRetries > 0) {
+        wastedItems.push({
+          category: 'Retry Costs',
+          description: 'Extra Veo API calls due to clip regeneration',
+          count: totalRetries,
+          cost_cents: retryCostCents,
+          credits_lost: 0, // Retries don't charge extra credits to users
+        });
+      }
+
+      setWastedCosts(wastedItems);
+
+      // Storage data - fetch real data
+      const { data: storageData } = await supabase
+        .from('storage' as any)
+        .select('*');
+      
+      // Fallback to known values if storage query fails
       const buckets = [
         { bucket_id: 'final-videos', file_count: 85, size_mb: 2564 },
         { bucket_id: 'video-clips', file_count: 542, size_mb: 1777 },
@@ -199,23 +289,44 @@ export function CostAnalysisDashboard() {
     }).format(cents / 100);
   };
 
-  // Calculate totals
+  // Calculate totals - separate successful vs wasted
+  const successfulApiCosts = apiCosts.filter(c => c.status === 'completed');
+  const failedApiCosts = apiCosts.filter(c => c.status === 'failed' || c.status === 'skipped');
+  
+  const totalSuccessfulApiCostCents = successfulApiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
+  const totalFailedApiCostCents = failedApiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
   const totalApiCostCents = apiCosts.reduce((sum, c) => sum + c.calculated_cost_cents, 0);
+  
+  // Add retry costs
+  const totalRetryCostCents = retryData.retry_cost_cents;
+  
+  // Total wasted = failed + retries
+  const totalWastedCostCents = totalFailedApiCostCents + totalRetryCostCents;
+  
   const totalStorageMB = storageCosts.reduce((sum, s) => sum + s.size_mb, 0);
   const totalStorageCostCents = Math.round((totalStorageMB / 1024) * STORAGE_COST_PER_GB_CENTS * 100);
   const devCostCents = devHours * DEV_HOURLY_RATE_DOLLARS * 100;
   const lovableCostCents = LOVABLE_MONTHLY_COST_DOLLARS * 100;
   const supabaseCostCents = SUPABASE_MONTHLY_COST_DOLLARS * 100;
   
-  const totalMonthlyCostCents = totalApiCostCents + totalStorageCostCents + lovableCostCents + supabaseCostCents;
+  // Include retry costs in total (they're real API costs we paid)
+  const totalMonthlyCostCents = totalApiCostCents + totalRetryCostCents + totalStorageCostCents + lovableCostCents + supabaseCostCents;
   const totalWithDevCents = totalMonthlyCostCents + devCostCents;
 
   // Revenue calculation (credits sold * price per credit)
   const CREDIT_PRICE_CENTS = 11.6; // $0.116 per credit (based on credit packages)
   const totalCreditsCharged = apiCosts.reduce((sum, c) => sum + c.total_credits, 0);
   const estimatedRevenueCents = Math.round(totalCreditsCharged * CREDIT_PRICE_CENTS);
-  const netProfitCents = estimatedRevenueCents - totalMonthlyCostCents;
-  const profitMargin = estimatedRevenueCents > 0 ? (netProfitCents / estimatedRevenueCents) * 100 : 0;
+  
+  // Subtract refunds from revenue
+  const refundValueCents = Math.round(refundData.refund_credits * CREDIT_PRICE_CENTS);
+  const adjustedRevenueCents = estimatedRevenueCents - refundValueCents;
+  
+  const netProfitCents = adjustedRevenueCents - totalMonthlyCostCents;
+  const profitMargin = adjustedRevenueCents > 0 ? (netProfitCents / adjustedRevenueCents) * 100 : 0;
+  
+  // Waste percentage
+  const wastePercentage = totalMonthlyCostCents > 0 ? (totalWastedCostCents / totalMonthlyCostCents) * 100 : 0;
 
   const getServiceIcon = (service: string) => {
     switch (service) {
@@ -252,17 +363,30 @@ export function CostAnalysisDashboard() {
       </div>
 
       {/* Executive Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Total Monthly Cost
+              Total Cost
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalMonthlyCostCents)}</div>
-            <p className="text-xs text-muted-foreground">Excl. development</p>
+            <p className="text-xs text-muted-foreground">Incl. retries & failures</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4" />
+              Wasted Costs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{formatCurrency(totalWastedCostCents)}</div>
+            <p className="text-xs text-muted-foreground">{wastePercentage.toFixed(1)}% of total</p>
           </CardContent>
         </Card>
 
@@ -270,12 +394,15 @@ export function CostAnalysisDashboard() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-success">
               <TrendingUp className="w-4 h-4" />
-              Estimated Revenue
+              Revenue
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(estimatedRevenueCents)}</div>
-            <p className="text-xs text-muted-foreground">{totalCreditsCharged.toLocaleString()} credits</p>
+            <div className="text-2xl font-bold">{formatCurrency(adjustedRevenueCents)}</div>
+            <p className="text-xs text-muted-foreground">
+              {refundData.total_refunds > 0 && <span className="text-destructive">-{refundData.refund_credits} refunded</span>}
+              {refundData.total_refunds === 0 && <span>{totalCreditsCharged.toLocaleString()} credits</span>}
+            </p>
           </CardContent>
         </Card>
 
@@ -288,7 +415,7 @@ export function CostAnalysisDashboard() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               {netProfitCents >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              Net Profit/Loss
+              Net Profit
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -308,14 +435,18 @@ export function CostAnalysisDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(devCostCents)}</div>
-            <p className="text-xs text-muted-foreground">{devHours} hours @ ${DEV_HOURLY_RATE_DOLLARS}/hr</p>
+            <p className="text-xs text-muted-foreground">{devHours} hrs @ ${DEV_HOURLY_RATE_DOLLARS}/hr</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs for detailed breakdown */}
-      <Tabs defaultValue="api" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="wasted" className="space-y-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="wasted" className="gap-2 text-destructive data-[state=active]:text-destructive">
+            <AlertTriangle className="w-4 h-4" />
+            Wasted/Failed
+          </TabsTrigger>
           <TabsTrigger value="api" className="gap-2">
             <Server className="w-4 h-4" />
             API Costs
@@ -334,48 +465,279 @@ export function CostAnalysisDashboard() {
           </TabsTrigger>
           <TabsTrigger value="breakdown" className="gap-2">
             <PieChart className="w-4 h-4" />
-            Breakdown
+            Full Breakdown
           </TabsTrigger>
         </TabsList>
+
+        {/* Wasted Costs Tab - NEW */}
+        <TabsContent value="wasted" className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-destructive">Failed API Calls</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-destructive">{formatCurrency(totalFailedApiCostCents)}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {failedApiCosts.reduce((sum, c) => sum + c.total_calls, 0)} failed calls
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-warning">Retry Costs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-warning">{formatCurrency(totalRetryCostCents)}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {retryData.total_retries} retries across {retryData.clips_with_retries} clips
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-info">Credits Refunded</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{refundData.refund_credits.toLocaleString()}</div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {refundData.total_refunds} refund transactions
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Wasted Cost Breakdown
+              </CardTitle>
+              <CardDescription>Money spent on failed operations, retries, and deleted content</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Failed API calls by service */}
+                {failedApiCosts.map((cost, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg border border-destructive/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                        {getServiceIcon(cost.service)}
+                      </div>
+                      <div>
+                        <p className="font-medium capitalize">{cost.service.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {cost.operation} • <Badge variant="destructive" className="text-xs">{cost.status}</Badge>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-destructive">{formatCurrency(cost.calculated_cost_cents)}</p>
+                      <p className="text-xs text-muted-foreground">{cost.total_calls} calls</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Retry costs */}
+                {retryData.total_retries > 0 && (
+                  <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg border border-warning/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                        <RefreshCw className="w-5 h-5 text-warning" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Clip Regeneration Retries</p>
+                        <p className="text-xs text-muted-foreground">
+                          Extra Veo API calls when clips failed quality checks
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-warning">{formatCurrency(totalRetryCostCents)}</p>
+                      <p className="text-xs text-muted-foreground">{retryData.total_retries} retries</p>
+                    </div>
+                  </div>
+                )}
+
+                {wastedCosts.length === 0 && retryData.total_retries === 0 && failedApiCosts.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No wasted costs detected - great job!</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Failed API Calls</span>
+                  <span className="font-mono">{formatCurrency(totalFailedApiCostCents)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Retry Costs</span>
+                  <span className="font-mono">{formatCurrency(totalRetryCostCents)}</span>
+                </div>
+                <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">
+                  <span className="text-destructive">Total Wasted</span>
+                  <span className="text-destructive">{formatCurrency(totalWastedCostCents)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground text-right">
+                  {wastePercentage.toFixed(1)}% of total operational costs
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Cost Recovery Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {retryData.total_retries > 10 && (
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">High Retry Rate</p>
+                      <p className="text-sm text-muted-foreground">
+                        {retryData.total_retries} retries detected. Consider improving prompt quality or adjusting quality thresholds.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {totalFailedApiCostCents > 100 && (
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Significant API Failures</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(totalFailedApiCostCents)} lost to failed API calls. Review error logs and implement better error handling.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {wastePercentage < 5 && (
+                  <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg border border-success/20">
+                    <TrendingUp className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-success">Excellent Efficiency</p>
+                      <p className="text-sm text-muted-foreground">
+                        Waste is under 5% - your pipeline is running efficiently!
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* API Costs Tab */}
         <TabsContent value="api" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">API Cost Details</CardTitle>
-              <CardDescription>Real-time tracking of all API calls and their costs</CardDescription>
+              <CardDescription>
+                All API calls including successful, failed, and retries • 
+                <span className="text-success ml-1">{successfulApiCosts.reduce((s, c) => s + c.total_calls, 0)} successful</span> • 
+                <span className="text-destructive ml-1">{failedApiCosts.reduce((s, c) => s + c.total_calls, 0)} failed</span> •
+                <span className="text-warning ml-1">{retryData.total_retries} retries</span>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {apiCosts.map((cost, idx) => {
-                  const percentage = (cost.calculated_cost_cents / totalApiCostCents) * 100;
+                  const percentage = totalApiCostCents > 0 ? (cost.calculated_cost_cents / totalApiCostCents) * 100 : 0;
+                  const isSuccess = cost.status === 'completed';
+                  const isFailed = cost.status === 'failed';
+                  const isSkipped = cost.status === 'skipped';
                   return (
-                    <div key={idx} className="space-y-2">
+                    <div key={idx} className={cn(
+                      "space-y-2 p-3 rounded-lg border",
+                      isFailed && "bg-destructive/5 border-destructive/20",
+                      isSkipped && "bg-muted/50 border-muted",
+                      isSuccess && "bg-background border-border"
+                    )}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center",
+                            isFailed ? "bg-destructive/10" : "bg-muted"
+                          )}>
                             {getServiceIcon(cost.service)}
                           </div>
                           <div>
-                            <p className="font-medium capitalize">{cost.service.replace(/_/g, ' ').replace(/-/g, ' ')}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium capitalize">{cost.service.replace(/_/g, ' ').replace(/-/g, ' ')}</p>
+                              <Badge 
+                                variant={isSuccess ? 'success' : isFailed ? 'destructive' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {cost.status}
+                              </Badge>
+                            </div>
                             <p className="text-xs text-muted-foreground">{cost.operation}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">{formatCurrency(cost.calculated_cost_cents)}</p>
+                          <p className={cn("font-bold", isFailed && "text-destructive")}>
+                            {formatCurrency(cost.calculated_cost_cents)}
+                          </p>
                           <p className="text-xs text-muted-foreground">{cost.total_calls.toLocaleString()} calls</p>
                         </div>
                       </div>
-                      <Progress value={percentage} className="h-2" />
+                      <Progress 
+                        value={percentage} 
+                        className={cn("h-2", isFailed && "[&>div]:bg-destructive")} 
+                      />
                     </div>
                   );
                 })}
+
+                {/* Retry costs shown separately */}
+                {retryData.total_retries > 0 && (
+                  <div className="space-y-2 p-3 rounded-lg border bg-warning/5 border-warning/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                          <RefreshCw className="w-4 h-4 text-warning" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">Retry Regenerations</p>
+                            <Badge variant="warning" className="text-xs bg-warning/20 text-warning border-warning/30">
+                              retries
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Additional Veo calls for failed quality checks</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-warning">{formatCurrency(totalRetryCostCents)}</p>
+                        <p className="text-xs text-muted-foreground">{retryData.total_retries} retries</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-6 pt-4 border-t">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total API Costs</span>
-                  <span className="text-xl font-bold">{formatCurrency(totalApiCostCents)}</span>
+              <div className="mt-6 pt-4 border-t space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Successful API Calls</span>
+                  <span className="font-mono text-success">{formatCurrency(totalSuccessfulApiCostCents)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Failed API Calls</span>
+                  <span className="font-mono text-destructive">{formatCurrency(totalFailedApiCostCents)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Retry Costs</span>
+                  <span className="font-mono text-warning">{formatCurrency(totalRetryCostCents)}</span>
+                </div>
+                <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">
+                  <span>Total API Costs</span>
+                  <span>{formatCurrency(totalApiCostCents + totalRetryCostCents)}</span>
                 </div>
               </div>
             </CardContent>

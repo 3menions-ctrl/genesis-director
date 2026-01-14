@@ -1934,6 +1934,7 @@ async function runProduction(
       // Try multiple sources in priority order - ORIGINAL UPLOADED IMAGE FIRST
       const possibleRefs = [
         projectRefData?.pro_features_data?.referenceAnalysis?.imageUrl, // FIRST: Original uploaded
+        projectRefData?.pro_features_data?.referenceImageUrlFromClip1,  // NEW: Clip 1's last frame (text-to-video mode)
         projectRefData?.pro_features_data?.goldenFrameData?.goldenFrameUrl,
         projectRefData?.pro_features_data?.identityBible?.originalReferenceUrl,
         projectRefData?.pro_features_data?.masterSceneAnchor?.frameUrl,
@@ -3471,12 +3472,52 @@ async function runProduction(
     if (result.lastFrameUrl) {
       previousLastFrameUrl = result.lastFrameUrl;
       console.log(`[Hollywood] ✓ Frame chain updated: Clip ${i + 2} will use clip ${i + 1}'s last frame`);
+      
+      // =====================================================
+      // CRITICAL FIX: If clip 1 just completed and we have no referenceImageUrl,
+      // set it NOW so clips 2+ pass THE LAW validation
+      // This fixes the "Missing referenceImageUrl" error for text-to-video mode
+      // =====================================================
+      if (i === 0 && !referenceImageUrl) {
+        referenceImageUrl = result.lastFrameUrl;
+        console.log(`[Hollywood] ✓ CRITICAL FIX: Set referenceImageUrl from clip 1's last frame for clips 2+`);
+        console.log(`[Hollywood]   referenceImageUrl: ${referenceImageUrl.substring(0, 60)}...`);
+        
+        // Also persist to DB for resume support
+        try {
+          const { data: currentData } = await supabase
+            .from('movie_projects')
+            .select('pro_features_data')
+            .eq('id', state.projectId)
+            .single();
+          
+          await supabase
+            .from('movie_projects')
+            .update({
+              pro_features_data: {
+                ...(currentData?.pro_features_data || {}),
+                referenceImageUrlFromClip1: referenceImageUrl,
+                referenceImageCapturedAt: new Date().toISOString(),
+              }
+            })
+            .eq('id', state.projectId);
+          console.log(`[Hollywood] ✓ Persisted referenceImageUrl to DB for resume support`);
+        } catch (persistErr) {
+          console.warn(`[Hollywood] Failed to persist referenceImageUrl:`, persistErr);
+        }
+      }
     } else {
       // FALLBACK: Use next clip's scene image to maintain continuity
       const nextSceneImage = sceneImageLookup[i + 1] || sceneImageLookup[i] || sceneImageLookup[0];
       if (nextSceneImage) {
         previousLastFrameUrl = nextSceneImage;
         console.warn(`[Hollywood] ⚠️ Frame extraction failed - using scene image ${i + 2} as fallback for continuity`);
+        
+        // Also set referenceImageUrl for clip 1 if needed
+        if (i === 0 && !referenceImageUrl) {
+          referenceImageUrl = nextSceneImage;
+          console.log(`[Hollywood] ✓ Set referenceImageUrl from scene image fallback for clips 2+`);
+        }
       } else if (referenceImageUrl) {
         // CRITICAL FIX: Use referenceImageUrl as ultimate fallback
         previousLastFrameUrl = referenceImageUrl;
@@ -3484,6 +3525,12 @@ async function runProduction(
       } else if (previousLastFrameUrl) {
         // Keep previous frame as last resort
         console.error(`[Hollywood] ⚠️ Keeping stale frame for clip ${i + 2}: ${previousLastFrameUrl?.substring(0, 50)}...`);
+        
+        // Last resort: use previousLastFrameUrl as reference for clips 2+
+        if (i === 0 && !referenceImageUrl) {
+          referenceImageUrl = previousLastFrameUrl;
+          console.log(`[Hollywood] ✓ Set referenceImageUrl from previousLastFrameUrl as last resort`);
+        }
       } else {
         console.error(`[Hollywood] ⚠️ CRITICAL: No frame or fallback for clip ${i + 2}! Frame chain broken.`);
       }

@@ -434,6 +434,20 @@ const TRANSITION_HINTS: Record<string, string> = {
 // ============================================================================
 const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
 
+// ============================================================================
+// RICH COLOR ENFORCEMENT - Guarantees vibrant, consistent colors
+// Colors should NEVER degrade across clips, only improve
+// ============================================================================
+const COLOR_ENFORCEMENT_SUFFIX = ". CRITICAL COLOR REQUIREMENTS: Rich saturated colors, vibrant color palette, deep blacks, clean highlights, professional color grading. Colors must be VIVID and RICH throughout entire clip. NO washed out colors, NO gray tones, NO color degradation. Maintain consistent color temperature.";
+
+// Anti-color-degradation terms for negative prompt
+const COLOR_DEGRADATION_NEGATIVES = [
+  "washed out colors", "desaturated", "gray tones", "muddy colors", "flat colors",
+  "color banding", "color shift", "inconsistent colors", "dull colors", "faded colors",
+  "low saturation", "color degradation", "color drift", "bleached", "overexposed colors",
+  "underexposed colors", "color noise", "color artifacts", "uneven color temperature",
+];
+
 // Build enhanced prompt with APEX Physics Engine, Quality Maximizer, SMART CAMERA ANGLES, and VELOCITY VECTORING
 function buildConsistentPrompt(
   basePrompt: string,
@@ -442,9 +456,9 @@ function buildConsistentPrompt(
   transitionOut?: string,
   qualityTier: number = 10
 ): { prompt: string; negativePrompt: string } {
-  // STEP 0: Always append mandatory quality suffix to user prompt FIRST
-  let prompt = basePrompt + APEX_QUALITY_SUFFIX;
-  console.log('[APEX] Mandatory quality suffix appended to prompt');
+  // STEP 0: Always append mandatory quality suffix and color enforcement to user prompt FIRST
+  let prompt = basePrompt + APEX_QUALITY_SUFFIX + COLOR_ENFORCEMENT_SUFFIX;
+  console.log('[APEX] Mandatory quality + color enforcement suffix appended to prompt');
   
   // Detect scene type for physics profile selection
   const sceneType = detectSceneType(basePrompt);
@@ -538,16 +552,18 @@ function buildConsistentPrompt(
     prompt = `${prompt}. End with ${TRANSITION_HINTS[transitionOut]}`;
   }
 
-  // Add reinforcement modifiers for Veo 3.1
-  prompt = `${prompt}. Photorealistic, physically accurate motion, natural weight and momentum, cinematic depth of field, professional color grading.`;
+  // Add reinforcement modifiers for Veo 3.1 with STRONG color enforcement
+  prompt = `${prompt}. Photorealistic, physically accurate motion, natural weight and momentum, cinematic depth of field, professional color grading. RICH SATURATED COLORS THROUGHOUT.`;
 
   // ============================================================================
-  // BUILD COMPREHENSIVE ANTI-PHYSICS NEGATIVE PROMPT
+  // BUILD COMPREHENSIVE ANTI-PHYSICS + ANTI-COLOR-DEGRADATION NEGATIVE PROMPT
   // ============================================================================
   const antiPhysicsNegative = buildAntiPhysicsNegative();
+  const colorNegative = COLOR_DEGRADATION_NEGATIVES.join(", ");
   
   const negativePromptParts = [
     antiPhysicsNegative,
+    colorNegative, // Add color degradation prevention
   ];
   
   if (inputNegativePrompt) {
@@ -555,7 +571,7 @@ function buildConsistentPrompt(
   }
   
   const finalNegative = negativePromptParts.join(", ");
-  console.log('[Anti-Physics] Negative prompt terms:', finalNegative.split(',').length);
+  console.log('[Anti-Physics + Anti-Color] Negative prompt terms:', finalNegative.split(',').length);
 
   return {
     prompt: prompt.slice(0, 2000), // Vertex AI prompt limit

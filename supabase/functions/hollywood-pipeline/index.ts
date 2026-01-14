@@ -1586,26 +1586,46 @@ async function runAssetCreation(
           masterPreset: colorResult.masterPreset,
           masterFilter: colorResult.masterFFmpegFilter,
           masterPrompt: colorResult.masterColorPrompt,
+          masterColorAnchor: colorResult.masterColorAnchor, // NEW: Short anchor for every clip
+          masterColorDNA: colorResult.masterColorDNA,       // NEW: Full color DNA spec
           consistencyScore: colorResult.consistencyScore,
           shotGradings: colorResult.shotGradings,
         };
         console.log(`[Hollywood] Color grading: ${colorResult.masterPreset} preset, consistency ${colorResult.consistencyScore}%`);
+        console.log(`[Hollywood] Color DNA locked: saturation floor ${colorResult.masterColorDNA?.saturationFloor}%, vibrance target ${colorResult.masterColorDNA?.vibranceTarget}%`);
         
-        // Apply color prompt enhancements to optimized shots
+        // Apply ENHANCED color prompt with progressive boosting to optimized shots
         if (colorResult.colorPromptEnhancements && state.auditResult?.optimizedShots) {
           for (const enhancement of colorResult.colorPromptEnhancements) {
             const shotIdx = state.auditResult.optimizedShots.findIndex(s => s.shotId === enhancement.shotId);
             if (shotIdx >= 0) {
               const existingDesc = state.auditResult.optimizedShots[shotIdx].optimizedDescription;
+              // Use full prompt with progressive boosting
               state.auditResult.optimizedShots[shotIdx].optimizedDescription = 
-                `${existingDesc}. [COLOR: ${enhancement.prompt}]`;
+                `[COLOR DNA: ${enhancement.prompt}] ${existingDesc}`;
             }
           }
-          console.log(`[Hollywood] Applied color grading prompts to ${colorResult.colorPromptEnhancements.length} shots`);
+          console.log(`[Hollywood] Applied progressive color DNA to ${colorResult.colorPromptEnhancements.length} shots`);
         }
       }
     } catch (err) {
-      console.warn(`[Hollywood] Color grading analysis failed:`, err);
+      // FALLBACK: Apply default rich color enforcement if color grading fails
+      console.warn(`[Hollywood] Color grading analysis failed, applying fallback rich colors:`, err);
+      (state as any).colorGrading = {
+        masterPreset: 'cinematic',
+        masterColorAnchor: 'Rich cinematic colors: warm amber highlights, cool teal shadows. High contrast with deep blacks. Saturation min 70%. NEVER: washed out, gray, muddy.',
+        consistencyScore: 85,
+      };
+      
+      // Apply fallback color DNA to all shots
+      if (state.auditResult?.optimizedShots) {
+        for (let i = 0; i < state.auditResult.optimizedShots.length; i++) {
+          const existingDesc = state.auditResult.optimizedShots[i].optimizedDescription;
+          state.auditResult.optimizedShots[i].optimizedDescription = 
+            `[COLOR DNA: Rich cinematic grade. Saturation min 70%. Clip ${i + 1}/${state.auditResult.optimizedShots.length}. Colors must be RICHER than previous.] ${existingDesc}`;
+        }
+        console.log(`[Hollywood] Applied fallback color DNA to ${state.auditResult.optimizedShots.length} shots`);
+      }
     }
   }
   

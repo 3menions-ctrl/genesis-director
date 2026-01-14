@@ -10,14 +10,14 @@ import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
 const PRICING_TIERS = [
   {
     name: 'Starter',
-    price: 29,
+    price: 37,
     period: 'one-time',
-    credits: 250,
+    credits: 370,
     icon: Zap,
     description: 'Get started creating',
     features: [
-      '250 credits',
-      '~4 complete videos',
+      '370 credits',
+      '~6 complete videos',
       'Automatic retry system',
       '4K export available',
     ],
@@ -45,7 +45,7 @@ const PRICING_TIERS = [
   },
   {
     name: 'Agency',
-    price: 249,
+    price: 290,
     period: 'one-time',
     credits: 3000,
     icon: Crown,

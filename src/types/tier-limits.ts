@@ -42,7 +42,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
     max_duration_minutes: 1,
-    max_clips_per_video: 10,
+    max_clips_per_video: 6,
     max_concurrent_projects: 2,
     max_retries_per_clip: 1,
     priority_queue: false,
@@ -51,7 +51,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   pro: {
     tier: 'pro',
     max_duration_minutes: 1,
-    max_clips_per_video: 10,
+    max_clips_per_video: 6,
     max_concurrent_projects: 5,
     max_retries_per_clip: 2,
     priority_queue: false,
@@ -60,7 +60,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   growth: {
     tier: 'growth',
     max_duration_minutes: 2,
-    max_clips_per_video: 10,
+    max_clips_per_video: 6,
     max_concurrent_projects: 10,
     max_retries_per_clip: 3,
     priority_queue: true,
@@ -69,7 +69,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   agency: {
     tier: 'agency',
     max_duration_minutes: 2,
-    max_clips_per_video: 10,
+    max_clips_per_video: 6,
     max_concurrent_projects: 25,
     max_retries_per_clip: 4,
     priority_queue: true,
@@ -85,10 +85,10 @@ export const TIER_CLIP_LIMITS: Record<AccountTier, {
   maxRetries: number; 
   chunkedStitching: boolean;
 }> = {
-  free: { maxClips: 10, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
-  pro: { maxClips: 10, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
-  growth: { maxClips: 10, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
-  agency: { maxClips: 10, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
+  free: { maxClips: 6, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
+  pro: { maxClips: 6, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
+  growth: { maxClips: 6, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  agency: { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
 };
 
 // Helper to check if tier supports 2-minute videos

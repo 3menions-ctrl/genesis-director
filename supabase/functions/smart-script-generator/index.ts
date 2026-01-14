@@ -41,6 +41,8 @@ interface SmartScriptRequest {
   preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
   // Environment DNA - full environment description for visual consistency
   environmentPrompt?: string;
+  // VOICE/NARRATION CONTROL - when false, NO dialogue or narration should be generated
+  includeVoice?: boolean;
 }
 
 interface SceneClip {
@@ -140,26 +142,37 @@ serve(async (req) => {
     const targetSeconds = recommendedClips * CLIP_DURATION;
     console.log(`[SmartScript] Using ${recommendedClips} clips (requested: ${requestedClips}, detected: ${detectedContent.recommendedClipCount})`);
     
-    // Use detected content if no explicit user content provided
-    let hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
-    let hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
-    
-    // If we detected content, use it
-    if (!hasUserNarration && detectedContent.hasNarration) {
-      hasUserNarration = true;
-      request.userNarration = detectedContent.narrationText;
-      console.log("[SmartScript] Auto-detected narration from input");
+    // VOICE CONTROL: If includeVoice is explicitly false, NEVER include dialogue or narration
+    const voiceDisabled = request.includeVoice === false;
+    if (voiceDisabled) {
+      console.log("[SmartScript] ⚠️ VOICE DISABLED - Skipping ALL dialogue/narration detection");
     }
     
-    if (!hasUserDialogue && detectedContent.hasDialogue) {
-      hasUserDialogue = true;
-      request.userDialogue = detectedContent.dialogueLines;
-      console.log("[SmartScript] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+    // Use detected content if no explicit user content provided - BUT ONLY if voice is enabled
+    let hasUserNarration = false;
+    let hasUserDialogue = false;
+    
+    if (!voiceDisabled) {
+      hasUserNarration = !!(request.userNarration && request.userNarration.trim().length > 10);
+      hasUserDialogue = !!(request.userDialogue && request.userDialogue.length > 0);
+      
+      // If we detected content, use it
+      if (!hasUserNarration && detectedContent.hasNarration) {
+        hasUserNarration = true;
+        request.userNarration = detectedContent.narrationText;
+        console.log("[SmartScript] Auto-detected narration from input");
+      }
+      
+      if (!hasUserDialogue && detectedContent.hasDialogue) {
+        hasUserDialogue = true;
+        request.userDialogue = detectedContent.dialogueLines;
+        console.log("[SmartScript] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+      }
     }
     
-    const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
+    const mustPreserveContent = !voiceDisabled && (request.preserveUserContent || hasUserNarration || hasUserDialogue);
     
-    console.log(`[SmartScript] Generating ${recommendedClips} clips for continuous scene, preserveContent: ${mustPreserveContent}`);
+    console.log(`[SmartScript] Generating ${recommendedClips} clips for continuous scene, preserveContent: ${mustPreserveContent}, voiceDisabled: ${voiceDisabled}`);
 
     // Build the system prompt for CONTINUOUS SCENE breakdown
     const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${recommendedClips} clips that flow seamlessly together.
@@ -169,6 +182,17 @@ CRITICAL CLIP COUNT REQUIREMENT:
 - The clips array MUST have exactly ${recommendedClips} items
 - Do NOT output 6 clips if ${recommendedClips} clips are requested
 - This is non-negotiable: output = ${recommendedClips} clips
+
+${voiceDisabled ? `
+CRITICAL - NO DIALOGUE OR NARRATION:
+The user has NOT selected voice/narration for this video. This means:
+- DO NOT include ANY dialogue, speech, narration, or voiceover
+- DO NOT have characters speak, talk, say, or utter anything
+- DO NOT include text like "character says", "narrator explains", "voice says"
+- The "dialogue" field MUST be EMPTY ("") for ALL clips
+- Focus ONLY on visual action, movement, and atmosphere
+- This is a SILENT video with VISUAL storytelling only
+` : ''}
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -189,7 +213,7 @@ OUTPUT FORMAT (STRICT JSON):
     {
       "index": 0,
       "title": "Clip title",
-      "description": "Detailed visual description for AI video generation",
+      "description": "Detailed visual description for AI video generation${voiceDisabled ? ' - NO dialogue or speech' : ''}",
       "durationSeconds": 6,
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "What happened in previous clip (empty for clip 0)",
@@ -203,7 +227,7 @@ OUTPUT FORMAT (STRICT JSON):
       "movementType": "static|pan|tracking|dolly",
       "motionDirection": "The direction of action/movement",
       "transitionHint": "How this moment connects to the next",
-      "dialogue": "Any narration or speech - USE USER'S EXACT WORDS if provided",
+      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY - no voice enabled' : "Any narration or speech - USE USER'S EXACT WORDS if provided"}",
       "mood": "Emotional tone of this moment"
     }
   ]

@@ -135,6 +135,8 @@ interface StoryRequest {
   preserveUserContent?: boolean; // Flag to ensure user content is kept verbatim
   // ENVIRONMENT DNA - Applied from Environments page
   environmentPrompt?: string;  // Full environment description for scene consistency
+  // VOICE/NARRATION CONTROL - when false, NO dialogue or narration should be generated
+  includeVoice?: boolean;
 }
 
 interface SceneDescription {
@@ -214,24 +216,35 @@ serve(async (req) => {
       );
     }
 
-    // Use detected content if no explicit user content provided
-    let hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;
-    let hasUserDialogue = request.userDialogue && request.userDialogue.length > 0;
-    
-    // If we detected content in the prompt, use it
-    if (!hasUserNarration && detectedContent.hasNarration) {
-      hasUserNarration = true;
-      request.userNarration = detectedContent.narrationText;
-      console.log("[GenerateStory] Auto-detected narration from input");
+    // VOICE CONTROL: If includeVoice is explicitly false, NEVER include dialogue or narration
+    const voiceDisabled = request.includeVoice === false;
+    if (voiceDisabled) {
+      console.log("[GenerateStory] ⚠️ VOICE DISABLED - Skipping ALL dialogue/narration detection");
     }
     
-    if (!hasUserDialogue && detectedContent.hasDialogue) {
-      hasUserDialogue = true;
-      request.userDialogue = detectedContent.dialogueLines;
-      console.log("[GenerateStory] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+    // Use detected content if no explicit user content provided - BUT ONLY if voice is enabled
+    let hasUserNarration = false;
+    let hasUserDialogue = false;
+    
+    if (!voiceDisabled) {
+      hasUserNarration = !!(request.userNarration && request.userNarration.trim().length > 10);
+      hasUserDialogue = !!(request.userDialogue && request.userDialogue.length > 0);
+      
+      // If we detected content in the prompt, use it
+      if (!hasUserNarration && detectedContent.hasNarration) {
+        hasUserNarration = true;
+        request.userNarration = detectedContent.narrationText;
+        console.log("[GenerateStory] Auto-detected narration from input");
+      }
+      
+      if (!hasUserDialogue && detectedContent.hasDialogue) {
+        hasUserDialogue = true;
+        request.userDialogue = detectedContent.dialogueLines;
+        console.log("[GenerateStory] Auto-detected dialogue:", detectedContent.dialogueLines.length, "lines");
+      }
     }
     
-    const mustPreserveContent = request.preserveUserContent || hasUserNarration || hasUserDialogue;
+    const mustPreserveContent = !voiceDisabled && (request.preserveUserContent || hasUserNarration || hasUserDialogue);
 
     const targetDuration = request.targetDurationSeconds || (detectedContent.recommendedClipCount * 6);
     const sceneMode = request.sceneMode || 'single_scene';
@@ -240,10 +253,22 @@ serve(async (req) => {
     const CLIP_DURATION = 6;
     const requestedClips = Math.round(targetDuration / CLIP_DURATION);
     const clipCount = requestedClips > 0 ? requestedClips : 6; // Default to 6 only if no duration specified
-    console.log(`[GenerateStory] Using ${clipCount} clips (targetDuration: ${targetDuration}s)`);
+    console.log(`[GenerateStory] Using ${clipCount} clips (targetDuration: ${targetDuration}s, voiceDisabled: ${voiceDisabled})`);
 
     // SCENE-BASED SYSTEM PROMPT - use dynamic clip count
     const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across EXACTLY ${clipCount} connected clips.
+
+${voiceDisabled ? `
+CRITICAL - NO DIALOGUE OR NARRATION:
+The user has NOT selected voice/narration for this video. This means:
+- DO NOT include ANY dialogue, speech, narration, or voiceover
+- DO NOT have characters speak, talk, say, quote, or utter anything
+- DO NOT include "[NARRATION]", "[DIALOGUE]", "says", "speaks", or any speech
+- DO NOT describe what characters are saying or thinking in quoted speech
+- Focus ONLY on visual action, movement, and atmosphere
+- This is a SILENT video with VISUAL storytelling only
+- Characters may gesture, move, react - but NEVER speak or narrate
+` : ''}
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -302,9 +327,9 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
    - Physical position connects between clips
 
 OUTPUT FORMAT:
-Write the scene as 6 connected paragraphs, each describing 6 seconds of continuous action.
+Write the scene as ${clipCount} connected paragraphs, each describing 6 seconds of continuous action.
 Label each: [CLIP 1], [CLIP 2], etc.
-${mustPreserveContent ? 'Include [NARRATION] or [DIALOGUE] tags with the user\'s EXACT text for each clip.' : ''}
+${voiceDisabled ? 'DO NOT include any [NARRATION] or [DIALOGUE] tags. NO SPOKEN WORDS.' : (mustPreserveContent ? "Include [NARRATION] or [DIALOGUE] tags with the user's EXACT text for each clip." : '')}
 End each clip at a moment that naturally flows into the next.
 Include: character description (consistent across all clips), exact location, lighting, and progressive action.
 

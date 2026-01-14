@@ -13,9 +13,27 @@ const corsHeaders = {
  * 
  * Uses OpenAI's tts-1-hd model for reliable, high-quality voice generation.
  * ElevenLabs was removed due to frequent quota/rate limit issues.
+ * 
+ * CHARACTER VOICE CONSISTENCY:
+ * - Each character can have a persistent voice_id stored in the characters table
+ * - When generating voice for a character, we look up their assigned voice
+ * - This ensures the same character always has the same voice across all clips
  */
 
-// OpenAI TTS voice mapping for different character types
+// OpenAI TTS voice options for character assignment
+export const OPENAI_VOICE_OPTIONS = {
+  // Male voices
+  onyx: { id: 'onyx', name: 'Onyx', gender: 'male', description: 'Deep, authoritative male voice' },
+  echo: { id: 'echo', name: 'Echo', gender: 'male', description: 'Friendly, warm male voice' },
+  fable: { id: 'fable', name: 'Fable', gender: 'male', description: 'Storyteller, expressive male voice' },
+  
+  // Female voices
+  nova: { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, professional female voice' },
+  shimmer: { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft, elderly female voice' },
+  alloy: { id: 'alloy', name: 'Alloy', gender: 'neutral', description: 'Neutral, versatile voice' },
+};
+
+// Voice mapping for character types (used when no specific voice_id is set)
 const VOICE_MAP: Record<string, { voice: string; speed: number }> = {
   // Elderly/Grandmother voices - slower, warmer
   grandmother: { voice: 'shimmer', speed: 0.85 },
@@ -45,7 +63,16 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId, shotId, projectId, voiceType, speed } = await req.json();
+    const { 
+      text, 
+      voiceId,        // Direct voice override (e.g., 'onyx', 'nova')
+      shotId, 
+      projectId, 
+      voiceType,      // Voice type hint (e.g., 'narrator', 'male', 'female')
+      speed,
+      characterId,    // Character ID to look up persistent voice
+      characterName,  // Character name for logging
+    } = await req.json();
 
     if (!text) {
       throw new Error("Text is required");
@@ -56,13 +83,57 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    // Resolve voice configuration from voiceType
-    const voiceConfig = VOICE_MAP[voiceType || 'default'] || VOICE_MAP['default'];
-    
-    // Allow override of speed if provided
-    const finalSpeed = speed || voiceConfig.speed;
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = supabaseUrl && supabaseServiceKey 
+      ? createClient(supabaseUrl, supabaseServiceKey) 
+      : null;
 
-    console.log(`[Voice] Generating for text length: ${text.length}, voiceType: ${voiceType || 'default'}, voice: ${voiceConfig.voice}, speed: ${finalSpeed}`);
+    // VOICE RESOLUTION PRIORITY:
+    // 1. Direct voiceId override (highest priority)
+    // 2. Character's stored voice_id (from characters table)
+    // 3. voiceType mapping (e.g., 'narrator', 'male')
+    // 4. Default voice
+    
+    let resolvedVoice = 'nova'; // Default
+    let resolvedSpeed = 1.0;
+    let voiceSource = 'default';
+    
+    // Priority 1: Direct voice override
+    if (voiceId && Object.keys(OPENAI_VOICE_OPTIONS).includes(voiceId)) {
+      resolvedVoice = voiceId;
+      voiceSource = 'direct_override';
+      console.log(`[Voice] Using direct voice override: ${voiceId}`);
+    }
+    // Priority 2: Look up character's persistent voice
+    else if (characterId && supabase) {
+      const { data: character, error: charError } = await supabase
+        .from('characters')
+        .select('voice_id, name')
+        .eq('id', characterId)
+        .single();
+      
+      if (!charError && character?.voice_id) {
+        resolvedVoice = character.voice_id;
+        voiceSource = `character:${character.name || characterId}`;
+        console.log(`[Voice] Using character voice: ${character.name} -> ${resolvedVoice}`);
+      } else if (charError) {
+        console.warn(`[Voice] Failed to look up character voice:`, charError.message);
+      }
+    }
+    // Priority 3: Voice type mapping
+    else if (voiceType && VOICE_MAP[voiceType]) {
+      const config = VOICE_MAP[voiceType];
+      resolvedVoice = config.voice;
+      resolvedSpeed = config.speed;
+      voiceSource = `voiceType:${voiceType}`;
+    }
+    
+    // Apply speed override if provided
+    const finalSpeed = speed || resolvedSpeed;
+
+    console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, speed: ${finalSpeed}, source: ${voiceSource}${characterName ? `, character: ${characterName}` : ''}`);
 
     // Call OpenAI TTS API
     const response = await fetch("https://api.openai.com/v1/audio/speech", {
@@ -74,7 +145,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "tts-1-hd",
         input: text,
-        voice: voiceConfig.voice,
+        voice: resolvedVoice,
         response_format: "mp3",
         speed: finalSpeed,
       }),
@@ -89,14 +160,9 @@ serve(async (req) => {
     const audioBuffer = await response.arrayBuffer();
     console.log(`[Voice] Generated successfully, size: ${audioBuffer.byteLength} bytes`);
 
-    // Initialize Supabase client for storage upload
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (supabaseUrl && supabaseServiceKey) {
+    // Use existing supabase client for storage upload (initialized earlier)
+    if (supabase) {
       try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
         // Create a unique filename
         const timestamp = Date.now();
         const filename = shotId 
@@ -165,8 +231,11 @@ serve(async (req) => {
             p_status: 'completed',
             p_metadata: JSON.stringify({
               textLength: text.length,
-              voice: voiceConfig.voice,
+              voice: resolvedVoice,
               voiceType: voiceType || 'default',
+              voiceSource,
+              characterId: characterId || null,
+              characterName: characterName || null,
               speed: finalSpeed,
             }),
           });

@@ -221,7 +221,8 @@ serve(async (req) => {
       manualPrompts: manualPrompts.length > 0 ? manualPrompts : undefined,
       concept: project.synopsis || project.title || 'Continue video generation',
       // Pass through original config from pending tasks (with sensible defaults)
-      includeVoice: pendingTasks.config?.includeVoice ?? pendingTasks.assets?.voiceUrl ? false : true,
+      // NOTE: Narration is OFF by default unless explicitly requested
+      includeVoice: pendingTasks.config?.includeVoice ?? false,
       includeMusic: pendingTasks.config?.includeMusic ?? pendingTasks.assets?.musicUrl ? false : true,
       genre: pendingTasks.config?.genre || project.genre || 'cinematic',
       mood: pendingTasks.config?.mood || project.mood || 'epic',

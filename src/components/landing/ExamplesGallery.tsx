@@ -6,6 +6,11 @@ import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'luc
 const SHOWCASE_VIDEOS = [
   // Newest videos first
   {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    title: 'Sunset Dreams on Winding Roads',
+    description: 'A cinematic journey through golden-hour landscapes and endless horizons',
+  },
+  {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
     title: 'Soaring Above Snowy Serenity',
     description: 'A breathtaking aerial journey through pristine winter landscapes',

@@ -1367,14 +1367,18 @@ export type Database = {
         }
         Returns: Json
       }
-      charge_preproduction_credits: {
-        Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
-        Returns: Json
-      }
-      charge_production_credits: {
-        Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
-        Returns: Json
-      }
+      charge_preproduction_credits:
+        | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
+        | {
+            Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
+            Returns: Json
+          }
+      charge_production_credits:
+        | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
+        | {
+            Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
+            Returns: Json
+          }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -1425,30 +1429,50 @@ export type Database = {
         Args: { p_universe_id: string; p_user_id: string }
         Returns: boolean
       }
-      log_api_cost: {
-        Args: {
-          p_credits_charged: number
-          p_duration_seconds?: number
-          p_metadata?: Json
-          p_operation: string
-          p_project_id: string
-          p_real_cost_cents: number
-          p_service: string
-          p_shot_id: string
-          p_status?: string
-          p_user_id: string
-        }
-        Returns: string
-      }
-      refund_production_credits: {
-        Args: {
-          p_project_id: string
-          p_reason: string
-          p_shot_id: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      log_api_cost:
+        | {
+            Args: {
+              p_credits_charged: number
+              p_duration_seconds?: number
+              p_metadata?: Json
+              p_operation: string
+              p_project_id: string
+              p_real_cost_cents: number
+              p_service: string
+              p_shot_id: string
+              p_status?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_credits_charged: number
+              p_duration_seconds?: number
+              p_metadata?: Json
+              p_operation: string
+              p_project_id: string
+              p_real_cost_cents: number
+              p_service: string
+              p_shot_id: string
+              p_status?: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+      refund_production_credits:
+        | {
+            Args: { p_project_id: string; p_reason: string; p_shot_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_project_id: string
+              p_reason: string
+              p_shot_id: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       update_generation_checkpoint: {
         Args: {
           p_failed_shots?: Json

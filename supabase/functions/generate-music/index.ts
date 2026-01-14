@@ -171,7 +171,6 @@ serve(async (req) => {
       // Log that music generation was attempted but no source available
       try {
         await supabase.rpc('log_api_cost', {
-          p_user_id: null,
           p_project_id: projectId || null,
           p_shot_id: 'background_music',
           p_service: 'music-generation',

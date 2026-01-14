@@ -4813,7 +4813,6 @@ serve(async (req) => {
       const realCostCents = 8; // Veo API estimated cost (~$0.08 per 4s clip)
       
       await supabase.rpc('log_api_cost', {
-        p_user_id: request.userId,
         p_project_id: request.projectId,
         p_shot_id: `clip_${request.clipIndex}`,
         p_service: 'google_veo',

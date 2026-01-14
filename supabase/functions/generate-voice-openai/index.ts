@@ -127,7 +127,6 @@ serve(async (req) => {
           const realCostCents = Math.ceil(text.length * 0.0015); // OpenAI TTS ~$0.015 per 1k chars
           
           await supabase.rpc('log_api_cost', {
-            p_user_id: null,
             p_project_id: projectId || null,
             p_shot_id: shotId || 'narration',
             p_service: 'openai-tts',

@@ -74,8 +74,7 @@ export function useCreditBilling() {
     setIsCharging(true);
     try {
       const { data, error } = await supabase.rpc('charge_preproduction_credits', {
-        p_user_id: user.id,
-        p_project_id: projectId || null,
+        p_project_id: projectId,
         p_shot_id: shotId,
       });
 
@@ -116,8 +115,7 @@ export function useCreditBilling() {
     setIsCharging(true);
     try {
       const { data, error } = await supabase.rpc('charge_production_credits', {
-        p_user_id: user.id,
-        p_project_id: projectId || null,
+        p_project_id: projectId,
         p_shot_id: shotId,
       });
 
@@ -158,8 +156,7 @@ export function useCreditBilling() {
 
     try {
       const { data, error } = await supabase.rpc('refund_production_credits', {
-        p_user_id: user.id,
-        p_project_id: projectId || null,
+        p_project_id: projectId,
         p_shot_id: shotId,
         p_reason: reason,
       });
@@ -191,8 +188,7 @@ export function useCreditBilling() {
 
     try {
       await supabase.rpc('log_api_cost', {
-        p_user_id: user.id,
-        p_project_id: projectId || null,
+        p_project_id: projectId,
         p_shot_id: params.shotId,
         p_service: params.service,
         p_operation: params.operation,

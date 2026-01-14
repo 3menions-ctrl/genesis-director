@@ -548,7 +548,6 @@ serve(async (req) => {
       const realCostCents = 2; // Minimal compute cost
       
       await supabase.rpc('log_api_cost', {
-        p_user_id: request.userId || null, // FIXED: Pass userId from request
         p_project_id: projectId,
         p_shot_id: 'final_stitch',
         p_service: 'cloud_run_stitcher',

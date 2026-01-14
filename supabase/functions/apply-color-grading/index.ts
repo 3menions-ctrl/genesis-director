@@ -167,24 +167,221 @@ function generateFFmpegFilter(config: Partial<ColorGradingConfig>): string {
   return filters.join(',');
 }
 
-// Generate color grading prompt for AI video generation
-function generateColorPrompt(preset: ColorGradingPreset): string {
-  const prompts: Record<ColorGradingPreset, string> = {
-    cinematic: 'Cinematic color grading with lifted blacks, compressed highlights, subtle teal shadows and warm highlights. Professional film look.',
-    blockbuster: 'Blockbuster movie color grading with high contrast, saturated colors, orange and teal color scheme. Hollywood production quality.',
-    vintage: 'Vintage film look with faded colors, warm tones, lifted blacks, and subtle film grain. Nostalgic aesthetic.',
-    noir: 'Film noir style with high contrast black and white tones, deep dramatic shadows, bright highlights. Classic cinema look.',
-    'teal-orange': 'Teal and orange color grading popular in Hollywood films. Cool shadows, warm skin tones and highlights.',
-    warm: 'Warm color palette with golden tones, soft contrast, inviting cozy atmosphere.',
-    cold: 'Cool color palette with blue tones, high contrast, clinical or mysterious atmosphere.',
-    desaturated: 'Desaturated muted colors with high contrast. Gritty, realistic documentary feel.',
-    'high-contrast': 'High contrast with deep blacks and bright whites. Punchy, dramatic, impactful look.',
-    soft: 'Soft dreamy look with low contrast, lifted shadows, ethereal romantic atmosphere.',
-    moody: 'Moody atmospheric grading with muted colors, blue shadows, subtle vignette. Introspective.',
-    vibrant: 'Vibrant saturated colors with high contrast. Energetic, lively, exciting feel.',
-  };
+// ============================================================================
+// RICH COLOR DNA SYSTEM - Guarantees consistent, vibrant colors across all clips
+// Colors should IMPROVE over clip sequence, never degrade
+// ============================================================================
+
+interface ColorDNA {
+  // Primary palette lock
+  primaryHue: string;      // e.g., "warm golden", "cool steel blue"
+  secondaryHue: string;    // e.g., "deep teal", "soft amber"
+  accentColor: string;     // e.g., "vibrant orange", "electric blue"
   
-  return prompts[preset];
+  // Richness guarantees
+  saturationFloor: number; // Minimum saturation (0-100), never go below
+  vibranceTarget: number;  // Target vibrance level
+  contrastAnchor: string;  // e.g., "high contrast with deep shadows"
+  
+  // Consistency anchors
+  skinToneGuide: string;   // How skin tones should render
+  shadowTone: string;      // Shadow color cast
+  highlightTone: string;   // Highlight color cast
+  
+  // Anti-degradation
+  forbiddenDrift: string[];  // Colors to avoid drifting toward
+}
+
+// Build COLOR DNA for each preset - these are MANDATORY color locks
+const COLOR_DNA_PRESETS: Record<ColorGradingPreset, ColorDNA> = {
+  cinematic: {
+    primaryHue: 'warm amber-gold highlights',
+    secondaryHue: 'cool teal-blue shadows',
+    accentColor: 'rich skin tones preserved',
+    saturationFloor: 70,
+    vibranceTarget: 85,
+    contrastAnchor: 'crushed blacks with creamy highlights, 1.15:1 contrast ratio',
+    skinToneGuide: 'warm healthy skin tones with natural flush',
+    shadowTone: 'teal-shifted cool shadows',
+    highlightTone: 'golden warm highlights',
+    forbiddenDrift: ['washed out', 'gray', 'muddy', 'desaturated', 'flat colors'],
+  },
+  blockbuster: {
+    primaryHue: 'saturated orange-amber',
+    secondaryHue: 'deep teal-cyan',
+    accentColor: 'punchy complementary colors',
+    saturationFloor: 80,
+    vibranceTarget: 95,
+    contrastAnchor: 'high contrast with deep blacks and bright highlights',
+    skinToneGuide: 'slightly warm bronzed skin tones',
+    shadowTone: 'rich teal shadows',
+    highlightTone: 'orange-gold highlights',
+    forbiddenDrift: ['muted', 'pastel', 'washed out', 'dull', 'gray'],
+  },
+  vintage: {
+    primaryHue: 'sepia-warm golden',
+    secondaryHue: 'faded cream-brown',
+    accentColor: 'muted earth tones',
+    saturationFloor: 55,
+    vibranceTarget: 65,
+    contrastAnchor: 'lifted blacks with soft milky highlights',
+    skinToneGuide: 'warm slightly desaturated skin with nostalgic glow',
+    shadowTone: 'warm brown shadows',
+    highlightTone: 'creamy yellow-white highlights',
+    forbiddenDrift: ['cold blue', 'harsh contrast', 'neon', 'oversaturated'],
+  },
+  noir: {
+    primaryHue: 'rich deep black',
+    secondaryHue: 'pure stark white',
+    accentColor: 'dramatic contrast zones',
+    saturationFloor: 5,
+    vibranceTarget: 15,
+    contrastAnchor: 'extreme contrast with inky blacks and blown highlights',
+    skinToneGuide: 'high contrast skin with dramatic shadows',
+    shadowTone: 'pure black shadows',
+    highlightTone: 'pure white highlights',
+    forbiddenDrift: ['colorful', 'warm tints', 'low contrast'],
+  },
+  'teal-orange': {
+    primaryHue: 'rich orange-amber',
+    secondaryHue: 'deep teal-cyan',
+    accentColor: 'complementary color pop',
+    saturationFloor: 75,
+    vibranceTarget: 90,
+    contrastAnchor: 'strong contrast with color separation',
+    skinToneGuide: 'warm orange-shifted healthy skin tones',
+    shadowTone: 'teal-cyan shadows',
+    highlightTone: 'warm orange highlights',
+    forbiddenDrift: ['gray', 'neutral', 'desaturated', 'muddy'],
+  },
+  warm: {
+    primaryHue: 'golden amber warmth',
+    secondaryHue: 'soft honey-brown',
+    accentColor: 'sunset orange accents',
+    saturationFloor: 70,
+    vibranceTarget: 80,
+    contrastAnchor: 'soft pleasing contrast with warm glow',
+    skinToneGuide: 'glowing warm healthy skin tones',
+    shadowTone: 'warm brown shadows',
+    highlightTone: 'golden yellow highlights',
+    forbiddenDrift: ['cold blue', 'gray', 'harsh', 'clinical'],
+  },
+  cold: {
+    primaryHue: 'steel blue',
+    secondaryHue: 'icy cyan',
+    accentColor: 'cool white highlights',
+    saturationFloor: 60,
+    vibranceTarget: 75,
+    contrastAnchor: 'high contrast with clinical precision',
+    skinToneGuide: 'slightly cool pale skin tones',
+    shadowTone: 'blue-shifted shadows',
+    highlightTone: 'cool white-blue highlights',
+    forbiddenDrift: ['warm', 'yellow', 'orange', 'cozy'],
+  },
+  desaturated: {
+    primaryHue: 'muted earth tones',
+    secondaryHue: 'neutral gray-green',
+    accentColor: 'selective color pops',
+    saturationFloor: 35,
+    vibranceTarget: 50,
+    contrastAnchor: 'gritty high contrast',
+    skinToneGuide: 'realistic slightly desaturated skin',
+    shadowTone: 'neutral gray shadows',
+    highlightTone: 'creamy white highlights',
+    forbiddenDrift: ['vibrant', 'saturated', 'colorful', 'candy colors'],
+  },
+  'high-contrast': {
+    primaryHue: 'saturated punchy colors',
+    secondaryHue: 'deep rich blacks',
+    accentColor: 'bright vivid accents',
+    saturationFloor: 80,
+    vibranceTarget: 95,
+    contrastAnchor: 'extreme contrast with crushed blacks and bright highlights',
+    skinToneGuide: 'bold saturated skin tones',
+    shadowTone: 'deep pure black shadows',
+    highlightTone: 'bright vibrant highlights',
+    forbiddenDrift: ['flat', 'low contrast', 'washed out', 'muddy'],
+  },
+  soft: {
+    primaryHue: 'pastel dreamy tones',
+    secondaryHue: 'creamy whites',
+    accentColor: 'soft romantic colors',
+    saturationFloor: 60,
+    vibranceTarget: 70,
+    contrastAnchor: 'low contrast with lifted shadows and soft highlights',
+    skinToneGuide: 'soft glowing healthy skin',
+    shadowTone: 'lifted soft shadows',
+    highlightTone: 'creamy bloom highlights',
+    forbiddenDrift: ['harsh', 'high contrast', 'punchy', 'gritty'],
+  },
+  moody: {
+    primaryHue: 'deep muted blues',
+    secondaryHue: 'desaturated earth tones',
+    accentColor: 'selective warm accents',
+    saturationFloor: 50,
+    vibranceTarget: 65,
+    contrastAnchor: 'atmospheric contrast with vignette',
+    skinToneGuide: 'slightly cool contemplative skin tones',
+    shadowTone: 'blue-tinted deep shadows',
+    highlightTone: 'muted cool highlights',
+    forbiddenDrift: ['bright', 'cheerful', 'vibrant', 'warm'],
+  },
+  vibrant: {
+    primaryHue: 'rich saturated primaries',
+    secondaryHue: 'bold vivid secondaries',
+    accentColor: 'electric accent colors',
+    saturationFloor: 90,
+    vibranceTarget: 100,
+    contrastAnchor: 'punchy high contrast with color pop',
+    skinToneGuide: 'healthy glowing saturated skin',
+    shadowTone: 'colored rich shadows',
+    highlightTone: 'bright vivid highlights',
+    forbiddenDrift: ['muted', 'desaturated', 'gray', 'flat', 'dull'],
+  },
+};
+
+// Generate MANDATORY color grading prompt for AI video generation
+// This creates an UNBREAKABLE color contract that improves clip quality
+function generateColorPrompt(preset: ColorGradingPreset): string {
+  const dna = COLOR_DNA_PRESETS[preset];
+  
+  // Build comprehensive color enforcement prompt
+  const parts = [
+    `[COLOR DNA LOCK: ${preset.toUpperCase()} GRADE]`,
+    `Primary: ${dna.primaryHue}.`,
+    `Secondary: ${dna.secondaryHue}.`,
+    `Contrast: ${dna.contrastAnchor}.`,
+    `Skin tones: ${dna.skinToneGuide}.`,
+    `Shadows: ${dna.shadowTone}.`,
+    `Highlights: ${dna.highlightTone}.`,
+    `MINIMUM saturation: ${dna.saturationFloor}%.`,
+    `Target vibrance: ${dna.vibranceTarget}%.`,
+    `FORBIDDEN: ${dna.forbiddenDrift.join(', ')}.`,
+    'Colors must be RICH and CONSISTENT throughout. NO color degradation allowed.',
+  ];
+  
+  return parts.join(' ');
+}
+
+// Generate short color anchor for prompt prefix (used in every clip)
+function generateColorAnchor(preset: ColorGradingPreset): string {
+  const dna = COLOR_DNA_PRESETS[preset];
+  return `Rich ${preset} color grade: ${dna.primaryHue}, ${dna.secondaryHue}. ${dna.contrastAnchor}. Saturation min ${dna.saturationFloor}%. NEVER: ${dna.forbiddenDrift.slice(0, 3).join(', ')}.`;
+}
+
+// Generate progressive color enhancement (colors get RICHER over sequence)
+function generateProgressiveColorBoost(preset: ColorGradingPreset, clipIndex: number, totalClips: number): string {
+  const dna = COLOR_DNA_PRESETS[preset];
+  
+  // Calculate progressive boost (clips get slightly richer as we go)
+  const progressRatio = clipIndex / Math.max(1, totalClips - 1);
+  const saturationBoost = Math.round(progressRatio * 5); // Up to +5% saturation
+  const vibranceBoost = Math.round(progressRatio * 8);   // Up to +8% vibrance
+  
+  return `[PROGRESSIVE COLOR: Clip ${clipIndex + 1}/${totalClips}. ` +
+    `Saturation: ${dna.saturationFloor + saturationBoost}% min. ` +
+    `Vibrance: ${dna.vibranceTarget + vibranceBoost}% target. ` +
+    `Colors should be RICHER than previous clips, never duller.]`;
 }
 
 // Analyze shot description for best preset
@@ -254,6 +451,8 @@ serve(async (req) => {
       config: Partial<ColorGradingConfig>;
       ffmpegFilter: string;
       colorPrompt: string;
+      colorAnchor: string;
+      progressiveBoost: string;
     }[] = [];
 
     // Determine master preset (either from request or analyze first shot)
@@ -264,9 +463,14 @@ serve(async (req) => {
     masterPreset = masterPreset || 'cinematic';
 
     console.log(`[Color Grading] Master preset: ${masterPreset}`);
+    console.log(`[Color Grading] Color DNA locked:`, COLOR_DNA_PRESETS[masterPreset]);
 
-    for (const shot of shots) {
-      // Use master preset if enforcing consistency, otherwise analyze each shot
+    const totalShots = shots.length;
+    
+    for (let i = 0; i < shots.length; i++) {
+      const shot = shots[i];
+      
+      // ALWAYS use master preset for color consistency (enforceConsistency should be true for production)
       const preset = enforceConsistency 
         ? masterPreset 
         : analyzeShot(shot.description, shot.mood);
@@ -286,6 +490,8 @@ serve(async (req) => {
       
       const ffmpegFilter = generateFFmpegFilter(config);
       const colorPrompt = generateColorPrompt(preset);
+      const colorAnchor = generateColorAnchor(preset);
+      const progressiveBoost = generateProgressiveColorBoost(preset, i, totalShots);
       
       shotGradings.push({
         shotId: shot.id,
@@ -293,6 +499,8 @@ serve(async (req) => {
         config,
         ffmpegFilter,
         colorPrompt,
+        colorAnchor,
+        progressiveBoost,
       });
     }
 
@@ -311,6 +519,10 @@ serve(async (req) => {
 
     console.log(`[Color Grading] Consistency score: ${consistencyScore}%`);
     console.log(`[Color Grading] Dominant preset: ${dominantPreset}`);
+    console.log(`[Color Grading] Generated ${shotGradings.length} color locks with progressive boosting`);
+
+    // Generate master color DNA for the entire project
+    const masterColorDNA = COLOR_DNA_PRESETS[masterPreset];
 
     return new Response(
       JSON.stringify({
@@ -319,16 +531,24 @@ serve(async (req) => {
         masterPreset: masterPreset,
         masterFFmpegFilter: generateFFmpegFilter(COLOR_GRADING_PRESETS[masterPreset]),
         masterColorPrompt: generateColorPrompt(masterPreset),
+        masterColorAnchor: generateColorAnchor(masterPreset),
+        masterColorDNA: masterColorDNA,
         consistencyScore,
-        shotGradings: shotGradings.map(g => ({
+        shotGradings: shotGradings.map((g, idx) => ({
           shotId: g.shotId,
           preset: g.preset,
           ffmpegFilter: g.ffmpegFilter,
           colorPrompt: g.colorPrompt,
+          colorAnchor: g.colorAnchor,
+          progressiveBoost: g.progressiveBoost,
+          clipIndex: idx,
+          totalClips: totalShots,
         })),
-        colorPromptEnhancements: shotGradings.map(g => ({
+        // ENHANCED: Full color prompt with progressive boosting
+        colorPromptEnhancements: shotGradings.map((g, idx) => ({
           shotId: g.shotId,
-          prompt: g.colorPrompt,
+          prompt: `${g.colorAnchor} ${g.progressiveBoost}`,
+          fullPrompt: g.colorPrompt,
         })),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

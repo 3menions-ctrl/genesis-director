@@ -8,13 +8,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Log GCP API calls for accurate cost tracking
+async function logGcpApiCall(
+  supabase: any,
+  operation: string,
+  service: string,
+  status: string,
+  projectId?: string,
+  shotId?: string,
+  userId?: string
+) {
+  try {
+    // Status polls cost ~$0.0001 each (minimal but adds up)
+    const POLL_COST_CENTS = 0.01; // $0.0001 per poll
+    
+    await supabase.rpc('log_api_cost', {
+      p_service: service,
+      p_operation: operation,
+      p_real_cost_cents: Math.round(POLL_COST_CENTS * 100) / 100,
+      p_credits_charged: 0, // Polls don't charge user credits
+      p_status: status,
+      p_project_id: projectId || null,
+      p_shot_id: shotId || 'status-poll',
+      p_user_id: userId || null,
+      p_metadata: { timestamp: new Date().toISOString() }
+    });
+  } catch (err) {
+    // Don't fail the request if logging fails
+    console.warn('[Cost Log] Failed to log API call:', err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize Supabase client for logging
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
-    const { taskId, provider = "vertex-ai" } = await req.json();
+    const { taskId, provider = "vertex-ai", projectId: reqProjectId, userId } = await req.json();
 
     if (!taskId) {
       throw new Error("Task ID is required");
@@ -39,14 +75,25 @@ serve(async (req) => {
         throw new Error("Invalid task ID format");
       }
       
-      const [, projectId, location, modelId, operationId] = taskMatch;
+      const [, gcpProjectId, location, modelId, operationId] = taskMatch;
       
       // Use the fetchPredictOperation endpoint for Veo operations
       // This is a POST request with the operation name in the body
-      const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
+      const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
       
       console.log("Polling Vertex AI operation:", fetchOperationUrl);
       console.log("Operation name:", taskId);
+      
+      // Log the GCP API poll call
+      await logGcpApiCall(
+        supabase,
+        'status_poll',
+        'google_veo_poll',
+        'pending',
+        reqProjectId,
+        operationId,
+        userId
+      );
       
       const response = await fetch(fetchOperationUrl, {
         method: "POST",

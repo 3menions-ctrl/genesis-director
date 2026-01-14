@@ -44,6 +44,10 @@ type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 // Veo 3.1: $0.08 per 6-second clip (based on usage)
 const VEO_COST_PER_CLIP_CENTS = 8;
 
+// Veo Status Poll Pricing (minimal but adds up with frequent polling)
+// Each fetchPredictOperation call costs ~$0.0001
+const VEO_POLL_COST_CENTS = 0.01;
+
 // OpenAI TTS Pricing
 // HD voices: $0.030 per 1,000 characters (roughly 2 cents for 60 words)
 const OPENAI_TTS_COST_PER_CALL_CENTS = 2;
@@ -207,6 +211,10 @@ export function CostAnalysisDashboard() {
         switch (row.service) {
           case 'google_veo':
             apiAggregated[key].calculated_cost_cents += VEO_COST_PER_CLIP_CENTS;
+            break;
+          case 'google_veo_poll':
+            // Status polling calls - minimal cost but adds up
+            apiAggregated[key].calculated_cost_cents += VEO_POLL_COST_CENTS;
             break;
           case 'openai-tts':
             apiAggregated[key].calculated_cost_cents += OPENAI_TTS_COST_PER_CALL_CENTS;
@@ -444,6 +452,7 @@ export function CostAnalysisDashboard() {
   const getServiceIcon = (service: string) => {
     switch (service) {
       case 'google_veo': return <Video className="w-4 h-4" />;
+      case 'google_veo_poll': return <RefreshCw className="w-4 h-4" />;
       case 'openai-tts': return <Mic className="w-4 h-4" />;
       case 'cloud_run_stitcher': return <Scissors className="w-4 h-4" />;
       case 'music-generation': return <Music className="w-4 h-4" />;

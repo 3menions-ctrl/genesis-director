@@ -64,10 +64,10 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
   const fetchPackages = async () => {
     setLoading(true);
+    // Use the public view that excludes sensitive Stripe price IDs
     const { data, error } = await supabase
-      .from('credit_packages')
+      .from('credit_packages_public')
       .select('*')
-      .eq('is_active', true)
       .order('credits', { ascending: true });
 
     if (error) {

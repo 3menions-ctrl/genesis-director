@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog,
   DialogContent,
@@ -45,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { CostAnalysisDashboard } from '@/components/admin/CostAnalysisDashboard';
 import { AdminProjectsBrowser } from '@/components/admin/AdminProjectsBrowser';
 import { AdminPipelineMonitor } from '@/components/admin/AdminPipelineMonitor';
@@ -226,29 +226,24 @@ export default function AdminDashboard() {
 
   const fetchCostSummary = async () => {
     try {
-      // Fetch API cost logs
       const { data: apiData } = await supabase
         .from('api_cost_logs')
         .select('service, operation, status, credits_charged, real_cost_cents');
       
-      // Fetch video clips for retry data
       const { data: clipsData } = await supabase
         .from('video_clips')
         .select('id, status, retry_count');
       
-      // Fetch refunds
       const { data: refundsData } = await supabase
         .from('credit_transactions')
         .select('amount')
         .eq('transaction_type', 'refund');
 
-      // Calculate totals using per-call rates (same as CostAnalysisDashboard)
       let totalApiCost = 0;
       let failedApiCost = 0;
       let failedClips = 0;
 
       (apiData || []).forEach((log: { service: string; status: string; real_cost_cents: number }) => {
-        // Calculate cost per call based on service type
         let costPerCall = 0;
         switch (log.service) {
           case 'google_veo': costPerCall = VEO_COST_PER_CLIP_CENTS; break;
@@ -268,27 +263,24 @@ export default function AdminDashboard() {
         }
       });
 
-      // Calculate retry costs - each retry is a Veo call
       let totalRetries = 0;
       (clipsData || []).forEach((clip: { retry_count: number | null }) => {
         totalRetries += clip.retry_count || 0;
       });
       const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
 
-      // Calculate refunds (use absolute value since refunds are negative)
       const totalRefundCredits = (refundsData || []).reduce(
         (sum: number, r: { amount: number }) => sum + Math.abs(r.amount || 0), 
         0
       );
 
-      // Total wasted = failed API calls + retry costs
       const totalWastedCost = failedApiCost + retryCost;
       const wastePercentage = (totalApiCost + retryCost) > 0 
         ? (totalWastedCost / (totalApiCost + retryCost)) * 100 
         : 0;
 
       setCostSummary({
-        totalApiCost: totalApiCost + retryCost, // Include retries in total
+        totalApiCost: totalApiCost + retryCost,
         totalWastedCost,
         totalRetries,
         totalRefunds: totalRefundCredits,
@@ -331,20 +323,18 @@ export default function AdminDashboard() {
 
   const fetchActualRevenue = async () => {
     try {
-      // Fetch only actual Stripe purchases (with stripe_payment_id)
       const { data: purchasesData } = await supabase
         .from('credit_transactions')
         .select('amount, stripe_payment_id')
         .eq('transaction_type', 'purchase')
         .not('stripe_payment_id', 'is', null);
       
-      // Fetch refunds to subtract
       const { data: refundsData } = await supabase
         .from('credit_transactions')
         .select('amount')
         .eq('transaction_type', 'refund');
       
-      const CREDIT_PRICE_CENTS = 11.6; // Average $0.116 per credit
+      const CREDIT_PRICE_CENTS = 11.6;
       const purchases = purchasesData || [];
       const refunds = refundsData || [];
       
@@ -360,17 +350,14 @@ export default function AdminDashboard() {
 
   const fetchCalculatedApiCost = async () => {
     try {
-      // Fetch all API cost logs
       const { data: apiData } = await supabase
         .from('api_cost_logs')
         .select('service, status');
       
-      // Fetch retry data from video clips
       const { data: clipsData } = await supabase
         .from('video_clips')
         .select('retry_count');
       
-      // Calculate costs per-call based on service type (same as CostAnalysisDashboard)
       let totalCost = 0;
       let opCount = 0;
       
@@ -388,7 +375,6 @@ export default function AdminDashboard() {
         }
       });
       
-      // Add retry costs (each retry = Veo call)
       const totalRetries = (clipsData || []).reduce(
         (sum: number, clip: { retry_count: number | null }) => sum + (clip.retry_count || 0), 
         0
@@ -549,100 +535,21 @@ export default function AdminDashboard() {
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
-  // Calculate financial summary using ACTUAL calculated costs
+  // Calculate financial summary
   const totalProfit = actualStripeRevenue - calculatedApiCost;
   const profitMargin = actualStripeRevenue > 0 
     ? (totalProfit / actualStripeRevenue) * 100 
     : 0;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
-      <AppHeader showCreate={false} />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Premium Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-              <Shield className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Admin Dashboard
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-          <Badge className="bg-primary/10 text-primary border border-primary/20 shadow-sm">
-            <Crown className="w-3.5 h-3.5 mr-1.5" />
-            Administrator
-          </Badge>
-        </div>
+  const newMessageCount = messages.filter(m => m.status === 'new').length;
 
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-muted/60 p-1.5 backdrop-blur-sm border border-border/50 shadow-sm">
-            <TabsTrigger value="overview" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2 relative">
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Messages</span>
-              {messages.filter(m => m.status === 'new').length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1.5 bg-destructive text-destructive-foreground text-xs font-semibold rounded-full flex items-center justify-center shadow-sm">
-                  {messages.filter(m => m.status === 'new').length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="users" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="financials" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <DollarSign className="w-4 h-4" />
-              <span className="hidden sm:inline">Financials</span>
-            </TabsTrigger>
-            <TabsTrigger value="costs" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <Calculator className="w-4 h-4" />
-              <span className="hidden sm:inline">Costs</span>
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <FolderKanban className="w-4 h-4" />
-              <span className="hidden sm:inline">Projects</span>
-            </TabsTrigger>
-            <TabsTrigger value="pipeline" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Pipeline</span>
-            </TabsTrigger>
-            <TabsTrigger value="failed" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="hidden sm:inline">Failed</span>
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">Audit</span>
-            </TabsTrigger>
-            <TabsTrigger value="packages" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <Coins className="w-4 h-4" />
-              <span className="hidden sm:inline">Packages</span>
-            </TabsTrigger>
-            <TabsTrigger value="moderation" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Moderation</span>
-            </TabsTrigger>
-            <TabsTrigger value="config" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
-              <UserCog className="w-4 h-4" />
-              <span className="hidden sm:inline">Config</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
             {/* User & Project Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
                   <CardDescription className="flex items-center gap-2 text-muted-foreground">
@@ -710,13 +617,13 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            {/* Cost & Waste Summary - NEW SECTION */}
+            {/* Cost Overview */}
             <div className="space-y-2">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Calculator className="w-5 h-5 text-primary" />
                 Cost Overview
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                   <CardHeader className="pb-2">
                     <CardDescription className="flex items-center gap-2">
@@ -823,10 +730,12 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Stats
             </Button>
-          </TabsContent>
+          </div>
+        );
 
-          {/* Messages Tab */}
-          <TabsContent value="messages" className="space-y-6">
+      case 'messages':
+        return (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Support Messages</h2>
@@ -838,52 +747,52 @@ export default function AdminDashboard() {
               </Button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-2 gap-6">
               {/* Message List */}
               <Card className="card-premium h-[600px] overflow-hidden">
                 <CardHeader className="pb-2 border-b border-border/50">
                   <CardTitle className="text-base text-foreground">Inbox</CardTitle>
-                  <CardDescription>
-                    {messages.filter(m => m.status === 'new').length} unread messages
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0 overflow-auto h-[calc(100%-80px)]">
+                <CardContent className="p-0 overflow-y-auto h-[calc(100%-60px)]">
                   {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <Mail className="w-12 h-12 mb-4 opacity-50" />
+                      <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
                       <p>No messages yet</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/50">
                       {messages.map((msg) => (
                         <button
                           key={msg.id}
-                          onClick={() => setSelectedMessage(msg)}
                           className={cn(
-                            "w-full text-left p-4 hover:bg-muted/50 transition-colors",
-                            selectedMessage?.id === msg.id && "bg-muted",
-                            msg.status === 'new' && "border-l-2 border-l-primary"
+                            "w-full text-left p-4 hover:bg-muted/30 transition-colors",
+                            selectedMessage?.id === msg.id && "bg-muted/50",
+                            msg.status === 'new' && "bg-primary/5"
                           )}
+                          onClick={() => setSelectedMessage(msg)}
                         >
-                          <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
+                              msg.status === 'new' ? "bg-primary/10" : "bg-muted"
+                            )}>
+                              <Mail className={cn(
+                                "w-4 h-4",
+                                msg.status === 'new' ? "text-primary" : "text-muted-foreground"
+                              )} />
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className={cn(
-                                "font-medium truncate",
-                                msg.status === 'new' && "text-foreground"
-                              )}>
-                                {msg.name}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium truncate text-foreground">{msg.name}</span>
+                                {msg.status === 'new' && (
+                                  <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">New</Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground truncate">{msg.subject}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(msg.created_at).toLocaleDateString()} • {msg.source}
+                                {new Date(msg.created_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <Badge 
-                              variant={msg.status === 'new' ? 'default' : msg.status === 'resolved' ? 'success' : 'secondary'}
-                              className="shrink-0"
-                            >
-                              {msg.status}
-                            </Badge>
                           </div>
                         </button>
                       ))}
@@ -894,69 +803,59 @@ export default function AdminDashboard() {
 
               {/* Message Detail */}
               <Card className="card-premium h-[600px] overflow-hidden">
-                <CardHeader className="border-b border-border/50">
+                <CardHeader className="pb-2 border-b border-border/50">
                   <CardTitle className="text-base text-foreground">Message Details</CardTitle>
                 </CardHeader>
-                <CardContent className="overflow-auto h-[calc(100%-80px)]">
+                <CardContent className="p-4 overflow-y-auto h-[calc(100%-60px)]">
                   {selectedMessage ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold">{selectedMessage.subject}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            From: {selectedMessage.name} ({selectedMessage.email})
-                          </p>
+                          <h3 className="font-semibold text-foreground">{selectedMessage.subject}</h3>
+                          <p className="text-sm text-muted-foreground">From: {selectedMessage.name} ({selectedMessage.email})</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(selectedMessage.created_at).toLocaleString()}
+                            {new Date(selectedMessage.created_at).toLocaleString()} • Source: {selectedMessage.source}
                           </p>
                         </div>
-                        <Badge 
-                          variant={selectedMessage.source === 'contact' ? 'info' : 'secondary'}
-                        >
-                          {selectedMessage.source}
+                        <Badge variant={
+                          selectedMessage.status === 'new' ? 'default' :
+                          selectedMessage.status === 'resolved' ? 'secondary' : 'outline'
+                        }>
+                          {selectedMessage.status}
                         </Badge>
                       </div>
                       
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="whitespace-pre-wrap">{selectedMessage.message}</p>
+                      <div className="bg-muted/30 rounded-lg p-4 whitespace-pre-wrap text-foreground">
+                        {selectedMessage.message}
                       </div>
 
-                      <div className="flex items-center gap-2 pt-4 border-t">
-                        {selectedMessage.status === 'new' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Mark Read
-                          </Button>
-                        )}
+                      <div className="flex items-center gap-2 pt-4 border-t border-border/50">
                         {selectedMessage.status !== 'resolved' && (
                           <Button 
-                            size="sm"
+                            size="sm" 
                             onClick={() => updateMessageStatus(selectedMessage.id, 'resolved')}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Mark Resolved
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          asChild
-                        >
-                          <a href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}>
-                            <Mail className="w-4 h-4 mr-2" />
-                            Reply
-                          </a>
-                        </Button>
-                        <Button
-                          size="sm"
+                        {selectedMessage.status === 'new' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => updateMessageStatus(selectedMessage.id, 'in_progress')}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Mark In Progress
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
                           variant="destructive"
                           onClick={() => deleteMessage(selectedMessage.id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -969,33 +868,34 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </div>
+        );
 
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-4">
-            <div className="flex items-center gap-4">
+      case 'users':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by email, name..."
+                  placeholder="Search users..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
-                  className="pl-9"
+                  className="pl-10"
                 />
               </div>
-              <Button onClick={fetchUsers} disabled={usersLoading}>
+              <Button onClick={fetchUsers} variant="outline" size="sm" disabled={usersLoading}>
                 {usersLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                <span className="ml-2">Search</span>
               </Button>
             </div>
 
-            <Card>
+            <Card className="card-premium">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-border">
+                      <tr className="border-b border-border bg-muted/30">
                         <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">User</th>
                         <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Credits</th>
                         <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Projects</th>
@@ -1063,10 +963,12 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        );
 
-          {/* Financials Tab */}
-          <TabsContent value="financials" className="space-y-6">
+      case 'financials':
+        return (
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
                 <CardHeader className="pb-2">
@@ -1189,15 +1091,15 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
             </Button>
-          </TabsContent>
+          </div>
+        );
 
-          {/* Comprehensive Cost Analysis Tab */}
-          <TabsContent value="costs" className="space-y-4">
-            <CostAnalysisDashboard />
-          </TabsContent>
+      case 'costs':
+        return <CostAnalysisDashboard />;
 
-          {/* Audit Log Tab */}
-          <TabsContent value="audit" className="space-y-4">
+      case 'audit':
+        return (
+          <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1248,41 +1150,76 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Log
             </Button>
-          </TabsContent>
+          </div>
+        );
 
-          {/* Projects Tab */}
-          <TabsContent value="projects">
-            <AdminProjectsBrowser />
-          </TabsContent>
+      case 'projects':
+        return <AdminProjectsBrowser />;
 
-          {/* Pipeline Monitor Tab */}
-          <TabsContent value="pipeline">
-            <AdminPipelineMonitor />
-          </TabsContent>
+      case 'pipeline':
+        return <AdminPipelineMonitor />;
 
-          {/* Failed Clips Tab */}
-          <TabsContent value="failed">
-            <AdminFailedClipsQueue />
-          </TabsContent>
+      case 'failed':
+        return <AdminFailedClipsQueue />;
 
-          {/* Credit Packages Tab */}
-          <TabsContent value="packages" className="space-y-6">
+      case 'packages':
+        return (
+          <div className="space-y-6">
             <AdminCreditPackagesManager />
             <AdminPricingConfigEditor />
             <AdminTierLimitsEditor />
-          </TabsContent>
+          </div>
+        );
 
-          {/* Content Moderation Tab */}
-          <TabsContent value="moderation">
-            <AdminContentModeration />
-          </TabsContent>
+      case 'moderation':
+        return <AdminContentModeration />;
 
-          {/* System Config Tab */}
-          <TabsContent value="config">
-            <AdminSystemConfig />
-          </TabsContent>
-        </Tabs>
+      case 'config':
+        return <AdminSystemConfig />;
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
+      <AppHeader showCreate={false} />
+      
+      <AdminSidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        messageCount={newMessageCount}
+      />
+      
+      <main className="pl-16 transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          {/* Premium Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
+                <Shield className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  Admin Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+            <Badge className="bg-primary/10 text-primary border border-primary/20 shadow-sm">
+              <Crown className="w-3.5 h-3.5 mr-1.5" />
+              Administrator
+            </Badge>
+          </div>
+
+          {/* Content */}
+          {renderContent()}
+        </div>
       </main>
+
       {/* Credit Adjustment Dialog */}
       <Dialog open={creditDialog.open} onOpenChange={(open) => !open && setCreditDialog({ open: false, user: null, amount: '', reason: '' })}>
         <DialogContent>

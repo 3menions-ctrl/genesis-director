@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Plus, Coins, User, Settings, HelpCircle, LogOut, 
+  Plus, Coins, User, Settings, HelpCircle, 
   Menu, X, Globe, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import { SignOutDialog } from '@/components/auth/SignOutDialog';
 
 interface NavItem {
   label: string;
@@ -44,14 +44,8 @@ export function AppHeader({
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, signOut, isAdmin } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-    toast.success('Signed out successfully');
-  };
 
   const handleCreate = () => {
     if (onCreateClick) {
@@ -183,10 +177,16 @@ export function AppHeader({
                     )}
                   </div>
                   <DropdownMenuSeparator className="bg-white/[0.06]" />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5">
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </DropdownMenuItem>
+                  <SignOutDialog>
+                    <DropdownMenuItem 
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-sm text-rose-400 hover:text-rose-300 focus:text-rose-300 focus:bg-rose-500/10 rounded-lg py-2.5 px-3 gap-2.5 cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        Sign Out
+                      </span>
+                    </DropdownMenuItem>
+                  </SignOutDialog>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -292,16 +292,13 @@ export function AppHeader({
                   Admin Panel
                 </button>
               )}
-              <button
-                onClick={() => {
-                  handleSignOut();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+              <SignOutDialog>
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
+                >
+                  Sign Out
+                </button>
+              </SignOutDialog>
             </div>
           </div>
         </div>

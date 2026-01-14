@@ -11,7 +11,7 @@ import {
   Video, Target, BarChart3, Timer, Crown,
   FolderOpen, CheckCircle2, Layers, Award, Star,
   PieChart as PieChartIcon, Activity, Play, X, Check,
-  Sparkles, Calendar, ArrowUpRight, Settings, LogOut,
+  Sparkles, Calendar, ArrowUpRight, Settings,
   Camera, Edit3, Trophy, Flame, Shield, Gem
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { SignOutDialog } from '@/components/auth/SignOutDialog';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -108,7 +109,7 @@ const ACHIEVEMENTS = [
 ];
 
 export default function Profile() {
-  const { user, profile, loading, refreshProfile, signOut } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -474,11 +475,6 @@ export default function Profile() {
     return <TrendingUp className="w-4 h-4 text-emerald-400" />;
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-    toast.success('Signed out successfully');
-  };
 
   // Calculate level based on total activity
   const totalActivity = metrics.totalVideosGenerated + (metrics.completedProjects * 5);
@@ -707,13 +703,14 @@ export default function Profile() {
                 >
                   <Settings className="w-5 h-5" />
                 </Button>
-                <Button
-                  onClick={handleSignOut}
-                  variant="ghost"
-                  className="h-12 w-12 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5"
-                >
-                  <LogOut className="w-5 h-5" />
-                </Button>
+                <SignOutDialog>
+                  <Button
+                    variant="ghost"
+                    className="h-12 w-12 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </Button>
+                </SignOutDialog>
               </div>
             </div>
           </div>

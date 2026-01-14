@@ -579,6 +579,8 @@ async function runPreProduction(
         characterLock, // Pass character lock for consistency
         // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
         environmentPrompt: request.environmentPrompt,
+        // VOICE CONTROL: Pass includeVoice to prevent dialogue generation when disabled
+        includeVoice: request.includeVoice,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -589,7 +591,8 @@ async function runPreProduction(
           description: shot.description || '',
           durationSeconds: shot.durationSeconds || state.clipDuration,
           mood: shot.mood || request.mood || 'cinematic',
-          dialogue: shot.dialogue || '',
+          // VOICE CONTROL: Only include dialogue if voice is enabled
+          dialogue: request.includeVoice ? (shot.dialogue || '') : '',
           // NEW: Capture scene context for continuous flow
           sceneContext: shot.actionPhase ? {
             actionPhase: shot.actionPhase,
@@ -672,6 +675,8 @@ async function runPreProduction(
         characterLock, // Pass character lock for consistency
         // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
         environmentPrompt: request.environmentPrompt,
+        // VOICE CONTROL: Pass includeVoice to prevent dialogue generation when disabled
+        includeVoice: request.includeVoice,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -682,7 +687,8 @@ async function runPreProduction(
           description: shot.description || '',
           durationSeconds: shot.durationSeconds || state.clipDuration,
           mood: shot.mood || request.mood || 'cinematic',
-          dialogue: shot.dialogue || '',
+          // VOICE CONTROL: Only include dialogue if voice is enabled
+          dialogue: request.includeVoice ? (shot.dialogue || '') : '',
           // Capture scene context
           sceneContext: shot.actionPhase ? {
             actionPhase: shot.actionPhase,

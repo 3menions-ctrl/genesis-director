@@ -164,6 +164,54 @@ export type Database = {
           },
         ]
       }
+      character_voice_assignments: {
+        Row: {
+          character_id: string | null
+          character_name: string
+          created_at: string | null
+          id: string
+          project_id: string
+          updated_at: string | null
+          voice_id: string
+          voice_provider: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          character_name: string
+          created_at?: string | null
+          id?: string
+          project_id: string
+          updated_at?: string | null
+          voice_id: string
+          voice_provider?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          character_name?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          updated_at?: string | null
+          voice_id?: string
+          voice_provider?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_voice_assignments_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_voice_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           appearance: string | null
@@ -180,7 +228,9 @@ export type Database = {
           times_borrowed: number | null
           universe_id: string | null
           user_id: string
+          voice_assigned_at: string | null
           voice_id: string | null
+          voice_locked: boolean | null
         }
         Insert: {
           appearance?: string | null
@@ -197,7 +247,9 @@ export type Database = {
           times_borrowed?: number | null
           universe_id?: string | null
           user_id: string
+          voice_assigned_at?: string | null
           voice_id?: string | null
+          voice_locked?: boolean | null
         }
         Update: {
           appearance?: string | null
@@ -214,7 +266,9 @@ export type Database = {
           times_borrowed?: number | null
           universe_id?: string | null
           user_id?: string
+          voice_assigned_at?: string | null
           voice_id?: string | null
+          voice_locked?: boolean | null
         }
         Relationships: [
           {
@@ -1410,6 +1464,27 @@ export type Database = {
           last_completed_index: number
           last_frame_url: string
           pending_count: number
+        }[]
+      }
+      get_or_assign_character_voice: {
+        Args: {
+          p_character_id?: string
+          p_character_name: string
+          p_preferred_voice?: string
+          p_project_id: string
+        }
+        Returns: {
+          is_new_assignment: boolean
+          voice_id: string
+          voice_provider: string
+        }[]
+      }
+      get_project_voice_map: {
+        Args: { p_project_id: string }
+        Returns: {
+          character_name: string
+          voice_id: string
+          voice_provider: string
         }[]
       }
       get_universe_role: {

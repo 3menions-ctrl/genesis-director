@@ -90,23 +90,46 @@ serve(async (req) => {
       ? createClient(supabaseUrl, supabaseServiceKey) 
       : null;
 
-    // VOICE RESOLUTION PRIORITY:
-    // 1. Direct voiceId override (highest priority)
-    // 2. Character's stored voice_id (from characters table)
-    // 3. voiceType mapping (e.g., 'narrator', 'male')
-    // 4. Default voice
+    // =====================================================
+    // IRON-CLAD VOICE RESOLUTION PRIORITY:
+    // 1. Direct voiceId override (highest priority - for explicit requests)
+    // 2. Project voice assignment (from get_or_assign_character_voice)
+    // 3. Character's stored voice_id (from characters table)
+    // 4. voiceType mapping (e.g., 'narrator', 'male')
+    // 5. Default voice (nova)
+    // =====================================================
     
     let resolvedVoice = 'nova'; // Default
     let resolvedSpeed = 1.0;
     let voiceSource = 'default';
     
-    // Priority 1: Direct voice override
+    // Priority 1: Direct voice override (for explicit requests)
     if (voiceId && Object.keys(OPENAI_VOICE_OPTIONS).includes(voiceId)) {
       resolvedVoice = voiceId;
       voiceSource = 'direct_override';
       console.log(`[Voice] Using direct voice override: ${voiceId}`);
     }
-    // Priority 2: Look up character's persistent voice
+    // Priority 2: Use project voice assignment system for guaranteed consistency
+    else if (projectId && characterName && supabase) {
+      try {
+        const { data: voiceData, error: voiceError } = await supabase.rpc('get_or_assign_character_voice', {
+          p_project_id: projectId,
+          p_character_name: characterName,
+          p_character_id: characterId || null,
+          p_preferred_voice: null,
+        });
+        
+        if (!voiceError && voiceData && voiceData.length > 0) {
+          const assignment = voiceData[0];
+          resolvedVoice = assignment.voice_id;
+          voiceSource = `project_assignment:${characterName}${assignment.is_new_assignment ? ':NEW' : ''}`;
+          console.log(`[Voice] Using project voice assignment: ${characterName} -> ${resolvedVoice}`);
+        }
+      } catch (rpcErr) {
+        console.warn(`[Voice] Failed to get project voice assignment, falling back:`, rpcErr);
+      }
+    }
+    // Priority 3: Look up character's persistent voice from characters table
     else if (characterId && supabase) {
       const { data: character, error: charError } = await supabase
         .from('characters')
@@ -122,7 +145,7 @@ serve(async (req) => {
         console.warn(`[Voice] Failed to look up character voice:`, charError.message);
       }
     }
-    // Priority 3: Voice type mapping
+    // Priority 4: Voice type mapping (for narrator, male, female types)
     else if (voiceType && VOICE_MAP[voiceType]) {
       const config = VOICE_MAP[voiceType];
       resolvedVoice = config.voice;

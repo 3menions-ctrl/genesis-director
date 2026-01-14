@@ -41,6 +41,7 @@ import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudio } from '@/contexts/StudioContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
@@ -125,6 +126,9 @@ export function UnifiedStudio() {
   const navigate = useNavigate();
   const abortControllerRef = useRef<AbortController | null>(null);
   
+  // Import StudioContext for synced project selection
+  const { activeProjectId: contextActiveProjectId, activeProject: contextActiveProject, createProject: contextCreateProject } = useStudio();
+  
   // Template/Environment loading from URL params
   const { appliedSettings, isLoading: isLoadingPreset, clearAppliedSettings } = useTemplateEnvironment();
   
@@ -206,6 +210,18 @@ export function UnifiedStudio() {
   
   // Get user credits from auth context profile
   const userCredits = profile?.credits_balance ?? 0;
+  
+  // Sync with StudioContext's activeProjectId when a new project is created
+  useEffect(() => {
+    if (contextActiveProjectId && contextActiveProjectId !== activeProjectId && currentStage === 'idle') {
+      // A project was selected in context - check if it's a draft we should work with
+      if (contextActiveProject && contextActiveProject.status === 'idle') {
+        setActiveProjectId(contextActiveProjectId);
+        setProjectTitle(contextActiveProject.name || 'Untitled Project');
+        console.log('[UnifiedStudio] Synced to context project:', contextActiveProjectId);
+      }
+    }
+  }, [contextActiveProjectId, contextActiveProject, activeProjectId, currentStage]);
 
   // Check for projects awaiting approval OR in-progress on mount
   useEffect(() => {
@@ -1078,6 +1094,16 @@ export function UnifiedStudio() {
         
         {/* Hero Section - Compact on mobile */}
         <div className="text-center space-y-2 sm:space-y-3 mb-4 sm:mb-8">
+          {/* Project Title - Show when a project is active */}
+          {activeProjectId && projectTitle && currentStage === 'idle' && (
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Badge variant="outline" className="bg-white/5 border-white/10 text-white/70 text-xs px-3 py-1">
+                <Film className="w-3 h-3 mr-1.5" />
+                {projectTitle}
+              </Badge>
+            </div>
+          )}
+          
           <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">
             What will you create?
           </h2>

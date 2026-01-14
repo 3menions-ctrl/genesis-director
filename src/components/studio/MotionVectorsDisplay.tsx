@@ -8,6 +8,10 @@ interface MotionVectors {
   cameraMovement?: { type: string; direction: string; speed: number };
   motionBlur?: number;
   dominantDirection?: string;
+  // Alternative format from database
+  endVelocity?: string;
+  endDirection?: string;
+  cameraMomentum?: string;
 }
 
 interface MotionVectorsDisplayProps {
@@ -22,6 +26,9 @@ export function MotionVectorsDisplay({ motionVectors, shotIndex, className }: Mo
   const velocity = motionVectors.subjectVelocity;
   const camera = motionVectors.cameraMovement;
   
+  // Check for alternative database format
+  const hasAltFormat = motionVectors.endVelocity || motionVectors.endDirection || motionVectors.cameraMomentum;
+  
   const getDirectionArrow = (direction?: string) => {
     const arrows: Record<string, string> = {
       'left': '←',
@@ -31,11 +38,16 @@ export function MotionVectorsDisplay({ motionVectors, shotIndex, className }: Mo
       'forward': '↗',
       'backward': '↙',
       'static': '•',
+      'continuous': '→',
+      'lateral': '↔',
+      'steady': '―',
+      'slow': '·',
     };
     return arrows[direction?.toLowerCase() || ''] || '→';
   };
 
-  const getSpeedLabel = (speed?: number) => {
+  const getSpeedLabel = (speed?: number | string) => {
+    if (typeof speed === 'string') return speed;
     if (!speed) return 'Static';
     if (speed < 0.3) return 'Slow';
     if (speed < 0.6) return 'Medium';
@@ -52,8 +64,49 @@ export function MotionVectorsDisplay({ motionVectors, shotIndex, className }: Mo
       )}
     >
       <TooltipProvider>
-        {/* Subject Motion */}
-        {velocity && (
+        {/* Alternative format: endVelocity/endDirection */}
+        {hasAltFormat && (
+          <>
+            {motionVectors.endVelocity && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5">
+                    <Move className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs text-white/70">
+                      {getDirectionArrow(motionVectors.endDirection)}
+                    </span>
+                    <span className="text-xs text-white/50 capitalize">
+                      {motionVectors.endVelocity}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">End velocity: {motionVectors.endVelocity}</p>
+                  <p className="text-xs text-muted-foreground">Direction: {motionVectors.endDirection || 'Unknown'}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            
+            {motionVectors.cameraMomentum && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs text-white/70 capitalize">
+                      {motionVectors.cameraMomentum}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Camera momentum: {motionVectors.cameraMomentum}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </>
+        )}
+
+        {/* Subject Motion - original format */}
+        {!hasAltFormat && velocity && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1.5">
@@ -73,8 +126,8 @@ export function MotionVectorsDisplay({ motionVectors, shotIndex, className }: Mo
           </Tooltip>
         )}
 
-        {/* Camera Movement */}
-        {camera && (
+        {/* Camera Movement - original format */}
+        {!hasAltFormat && camera && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1.5">

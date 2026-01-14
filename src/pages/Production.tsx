@@ -84,6 +84,21 @@ interface ProFeaturesState {
   identityBible?: any;
   consistencyScore?: number;
   qualityTier?: string;
+  continuityAnalysis?: {
+    score?: number;
+    transitions?: Array<{
+      fromIndex: number;
+      toIndex: number;
+      overallScore: number;
+      motionScore: number;
+      colorScore: number;
+      semanticScore: number;
+      needsBridge: boolean;
+      bridgePrompt?: string;
+    }>;
+    clipsToRetry?: number[];
+    bridgeClipsNeeded?: number;
+  };
 }
 
 // ============= CONSTANTS =============
@@ -192,14 +207,26 @@ export default function Production() {
       .order('shot_index');
     
     if (clips) {
-      setClipResults(clips.map(clip => ({
-        index: clip.shot_index,
-        status: clip.status as ClipResult['status'],
-        videoUrl: clip.video_url || undefined,
-        error: clip.error_message || undefined,
-        id: clip.id,
-        motionVectors: clip.motion_vectors as ClipResult['motionVectors'],
-      })));
+      setClipResults(clips.map(clip => {
+        // Handle motion_vectors that might be double-stringified
+        let motionVectors = clip.motion_vectors;
+        if (typeof motionVectors === 'string') {
+          try {
+            motionVectors = JSON.parse(motionVectors);
+          } catch {
+            // Keep as is if parse fails
+          }
+        }
+        
+        return {
+          index: clip.shot_index,
+          status: clip.status as ClipResult['status'],
+          videoUrl: clip.video_url || undefined,
+          error: clip.error_message || undefined,
+          id: clip.id,
+          motionVectors: motionVectors as ClipResult['motionVectors'],
+        };
+      }));
       setCompletedClips(clips.filter(c => c.status === 'completed').length);
     }
   }, [projectId]);
@@ -304,7 +331,15 @@ export default function Production() {
       const proData = project.pro_features_data as any;
       if (proData) {
         const continuityPlan = proData.continuityPlan;
+        const continuityAnalysis = proData.continuityAnalysis;
         const envLock = continuityPlan?.environmentLock;
+        
+        // Build consistency score from multiple sources
+        const consistencyScore = 
+          proData.consistencyScore ?? 
+          (continuityAnalysis?.score ? continuityAnalysis.score / 100 : undefined) ??
+          (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined);
+        
         setProFeatures({
           masterSceneAnchor: proData.masterSceneAnchor || (envLock ? {
             lighting: envLock.lighting,
@@ -313,9 +348,20 @@ export default function Production() {
           } : null),
           characters: proData.characters || [],
           identityBible: proData.identityBible,
-          consistencyScore: proData.consistencyScore || (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined),
+          consistencyScore,
           qualityTier: project.quality_tier,
+          continuityAnalysis: continuityAnalysis ? {
+            score: continuityAnalysis.score,
+            transitions: continuityAnalysis.transitions || [],
+            clipsToRetry: continuityAnalysis.clipsToRetry || [],
+            bridgeClipsNeeded: continuityAnalysis.bridgeClipsNeeded || 0,
+          } : undefined,
         });
+        
+        // Set audit score from continuity analysis if available
+        if (continuityAnalysis?.score && !auditScore) {
+          setAuditScore(continuityAnalysis.score);
+        }
       }
 
       let scriptLoaded = false;
@@ -431,7 +477,14 @@ export default function Production() {
         const proData = project.pro_features_data as any;
         if (proData) {
           const continuityPlan = proData.continuityPlan;
+          const continuityAnalysis = proData.continuityAnalysis;
           const envLock = continuityPlan?.environmentLock;
+          
+          const consistencyScore = 
+            proData.consistencyScore ?? 
+            (continuityAnalysis?.score ? continuityAnalysis.score / 100 : undefined) ??
+            (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined);
+          
           setProFeatures({
             masterSceneAnchor: proData.masterSceneAnchor || (envLock ? {
               lighting: envLock.lighting,
@@ -440,9 +493,19 @@ export default function Production() {
             } : null),
             characters: proData.characters || [],
             identityBible: proData.identityBible,
-            consistencyScore: proData.consistencyScore || (continuityPlan?.overallContinuityScore ? continuityPlan.overallContinuityScore / 100 : undefined),
+            consistencyScore,
             qualityTier: project.quality_tier as string,
+            continuityAnalysis: continuityAnalysis ? {
+              score: continuityAnalysis.score,
+              transitions: continuityAnalysis.transitions || [],
+              clipsToRetry: continuityAnalysis.clipsToRetry || [],
+              bridgeClipsNeeded: continuityAnalysis.bridgeClipsNeeded || 0,
+            } : undefined,
           });
+          
+          if (continuityAnalysis?.score) {
+            setAuditScore(continuityAnalysis.score);
+          }
         }
 
         const tasks = parsePendingVideoTasks(project.pending_video_tasks);
@@ -887,11 +950,29 @@ export default function Production() {
                       })) || []}
                       identityBibleActive={!!proFeatures?.identityBible}
                       nonFacialAnchors={proFeatures?.identityBible?.nonFacialAnchors || []}
-                      consistencyScore={proFeatures?.consistencyScore || (completedClips > 0 ? completedClips / (clipResults.length || expectedClipCount) : 0)}
-                      consistencyMetrics={{
-                        color: proFeatures?.masterSceneAnchor?.dominantColors?.length ? 0.85 : undefined,
-                        scene: proFeatures?.masterSceneAnchor ? 0.9 : undefined,
-                      }}
+                      consistencyScore={
+                        proFeatures?.consistencyScore ?? 
+                        (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined) ??
+                        (completedClips > 0 ? completedClips / (clipResults.length || expectedClipCount) : 0)
+                      }
+                      consistencyMetrics={(() => {
+                        // Calculate metrics from continuity analysis if available
+                        const transitions = proFeatures?.continuityAnalysis?.transitions || [];
+                        if (transitions.length > 0) {
+                          const avgMotion = transitions.reduce((sum, t) => sum + (t.motionScore || 0), 0) / transitions.length / 100;
+                          const avgColor = transitions.reduce((sum, t) => sum + (t.colorScore || 0), 0) / transitions.length / 100;
+                          const avgSemantic = transitions.reduce((sum, t) => sum + (t.semanticScore || 0), 0) / transitions.length / 100;
+                          return {
+                            color: avgColor || undefined,
+                            motion: avgMotion || undefined,
+                            scene: avgSemantic || undefined,
+                          };
+                        }
+                        return {
+                          color: proFeatures?.masterSceneAnchor?.dominantColors?.length ? 0.85 : undefined,
+                          scene: proFeatures?.masterSceneAnchor ? 0.9 : undefined,
+                        };
+                      })()}
                       isProTier={proFeatures?.qualityTier === 'professional'}
                     />
                   )}
@@ -928,14 +1009,22 @@ export default function Production() {
                     />
                   )}
 
-                  {/* Transition Timeline */}
-                  {clipResults.length >= 2 && completedClips >= 2 && transitionAnalyses.length > 0 && (
-                    <TransitionTimeline
-                      transitions={transitionAnalyses}
-                      clipsToRetry={continuityClipsToRetry}
-                      onRetryClip={handleRetryClip}
-                      isRetrying={retryingClipIndex !== null}
-                    />
+                  {/* Transition Timeline - Use database data if hook data is empty */}
+                  {clipResults.length >= 2 && completedClips >= 2 && (
+                    (transitionAnalyses.length > 0 || (proFeatures?.continuityAnalysis?.transitions?.length ?? 0) > 0) && (
+                      <TransitionTimeline
+                        transitions={transitionAnalyses.length > 0 
+                          ? transitionAnalyses 
+                          : (proFeatures?.continuityAnalysis?.transitions || []) as any
+                        }
+                        clipsToRetry={continuityClipsToRetry.length > 0 
+                          ? continuityClipsToRetry 
+                          : (proFeatures?.continuityAnalysis?.clipsToRetry || [])
+                        }
+                        onRetryClip={handleRetryClip}
+                        isRetrying={retryingClipIndex !== null}
+                      />
+                    )
                   )}
 
                   {/* Status Cards */}

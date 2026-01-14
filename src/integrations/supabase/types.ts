@@ -1381,7 +1381,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      credit_packages_public: {
+        Row: {
+          created_at: string | null
+          credits: number | null
+          id: string | null
+          is_active: boolean | null
+          is_popular: boolean | null
+          name: string | null
+          price_cents: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name?: string | null
+          price_cents?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          credits?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          name?: string | null
+          price_cents?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {

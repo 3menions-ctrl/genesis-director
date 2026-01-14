@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DollarSign,
   Server,
@@ -27,8 +30,11 @@ import {
   Image,
   Scissors,
   Sparkles,
+  CalendarIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 
 // ============================================
 // REAL COST DEFINITIONS - UPDATE THESE VALUES
@@ -119,14 +125,62 @@ export function CostAnalysisDashboard() {
   const [devHours, setDevHours] = useState(0);
   const [projectStartDate] = useState(new Date('2026-01-07')); // Update to your start date
   
+  // Date range filter state
+  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('all');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
+
+  const getDateRange = (): { start: Date | null; end: Date | null } => {
+    const now = new Date();
+    switch (dateRangePreset) {
+      case 'today':
+        return { start: startOfDay(now), end: endOfDay(now) };
+      case '7days':
+        return { start: startOfDay(subDays(now, 7)), end: endOfDay(now) };
+      case '30days':
+        return { start: startOfDay(subDays(now, 30)), end: endOfDay(now) };
+      case 'custom':
+        return { 
+          start: customStartDate ? startOfDay(customStartDate) : null, 
+          end: customEndDate ? endOfDay(customEndDate) : endOfDay(now) 
+        };
+      case 'all':
+      default:
+        return { start: null, end: null };
+    }
+  };
+
+  const getDateRangeLabel = (): string => {
+    const { start, end } = getDateRange();
+    if (!start) return 'All Time';
+    if (dateRangePreset === 'today') return 'Today';
+    if (dateRangePreset === '7days') return 'Last 7 Days';
+    if (dateRangePreset === '30days') return 'Last 30 Days';
+    if (start && end) {
+      return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`;
+    }
+    return 'Custom Range';
+  };
+  
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      // Fetch API costs with status - includes failed and skipped
-      const { data: apiData } = await supabase
+      const { start, end } = getDateRange();
+      
+      // Build query with optional date filters
+      let apiQuery = supabase
         .from('api_cost_logs')
-        .select('service, operation, status, credits_charged, real_cost_cents')
+        .select('service, operation, status, credits_charged, real_cost_cents, created_at')
         .order('created_at', { ascending: false });
+      
+      if (start) {
+        apiQuery = apiQuery.gte('created_at', start.toISOString());
+      }
+      if (end) {
+        apiQuery = apiQuery.lte('created_at', end.toISOString());
+      }
+      
+      const { data: apiData } = await apiQuery;
       
       // Aggregate API costs by service, operation, and status
       const apiAggregated: Record<string, ApiCostData> = {};
@@ -180,10 +234,19 @@ export function CostAnalysisDashboard() {
       
       setApiCosts(Object.values(apiAggregated).sort((a, b) => b.calculated_cost_cents - a.calculated_cost_cents));
 
-      // Fetch video clips data for retry analysis
-      const { data: clipsData } = await supabase
+      // Fetch video clips data for retry analysis (with date filter)
+      let clipsQuery = supabase
         .from('video_clips')
-        .select('id, status, retry_count');
+        .select('id, status, retry_count, created_at');
+      
+      if (start) {
+        clipsQuery = clipsQuery.gte('created_at', start.toISOString());
+      }
+      if (end) {
+        clipsQuery = clipsQuery.lte('created_at', end.toISOString());
+      }
+      
+      const { data: clipsData } = await clipsQuery;
       
       const clips = clipsData || [];
       const totalRetries = clips.reduce((sum, c) => sum + (c.retry_count || 0), 0);
@@ -196,11 +259,20 @@ export function CostAnalysisDashboard() {
         retry_cost_cents: retryCostCents,
       });
 
-      // Fetch refund data
-      const { data: refundsData } = await supabase
+      // Fetch refund data (with date filter)
+      let refundsQuery = supabase
         .from('credit_transactions')
-        .select('amount')
+        .select('amount, created_at')
         .eq('transaction_type', 'refund');
+      
+      if (start) {
+        refundsQuery = refundsQuery.gte('created_at', start.toISOString());
+      }
+      if (end) {
+        refundsQuery = refundsQuery.lte('created_at', end.toISOString());
+      }
+      
+      const { data: refundsData } = await refundsQuery;
       
       const refunds = refundsData || [];
       setRefundData({
@@ -285,7 +357,7 @@ export function CostAnalysisDashboard() {
 
   useEffect(() => {
     fetchAllData();
-  }, []);
+  }, [dateRangePreset, customStartDate, customEndDate]);
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -371,16 +443,104 @@ export function CostAnalysisDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with Date Range Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">Comprehensive Cost Analysis</h2>
-          <p className="text-sm text-muted-foreground">Every dime tracked and calculated</p>
+          <p className="text-sm text-muted-foreground">
+            {getDateRangeLabel()} • Every dime tracked and calculated
+          </p>
         </div>
-        <Button onClick={fetchAllData} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Preset buttons */}
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+            <Button
+              variant={dateRangePreset === 'today' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setDateRangePreset('today')}
+              className="h-7 px-2 text-xs"
+            >
+              Today
+            </Button>
+            <Button
+              variant={dateRangePreset === '7days' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setDateRangePreset('7days')}
+              className="h-7 px-2 text-xs"
+            >
+              7 Days
+            </Button>
+            <Button
+              variant={dateRangePreset === '30days' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setDateRangePreset('30days')}
+              className="h-7 px-2 text-xs"
+            >
+              30 Days
+            </Button>
+            <Button
+              variant={dateRangePreset === 'all' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setDateRangePreset('all')}
+              className="h-7 px-2 text-xs"
+            >
+              All Time
+            </Button>
+          </div>
+
+          {/* Custom date range picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={dateRangePreset === 'custom' ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-7 gap-1 text-xs"
+              >
+                <CalendarIcon className="w-3 h-3" />
+                Custom
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="p-3 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Start Date</p>
+                  <Calendar
+                    mode="single"
+                    selected={customStartDate}
+                    onSelect={(date) => {
+                      setCustomStartDate(date);
+                      setDateRangePreset('custom');
+                    }}
+                    disabled={(date) => date > new Date()}
+                    className="rounded-md border pointer-events-auto"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">End Date</p>
+                  <Calendar
+                    mode="single"
+                    selected={customEndDate}
+                    onSelect={(date) => {
+                      setCustomEndDate(date);
+                      setDateRangePreset('custom');
+                    }}
+                    disabled={(date) => 
+                      date > new Date() || 
+                      (customStartDate ? date < customStartDate : false)
+                    }
+                    className="rounded-md border pointer-events-auto"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button onClick={fetchAllData} variant="outline" size="sm" className="h-7">
+            <RefreshCw className="w-3 h-3 mr-1" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Executive Summary */}

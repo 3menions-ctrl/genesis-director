@@ -20,7 +20,7 @@ const FOOTER_LINKS = {
   Resources: [
     { label: 'Documentation', href: '#' },
     { label: 'Tutorials', href: '#' },
-    { label: 'Blog', href: '#' },
+    { label: 'Blog', href: '/blog' },
     { label: 'Community', href: '#' },
     { label: 'Templates', href: '#' },
   ],

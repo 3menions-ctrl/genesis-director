@@ -833,12 +833,17 @@ export function UnifiedStudio() {
         return;
       }
 
+      // Handle errors - Supabase functions may return error details in data even with funcError
       if (funcError) {
-        throw new Error(funcError.message);
+        // Extract error message from response data if available (e.g., 402 insufficient credits)
+        const errorMessage = data?.error || funcError.message || 'Pipeline failed';
+        throw new Error(errorMessage);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Pipeline failed');
+      if (!data?.success) {
+        // Handle explicit failure response from pipeline
+        const errorMessage = data?.error || 'Pipeline failed';
+        throw new Error(errorMessage);
       }
 
       // Set project ID for realtime tracking - pipeline now runs in background

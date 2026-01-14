@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -138,12 +138,40 @@ export default function Profile() {
     videosThisWeek: 0,
   });
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Handle payment success/cancel from Stripe redirect
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const creditsAdded = searchParams.get('credits');
+    
+    if (paymentStatus === 'success') {
+      toast.success(`Payment successful! ${creditsAdded ? `${creditsAdded} credits` : 'Credits'} will be added shortly.`);
+      // Refresh profile to get updated credits (webhook may take a moment)
+      const refreshWithDelay = async () => {
+        await refreshProfile();
+        fetchTransactions();
+        fetchMetrics();
+        // Refresh again after 3 seconds in case webhook is delayed
+        setTimeout(async () => {
+          await refreshProfile();
+          fetchTransactions();
+        }, 3000);
+      };
+      refreshWithDelay();
+      // Clear the query params
+      setSearchParams({});
+    } else if (paymentStatus === 'canceled') {
+      toast.info('Payment was canceled');
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, refreshProfile]);
 
   useEffect(() => {
     if (user) {

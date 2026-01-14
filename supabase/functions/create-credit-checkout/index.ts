@@ -13,6 +13,14 @@ const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
     priceId: "price_1SpKEvCZh4qZNjWWqIG0CC17",
     credits: 370,
   },
+  growth: {
+    priceId: "price_1SpKNZCZh4qZNjWWN8QwPqPc",
+    credits: 1000,
+  },
+  agency: {
+    priceId: "price_1SpKPsCZh4qZNjWWcafLgUhd",
+    credits: 3000,
+  },
 };
 
 const logStep = (step: string, details?: unknown) => {

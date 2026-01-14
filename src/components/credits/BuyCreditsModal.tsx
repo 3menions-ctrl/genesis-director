@@ -8,8 +8,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Coins, Sparkles, Check, Star, Loader2, Zap, Film, Mic } from 'lucide-react';
+import { Coins, Sparkles, Check, Star, Loader2, Zap, Film, Mic, Shield, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
 
@@ -33,16 +34,19 @@ const TIER_STYLES = {
     gradient: 'from-slate-400 to-slate-600',
     bg: 'bg-slate-500/10',
     border: 'border-slate-500/30',
+    icon: Zap,
   },
   Growth: {
     gradient: 'from-primary to-accent',
     bg: 'bg-primary/10',
     border: 'border-primary/50',
+    icon: Sparkles,
   },
   Agency: {
     gradient: 'from-amber-400 to-orange-600',
     bg: 'bg-amber-500/10',
     border: 'border-amber-500/30',
+    icon: Star,
   },
 } as const;
 
@@ -59,6 +63,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
   }, [open]);
 
   const fetchPackages = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from('credit_packages')
       .select('*')
@@ -91,12 +96,13 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
+      minimumFractionDigits: 0,
     }).format(cents / 100);
   };
 
   const getPricePerCredit = (pkg: CreditPackage) => {
-    return ((pkg.price_cents / 100) / pkg.credits).toFixed(3);
+    return (pkg.price_cents / 100 / pkg.credits).toFixed(2);
   };
 
   const getSavingsPercent = (pkg: CreditPackage, packages: CreditPackage[]) => {
@@ -106,10 +112,11 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return Math.round(((basePrice - pkgPrice) / basePrice) * 100);
   };
 
-  // Calculate complete videos (60 credits per video = 6 clips at 10 credits each)
-  const getCompleteVideos = (credits: number) => {
-    return Math.floor(credits / 60);
-  };
+  // Calculate based on 10 credits per clip (CREDIT_COSTS.TOTAL_PER_SHOT)
+  const getClipsCount = (credits: number) => Math.floor(credits / CREDIT_COSTS.TOTAL_PER_SHOT);
+  
+  // Standard video = 6 clips = 60 credits
+  const getCompleteVideos = (credits: number) => Math.floor(credits / 60);
 
   const getTierStyle = (name: string) => {
     return TIER_STYLES[name as keyof typeof TIER_STYLES] || TIER_STYLES.Starter;
@@ -117,152 +124,194 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-gradient-to-b from-background to-muted/30 border-border/50">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 bg-gradient-to-b from-background to-muted/30 border-border/50 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/50">
           <DialogTitle className="flex items-center gap-3 text-2xl font-display">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
               <Coins className="w-5 h-5 text-white" />
             </div>
-            Iron-Clad Production Credits
+            Buy Production Credits
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Premium credits for seamless, synchronized cinematic production
+            Power your AI video productions with flexible credit packages
           </p>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="space-y-4 py-4">
-            {/* Pricing explanation */}
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">How Credits Work</span>
+        <ScrollArea className="max-h-[calc(90vh-120px)]">
+          <div className="p-6 pt-4 space-y-5">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Each clip costs <span className="text-foreground font-semibold">10 credits</span> (2 pre-production + 6 production + 2 quality assurance).
-                A complete 6-clip video = 60 credits = $6. Failed generations are automatically refunded.
-              </p>
-            </div>
+            ) : (
+              <>
+                {/* Pricing breakdown */}
+                <div className="p-4 rounded-xl bg-muted/40 border border-border/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">Credit Breakdown</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                      <span className="text-muted-foreground">Per clip</span>
+                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                      <span className="text-muted-foreground">6-clip video</span>
+                      <span className="font-semibold text-foreground">60 credits</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                      <span className="text-muted-foreground">Price per credit</span>
+                      <span className="font-semibold text-foreground">$0.10</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                      <span className="text-muted-foreground">Cost per video</span>
+                      <span className="font-semibold text-primary">~$6.00</span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Package cards */}
-            <div className="grid gap-4">
-              {packages.map((pkg) => {
-                const tierStyle = getTierStyle(pkg.name);
-                const savings = getSavingsPercent(pkg, packages);
-                const videos = getCompleteVideos(pkg.credits);
-                
-                return (
-                  <div
-                    key={pkg.id}
-                    className={cn(
-                      "relative p-5 rounded-2xl border-2 transition-all hover:shadow-lg",
-                      pkg.is_popular 
-                        ? `border-primary ${tierStyle.bg}` 
-                        : `${tierStyle.border} bg-card`
-                    )}
-                  >
-                    {pkg.is_popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-white text-xs font-medium flex items-center gap-1">
-                        <Star className="w-3 h-3" />
-                        Best Value
-                      </div>
-                    )}
-
-                    {savings > 0 && !pkg.is_popular && (
-                      <div className="absolute -top-3 right-4 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium border border-emerald-500/30">
-                        Save {savings}%
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br",
-                          tierStyle.gradient
-                        )}>
-                          <Sparkles className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-display font-bold text-lg text-foreground">
-                            {pkg.name}
-                          </h3>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-primary">
-                              {pkg.credits.toLocaleString()}
-                            </span>
-                            <span className="text-muted-foreground text-sm">credits</span>
+                {/* Package cards */}
+                <div className="space-y-4">
+                  {packages.map((pkg) => {
+                    const tierStyle = getTierStyle(pkg.name);
+                    const savings = getSavingsPercent(pkg, packages);
+                    const videos = getCompleteVideos(pkg.credits);
+                    const clips = getClipsCount(pkg.credits);
+                    const TierIcon = tierStyle.icon;
+                    
+                    return (
+                      <div
+                        key={pkg.id}
+                        className={cn(
+                          "relative p-5 rounded-2xl border-2 transition-all hover:shadow-lg hover:scale-[1.01]",
+                          pkg.is_popular 
+                            ? `border-primary/60 ${tierStyle.bg} ring-2 ring-primary/20` 
+                            : `${tierStyle.border} bg-card/50 hover:bg-card`
+                        )}
+                      >
+                        {pkg.is_popular && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg">
+                            <Star className="w-3 h-3" />
+                            Most Popular
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ${getPricePerCredit(pkg)} per credit
-                          </p>
+                        )}
+
+                        {savings > 0 && !pkg.is_popular && (
+                          <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/30">
+                            Save {savings}%
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg",
+                              tierStyle.gradient
+                            )}>
+                              <TierIcon className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-display font-bold text-lg text-foreground">
+                                {pkg.name}
+                              </h3>
+                              <div className="flex items-baseline gap-2 mt-0.5">
+                                <span className="text-2xl font-bold text-primary">
+                                  {pkg.credits.toLocaleString()}
+                                </span>
+                                <span className="text-muted-foreground text-sm">credits</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                ${getPricePerCredit(pkg)} per credit
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right flex flex-col items-end gap-1">
+                            <span className="text-xs text-muted-foreground">One-time</span>
+                            <Button
+                              onClick={() => handlePurchase(pkg)}
+                              disabled={purchasing === pkg.id}
+                              size="lg"
+                              className={cn(
+                                "h-12 px-6 font-bold text-lg shadow-md",
+                                pkg.is_popular
+                                  ? "bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow-primary/20"
+                                  : "bg-foreground text-background hover:bg-foreground/90"
+                              )}
+                            >
+                              {purchasing === pkg.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                formatPrice(pkg.price_cents)
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* What you get */}
+                        <div className="mt-4 pt-4 border-t border-border/30">
+                          <p className="text-xs text-muted-foreground mb-2 font-medium">What you get:</p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1.5">
+                              <Film className="w-3.5 h-3.5" />
+                              {videos} complete videos
+                            </span>
+                            <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
+                              <Mic className="w-3.5 h-3.5" />
+                              {clips} individual clips
+                            </span>
+                            <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              Never expires
+                            </span>
+                          </div>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div className="text-right">
-                        <Button
-                          onClick={() => handlePurchase(pkg)}
-                          disabled={purchasing === pkg.id}
-                          size="lg"
-                          className={cn(
-                            "h-12 px-6 font-medium text-lg",
-                            pkg.is_popular
-                              ? "bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
-                              : "bg-foreground text-background hover:bg-foreground/90"
-                          )}
-                        >
-                          {purchasing === pkg.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            formatPrice(pkg.price_cents)
-                          )}
-                        </Button>
+                {/* Features included */}
+                <div className="p-5 rounded-xl bg-muted/40 border border-border/50">
+                  <p className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" />
+                    All packages include:
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Iron-Clad Frame Chaining', desc: 'Seamless clip transitions' },
+                      { label: 'AI Script Analysis', desc: 'Smart scene optimization' },
+                      { label: 'Premium Voice Synthesis', desc: 'Natural AI narration' },
+                      { label: 'Automatic Failure Refunds', desc: 'Credits back if generation fails' },
+                      { label: 'HD Video Export', desc: '1080p quality output' },
+                      { label: 'Priority Processing', desc: 'Fast generation queue' },
+                    ].map((benefit) => (
+                      <div key={benefit.label} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm text-foreground font-medium">{benefit.label}</p>
+                          <p className="text-xs text-muted-foreground">{benefit.desc}</p>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* What you can create */}
-                    <div className="mt-4 pt-4 border-t border-border/30">
-                      <p className="text-xs text-muted-foreground mb-2">What you can create:</p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1.5">
-                          <Film className="w-3 h-3" />
-                          ~{videos} complete videos
-                        </span>
-                        <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
-                          <Mic className="w-3 h-3" />
-                          {videos} voice tracks
-                        </span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+                </div>
 
-            {/* Benefits */}
-            <div className="mt-4 p-4 rounded-xl bg-muted/50">
-              <p className="text-sm font-medium text-foreground mb-3">All packages include:</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  'Iron-Clad Frame Chaining',
-                  'AI Script Analysis',
-                  'Premium Voice Synthesis',
-                  'Automatic Refunds on Failure',
-                  'HD Video Export',
-                  'Audio-Video Sync',
-                ].map((benefit) => (
-                  <div key={benefit} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    {benefit}
+                {/* Refund policy */}
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                  <RefreshCw className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Zero-Waste Guarantee</p>
+                    <p className="text-xs text-muted-foreground">
+                      If a clip generation fails, your credits are automatically refunded. You only pay for successful generations.
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

@@ -80,68 +80,41 @@ interface VideoCardProps {
 }
 
 function VideoCard({ video, isActive, onClick }: VideoCardProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-    if (isHovered || isActive) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
-  }, [isHovered, isActive]);
-
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "relative aspect-video rounded-2xl overflow-hidden cursor-pointer transition-all duration-500",
-        "border border-white/[0.06]",
+        "relative aspect-video rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
+        "border border-white/[0.06] bg-black/50",
         isActive && "ring-2 ring-white/30 ring-offset-2 ring-offset-black"
       )}
     >
+      {/* Static poster image from video */}
       <video
-        ref={videoRef}
         src={video.url}
         className="w-full h-full object-cover"
-        loop
         muted
         playsInline
         preload="metadata"
+        poster=""
       />
       
       {/* Gradient overlay */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity",
-        isHovered || isActive ? "opacity-100" : "opacity-60"
-      )} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       
       {/* Play indicator */}
-      <AnimatePresence>
-        {(isHovered || isActive) && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center border border-white/20">
-              <Play className="w-5 h-5 text-white ml-0.5" fill="currentColor" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+        <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center border border-white/20">
+          <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+        </div>
+      </div>
       
       {/* Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
+      <div className="absolute bottom-0 left-0 right-0 p-3">
         <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">{video.genre}</span>
-        <h4 className="text-sm font-semibold text-white truncate">{video.title}</h4>
+        <h4 className="text-xs font-semibold text-white truncate">{video.title}</h4>
       </div>
     </motion.div>
   );
@@ -151,20 +124,45 @@ export default function CreatorShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
   
   const activeVideo = CREATOR_VIDEOS[activeIndex];
 
+  // Handle video source changes
   useEffect(() => {
-    if (mainVideoRef.current) {
-      mainVideoRef.current.muted = isMuted;
+    const video = mainVideoRef.current;
+    if (!video) return;
+    
+    setIsVideoReady(false);
+    video.pause();
+    video.src = activeVideo.url;
+    video.load();
+    
+    const handleCanPlay = () => {
+      setIsVideoReady(true);
+      video.muted = isMuted;
       if (isPlaying) {
-        mainVideoRef.current.play().catch(() => {});
-      } else {
-        mainVideoRef.current.pause();
+        video.play().catch(() => {});
       }
+    };
+    
+    video.addEventListener('canplay', handleCanPlay);
+    return () => video.removeEventListener('canplay', handleCanPlay);
+  }, [activeIndex, activeVideo.url]);
+
+  // Handle play/pause and mute changes
+  useEffect(() => {
+    const video = mainVideoRef.current;
+    if (!video || !isVideoReady) return;
+    
+    video.muted = isMuted;
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
     }
-  }, [isPlaying, isMuted, activeIndex]);
+  }, [isPlaying, isMuted, isVideoReady]);
 
   const goNext = () => {
     setActiveIndex((prev) => (prev + 1) % CREATOR_VIDEOS.length);
@@ -196,14 +194,22 @@ export default function CreatorShowcase() {
           <div className="relative aspect-video max-w-5xl mx-auto rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/50 border border-white/[0.08]">
             <video
               ref={mainVideoRef}
-              key={activeVideo.id}
-              src={activeVideo.url}
-              className="w-full h-full object-cover"
+              className={cn(
+                "w-full h-full object-cover transition-opacity duration-300",
+                isVideoReady ? "opacity-100" : "opacity-0"
+              )}
               loop
-              autoPlay
               muted={isMuted}
               playsInline
+              preload="auto"
             />
+            
+            {/* Loading state */}
+            {!isVideoReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
             
             {/* Gradient overlays */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />

@@ -39,11 +39,13 @@ import {
   CheckCircle,
   Eye,
   Trash2,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { CostAnalysisDashboard } from '@/components/admin/CostAnalysisDashboard';
 
 interface ProfitData {
   date: string;
@@ -426,6 +428,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="financials" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <DollarSign className="w-4 h-4" />
               <span className="hidden sm:inline">Financials</span>
+            </TabsTrigger>
+            <TabsTrigger value="costs" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <Calculator className="w-4 h-4" />
+              <span className="hidden sm:inline">Cost Analysis</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <History className="w-4 h-4" />
@@ -871,6 +877,11 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data
             </Button>
+          </TabsContent>
+
+          {/* Comprehensive Cost Analysis Tab */}
+          <TabsContent value="costs" className="space-y-4">
+            <CostAnalysisDashboard />
           </TabsContent>
 
           {/* Audit Log Tab */}

@@ -79,18 +79,35 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     setLoading(false);
   };
 
-  const handlePurchase = async (pkg: CreditPackage) => {
+  const handlePurchase = async (packageId: string) => {
     if (!user) {
       toast.error('Please sign in to purchase credits');
       return;
     }
 
-    setPurchasing(pkg.id);
+    setPurchasing(packageId);
     
-    // Stripe integration placeholder
-    toast.info('Stripe checkout coming soon! Contact support to purchase credits.');
-    
-    setPurchasing(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
+        body: { packageId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        // Open Stripe checkout in new tab
+        window.open(data.url, '_blank');
+        toast.success('Redirecting to secure checkout...');
+        onOpenChange(false);
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error('Failed to start checkout. Please try again.');
+    } finally {
+      setPurchasing(null);
+    }
   };
 
   const formatPrice = (cents: number) => {
@@ -230,8 +247,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                           <div className="text-right flex flex-col items-end gap-1">
                             <span className="text-xs text-muted-foreground">One-time</span>
                             <Button
-                              onClick={() => handlePurchase(pkg)}
-                              disabled={purchasing === pkg.id}
+                              onClick={() => handlePurchase('starter')}
+                              disabled={purchasing === 'starter'}
                               size="lg"
                               className={cn(
                                 "h-12 px-6 font-bold text-lg shadow-md",

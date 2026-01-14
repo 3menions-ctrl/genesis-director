@@ -373,7 +373,7 @@ export function UnifiedStudio() {
   };
 
   const addPrompt = () => {
-    if (clipCount < 12) {
+    if (clipCount < 6) {
       setClipCount(prev => prev + 1);
       setManualPrompts(prev => [...prev, '']);
     }
@@ -1261,7 +1261,7 @@ export function UnifiedStudio() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
-                      {[4, 6, 8, 10, 12].map(n => (
+                      {[2, 3, 4, 5, 6].map(n => (
                         <SelectItem key={n} value={n.toString()} className="text-white/80 focus:bg-white/10 focus:text-white">
                           {n} clips ({n * CLIP_DURATION}s)
                         </SelectItem>
@@ -1390,7 +1390,7 @@ export function UnifiedStudio() {
                   variant="outline"
                   size="sm"
                   onClick={addPrompt}
-                  disabled={isRunning || clipCount >= 12}
+                  disabled={isRunning || clipCount >= 6}
                   className="gap-2 h-9 px-4 bg-white/[0.03] border-white/[0.1] text-white/80 hover:bg-white/[0.08] hover:text-white"
                 >
                   <Plus className="w-4 h-4" />

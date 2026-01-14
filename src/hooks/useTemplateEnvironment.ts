@@ -225,7 +225,7 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     category: 'cinematic',
     genre: 'documentary',
     mood: 'emotional',
-    clipCount: 12,
+    clipCount: 6,
     targetDurationMinutes: 5,
     colorGrading: 'documentary',
     environmentId: 'golden_hour_studio',

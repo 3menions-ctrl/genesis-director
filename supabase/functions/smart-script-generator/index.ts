@@ -131,10 +131,14 @@ serve(async (req) => {
     const detectedContent = detectUserContent(inputText);
     console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
 
-    // Dynamic clip count based on content
+    // Use passed targetDurationSeconds to determine exact clip count
+    // This ensures consistency with user's selection
     const CLIP_DURATION = 6;
-    const recommendedClips = detectedContent.recommendedClipCount;
+    const requestedClips = Math.round(request.targetDurationSeconds / CLIP_DURATION);
+    // Only use detected content recommendation if no explicit duration was passed
+    const recommendedClips = requestedClips > 0 ? requestedClips : detectedContent.recommendedClipCount;
     const targetSeconds = recommendedClips * CLIP_DURATION;
+    console.log(`[SmartScript] Using ${recommendedClips} clips (requested: ${requestedClips}, detected: ${detectedContent.recommendedClipCount})`);
     
     // Use detected content if no explicit user content provided
     let hasUserNarration = request.userNarration && request.userNarration.trim().length > 10;

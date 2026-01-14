@@ -79,17 +79,26 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     setLoading(false);
   };
 
-  const handlePurchase = async (packageId: string) => {
+  // Map package names to checkout IDs
+  const getCheckoutId = (packageName: string): string => {
+    const name = packageName.toLowerCase();
+    if (name.includes('growth')) return 'growth';
+    if (name.includes('agency')) return 'agency';
+    return 'starter';
+  };
+
+  const handlePurchase = async (pkg: CreditPackage) => {
     if (!user) {
       toast.error('Please sign in to purchase credits');
       return;
     }
 
-    setPurchasing(packageId);
+    const checkoutId = getCheckoutId(pkg.name);
+    setPurchasing(pkg.id);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
-        body: { packageId },
+        body: { packageId: checkoutId },
       });
 
       if (error) throw error;
@@ -247,8 +256,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                           <div className="text-right flex flex-col items-end gap-1">
                             <span className="text-xs text-muted-foreground">One-time</span>
                             <Button
-                              onClick={() => handlePurchase('starter')}
-                              disabled={purchasing === 'starter'}
+                              onClick={() => handlePurchase(pkg)}
+                              disabled={purchasing === pkg.id}
                               size="lg"
                               className={cn(
                                 "h-12 px-6 font-bold text-lg shadow-md",

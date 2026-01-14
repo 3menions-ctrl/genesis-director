@@ -12,12 +12,6 @@ const CREATOR_VIDEOS = [
     genre: 'Cinematic',
   },
   {
-    id: 'ad10b35f-1a39-47c5-8323-3b57b97c9968',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ad10b35f-1a39-47c5-8323-3b57b97c9968_1768351244978.mp4',
-    title: 'Morning Reflections on the River',
-    genre: 'Cinematic',
-  },
-  {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
     title: 'Whispers by the River',

@@ -162,7 +162,13 @@ serve(async (req) => {
     console.log(`[SmartScript] Generating ${recommendedClips} clips for continuous scene, preserveContent: ${mustPreserveContent}`);
 
     // Build the system prompt for CONTINUOUS SCENE breakdown
-    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into exactly ${recommendedClips} clips that flow seamlessly together.
+    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${recommendedClips} clips that flow seamlessly together.
+
+CRITICAL CLIP COUNT REQUIREMENT:
+- You MUST output EXACTLY ${recommendedClips} clips - no more, no less
+- The clips array MUST have exactly ${recommendedClips} items
+- Do NOT output 6 clips if ${recommendedClips} clips are requested
+- This is non-negotiable: output = ${recommendedClips} clips
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -265,14 +271,14 @@ CRITICAL: Every clip MUST take place in this exact environment with this exact l
 ` : ''}
 
 ${request.characterLock ? `
-CHARACTER (use EXACTLY in all 6 clips):
+CHARACTER (use EXACTLY in all ${recommendedClips} clips):
 ${request.characterLock.description}
 Wearing: ${request.characterLock.clothing}
 Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
 ` : ''}
 
 ${request.environmentLock ? `
-LOCATION (use EXACTLY in all 6 clips):
+LOCATION (use EXACTLY in all ${recommendedClips} clips):
 ${request.environmentLock.location}
 Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
@@ -446,10 +452,10 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
       title: clip.title || `Clip ${index + 1}`,
       description: clip.description || '',
       durationSeconds: CLIP_DURATION,
-      actionPhase: ACTION_PHASES[index],
+      actionPhase: ACTION_PHASES[index % ACTION_PHASES.length], // Handle variable clip counts
       previousAction: index > 0 ? (parsedClips[index - 1]?.currentAction || '') : '',
       currentAction: clip.currentAction || clip.description?.substring(0, 100) || '',
-      nextAction: index < 5 ? (parsedClips[index + 1]?.currentAction || '') : '',
+      nextAction: index < expectedClipCount - 1 ? (parsedClips[index + 1]?.currentAction || '') : '',
       // ENFORCE CONSISTENCY - same values for all clips
       characterDescription: lockFields.characterDescription,
       locationDescription: lockFields.locationDescription,
@@ -459,10 +465,10 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
       cameraAngle: clip.cameraAngle || 'eye-level',
       movementType: clip.movementType || 'static',
       motionDirection: clip.motionDirection || '',
-      // Transition
-      transitionOut: index < 5 ? {
+      // Transition - only add for clips that are not the last one
+      transitionOut: index < expectedClipCount - 1 ? {
         type: 'continuous',
-        hint: clip.transitionHint || `Continues into ${ACTION_PHASES[index + 1]} phase`,
+        hint: clip.transitionHint || `Continues into ${ACTION_PHASES[(index + 1) % ACTION_PHASES.length]} phase`,
       } : null,
       // Content
       dialogue: clip.dialogue || '',

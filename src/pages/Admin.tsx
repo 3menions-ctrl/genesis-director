@@ -104,6 +104,18 @@ interface SupportMessage {
   created_at: string;
 }
 
+// Cost pricing constants (must match CostAnalysisDashboard)
+const VEO_COST_PER_CLIP_CENTS = 8;
+
+interface CostSummary {
+  totalApiCost: number;
+  totalWastedCost: number;
+  totalRetries: number;
+  totalRefunds: number;
+  failedClips: number;
+  wastePercentage: number;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -112,6 +124,9 @@ export default function AdminDashboard() {
   
   // Overview state
   const [stats, setStats] = useState<AdminStats | null>(null);
+  
+  // Cost summary for overview
+  const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
   
   // Users state
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -170,6 +185,7 @@ export default function AdminDashboard() {
     
     if (activeTab === 'overview') {
       fetchStats();
+      fetchCostSummary();
     } else if (activeTab === 'users') {
       fetchUsers();
     } else if (activeTab === 'financials') {
@@ -187,6 +203,66 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to fetch stats:', err);
       toast.error('Failed to load admin stats');
+    }
+  };
+
+  const fetchCostSummary = async () => {
+    try {
+      // Fetch API cost logs
+      const { data: apiData } = await supabase
+        .from('api_cost_logs')
+        .select('service, operation, status, credits_charged, real_cost_cents');
+      
+      // Fetch video clips for retry data
+      const { data: clipsData } = await supabase
+        .from('video_clips')
+        .select('id, status, retry_count');
+      
+      // Fetch refunds
+      const { data: refundsData } = await supabase
+        .from('credit_transactions')
+        .select('amount')
+        .eq('transaction_type', 'refund');
+
+      // Calculate totals
+      let totalApiCost = 0;
+      let failedApiCost = 0;
+      let failedClips = 0;
+
+      (apiData || []).forEach((log: { status: string; real_cost_cents: number }) => {
+        totalApiCost += log.real_cost_cents || 0;
+        if (log.status === 'failed' || log.status === 'skipped') {
+          failedApiCost += log.real_cost_cents || 0;
+          failedClips++;
+        }
+      });
+
+      // Calculate retry costs
+      let totalRetries = 0;
+      (clipsData || []).forEach((clip: { retry_count: number | null }) => {
+        totalRetries += clip.retry_count || 0;
+      });
+      const retryCost = totalRetries * VEO_COST_PER_CLIP_CENTS;
+
+      // Calculate refunds
+      const totalRefundCredits = (refundsData || []).reduce(
+        (sum: number, r: { amount: number }) => sum + Math.abs(r.amount || 0), 
+        0
+      );
+
+      const totalWastedCost = failedApiCost + retryCost;
+      const wastePercentage = totalApiCost > 0 ? (totalWastedCost / totalApiCost) * 100 : 0;
+
+      setCostSummary({
+        totalApiCost,
+        totalWastedCost,
+        totalRetries,
+        totalRefunds: totalRefundCredits,
+        failedClips,
+        wastePercentage,
+      });
+    } catch (err) {
+      console.error('Failed to fetch cost summary:', err);
     }
   };
 
@@ -441,6 +517,7 @@ export default function AdminDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* User & Project Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="card-premium hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-2">
@@ -509,7 +586,116 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            <Button onClick={fetchStats} variant="outline" size="sm" className="shadow-sm">
+            {/* Cost & Waste Summary - NEW SECTION */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-primary" />
+                Cost Overview
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-primary" />
+                      Total API Spend
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-foreground">
+                      {formatCurrency(costSummary?.totalApiCost || 0)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">All-time API costs</p>
+                  </CardContent>
+                </Card>
+
+                <Card className={cn(
+                  "bg-gradient-to-br border",
+                  (costSummary?.wastePercentage || 0) > 10 
+                    ? "from-destructive/10 to-destructive/5 border-destructive/20" 
+                    : "from-success/10 to-success/5 border-success/20"
+                )}>
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
+                      Wasted Costs
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-foreground">
+                      {formatCurrency(costSummary?.totalWastedCost || 0)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {(costSummary?.wastePercentage || 0).toFixed(1)}% of total spend
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-warning" />
+                      Retries
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-foreground">
+                      {costSummary?.totalRetries?.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency((costSummary?.totalRetries || 0) * VEO_COST_PER_CLIP_CENTS)} in retry costs
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-info" />
+                      Refunds Issued
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-foreground">
+                      {costSummary?.totalRefunds?.toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Credits refunded to users
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Failed Operations Warning */}
+            {(costSummary?.failedClips || 0) > 0 && (
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-destructive" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">
+                        {costSummary?.failedClips} Failed API Operations Detected
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        These failures cost {formatCurrency(costSummary?.totalWastedCost || 0)} in wasted API spend. 
+                        View the Cost Analysis tab for detailed breakdown.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab('costs')}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Button onClick={() => { fetchStats(); fetchCostSummary(); }} variant="outline" size="sm" className="shadow-sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Stats
             </Button>

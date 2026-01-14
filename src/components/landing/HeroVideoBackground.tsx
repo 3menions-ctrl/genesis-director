@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 
 // Curated showcase videos - Cloud Run stitched final videos only
 const SHOWCASE_VIDEOS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4', // Whispers of the Verdant Heart (NEWEST)
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', // Sunset Dreams on Winding Roads (NEWEST)
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4', // Whispers of the Verdant Heart
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2b6fb5c2-ca02-4c06-8341-ec32286c9e60_1768303542610.mp4', // Creative Space of Confidence
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4', // Snowy Cabin
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4', // Whispers of the Verdant Grove
@@ -12,7 +13,6 @@ const SHOWCASE_VIDEOS = [
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4', // Silent Vigil in Ruined Valor
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4', // Skyward Over Fiery Majesty
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4', // Editing Dreams in Motion
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4', // Owl of Wisdom's Twilight
 ];
 
 interface HeroVideoBackgroundProps {

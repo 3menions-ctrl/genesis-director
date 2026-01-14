@@ -29,12 +29,25 @@ const Terms = () => {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">2. Description of Service</h2>
-            <p>
+            <p className="mb-4">
               Apex Studio is a software-as-a-service (SaaS) platform that provides AI-powered video 
               generation tools allowing users to create, edit, and produce video content using artificial 
               intelligence technology. The Service includes script generation, scene creation, video 
               synthesis, and related features accessible via subscription or credit-based access.
             </p>
+            <p className="mb-4">
+              <strong className="text-foreground">Third-Party AI Services:</strong> Our Service utilizes 
+              third-party artificial intelligence providers, including but not limited to Google Veo 
+              (video generation), OpenAI, and other AI technology partners. These third-party services 
+              operate under their own terms and policies. By using our Service, you acknowledge that:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4">
+              <li>AI-generated content is created by third-party systems over which we have limited control</li>
+              <li>AI outputs may contain inaccuracies, errors, artifacts, or unexpected results ("hallucinations")</li>
+              <li>Generated content should be reviewed before use, especially for commercial or public distribution</li>
+              <li>We do not guarantee the accuracy, completeness, or suitability of AI-generated outputs</li>
+              <li>Third-party AI providers may modify, update, or discontinue their services without notice</li>
+            </ul>
           </section>
 
           <section>
@@ -148,28 +161,83 @@ const Terms = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">10. Disclaimer of Warranties</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">10. Third-Party AI Technology Disclaimer</h2>
+            <p className="mb-4">
+              <strong className="text-foreground">IMPORTANT NOTICE REGARDING AI-GENERATED CONTENT:</strong>
+            </p>
+            <p className="mb-4">
+              Our Service relies on third-party artificial intelligence technologies, including Google Veo 
+              and other AI providers, to generate video content. You expressly acknowledge and agree that:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
+              <li>AI systems may produce inaccurate, misleading, or nonsensical outputs ("hallucinations")</li>
+              <li>Generated content may not accurately represent real people, places, events, or facts</li>
+              <li>Visual artifacts, inconsistencies, or errors may appear in generated videos</li>
+              <li>AI-generated content should not be relied upon for factual accuracy without independent verification</li>
+              <li>We have no control over the internal workings of third-party AI systems</li>
+              <li>Third-party AI services may be subject to their own content policies and restrictions</li>
+              <li>Service availability depends on third-party providers and may be interrupted without notice</li>
+            </ul>
             <p>
-              THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF 
-              ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES 
-              OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. 
-              WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, SECURE, ERROR-FREE, OR THAT 
-              DEFECTS WILL BE CORRECTED. AI-GENERATED CONTENT MAY CONTAIN ERRORS, INACCURACIES, OR 
-              INCONSISTENCIES, AND YOU USE SUCH CONTENT AT YOUR OWN RISK.
+              YOU ARE SOLELY RESPONSIBLE FOR REVIEWING, VERIFYING, AND APPROVING ALL AI-GENERATED 
+              CONTENT BEFORE USE. WE DISCLAIM ALL LIABILITY FOR ANY DAMAGES ARISING FROM RELIANCE 
+              ON AI-GENERATED CONTENT WITHOUT PROPER VERIFICATION.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">11. Limitation of Liability</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">11. Disclaimer of Warranties</h2>
+            <p className="mb-4">
+              THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF 
+              ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES 
+              OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. 
+              WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, SECURE, ERROR-FREE, OR THAT 
+              DEFECTS WILL BE CORRECTED.
+            </p>
+            <p className="mb-4">
+              WITHOUT LIMITING THE FOREGOING, WE MAKE NO WARRANTIES OR REPRESENTATIONS REGARDING:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
+              <li>The accuracy, reliability, or quality of AI-generated content</li>
+              <li>The availability or performance of third-party AI services</li>
+              <li>The suitability of generated content for any particular purpose</li>
+              <li>The non-infringement of third-party rights by AI-generated content</li>
+              <li>The consistency or predictability of AI outputs</li>
+            </ul>
             <p>
+              AI-GENERATED CONTENT MAY CONTAIN ERRORS, INACCURACIES, HALLUCINATIONS, OR INCONSISTENCIES, 
+              AND YOU USE SUCH CONTENT ENTIRELY AT YOUR OWN RISK.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">12. Limitation of Liability</h2>
+            <p className="mb-4">
               TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL APEX-STUDIO LLC, 
-              ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, 
-              INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT 
-              LIMITED TO DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, 
-              RESULTING FROM YOUR ACCESS TO OR USE OF (OR INABILITY TO USE) THE SERVICE. OUR TOTAL 
-              LIABILITY FOR ALL CLAIMS ARISING FROM OR RELATED TO THESE TERMS OR THE SERVICE SHALL 
-              NOT EXCEED THE GREATER OF ONE HUNDRED DOLLARS ($100) OR THE AMOUNTS PAID BY YOU TO 
-              US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+              ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, OR THIRD-PARTY AI TECHNOLOGY 
+              PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, 
+              OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
+              <li>Loss of profits, revenue, goodwill, or data</li>
+              <li>Business interruption or loss of business opportunity</li>
+              <li>Inaccurate, misleading, or defective AI-generated content</li>
+              <li>Reliance on AI outputs without independent verification</li>
+              <li>Third-party claims arising from your use of generated content</li>
+              <li>Reputational harm from published AI-generated content</li>
+              <li>Interruption or unavailability of third-party AI services</li>
+              <li>Any other intangible losses</li>
+            </ul>
+            <p className="mb-4">
+              OUR TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS ARISING FROM OR RELATED TO THESE TERMS 
+              OR THE SERVICE SHALL NOT EXCEED THE GREATER OF ONE HUNDRED DOLLARS ($100) OR THE 
+              AMOUNTS ACTUALLY PAID BY YOU TO US IN THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING 
+              THE CLAIM.
+            </p>
+            <p>
+              SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES, SO 
+              SOME OF THE ABOVE LIMITATIONS MAY NOT APPLY TO YOU. IN SUCH CASES, OUR LIABILITY 
+              SHALL BE LIMITED TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW.
             </p>
           </section>
 

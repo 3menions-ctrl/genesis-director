@@ -434,6 +434,94 @@ We're fully GDPR compliant. Contact privacy@apex.video for requests.
     ]
   },
   {
+    id: 'ai-limitations',
+    title: 'AI Technology & Limitations',
+    description: 'Understand how our AI works and its limitations',
+    icon: Lightbulb,
+    color: 'from-yellow-500 to-amber-500',
+    articles: [
+      {
+        id: 'understanding-ai',
+        title: 'Understanding AI Video Generation',
+        description: 'How our AI technology works and what to expect',
+        readTime: '5 min',
+        popular: true,
+        content: `
+## Understanding AI Video Generation
+
+### How It Works
+Apex Studio uses advanced third-party AI services, including **Google Veo**, to generate video content from your text descriptions and reference images.
+
+### Important Limitations
+
+**AI Hallucinations**
+AI systems may occasionally produce unexpected or inaccurate outputs, known as "hallucinations." This can include:
+- Incorrect representations of described scenes
+- Unintended visual artifacts or distortions
+- Inconsistencies between clips
+- Characters or objects that differ from descriptions
+
+**What This Means for You**
+- Always review generated content before publishing
+- Do not rely on AI for factual accuracy
+- Expect to regenerate some clips for best results
+- Use reference images to improve consistency
+
+### Third-Party Services
+Our video generation is powered by:
+- **Google Veo**: Primary video synthesis engine
+- **OpenAI**: Script and text enhancement
+- **Other AI Partners**: Supporting features
+
+These services operate under their own policies and may have their own content restrictions.
+
+### Best Practices
+1. Review all content before publishing
+2. Regenerate clips that do not meet expectations
+3. Use clear, specific prompts for better results
+4. Keep expectations realistic about AI capabilities
+        `
+      },
+      {
+        id: 'content-accuracy',
+        title: 'Content Accuracy Disclaimer',
+        description: 'Important information about AI-generated content',
+        readTime: '3 min',
+        content: `
+## Content Accuracy Disclaimer
+
+### No Guarantee of Accuracy
+AI-generated content may contain:
+- Visual inaccuracies or artifacts
+- Inconsistencies with your prompts
+- Unexpected interpretations of descriptions
+- Elements that appear unrealistic
+
+### Your Responsibility
+As a user, you are responsible for:
+- Reviewing all generated content before use
+- Verifying accuracy for commercial applications
+- Ensuring content is appropriate for your audience
+- Obtaining necessary rights for recognizable elements
+
+### Not Suitable For
+AI-generated content should **not** be used for:
+- Factual news reporting without verification
+- Legal or medical documentation
+- Content requiring photographic accuracy
+- Situations requiring guaranteed consistency
+
+### Quality Improvement
+To get better results:
+- Use detailed, specific prompts
+- Upload reference images when possible
+- Regenerate unsatisfactory clips
+- Use our automatic retry system
+        `
+      }
+    ]
+  },
+  {
     id: 'troubleshooting',
     title: 'Troubleshooting',
     description: 'Fix common issues quickly',
@@ -452,10 +540,16 @@ We're fully GDPR compliant. Contact privacy@apex.video for requests.
 ### Common Causes
 
 **Content Policy Violation**
-The prompt may have triggered our safety filters. Try:
+The prompt may have triggered safety filters from our third-party AI providers. Try:
 - Rewording the prompt
 - Removing potentially problematic content
 - Being more specific about the context
+
+**AI Service Unavailability**
+Our video generation relies on third-party services (Google Veo, etc.) that may occasionally experience:
+- Temporary outages
+- High demand periods
+- Maintenance windows
 
 **Technical Timeout**
 Long or complex videos may timeout:
@@ -467,6 +561,7 @@ Long or complex videos may timeout:
 1. **Retry**: Click "Retry" on the failed clip
 2. **Regenerate**: Start fresh with the same prompt
 3. **Simplify**: Reduce the complexity of the scene
+4. **Wait**: If services are busy, try again later
 
 ### Still Stuck?
 Contact support with your project ID for investigation.

@@ -95,7 +95,35 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">5. AI Model Training</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">5. Third-Party AI Services and Data Sharing</h2>
+            <p className="mb-4">
+              Our Service utilizes third-party artificial intelligence providers to generate video content. 
+              When you use our Service, your prompts, scripts, and reference materials may be processed 
+              by these third-party AI systems:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
+              <li><strong>Google Veo:</strong> Video generation AI service operated by Google LLC, subject to Google's Privacy Policy and Terms of Service</li>
+              <li><strong>OpenAI:</strong> Script and text generation services, subject to OpenAI's usage policies</li>
+              <li><strong>Other AI Providers:</strong> We may utilize additional AI services as our technology evolves</li>
+            </ul>
+            <p className="mb-4">
+              <strong className="text-foreground">Important Disclosures:</strong>
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
+              <li>Third-party AI providers may process your input data on their servers</li>
+              <li>We cannot control how third-party providers handle data once transmitted</li>
+              <li>Third-party providers have their own data retention and usage policies</li>
+              <li>Some providers may use anonymized data for model improvement unless opted out</li>
+              <li>AI systems may produce outputs that differ from your inputs or expectations</li>
+            </ul>
+            <p>
+              By using our Service, you consent to the transmission of your content to these third-party 
+              AI providers as necessary to deliver our video generation services.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">6. AI Model Training</h2>
             <p className="mb-4">
               We may use anonymized and aggregated data to improve our AI models and Service quality. 
               Regarding your personal content:

@@ -18,12 +18,6 @@ const CREATOR_VIDEOS = [
     genre: 'Cinematic',
   },
   {
-    id: '9fd85630-6a38-4dee-8fec-9da9737a8082',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9fd85630-6a38-4dee-8fec-9da9737a8082_1768304689306.mp4',
-    title: 'Whispers of the Verdant Heart',
-    genre: 'Cinematic',
-  },
-  {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
     title: 'Snowy Cabin',

@@ -143,6 +143,7 @@ export default function AdminDashboard() {
   
   // Financials state
   const [profitData, setProfitData] = useState<ProfitData[]>([]);
+  const [actualStripeRevenue, setActualStripeRevenue] = useState(0);
   
   // Audit log state
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
@@ -190,6 +191,7 @@ export default function AdminDashboard() {
       fetchUsers();
     } else if (activeTab === 'financials') {
       fetchProfitData();
+      fetchActualRevenue();
     } else if (activeTab === 'audit') {
       fetchAuditLog();
     }
@@ -308,6 +310,35 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to fetch profit data:', err);
       toast.error('Failed to load financial data');
+    }
+  };
+
+  const fetchActualRevenue = async () => {
+    try {
+      // Fetch only actual Stripe purchases (with stripe_payment_id)
+      const { data: purchasesData } = await supabase
+        .from('credit_transactions')
+        .select('amount, stripe_payment_id')
+        .eq('transaction_type', 'purchase')
+        .not('stripe_payment_id', 'is', null);
+      
+      // Fetch refunds to subtract
+      const { data: refundsData } = await supabase
+        .from('credit_transactions')
+        .select('amount')
+        .eq('transaction_type', 'refund');
+      
+      const CREDIT_PRICE_CENTS = 11.6; // Average $0.116 per credit
+      const purchases = purchasesData || [];
+      const refunds = refundsData || [];
+      
+      const purchasedCredits = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const refundedCredits = refunds.reduce((sum, r) => sum + Math.abs(r.amount || 0), 0);
+      
+      const revenue = Math.round((purchasedCredits - refundedCredits) * CREDIT_PRICE_CENTS);
+      setActualStripeRevenue(Math.max(0, revenue));
+    } catch (err) {
+      console.error('Failed to fetch actual revenue:', err);
     }
   };
 
@@ -458,17 +489,16 @@ export default function AdminDashboard() {
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
-  // Calculate financial summary
+  // Calculate financial summary using ACTUAL Stripe revenue
   const financialSummary = profitData.reduce((acc, row) => ({
-    totalRevenue: acc.totalRevenue + (row.estimated_revenue_cents || 0),
     totalCost: acc.totalCost + (row.total_real_cost_cents || 0),
     totalOperations: acc.totalOperations + (row.total_operations || 0),
     totalCreditsCharged: acc.totalCreditsCharged + (row.total_credits_charged || 0),
-  }), { totalRevenue: 0, totalCost: 0, totalOperations: 0, totalCreditsCharged: 0 });
+  }), { totalCost: 0, totalOperations: 0, totalCreditsCharged: 0 });
 
-  const totalProfit = financialSummary.totalRevenue - financialSummary.totalCost;
-  const profitMargin = financialSummary.totalRevenue > 0 
-    ? (totalProfit / financialSummary.totalRevenue) * 100 
+  const totalProfit = actualStripeRevenue - financialSummary.totalCost;
+  const profitMargin = actualStripeRevenue > 0 
+    ? (totalProfit / actualStripeRevenue) * 100 
     : 0;
 
   return (
@@ -968,8 +998,10 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalRevenue)}</div>
-                  <p className="text-xs text-muted-foreground">{financialSummary.totalCreditsCharged.toLocaleString()} credits</p>
+                  <div className="text-2xl font-bold">{formatCurrency(actualStripeRevenue)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {actualStripeRevenue === 0 ? 'No Stripe purchases yet' : 'From Stripe purchases'}
+                  </p>
                 </CardContent>
               </Card>
 

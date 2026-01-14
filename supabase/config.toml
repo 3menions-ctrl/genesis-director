@@ -164,3 +164,9 @@ verify_jwt = false
 
 [functions.continue-production]
 verify_jwt = false
+
+[functions.create-credit-checkout]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

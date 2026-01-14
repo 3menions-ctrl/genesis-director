@@ -20,6 +20,7 @@ const PricingSection = lazy(() => import('@/components/landing/PricingSection'))
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
 const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
+const ContactSection = lazy(() => import('@/components/landing/ContactSection'));
 
 const Footer = lazy(() => import('@/components/landing/Footer'));
 
@@ -170,7 +171,7 @@ export default function Landing() {
                   { label: 'Product', target: 'how-it-works' },
                   { label: 'Features', target: 'features' },
                   { label: 'Pricing', target: 'pricing' },
-                  { label: 'Company', target: 'pricing' },
+                  { label: 'Contact', target: 'contact' },
                 ].map((item) => (
                   <button 
                     key={item.label}
@@ -379,6 +380,10 @@ export default function Landing() {
 
       <Suspense fallback={<SectionLoader />}>
         <PricingSection />
+      </Suspense>
+
+      <Suspense fallback={<SectionLoader />}>
+        <ContactSection />
       </Suspense>
 
 

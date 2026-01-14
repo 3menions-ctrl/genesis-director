@@ -309,7 +309,6 @@ serve(async (req) => {
     try {
       const creditCost = targetResolution === '4K' ? 20 : targetResolution === '2K' ? 10 : 5;
       await supabase.rpc('log_api_cost', {
-        p_user_id: userId,
         p_project_id: projectId,
         p_shot_id: shotId,
         p_service: 'realesrgan',

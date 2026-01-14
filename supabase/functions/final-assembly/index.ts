@@ -375,7 +375,6 @@ serve(async (req) => {
     if (userId) {
       try {
         await supabase.rpc('log_api_cost', {
-          p_user_id: userId,
           p_project_id: projectId,
           p_shot_id: 'final_assembly',
           p_service: 'cloud_run_stitcher',

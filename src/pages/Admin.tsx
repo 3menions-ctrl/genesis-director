@@ -106,6 +106,11 @@ interface SupportMessage {
 
 // Cost pricing constants (must match CostAnalysisDashboard)
 const VEO_COST_PER_CLIP_CENTS = 8;
+const OPENAI_TTS_COST_PER_CALL_CENTS = 2;
+const CLOUD_RUN_STITCH_COST_CENTS = 2;
+const OPENAI_SCRIPT_COST_CENTS = 12;
+const DALLE_COST_PER_IMAGE_CENTS = 4;
+const GEMINI_FLASH_COST_CENTS = 1;
 
 interface CostSummary {
   totalApiCost: number;
@@ -144,6 +149,8 @@ export default function AdminDashboard() {
   // Financials state
   const [profitData, setProfitData] = useState<ProfitData[]>([]);
   const [actualStripeRevenue, setActualStripeRevenue] = useState(0);
+  const [calculatedApiCost, setCalculatedApiCost] = useState(0);
+  const [totalOperations, setTotalOperations] = useState(0);
   
   // Audit log state
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
@@ -192,6 +199,7 @@ export default function AdminDashboard() {
     } else if (activeTab === 'financials') {
       fetchProfitData();
       fetchActualRevenue();
+      fetchCalculatedApiCost();
     } else if (activeTab === 'audit') {
       fetchAuditLog();
     }
@@ -342,6 +350,50 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchCalculatedApiCost = async () => {
+    try {
+      // Fetch all API cost logs
+      const { data: apiData } = await supabase
+        .from('api_cost_logs')
+        .select('service, status');
+      
+      // Fetch retry data from video clips
+      const { data: clipsData } = await supabase
+        .from('video_clips')
+        .select('retry_count');
+      
+      // Calculate costs per-call based on service type (same as CostAnalysisDashboard)
+      let totalCost = 0;
+      let opCount = 0;
+      
+      (apiData || []).forEach((log: { service: string; status: string }) => {
+        opCount++;
+        switch (log.service) {
+          case 'google_veo': totalCost += VEO_COST_PER_CLIP_CENTS; break;
+          case 'openai-tts': totalCost += OPENAI_TTS_COST_PER_CALL_CENTS; break;
+          case 'cloud_run_stitcher': totalCost += CLOUD_RUN_STITCH_COST_CENTS; break;
+          case 'openai': totalCost += OPENAI_SCRIPT_COST_CENTS; break;
+          case 'dalle': totalCost += DALLE_COST_PER_IMAGE_CENTS; break;
+          case 'gemini': totalCost += GEMINI_FLASH_COST_CENTS; break;
+          case 'music-generation': totalCost += 0; break;
+          default: totalCost += 0;
+        }
+      });
+      
+      // Add retry costs (each retry = Veo call)
+      const totalRetries = (clipsData || []).reduce(
+        (sum: number, clip: { retry_count: number | null }) => sum + (clip.retry_count || 0), 
+        0
+      );
+      totalCost += totalRetries * VEO_COST_PER_CLIP_CENTS;
+      
+      setCalculatedApiCost(totalCost);
+      setTotalOperations(opCount + totalRetries);
+    } catch (err) {
+      console.error('Failed to fetch calculated API cost:', err);
+    }
+  };
+
   const fetchAuditLog = async () => {
     try {
       const { data, error } = await supabase
@@ -489,14 +541,8 @@ export default function AdminDashboard() {
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
-  // Calculate financial summary using ACTUAL Stripe revenue
-  const financialSummary = profitData.reduce((acc, row) => ({
-    totalCost: acc.totalCost + (row.total_real_cost_cents || 0),
-    totalOperations: acc.totalOperations + (row.total_operations || 0),
-    totalCreditsCharged: acc.totalCreditsCharged + (row.total_credits_charged || 0),
-  }), { totalCost: 0, totalOperations: 0, totalCreditsCharged: 0 });
-
-  const totalProfit = actualStripeRevenue - financialSummary.totalCost;
+  // Calculate financial summary using ACTUAL calculated costs
+  const totalProfit = actualStripeRevenue - calculatedApiCost;
   const profitMargin = actualStripeRevenue > 0 
     ? (totalProfit / actualStripeRevenue) * 100 
     : 0;
@@ -1013,8 +1059,8 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(financialSummary.totalCost)}</div>
-                  <p className="text-xs text-muted-foreground">{financialSummary.totalOperations.toLocaleString()} operations</p>
+                  <div className="text-2xl font-bold">{formatCurrency(calculatedApiCost)}</div>
+                  <p className="text-xs text-muted-foreground">{totalOperations.toLocaleString()} operations</p>
                 </CardContent>
               </Card>
 

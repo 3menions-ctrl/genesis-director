@@ -49,6 +49,11 @@ import { CostAnalysisDashboard } from '@/components/admin/CostAnalysisDashboard'
 import { AdminProjectsBrowser } from '@/components/admin/AdminProjectsBrowser';
 import { AdminPipelineMonitor } from '@/components/admin/AdminPipelineMonitor';
 import { AdminFailedClipsQueue } from '@/components/admin/AdminFailedClipsQueue';
+import { AdminCreditPackagesManager } from '@/components/admin/AdminCreditPackagesManager';
+import { AdminPricingConfigEditor } from '@/components/admin/AdminPricingConfigEditor';
+import { AdminTierLimitsEditor } from '@/components/admin/AdminTierLimitsEditor';
+import { AdminContentModeration } from '@/components/admin/AdminContentModeration';
+import { AdminSystemConfig } from '@/components/admin/AdminSystemConfig';
 
 interface ProfitData {
   date: string;
@@ -619,6 +624,18 @@ export default function AdminDashboard() {
             <TabsTrigger value="audit" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">Audit</span>
+            </TabsTrigger>
+            <TabsTrigger value="packages" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <Coins className="w-4 h-4" />
+              <span className="hidden sm:inline">Packages</span>
+            </TabsTrigger>
+            <TabsTrigger value="moderation" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Moderation</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <UserCog className="w-4 h-4" />
+              <span className="hidden sm:inline">Config</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1246,6 +1263,23 @@ export default function AdminDashboard() {
           {/* Failed Clips Tab */}
           <TabsContent value="failed">
             <AdminFailedClipsQueue />
+          </TabsContent>
+
+          {/* Credit Packages Tab */}
+          <TabsContent value="packages" className="space-y-6">
+            <AdminCreditPackagesManager />
+            <AdminPricingConfigEditor />
+            <AdminTierLimitsEditor />
+          </TabsContent>
+
+          {/* Content Moderation Tab */}
+          <TabsContent value="moderation">
+            <AdminContentModeration />
+          </TabsContent>
+
+          {/* System Config Tab */}
+          <TabsContent value="config">
+            <AdminSystemConfig />
           </TabsContent>
         </Tabs>
       </main>

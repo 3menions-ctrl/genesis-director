@@ -46,6 +46,9 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { CostAnalysisDashboard } from '@/components/admin/CostAnalysisDashboard';
+import { AdminProjectsBrowser } from '@/components/admin/AdminProjectsBrowser';
+import { AdminPipelineMonitor } from '@/components/admin/AdminPipelineMonitor';
+import { AdminFailedClipsQueue } from '@/components/admin/AdminFailedClipsQueue';
 
 interface ProfitData {
   date: string;
@@ -599,7 +602,19 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="costs" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <Calculator className="w-4 h-4" />
-              <span className="hidden sm:inline">Cost Analysis</span>
+              <span className="hidden sm:inline">Costs</span>
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <FolderKanban className="w-4 h-4" />
+              <span className="hidden sm:inline">Projects</span>
+            </TabsTrigger>
+            <TabsTrigger value="pipeline" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Pipeline</span>
+            </TabsTrigger>
+            <TabsTrigger value="failed" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="hidden sm:inline">Failed</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="rounded-lg px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground gap-2">
               <History className="w-4 h-4" />
@@ -1216,6 +1231,21 @@ export default function AdminDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Log
             </Button>
+          </TabsContent>
+
+          {/* Projects Tab */}
+          <TabsContent value="projects">
+            <AdminProjectsBrowser />
+          </TabsContent>
+
+          {/* Pipeline Monitor Tab */}
+          <TabsContent value="pipeline">
+            <AdminPipelineMonitor />
+          </TabsContent>
+
+          {/* Failed Clips Tab */}
+          <TabsContent value="failed">
+            <AdminFailedClipsQueue />
           </TabsContent>
         </Tabs>
       </main>

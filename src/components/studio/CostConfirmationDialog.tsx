@@ -50,20 +50,18 @@ interface CostConfirmationDialogProps {
   defaultProjectName?: string;
 }
 
-// Use proper tier-based credit calculation (matches backend)
+// Use proper tier-based credit calculation (matches backend: useCreditBilling.ts)
+// 10 credits per clip = 2 pre-production + 6 production + 2 quality assurance
 function calculateCosts(
   clipCount: number,
   qualityTier: 'standard' | 'professional'
 ): CostBreakdown {
-  // Standard: 25 credits per shot (5 pre-prod + 20 production)
-  // Professional: 50 credits per shot (5 pre-prod + 20 production + 25 quality insurance)
-  const isProTier = qualityTier === 'professional';
+  // Both tiers use 10 credits per shot (all clips get premium quality)
+  const preProduction = clipCount * 2;
+  const production = clipCount * 6;
+  const qualityInsurance = clipCount * 2;
   
-  const preProduction = clipCount * 5;
-  const production = clipCount * 20;
-  const qualityInsurance = isProTier ? clipCount * 25 : 0;
-  
-  const creditsPerShot = isProTier ? 50 : 25;
+  const creditsPerShot = 10;
   const total = clipCount * creditsPerShot;
   
   return { preProduction, production, qualityInsurance, total, creditsPerShot };
@@ -171,7 +169,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Zap className="w-4 h-4" />
-                Pre-Production ({clipCount} shots × 5)
+                Pre-Production ({clipCount} clips × 2)
               </span>
               <span className="font-medium">{costs.preProduction}</span>
             </div>
@@ -179,20 +177,18 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Film className="w-4 h-4" />
-                Production ({clipCount} shots × 20)
+                Production ({clipCount} clips × 6)
               </span>
               <span className="font-medium">{costs.production}</span>
             </div>
             
-            {costs.qualityInsurance > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Shield className="w-4 h-4 text-success" />
-                  Quality Insurance ({clipCount} shots × 25)
-                </span>
-                <span className="font-medium text-success">{costs.qualityInsurance}</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Shield className="w-4 h-4 text-success" />
+                Quality Assurance ({clipCount} clips × 2)
+              </span>
+              <span className="font-medium text-success">{costs.qualityInsurance}</span>
+            </div>
 
             {/* Included features */}
             <div className="pt-2 flex flex-wrap gap-2">

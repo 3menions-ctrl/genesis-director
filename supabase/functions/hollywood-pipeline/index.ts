@@ -4398,6 +4398,51 @@ async function runPostProduction(
   console.log(`[Hollywood] Assets: voice=${!!state.assets?.voiceUrl}, music=${!!state.assets?.musicUrl}`);
   
   // =====================================================
+  // DEPTH CONSISTENCY ANALYSIS: 3D spatial coherence validation
+  // Checks object permanence, perspective consistency, depth layers
+  // =====================================================
+  if (completedClipsList.length >= 2) {
+    console.log(`[Hollywood] Running Depth Consistency Analysis for ${completedClipsList.length} clips...`);
+    
+    try {
+      const shotsForDepthAnalysis = completedClipsList.map((c: any) => ({
+        id: `clip_${c.index}`,
+        frameUrl: c.lastFrameUrl,
+        description: state.script?.shots?.[c.index]?.description || `Clip ${c.index + 1}`,
+      })).filter(s => s.frameUrl);
+      
+      if (shotsForDepthAnalysis.length >= 2) {
+        const depthResult = await callEdgeFunction('analyze-depth-consistency', {
+          projectId: state.projectId,
+          shots: shotsForDepthAnalysis,
+          knownObjects: state.extractedCharacters?.map(c => ({ name: c.name, type: 'character' })) || [],
+          strictness: request.qualityTier === 'professional' ? 'strict' : 'normal',
+        }, { timeoutMs: 120000, maxRetries: 1 });
+        
+        if (depthResult.success) {
+          (state as any).depthConsistency = {
+            overallScore: depthResult.overallScore,
+            spatialConsistencyScore: depthResult.spatialConsistencyScore,
+            objectPermanenceScore: depthResult.objectPermanenceScore,
+            perspectiveConsistencyScore: depthResult.perspectiveConsistencyScore,
+            violationsFound: depthResult.violations?.length || 0,
+            criticalViolations: depthResult.violations?.filter((v: any) => v.severity === 'critical').length || 0,
+            correctivePrompts: depthResult.correctivePrompts?.slice(0, 5) || [],
+          };
+          
+          console.log(`[Hollywood] Depth Consistency: ${depthResult.overallScore}/100`);
+          console.log(`  - Spatial: ${depthResult.spatialConsistencyScore}/100`);
+          console.log(`  - Object Permanence: ${depthResult.objectPermanenceScore}/100`);
+          console.log(`  - Perspective: ${depthResult.perspectiveConsistencyScore}/100`);
+          console.log(`  - Violations: ${depthResult.violations?.length || 0} (${(state as any).depthConsistency.criticalViolations} critical)`);
+        }
+      }
+    } catch (depthErr) {
+      console.warn(`[Hollywood] Depth consistency analysis failed (non-critical):`, depthErr);
+    }
+  }
+  
+  // =====================================================
   // LIP SYNC SERVICE: Apply lip sync to dialogue clips
   // =====================================================
   if (state.assets?.voiceUrl && completedClipsList.length > 0) {
@@ -4589,6 +4634,111 @@ async function runPostProduction(
     } catch (postProcessErr) {
       console.warn(`[Hollywood] Continuity post-process analysis failed:`, postProcessErr);
     }
+  }
+  
+  // =====================================================
+  // 4K UPSCALING: Optional Real-ESRGAN enhancement for final video
+  // Enabled for professional tier or when user explicitly requests
+  // =====================================================
+  const enableUpscaling = request.qualityTier === 'professional' && state.finalVideoUrl;
+  
+  if (enableUpscaling) {
+    console.log(`[Hollywood] Running 4K Upscaling on final video (Professional tier)...`);
+    
+    try {
+      const upscaleResult = await callEdgeFunction('upscale-video', {
+        projectId: state.projectId,
+        userId: request.userId,
+        videoUrl: state.finalVideoUrl,
+        targetResolution: '4K',
+        model: 'realesrgan-video',
+        denoise: 0.5,
+        sharpness: 0.3,
+      }, { timeoutMs: 600000, maxRetries: 1 }); // 10 min timeout
+      
+      if (upscaleResult.success && upscaleResult.outputVideoUrl) {
+        console.log(`[Hollywood] 4K Upscaling complete in ${upscaleResult.processingTimeMs}ms`);
+        console.log(`  - Input: ${upscaleResult.inputResolution}`);
+        console.log(`  - Output: ${upscaleResult.outputResolution}`);
+        console.log(`  - Model: ${upscaleResult.model}`);
+        
+        // Store both versions
+        (state as any).originalVideoUrl = state.finalVideoUrl;
+        state.finalVideoUrl = upscaleResult.outputVideoUrl;
+        (state as any).upscaleApplied = true;
+        (state as any).upscaleDetails = {
+          inputResolution: upscaleResult.inputResolution,
+          outputResolution: upscaleResult.outputResolution,
+          model: upscaleResult.model,
+          processingTimeMs: upscaleResult.processingTimeMs,
+        };
+      } else {
+        console.warn(`[Hollywood] Upscaling returned no output - using original video`);
+        if (upscaleResult.error) {
+          console.log(`[Hollywood] Upscaling note: ${upscaleResult.error}`);
+        }
+      }
+    } catch (upscaleErr) {
+      console.warn(`[Hollywood] Upscaling failed (non-critical, using original video):`, upscaleErr);
+    }
+  }
+  
+  // =====================================================
+  // AUTO-BRIDGE CLIP GENERATION: Fix transition discontinuities
+  // Triggered when continuity analysis detects severe gaps
+  // =====================================================
+  const continuityResult = (state as any).continuityOrchestratorResult;
+  const needsAutoBridge = continuityResult?.bridgeClipsNeeded > 0 && 
+    continuityResult?.clipsToRetry?.length === 0 && // Only if no clips need retry
+    !state.finalVideoUrl; // Only if we don't have final video yet
+  
+  if (needsAutoBridge && continuityResult.transitionAnalyses) {
+    console.log(`[Hollywood] Auto-generating ${continuityResult.bridgeClipsNeeded} bridge clips for transition gaps...`);
+    
+    const gapTransitions = continuityResult.transitionAnalyses
+      .filter((t: any) => t.consistencyScore < 60 && !t.bridgeClipGenerated)
+      .slice(0, 3); // Max 3 auto-bridges
+    
+    for (const transition of gapTransitions) {
+      try {
+        const fromClip = completedClipsList.find((c: any) => c.index === transition.fromClipIndex);
+        if (!fromClip?.lastFrameUrl) continue;
+        
+        console.log(`[Hollywood] Generating bridge for transition ${transition.fromClipIndex} → ${transition.toClipIndex}`);
+        
+        const bridgeResult = await callEdgeFunction('generate-bridge-clip', {
+          projectId: state.projectId,
+          userId: request.userId,
+          fromClipLastFrame: fromClip.lastFrameUrl,
+          bridgePrompt: `Smooth transitional shot bridging scenes. ${transition.suggestedBridgePrompt || 'Maintain visual continuity.'}`,
+          durationSeconds: 3,
+          sceneContext: {
+            lighting: state.sceneConsistency?.lighting,
+            colorPalette: state.identityBible?.styleAnchor?.colorPalette,
+            environment: state.sceneConsistency?.location,
+            mood: request.mood,
+          },
+        }, { timeoutMs: 300000, maxRetries: 1 });
+        
+        if (bridgeResult.success && bridgeResult.videoUrl) {
+          console.log(`[Hollywood] Auto-bridge generated: ${bridgeResult.videoUrl.substring(0, 60)}...`);
+          
+          // Store for potential re-stitch
+          if (!(state as any).autoBridgeClips) {
+            (state as any).autoBridgeClips = [];
+          }
+          (state as any).autoBridgeClips.push({
+            insertAfterIndex: transition.fromClipIndex,
+            videoUrl: bridgeResult.videoUrl,
+            transitionScore: transition.consistencyScore,
+          });
+        }
+      } catch (bridgeErr) {
+        console.warn(`[Hollywood] Auto-bridge generation failed:`, bridgeErr);
+      }
+    }
+    
+    console.log(`[Hollywood] Auto-bridge generation complete: ${(state as any).autoBridgeClips?.length || 0} bridges created`);
   }
   
   // =====================================================

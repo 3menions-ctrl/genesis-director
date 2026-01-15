@@ -14,7 +14,7 @@ const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
     credits: 370,
   },
   growth: {
-    priceId: "price_1SpKNZCZh4qZNjWWN8QwPqPc",
+    priceId: "price_1SpKNICZh4qZNjWWUdYivxcc",
     credits: 1000,
   },
   agency: {

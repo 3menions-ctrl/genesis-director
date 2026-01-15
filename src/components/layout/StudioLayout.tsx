@@ -8,6 +8,7 @@ import {
   LayoutTemplate, Clock, Plus, Sparkles, Globe
 } from 'lucide-react';
 import { LowCreditsWarningBanner } from '@/components/studio/LowCreditsWarningBanner';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,7 @@ function StudioSidebar() {
   const { user } = useAuth();
   const isCollapsed = state === 'collapsed';
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const [showBuyModal, setShowBuyModal] = useState(false);
 
   // Fetch recent projects - wait for valid session
   useEffect(() => {
@@ -415,19 +417,25 @@ function StudioSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button 
-                  onClick={() => navigate('/profile')}
+                  onClick={() => setShowBuyModal(true)}
                   className="w-full flex items-center justify-center p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-all"
                 >
                   <Coins className="w-4 h-4 text-white/60" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-zinc-900 border-white/10 text-white">
-                {credits.remaining.toLocaleString()} credits
+                {credits.remaining.toLocaleString()} credits - Click to buy
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
       </SidebarFooter>
+
+      {/* Buy Credits Modal for collapsed sidebar */}
+      <BuyCreditsModal 
+        open={showBuyModal} 
+        onOpenChange={setShowBuyModal} 
+      />
     </Sidebar>
   );
 }

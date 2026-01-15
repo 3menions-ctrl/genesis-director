@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Coins, Zap, Sparkles, Check, AlertTriangle, LogIn, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserCredits } from '@/types/studio';
@@ -5,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 interface CreditsDisplayProps {
   credits: UserCredits;
@@ -14,6 +16,7 @@ interface CreditsDisplayProps {
 export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showBuyModal, setShowBuyModal] = useState(false);
   
   const usagePercentage = (credits.used / Math.max(credits.total, 1)) * 100;
   const isLow = credits.remaining < CREDIT_COSTS.TOTAL_PER_SHOT * 2;
@@ -161,12 +164,18 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
 
       {/* Buy button */}
       <Button
-        onClick={() => navigate('/profile')}
+        onClick={() => setShowBuyModal(true)}
         className="w-full gap-1.5 h-9 text-xs bg-white hover:bg-white/90 text-black border-0"
       >
         <Sparkles className="w-3.5 h-3.5" />
         {!canAfford && requiredCredits > 0 ? 'Get More Credits' : 'Get More'}
       </Button>
+
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyModal} 
+        onOpenChange={setShowBuyModal} 
+      />
     </div>
   );
 }

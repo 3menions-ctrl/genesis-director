@@ -84,7 +84,7 @@ const PRICING_TIERS = [
 // Credit cost breakdown - 10 credits per clip, 60 per video
 const CREDIT_COSTS = [
   { action: 'Single video clip', credits: 10, breakdown: '10 credits per clip' },
-  { action: 'Complete video (6 clips)', credits: 60, breakdown: '$6 per video' },
+  { action: 'Complete video (6 clips)', credits: 60, breakdown: '60 credits total' },
   { action: 'Voice narration', credits: 'Included', breakdown: 'With each clip' },
   { action: 'Automatic retries', credits: 'Included', breakdown: 'Up to 4 retries per clip' },
 ];
@@ -109,8 +109,8 @@ export default function PricingSection() {
           <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
             Credits-based pricing
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. 10 credits per clip. $6 per complete video.
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Pay for what you use. 10 credits per clip. 60 credits per complete video.
           </p>
         </div>
 

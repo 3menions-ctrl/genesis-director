@@ -4088,6 +4088,111 @@ serve(async (req) => {
     let totalAnchorInjectionResult: TotalAnchorInjection | null = null;
     
     // =====================================================
+    // PRIORITY MARKERS SYSTEM - Embedded for Edge Function
+    // Ensures AI focuses on critical elements first
+    // Uses 3-tier system: CRITICAL > IMPORTANT > STANDARD
+    // =====================================================
+    const priorityMarkers: Array<{ level: 'critical' | 'important' | 'standard'; category: string; content: string }> = [];
+    
+    // Extract priority markers from identity bible
+    if (request.identityBible) {
+      const ib = request.identityBible as any; // Cast to any for dynamic property access
+      if (ib.characterDescription || ib.consistencyPrompt) {
+        priorityMarkers.push({
+          level: 'critical',
+          category: 'CHARACTER IDENTITY',
+          content: ib.characterDescription || ib.consistencyPrompt
+        });
+      }
+      if (ib.characterIdentity?.facialFeatures) {
+        priorityMarkers.push({
+          level: 'critical',
+          category: 'FACIAL FEATURES',
+          content: ib.characterIdentity.facialFeatures
+        });
+      }
+      if (ib.consistencyAnchors?.length) {
+        priorityMarkers.push({
+          level: 'critical',
+          category: 'VISUAL ANCHORS',
+          content: ib.consistencyAnchors.join(', ')
+        });
+      }
+      if (ib.characterIdentity?.clothing) {
+        priorityMarkers.push({
+          level: 'important',
+          category: 'CLOTHING',
+          content: ib.characterIdentity.clothing
+        });
+      }
+      if (ib.nonFacialAnchors?.hairColor || ib.nonFacialAnchors?.hairFromBehind) {
+        priorityMarkers.push({
+          level: 'important',
+          category: 'HAIR',
+          content: ib.nonFacialAnchors.hairColor || ib.nonFacialAnchors.hairFromBehind
+        });
+      }
+    }
+    
+    // Extract priority markers from accumulated anchors (scene DNA)
+    const masterAnchor = request.accumulatedAnchors?.[0];
+    if (masterAnchor?.masterConsistencyPrompt) {
+      priorityMarkers.push({
+        level: 'critical',
+        category: 'MASTER VISUAL DNA',
+        content: masterAnchor.masterConsistencyPrompt
+      });
+    }
+    if (masterAnchor?.lighting?.promptFragment) {
+      priorityMarkers.push({
+        level: 'important',
+        category: 'LIGHTING',
+        content: masterAnchor.lighting.promptFragment
+      });
+    }
+    if (masterAnchor?.colorPalette?.promptFragment) {
+      priorityMarkers.push({
+        level: 'important',
+        category: 'COLOR PALETTE',
+        content: masterAnchor.colorPalette.promptFragment
+      });
+    }
+    
+    // Log priority markers
+    if (priorityMarkers.length > 0) {
+      const criticalCount = priorityMarkers.filter(m => m.level === 'critical').length;
+      const importantCount = priorityMarkers.filter(m => m.level === 'important').length;
+      console.log(`[SingleClip] 🎯 PRIORITY MARKERS: ${criticalCount} critical, ${importantCount} important, ${priorityMarkers.length - criticalCount - importantCount} standard`);
+    }
+    
+    // =====================================================
+    // DUAL IMAGE INJECTION STRATEGY - Embedded for Edge Function
+    // Clip 1: Reference only, Clip 2+: Both last frame + reference
+    // =====================================================
+    let dualImageStrategy = 'none';
+    let dualImageWarnings: string[] = [];
+    
+    if (request.clipIndex === 0) {
+      if (request.referenceImageUrl) {
+        dualImageStrategy = 'reference_only';
+        console.log(`[SingleClip] 🎬 DUAL IMAGE: Clip 1 using reference image (establishes visual DNA)`);
+      }
+    } else {
+      if (request.startImageUrl && request.referenceImageUrl) {
+        dualImageStrategy = 'dual_injection';
+        console.log(`[SingleClip] 🔗 DUAL IMAGE: Clip ${request.clipIndex + 1} using BOTH last frame + reference (maximum consistency)`);
+      } else if (request.startImageUrl) {
+        dualImageStrategy = 'last_frame_only';
+        dualImageWarnings.push('No reference image - using last frame only (identity may drift)');
+        console.warn(`[SingleClip] ⚠️ DUAL IMAGE: Last frame only - identity drift risk!`);
+      } else if (request.referenceImageUrl) {
+        dualImageStrategy = 'reference_only';
+        dualImageWarnings.push('No last frame - using reference only (continuity broken)');
+        console.warn(`[SingleClip] ⚠️ DUAL IMAGE: Reference only - continuity broken!`);
+      }
+    }
+    
+    // =====================================================
     // VALIDATE THE LAW (using embedded validation)
     // =====================================================
     const lawValidation = validateTheLaw(

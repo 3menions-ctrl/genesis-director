@@ -87,8 +87,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return 'starter';
   };
 
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
-
+  // Removed checkoutUrl state - now using direct redirect
   const handlePurchase = async (pkg: CreditPackage) => {
     if (!user) {
       toast.error('Please sign in to purchase credits');
@@ -97,7 +96,6 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
     const checkoutId = getCheckoutId(pkg.name);
     setPurchasing(pkg.id);
-    setCheckoutUrl(null);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
@@ -107,40 +105,23 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (error) throw error;
 
       if (data?.url) {
-        // Try to open in a new window
-        const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
-        
-        if (popup) {
-          onOpenChange(false);
-          toast.success('Checkout opened in new tab!');
-        } else {
-          // Popup was blocked - show a clickable link and keep modal open
-          setCheckoutUrl(data.url);
-          toast.info('Popup blocked! Click the button below to checkout.', { duration: 8000 });
-          // Scroll to top of modal to show the checkout button
-          setTimeout(() => {
-            document.querySelector('[data-checkout-button]')?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }
+        // Store URL and close modal, then redirect
+        onOpenChange(false);
+        // Small delay to let modal close, then redirect to Stripe
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 100);
       } else {
         throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Checkout error:', error);
       toast.error('Failed to start checkout. Please try again.');
-    } finally {
       setPurchasing(null);
     }
   };
 
-  const handleDirectCheckout = () => {
-    if (checkoutUrl) {
-      // Open in new tab instead of navigating away (prevents white screen on blocked popups)
-      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
-      onOpenChange(false);
-      toast.success('Checkout opened! Complete your purchase in the new tab.');
-    }
-  };
+  // Removed handleDirectCheckout - now using direct redirect in handlePurchase
 
   const formatPrice = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -194,25 +175,6 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
               </div>
             ) : (
               <>
-                {/* Checkout link when popup is blocked */}
-                {checkoutUrl && (
-                  <div className="p-4 rounded-xl bg-primary/10 border-2 border-primary/50 animate-pulse" data-checkout-button>
-                    <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      Your checkout is ready!
-                    </p>
-                    <Button
-                      onClick={handleDirectCheckout}
-                      className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold"
-                      size="lg"
-                    >
-                      Complete Purchase on Stripe →
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Click above to open secure Stripe checkout
-                    </p>
-                  </div>
-                )}
 
                 {/* Pricing breakdown */}
                 <div className="p-4 rounded-xl bg-muted/40 border border-border/50">

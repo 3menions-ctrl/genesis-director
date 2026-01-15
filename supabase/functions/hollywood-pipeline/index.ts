@@ -4495,17 +4495,10 @@ async function executePipelineInBackground(
       state = await runPostProduction(request, state, supabase);
     }
     
-    // Deduct credits on success
-    if (state.finalVideoUrl && !request.skipCreditDeduction) {
-      console.log(`[Hollywood] Deducting ${state.totalCredits} credits`);
-      
-      await supabase.rpc('deduct_credits', {
-        p_user_id: request.userId,
-        p_amount: state.totalCredits,
-        p_description: `Hollywood Pipeline - Full production (${state.clipCount} clips + audio)`,
-        p_project_id: projectId,
-        p_clip_duration: state.clipCount * state.clipDuration,
-      });
+    // NOTE: Credits are already deducted UPFRONT at pipeline start (line ~4863)
+    // DO NOT deduct again here - this was causing double-charging
+    if (state.finalVideoUrl) {
+      console.log(`[Hollywood] Pipeline complete. Credits were deducted upfront (${state.totalCredits} credits)`);
     }
     
     // Build pro_features_data for database storage (now tracks all tiers)

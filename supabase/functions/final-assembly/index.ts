@@ -125,8 +125,8 @@ serve(async (req) => {
       console.warn(`[FinalAssembly] Could not load project:`, projectError);
     }
 
-    // RESPECT include_narration flag - only include voice if enabled
-    const includeNarration = project?.include_narration !== false; // Default to true if not set
+    // RESPECT include_narration flag - only include voice if EXPLICITLY enabled
+    const includeNarration = project?.include_narration === true; // Default to FALSE - no narration unless requested
     const voiceAudioUrl = includeNarration ? project?.voice_audio_url : null;
     const musicUrl = project?.music_url;
     const proFeatures = project?.pro_features_data as any;

@@ -1067,19 +1067,59 @@ function injectAllSpatialAnchors(
   return spatialCount;
 }
 
-// Inject all lighting anchors
+// Inject all lighting anchors WITH CLIP 1 COLOR GRADE INHERITANCE
 function injectAllLightingAnchors(
   manifest: ShotContinuityManifest | null,
   sceneAnchor: any | null,
   parts: string[],
-  count: { value: number }
+  count: { value: number },
+  masterAnchor?: any | null // NEW: Master anchor from clip 1 for color grade inheritance
 ): number {
   let lightingCount = 0;
   
   parts.push('');
-  parts.push('╔════════════ LIGHTING LOCK ════════════╗');
+  parts.push('╔════════════ LIGHTING & COLOR GRADE LOCK ════════════╗');
   
-  // From continuity manifest
+  // ═══════════════════════════════════════════════════════════════
+  // CLIP 1 COLOR GRADE INHERITANCE - HIGHEST PRIORITY
+  // This ensures ALL clips match Clip 1's exact color profile
+  // ═══════════════════════════════════════════════════════════════
+  if (masterAnchor) {
+    parts.push('[⚡ CLIP 1 COLOR GRADE INHERITANCE - MANDATORY ⚡]');
+    
+    if (masterAnchor.colorPalette) {
+      const cp = masterAnchor.colorPalette;
+      if (cp.dominant?.length) {
+        const colors = cp.dominant.map((d: any) => typeof d === 'string' ? d : d.name).join(', ');
+        parts.push(`[MASTER COLORS (from clip 1): ${colors}]`);
+      }
+      if (cp.temperature) parts.push(`[MASTER TEMPERATURE: ${cp.temperature}]`);
+      if (cp.saturation) parts.push(`[MASTER SATURATION: ${cp.saturation}]`);
+      if (cp.gradeStyle) parts.push(`[MASTER GRADE: ${cp.gradeStyle}]`);
+      if (cp.promptFragment) parts.push(`[MASTER COLOR DNA: ${cp.promptFragment}]`);
+      lightingCount += 5;
+    }
+    
+    if (masterAnchor.lighting) {
+      const ml = masterAnchor.lighting;
+      if (ml.keyLightColor) parts.push(`[MASTER KEY LIGHT COLOR: ${ml.keyLightColor}]`);
+      if (ml.ambientColor) parts.push(`[MASTER AMBIENT COLOR: ${ml.ambientColor}]`);
+      if (ml.promptFragment) parts.push(`[MASTER LIGHTING DNA: ${ml.promptFragment}]`);
+      lightingCount += 3;
+    }
+    
+    if (masterAnchor.masterConsistencyPrompt) {
+      parts.push(`[MASTER CONSISTENCY: ${masterAnchor.masterConsistencyPrompt}]`);
+      lightingCount++;
+    }
+    
+    parts.push('[COLOR DRIFT PREVENTION: Match clip 1 EXACTLY - no gradual shifts allowed]');
+    lightingCount++;
+  }
+  
+  parts.push('');
+  
+  // From continuity manifest (current clip context)
   if (manifest?.lighting) {
     const lt = manifest.lighting;
     parts.push(`[LIGHT SOURCE: ${lt.primarySource.type} ${lt.primarySource.direction}]`);
@@ -1094,8 +1134,8 @@ function injectAllLightingAnchors(
     lightingCount += 6;
   }
   
-  // From scene anchor
-  if (sceneAnchor?.lighting) {
+  // From scene anchor (additional context)
+  if (sceneAnchor?.lighting && sceneAnchor !== masterAnchor) {
     const sl = sceneAnchor.lighting;
     parts.push(`[KEY LIGHT: ${sl.keyLightDirection}, ${sl.keyLightIntensity}, ${sl.keyLightColor}]`);
     parts.push(`[FILL RATIO: ${sl.fillRatio}]`);
@@ -1117,7 +1157,7 @@ function injectAllLightingAnchors(
     lightingCount += 3;
   }
   
-  parts.push('╚════════════ END LIGHTING ════════════╝');
+  parts.push('╚════════════ END LIGHTING & COLOR GRADE ════════════╝');
   count.value += lightingCount;
   return lightingCount;
 }
@@ -1708,11 +1748,12 @@ function buildTotalAnchorInjection(
     previousManifest: ShotContinuityManifest | null;
     sceneAnchor: any | null;
     scriptLine: string | null;
+    masterAnchor?: any | null; // NEW: Clip 1's scene anchor for color grade inheritance
   }
 ): TotalAnchorInjection {
   const {
     clipIndex, totalClips, lastFrameUrl, clip1ReferenceUrl,
-    identityBible, previousManifest, sceneAnchor, scriptLine,
+    identityBible, previousManifest, sceneAnchor, scriptLine, masterAnchor,
   } = options;
   
   const parts: string[] = [];
@@ -1752,8 +1793,8 @@ function buildTotalAnchorInjection(
   // 2. Spatial anchors (Position/Framing)
   categories.spatial = injectAllSpatialAnchors(previousManifest, parts, count);
   
-  // 3. Lighting anchors (Illumination Lock)
-  categories.lighting = injectAllLightingAnchors(previousManifest, sceneAnchor, parts, count);
+  // 3. Lighting anchors (Illumination Lock) WITH CLIP 1 COLOR GRADE INHERITANCE
+  categories.lighting = injectAllLightingAnchors(previousManifest, sceneAnchor, parts, count, masterAnchor);
   
   // 4. Props anchors (Object Inventory)
   categories.props = injectAllPropsAnchors(previousManifest, parts, count);
@@ -4069,6 +4110,9 @@ serve(async (req) => {
     // BUILD TOTAL ANCHOR INJECTION (THE LAW ENFORCEMENT)
     // =====================================================
     try {
+      // Get master anchor from accumulated anchors (first item is clip 1's visual DNA)
+      const masterAnchorFromRequest = request.accumulatedAnchors?.[0] || null;
+      
       totalAnchorInjectionResult = buildTotalAnchorInjection(safePrompt, {
         clipIndex: request.clipIndex,
         totalClips: request.totalClips || 1,
@@ -4078,6 +4122,8 @@ serve(async (req) => {
         previousManifest: request.previousContinuityManifest || null,
         sceneAnchor: (request as any).sceneAnchor || null,
         scriptLine: request.prompt,
+        // CRITICAL: Pass clip 1's master anchor for color grade inheritance
+        masterAnchor: masterAnchorFromRequest,
       });
       
       if (totalAnchorInjectionResult) {

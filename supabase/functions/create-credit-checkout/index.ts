@@ -7,14 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Credit packages with Stripe price IDs
+// Credit packages with Stripe price IDs (must match database stripe_price_id)
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
   starter: {
     priceId: "price_1SpKEvCZh4qZNjWWqIG0CC17",
     credits: 370,
   },
   growth: {
-    priceId: "price_1SpKNICZh4qZNjWWUdYivxcc",
+    priceId: "price_1SpKNZCZh4qZNjWWN8QwPqPc",
     credits: 1000,
   },
   agency: {

@@ -54,6 +54,7 @@ import { AdminPricingConfigEditor } from '@/components/admin/AdminPricingConfigE
 import { AdminTierLimitsEditor } from '@/components/admin/AdminTierLimitsEditor';
 import { AdminContentModeration } from '@/components/admin/AdminContentModeration';
 import { AdminSystemConfig } from '@/components/admin/AdminSystemConfig';
+import { AdminMessageCenter } from '@/components/admin/AdminMessageCenter';
 
 interface ProfitData {
   date: string;
@@ -734,142 +735,7 @@ export default function AdminDashboard() {
         );
 
       case 'messages':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Support Messages</h2>
-                <p className="text-sm text-muted-foreground">Manage customer inquiries and feedback</p>
-              </div>
-              <Button onClick={fetchMessages} variant="outline" size="sm" disabled={messagesLoading} className="shadow-sm">
-                {messagesLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                Refresh
-              </Button>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Message List */}
-              <Card className="card-premium h-[600px] overflow-hidden">
-                <CardHeader className="pb-2 border-b border-border/50">
-                  <CardTitle className="text-base text-foreground">Inbox</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 overflow-y-auto h-[calc(100%-60px)]">
-                  {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
-                      <p>No messages yet</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border/50">
-                      {messages.map((msg) => (
-                        <button
-                          key={msg.id}
-                          className={cn(
-                            "w-full text-left p-4 hover:bg-muted/30 transition-colors",
-                            selectedMessage?.id === msg.id && "bg-muted/50",
-                            msg.status === 'new' && "bg-primary/5"
-                          )}
-                          onClick={() => setSelectedMessage(msg)}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                              msg.status === 'new' ? "bg-primary/10" : "bg-muted"
-                            )}>
-                              <Mail className={cn(
-                                "w-4 h-4",
-                                msg.status === 'new' ? "text-primary" : "text-muted-foreground"
-                              )} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium truncate text-foreground">{msg.name}</span>
-                                {msg.status === 'new' && (
-                                  <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">New</Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{msg.subject}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(msg.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Message Detail */}
-              <Card className="card-premium h-[600px] overflow-hidden">
-                <CardHeader className="pb-2 border-b border-border/50">
-                  <CardTitle className="text-base text-foreground">Message Details</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 overflow-y-auto h-[calc(100%-60px)]">
-                  {selectedMessage ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{selectedMessage.subject}</h3>
-                          <p className="text-sm text-muted-foreground">From: {selectedMessage.name} ({selectedMessage.email})</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(selectedMessage.created_at).toLocaleString()} • Source: {selectedMessage.source}
-                          </p>
-                        </div>
-                        <Badge variant={
-                          selectedMessage.status === 'new' ? 'default' :
-                          selectedMessage.status === 'resolved' ? 'secondary' : 'outline'
-                        }>
-                          {selectedMessage.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="bg-muted/30 rounded-lg p-4 whitespace-pre-wrap text-foreground">
-                        {selectedMessage.message}
-                      </div>
-
-                      <div className="flex items-center gap-2 pt-4 border-t border-border/50">
-                        {selectedMessage.status !== 'resolved' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => updateMessageStatus(selectedMessage.id, 'resolved')}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Mark Resolved
-                          </Button>
-                        )}
-                        {selectedMessage.status === 'new' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => updateMessageStatus(selectedMessage.id, 'in_progress')}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            Mark In Progress
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => deleteMessage(selectedMessage.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <MessageSquare className="w-12 h-12 mb-4 opacity-50" />
-                      <p>Select a message to view details</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
+        return <AdminMessageCenter />;
 
       case 'users':
         return (

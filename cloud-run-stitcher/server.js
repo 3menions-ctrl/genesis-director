@@ -552,7 +552,7 @@ async function stitchVideos(request) {
     colorGrading = 'cinematic',
     customColorProfile = null,
     transitionType = 'fade',
-    transitionDuration = 0.15,
+    transitionDuration = 0.05,
     musicSyncPlan = null,
     sfxPlan = null,
     audioMixParams = null,

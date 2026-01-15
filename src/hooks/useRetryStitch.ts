@@ -36,16 +36,42 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
       
       onStatusChange?.('stitching');
 
-      // Get all completed clips
-      const { data: clips, error: clipsError } = await supabase
+      // =====================================================
+      // IRON-CLAD BEST CLIP SELECTION
+      // Get ALL completed clips with quality_score, then select BEST per shot_index
+      // =====================================================
+      const { data: allClips, error: clipsError } = await supabase
         .from('video_clips')
-        .select('id, shot_index, video_url, duration_seconds')
+        .select('id, shot_index, video_url, duration_seconds, quality_score, created_at')
         .eq('project_id', projectId)
         .eq('status', 'completed')
-        .order('shot_index');
+        .order('shot_index')
+        .order('quality_score', { ascending: false, nullsFirst: false });
 
       if (clipsError) throw clipsError;
-      if (!clips || clips.length === 0) throw new Error('No completed clips found');
+      if (!allClips || allClips.length === 0) throw new Error('No completed clips found');
+      
+      // Select BEST clip per shot_index
+      const bestClipsMap = new Map<number, typeof allClips[0]>();
+      
+      for (const clip of allClips) {
+        const existing = bestClipsMap.get(clip.shot_index);
+        
+        if (!existing) {
+          bestClipsMap.set(clip.shot_index, clip);
+        } else {
+          const existingScore = existing.quality_score ?? -1;
+          const newScore = clip.quality_score ?? -1;
+          
+          if (newScore > existingScore || 
+              (newScore === existingScore && clip.created_at > existing.created_at)) {
+            bestClipsMap.set(clip.shot_index, clip);
+          }
+        }
+      }
+      
+      const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
+      console.log(`[RetryStitch] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
 
       // Get project title
       const { data: project } = await supabase

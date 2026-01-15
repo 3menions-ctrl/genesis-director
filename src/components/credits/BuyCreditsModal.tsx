@@ -104,14 +104,36 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (error) throw error;
 
       if (data?.url) {
-        // Close modal first
         onOpenChange(false);
-        toast.success('Opening secure checkout...');
-        // Use window.open for better compatibility with iframe previews
-        // Falls back to location.href if popup is blocked
+        
+        // Check if we're in an iframe (Lovable preview)
+        const isInIframe = window.self !== window.top;
+        
+        if (isInIframe) {
+          // In iframe, we need to use window.open which will open outside the iframe
+          // Copy URL to clipboard as fallback
+          try {
+            await navigator.clipboard.writeText(data.url);
+            toast.info('Opening checkout... If blocked, the URL has been copied to your clipboard.', {
+              duration: 5000
+            });
+          } catch {
+            // Clipboard failed, just continue
+          }
+        }
+        
+        // Try to open in new tab first
         const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
-        if (!popup) {
+        
+        if (!popup && !isInIframe) {
+          // Only use location.href if not in iframe and popup was blocked
           window.location.href = data.url;
+        } else if (!popup && isInIframe) {
+          toast.error('Popup blocked. Please open this URL manually: ' + data.url.substring(0, 50) + '...', {
+            duration: 10000
+          });
+        } else {
+          toast.success('Checkout opened in new tab!');
         }
       } else {
         throw new Error('No checkout URL received');

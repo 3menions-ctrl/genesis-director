@@ -2981,9 +2981,12 @@ async function runProduction(
         }
       }
       
-      const maxRetries = 3;
+      // IRON-CLAD: Use tier-based maxRetries (default 4 for all tiers)
+      // This ensures every clip gets the full retry budget for quality validation
+      const qualityMaxRetries = tierLimits.maxRetries || 4;
       let retryCount = 0;
       let debugResult = null;
+      console.log(`[Hollywood] Quality validation loop: maxRetries=${qualityMaxRetries} (tier: ${tierLimits.tier})`);
       
       // =====================================================
       // COMPREHENSIVE VALIDATION: Run all 80-point validators in parallel
@@ -3036,7 +3039,7 @@ async function runProduction(
         }
       }
       
-      while (retryCount < maxRetries) {
+      while (retryCount < qualityMaxRetries) {
         try {
           debugResult = await callEdgeFunction('visual-debugger', {
             videoUrl: result.videoUrl,
@@ -3068,12 +3071,12 @@ async function runProduction(
             if ((verdict.passed && (comprehensiveValidation?.overallPassed !== false)) || effectiveScore >= 75) {
               console.log(`[Hollywood] Clip ${i + 1} passed quality check (visual: ${verdict.score}, comprehensive: ${comprehensiveScore}, effective: ${effectiveScore})`);
               break;
-            } else if ((verdict.correctivePrompt || comprehensiveValidation?.correctivePrompts?.length > 0) && retryCount < maxRetries - 1) {
+            } else if ((verdict.correctivePrompt || comprehensiveValidation?.correctivePrompts?.length > 0) && retryCount < qualityMaxRetries - 1) {
               console.log(`[Hollywood] Clip ${i + 1} failed quality (visual: ${verdict.issues?.map((x: any) => x.description).join('; ') || 'N/A'})`);
               if (comprehensiveValidation?.failedValidators?.length > 0) {
                 console.log(`[Hollywood] Comprehensive validation failures: ${comprehensiveValidation.failedValidators.join(', ')}`);
               }
-              console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
+              console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${qualityMaxRetries})...`);
               
               // Build corrected prompt from both sources
               let correctedPrompt = verdict.correctivePrompt || clip.prompt;

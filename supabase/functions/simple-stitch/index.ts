@@ -59,25 +59,69 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Step 1: Load all completed clips
-    console.log("[SimpleStitch] Step 1: Loading completed clips...");
+    // =====================================================
+    // IRON-CLAD BEST CLIP SELECTION
+    // Step 1: Load ALL completed clips with quality_score
+    // Then select the BEST clip per shot_index (highest quality_score)
+    // =====================================================
+    console.log("[SimpleStitch] Step 1: Loading completed clips with quality scores...");
     
-    const { data: clips, error: clipsError } = await supabase
+    const { data: allClips, error: clipsError } = await supabase
       .from('video_clips')
-      .select('id, shot_index, video_url, duration_seconds')
+      .select('id, shot_index, video_url, duration_seconds, quality_score, created_at')
       .eq('project_id', projectId)
       .eq('status', 'completed')
-      .order('shot_index');
+      .order('shot_index')
+      .order('quality_score', { ascending: false, nullsFirst: false });
 
     if (clipsError) {
       throw new Error(`Failed to load clips: ${clipsError.message}`);
     }
 
-    if (!clips || clips.length === 0) {
+    if (!allClips || allClips.length === 0) {
       throw new Error("No completed clips found for this project");
     }
 
-    console.log(`[SimpleStitch] Found ${clips.length} completed clips`);
+    console.log(`[SimpleStitch] Found ${allClips.length} total completed clip versions`);
+    
+    // =====================================================
+    // BEST CLIP SELECTION ALGORITHM
+    // For each shot_index, pick the clip with:
+    // 1. Highest quality_score (if available)
+    // 2. Most recent (latest created_at) if scores are null/equal
+    // =====================================================
+    const bestClipsMap = new Map<number, typeof allClips[0]>();
+    
+    for (const clip of allClips) {
+      const existing = bestClipsMap.get(clip.shot_index);
+      
+      if (!existing) {
+        // First clip for this shot_index
+        bestClipsMap.set(clip.shot_index, clip);
+      } else {
+        // Compare quality scores (higher is better)
+        const existingScore = existing.quality_score ?? -1;
+        const newScore = clip.quality_score ?? -1;
+        
+        if (newScore > existingScore) {
+          // New clip has higher quality score
+          bestClipsMap.set(clip.shot_index, clip);
+          console.log(`[SimpleStitch] Shot ${clip.shot_index}: Upgraded to clip ${clip.id.substring(0, 8)} (score: ${newScore} > ${existingScore})`);
+        } else if (newScore === existingScore && clip.created_at > existing.created_at) {
+          // Same score, prefer more recent
+          bestClipsMap.set(clip.shot_index, clip);
+          console.log(`[SimpleStitch] Shot ${clip.shot_index}: Upgraded to newer clip ${clip.id.substring(0, 8)} (same score: ${newScore})`);
+        }
+      }
+    }
+    
+    // Convert map to sorted array
+    const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
+    
+    console.log(`[SimpleStitch] Selected ${clips.length} BEST clips from ${allClips.length} total versions:`);
+    for (const clip of clips) {
+      console.log(`  Shot ${clip.shot_index}: ${clip.id.substring(0, 8)} (quality: ${clip.quality_score ?? 'N/A'})`);
+    }
 
     // Get project details including narration preference
     const { data: project } = await supabase

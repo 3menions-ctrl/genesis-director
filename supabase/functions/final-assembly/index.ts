@@ -98,21 +98,51 @@ serve(async (req) => {
       .update({ status: 'assembling' })
       .eq('id', projectId);
 
-    // Step 1: Load all completed clips
-    console.log("[FinalAssembly] Step 1: Loading clips...");
+    // =====================================================
+    // IRON-CLAD BEST CLIP SELECTION
+    // Step 1: Load ALL completed clips with quality_score
+    // Then select the BEST clip per shot_index (highest quality_score)
+    // =====================================================
+    console.log("[FinalAssembly] Step 1: Loading clips with quality scores...");
     
-    const { data: clips, error: clipsError } = await supabase
+    const { data: allClips, error: clipsError } = await supabase
       .from('video_clips')
-      .select('id, shot_index, video_url, last_frame_url, duration_seconds, prompt, status')
+      .select('id, shot_index, video_url, last_frame_url, duration_seconds, prompt, status, quality_score, created_at')
       .eq('project_id', projectId)
       .eq('status', 'completed')
-      .order('shot_index');
+      .order('shot_index')
+      .order('quality_score', { ascending: false, nullsFirst: false });
 
-    if (clipsError || !clips || clips.length === 0) {
+    if (clipsError || !allClips || allClips.length === 0) {
       throw new Error(`No completed clips found for project ${projectId}`);
     }
 
-    console.log(`[FinalAssembly] Found ${clips.length} completed clips`);
+    console.log(`[FinalAssembly] Found ${allClips.length} total completed clip versions`);
+    
+    // Select BEST clip per shot_index
+    const bestClipsMap = new Map<number, typeof allClips[0]>();
+    
+    for (const clip of allClips) {
+      const existing = bestClipsMap.get(clip.shot_index);
+      
+      if (!existing) {
+        bestClipsMap.set(clip.shot_index, clip);
+      } else {
+        const existingScore = existing.quality_score ?? -1;
+        const newScore = clip.quality_score ?? -1;
+        
+        if (newScore > existingScore) {
+          bestClipsMap.set(clip.shot_index, clip);
+          console.log(`[FinalAssembly] Shot ${clip.shot_index}: Upgraded to clip ${clip.id.substring(0, 8)} (score: ${newScore} > ${existingScore})`);
+        } else if (newScore === existingScore && clip.created_at > existing.created_at) {
+          bestClipsMap.set(clip.shot_index, clip);
+        }
+      }
+    }
+    
+    const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
+    
+    console.log(`[FinalAssembly] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
 
     // Step 2: Load project audio tracks including narration preference
     const { data: project, error: projectError } = await supabase

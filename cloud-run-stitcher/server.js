@@ -672,12 +672,14 @@ async function stitchVideos(request) {
       const clip = validClips[i];
       const normalizedPath = path.join(workDir, `normalized_${i.toString().padStart(3, '0')}.mp4`);
       
+      // IRON-CLAD QUALITY: Use CRF 15 for near-lossless encoding
+      // CRF 15 = visually perfect quality (lower = better, 0 = lossless)
       await runFFmpeg([
         '-i', clip.localPath,
         '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30',
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '18',
+        '-preset', 'slow', // UPGRADED: slow preset for better compression quality
+        '-crf', '15',      // UPGRADED: CRF 15 for near-lossless quality (was 18)
         '-c:a', 'aac',
         '-ar', '48000',
         '-ac', '2',
@@ -718,6 +720,7 @@ async function stitchVideos(request) {
       
       // When muting, use video-only xfade (no audio crossfade)
       if (shouldMuteAudio) {
+        // IRON-CLAD: CRF 15 + slow preset for maximum quality
         await runFFmpeg([
           '-i', currentPath,
           '-i', nextClip.normalizedPath,
@@ -726,12 +729,13 @@ async function stitchVideos(request) {
           '-map', '[outv]',
           '-an',  // No audio output
           '-c:v', 'libx264',
-          '-preset', 'fast',
-          '-crf', '18',
+          '-preset', 'slow',
+          '-crf', '15',
           '-y',
           outputPath
         ], `Crossfade transition ${i}/${normalizedClips.length - 1} (muted)`);
       } else {
+        // IRON-CLAD: CRF 15 + slow preset for maximum quality
         await runFFmpeg([
           '-i', currentPath,
           '-i', nextClip.normalizedPath,
@@ -740,9 +744,10 @@ async function stitchVideos(request) {
           '-map', '[outv]',
           '-map', '[outa]',
           '-c:v', 'libx264',
-          '-preset', 'fast',
-          '-crf', '18',
+          '-preset', 'slow',
+          '-crf', '15',
           '-c:a', 'aac',
+          '-b:a', '320k', // UPGRADED: 320kbps audio for maximum quality
           '-y',
           outputPath
         ], `Crossfade transition ${i}/${normalizedClips.length - 1}`);
@@ -763,24 +768,26 @@ async function stitchVideos(request) {
     
     // When muting, strip audio entirely
     if (shouldMuteAudio) {
+      // IRON-CLAD: CRF 15 + slow preset for maximum quality
       await runFFmpeg([
         '-i', currentPath,
         '-vf', colorFilter,
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '18',
+        '-preset', 'slow',
+        '-crf', '15',
         '-an',  // No audio
         '-movflags', '+faststart',
         '-y',
         concatenatedPath
       ], `Color grading with ${colorGrading} (muted)`);
     } else {
+      // IRON-CLAD: CRF 15 + slow preset for maximum quality
       await runFFmpeg([
         '-i', currentPath,
         '-vf', colorFilter,
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '18',
+        '-preset', 'slow',
+        '-crf', '15',
         '-c:a', 'copy',
         '-movflags', '+faststart',
         '-y',
@@ -885,7 +892,7 @@ async function stitchVideos(request) {
         '-map', '[aout]',
         '-c:v', 'copy',
         '-c:a', 'aac',
-        '-b:a', '192k',
+        '-b:a', '320k',  // UPGRADED: 320kbps audio for maximum quality
         '-movflags', '+faststart',
         '-y',
         withAudioPath

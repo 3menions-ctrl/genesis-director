@@ -135,7 +135,10 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
   const handleDirectCheckout = () => {
     if (checkoutUrl) {
-      window.location.href = checkoutUrl;
+      // Open in new tab instead of navigating away (prevents white screen on blocked popups)
+      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+      onOpenChange(false);
+      toast.success('Checkout opened! Complete your purchase in the new tab.');
     }
   };
 

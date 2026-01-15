@@ -59,11 +59,11 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
               </span>
               <span className={cn(
                 "px-2.5 py-1 text-xs font-semibold uppercase tracking-wide rounded-full",
-                variant === 'dark'
+              variant === 'dark'
                   ? "bg-white/10 text-white/80 border border-white/20"
                   : "bg-foreground/10 text-foreground border border-foreground/20"
               )}>
-                $6 per video
+                60 credits per video
               </span>
             </div>
             <div className={cn(

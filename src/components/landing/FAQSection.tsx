@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip costs 10 credits (2 for pre-production + 6 for generation + 2 for quality assurance). A complete 6-clip video costs 60 credits ($6). Voice narration and automatic retries are included at no extra cost. Credits never expire and you can buy more anytime."
+    answer: "Credits are our usage currency. Each video clip costs 10 credits (2 for pre-production + 6 for generation + 2 for quality assurance). A complete 6-clip video costs 60 credits. Voice narration and automatic retries are included at no extra cost. Credits never expire and you can buy more anytime."
   },
   {
     question: "What video quality can I expect?",

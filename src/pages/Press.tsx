@@ -15,7 +15,6 @@ import {
   Layers,
   Eye,
   Brain,
-  Mic,
   Palette,
   Target,
   Rocket,
@@ -27,7 +26,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import apexLogo from "@/assets/apex-logo.png";
+
+const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
+  <div className={`${className} rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian`}>
+    <span className="text-base font-bold text-white">AS</span>
+  </div>
+);
 
 const HERO_STATS = [
   { value: "AI", label: "Powered Generation", icon: Brain, color: "from-violet-500 to-purple-600" },
@@ -178,7 +182,7 @@ export default function Press() {
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:blur-xl transition-all" />
-              <img src={apexLogo} alt="Apex Studio" className="h-9 w-auto relative" />
+              <Logo className="w-9 h-9 relative" />
             </div>
             <span className="font-bold text-xl">Apex Studio</span>
           </Link>
@@ -287,8 +291,8 @@ export default function Press() {
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center">
-                      <img src={apexLogo} alt="Apex Studio" className="w-8 h-8" />
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-lg">
+                      AS
                     </div>
                     <div className="text-left">
                       <div className="font-semibold">Apex Studio</div>
@@ -479,9 +483,9 @@ export default function Press() {
             
             <div className="grid sm:grid-cols-3 gap-6">
               {[
-                { title: "Logo Package", desc: "SVG, PNG, dark/light variants", icon: apexLogo, isImage: true },
-                { title: "Screenshots", desc: "Product UI and feature shots", icon: Layers, isImage: false },
-                { title: "Brand Guidelines", desc: "Colors, typography, usage", icon: Palette, isImage: false },
+                { title: "Logo Package", desc: "SVG, PNG, dark/light variants", icon: null, isLogo: true },
+                { title: "Screenshots", desc: "Product UI and feature shots", icon: Layers, isLogo: false },
+                { title: "Brand Guidelines", desc: "Colors, typography, usage", icon: Palette, isLogo: false },
               ].map((asset, index) => (
                 <motion.div
                   key={asset.title}
@@ -494,10 +498,12 @@ export default function Press() {
                   <Card className="bg-card/50 border-border/50 hover:border-primary/30 transition-all">
                     <CardContent className="p-8 text-center">
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-5">
-                        {asset.isImage ? (
-                          <img src={asset.icon as string} alt="Logo" className="w-10 h-10" />
+                        {asset.isLogo ? (
+                          <div className="w-10 h-10 rounded-xl bg-glossy-black flex items-center justify-center shadow-obsidian">
+                            <span className="text-sm font-bold text-white">AS</span>
+                          </div>
                         ) : (
-                          <asset.icon className="w-8 h-8 text-primary" />
+                          asset.icon && <asset.icon className="w-8 h-8 text-primary" />
                         )}
                       </div>
                       <h3 className="font-semibold mb-2">{asset.title}</h3>
@@ -549,7 +555,7 @@ export default function Press() {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={apexLogo} alt="Apex Studio" className="h-6 w-auto" />
+              <Logo className="w-6 h-6" />
               <span className="text-sm text-muted-foreground">© 2025 Apex Studio. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-6 text-sm">

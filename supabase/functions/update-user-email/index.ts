@@ -36,27 +36,36 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Create authenticated client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // First, verify the user with anon client
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await anonClient.auth.getUser()
     if (userError || !user) {
+      console.error('Auth error:', userError)
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update the user's email - this will send a confirmation email
-    const { error: updateError } = await supabase.auth.updateUser({
-      email: newEmail
+    console.log('User verified:', user.id, 'Current email:', user.email, 'New email:', newEmail)
+
+    // Use admin client to update email (bypasses session requirement)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
     })
+
+    // Update the user's email using admin API
+    const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(
+      user.id,
+      { email: newEmail }
+    )
 
     if (updateError) {
       console.error('Error updating email:', updateError)
@@ -66,10 +75,22 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Also update email in profiles table
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({ email: newEmail })
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.warn('Could not update profile email:', profileError)
+    }
+
+    console.log('Email updated successfully for user:', user.id)
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Confirmation email sent. Please check your new email address to confirm the change.' 
+        message: 'Email updated successfully. You may need to sign in again with your new email.' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -9,10 +9,10 @@ const corsHeaders = {
 /**
  * Music Generation Edge Function
  * 
- * Generates background music using Lovable AI's music generation capabilities.
- * Falls back to a stock music library or silent placeholder if unavailable.
- * 
- * Supports mood-based generation for cinematic consistency.
+ * Generates background music using:
+ * 1. Replicate's MusicGen model (primary)
+ * 2. Stock music library (fallback)
+ * 3. Silent placeholder (last resort)
  */
 
 interface MusicRequest {
@@ -37,6 +37,7 @@ const MOOD_PROMPTS: Record<string, string> = {
   scifi: "Sci-fi cinematic score with synthesizers, electronic elements, and futuristic soundscape. Blade Runner style.",
   calm: "Calm ambient background music with soft pads and gentle melody.",
   happy: "Happy upbeat background music with cheerful melody and positive energy.",
+  cinematic: "Cinematic orchestral score with dramatic swells, emotional strings, and professional film quality.",
 };
 
 const GENRE_MODIFIERS: Record<string, string> = {
@@ -47,6 +48,121 @@ const GENRE_MODIFIERS: Record<string, string> = {
   piano: "Solo piano or piano-focused intimate arrangement.",
   acoustic: "Acoustic instruments with warm natural sound.",
 };
+
+// Try Replicate MusicGen
+async function generateWithReplicate(prompt: string, duration: number): Promise<string | null> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  
+  if (!REPLICATE_API_KEY) {
+    console.log("[generate-music] No Replicate API key configured");
+    return null;
+  }
+  
+  try {
+    console.log("[generate-music] Starting Replicate MusicGen generation...");
+    
+    // Create prediction
+    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "671ac645ce5e552cc63a54a2bbff63fcf798043055f2a3c4abd12e6deb15e12e", // MusicGen
+        input: {
+          prompt: prompt,
+          duration: Math.min(duration, 30), // MusicGen max is 30s
+          model_version: "melody", // Best quality
+          output_format: "mp3",
+          normalization_strategy: "loudness",
+        },
+      }),
+    });
+    
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error("[generate-music] Replicate create failed:", errorText);
+      return null;
+    }
+    
+    const prediction = await createResponse.json();
+    console.log("[generate-music] Replicate prediction started:", prediction.id);
+    
+    // Poll for completion (max 2 minutes)
+    const maxAttempts = 24;
+    const pollInterval = 5000;
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+        },
+      });
+      
+      if (!statusResponse.ok) continue;
+      
+      const status = await statusResponse.json();
+      console.log(`[generate-music] Replicate status: ${status.status}`);
+      
+      if (status.status === "succeeded" && status.output) {
+        console.log("[generate-music] Replicate MusicGen succeeded!");
+        return status.output;
+      }
+      
+      if (status.status === "failed" || status.status === "canceled") {
+        console.error("[generate-music] Replicate failed:", status.error);
+        return null;
+      }
+    }
+    
+    console.warn("[generate-music] Replicate polling timed out");
+    return null;
+    
+  } catch (error) {
+    console.error("[generate-music] Replicate error:", error);
+    return null;
+  }
+}
+
+// Upload audio URL to Supabase storage
+async function uploadToStorage(audioUrl: string, projectId: string, supabase: any): Promise<string | null> {
+  try {
+    // Download the audio
+    const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) return null;
+    
+    const audioBuffer = await audioResponse.arrayBuffer();
+    const fileName = `${projectId}/background-music-${Date.now()}.mp3`;
+    
+    // Upload to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("voice-tracks") // Reuse voice-tracks bucket for audio
+      .upload(fileName, audioBuffer, {
+        contentType: "audio/mpeg",
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error("[generate-music] Upload error:", uploadError);
+      return null;
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from("voice-tracks")
+      .getPublicUrl(fileName);
+    
+    console.log("[generate-music] Uploaded to storage:", publicUrl);
+    return publicUrl;
+    
+  } catch (error) {
+    console.error("[generate-music] Upload failed:", error);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,71 +195,67 @@ serve(async (req) => {
     console.log(`[generate-music] Generating ${duration}s track for project ${projectId || 'unknown'}`);
     console.log(`[generate-music] Prompt: ${finalPrompt.substring(0, 100)}...`);
 
-    // Try Lovable AI music generation
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (LOVABLE_API_KEY) {
-      try {
-        // Use Lovable AI's image model for generating music prompts
-        // (Lovable AI doesn't have direct music generation, but we can use it to enhance prompts)
-        console.log("[generate-music] Using Lovable AI for prompt enhancement");
-        
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-5.2",
-            messages: [
-              {
-                role: "system",
-                content: "You are a music director. Given a music prompt, enhance it with specific musical details like tempo (BPM), key, instruments, and structure. Keep response under 100 words."
-              },
-              {
-                role: "user",
-                content: `Enhance this music prompt for a ${duration} second track: ${finalPrompt}`
-              }
-            ],
-          }),
-        });
-
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const enhancedPrompt = aiData.choices?.[0]?.message?.content || finalPrompt;
-          console.log(`[generate-music] Enhanced prompt: ${enhancedPrompt.substring(0, 100)}...`);
-          finalPrompt = enhancedPrompt;
-        }
-      } catch (aiError) {
-        console.warn("[generate-music] Lovable AI enhancement failed, using original prompt:", aiError);
-      }
-    }
-
-    // Since we don't have a reliable free music generation API,
-    // we'll return a "music pending" response that the frontend can handle
-    // The actual music can be added manually or through a future integration
-    
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+    // Try Replicate MusicGen first
+    const replicateResult = await generateWithReplicate(finalPrompt, duration);
+    
+    if (replicateResult && supabase && projectId) {
+      // Upload to storage for persistence
+      const storedUrl = await uploadToStorage(replicateResult, projectId, supabase);
+      const musicUrl = storedUrl || replicateResult;
       
-      // Check if we have any pre-existing stock music that matches the mood
+      // Log success
+      try {
+        await supabase.rpc('log_api_cost', {
+          p_project_id: projectId,
+          p_shot_id: 'background_music',
+          p_service: 'music-generation',
+          p_operation: 'generate_music',
+          p_credits_charged: 0,
+          p_real_cost_cents: 5, // ~$0.05 for MusicGen
+          p_duration_seconds: duration,
+          p_status: 'success',
+          p_metadata: JSON.stringify({
+            mood,
+            genre,
+            provider: 'replicate-musicgen',
+            stored: !!storedUrl,
+          }),
+        });
+      } catch (logError) {
+        console.warn("[generate-music] Failed to log:", logError);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          musicUrl,
+          durationSeconds: duration,
+          prompt: finalPrompt,
+          source: "replicate-musicgen",
+          hasMusic: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fallback: Check for stock music
+    if (supabase) {
       const stockMusicBucket = 'stock-music';
-      const moodKey = mood || 'default';
+      const moodKey = mood || 'cinematic';
       
       try {
-        // Try to get stock music file
         const { data: files } = await supabase.storage
           .from(stockMusicBucket)
           .list('', { limit: 100 });
         
-        // Find a matching file based on mood
-        const matchingFile = files?.find(f => 
+        const matchingFile = files?.find((f: any) => 
           f.name.toLowerCase().includes(moodKey.toLowerCase()) ||
-          f.name.toLowerCase().includes('background')
+          f.name.toLowerCase().includes('background') ||
+          f.name.toLowerCase().includes('cinematic')
         );
         
         if (matchingFile) {
@@ -160,6 +272,7 @@ serve(async (req) => {
               durationSeconds: duration,
               prompt: finalPrompt,
               source: "stock",
+              hasMusic: true,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -168,7 +281,7 @@ serve(async (req) => {
         console.log("[generate-music] No stock music available:", stockError);
       }
       
-      // Log that music generation was attempted but no source available
+      // Log that music generation was skipped
       try {
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId || null,
@@ -190,9 +303,8 @@ serve(async (req) => {
       }
     }
 
-    // Return a response indicating music is not available but video can proceed without it
-    // CRITICAL: success=true but musicUrl=null tells pipeline to set hasMusic=false
-    console.log("[generate-music] No music available - returning null URL for proper status tracking");
+    // Return response indicating music is not available
+    console.log("[generate-music] No music available - returning null URL");
     
     return new Response(
       JSON.stringify({
@@ -202,7 +314,7 @@ serve(async (req) => {
         prompt: finalPrompt,
         message: "Music generation skipped - no provider available. Video will be generated without background music.",
         source: "none",
-        hasMusic: false, // Explicit flag for pipeline status tracking
+        hasMusic: false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

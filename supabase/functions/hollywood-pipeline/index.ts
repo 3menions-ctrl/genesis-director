@@ -4277,6 +4277,12 @@ async function runProduction(
       
       // Use intelligent-stitch for ALL tiers with bridge clips enabled for all
       console.log(`[Hollywood] Using Intelligent Stitcher for ${request.qualityTier || 'standard'} tier (bridge clips enabled for all)`);
+      
+      // Determine if we should mute native audio (Veo 3.1 generated narration)
+      const includeNarration = request.includeVoice !== false;
+      const muteNativeAudio = !includeNarration;
+      console.log(`[Hollywood] Audio config: includeNarration=${includeNarration}, muteNativeAudio=${muteNativeAudio}`);
+      
       const intelligentStitchResult = await callEdgeFunction('intelligent-stitch', {
         projectId: state.projectId,
         userId: request.userId,
@@ -4288,13 +4294,14 @@ async function runProduction(
         maxBridgeClips: Math.max(0, 5 - bridgeClipUrls.length), // Subtract already generated
         targetFormat: '1080p',
         qualityTier: request.qualityTier || 'standard',
+        muteNativeAudio, // Strip Veo 3.1 native audio if no narration wanted
         // Pass pro features for intelligent audio-visual sync
         musicSyncPlan: (state as any).musicSyncPlan,
         colorGradingFilter: (state as any).colorGrading?.masterFilter,
         sfxPlan: (state as any).sfxPlan,
         // Pass continuity plan for transition timing
         continuityPlan: continuityPlan,
-      });
+      }, { timeoutMs: 600000, maxRetries: 2 }); // 10 minute timeout with 2 retries
       
       if (intelligentStitchResult.success && intelligentStitchResult.finalVideoUrl) {
         state.finalVideoUrl = intelligentStitchResult.finalVideoUrl;
@@ -4309,37 +4316,51 @@ async function runProduction(
       if (!state.finalVideoUrl) {
         const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
         if (stitcherUrl) {
-          const response = await fetch(`${stitcherUrl}/stitch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              projectId: state.projectId,
-              projectTitle: `Video - ${state.projectId}`,
-              clips: clipSequence.map(c => ({
-                shotId: c.shotId,
-                videoUrl: c.videoUrl,
-                durationSeconds: c.isBridge ? 3 : DEFAULT_CLIP_DURATION,
-                transitionOut: 'continuous',
-              })),
-              audioMixMode: hasAudioTracks ? 'full' : 'mute',
-              outputFormat: 'mp4',
-              colorGrading: request.colorGrading || 'cinematic',
-              isFinalAssembly: true,
-              voiceTrackUrl: state.assets?.voiceUrl,
-              backgroundMusicUrl: state.assets?.musicUrl,
-              // Pass music sync plan for intelligent audio mixing
-              musicSyncPlan: (state as any).musicSyncPlan,
-              // Pass color grading filter for FFmpeg processing
-              colorGradingFilter: (state as any).colorGrading?.masterFilter,
-            }),
-          });
+          console.log(`[Hollywood] Fallback: Direct Cloud Run stitch with 10 minute timeout`);
           
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.finalVideoUrl) {
-              state.finalVideoUrl = result.finalVideoUrl;
-              console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minute timeout
+          
+          try {
+            const response = await fetch(`${stitcherUrl}/stitch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                projectId: state.projectId,
+                projectTitle: `Video - ${state.projectId}`,
+                clips: clipSequence.map(c => ({
+                  shotId: c.shotId,
+                  videoUrl: c.videoUrl,
+                  durationSeconds: c.isBridge ? 3 : DEFAULT_CLIP_DURATION,
+                  transitionOut: 'continuous',
+                })),
+                audioMixMode: hasAudioTracks ? 'full' : 'mute',
+                muteNativeAudio, // Strip Veo 3.1 native audio if no narration wanted
+                outputFormat: 'mp4',
+                colorGrading: request.colorGrading || 'cinematic',
+                isFinalAssembly: true,
+                voiceTrackUrl: state.assets?.voiceUrl,
+                backgroundMusicUrl: state.assets?.musicUrl,
+                // Pass music sync plan for intelligent audio mixing
+                musicSyncPlan: (state as any).musicSyncPlan,
+                // Pass color grading filter for FFmpeg processing
+                colorGradingFilter: (state as any).colorGrading?.masterFilter,
+              }),
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              const result = await response.json();
+              if (result.success && result.finalVideoUrl) {
+                state.finalVideoUrl = result.finalVideoUrl;
+                console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
+              }
             }
+          } catch (directStitchError) {
+            clearTimeout(timeoutId);
+            console.error(`[Hollywood] Direct stitch error:`, directStitchError);
           }
         }
       }
@@ -4567,6 +4588,42 @@ async function runPostProduction(
       }
     } catch (postProcessErr) {
       console.warn(`[Hollywood] Continuity post-process analysis failed:`, postProcessErr);
+    }
+  }
+  
+  // =====================================================
+  // THUMBNAIL GENERATION: Create project thumbnail
+  // =====================================================
+  let thumbnailUrl: string | null = null;
+  
+  if (state.finalVideoUrl || completedClipsList.length > 0) {
+    console.log(`[Hollywood] Generating project thumbnail...`);
+    
+    try {
+      // Build thumbnail prompt from script
+      const thumbnailPrompt = state.script?.shots?.[0]?.description || 
+        `Cinematic scene from ${request.projectName || 'video project'}`;
+      
+      const thumbnailResult = await callEdgeFunction('generate-thumbnail', {
+        prompt: thumbnailPrompt,
+        projectId: state.projectId,
+        projectName: request.projectName,
+      }, { timeoutMs: 60000, maxRetries: 1 });
+      
+      if (thumbnailResult.success && thumbnailResult.thumbnailUrl) {
+        thumbnailUrl = thumbnailResult.thumbnailUrl;
+        console.log(`[Hollywood] Thumbnail generated: ${String(thumbnailUrl).substring(0, 60)}...`);
+        
+        // Update project with thumbnail
+        await supabase
+          .from('movie_projects')
+          .update({ thumbnail_url: thumbnailUrl })
+          .eq('id', state.projectId);
+      } else {
+        console.warn(`[Hollywood] Thumbnail generation returned no URL`);
+      }
+    } catch (thumbErr) {
+      console.warn(`[Hollywood] Thumbnail generation failed (non-critical):`, thumbErr);
     }
   }
   

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
@@ -13,8 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import { SignOutDialog } from '@/components/auth/SignOutDialog';
+import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 
 interface NavItem {
   label: string;
@@ -46,6 +47,7 @@ export function AppHeader({
   const location = useLocation();
   const { profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
 
   const handleCreate = () => {
     if (onCreateClick) {
@@ -128,7 +130,7 @@ export function AppHeader({
               {/* Credits pill */}
               {showCredits && (
                 <button
-                  onClick={() => navigate('/profile')}
+                  onClick={() => setShowBuyCreditsModal(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/15 transition-all"
                 >
                   <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
@@ -235,7 +237,7 @@ export function AppHeader({
               {showCredits && (
                 <button
                   onClick={() => {
-                    navigate('/profile');
+                    setShowBuyCreditsModal(true);
                     setMobileMenuOpen(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08]"
@@ -303,6 +305,12 @@ export function AppHeader({
           </div>
         </div>
       )}
+
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal 
+        open={showBuyCreditsModal} 
+        onOpenChange={setShowBuyCreditsModal} 
+      />
     </nav>
   );
 }

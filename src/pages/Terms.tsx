@@ -280,7 +280,7 @@ const Terms = () => {
             </p>
             <p>
               <strong className="text-foreground">Opt-Out Right:</strong> You may opt out of this arbitration 
-              provision by sending written notice to legal@apexstudio.ai within 30 days of first 
+              provision by sending written notice to admincole@apex-studio.ai within 30 days of first 
               accepting these Terms. Your notice must include your name, address, email, and a clear 
               statement that you wish to opt out of arbitration.
             </p>
@@ -348,8 +348,8 @@ const Terms = () => {
             <div className="mt-4 p-4 bg-muted/30 rounded-lg space-y-2">
               <p><strong className="text-foreground">Apex-studio LLC</strong></p>
               <p><strong className="text-foreground">Email:</strong>{' '}
-                <a href="mailto:legal@apexstudio.ai" className="text-foreground hover:underline">
-                  legal@apexstudio.ai
+                <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                  admincole@apex-studio.ai
                 </a>
               </p>
               <p><strong className="text-foreground">State of Incorporation:</strong> Missouri, United States</p>

@@ -334,7 +334,7 @@ Upgrade or downgrade anytime from Settings → Billing.
 - Partially used: Prorated based on remaining credits
 
 ### How to Request
-Contact support@apex.video with your order details.
+Contact cole@apex-studio.com with your order details.
         `
       }
     ]

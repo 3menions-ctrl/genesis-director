@@ -34,10 +34,10 @@ export default function ContactSection() {
                 Send us a message and we'll respond within 24 hours.
               </p>
               <a 
-                href="mailto:support@apex-studio.ai" 
+                href="mailto:cole@apex-studio.com" 
                 className="text-sm font-medium hero-text hover:underline inline-flex items-center gap-1"
               >
-                support@apex-studio.ai
+                cole@apex-studio.com
                 <ArrowRight className="w-3 h-3" />
               </a>
             </div>

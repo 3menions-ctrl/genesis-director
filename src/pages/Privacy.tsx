@@ -222,8 +222,8 @@ const Privacy = () => {
             </ul>
             <p className="mt-4">
               To exercise these rights, please contact us at{' '}
-              <a href="mailto:privacy@apexstudio.ai" className="text-foreground hover:underline">
-                privacy@apexstudio.ai
+              <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                admincole@apex-studio.ai
               </a>. We will respond to your request within 30 days (or as required by applicable law).
             </p>
           </section>
@@ -242,8 +242,8 @@ const Privacy = () => {
             </ul>
             <p className="mt-4">
               To exercise your California privacy rights, contact us at{' '}
-              <a href="mailto:privacy@apexstudio.ai" className="text-foreground hover:underline">
-                privacy@apexstudio.ai
+              <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                admincole@apex-studio.ai
               </a>.
             </p>
           </section>
@@ -259,8 +259,8 @@ const Privacy = () => {
             <p className="mt-4">
               If you are a parent or guardian and believe your child under 13 has provided us with 
               personal information, please contact us at{' '}
-              <a href="mailto:privacy@apexstudio.ai" className="text-foreground hover:underline">
-                privacy@apexstudio.ai
+              <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                admincole@apex-studio.ai
               </a>.
             </p>
           </section>
@@ -307,8 +307,8 @@ const Privacy = () => {
             <p>
               For GDPR-related inquiries or to contact our data protection representative, please 
               email us at{' '}
-              <a href="mailto:dpo@apexstudio.ai" className="text-foreground hover:underline">
-                dpo@apexstudio.ai
+              <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                admincole@apex-studio.ai
               </a>.
             </p>
           </section>
@@ -322,13 +322,13 @@ const Privacy = () => {
             <div className="mt-4 p-4 bg-muted/30 rounded-lg space-y-2">
               <p><strong className="text-foreground">Apex-studio LLC</strong></p>
               <p><strong className="text-foreground">Privacy Inquiries:</strong>{' '}
-                <a href="mailto:privacy@apexstudio.ai" className="text-foreground hover:underline">
-                  privacy@apexstudio.ai
+                <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                  admincole@apex-studio.ai
                 </a>
               </p>
               <p><strong className="text-foreground">Legal Inquiries:</strong>{' '}
-                <a href="mailto:legal@apexstudio.ai" className="text-foreground hover:underline">
-                  legal@apexstudio.ai
+                <a href="mailto:admincole@apex-studio.ai" className="text-foreground hover:underline">
+                  admincole@apex-studio.ai
                 </a>
               </p>
               <p><strong className="text-foreground">State of Incorporation:</strong> Missouri, United States</p>

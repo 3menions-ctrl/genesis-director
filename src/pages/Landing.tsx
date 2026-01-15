@@ -181,6 +181,12 @@ export default function Landing() {
                     {item.label}
                   </button>
                 ))}
+                <button 
+                  onClick={() => navigate('/press')}
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-muted/50"
+                >
+                  Press
+                </button>
               </div>
             </div>
 

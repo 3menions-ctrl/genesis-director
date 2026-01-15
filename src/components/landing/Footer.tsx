@@ -115,9 +115,9 @@ export default function Footer() {
           <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/40">
             <p>© {new Date().getFullYear()} Apex Studio. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <a href="mailto:hello@apexstudio.ai" className="hover:text-white/60 transition-colors flex items-center gap-1.5">
+              <a href="mailto:cole@apex-studio.com" className="hover:text-white/60 transition-colors flex items-center gap-1.5">
                 <Mail className="w-3 h-3" />
-                hello@apexstudio.ai
+                cole@apex-studio.com
               </a>
               <span className="flex items-center gap-1.5">
                 <MapPin className="w-3 h-3" />

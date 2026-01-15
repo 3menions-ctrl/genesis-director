@@ -539,9 +539,11 @@ export default function Press() {
                   please reach out to our team.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary" className="gap-2 h-14 px-8 text-base rounded-2xl">
-                    <Mail className="w-5 h-5" />
-                    press@apex-studio.ai
+                  <Button size="lg" variant="secondary" className="gap-2 h-14 px-8 text-base rounded-2xl" asChild>
+                    <a href="mailto:admincole@apex-studio.ai">
+                      <Mail className="w-5 h-5" />
+                      admincole@apex-studio.ai
+                    </a>
                   </Button>
                 </div>
               </div>

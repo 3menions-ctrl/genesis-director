@@ -88,6 +88,12 @@ serve(async (req) => {
     // Use business email for all checkout sessions
     const businessEmail = "admincole@apex-studio.ai";
     
+    // If existing customer, update their email first
+    if (customerId) {
+      await stripe.customers.update(customerId, { email: businessEmail });
+      logStep("Updated existing customer email", { customerId, email: businessEmail });
+    }
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : businessEmail,

@@ -384,6 +384,71 @@ function analyzeScenesForMusic(request: MusicSyncRequest): any {
     });
   }
   
+  // =====================================================
+  // BEAT-SYNC CUTS: Calculate optimal cut points for scene transitions
+  // These are timestamps where visual cuts should align with musical beats
+  // Used by the stitcher to create rhythmic, dynamic edits
+  // =====================================================
+  const beatSyncCuts: Array<{
+    timestamp: number;
+    beatType: 'downbeat' | 'upbeat' | 'accent' | 'drop';
+    transitionStyle: 'hard-cut' | 'crossfade' | 'impact-cut';
+    intensity: number;
+    suggestedDuration: number;
+  }> = [];
+  
+  // Calculate BPM based on average intensity and mood
+  const estimatedBPM = avgIntensity > 0.7 ? 120 : avgIntensity > 0.4 ? 100 : 80;
+  const beatInterval = 60 / estimatedBPM; // Seconds per beat
+  
+  // Generate beat markers at scene transitions
+  for (const transition of transitions) {
+    const nearestBeat = Math.round(transition.transitionTime / beatInterval) * beatInterval;
+    const emotionalShift = transition.emotionalShift?.intensity || 0;
+    
+    // Determine beat type based on emotional shift
+    let beatType: 'downbeat' | 'upbeat' | 'accent' | 'drop' = 'upbeat';
+    if (emotionalShift > 0.5) {
+      beatType = 'accent';
+    } else if (emotionalShift < -0.3) {
+      beatType = 'drop';
+    } else if (transition.transitionTime < 3) {
+      beatType = 'downbeat';
+    }
+    
+    // Determine transition style based on mood change
+    let transitionStyle: 'hard-cut' | 'crossfade' | 'impact-cut' = 'crossfade';
+    if (emotionalShift > 0.4 || ['action', 'tension', 'epic'].includes(transition.emotionalShift.toMood)) {
+      transitionStyle = 'impact-cut';
+    } else if (emotionalShift < 0.1 && transition.emotionalShift.fromMood === transition.emotionalShift.toMood) {
+      transitionStyle = 'crossfade';
+    } else {
+      transitionStyle = 'hard-cut';
+    }
+    
+    beatSyncCuts.push({
+      timestamp: nearestBeat,
+      beatType,
+      transitionStyle,
+      intensity: emotionalShift,
+      suggestedDuration: transitionStyle === 'crossfade' ? 0.5 : 0.1,
+    });
+  }
+  
+  // Add climax impact cut
+  if (climaxBeat) {
+    beatSyncCuts.push({
+      timestamp: climaxBeat.timestamp,
+      beatType: 'accent',
+      transitionStyle: 'impact-cut',
+      intensity: 1.0,
+      suggestedDuration: 0.1,
+    });
+  }
+  
+  // Sort by timestamp
+  beatSyncCuts.sort((a, b) => a.timestamp - b.timestamp);
+  
   // Mixing instructions
   const mixingInstructions = {
     baseVolume: avgIntensity > 0.7 ? 0.4 : 0.5, // Lower base if high intensity visuals
@@ -391,6 +456,10 @@ function analyzeScenesForMusic(request: MusicSyncRequest): any {
     duckingAmount: 0.6, // Reduce to 40% of base during dialogue
     fadeInDuration: 1.5,
     fadeOutDuration: 2.0,
+    // Beat-sync metadata
+    estimatedBPM,
+    beatInterval,
+    beatSyncEnabled: true,
   };
   
   return {
@@ -402,6 +471,7 @@ function analyzeScenesForMusic(request: MusicSyncRequest): any {
     musicCues,
     unifiedMusicPrompt: unifiedPrompt,
     timingMarkers,
+    beatSyncCuts,
     mixingInstructions,
   };
 }
@@ -432,6 +502,7 @@ serve(async (req) => {
     console.log(`[sync-music] Generated ${syncPlan.musicCues.length} music cues`);
     console.log(`[sync-music] Detected ${syncPlan.emotionalBeats.length} emotional beats`);
     console.log(`[sync-music] Created ${syncPlan.timingMarkers.length} timing markers`);
+    console.log(`[sync-music] Beat-sync cuts: ${syncPlan.beatSyncCuts?.length || 0} at ~${syncPlan.mixingInstructions.estimatedBPM} BPM`);
     console.log(`[sync-music] Music prompt: ${syncPlan.unifiedMusicPrompt.substring(0, 100)}...`);
 
     return new Response(

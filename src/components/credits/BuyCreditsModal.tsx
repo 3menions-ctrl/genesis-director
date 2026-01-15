@@ -104,11 +104,15 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (error) throw error;
 
       if (data?.url) {
-        // Redirect to Stripe checkout (direct redirect is more reliable than popup)
-        toast.success('Redirecting to secure checkout...');
+        // Close modal first
         onOpenChange(false);
-        // Use direct redirect to avoid popup blockers
-        window.location.href = data.url;
+        toast.success('Opening secure checkout...');
+        // Use window.open for better compatibility with iframe previews
+        // Falls back to location.href if popup is blocked
+        const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('No checkout URL received');
       }

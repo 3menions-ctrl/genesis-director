@@ -5073,49 +5073,56 @@ serve(async (req) => {
       throw new Error(`At least 2 prompts are required`);
     }
 
-    // Check credits upfront
-    console.log(`[Hollywood] Checking credits for user ${request.userId}`);
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('credits_balance')
-      .eq('id', request.userId)
-      .single();
+    // SKIP credit check/deduction for resumes - credits were already charged on initial run
+    const shouldSkipCredits = request.skipCreditDeduction || isResuming;
+    
+    if (!shouldSkipCredits) {
+      // Check credits upfront
+      console.log(`[Hollywood] Checking credits for user ${request.userId}`);
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('credits_balance')
+        .eq('id', request.userId)
+        .single();
 
-    if (profileError || !profile) {
-      throw new Error("Failed to fetch user profile");
+      if (profileError || !profile) {
+        throw new Error("Failed to fetch user profile");
+      }
+
+      if (profile.credits_balance < totalCredits) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // DEDUCT CREDITS UPFRONT - this ensures users are charged when pipeline starts
+      console.log(`[Hollywood] Deducting ${totalCredits} credits from user ${request.userId}`);
+      const { error: deductError } = await supabase.rpc('deduct_credits', {
+        p_user_id: request.userId,
+        p_amount: totalCredits,
+        p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
+        p_project_id: null, // Will be set after project creation
+        p_clip_duration: clipCount * clipDuration,
+      });
+
+      if (deductError) {
+        console.error('[Hollywood] Credit deduction failed:', deductError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Failed to deduct credits. Please try again.',
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log(`[Hollywood] Successfully deducted ${totalCredits} credits`);
+    } else {
+      console.log(`[Hollywood] Skipping credit deduction (skipCreditDeduction=${request.skipCreditDeduction}, isResuming=${isResuming})`);
     }
-
-    if (profile.credits_balance < totalCredits) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Insufficient credits. Required: ${totalCredits}, Available: ${profile.credits_balance}`,
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // DEDUCT CREDITS UPFRONT - this ensures users are charged when pipeline starts
-    console.log(`[Hollywood] Deducting ${totalCredits} credits from user ${request.userId}`);
-    const { error: deductError } = await supabase.rpc('deduct_credits', {
-      p_user_id: request.userId,
-      p_amount: totalCredits,
-      p_description: `Video generation: ${clipCount} clips × ${clipDuration}s`,
-      p_project_id: null, // Will be set after project creation
-      p_clip_duration: clipCount * clipDuration,
-    });
-
-    if (deductError) {
-      console.error('[Hollywood] Credit deduction failed:', deductError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Failed to deduct credits. Please try again.',
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    console.log(`[Hollywood] Successfully deducted ${totalCredits} credits`);
 
     // Create or use project
     let projectId = request.projectId;

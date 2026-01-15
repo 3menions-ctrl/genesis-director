@@ -731,11 +731,66 @@ function injectSceneDNAAnchors(
 }
 
 // ============================================
-// MEGA NEGATIVE PROMPT BUILDER
+// SCENE-SPECIFIC COLOR NEGATIVE BUILDER
+// Extracts character colors and adds WRONG colors as negatives
+// ============================================
+
+function buildSceneSpecificColorNegatives(
+  identityBible: EnhancedIdentityBible | IdentityBible | null,
+  sceneAnchor?: SceneAnchor | null
+): string[] {
+  const colorNegatives: string[] = [];
+  
+  // All possible colors for exclusion logic
+  const allHairColors = ['blonde', 'brunette', 'black', 'brown', 'red', 'ginger', 'auburn', 'gray', 'grey', 'white', 'silver', 'platinum'];
+  const allClothingColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white', 'brown', 'gray', 'grey', 'gold', 'silver', 'teal', 'navy', 'maroon', 'beige', 'cream'];
+  const allLightingMoods = ['warm', 'cool', 'neutral'];
+  const allTimesOfDay = ['golden-hour', 'midday', 'blue-hour', 'night', 'overcast', 'indoor'];
+  
+  // Extract character's ACTUAL hair color and add WRONG colors as negatives
+  if (identityBible && 'nonFacialAnchors' in identityBible && identityBible.nonFacialAnchors) {
+    const nfa = identityBible.nonFacialAnchors as NonFacialAnchors;
+    
+    if (nfa.hairColor) {
+      const actualHair = nfa.hairColor.toLowerCase();
+      const wrongHairColors = allHairColors.filter(c => !actualHair.includes(c));
+      colorNegatives.push(...wrongHairColors.slice(0, 4).map(c => `${c} hair`));
+    }
+    
+    // Extract clothing colors and add wrong ones
+    if (nfa.clothingColors?.length) {
+      const actualColors = nfa.clothingColors.map(c => c.toLowerCase());
+      const wrongClothingColors = allClothingColors.filter(c => 
+        !actualColors.some(ac => ac.includes(c))
+      );
+      colorNegatives.push(...wrongClothingColors.slice(0, 4).map(c => `${c} clothing`));
+    }
+  }
+  
+  // Extract from scene anchor - lock time of day and temperature
+  if (sceneAnchor?.lighting?.timeOfDay) {
+    const actualTime = sceneAnchor.lighting.timeOfDay;
+    const wrongTimes = allTimesOfDay.filter(t => t !== actualTime);
+    colorNegatives.push(...wrongTimes.slice(0, 3).map(t => `${t} lighting`));
+  }
+  
+  if (sceneAnchor?.colorPalette?.temperature) {
+    const actualTemp = sceneAnchor.colorPalette.temperature;
+    const wrongTemps = allLightingMoods.filter(t => t !== actualTemp);
+    colorNegatives.push(...wrongTemps.map(t => `${t} color temperature`));
+  }
+  
+  return colorNegatives;
+}
+
+// ============================================
+// MEGA NEGATIVE PROMPT BUILDER (ENHANCED)
+// Now includes scene-specific color negatives
 // ============================================
 
 function buildMegaNegative(
-  identityBible: EnhancedIdentityBible | IdentityBible | null
+  identityBible: EnhancedIdentityBible | IdentityBible | null,
+  sceneAnchor?: SceneAnchor | null
 ): string {
   const negatives: string[] = [];
   
@@ -849,6 +904,10 @@ function buildMegaNegative(
     'disfigured',
     'bad anatomy'
   );
+  
+  // NEW: Scene-specific color negatives (wrong hair colors, wrong clothing colors, wrong lighting)
+  const sceneColorNegatives = buildSceneSpecificColorNegatives(identityBible, sceneAnchor);
+  negatives.push(...sceneColorNegatives);
   
   // Deduplicate and join
   return [...new Set(negatives)].join(', ');
@@ -1028,7 +1087,7 @@ export function buildTotalAnchorInjection(
   // ============================================
   return {
     megaPrompt: parts.join('\n'),
-    megaNegative: buildMegaNegative(identityBible),
+    megaNegative: buildMegaNegative(identityBible, sceneAnchor),
     referenceImages: {
       lastFrame: lastFrameUrl,
       clip1FirstFrame: clip1ReferenceUrl,

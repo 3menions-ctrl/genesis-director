@@ -230,11 +230,13 @@ serve(async (req) => {
     console.log(`[ResumePipeline] Found ${completedClips.length} completed clips, resuming from clip ${resumeFromClipIndex + 1}`);
 
     // Call hollywood-pipeline to continue
+    // CRITICAL: skipCreditDeduction=true because credits were already charged on initial run
     const pipelineRequest = {
       userId: request.userId,
       projectId: request.projectId,
       resumeFrom,
       skipApproval: true,
+      skipCreditDeduction: true, // CRITICAL FIX: Don't double-charge on resume
       approvedScript: script,
       // CRITICAL: Include manualPrompts OR concept so hollywood-pipeline doesn't reject
       manualPrompts: manualPrompts.length > 0 ? manualPrompts : undefined,

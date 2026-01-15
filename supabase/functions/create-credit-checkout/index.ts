@@ -85,9 +85,12 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://genesis-director.lovable.app";
     
+    // Use business email for all checkout sessions
+    const businessEmail = "admincole@apex-studio.ai";
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : businessEmail,
       line_items: [
         {
           price: pkg.priceId,
@@ -105,7 +108,7 @@ serve(async (req) => {
       customer_creation: customerId ? undefined : 'always',
       payment_intent_data: {
         description: 'Apex Studio Credit Pack',
-        receipt_email: user.email,
+        receipt_email: businessEmail,
       },
     });
 

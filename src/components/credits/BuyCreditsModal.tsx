@@ -87,6 +87,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return 'starter';
   };
 
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+
   const handlePurchase = async (pkg: CreditPackage) => {
     if (!user) {
       toast.error('Please sign in to purchase credits');
@@ -95,10 +97,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
     const checkoutId = getCheckoutId(pkg.name);
     setPurchasing(pkg.id);
-    
-    // Open a blank window immediately to avoid popup blocker
-    // This must happen synchronously in the click handler
-    const checkoutWindow = window.open('about:blank', '_blank');
+    setCheckoutUrl(null);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
@@ -108,27 +107,31 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (error) throw error;
 
       if (data?.url) {
-        onOpenChange(false);
+        // Try to open in a new window
+        const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
         
-        if (checkoutWindow) {
-          // Navigate the already-opened window to Stripe
-          checkoutWindow.location.href = data.url;
+        if (popup) {
+          onOpenChange(false);
           toast.success('Checkout opened in new tab!');
         } else {
-          // Fallback: direct navigation if popup was blocked
-          toast.info('Redirecting to checkout...');
-          window.location.href = data.url;
+          // Popup was blocked - show a clickable link
+          setCheckoutUrl(data.url);
+          toast.info('Click the link below to complete your purchase', { duration: 8000 });
         }
       } else {
-        checkoutWindow?.close();
         throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      checkoutWindow?.close();
       toast.error('Failed to start checkout. Please try again.');
     } finally {
       setPurchasing(null);
+    }
+  };
+
+  const handleDirectCheckout = () => {
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
     }
   };
 
@@ -184,6 +187,26 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
               </div>
             ) : (
               <>
+                {/* Checkout link when popup is blocked */}
+                {checkoutUrl && (
+                  <div className="p-4 rounded-xl bg-primary/10 border-2 border-primary/50 animate-pulse">
+                    <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      Your checkout is ready!
+                    </p>
+                    <Button
+                      onClick={handleDirectCheckout}
+                      className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-bold"
+                      size="lg"
+                    >
+                      Complete Purchase on Stripe →
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Click above to open secure Stripe checkout
+                    </p>
+                  </div>
+                )}
+
                 {/* Pricing breakdown */}
                 <div className="p-4 rounded-xl bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2 mb-3">

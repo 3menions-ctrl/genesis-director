@@ -547,6 +547,7 @@ async function stitchVideos(request) {
     audioMixMode = 'full',
     backgroundMusicUrl,
     voiceTrackUrl,
+    muteNativeAudio = false, // When true, strips Veo 3.1 native audio (narration/dialog) from clips
     outputFormat = 'mp4',
     notifyOnError = true,
     colorGrading = 'cinematic',
@@ -809,7 +810,7 @@ async function stitchVideos(request) {
       await updateProgressInDb(projectId, 'audio_mixing', 70, null, effectiveCallbackUrl, effectiveCallbackKey);
       
       console.log('[Stitch] Step 5: Audio mixing with music sync and SFX...');
-      console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}, SFX tracks: ${sfxTracks.length}`);
+      console.log(`[Stitch] Voice: ${hasVoice ? 'yes' : 'no'}, Music: ${hasMusic ? 'yes' : 'no'}, SFX: ${sfxTracks.length}, MuteNative: ${muteNativeAudio}`);
       
       const audioInputs = ['-i', concatenatedPath];
       let inputIndex = 1;
@@ -880,8 +881,13 @@ async function stitchVideos(request) {
         mixInputs.push(`[${label}]`);
       }
       
-      filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
-      mixInputs.unshift('[orig]');
+      // Only include native video audio if NOT muted (muteNativeAudio strips Veo 3.1 generated audio/narration)
+      if (!muteNativeAudio) {
+        filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
+        mixInputs.unshift('[orig]');
+      } else {
+        console.log('[Stitch] Native video audio MUTED - only voice/music/SFX will be included');
+      }
       
       const mixFilter = `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first:dropout_transition=2[aout]`;
       filterParts.push(mixFilter);
@@ -1240,6 +1246,7 @@ app.post('/merge-chunks', async (req, res) => {
     chunkUrls,
     voiceTrackUrl,
     backgroundMusicUrl,
+    muteNativeAudio = false, // When true, strips Veo 3.1 native audio from clips
     audioMixParams,
     sfxPlan,
     transitionType = 'fade',
@@ -1401,8 +1408,13 @@ app.post('/merge-chunks', async (req, res) => {
         mixInputs.push(`[${label}]`);
       }
       
-      filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
-      mixInputs.unshift('[orig]');
+      // Only include native video audio if NOT muted (muteNativeAudio strips Veo 3.1 generated audio/narration)
+      if (!muteNativeAudio) {
+        filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[orig]`);
+        mixInputs.unshift('[orig]');
+      } else {
+        console.log('[MergeChunks] Native video audio MUTED - only background music/SFX will be included');
+      }
       
       const mixFilter = `${mixInputs.join('')}amix=inputs=${mixInputs.length}:duration=first:dropout_transition=2[aout]`;
       filterParts.push(mixFilter);

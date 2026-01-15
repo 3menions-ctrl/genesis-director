@@ -371,6 +371,8 @@ serve(async (req) => {
       voiceTrackUrl: voiceAudioUrl,
       backgroundMusicUrl: musicUrl,
       audioMixMode: (voiceAudioUrl || musicUrl) ? 'full' : 'mute',
+      // Mute native video audio (Veo 3.1 generates audio with clips) - keep only background music
+      muteNativeAudio: !includeNarration,
       outputFormat: 'mp4',
       colorGrading: 'cinematic',
       transitionType: 'dissolve',

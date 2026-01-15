@@ -102,6 +102,11 @@ serve(async (req) => {
         credits: pkg.credits.toString(),
         package_id: packageId,
       },
+      customer_creation: customerId ? undefined : 'always',
+      payment_intent_data: {
+        description: 'Apex Studio Credit Pack',
+        receipt_email: user.email,
+      },
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

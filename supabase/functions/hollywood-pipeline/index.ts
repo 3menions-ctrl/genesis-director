@@ -2844,9 +2844,16 @@ async function runProduction(
       continue;
     }
     
-    // Visual Debugger Loop (all tiers) - check quality and retry if needed
-    if (result.videoUrl) {
-      console.log(`[Hollywood] Extracting frame and running Visual Debugger on clip ${i + 1}...`);
+      // =====================================================
+      // COMPREHENSIVE VALIDATION ORCHESTRATOR (New 80-point system)
+      // Runs all validators: color histogram, face embedding, clothing/hair, environment
+      // Returns aggregated score and corrective prompts for retry if needed
+      // =====================================================
+      let comprehensiveValidation: any = null;
+      
+      // Visual Debugger Loop (all tiers) - check quality and retry if needed
+      if (result.videoUrl) {
+        console.log(`[Hollywood] Extracting frame and running comprehensive validation on clip ${i + 1}...`);
       
       // =====================================================
       // BULLETPROOF FRAME EXTRACTION WITH CIRCUIT BREAKER + EXPONENTIAL BACKOFF
@@ -2978,6 +2985,57 @@ async function runProduction(
       let retryCount = 0;
       let debugResult = null;
       
+      // =====================================================
+      // COMPREHENSIVE VALIDATION: Run all 80-point validators in parallel
+      // This includes: color histogram, face embedding, clothing/hair, environment, temporal
+      // Returns aggregated score with per-dimension breakdown
+      // =====================================================
+      if (frameForAnalysis && referenceImageUrl) {
+        try {
+          console.log(`[Hollywood] Running comprehensive validation orchestrator on clip ${i + 1}...`);
+          
+          comprehensiveValidation = await callEdgeFunction('comprehensive-validation-orchestrator', {
+            referenceImageUrl: referenceImageUrl,
+            clipFrameUrl: frameForAnalysis,
+            projectId: state.projectId,
+            clipIndex: i,
+            identityBible: state.identityBible,
+            previousClipFrameUrl: i > 0 ? previousLastFrameUrl : undefined,
+            expectedAttributes: {
+              environment: state.sceneConsistency?.location,
+              lighting: state.sceneConsistency?.lighting,
+              timeOfDay: masterSceneAnchor?.lighting?.timeOfDay,
+            },
+            thresholds: {
+              colorHistogram: 0.75,
+              faceEmbedding: 0.70,
+              clothingHair: 0.75,
+              environment: 0.70,
+              temporal: 0.80,
+            },
+          });
+          
+          if (comprehensiveValidation.success) {
+            console.log(`[Hollywood] Comprehensive validation clip ${i + 1}:`);
+            console.log(`  Overall score: ${comprehensiveValidation.overallScore}/100`);
+            console.log(`  Passed: ${comprehensiveValidation.overallPassed}`);
+            console.log(`  Priority: ${comprehensiveValidation.regenerationPriority || 'none'}`);
+            
+            // Log individual validator results
+            if (comprehensiveValidation.results) {
+              const r = comprehensiveValidation.results;
+              if (r.colorHistogram) console.log(`  - Color: ${r.colorHistogram.passed ? '✓' : '✗'} (score: ${r.colorHistogram.score || 'N/A'})`);
+              if (r.faceEmbedding) console.log(`  - Face: ${r.faceEmbedding.passed ? '✓' : '✗'} (similarity: ${r.faceEmbedding.similarity || 'N/A'})`);
+              if (r.clothingHair) console.log(`  - Attire: ${r.clothingHair.passed ? '✓' : '✗'} (score: ${r.clothingHair.score || 'N/A'})`);
+              if (r.environment) console.log(`  - Environment: ${r.environment.passed ? '✓' : '✗'} (score: ${r.environment.score || 'N/A'})`);
+              if (r.temporal) console.log(`  - Temporal: ${r.temporal.passed ? '✓' : '✗'} (score: ${r.temporal.score || 'N/A'})`);
+            }
+          }
+        } catch (validationErr) {
+          console.warn(`[Hollywood] Comprehensive validation failed for clip ${i + 1}:`, validationErr);
+        }
+      }
+      
       while (retryCount < maxRetries) {
         try {
           debugResult = await callEdgeFunction('visual-debugger', {
@@ -2991,21 +3049,42 @@ async function runProduction(
             styleAnchor: styleAnchor,
             // Pass accumulated anchors for consistency checking
             accumulatedAnchors: accumulatedAnchors.slice(-3),
+            // NEW: Pass comprehensive validation results for enhanced debugging
+            comprehensiveValidation: comprehensiveValidation?.results,
           });
           
           if (debugResult.success && debugResult.result) {
             const verdict = debugResult.result;
             console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
             
+            // ENHANCED: Check both visual debugger AND comprehensive validation
+            // Use comprehensive validation score if available for more accurate quality assessment
+            const comprehensiveScore = comprehensiveValidation?.overallScore || 0;
+            const effectiveScore = comprehensiveScore > 0 
+              ? Math.round((verdict.score + comprehensiveScore) / 2) 
+              : verdict.score;
+            
             // IMPROVED: Stricter threshold (75 instead of 70) for higher quality
-            if (verdict.passed || verdict.score >= 75) {
-              console.log(`[Hollywood] Clip ${i + 1} passed quality check (score: ${verdict.score})`);
+            if ((verdict.passed && (comprehensiveValidation?.overallPassed !== false)) || effectiveScore >= 75) {
+              console.log(`[Hollywood] Clip ${i + 1} passed quality check (visual: ${verdict.score}, comprehensive: ${comprehensiveScore}, effective: ${effectiveScore})`);
               break;
-            } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
-              console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);
+            } else if ((verdict.correctivePrompt || comprehensiveValidation?.correctivePrompts?.length > 0) && retryCount < maxRetries - 1) {
+              console.log(`[Hollywood] Clip ${i + 1} failed quality (visual: ${verdict.issues?.map((x: any) => x.description).join('; ') || 'N/A'})`);
+              if (comprehensiveValidation?.failedValidators?.length > 0) {
+                console.log(`[Hollywood] Comprehensive validation failures: ${comprehensiveValidation.failedValidators.join(', ')}`);
+              }
               console.log(`[Hollywood] Retrying with corrective prompt (attempt ${retryCount + 2}/${maxRetries})...`);
               
-              let correctedPrompt = verdict.correctivePrompt;
+              // Build corrected prompt from both sources
+              let correctedPrompt = verdict.correctivePrompt || clip.prompt;
+              
+              // Inject comprehensive validation corrective prompts (prioritized)
+              if (comprehensiveValidation?.correctivePrompts?.length > 0) {
+                const prioritizedPrompts = comprehensiveValidation.correctivePrompts.slice(0, 3);
+                correctedPrompt = `[COMPREHENSIVE FIXES: ${prioritizedPrompts.join('. ')}] ${correctedPrompt}`;
+                console.log(`[Hollywood] Injected ${prioritizedPrompts.length} comprehensive corrective prompts`);
+              }
+              
               if (styleAnchor?.consistencyPrompt && !hasReferenceImage) {
                 correctedPrompt = `[STYLE ANCHOR: ${styleAnchor.consistencyPrompt}] ${correctedPrompt}`;
               }
@@ -3084,13 +3163,42 @@ async function runProduction(
         }
       }
       
-      // Store debug results
+      // Store debug results including comprehensive validation
       if (debugResult?.result) {
         (result as any).visualDebugResult = {
           score: debugResult.result.score,
           passed: debugResult.result.passed,
           retriesUsed: retryCount,
         };
+      }
+      
+      // Store comprehensive validation results
+      if (comprehensiveValidation) {
+        (result as any).comprehensiveValidation = {
+          overallScore: comprehensiveValidation.overallScore,
+          overallPassed: comprehensiveValidation.overallPassed,
+          results: comprehensiveValidation.results,
+          failedValidators: comprehensiveValidation.failedValidators,
+          regenerationPriority: comprehensiveValidation.regenerationPriority,
+        };
+        
+        // Persist validation results to video_clips table for frontend display
+        try {
+          await supabase
+            .from('video_clips')
+            .update({
+              quality_score: comprehensiveValidation.overallScore,
+              color_profile: comprehensiveValidation.results?.colorHistogram?.extractedHistogram || null,
+              corrective_prompts: comprehensiveValidation.correctivePrompts || [],
+              updated_at: new Date().toISOString(),
+            })
+            .eq('project_id', state.projectId)
+            .eq('shot_index', i);
+          
+          console.log(`[Hollywood] Persisted validation results for clip ${i + 1} to DB`);
+        } catch (dbErr) {
+          console.warn(`[Hollywood] Failed to persist validation results:`, dbErr);
+        }
       }
       
       // =====================================================

@@ -112,6 +112,10 @@ serve(async (req) => {
     
     // 5. Parse identity bible from project's pending_video_tasks or pro_features_data
     let identityBible: any;
+    let goldenFrameData: any;
+    let accumulatedAnchors: any[] = [];
+    let referenceImageUrl: string | undefined;
+    
     const pendingTasks = project.pending_video_tasks as any;
     const proFeatures = project.pro_features_data as any;
     
@@ -119,6 +123,26 @@ serve(async (req) => {
       identityBible = proFeatures.identityBible;
     } else if (pendingTasks?.identityBible) {
       identityBible = pendingTasks.identityBible;
+    }
+    
+    // Get golden frame data for character consistency
+    if (proFeatures?.goldenFrameData) {
+      goldenFrameData = proFeatures.goldenFrameData;
+      referenceImageUrl = goldenFrameData.goldenFrameUrl;
+    }
+    
+    // Get accumulated anchors for scene DNA
+    if (proFeatures?.accumulatedAnchors) {
+      accumulatedAnchors = proFeatures.accumulatedAnchors;
+    }
+    
+    // 5b. Get corrective prompts from failed clip's validation results
+    let enhancedPrompt = failedClip.prompt;
+    if (failedClip.corrective_prompts && failedClip.corrective_prompts.length > 0) {
+      // Use corrective prompts from comprehensive validation
+      const correctivePrompts = failedClip.corrective_prompts.slice(0, 3);
+      enhancedPrompt = `[CORRECTIVE FIXES: ${correctivePrompts.join('. ')}] ${failedClip.prompt}`;
+      console.log(`[RetryClip] Using ${correctivePrompts.length} corrective prompts from validation`);
     }
     
     // 6. Mark clip as retrying
@@ -148,16 +172,19 @@ serve(async (req) => {
     
     console.log(`[RetryClip] Calling generate-single-clip for clip ${request.clipIndex}...`);
     
-    // 8. Call generate-single-clip
+    // 8. Call generate-single-clip with enhanced parameters
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId: request.userId,
       projectId: request.projectId,
       clipIndex: request.clipIndex,
-      prompt: failedClip.prompt,
+      prompt: enhancedPrompt,
       totalClips: totalClips || 6,
       startImageUrl,
       previousMotionVectors,
       identityBible,
+      goldenFrameData,
+      accumulatedAnchors,
+      referenceImageUrl,
       qualityTier: project.quality_tier || 'standard',
       isRetry: true,
     });

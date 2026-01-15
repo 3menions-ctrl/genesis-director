@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { Play, CheckCircle2, Loader2, RefreshCw, Film, Sparkles, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import { cn } from '@/lib/utils';
 
 interface ClipResult {
@@ -10,12 +9,6 @@ interface ClipResult {
   videoUrl?: string;
   error?: string;
   id?: string;
-  motionVectors?: {
-    subjectVelocity?: { x: number; y: number; magnitude: number };
-    cameraMovement?: { type: string; direction: string; speed: number };
-    motionBlur?: number;
-    dominantDirection?: string;
-  };
 }
 
 interface ProductionClipsGridProps {
@@ -88,13 +81,12 @@ export function ProductionClipsGrid({
         </div>
       </div>
       <div className="p-3">
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
           {clips.map((clip, index) => {
             const isCompleted = clip.status === 'completed';
             const isGenerating = clip.status === 'generating';
             const isFailed = clip.status === 'failed';
             const isRetrying = retryingIndex === index;
-            const hasMotionVectors = isCompleted && clip.motionVectors;
 
             return (
               <motion.div
@@ -102,7 +94,6 @@ export function ProductionClipsGrid({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.015 }}
-                className="flex flex-col gap-0.5"
               >
                 <div
                   className={cn(
@@ -145,22 +136,17 @@ export function ProductionClipsGrid({
                     </div>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
-                      <span className="text-[11px] font-medium text-zinc-500">{index + 1}</span>
+                      <span className="text-[10px] font-medium text-zinc-500">{index + 1}</span>
                     </div>
                   )}
                   
-                  <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded-sm bg-black/60 text-[9px] font-medium text-zinc-200">
-                    {index + 1}
-                  </div>
+                  {/* Clip index badge - only show on completed/generating/failed clips */}
+                  {(isCompleted || isGenerating || isFailed) && (
+                    <div className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded-sm bg-black/70 text-[8px] font-medium text-zinc-300 leading-none">
+                      {index + 1}
+                    </div>
+                  )}
                 </div>
-                
-                {hasMotionVectors && (
-                  <MotionVectorsDisplay 
-                    motionVectors={clip.motionVectors}
-                    shotIndex={clip.index}
-                    className="text-[9px]"
-                  />
-                )}
               </motion.div>
             );
           })}

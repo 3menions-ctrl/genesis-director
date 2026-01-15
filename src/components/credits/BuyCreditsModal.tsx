@@ -96,6 +96,10 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     const checkoutId = getCheckoutId(pkg.name);
     setPurchasing(pkg.id);
     
+    // Open a blank window immediately to avoid popup blocker
+    // This must happen synchronously in the click handler
+    const checkoutWindow = window.open('about:blank', '_blank');
+    
     try {
       const { data, error } = await supabase.functions.invoke('create-credit-checkout', {
         body: { packageId: checkoutId },
@@ -106,40 +110,22 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (data?.url) {
         onOpenChange(false);
         
-        // Check if we're in an iframe (Lovable preview)
-        const isInIframe = window.self !== window.top;
-        
-        if (isInIframe) {
-          // In iframe, we need to use window.open which will open outside the iframe
-          // Copy URL to clipboard as fallback
-          try {
-            await navigator.clipboard.writeText(data.url);
-            toast.info('Opening checkout... If blocked, the URL has been copied to your clipboard.', {
-              duration: 5000
-            });
-          } catch {
-            // Clipboard failed, just continue
-          }
-        }
-        
-        // Try to open in new tab first
-        const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
-        
-        if (!popup && !isInIframe) {
-          // Only use location.href if not in iframe and popup was blocked
-          window.location.href = data.url;
-        } else if (!popup && isInIframe) {
-          toast.error('Popup blocked. Please open this URL manually: ' + data.url.substring(0, 50) + '...', {
-            duration: 10000
-          });
-        } else {
+        if (checkoutWindow) {
+          // Navigate the already-opened window to Stripe
+          checkoutWindow.location.href = data.url;
           toast.success('Checkout opened in new tab!');
+        } else {
+          // Fallback: direct navigation if popup was blocked
+          toast.info('Redirecting to checkout...');
+          window.location.href = data.url;
         }
       } else {
+        checkoutWindow?.close();
         throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      checkoutWindow?.close();
       toast.error('Failed to start checkout. Please try again.');
     } finally {
       setPurchasing(null);

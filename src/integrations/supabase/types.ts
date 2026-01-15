@@ -1264,6 +1264,7 @@ export type Database = {
         Row: {
           color_profile: Json | null
           completed_at: string | null
+          continuity_manifest: Json | null
           corrective_prompts: string[] | null
           created_at: string
           debug_attempts: number | null
@@ -1288,6 +1289,7 @@ export type Database = {
         Insert: {
           color_profile?: Json | null
           completed_at?: string | null
+          continuity_manifest?: Json | null
           corrective_prompts?: string[] | null
           created_at?: string
           debug_attempts?: number | null
@@ -1312,6 +1314,7 @@ export type Database = {
         Update: {
           color_profile?: Json | null
           completed_at?: string | null
+          continuity_manifest?: Json | null
           corrective_prompts?: string[] | null
           created_at?: string
           debug_attempts?: number | null

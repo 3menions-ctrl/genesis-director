@@ -4972,14 +4972,23 @@ serve(async (req) => {
     // This ensures the frame URL is DEFINITELY saved even if RPC silently fails
     if (frameToSave) {
       try {
-        // Direct update with explicit frame URL
+        // Direct update with explicit frame URL AND continuity manifest (CRITICAL FOR RESUME)
+        const updatePayload: Record<string, any> = { 
+          last_frame_url: frameToSave,
+          video_url: storedUrl,
+          status: 'completed',
+        };
+        
+        // CRITICAL FIX: Persist continuity_manifest for pipeline resume
+        // Without this, resume operations lose all continuity data
+        if (extractedManifest) {
+          updatePayload.continuity_manifest = extractedManifest;
+          console.log(`[SingleClip] 💾 PERSISTING continuity_manifest with ${extractedManifest.criticalAnchors?.length || 0} critical anchors`);
+        }
+        
         const { error: updateError } = await supabase
           .from('video_clips')
-          .update({ 
-            last_frame_url: frameToSave,
-            video_url: storedUrl,
-            status: 'completed',
-          })
+          .update(updatePayload)
           .eq('project_id', request.projectId)
           .eq('shot_index', request.clipIndex);
         
@@ -4989,17 +4998,23 @@ serve(async (req) => {
           // VERIFY the save actually worked
           const { data: verifyData } = await supabase
             .from('video_clips')
-            .select('last_frame_url')
+            .select('last_frame_url, continuity_manifest')
             .eq('project_id', request.projectId)
             .eq('shot_index', request.clipIndex)
             .single();
           
-          if (verifyData?.last_frame_url === frameToSave) {
+          const frameVerified = verifyData?.last_frame_url === frameToSave;
+          const manifestVerified = !extractedManifest || verifyData?.continuity_manifest;
+          
+          if (frameVerified && manifestVerified) {
             console.log(`[SingleClip] ✓ VERIFIED last_frame_url persisted: ${frameToSave.substring(0, 60)}...`);
+            if (extractedManifest) {
+              console.log(`[SingleClip] ✓ VERIFIED continuity_manifest persisted`);
+            }
           } else {
             console.error(`[SingleClip] ⚠️ VERIFICATION FAILED! DB has: ${verifyData?.last_frame_url?.substring(0, 60) || 'NULL'}`);
             
-            // RETRY with raw update
+            // RETRY with raw upsert
             const { error: retryError } = await supabase
               .from('video_clips')
               .upsert({
@@ -5010,12 +5025,13 @@ serve(async (req) => {
                 status: 'completed',
                 video_url: storedUrl,
                 last_frame_url: frameToSave,
+                continuity_manifest: extractedManifest || {},
               }, { onConflict: 'project_id,shot_index' });
             
             if (retryError) {
               console.error(`[SingleClip] Upsert retry also failed:`, retryError);
             } else {
-              console.log(`[SingleClip] ✓ Upsert retry succeeded`);
+              console.log(`[SingleClip] ✓ Upsert retry succeeded (includes continuity_manifest)`);
             }
           }
         }

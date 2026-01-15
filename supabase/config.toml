@@ -215,3 +215,6 @@ verify_jwt = false
 
 [functions.extract-master-dna]
 verify_jwt = false
+
+[functions.comprehensive-validation-orchestrator]
+verify_jwt = false

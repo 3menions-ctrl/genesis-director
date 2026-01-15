@@ -3,11 +3,17 @@ import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX } fr
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Sample videos generated with Apex Studio (from demo & admin accounts)
+// Sample videos generated with Apex Studio (Cole's videos)
 const CREATOR_VIDEOS = [
   {
+    id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
+    title: 'Illuminated Dreams in Darkness',
+    genre: 'Cinematic',
+  },
+  {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
-    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768448572803.mp4',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
   },

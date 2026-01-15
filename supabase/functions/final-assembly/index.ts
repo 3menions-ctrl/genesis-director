@@ -142,7 +142,26 @@ serve(async (req) => {
     
     const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
     
-    console.log(`[FinalAssembly] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
+    // IRON-CLAD QUALITY GATE: Warn about low-quality clips
+    const MINIMUM_QUALITY_THRESHOLD = 65;
+    const lowQualityClips = clips.filter(c => c.quality_score !== null && c.quality_score < MINIMUM_QUALITY_THRESHOLD);
+    const noScoreClips = clips.filter(c => c.quality_score === null);
+    
+    console.log(`[FinalAssembly] Selected ${clips.length} BEST clips from ${allClips.length} total versions:`);
+    for (const clip of clips) {
+      const qualityLabel = clip.quality_score === null ? 'N/A' : 
+        clip.quality_score < MINIMUM_QUALITY_THRESHOLD ? `⚠️ ${clip.quality_score}` : `✓ ${clip.quality_score}`;
+      console.log(`  Shot ${clip.shot_index}: ${clip.id.substring(0, 8)} (quality: ${qualityLabel})`);
+    }
+    
+    if (lowQualityClips.length > 0) {
+      console.warn(`[FinalAssembly] ⚠️ WARNING: ${lowQualityClips.length} clip(s) below quality threshold:`);
+      lowQualityClips.forEach(c => console.warn(`  - Shot ${c.shot_index}: score ${c.quality_score}`));
+    }
+    
+    if (noScoreClips.length > 0) {
+      console.warn(`[FinalAssembly] ⚠️ ${noScoreClips.length} clip(s) have no quality score`);
+    }
 
     // Step 2: Load project audio tracks including narration preference
     const { data: project, error: projectError } = await supabase

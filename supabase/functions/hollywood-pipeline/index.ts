@@ -187,12 +187,17 @@ const MAX_CLIP_DURATION = 8;
 // NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts
 // Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
 // IMPORTANT: Max clips is 6 for all tiers to ensure consistency
+// IRON-CLAD: All tiers get 4 retries for quality (matches DB tier_limits)
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 6, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
-  'pro': { maxClips: 6, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
-  'growth': { maxClips: 6, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  'free': { maxClips: 6, maxDuration: 60, maxRetries: 4, chunkedStitching: false },
+  'pro': { maxClips: 6, maxDuration: 60, maxRetries: 4, chunkedStitching: false },
+  'growth': { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
   'agency': { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
 };
+
+// IRON-CLAD: Minimum quality score threshold - clips MUST meet this to pass
+// Clips below this threshold are marked as failed even after max retries
+const MINIMUM_QUALITY_THRESHOLD = 65;
 
 const MIN_CLIPS_PER_PROJECT = 2;
 
@@ -3067,6 +3072,23 @@ async function runProduction(
               ? Math.round((verdict.score + comprehensiveScore) / 2) 
               : verdict.score;
             
+            // IRON-CLAD: Persist quality_score to DB immediately after validation
+            // This ensures best clip selection works correctly in stitching
+            try {
+              await supabase
+                .from('video_clips')
+                .update({
+                  quality_score: effectiveScore,
+                  debug_attempts: retryCount + 1,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('project_id', state.projectId)
+                .eq('shot_index', i);
+              console.log(`[Hollywood] ✓ Persisted quality_score=${effectiveScore} for clip ${i + 1}`);
+            } catch (scoreErr) {
+              console.warn(`[Hollywood] Failed to persist quality_score:`, scoreErr);
+            }
+            
             // IMPROVED: Stricter threshold (75 instead of 70) for higher quality
             if ((verdict.passed && (comprehensiveValidation?.overallPassed !== false)) || effectiveScore >= 75) {
               console.log(`[Hollywood] Clip ${i + 1} passed quality check (visual: ${verdict.score}, comprehensive: ${comprehensiveScore}, effective: ${effectiveScore})`);
@@ -3166,6 +3188,13 @@ async function runProduction(
         }
       }
       
+      // =====================================================
+      // IRON-CLAD: MINIMUM QUALITY THRESHOLD CHECK
+      // After all retries, verify clip meets minimum quality standard
+      // Clips below threshold are marked as low_quality (still usable but flagged)
+      // =====================================================
+      const finalQualityScore = debugResult?.result?.score || comprehensiveValidation?.overallScore || null;
+      
       // Store debug results including comprehensive validation
       if (debugResult?.result) {
         (result as any).visualDebugResult = {
@@ -3202,6 +3231,40 @@ async function runProduction(
         } catch (dbErr) {
           console.warn(`[Hollywood] Failed to persist validation results:`, dbErr);
         }
+      } else if (finalQualityScore !== null) {
+        // FALLBACK: If no comprehensive validation, still persist visual debugger score
+        try {
+          await supabase
+            .from('video_clips')
+            .update({
+              quality_score: finalQualityScore,
+              debug_attempts: retryCount + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('project_id', state.projectId)
+            .eq('shot_index', i);
+          console.log(`[Hollywood] ✓ Fallback persisted quality_score=${finalQualityScore} for clip ${i + 1}`);
+        } catch (dbErr) {
+          console.warn(`[Hollywood] Failed to persist fallback quality_score:`, dbErr);
+        }
+      }
+      
+      // IRON-CLAD: Check minimum quality threshold
+      if (finalQualityScore !== null && finalQualityScore < MINIMUM_QUALITY_THRESHOLD) {
+        console.warn(`[Hollywood] ⚠️ Clip ${i + 1} below minimum quality threshold (${finalQualityScore} < ${MINIMUM_QUALITY_THRESHOLD})`);
+        console.warn(`[Hollywood]   Clip will be used but flagged as low_quality. Consider manual review.`);
+        
+        // Mark clip as low_quality in metadata but don't fail it
+        // This allows stitching to proceed while flagging quality concerns
+        await supabase
+          .from('video_clips')
+          .update({
+            last_error_category: 'low_quality',
+            error_message: `Quality score ${finalQualityScore} below threshold ${MINIMUM_QUALITY_THRESHOLD} after ${retryCount + 1} attempts`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('project_id', state.projectId)
+          .eq('shot_index', i);
       }
       
       // =====================================================

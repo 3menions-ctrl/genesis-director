@@ -12,21 +12,17 @@ import {
   ArrowRight,
   Download,
   Mail,
-  ChevronRight,
-  Play,
   Layers,
   Eye,
   Brain,
   Mic,
   Palette,
-  Clock,
   Target,
-  Trophy,
   Rocket,
   Heart,
-  Star,
   CheckCircle2,
-  Quote
+  Quote,
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,171 +30,123 @@ import { Badge } from "@/components/ui/badge";
 import apexLogo from "@/assets/apex-logo.png";
 
 const HERO_STATS = [
-  { value: "15+", label: "AI Systems", icon: Brain, color: "from-violet-500 to-purple-600" },
-  { value: "5-View", label: "Identity Lock", icon: Eye, color: "from-blue-500 to-cyan-500" },
-  { value: "100%", label: "Automated", icon: Zap, color: "from-amber-500 to-orange-500" },
-  { value: "Zero", label: "Waste Policy", icon: Shield, color: "from-emerald-500 to-green-500" },
+  { value: "AI", label: "Powered Generation", icon: Brain, color: "from-violet-500 to-purple-600" },
+  { value: "Multi", label: "View Characters", icon: Eye, color: "from-blue-500 to-cyan-500" },
+  { value: "Auto", label: "Video Stitching", icon: Zap, color: "from-amber-500 to-orange-500" },
+  { value: "Smart", label: "Retry System", icon: Shield, color: "from-emerald-500 to-green-500" },
 ];
 
-const PLATFORM_PILLARS = [
+const PLATFORM_FEATURES = [
   {
     icon: Film,
-    title: "Script-to-Video Magic",
-    subtitle: "One-Click Movie Creation",
-    description: "Transform your written scripts into fully produced videos with a single click. Our AI understands narrative structure, emotional beats, pacing, and visual storytelling—turning your words into cinematic reality.",
-    features: ["AI Script Analysis", "Scene Breakdown", "Automatic Shot Planning", "Narrative Pacing"],
+    title: "Script-to-Video Generation",
+    subtitle: "Automated Production",
+    description: "Create video content from written scripts. Our platform analyzes your script and generates video clips that bring your narrative to life.",
+    features: ["Script Analysis", "Scene Generation", "Clip Assembly"],
     gradient: "from-rose-500/20 via-pink-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-rose-500 to-pink-600"
   },
   {
     icon: Users,
-    title: "Character Identity System",
-    subtitle: "Multi-View Consistency",
-    description: "Our proprietary 5-view identity generation captures every angle of your characters—front, side, back, and dynamic poses—ensuring they remain visually consistent across every scene, lighting condition, and camera angle.",
-    features: ["5-View Capture", "Costume Lock", "Expression Library", "Age Consistency"],
+    title: "Character Consistency",
+    subtitle: "Visual Coherence",
+    description: "Our multi-view character system helps maintain consistent character appearances across different scenes and camera angles in your productions.",
+    features: ["Multi-View Capture", "Appearance Tracking", "Scene Consistency"],
     gradient: "from-blue-500/20 via-indigo-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600"
   },
   {
     icon: Sparkles,
-    title: "Hollywood Pipeline",
-    subtitle: "Enterprise Architecture",
-    description: "15+ specialized AI systems work in perfect harmony—from initial script analysis through final color grading—delivering production-quality results that rival traditional studios at a fraction of the time and cost.",
-    features: ["Multi-Model Orchestra", "Quality Gates", "Parallel Processing", "Smart Routing"],
+    title: "AI-Powered Pipeline",
+    subtitle: "Integrated Workflow",
+    description: "Multiple AI systems work together to handle different aspects of video production, from initial script processing to final video assembly.",
+    features: ["Multi-Model Approach", "Quality Monitoring", "Automated Processing"],
     gradient: "from-amber-500/20 via-yellow-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-amber-500 to-yellow-600"
   },
   {
     icon: Music,
-    title: "Intelligent Audio Design",
-    subtitle: "Full Audio Production",
-    description: "Per-character voice synthesis with emotional range, beat-synced background music that adapts to your scenes, and contextual sound effects that enhance every moment of your production.",
-    features: ["Voice Cloning", "Emotion Mapping", "Music Sync", "SFX Library"],
+    title: "Audio Integration",
+    subtitle: "Voice & Music",
+    description: "Add AI-generated voice narration and background music to your video projects. Supports multiple voice options and music styles.",
+    features: ["Voice Synthesis", "Music Generation", "Audio Sync"],
     gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600"
   },
   {
     icon: Wand2,
-    title: "Smart Continuity Engine",
-    subtitle: "Visual Coherence",
-    description: "Our continuity manifest tracks every visual element across clips—lighting conditions, color profiles, spatial positioning, and motion vectors—ensuring seamless transitions that feel professionally edited.",
-    features: ["Color Matching", "Motion Tracking", "Lighting Lock", "Scene Memory"],
+    title: "Continuity Tracking",
+    subtitle: "Scene Management",
+    description: "Track visual elements across clips to help maintain consistency in lighting, colors, and positioning throughout your video.",
+    features: ["Color Matching", "Scene Memory", "Transition Handling"],
     gradient: "from-violet-500/20 via-purple-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-violet-500 to-purple-600"
   },
   {
     icon: Shield,
-    title: "Zero-Waste Guarantee",
-    subtitle: "Quality Assurance",
-    description: "Our autonomous retry systems with visual debugging ensure failed generations are automatically analyzed, corrected, and regenerated. You only pay for results that meet our professional quality standards.",
-    features: ["Auto-Retry", "Visual Debug", "Quality Score", "Refund Policy"],
+    title: "Automatic Retry System",
+    subtitle: "Quality Focus",
+    description: "When video generation encounters issues, our system can automatically retry to help deliver better results. Quality monitoring helps identify potential issues.",
+    features: ["Auto-Retry", "Issue Detection", "Quality Checks"],
     gradient: "from-cyan-500/20 via-sky-500/10 to-transparent",
     iconBg: "bg-gradient-to-br from-cyan-500 to-sky-600"
   }
 ];
 
-const TECH_DEEP_DIVES = [
+const CAPABILITIES = [
   {
-    title: "Identity Bible System",
+    title: "Multi-View Character System",
     icon: Eye,
-    description: "Revolutionary multi-view character capture technology",
+    description: "Character appearance tracking across scenes",
     details: [
-      "Captures 5 distinct angles of each character for comprehensive visual reference",
-      "Maintains consistent appearance regardless of camera angle or lighting",
-      "Supports costume changes with version tracking",
-      "Integrates with voice synthesis for complete character profiles"
+      "Captures multiple angles of characters for reference",
+      "Helps maintain visual consistency across clips",
+      "Supports different costume and appearance variations",
+      "Integrates with the video generation pipeline"
     ]
   },
   {
-    title: "Continuity Manifest Engine",
+    title: "Continuity Management",
     icon: Layers,
-    description: "Scene-to-scene visual coherence tracking",
+    description: "Scene-to-scene visual tracking",
     details: [
-      "Real-time color profile matching between clips",
-      "Motion vector analysis for smooth transitions",
-      "Spatial positioning memory across scenes",
-      "Lighting condition normalization"
+      "Monitors color and lighting between clips",
+      "Tracks spatial positioning in scenes",
+      "Helps with smooth transitions between clips",
+      "Records scene metadata for reference"
     ]
   },
   {
-    title: "Intelligent Stitching Pipeline",
+    title: "Video Stitching",
     icon: Film,
-    description: "Professional-grade video assembly",
+    description: "Multi-clip video assembly",
     details: [
-      "Advanced transition point detection and blending",
-      "Audio-visual synchronization across all clips",
-      "Automatic pacing optimization based on content",
-      "Multi-resolution output with quality preservation"
+      "Combines multiple clips into complete videos",
+      "Handles transitions between scenes",
+      "Supports audio-visual synchronization",
+      "Cloud-based processing for reliability"
     ]
   },
   {
-    title: "Autonomous Quality Assurance",
+    title: "Quality Monitoring",
     icon: Shield,
-    description: "Self-healing generation pipeline",
+    description: "Generation quality tracking",
     details: [
-      "Real-time quality monitoring during generation",
-      "Automatic error detection and correction",
-      "Visual debugging for transparency",
-      "Only charges for successful, quality results"
+      "Monitors generation status and progress",
+      "Automatic retry for failed generations",
+      "Visual feedback on clip status",
+      "Credits charged only for successful generations"
     ]
   }
 ];
 
 const USE_CASES = [
-  { icon: Play, title: "Content Creators", description: "Scale your video content without scaling your team" },
-  { icon: Target, title: "Marketing Teams", description: "Produce campaign videos in hours, not weeks" },
-  { icon: Palette, title: "Creative Agencies", description: "Pitch concepts with fully realized video previews" },
-  { icon: Globe, title: "Global Brands", description: "Localize video content across markets instantly" },
-  { icon: Rocket, title: "Startups", description: "Create professional videos on startup budgets" },
-  { icon: Heart, title: "Independent Filmmakers", description: "Bring your vision to life without a studio" },
-];
-
-const TESTIMONIALS = [
-  {
-    quote: "Apex Studio transformed our content pipeline. What used to take our team weeks now happens in hours.",
-    author: "Sarah Chen",
-    role: "Head of Content, TechVenture Media",
-    avatar: "SC"
-  },
-  {
-    quote: "The character consistency is mind-blowing. Our animated series characters look identical across 50+ episodes.",
-    author: "Marcus Williams",
-    role: "Creative Director, Pixel Dreams",
-    avatar: "MW"
-  },
-  {
-    quote: "Finally, AI video that actually works. The zero-waste guarantee means we only pay for quality.",
-    author: "Elena Rodriguez",
-    role: "VP Marketing, GlobalBrand Co",
-    avatar: "ER"
-  }
-];
-
-const PRESS_RELEASES = [
-  {
-    date: "January 2025",
-    title: "Apex Studio Launches Revolutionary AI Video Platform",
-    excerpt: "Introducing the first fully automated script-to-video production system powered by 15+ specialized AI models working in harmony.",
-    tag: "Launch"
-  },
-  {
-    date: "December 2024",
-    title: "5-View Identity System Achieves 99.7% Character Consistency",
-    excerpt: "Breakthrough in multi-view character generation technology sets new industry standard for AI video production.",
-    tag: "Technology"
-  },
-  {
-    date: "November 2024",
-    title: "Hollywood Pipeline Architecture Unveiled",
-    excerpt: "Enterprise-grade infrastructure brings professional video production capabilities to creators worldwide.",
-    tag: "Infrastructure"
-  },
-  {
-    date: "October 2024",
-    title: "Zero-Waste Guarantee Introduced",
-    excerpt: "Industry-first quality assurance policy ensures creators only pay for production-quality results.",
-    tag: "Policy"
-  }
+  { icon: Play, title: "Content Creators", description: "Create video content more efficiently" },
+  { icon: Target, title: "Marketing Teams", description: "Produce video campaigns faster" },
+  { icon: Palette, title: "Creative Projects", description: "Visualize concepts with video" },
+  { icon: Globe, title: "Educational Content", description: "Create instructional videos" },
+  { icon: Rocket, title: "Startups", description: "Video content on limited budgets" },
+  { icon: Heart, title: "Personal Projects", description: "Bring your stories to video" },
 ];
 
 const containerVariants = {
@@ -261,13 +209,13 @@ export default function Press() {
             >
               <Badge variant="outline" className="mb-6 px-5 py-2.5 text-sm border-primary/30 bg-primary/5">
                 <Sparkles className="w-4 h-4 mr-2 text-primary" />
-                Press & Media Kit
+                Press & Media
               </Badge>
             </motion.div>
             
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-8 leading-[0.95]">
               <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                The Future of
+                AI-Powered
               </span>
               <br />
               <span className="bg-gradient-to-r from-primary via-violet-500 to-pink-500 bg-clip-text text-transparent">
@@ -276,9 +224,9 @@ export default function Press() {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
-              Apex Studio is pioneering the next generation of AI-powered video production, 
-              enabling creators to transform ideas into cinematic reality with unprecedented 
-              speed, quality, and consistency.
+              Apex Studio is a video creation platform that uses AI to help transform 
+              scripts and ideas into video content. Generate clips, add narration, 
+              and assemble complete videos.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -306,8 +254,6 @@ export default function Press() {
                   whileHover={{ scale: 1.05, y: -5 }}
                   className="relative group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl -z-10"
-                    style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }} />
                   <div className="p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all">
                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center mb-4 mx-auto shadow-lg`}>
                       <stat.icon className="w-6 h-6 text-white" />
@@ -322,7 +268,7 @@ export default function Press() {
         </div>
       </section>
 
-      {/* Mission Statement */}
+      {/* About Section */}
       <section className="py-20 relative">
         <div className="container mx-auto px-6">
           <motion.div
@@ -335,18 +281,18 @@ export default function Press() {
               <Quote className="w-16 h-16 text-primary/20 absolute top-8 left-8" />
               <div className="relative">
                 <h2 className="text-2xl md:text-3xl font-medium leading-relaxed mb-8 text-center">
-                  "We believe every creator deserves access to professional-quality video production. 
-                  Apex Studio democratizes filmmaking by combining 15+ specialized AI systems into 
-                  a single, intuitive platform that transforms imagination into reality."
+                  "We're building tools that make video creation more accessible. 
+                  Apex Studio combines multiple AI technologies into a single platform 
+                  designed to help creators produce video content more efficiently."
                 </h2>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold">
-                      AS
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center">
+                      <img src={apexLogo} alt="Apex Studio" className="w-8 h-8" />
                     </div>
                     <div className="text-left">
-                      <div className="font-semibold">Apex Studio Team</div>
-                      <div className="text-sm text-muted-foreground">San Francisco, CA</div>
+                      <div className="font-semibold">Apex Studio</div>
+                      <div className="text-sm text-muted-foreground">apex-studio.ai</div>
                     </div>
                   </div>
                 </div>
@@ -356,7 +302,7 @@ export default function Press() {
         </div>
       </section>
 
-      {/* Platform Pillars */}
+      {/* Platform Features */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <motion.div
@@ -367,20 +313,20 @@ export default function Press() {
           >
             <Badge variant="outline" className="mb-4 px-4 py-2">
               <Zap className="w-4 h-4 mr-2" />
-              Platform Capabilities
+              Platform Features
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Six Pillars of Excellence
+              What We Offer
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Every aspect of video production, reimagined with AI intelligence
+              Key features of the Apex Studio video creation platform
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {PLATFORM_PILLARS.map((pillar, index) => (
+            {PLATFORM_FEATURES.map((feature, index) => (
               <motion.div
-                key={pillar.title}
+                key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -389,20 +335,20 @@ export default function Press() {
                 className="group"
               >
                 <Card className="h-full bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/40 transition-all duration-300 overflow-hidden">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${pillar.gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
                   <CardContent className="p-8 relative">
-                    <div className={`w-14 h-14 rounded-2xl ${pillar.iconBg} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
-                      <pillar.icon className="w-7 h-7 text-white" />
+                    <div className={`w-14 h-14 rounded-2xl ${feature.iconBg} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                      <feature.icon className="w-7 h-7 text-white" />
                     </div>
                     <Badge variant="secondary" className="mb-3 text-xs font-medium">
-                      {pillar.subtitle}
+                      {feature.subtitle}
                     </Badge>
-                    <h3 className="text-xl font-bold mb-3">{pillar.title}</h3>
-                    <p className="text-muted-foreground mb-6 leading-relaxed">{pillar.description}</p>
+                    <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground mb-6 leading-relaxed">{feature.description}</p>
                     <div className="flex flex-wrap gap-2">
-                      {pillar.features.map((feature) => (
-                        <span key={feature} className="text-xs px-3 py-1.5 rounded-full bg-muted/80 text-muted-foreground">
-                          {feature}
+                      {feature.features.map((item) => (
+                        <span key={item} className="text-xs px-3 py-1.5 rounded-full bg-muted/80 text-muted-foreground">
+                          {item}
                         </span>
                       ))}
                     </div>
@@ -414,7 +360,7 @@ export default function Press() {
         </div>
       </section>
 
-      {/* Technology Deep Dives */}
+      {/* Capabilities */}
       <section className="py-20">
         <div className="container mx-auto px-6">
           <motion.div
@@ -425,20 +371,20 @@ export default function Press() {
           >
             <Badge variant="outline" className="mb-4 px-4 py-2">
               <Brain className="w-4 h-4 mr-2" />
-              Under the Hood
+              How It Works
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Technology Deep Dive
+              Platform Capabilities
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              The innovations powering Apex Studio's revolutionary approach
+              Technical capabilities that power the platform
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {TECH_DEEP_DIVES.map((tech, index) => (
+            {CAPABILITIES.map((capability, index) => (
               <motion.div
-                key={tech.title}
+                key={capability.title}
                 initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -448,15 +394,15 @@ export default function Press() {
                 <div className="p-8 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 border border-border/40 hover:border-primary/30 transition-all h-full">
                   <div className="flex items-start gap-4 mb-6">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                      <tech.icon className="w-6 h-6 text-primary" />
+                      <capability.icon className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold mb-1">{tech.title}</h3>
-                      <p className="text-sm text-muted-foreground">{tech.description}</p>
+                      <h3 className="text-xl font-bold mb-1">{capability.title}</h3>
+                      <p className="text-sm text-muted-foreground">{capability.description}</p>
                     </div>
                   </div>
                   <ul className="space-y-3">
-                    {tech.details.map((detail, i) => (
+                    {capability.details.map((detail, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm">
                         <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                         <span className="text-muted-foreground">{detail}</span>
@@ -481,13 +427,13 @@ export default function Press() {
           >
             <Badge variant="outline" className="mb-4 px-4 py-2">
               <Target className="w-4 h-4 mr-2" />
-              Who It's For
+              Use Cases
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Built for Creators
+              Who It's For
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              From solo creators to enterprise teams, Apex Studio scales with your vision
+              Apex Studio is designed for a variety of video creation needs
             </p>
           </motion.div>
 
@@ -513,105 +459,6 @@ export default function Press() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20">
-        <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <Badge variant="outline" className="mb-4 px-4 py-2">
-              <Heart className="w-4 h-4 mr-2" />
-              Creator Love
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              What People Are Saying
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {TESTIMONIALS.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.author}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="h-full bg-card/50 border-border/50">
-                  <CardContent className="p-8">
-                    <div className="flex gap-1 mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground mb-6 leading-relaxed italic">
-                      "{testimonial.quote}"
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white text-sm font-bold">
-                        {testimonial.avatar}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm">{testimonial.author}</div>
-                        <div className="text-xs text-muted-foreground">{testimonial.role}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Press Releases */}
-      <section className="py-20 bg-muted/20">
-        <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <Badge variant="outline" className="mb-4 px-4 py-2">
-              <Globe className="w-4 h-4 mr-2" />
-              Newsroom
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Latest News</h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {PRESS_RELEASES.map((release, index) => (
-              <motion.div
-                key={release.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-                whileHover={{ x: 5 }}
-              >
-                <Card className="group hover:shadow-lg transition-all cursor-pointer border-border/50 hover:border-primary/30">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Badge variant="secondary" className="text-xs">{release.tag}</Badge>
-                      <span className="text-sm text-muted-foreground">{release.date}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">{release.title}</h3>
-                    <p className="text-muted-foreground text-sm mb-4">{release.excerpt}</p>
-                    <div className="flex items-center gap-2 text-primary text-sm font-medium">
-                      Read More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Brand Assets */}
       <section className="py-20">
         <div className="container mx-auto px-6">
@@ -627,7 +474,7 @@ export default function Press() {
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">Press Kit</h2>
             <p className="text-xl text-muted-foreground mb-12">
-              Download official logos, screenshots, and media assets
+              Download official logos and media assets for press coverage
             </p>
             
             <div className="grid sm:grid-cols-3 gap-6">
@@ -683,7 +530,7 @@ export default function Press() {
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">Media Inquiries</h2>
                 <p className="text-white/80 mb-8 text-lg max-w-xl mx-auto">
                   For press inquiries, interviews, or partnership opportunities, 
-                  our media relations team is here to help.
+                  please reach out to our team.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button size="lg" variant="secondary" className="gap-2 h-14 px-8 text-base rounded-2xl">

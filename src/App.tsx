@@ -33,6 +33,7 @@ const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Blog = lazy(() => import("./pages/Blog"));
+const Press = lazy(() => import("./pages/Press"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
 const queryClient = new QueryClient({
@@ -71,6 +72,7 @@ const App = () => (
                 } />
                 <Route path="/help" element={<HelpCenter />} />
                 <Route path="/blog" element={<Blog />} />
+                <Route path="/press" element={<Press />} />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={

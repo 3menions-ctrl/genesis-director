@@ -6,6 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Sample videos generated with Apex Studio (from demo & admin accounts)
 const CREATOR_VIDEOS = [
   {
+    id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768448572803.mp4',
+    title: 'Whispers of the Wild Hunt',
+    genre: 'Cinematic',
+  },
+  {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
     title: 'Sunset Dreams on Winding Roads',

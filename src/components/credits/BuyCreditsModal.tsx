@@ -104,10 +104,11 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
       if (error) throw error;
 
       if (data?.url) {
-        // Open Stripe checkout in new tab
-        window.open(data.url, '_blank');
+        // Redirect to Stripe checkout (direct redirect is more reliable than popup)
         toast.success('Redirecting to secure checkout...');
         onOpenChange(false);
+        // Use direct redirect to avoid popup blockers
+        window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
       }
@@ -191,8 +192,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                       <span className="font-semibold text-foreground">$0.10</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Cost per video</span>
-                      <span className="font-semibold text-primary">~$6.00</span>
+                      <span className="text-muted-foreground">Per video</span>
+                      <span className="font-semibold text-primary">60 credits</span>
                     </div>
                   </div>
                 </div>

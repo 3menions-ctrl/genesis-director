@@ -161,7 +161,7 @@ export function UnifiedStudio() {
   const [includeMusic, setIncludeMusic] = useState(false);
   const [includeSfx, setIncludeSfx] = useState(false); // SFX only for pro tier
   const [referenceImageAnalysis, setReferenceImageAnalysis] = useState<ReferenceImageAnalysis | undefined>();
-  const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('standard');
+  const [qualityTier, setQualityTier] = useState<'standard' | 'professional'>('professional'); // IRON-CLAD: Default to highest quality
   
   // Applied template/environment info for display
   const [appliedTemplateName, setAppliedTemplateName] = useState<string | null>(null);

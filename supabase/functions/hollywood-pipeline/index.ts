@@ -2236,8 +2236,36 @@ async function runProduction(
   // =====================================================
   // CONTINUITY MANIFEST TRACKING: AI-extracted comprehensive continuity data
   // Tracks: spatial position, lighting, props, emotional state, action momentum
+  // CRITICAL: Must persist to DB and restore on resume
   // =====================================================
   let previousContinuityManifest: any = null;
+  
+  // =====================================================
+  // CRITICAL FIX: Restore continuity_manifest from DB on resume
+  // Without this, resume operations lose all continuity data
+  // =====================================================
+  if (startIndex > 0) {
+    try {
+      // Fetch the last completed clip's continuity manifest
+      const { data: lastClip } = await supabase
+        .from('video_clips')
+        .select('continuity_manifest, shot_index')
+        .eq('project_id', state.projectId)
+        .eq('status', 'completed')
+        .order('shot_index', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (lastClip?.continuity_manifest && Object.keys(lastClip.continuity_manifest).length > 0) {
+        previousContinuityManifest = lastClip.continuity_manifest;
+        console.log(`[Hollywood] ✓ RESTORED continuity_manifest from clip ${lastClip.shot_index + 1}: ${previousContinuityManifest.criticalAnchors?.length || 0} critical anchors`);
+      } else {
+        console.warn(`[Hollywood] No continuity_manifest found in DB for resume`);
+      }
+    } catch (manifestErr) {
+      console.warn(`[Hollywood] Could not restore continuity_manifest from DB:`, manifestErr);
+    }
+  }
   
   // =====================================================
   // COMPREHENSIVE GOLDEN FRAME DATA: Captured from Clip 1
@@ -2749,6 +2777,11 @@ async function runProduction(
             tierLimits: (request as any)._tierLimits || { maxRetries: 1 },
             // CRITICAL FIX: Include extractedCharacters for multi-character scenes
             extractedCharacters: state.extractedCharacters || [],
+            // =====================================================
+            // P0 FIX: Include previousContinuityManifest for pipeline resume
+            // This ensures continuity data survives edge function timeouts
+            // =====================================================
+            previousContinuityManifest: previousContinuityManifest,
           },
         });
         
@@ -2960,9 +2993,17 @@ async function runProduction(
         }
       }
       
-      // STYLE ANCHOR EXTRACTION: After first clip (fallback for when no reference image)
-      if (i === 0 && !hasReferenceImage && frameForAnalysis && !styleAnchor) {
-        console.log(`[Hollywood] Extracting style anchor from first clip (no reference image provided)...`);
+      // =====================================================
+      // STYLE ANCHOR EXTRACTION: ALWAYS after first clip
+      // P1 FIX: Extract even WITH reference image to capture scene DNA
+      // The reference image provides character identity, but we still need
+      // lighting/color/environment DNA from the generated clip
+      // =====================================================
+      if (i === 0 && frameForAnalysis && !styleAnchor) {
+        const anchorSource = hasReferenceImage 
+          ? 'first clip (supplementing reference image with scene DNA)'
+          : 'first clip (no reference image)';
+        console.log(`[Hollywood] Extracting style anchor from ${anchorSource}...`);
         try {
           const styleAnchorResult = await callEdgeFunction('extract-style-anchor', {
             frameUrl: frameForAnalysis,
@@ -2979,7 +3020,17 @@ async function runProduction(
               state.identityBible = {};
             }
             state.identityBible.styleAnchor = styleAnchor;
-            state.identityBible.consistencyAnchors = styleAnchor.anchors || [];
+            // Only override consistency anchors if none exist (preserve reference analysis)
+            if (!state.identityBible.consistencyAnchors?.length) {
+              state.identityBible.consistencyAnchors = styleAnchor.anchors || [];
+            } else {
+              // Merge: prepend style anchors to existing for maximum consistency
+              state.identityBible.consistencyAnchors = [
+                ...(styleAnchor.anchors || []),
+                ...state.identityBible.consistencyAnchors,
+              ].slice(0, 15); // Keep top 15 most relevant
+              console.log(`[Hollywood] ✓ Merged style anchors with reference anchors: ${state.identityBible.consistencyAnchors.length} total`);
+            }
           }
         } catch (styleErr) {
           console.warn(`[Hollywood] Style anchor extraction failed:`, styleErr);
@@ -3798,6 +3849,24 @@ async function runProduction(
     if (result.continuityManifest) {
       previousContinuityManifest = result.continuityManifest;
       console.log(`[Hollywood] ✓ Continuity manifest updated for clip ${i + 2}: ${result.continuityManifest.criticalAnchors?.length || 0} critical anchors`);
+      
+      // =====================================================
+      // P0 FIX: Also persist continuity_manifest to video_clips table
+      // This is a belt-and-suspenders approach since generate-single-clip also saves it
+      // =====================================================
+      try {
+        await supabase
+          .from('video_clips')
+          .update({
+            continuity_manifest: result.continuityManifest,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('project_id', state.projectId)
+          .eq('shot_index', i);
+        console.log(`[Hollywood] ✓ Continuity manifest PERSISTED to video_clips[${i}]`);
+      } catch (manifestPersistErr) {
+        console.warn(`[Hollywood] Failed to persist continuity_manifest:`, manifestPersistErr);
+      }
     }
     
     // =====================================================

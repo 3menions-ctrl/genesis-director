@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 
 // Cole's showcase videos - Cloud Run stitched final videos
 const SHOWCASE_VIDEOS = [
+  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4', // Fractured Dreams in Shadows (latest)
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4', // Illuminated Dreams in Darkness
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4', // Whispers of the Wild Hunt
   'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', // Sunset Dreams on Winding Roads

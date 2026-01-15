@@ -298,8 +298,11 @@ async function fireCloudRunStitcherAsync(
   
   try {
     // Use a longer timeout for the actual stitching request
+    // Cloud Run can take up to 10 minutes for long videos
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minute timeout (increased from 5)
+    
+    console.log(`[Stitch] Sending request to Cloud Run with 10 minute timeout...`);
     
     const response = await fetch(stitchEndpoint, {
       method: 'POST',

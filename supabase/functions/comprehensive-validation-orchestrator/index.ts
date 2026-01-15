@@ -345,15 +345,17 @@ serve(async (req) => {
     }
 
     // Log validation to database
+    // FIXED: Use 'success' status for API cost tracking (passed/failed is stored in metadata)
     try {
       await supabase.from('api_cost_logs').insert({
         user_id: userId,
         project_id: projectId,
         service: 'validation-orchestrator',
         operation: `validate-clip-${clipIndex}`,
-        status: overallPassed ? 'passed' : 'failed',
+        status: 'success', // Changed from 'passed/failed' - this tracks API call success, not validation result
         metadata: {
           clipIndex,
+          validationPassed: overallPassed, // Store validation result here
           validationResults: results.map(r => ({
             type: r.validationType,
             passed: r.passed,

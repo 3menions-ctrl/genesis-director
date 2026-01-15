@@ -51,6 +51,9 @@ interface StitchRequest {
     sfxCues?: any[];
     ffmpegFilters?: string[];
   };
+  // Audio control
+  muteNativeAudio?: boolean; // Strip Veo 3.1 native audio (narration/dialog) from clips
+  continuityPlan?: any; // Continuity analysis data
 }
 
 interface TransitionAnalysis {
@@ -491,6 +494,8 @@ serve(async (req) => {
       voiceTrackUrl: voiceAudioUrl,
       backgroundMusicUrl: musicAudioUrl,
       audioMixMode: (voiceAudioUrl || musicAudioUrl) ? 'full' : 'mute',
+      // Pass muteNativeAudio to strip Veo 3.1 native audio
+      muteNativeAudio: request.muteNativeAudio || false,
       // Pass ALL pro features through to stitch-video
       musicSyncPlan: musicSyncPlan,
       colorGradingFilter: colorGradingFilter,

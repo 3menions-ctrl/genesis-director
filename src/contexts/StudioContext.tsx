@@ -70,7 +70,7 @@ function mapDbProject(dbProject: any): Project {
     voice_audio_url: dbProject.voice_audio_url,
     video_url: dbProject.video_url,
     video_clips: dbProject.video_clips || [],
-    include_narration: dbProject.include_narration ?? true,
+    include_narration: dbProject.include_narration ?? false, // Default to NO narration unless explicitly enabled
     target_duration_minutes: dbProject.target_duration_minutes,
     thumbnail_url: dbProject.thumbnail_url,
     pending_video_tasks: dbProject.pending_video_tasks || [],

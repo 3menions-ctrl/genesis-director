@@ -208,7 +208,7 @@ serve(async (req) => {
     console.log(`[SimpleStitch] Mode: ${mode.toUpperCase()} (${clips.length} clips, ${chunkCount} chunk(s))`);
 
     // Audio config - RESPECT include_narration flag
-    const includeNarration = project?.include_narration !== false; // Default to true if not set
+    const includeNarration = project?.include_narration === true; // Default to FALSE - no narration unless requested
     const hasVoice = includeNarration && !!project?.voice_audio_url;
     const hasMusic = !!project?.music_url;
     

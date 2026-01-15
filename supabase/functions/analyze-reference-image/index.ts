@@ -24,6 +24,8 @@ interface ReferenceImageAnalysis {
     clothing: string;
     bodyType: string;
     distinctiveMarkers: string[];
+    hairColor?: string;  // NEW: Exact hair color for consistency
+    skinTone?: string;   // NEW: Skin tone for consistency
   };
   environment: {
     setting: string;
@@ -36,11 +38,14 @@ interface ReferenceImageAnalysis {
     direction: string;
     quality: string;
     timeOfDay: string;
+    shadowDirection?: string;   // NEW: Shadow direction lock
+    keyLightAngle?: string;     // NEW: Key light angle for precision
   };
   colorPalette: {
-    dominant: string[];
-    accent: string[];
+    dominant: string[];  // Now includes HEX codes: "color name #HEXCODE"
+    accent: string[];    // Now includes HEX codes: "color name #HEXCODE"
     mood: string;
+    temperature?: 'warm' | 'neutral' | 'cool';  // NEW: Color temperature lock
   };
   consistencyPrompt: string;
 }
@@ -250,10 +255,11 @@ Analyze the image and return a structured JSON response with these categories:
    - Quality (e.g., "hard shadows", "diffused", "mixed")
    - Time of day suggestion
 
-4. COLOR PALETTE:
-   - Dominant colors (list 3-5)
-   - Accent colors (list 2-3)
+4. COLOR PALETTE (CRITICAL FOR CONSISTENCY):
+   - Dominant colors with HEX codes (list 3-5, format: "color name #HEXCODE")
+   - Accent colors with HEX codes (list 2-3, format: "color name #HEXCODE")
    - Overall mood (e.g., "warm cinematic teal-orange", "cold dramatic blue")
+   - Color temperature: "warm", "neutral", or "cool"
 
 5. CONSISTENCY PROMPT:
    - Generate a single, detailed prompt that captures all visual elements and can be injected into video generation prompts to maintain consistency.
@@ -265,7 +271,9 @@ Return ONLY valid JSON in this exact format:
     "facialFeatures": "...",
     "clothing": "...",
     "bodyType": "...",
-    "distinctiveMarkers": ["..."]
+    "distinctiveMarkers": ["..."],
+    "hairColor": "exact hair color",
+    "skinTone": "exact skin tone description"
   },
   "environment": {
     "setting": "...",
@@ -277,12 +285,15 @@ Return ONLY valid JSON in this exact format:
     "style": "...",
     "direction": "...",
     "quality": "...",
-    "timeOfDay": "..."
+    "timeOfDay": "...",
+    "shadowDirection": "where shadows fall (e.g., 'bottom-right', 'directly below')",
+    "keyLightAngle": "approximate angle in degrees (e.g., '45 degrees top-left')"
   },
   "colorPalette": {
-    "dominant": ["..."],
-    "accent": ["..."],
-    "mood": "..."
+    "dominant": ["color name #HEXCODE", "..."],
+    "accent": ["color name #HEXCODE", "..."],
+    "mood": "...",
+    "temperature": "warm|neutral|cool"
   },
   "consistencyPrompt": "..."
 }`;

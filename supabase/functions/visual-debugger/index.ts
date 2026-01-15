@@ -134,8 +134,8 @@ EVALUATION CRITERIA:
    - No camera equipment, crew, or equipment visible
 
 VERDICT RULES:
-- PASS: Total score >= 70 AND no critical physics/identity issues
-- FAIL: Total score < 70 OR any critical issue present
+- PASS: Total score >= 75 AND no critical physics/identity issues
+- FAIL: Total score < 75 OR any critical issue present
 
 If FAIL, you MUST provide a corrective prompt that:
 1. Explicitly addresses the detected issues

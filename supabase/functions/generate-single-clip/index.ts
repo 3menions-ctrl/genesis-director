@@ -4395,6 +4395,21 @@ serve(async (req) => {
         masterDNAParts.push(`COLOR TEMPERATURE: ${masterAnchor.colorPalette.temperature} (maintain exact warmth/coolness)`);
       }
       
+      // NEW: HEX COLOR LOCKING - Extract and inject actual hex codes for precise matching
+      // Cast to any since scene anchors may have extended properties
+      const colorPaletteAny = masterAnchor.colorPalette as any;
+      if (colorPaletteAny?.dominant?.length) {
+        const hexColors = colorPaletteAny.dominant
+          .filter((d: any) => d.hex)
+          .slice(0, 3)
+          .map((d: any) => `${d.name || 'color'} ${d.hex}`)
+          .join(', ');
+        if (hexColors) {
+          masterDNAParts.push(`🎨 EXACT HEX COLORS (MANDATORY): ${hexColors}`);
+          console.log(`[SingleClip] Injected ${colorPaletteAny.dominant.length} hex color codes for precise matching`);
+        }
+      }
+      
       // MERGED CHARACTER COLORS INTO SCENE PALETTE
       if (mergedColorPalette.length > 0) {
         const uniqueColors = [...new Set(mergedColorPalette)].slice(0, 5);
@@ -4408,6 +4423,16 @@ serve(async (req) => {
       }
       if (masterAnchor.lighting?.timeOfDay) {
         masterDNAParts.push(`TIME OF DAY: ${masterAnchor.lighting.timeOfDay} (maintain consistent sun/shadow direction)`);
+      }
+      
+      // NEW: Shadow direction lock - critical for visual consistency
+      // Cast to any since scene anchors may have extended properties
+      const lightingAny = masterAnchor.lighting as any;
+      if (lightingAny?.shadowDirection) {
+        masterDNAParts.push(`SHADOW DIRECTION (LOCKED): ${lightingAny.shadowDirection}`);
+      }
+      if (lightingAny?.keyLightDirection) {
+        masterDNAParts.push(`KEY LIGHT DIRECTION (LOCKED): ${lightingAny.keyLightDirection}`);
       }
       
       // ENVIRONMENT FROM CLIP 1 (base setting, can evolve slightly)

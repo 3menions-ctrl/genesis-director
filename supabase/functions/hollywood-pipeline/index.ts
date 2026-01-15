@@ -2997,8 +2997,9 @@ async function runProduction(
             const verdict = debugResult.result;
             console.log(`[Hollywood] Visual Debug: ${verdict.verdict} (Score: ${verdict.score})`);
             
-            if (verdict.passed || verdict.score >= 70) {
-              console.log(`[Hollywood] Clip ${i + 1} passed quality check`);
+            // IMPROVED: Stricter threshold (75 instead of 70) for higher quality
+            if (verdict.passed || verdict.score >= 75) {
+              console.log(`[Hollywood] Clip ${i + 1} passed quality check (score: ${verdict.score})`);
               break;
             } else if (verdict.correctivePrompt && retryCount < maxRetries - 1) {
               console.log(`[Hollywood] Clip ${i + 1} failed quality (${verdict.issues?.map((x: any) => x.description).join('; ')})`);

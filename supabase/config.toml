@@ -170,3 +170,48 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.validate-color-histogram]
+verify_jwt = false
+
+[functions.generate-multiview-identity]
+verify_jwt = false
+
+[functions.verify-face-embedding]
+verify_jwt = false
+
+[functions.validate-clothing-hair]
+verify_jwt = false
+
+[functions.validate-environment]
+verify_jwt = false
+
+[functions.comprehensive-clip-validator]
+verify_jwt = false
+
+[functions.job-queue]
+verify_jwt = false
+
+[functions.delete-user-account]
+verify_jwt = false
+
+[functions.export-user-data]
+verify_jwt = false
+
+[functions.update-user-email]
+verify_jwt = false
+
+[functions.revoke-demo-sessions]
+verify_jwt = false
+
+[functions.regenerate-audio]
+verify_jwt = false
+
+[functions.approve-clip-one]
+verify_jwt = false
+
+[functions.validate-temporal-consistency]
+verify_jwt = false
+
+[functions.extract-master-dna]
+verify_jwt = false

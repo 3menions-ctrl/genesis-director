@@ -65,6 +65,7 @@ import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
 import { cn } from '@/lib/utils';
 import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
+import { TemplatePreviewPanel } from '@/components/studio/TemplatePreviewPanel';
 
 type PipelineMode = 'ai' | 'manual';
 type PipelineStage = 'idle' | 'preproduction' | 'awaiting_approval' | 'qualitygate' | 'assets' | 'production' | 'postproduction' | 'complete' | 'error';
@@ -1203,6 +1204,29 @@ export function UnifiedStudio() {
             </div>
           )}
         </div>
+
+        {/* Template Preview Panel - Shows rich template data when a template is applied */}
+        {appliedTemplateName && (templateShotSequence || templateStyleAnchor || templateCharacters || templateEnvironmentLock) && (
+          <TemplatePreviewPanel
+            templateName={appliedTemplateName}
+            shotSequence={templateShotSequence}
+            styleAnchor={templateStyleAnchor}
+            characters={templateCharacters}
+            environmentLock={templateEnvironmentLock}
+            pacingStyle={templatePacingStyle}
+            onClear={() => {
+              setAppliedTemplateName(null);
+              setTemplateShotSequence(null);
+              setTemplateStyleAnchor(null);
+              setTemplateCharacters(null);
+              setTemplateEnvironmentLock(null);
+              setTemplatePacingStyle(null);
+              setConcept('');
+              setClipCount(6);
+              setManualPrompts(Array(6).fill('').map((_, i) => i === 0 ? 'Opening shot: Wide cinematic establishing view' : ''));
+            }}
+          />
+        )}
 
         {/* Mode Selection Tabs - Compact on mobile */}
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-sm">

@@ -119,7 +119,45 @@ export default function TrainingVideo() {
     toast.success('Custom background uploaded');
   }, []);
 
-  // Preview a specific voice with its sample text
+  // Voice preview cache key prefix
+  const VOICE_CACHE_KEY = 'apex_voice_preview_';
+  const VOICE_CACHE_VERSION = 'v1';
+  
+  // Get cached voice preview from localStorage
+  const getCachedVoicePreview = (voiceId: string): string | null => {
+    try {
+      const cacheKey = `${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voiceId}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { audioUrl, timestamp } = JSON.parse(cached);
+        // Cache expires after 7 days
+        const weekInMs = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - timestamp < weekInMs) {
+          return audioUrl;
+        }
+        // Expired, remove it
+        localStorage.removeItem(cacheKey);
+      }
+    } catch (e) {
+      console.warn('Failed to read voice cache:', e);
+    }
+    return null;
+  };
+  
+  // Save voice preview to localStorage
+  const cacheVoicePreview = (voiceId: string, audioUrl: string) => {
+    try {
+      const cacheKey = `${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voiceId}`;
+      localStorage.setItem(cacheKey, JSON.stringify({
+        audioUrl,
+        timestamp: Date.now(),
+      }));
+    } catch (e) {
+      console.warn('Failed to cache voice preview:', e);
+    }
+  };
+
+  // Preview a specific voice with its sample text (with caching)
   const handleVoicePreview = async (voiceId: string, sampleText?: string) => {
     // If already playing this voice, stop it
     if (previewingVoiceId === voiceId && currentAudio) {
@@ -137,7 +175,31 @@ export default function TrainingVideo() {
     }
     
     setPreviewingVoiceId(voiceId);
+    
     try {
+      // Check cache first
+      const cachedAudioUrl = getCachedVoicePreview(voiceId);
+      
+      if (cachedAudioUrl) {
+        // Use cached audio - instant playback!
+        const audio = new Audio(cachedAudioUrl);
+        setCurrentAudio(audio);
+        
+        audio.onended = () => {
+          setPreviewingVoiceId(null);
+          setCurrentAudio(null);
+        };
+        audio.onerror = () => {
+          // Cache might be corrupted, clear it and try fresh
+          localStorage.removeItem(`${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voiceId}`);
+          toast.error('Cached audio failed, regenerating...');
+          handleVoicePreview(voiceId, sampleText);
+        };
+        await audio.play();
+        return;
+      }
+      
+      // Not in cache, generate fresh
       const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
       const previewText = sampleText || voice?.sample || 'Hello, this is a voice preview for your training video.';
       
@@ -159,6 +221,9 @@ export default function TrainingVideo() {
       } else {
         throw new Error('No audio data received');
       }
+      
+      // Cache for future use
+      cacheVoicePreview(voiceId, audioUrl);
       
       const audio = new Audio(audioUrl);
       setCurrentAudio(audio);

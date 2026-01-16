@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          rarity: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          code: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          name: string
+          rarity?: string
+          requirement_type: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          rarity?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -280,6 +322,35 @@ export type Database = {
           },
         ]
       }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "project_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_packages: {
         Row: {
           created_at: string
@@ -363,6 +434,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          target_count: number
+          xp_reward: number
+        }
+        Insert: {
+          challenge_type: string
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          target_count?: number
+          xp_reward?: number
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          target_count?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
       }
       movie_projects: {
         Row: {
@@ -495,6 +623,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          read: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json | null
+          id?: string
+          read?: boolean
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: []
       }
       pricing_config: {
         Row: {
@@ -682,6 +843,54 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          likes_count: number
+          project_id: string
+          reply_to_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          project_id: string
+          reply_to_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          project_id?: string
+          reply_to_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comments_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "project_comments"
             referencedColumns: ["id"]
           },
         ]
@@ -1179,6 +1388,48 @@ export type Database = {
           },
         ]
       }
+      universe_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          reply_to_id: string | null
+          universe_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          reply_to_id?: string | null
+          universe_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          reply_to_id?: string | null
+          universe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universe_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "universe_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "universe_messages_universe_id_fkey"
+            columns: ["universe_id"]
+            isOneToOne: false
+            referencedRelation: "universes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universes: {
         Row: {
           cover_image_url: string | null
@@ -1233,6 +1484,151 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_count?: number | null
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          progress: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_gamification: {
+        Row: {
+          characters_created: number
+          characters_lent: number
+          created_at: string
+          current_streak: number
+          id: string
+          last_activity_date: string | null
+          level: number
+          longest_streak: number
+          total_likes_received: number
+          total_views: number
+          universes_joined: number
+          updated_at: string
+          user_id: string
+          videos_completed: number
+          videos_created: number
+          xp_total: number
+        }
+        Insert: {
+          characters_created?: number
+          characters_lent?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_activity_date?: string | null
+          level?: number
+          longest_streak?: number
+          total_likes_received?: number
+          total_views?: number
+          universes_joined?: number
+          updated_at?: string
+          user_id: string
+          videos_completed?: number
+          videos_created?: number
+          xp_total?: number
+        }
+        Update: {
+          characters_created?: number
+          characters_lent?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_activity_date?: string | null
+          level?: number
+          longest_streak?: number
+          total_likes_received?: number
+          total_views?: number
+          universes_joined?: number
+          updated_at?: string
+          user_id?: string
+          videos_completed?: number
+          videos_created?: number
+          xp_total?: number
         }
         Relationships: []
       }
@@ -1414,6 +1810,21 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard: {
+        Row: {
+          avatar_url: string | null
+          current_streak: number | null
+          display_name: string | null
+          followers_count: number | null
+          level: number | null
+          rank: number | null
+          total_likes_received: number | null
+          user_id: string | null
+          videos_created: number | null
+          xp_total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {
@@ -1424,6 +1835,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      add_user_xp: {
+        Args: { p_reason?: string; p_user_id: string; p_xp_amount: number }
+        Returns: {
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+        }[]
       }
       admin_adjust_credits: {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
@@ -1453,6 +1872,7 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_level: { Args: { xp: number }; Returns: number }
       charge_preproduction_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
         | {
@@ -1589,6 +2009,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_user_streak: { Args: { p_user_id: string }; Returns: number }
       upsert_video_clip:
         | {
             Args: {
@@ -1636,6 +2057,19 @@ export type Database = {
         | "storytelling"
         | "explainer"
         | "vlog"
+      notification_type:
+        | "like"
+        | "comment"
+        | "follow"
+        | "achievement"
+        | "challenge_complete"
+        | "message"
+        | "universe_invite"
+        | "character_borrow_request"
+        | "level_up"
+        | "streak_milestone"
+        | "video_complete"
+        | "mention"
       story_structure:
         | "three_act"
         | "hero_journey"
@@ -1783,6 +2217,20 @@ export const Constants = {
         "storytelling",
         "explainer",
         "vlog",
+      ],
+      notification_type: [
+        "like",
+        "comment",
+        "follow",
+        "achievement",
+        "challenge_complete",
+        "message",
+        "universe_invite",
+        "character_borrow_request",
+        "level_up",
+        "streak_milestone",
+        "video_complete",
+        "mention",
       ],
       story_structure: [
         "three_act",

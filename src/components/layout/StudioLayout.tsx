@@ -5,7 +5,7 @@ import {
   ChevronRight, User, Settings,
   Check, Zap, HelpCircle, Keyboard, Coins,
   Home, Activity, TrendingUp, Video,
-  LayoutTemplate, Clock, Plus, Sparkles, Globe
+  LayoutTemplate, Clock, Plus, Sparkles, Globe, GraduationCap
 } from 'lucide-react';
 import { LowCreditsWarningBanner } from '@/components/studio/LowCreditsWarningBanner';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
@@ -51,6 +51,7 @@ const MAIN_NAV = [
   { title: 'Templates', url: '/templates', icon: LayoutTemplate },
   { title: 'Environments', url: '/environments', icon: Sparkles },
   { title: 'Universes', url: '/universes', icon: Globe },
+  { title: 'Training', url: '/training-video', icon: GraduationCap },
 ];
 
 // Iron-Clad Pipeline workflow steps (primary workflow)

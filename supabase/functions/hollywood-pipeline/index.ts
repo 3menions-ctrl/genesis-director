@@ -44,6 +44,14 @@ interface PipelineRequest {
   storyTitle?: string;
   // Environment DNA - for consistent visual atmosphere
   environmentPrompt?: string;
+  // Rich template data
+  templateShotSequence?: any[];
+  useTemplateShots?: boolean;
+  templateStyleAnchor?: any;
+  templateCharacters?: any[];
+  templateEnvironmentLock?: any;
+  pacingStyle?: string;
+  templateName?: string;
 }
 
 interface ExtractedCharacter {
@@ -570,8 +578,53 @@ async function runPreProduction(
   
   const characterLock = buildCharacterLock();
   
+  // 1a-0. Use template shots directly if provided (rich template flow)
+  if (request.useTemplateShots && request.templateShotSequence && request.templateShotSequence.length > 0) {
+    const shotSeq = request.templateShotSequence; // Local var for TypeScript
+    console.log(`[Hollywood] Using ${shotSeq.length} pre-defined template shots from "${request.templateName || 'template'}"`);
+    
+    // Map template shots to internal script format with full cinematic data
+    const templateShots = shotSeq.map((shot: any, i: number) => ({
+      id: shot.id || `shot_${i + 1}`,
+      title: shot.title || `Clip ${i + 1}`,
+      description: shot.description || '',
+      durationSeconds: shot.durationSeconds || state.clipDuration,
+      mood: shot.mood || request.mood || 'cinematic',
+      dialogue: request.includeVoice ? (shot.dialogue || '') : '',
+      sceneContext: {
+        actionPhase: (shot.sceneType === 'establishing' ? 'establish' : 
+                     shot.sceneType === 'climax' ? 'peak' : 
+                     shot.sceneType === 'resolution' ? 'settle' : 'develop') as 'establish' | 'initiate' | 'develop' | 'escalate' | 'peak' | 'settle',
+        previousAction: i > 0 ? (shotSeq[i - 1]?.description || '') : '',
+        currentAction: shot.description || '',
+        nextAction: i < shotSeq.length - 1 ? (shotSeq[i + 1]?.description || '') : '',
+        characterDescription: request.templateCharacters?.[0]?.appearance || '',
+        locationDescription: request.templateEnvironmentLock?.location || '',
+        lightingDescription: request.templateEnvironmentLock?.lighting || '',
+      },
+    }));
+    
+    state.script = { shots: templateShots };
+    state.clipCount = templateShots.length;
+    
+    // Store template style anchor as scene consistency
+    if (request.templateStyleAnchor) {
+      state.sceneConsistency = {
+        character: request.templateCharacters?.[0]?.appearance || '',
+        location: request.templateEnvironmentLock?.location || '',
+        lighting: request.templateStyleAnchor.lightingStyle || '',
+      };
+    }
+    
+    // Store environment lock as environment prompt
+    if (request.templateEnvironmentLock?.prompt) {
+      request.environmentPrompt = request.templateEnvironmentLock.prompt;
+    }
+    
+    console.log(`[Hollywood] Template shots applied: ${state.script?.shots?.length || 0} shots with camera data`);
+    
   // 1a. Generate script - use approved story if available (story-first flow)
-  if (request.approvedStory) {
+  } else if (request.approvedStory) {
     console.log(`[Hollywood] Breaking down approved story into shots...`);
     
     try {

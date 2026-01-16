@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -645,7 +646,16 @@ export default function TrainingVideo() {
                           <div className="flex items-center gap-1.5">
                             <span className="font-medium text-sm">{voice.name}</span>
                             {isCached && (
-                              <Zap className="w-3 h-3 text-emerald-500 fill-emerald-500" />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Zap className="w-3 h-3 text-emerald-500 fill-emerald-500 pointer-events-auto cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Cached - Instant playback</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                           {isSelected && (

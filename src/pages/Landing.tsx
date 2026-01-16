@@ -234,23 +234,14 @@ export default function Landing() {
           </div>
 
           {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-16 px-4">
+          <div className="flex items-center justify-center mb-10 sm:mb-16 px-4">
             <Button
               onClick={() => navigate('/auth')}
               size="lg"
-              className="group w-full sm:w-auto h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
+              className="group h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
             >
               Start creating for free
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setShowExamples(true)}
-              className="w-full sm:w-auto h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl hover:-translate-y-0.5 transition-all"
-            >
-              <Stars className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
-              See quality examples
             </Button>
           </div>
 

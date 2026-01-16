@@ -549,6 +549,56 @@ export type Database = {
           },
         ]
       }
+      genesis_character_castings: {
+        Row: {
+          additional_images: string[] | null
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          character_id: string | null
+          created_at: string | null
+          face_image_url: string
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          additional_images?: string[] | null
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          face_image_url: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          additional_images?: string[] | null
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          face_image_url?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_character_castings_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_preset_characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_character_interactions: {
         Row: {
           changes_relationship: boolean | null
@@ -821,6 +871,62 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_final_assembly: {
+        Row: {
+          assembled_by: string | null
+          assembly_notes: string | null
+          assembly_order: Json | null
+          created_at: string | null
+          final_video_url: string | null
+          id: string
+          published_at: string | null
+          screenplay_id: string | null
+          status: string | null
+          title: string
+          total_clips: number | null
+          total_duration_seconds: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assembled_by?: string | null
+          assembly_notes?: string | null
+          assembly_order?: Json | null
+          created_at?: string | null
+          final_video_url?: string | null
+          id?: string
+          published_at?: string | null
+          screenplay_id?: string | null
+          status?: string | null
+          title: string
+          total_clips?: number | null
+          total_duration_seconds?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assembled_by?: string | null
+          assembly_notes?: string | null
+          assembly_order?: Json | null
+          created_at?: string | null
+          final_video_url?: string | null
+          id?: string
+          published_at?: string | null
+          screenplay_id?: string | null
+          status?: string | null
+          title?: string
+          total_clips?: number | null
+          total_duration_seconds?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_final_assembly_screenplay_id_fkey"
+            columns: ["screenplay_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_screenplay"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_location_requests: {
         Row: {
           admin_notes: string | null
@@ -1019,6 +1125,342 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      genesis_preset_characters: {
+        Row: {
+          age_range: string | null
+          appearance_description: string | null
+          backstory: string | null
+          cast_at: string | null
+          cast_by: string | null
+          created_at: string | null
+          description: string | null
+          gender: string | null
+          id: string
+          is_cast: boolean | null
+          name: string
+          personality: string | null
+          reference_image_url: string | null
+          role_type: string | null
+          screenplay_id: string | null
+          total_scenes: number | null
+          updated_at: string | null
+          voice_notes: string | null
+          wardrobe_notes: string | null
+        }
+        Insert: {
+          age_range?: string | null
+          appearance_description?: string | null
+          backstory?: string | null
+          cast_at?: string | null
+          cast_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          gender?: string | null
+          id?: string
+          is_cast?: boolean | null
+          name: string
+          personality?: string | null
+          reference_image_url?: string | null
+          role_type?: string | null
+          screenplay_id?: string | null
+          total_scenes?: number | null
+          updated_at?: string | null
+          voice_notes?: string | null
+          wardrobe_notes?: string | null
+        }
+        Update: {
+          age_range?: string | null
+          appearance_description?: string | null
+          backstory?: string | null
+          cast_at?: string | null
+          cast_by?: string | null
+          created_at?: string | null
+          description?: string | null
+          gender?: string | null
+          id?: string
+          is_cast?: boolean | null
+          name?: string
+          personality?: string | null
+          reference_image_url?: string | null
+          role_type?: string | null
+          screenplay_id?: string | null
+          total_scenes?: number | null
+          updated_at?: string | null
+          voice_notes?: string | null
+          wardrobe_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_preset_characters_screenplay_id_fkey"
+            columns: ["screenplay_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_screenplay"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_scene_characters: {
+        Row: {
+          action_description: string | null
+          character_id: string | null
+          created_at: string | null
+          dialogue: string | null
+          emotional_state: string | null
+          entrance_type: string | null
+          exit_type: string | null
+          id: string
+          interaction_with: string[] | null
+          is_speaking: boolean | null
+          position_in_scene: string | null
+          scene_id: string | null
+          screen_time_seconds: number | null
+        }
+        Insert: {
+          action_description?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          dialogue?: string | null
+          emotional_state?: string | null
+          entrance_type?: string | null
+          exit_type?: string | null
+          id?: string
+          interaction_with?: string[] | null
+          is_speaking?: boolean | null
+          position_in_scene?: string | null
+          scene_id?: string | null
+          screen_time_seconds?: number | null
+        }
+        Update: {
+          action_description?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          dialogue?: string | null
+          emotional_state?: string | null
+          entrance_type?: string | null
+          exit_type?: string | null
+          id?: string
+          interaction_with?: string[] | null
+          is_speaking?: boolean | null
+          position_in_scene?: string | null
+          scene_id?: string | null
+          screen_time_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_scene_characters_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_preset_characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_scene_characters_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_scene_clips: {
+        Row: {
+          admin_feedback: string | null
+          consistency_score: number | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          is_selected_for_final: boolean | null
+          project_id: string | null
+          quality_score: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scene_id: string | null
+          status: string | null
+          submitted_by: string | null
+          thumbnail_url: string | null
+          updated_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          admin_feedback?: string | null
+          consistency_score?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_selected_for_final?: boolean | null
+          project_id?: string | null
+          quality_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scene_id?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          admin_feedback?: string | null
+          consistency_score?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_selected_for_final?: boolean | null
+          project_id?: string | null
+          quality_score?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scene_id?: string | null
+          status?: string | null
+          submitted_by?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_scene_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_scene_clips_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_scenes: {
+        Row: {
+          act_number: number | null
+          camera_directions: string | null
+          created_at: string | null
+          description: string | null
+          duration_seconds: number | null
+          era_id: string | null
+          id: string
+          is_key_scene: boolean | null
+          location_id: string | null
+          mood: string | null
+          scene_number: number
+          screenplay_id: string | null
+          status: string | null
+          time_of_day: string | null
+          title: string
+          updated_at: string | null
+          visual_prompt: string | null
+          weather: string | null
+        }
+        Insert: {
+          act_number?: number | null
+          camera_directions?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          era_id?: string | null
+          id?: string
+          is_key_scene?: boolean | null
+          location_id?: string | null
+          mood?: string | null
+          scene_number: number
+          screenplay_id?: string | null
+          status?: string | null
+          time_of_day?: string | null
+          title: string
+          updated_at?: string | null
+          visual_prompt?: string | null
+          weather?: string | null
+        }
+        Update: {
+          act_number?: number | null
+          camera_directions?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          era_id?: string | null
+          id?: string
+          is_key_scene?: boolean | null
+          location_id?: string | null
+          mood?: string | null
+          scene_number?: number
+          screenplay_id?: string | null
+          status?: string | null
+          time_of_day?: string | null
+          title?: string
+          updated_at?: string | null
+          visual_prompt?: string | null
+          weather?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_scenes_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_scenes_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_scenes_screenplay_id_fkey"
+            columns: ["screenplay_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_screenplay"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_screenplay: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          status: string | null
+          synopsis: string | null
+          title: string
+          total_characters: number | null
+          total_duration_minutes: number | null
+          total_scenes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          synopsis?: string | null
+          title: string
+          total_characters?: number | null
+          total_duration_minutes?: number | null
+          total_scenes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          synopsis?: string | null
+          title?: string
+          total_characters?: number | null
+          total_duration_minutes?: number | null
+          total_scenes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       genesis_story_arcs: {
         Row: {

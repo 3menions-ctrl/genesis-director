@@ -326,10 +326,20 @@ export default function TrainingVideo() {
     toast.success('All voice samples preloaded!');
   };
 
-  // Check cached voices on mount
+  // Check cached voices and auto-preload on mount
   useEffect(() => {
     checkCachedVoices();
-  }, [checkCachedVoices]);
+    
+    // Auto-preload all voices in the background after a short delay
+    const autoPreloadTimeout = setTimeout(() => {
+      const voicesToPreload = VOICE_OPTIONS.filter(v => !getCachedVoicePreview(v.id));
+      if (voicesToPreload.length > 0) {
+        handlePreloadAllVoices();
+      }
+    }, 1000); // Small delay to let the page render first
+    
+    return () => clearTimeout(autoPreloadTimeout);
+  }, []); // Run only once on mount
 
   // Generate training video
   const handleGenerate = async () => {

@@ -1,8 +1,8 @@
-import { Target, Star, Heart, MessageCircle } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Target, Star, Heart, MessageCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 // Daily challenges - would come from DB in production
 const DAILY_CHALLENGES = [
@@ -12,76 +12,99 @@ const DAILY_CHALLENGES = [
 ];
 
 export function DailyChallengesCard() {
+  const completedCount = DAILY_CHALLENGES.filter(c => c.progress >= c.target).length;
+  
   return (
-    <Card className="relative overflow-hidden border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-      
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Target className="w-5 h-5 text-primary" />
+    <div className="rounded-2xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden">
+      {/* Header */}
+      <div className="p-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Target className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Daily Challenges</h3>
+              <p className="text-xs text-white/40">{completedCount}/{DAILY_CHALLENGES.length} completed</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-white">Daily Challenges</h3>
-            <p className="text-xs text-white/40">Complete for bonus XP</p>
-          </div>
+          <Badge className="bg-white/5 text-white/60 border-white/10 font-normal">
+            <Clock className="w-3 h-3 mr-1" />
+            Resets in 8h
+          </Badge>
         </div>
-        <Badge variant="outline" className="border-white/20 text-white/60">
-          Resets in 8h
-        </Badge>
       </div>
       
-      <div className="space-y-3">
-        {DAILY_CHALLENGES.map((challenge) => {
+      {/* Challenges */}
+      <div className="p-3 space-y-2">
+        {DAILY_CHALLENGES.map((challenge, index) => {
           const Icon = challenge.icon;
           const isComplete = challenge.progress >= challenge.target;
+          const progressPercent = (challenge.progress / challenge.target) * 100;
           
           return (
-            <div 
+            <motion.div 
               key={challenge.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
               className={cn(
-                "p-3 rounded-xl border transition-all",
+                "relative p-4 rounded-xl transition-all overflow-hidden",
                 isComplete 
-                  ? "bg-emerald-500/10 border-emerald-500/30" 
-                  : "bg-white/[0.02] border-white/[0.06] hover:border-white/10"
+                  ? "bg-emerald-500/10 border border-emerald-500/20" 
+                  : "bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04]"
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className={cn(
-                  "p-2 rounded-lg",
-                  isComplete ? "bg-emerald-500/20" : "bg-white/[0.05]"
+                  "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                  isComplete 
+                    ? "bg-emerald-500/20" 
+                    : "bg-white/[0.05]"
                 )}>
-                  <Icon className={cn(
-                    "w-4 h-4",
-                    isComplete ? "text-emerald-400" : "text-white/40"
-                  )} />
+                  {isComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  ) : (
+                    <Icon className="w-5 h-5 text-white/50" />
+                  )}
                 </div>
+                
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-white">{challenge.description}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Progress 
-                      value={(challenge.progress / challenge.target) * 100} 
-                      className="h-1.5 flex-1 bg-white/[0.08]" 
-                    />
-                    <span className="text-xs text-white/40">
+                  <p className={cn(
+                    "font-medium text-sm",
+                    isComplete ? "text-emerald-300" : "text-white"
+                  )}>
+                    {challenge.description}
+                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex-1">
+                      <Progress 
+                        value={progressPercent} 
+                        className={cn(
+                          "h-1.5",
+                          isComplete ? "bg-emerald-500/20" : "bg-white/[0.08]"
+                        )}
+                      />
+                    </div>
+                    <span className="text-xs text-white/40 tabular-nums">
                       {challenge.progress}/{challenge.target}
                     </span>
                   </div>
                 </div>
-                <Badge 
-                  variant={isComplete ? "default" : "secondary"}
-                  className={cn(
-                    "text-xs",
-                    isComplete ? "bg-emerald-500" : "bg-white/10 text-white/60"
-                  )}
-                >
+                
+                <div className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0",
+                  isComplete 
+                    ? "bg-emerald-500 text-white" 
+                    : "bg-amber-500/20 text-amber-400"
+                )}>
                   +{challenge.xp} XP
-                </Badge>
+                </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 }

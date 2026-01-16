@@ -38,11 +38,12 @@ export type ErrorCategory = 'timeout' | 'api_error' | 'validation' | 'quota' | '
 // Default limits for each tier - SINGLE SOURCE OF TRUTH
 // Edge functions should use get_user_tier_limits RPC which reads from tier_limits table
 // These are fallback defaults if DB is unavailable
+// Duration targets: Free=32sec, Pro=1min, Growth=2min, Agency=3min
 export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
-    max_duration_minutes: 1,
-    max_clips_per_video: 6,
+    max_duration_minutes: 1, // ~32 seconds (5 clips × 6 sec)
+    max_clips_per_video: 5,
     max_concurrent_projects: 2,
     max_retries_per_clip: 1,
     priority_queue: false,
@@ -50,17 +51,17 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   },
   pro: {
     tier: 'pro',
-    max_duration_minutes: 1,
-    max_clips_per_video: 6,
+    max_duration_minutes: 1, // 1 minute (10 clips × 6 sec)
+    max_clips_per_video: 10,
     max_concurrent_projects: 5,
     max_retries_per_clip: 2,
     priority_queue: false,
-    chunked_stitching: false,
+    chunked_stitching: true,
   },
   growth: {
     tier: 'growth',
-    max_duration_minutes: 2,
-    max_clips_per_video: 6,
+    max_duration_minutes: 2, // 2 minutes (20 clips × 6 sec)
+    max_clips_per_video: 20,
     max_concurrent_projects: 10,
     max_retries_per_clip: 3,
     priority_queue: true,
@@ -68,8 +69,8 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   },
   agency: {
     tier: 'agency',
-    max_duration_minutes: 2,
-    max_clips_per_video: 6,
+    max_duration_minutes: 3, // 3 minutes (30 clips × 6 sec)
+    max_clips_per_video: 30,
     max_concurrent_projects: 25,
     max_retries_per_clip: 4,
     priority_queue: true,
@@ -85,15 +86,20 @@ export const TIER_CLIP_LIMITS: Record<AccountTier, {
   maxRetries: number; 
   chunkedStitching: boolean;
 }> = {
-  free: { maxClips: 6, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
-  pro: { maxClips: 6, maxDuration: 60, maxRetries: 2, chunkedStitching: false },
-  growth: { maxClips: 6, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
-  agency: { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
+  free: { maxClips: 5, maxDuration: 32, maxRetries: 1, chunkedStitching: false },
+  pro: { maxClips: 10, maxDuration: 60, maxRetries: 2, chunkedStitching: true },
+  growth: { maxClips: 20, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  agency: { maxClips: 30, maxDuration: 180, maxRetries: 4, chunkedStitching: true },
 };
 
 // Helper to check if tier supports 2-minute videos
 export function supports2MinuteVideos(tier: AccountTier): boolean {
   return tier === 'growth' || tier === 'agency';
+}
+
+// Helper to check if tier supports 3-minute videos
+export function supports3MinuteVideos(tier: AccountTier): boolean {
+  return tier === 'agency';
 }
 
 // Helper to get max clips for tier

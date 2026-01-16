@@ -4467,8 +4467,8 @@ async function runPostProduction(
     if (dialogueClips.length > 0) {
       console.log(`[Hollywood] Found ${dialogueClips.length} dialogue clips for lip sync processing`);
       
-      // Process lip sync for each dialogue clip (in parallel with limit)
-      const lipSyncPromises = dialogueClips.slice(0, 6).map(async (item) => {
+      // Process lip sync for each dialogue clip (in parallel, process up to 12 at a time)
+      const lipSyncPromises = dialogueClips.slice(0, 12).map(async (item) => {
         try {
           console.log(`[Hollywood] Processing lip sync for clip ${item.index + 1} (${item.dialogue?.substring(0, 30)}...)`);
           

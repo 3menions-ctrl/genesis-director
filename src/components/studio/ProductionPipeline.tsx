@@ -746,8 +746,8 @@ export function ProductionPipeline({
                       <Sparkles className="w-4 h-4" />
                       Scene Previews
                     </h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {sceneImages.slice(0, 6).map((scene, i) => (
+                    <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
+                      {sceneImages.map((scene, i) => (
                         <img 
                           key={i}
                           src={scene.imageUrl} 

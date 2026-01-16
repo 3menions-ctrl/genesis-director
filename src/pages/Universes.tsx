@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, ArrowLeft, BookOpen, MessageSquare, Users } from 'lucide-react';
+import { Globe, ArrowLeft, BookOpen, Link2, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +10,7 @@ import { GenesisHero } from '@/components/genesis/GenesisHero';
 import { EraTimeline } from '@/components/genesis/EraTimeline';
 import { LocationGrid } from '@/components/genesis/LocationGrid';
 import { VideoGallery } from '@/components/genesis/VideoGallery';
+import { StoryContinuityPanel } from '@/components/genesis/StoryContinuityPanel';
 import { useGenesisLore } from '@/hooks/useGenesisUniverse';
 import type { GenesisLocation, GenesisEra } from '@/types/genesis';
 import universeBackground from '@/assets/universe-background.jpg';
@@ -67,13 +68,13 @@ export default function Universes() {
                 <Globe className="h-4 w-4" />
                 Explore
               </TabsTrigger>
+              <TabsTrigger value="continuity" className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Story Continuity
+              </TabsTrigger>
               <TabsTrigger value="lore" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 Lore
-              </TabsTrigger>
-              <TabsTrigger value="community" className="gap-2">
-                <Users className="h-4 w-4" />
-                Community
               </TabsTrigger>
             </TabsList>
 
@@ -132,6 +133,10 @@ export default function Universes() {
                   eraId={selectedEra?.id}
                 />
               </motion.div>
+            </TabsContent>
+
+            <TabsContent value="continuity" className="space-y-6">
+              <StoryContinuityPanel />
             </TabsContent>
 
             <TabsContent value="lore" className="space-y-6">
@@ -217,16 +222,6 @@ export default function Universes() {
               </div>
             </TabsContent>
 
-            <TabsContent value="community">
-              <Card className="p-12 text-center">
-                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Community Hub Coming Soon</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Soon you'll be able to discuss the universe, collaborate with other creators,
-                  and participate in world-building events.
-                </p>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </div>

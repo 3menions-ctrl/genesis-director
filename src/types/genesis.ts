@@ -155,3 +155,101 @@ export interface GenesisLocationRequest {
   // Joined data
   parent_location?: GenesisLocation;
 }
+
+// Story continuity types
+export interface GenesisStoryArc {
+  id: string;
+  title: string;
+  description: string | null;
+  arc_type: 'main' | 'side' | 'character' | 'event';
+  status: 'planned' | 'active' | 'completed' | 'abandoned';
+  era_id: string | null;
+  location_id: string | null;
+  start_date_in_universe: string | null;
+  end_date_in_universe: string | null;
+  current_chapter: number;
+  total_chapters: number | null;
+  synopsis: string | null;
+  themes: string[] | null;
+  created_by: string | null;
+  is_canon: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  era?: GenesisEra;
+  location?: GenesisLocation;
+  connections?: GenesisStoryConnection[];
+}
+
+export interface GenesisStoryConnection {
+  id: string;
+  arc_id: string;
+  video_id: string;
+  connection_type: 'starts' | 'continues' | 'ends' | 'branches' | 'contributes' | 'references';
+  chapter_number: number | null;
+  sequence_order: number | null;
+  narrative_notes: string | null;
+  approved_by: string | null;
+  is_official: boolean;
+  created_at: string;
+  // Joined data
+  video?: GenesisVideo;
+  arc?: GenesisStoryArc;
+}
+
+export interface GenesisCharacterAppearance {
+  id: string;
+  video_id: string;
+  character_name: string;
+  character_id: string | null;
+  role_type: 'protagonist' | 'antagonist' | 'supporting' | 'featured' | 'cameo' | 'mentioned';
+  first_appearance_video: boolean;
+  description: string | null;
+  outfit_description: string | null;
+  emotional_state: string | null;
+  location_in_scene: string | null;
+  created_at: string;
+  // Joined data
+  video?: GenesisVideo;
+}
+
+export interface GenesisCharacterInteraction {
+  id: string;
+  video_id: string;
+  character_1_name: string;
+  character_1_id: string | null;
+  character_2_name: string;
+  character_2_id: string | null;
+  interaction_type: 'dialogue' | 'conflict' | 'collaboration' | 'romance' | 'rivalry' | 'mentorship' | 'chance_encounter' | 'reunion';
+  interaction_outcome: 'positive' | 'negative' | 'neutral' | 'unresolved' | 'transformative' | null;
+  description: string | null;
+  is_first_meeting: boolean;
+  changes_relationship: boolean;
+  new_relationship_status: string | null;
+  created_at: string;
+  // Joined data
+  video?: GenesisVideo;
+}
+
+export interface GenesisContinuityAnchor {
+  id: string;
+  anchor_type: 'event' | 'death' | 'birth' | 'location_change' | 'world_change' | 'character_trait' | 'object' | 'relationship';
+  title: string;
+  description: string;
+  date_in_universe: string | null;
+  era_id: string | null;
+  location_id: string | null;
+  affected_characters: string[] | null;
+  is_immutable: boolean;
+  source_video_id: string | null;
+  established_by: string | null;
+  votes_for: number;
+  votes_against: number;
+  is_canon: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  era?: GenesisEra;
+  location?: GenesisLocation;
+  source_video?: GenesisVideo;
+}

@@ -492,6 +492,296 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_eras: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cultural_notes: string | null
+          description: string | null
+          dominant_technology: string | null
+          end_year: number | null
+          era_order: number
+          id: string
+          image_url: string | null
+          is_official: boolean | null
+          key_events: string[] | null
+          name: string
+          start_year: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cultural_notes?: string | null
+          description?: string | null
+          dominant_technology?: string | null
+          end_year?: number | null
+          era_order?: number
+          id?: string
+          image_url?: string | null
+          is_official?: boolean | null
+          key_events?: string[] | null
+          name: string
+          start_year?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cultural_notes?: string | null
+          description?: string | null
+          dominant_technology?: string | null
+          end_year?: number | null
+          era_order?: number
+          id?: string
+          image_url?: string | null
+          is_official?: boolean | null
+          key_events?: string[] | null
+          name?: string
+          start_year?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      genesis_locations: {
+        Row: {
+          climate: string | null
+          coordinates: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_official: boolean | null
+          location_type: string
+          name: string
+          notable_features: string[] | null
+          parent_location_id: string | null
+          population: string | null
+          updated_at: string
+        }
+        Insert: {
+          climate?: string | null
+          coordinates?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_official?: boolean | null
+          location_type?: string
+          name: string
+          notable_features?: string[] | null
+          parent_location_id?: string | null
+          population?: string | null
+          updated_at?: string
+        }
+        Update: {
+          climate?: string | null
+          coordinates?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_official?: boolean | null
+          location_type?: string
+          name?: string
+          notable_features?: string[] | null
+          parent_location_id?: string | null
+          population?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_locations_parent_location_id_fkey"
+            columns: ["parent_location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_lore: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          era_id: string | null
+          id: string
+          is_canon: boolean | null
+          location_id: string | null
+          lore_type: string
+          title: string
+          updated_at: string
+          upvotes: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          era_id?: string | null
+          id?: string
+          is_canon?: boolean | null
+          location_id?: string | null
+          lore_type?: string
+          title: string
+          updated_at?: string
+          upvotes?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          era_id?: string | null
+          id?: string
+          is_canon?: boolean | null
+          location_id?: string | null
+          lore_type?: string
+          title?: string
+          updated_at?: string
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_lore_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_lore_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_video_votes: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          video_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          video_id: string
+          vote_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_video_votes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_videos: {
+        Row: {
+          canon_at: string | null
+          canon_status: string
+          characters_featured: string[] | null
+          created_at: string
+          description: string | null
+          downvotes: number | null
+          duration_seconds: number | null
+          era_id: string | null
+          featured_at: string | null
+          id: string
+          location_id: string | null
+          project_id: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          upvotes: number | null
+          user_id: string
+          video_url: string | null
+          vote_score: number | null
+        }
+        Insert: {
+          canon_at?: string | null
+          canon_status?: string
+          characters_featured?: string[] | null
+          created_at?: string
+          description?: string | null
+          downvotes?: number | null
+          duration_seconds?: number | null
+          era_id?: string | null
+          featured_at?: string | null
+          id?: string
+          location_id?: string | null
+          project_id: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          upvotes?: number | null
+          user_id: string
+          video_url?: string | null
+          vote_score?: number | null
+        }
+        Update: {
+          canon_at?: string | null
+          canon_status?: string
+          characters_featured?: string[] | null
+          created_at?: string
+          description?: string | null
+          downvotes?: number | null
+          duration_seconds?: number | null
+          era_id?: string | null
+          featured_at?: string | null
+          id?: string
+          location_id?: string | null
+          project_id?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          upvotes?: number | null
+          user_id?: string
+          video_url?: string | null
+          vote_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_videos_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_videos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_videos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movie_projects: {
         Row: {
           created_at: string

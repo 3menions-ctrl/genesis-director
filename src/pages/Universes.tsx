@@ -1,84 +1,39 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, Search, ArrowLeft, Filter, SortAsc } from 'lucide-react';
+import { Globe, ArrowLeft, BookOpen, MessageSquare, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUniverses } from '@/hooks/useUniverses';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { UniverseGrid } from '@/components/universes/UniverseGrid';
-import { CreateUniverseDialog } from '@/components/universes/CreateUniverseDialog';
-import { EditUniverseDialog } from '@/components/universes/EditUniverseDialog';
-import { DeleteUniverseDialog } from '@/components/universes/DeleteUniverseDialog';
-import type { Universe } from '@/types/universe';
+import { GenesisHero } from '@/components/genesis/GenesisHero';
+import { EraTimeline } from '@/components/genesis/EraTimeline';
+import { LocationGrid } from '@/components/genesis/LocationGrid';
+import { VideoGallery } from '@/components/genesis/VideoGallery';
+import { useGenesisLore } from '@/hooks/useGenesisUniverse';
+import type { GenesisLocation, GenesisEra } from '@/types/genesis';
 import universeBackground from '@/assets/universe-background.jpg';
-
-type SortOption = 'updated' | 'created' | 'name' | 'members';
-type FilterTab = 'all' | 'owned' | 'joined' | 'public';
 
 export default function Universes() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { universes, isLoading } = useUniverses();
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('updated');
-  const [filterTab, setFilterTab] = useState<FilterTab>('all');
+  const exploreRef = useRef<HTMLDivElement>(null);
   
-  // Dialog states
-  const [editingUniverse, setEditingUniverse] = useState<Universe | null>(null);
-  const [deletingUniverse, setDeletingUniverse] = useState<Universe | null>(null);
+  const [activeTab, setActiveTab] = useState('explore');
+  const [selectedLocation, setSelectedLocation] = useState<GenesisLocation | null>(null);
+  const [selectedEra, setSelectedEra] = useState<GenesisEra | null>(null);
 
-  // Filter and sort universes
-  const filteredUniverses = universes
-    ?.filter((u) => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = u.name.toLowerCase().includes(query);
-        const matchesDesc = u.description?.toLowerCase().includes(query);
-        const matchesTags = u.tags?.some(t => t.toLowerCase().includes(query));
-        if (!matchesName && !matchesDesc && !matchesTags) return false;
-      }
-      
-      // Tab filter
-      switch (filterTab) {
-        case 'owned':
-          return u.user_id === user?.id;
-        case 'joined':
-          return u.user_id !== user?.id; // For now, show non-owned. Later: check membership
-        case 'public':
-          return u.is_public;
-        default:
-          return true;
-      }
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'created':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'members':
-          return (b.member_count || 0) - (a.member_count || 0);
-        default: // updated
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      }
-    });
+  const { data: lore } = useGenesisLore({
+    locationId: selectedLocation?.id,
+    eraId: selectedEra?.id,
+  });
 
-  const handleSelectUniverse = (universe: Universe) => {
-    navigate(`/universes/${universe.id}`);
+  const handleExplore = () => {
+    exploreRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleUniverseCreated = (universeId: string) => {
-    navigate(`/universes/${universeId}`);
+  const handleContribute = () => {
+    navigate('/projects');
   };
 
   return (
@@ -91,109 +46,190 @@ export default function Universes() {
       <div className="fixed inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
 
       <div className="relative z-10">
-        {/* Header */}
-        <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-20">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/projects')}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-6 w-6 text-primary" />
-                  <h1 className="text-2xl font-bold">Story Universes</h1>
-                </div>
-              </div>
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 left-4 z-20 bg-background/50 backdrop-blur-sm"
+          onClick={() => navigate('/projects')}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
 
-              <CreateUniverseDialog onCreated={handleUniverseCreated} />
-            </div>
-          </div>
-        </header>
+        {/* Hero Section */}
+        <GenesisHero onExplore={handleExplore} onContribute={handleContribute} />
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
-          {/* Filters and Search */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row gap-4 mb-8"
-          >
-            {/* Tabs */}
-            <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as FilterTab)}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="owned">My Universes</TabsTrigger>
-                <TabsTrigger value="joined">Joined</TabsTrigger>
-                <TabsTrigger value="public">Public</TabsTrigger>
-              </TabsList>
-            </Tabs>
+        <div ref={exploreRef} className="container mx-auto px-4 py-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-8">
+              <TabsTrigger value="explore" className="gap-2">
+                <Globe className="h-4 w-4" />
+                Explore
+              </TabsTrigger>
+              <TabsTrigger value="lore" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Lore
+              </TabsTrigger>
+              <TabsTrigger value="community" className="gap-2">
+                <Users className="h-4 w-4" />
+                Community
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="flex-1" />
+            <TabsContent value="explore" className="space-y-8">
+              {/* Era Timeline */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <EraTimeline 
+                  selectedEraId={selectedEra?.id}
+                  onSelectEra={setSelectedEra}
+                />
+              </motion.div>
 
-            {/* Search */}
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search universes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+              {/* Location Grid */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <LocationGrid
+                  selectedLocationId={selectedLocation?.id}
+                  onSelectLocation={setSelectedLocation}
+                />
+              </motion.div>
 
-            {/* Sort */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <SortAsc className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSortBy('updated')}>
-                  Recently Updated
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('created')}>
-                  Recently Created
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('name')}>
-                  Name (A-Z)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('members')}>
-                  Most Members
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </motion.div>
+              {/* Active Filters */}
+              {(selectedLocation || selectedEra) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg"
+                >
+                  <span className="text-sm text-muted-foreground">Showing stories from:</span>
+                  {selectedEra && (
+                    <span className="text-sm font-medium">{selectedEra.name}</span>
+                  )}
+                  {selectedEra && selectedLocation && (
+                    <span className="text-muted-foreground">in</span>
+                  )}
+                  {selectedLocation && (
+                    <span className="text-sm font-medium">{selectedLocation.name}</span>
+                  )}
+                </motion.div>
+              )}
 
-          {/* Universe Grid */}
-          <UniverseGrid
-            universes={filteredUniverses}
-            isLoading={isLoading}
-            currentUserId={user?.id}
-            onSelect={handleSelectUniverse}
-            onEdit={setEditingUniverse}
-            onDelete={setDeletingUniverse}
-            onShare={(u) => console.log('Share', u)} // TODO: Implement share dialog
-            onCreated={handleUniverseCreated}
-          />
-        </main>
+              {/* Video Gallery */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <VideoGallery
+                  locationId={selectedLocation?.id}
+                  eraId={selectedEra?.id}
+                />
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="lore" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>The Genesis Universe</CardTitle>
+                    </CardHeader>
+                    <CardContent className="prose prose-sm dark:prose-invert max-w-none">
+                      <p>
+                        The Genesis Universe is a shared creative world where all stories take place. 
+                        From the dawn of creation to the modern age, every video you create becomes 
+                        part of this living, breathing universe.
+                      </p>
+                      <h3>How It Works</h3>
+                      <ol>
+                        <li><strong>Choose your setting:</strong> Select a location and era for your story</li>
+                        <li><strong>Create your video:</strong> Use the video generator to bring your story to life</li>
+                        <li><strong>Submit to the universe:</strong> Your video appears in the gallery</li>
+                        <li><strong>Community votes:</strong> The community votes on which stories become canon</li>
+                        <li><strong>Shape the world:</strong> Canon stories influence the universe's lore and future</li>
+                      </ol>
+                    </CardContent>
+                  </Card>
+
+                  {/* Lore entries */}
+                  {lore && lore.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Lore Entries</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {lore.map((entry) => (
+                          <div key={entry.id} className="p-4 bg-muted/50 rounded-lg">
+                            <h4 className="font-semibold">{entry.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                              {entry.content}
+                            </p>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Quick Facts</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Globe className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">6 Major Eras</p>
+                          <p className="text-xs text-muted-foreground">From Awakening to Modern</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Globe className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">6+ Unique Locations</p>
+                          <p className="text-xs text-muted-foreground">Realms, regions, and landmarks</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Community Driven</p>
+                          <p className="text-xs text-muted-foreground">Your votes shape canon</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="community">
+              <Card className="p-12 text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Community Hub Coming Soon</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Soon you'll be able to discuss the universe, collaborate with other creators,
+                  and participate in world-building events.
+                </p>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-
-      {/* Dialogs */}
-      <EditUniverseDialog
-        universe={editingUniverse}
-        open={!!editingUniverse}
-        onOpenChange={(open) => !open && setEditingUniverse(null)}
-      />
-      <DeleteUniverseDialog
-        universe={deletingUniverse}
-        open={!!deletingUniverse}
-        onOpenChange={(open) => !open && setDeletingUniverse(null)}
-      />
     </div>
   );
 }

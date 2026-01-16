@@ -492,6 +492,78 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_environment_templates: {
+        Row: {
+          atmosphere: string | null
+          color_palette: Json | null
+          created_at: string
+          era_id: string | null
+          id: string
+          is_default: boolean | null
+          lighting_preset: Json | null
+          location_id: string | null
+          negative_prompts: string[] | null
+          prompt_prefix: string | null
+          prompt_suffix: string | null
+          reference_images: string[] | null
+          template_name: string
+          thumbnail_url: string | null
+          updated_at: string
+          visual_style: Json
+        }
+        Insert: {
+          atmosphere?: string | null
+          color_palette?: Json | null
+          created_at?: string
+          era_id?: string | null
+          id?: string
+          is_default?: boolean | null
+          lighting_preset?: Json | null
+          location_id?: string | null
+          negative_prompts?: string[] | null
+          prompt_prefix?: string | null
+          prompt_suffix?: string | null
+          reference_images?: string[] | null
+          template_name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          visual_style?: Json
+        }
+        Update: {
+          atmosphere?: string | null
+          color_palette?: Json | null
+          created_at?: string
+          era_id?: string | null
+          id?: string
+          is_default?: boolean | null
+          lighting_preset?: Json | null
+          location_id?: string | null
+          negative_prompts?: string[] | null
+          prompt_prefix?: string | null
+          prompt_suffix?: string | null
+          reference_images?: string[] | null
+          template_name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          visual_style?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_environment_templates_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_environment_templates_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_eras: {
         Row: {
           created_at: string
@@ -543,54 +615,137 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_location_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          id: string
+          location_type: string
+          name: string
+          parent_location_id: string | null
+          reason: string | null
+          reference_images: string[] | null
+          requested_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          suggested_coordinates: Json | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_type: string
+          name: string
+          parent_location_id?: string | null
+          reason?: string | null
+          reference_images?: string[] | null
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          suggested_coordinates?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location_type?: string
+          name?: string
+          parent_location_id?: string | null
+          reason?: string | null
+          reference_images?: string[] | null
+          requested_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          suggested_coordinates?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_location_requests_parent_location_id_fkey"
+            columns: ["parent_location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_locations: {
         Row: {
+          approval_status: string | null
           climate: string | null
           coordinates: Json | null
           created_at: string
           created_by: string | null
           description: string | null
+          environment_preset: Json | null
           id: string
           image_url: string | null
           is_official: boolean | null
+          is_requestable: boolean | null
           location_type: string
           name: string
           notable_features: string[] | null
           parent_location_id: string | null
           population: string | null
+          prompt_modifiers: string[] | null
+          reference_image_urls: string[] | null
+          time_of_day_variants: Json | null
           updated_at: string
+          weather_variants: Json | null
         }
         Insert: {
+          approval_status?: string | null
           climate?: string | null
           coordinates?: Json | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          environment_preset?: Json | null
           id?: string
           image_url?: string | null
           is_official?: boolean | null
+          is_requestable?: boolean | null
           location_type?: string
           name: string
           notable_features?: string[] | null
           parent_location_id?: string | null
           population?: string | null
+          prompt_modifiers?: string[] | null
+          reference_image_urls?: string[] | null
+          time_of_day_variants?: Json | null
           updated_at?: string
+          weather_variants?: Json | null
         }
         Update: {
+          approval_status?: string | null
           climate?: string | null
           coordinates?: Json | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          environment_preset?: Json | null
           id?: string
           image_url?: string | null
           is_official?: boolean | null
+          is_requestable?: boolean | null
           location_type?: string
           name?: string
           notable_features?: string[] | null
           parent_location_id?: string | null
           population?: string | null
+          prompt_modifiers?: string[] | null
+          reference_image_urls?: string[] | null
+          time_of_day_variants?: Json | null
           updated_at?: string
+          weather_variants?: Json | null
         }
         Relationships: [
           {
@@ -658,6 +813,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      genesis_universe_rules: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          examples: Json | null
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          examples?: Json | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          examples?: Json | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       genesis_video_votes: {
         Row: {

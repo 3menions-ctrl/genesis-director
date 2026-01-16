@@ -3,7 +3,7 @@ export interface GenesisLocation {
   name: string;
   description: string | null;
   image_url: string | null;
-  location_type: 'realm' | 'region' | 'city' | 'landmark';
+  location_type: 'city' | 'district' | 'landmark' | 'venue' | 'street';
   parent_location_id: string | null;
   coordinates: Record<string, unknown> | null;
   climate: string | null;
@@ -13,6 +13,17 @@ export interface GenesisLocation {
   is_official: boolean;
   created_at: string;
   updated_at: string;
+  // New fields for environment presets
+  environment_preset: Record<string, unknown> | null;
+  prompt_modifiers: string[] | null;
+  reference_image_urls: string[] | null;
+  time_of_day_variants: Record<string, unknown> | null;
+  weather_variants: Record<string, unknown> | null;
+  is_requestable: boolean;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  // Joined data
+  parent_location?: GenesisLocation;
+  child_locations?: GenesisLocation[];
 }
 
 export interface GenesisEra {
@@ -89,4 +100,58 @@ export interface GenesisLore {
     display_name: string | null;
     avatar_url: string | null;
   };
+}
+
+export interface GenesisEnvironmentTemplate {
+  id: string;
+  location_id: string | null;
+  era_id: string | null;
+  template_name: string;
+  visual_style: Record<string, unknown>;
+  lighting_preset: Record<string, unknown> | null;
+  color_palette: Record<string, unknown> | null;
+  atmosphere: string | null;
+  prompt_prefix: string | null;
+  prompt_suffix: string | null;
+  negative_prompts: string[] | null;
+  reference_images: string[] | null;
+  thumbnail_url: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  location?: GenesisLocation;
+  era?: GenesisEra;
+}
+
+export interface GenesisUniverseRule {
+  id: string;
+  category: 'visual' | 'narrative' | 'character' | 'timeline' | 'technical';
+  title: string;
+  description: string;
+  priority: number;
+  is_active: boolean;
+  examples: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GenesisLocationRequest {
+  id: string;
+  requested_by: string;
+  parent_location_id: string | null;
+  name: string;
+  description: string | null;
+  location_type: 'city' | 'district' | 'landmark' | 'venue' | 'street';
+  suggested_coordinates: Record<string, unknown> | null;
+  reference_images: string[] | null;
+  reason: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  parent_location?: GenesisLocation;
 }

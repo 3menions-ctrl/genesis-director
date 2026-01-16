@@ -31,14 +31,14 @@ import alpineDawnImg from '@/assets/environments/alpine-dawn.jpg';
 import cozyFirelightImg from '@/assets/environments/cozy-firelight.jpg';
 import overcastDramaImg from '@/assets/environments/overcast-drama.jpg';
 
-// Voice options from OpenAI TTS
+// Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
-  { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, professional' },
-  { id: 'alloy', name: 'Alloy', gender: 'neutral', description: 'Versatile, clear' },
-  { id: 'echo', name: 'Echo', gender: 'male', description: 'Friendly, warm' },
-  { id: 'fable', name: 'Fable', gender: 'male', description: 'Expressive, storyteller' },
-  { id: 'onyx', name: 'Onyx', gender: 'male', description: 'Deep, authoritative' },
-  { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft, gentle' },
+  { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, professional', sample: 'Welcome to our training program. Today we will explore best practices for success.' },
+  { id: 'alloy', name: 'Alloy', gender: 'neutral', description: 'Versatile, clear', sample: 'This module covers the essential skills you need to excel in your role.' },
+  { id: 'echo', name: 'Echo', gender: 'male', description: 'Friendly, warm', sample: 'Hey there! Ready to learn something new? Let me walk you through it step by step.' },
+  { id: 'fable', name: 'Fable', gender: 'male', description: 'Expressive, storyteller', sample: 'Picture this: a world where every challenge becomes an opportunity for growth.' },
+  { id: 'onyx', name: 'Onyx', gender: 'male', description: 'Deep, authoritative', sample: 'The following information is critical to your understanding of company protocols.' },
+  { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft, gentle', sample: 'Take a moment to reflect on what you have learned. Every step forward matters.' },
 ];
 
 // Background presets
@@ -71,8 +71,8 @@ export default function TrainingVideo() {
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
-  
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const characterInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -119,18 +119,32 @@ export default function TrainingVideo() {
     toast.success('Custom background uploaded');
   }, []);
 
-  // Preview voice
-  const handleVoicePreview = async () => {
-    if (isPreviewingVoice) return;
+  // Preview a specific voice with its sample text
+  const handleVoicePreview = async (voiceId: string, sampleText?: string) => {
+    // If already playing this voice, stop it
+    if (previewingVoiceId === voiceId && currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setPreviewingVoiceId(null);
+      setCurrentAudio(null);
+      return;
+    }
     
-    setIsPreviewingVoice(true);
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+    
+    setPreviewingVoiceId(voiceId);
     try {
-      const previewText = scriptText.slice(0, 100) || 'Hello, this is a voice preview for your training video.';
+      const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
+      const previewText = sampleText || voice?.sample || 'Hello, this is a voice preview for your training video.';
       
       const { data, error } = await supabase.functions.invoke('generate-voice', {
         body: {
           text: previewText,
-          voiceId: selectedVoice,
+          voiceId: voiceId,
         },
       });
 
@@ -147,18 +161,35 @@ export default function TrainingVideo() {
       }
       
       const audio = new Audio(audioUrl);
-      audio.onended = () => setIsPreviewingVoice(false);
+      setCurrentAudio(audio);
+      
+      audio.onended = () => {
+        setPreviewingVoiceId(null);
+        setCurrentAudio(null);
+      };
       audio.onerror = () => {
         toast.error('Failed to play audio');
-        setIsPreviewingVoice(false);
+        setPreviewingVoiceId(null);
+        setCurrentAudio(null);
       };
       await audio.play();
     } catch (err) {
       console.error('Voice preview error:', err);
       toast.error('Failed to preview voice');
-      setIsPreviewingVoice(false);
+      setPreviewingVoiceId(null);
+      setCurrentAudio(null);
     }
   };
+
+  // Stop voice preview
+  const stopVoicePreview = useCallback(() => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+    setPreviewingVoiceId(null);
+    setCurrentAudio(null);
+  }, [currentAudio]);
 
   // Generate training video
   const handleGenerate = async () => {
@@ -421,45 +452,112 @@ export default function TrainingVideo() {
                 <Mic className="w-4 h-4" />
                 Voice Selection
               </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {VOICE_OPTIONS.map((voice) => (
-                  <button
-                    key={voice.id}
-                    onClick={() => setSelectedVoice(voice.id)}
-                    className={cn(
-                      "p-3 rounded-xl border text-left transition-all",
-                      selectedVoice === voice.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">{voice.name}</span>
-                      {selectedVoice === voice.id && (
-                        <Check className="w-4 h-4 text-primary" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {VOICE_OPTIONS.map((voice) => {
+                  const isPlaying = previewingVoiceId === voice.id;
+                  const isSelected = selectedVoice === voice.id;
+                  
+                  return (
+                    <div
+                      key={voice.id}
+                      className={cn(
+                        "relative p-3 rounded-xl border transition-all",
+                        isSelected
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
                       )}
+                    >
+                      {/* Selection overlay - click to select */}
+                      <button
+                        onClick={() => setSelectedVoice(voice.id)}
+                        className="absolute inset-0 w-full h-full z-0"
+                        aria-label={`Select ${voice.name} voice`}
+                      />
+                      
+                      <div className="relative z-10 pointer-events-none">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-sm">{voice.name}</span>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-primary" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{voice.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {voice.gender}
+                          </Badge>
+                          
+                          {/* Preview button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-7 w-7 p-0 pointer-events-auto",
+                              isPlaying && "text-primary"
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVoicePreview(voice.id);
+                            }}
+                          >
+                            {isPlaying ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Volume2 className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{voice.description}</p>
-                    <Badge variant="outline" className="mt-1 text-xs">
-                      {voice.gender}
-                    </Badge>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={handleVoicePreview}
-                disabled={isPreviewingVoice}
-              >
-                {isPreviewingVoice ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Volume2 className="w-4 h-4 mr-2" />
+              
+              {/* Playing indicator */}
+              <AnimatePresence>
+                {previewingVoiceId && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <Card className="p-3 bg-primary/5 border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            {[0, 1, 2, 3].map((i) => (
+                              <motion.div
+                                key={i}
+                                className="w-1 bg-primary rounded-full"
+                                animate={{
+                                  height: [8, 16, 8],
+                                }}
+                                transition={{
+                                  duration: 0.5,
+                                  repeat: Infinity,
+                                  delay: i * 0.1,
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            Playing <span className="font-medium text-foreground">{VOICE_OPTIONS.find(v => v.id === previewingVoiceId)?.name}</span>
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={stopVoicePreview}
+                          className="h-7 px-2"
+                        >
+                          Stop
+                        </Button>
+                      </div>
+                    </Card>
+                  </motion.div>
                 )}
-                Preview Voice
-              </Button>
+              </AnimatePresence>
             </motion.div>
 
             {/* Background Selection */}

@@ -42,7 +42,13 @@ serve(async (req) => {
     };
     const projectTypeContext = projectTypeMap[projectType as string] || 'cinematic, professional video production';
 
-const systemPrompt = `You are a PROFESSIONAL Hollywood cinematographer and director of photography. Create a shot breakdown with MINIMUM 6 SHOTS using ADVANCED CINEMATIC TECHNIQUES.
+// Parse template shot count if provided
+    const { shotCount: templateShotCount, minShots: requestedMinShots } = await req.json().catch(() => ({}));
+    const targetShotCount = templateShotCount || requestedMinShots || null;
+    const MINIMUM_SHOTS = targetShotCount || 6; // Use template shot count or default to 6
+    const MAX_SHOTS = 30; // Maximum supported shots
+
+const systemPrompt = `You are a PROFESSIONAL Hollywood cinematographer and director of photography. Create a shot breakdown with ${targetShotCount ? `EXACTLY ${targetShotCount}` : 'MINIMUM 6'} SHOTS using ADVANCED CINEMATIC TECHNIQUES.
 
 PROJECT TYPE: ${projectType || 'cinematic'}
 STYLE: ${projectTypeContext}
@@ -147,7 +153,7 @@ For each scene type, use appropriate camera:
 ═══════════════════════════════════════════════════════════════════════════════
 
 CRITICAL REQUIREMENTS:
-1. MINIMUM 6 SHOTS - Never less. More if story requires (up to 24).
+1. SHOT COUNT: ${targetShotCount ? `Generate EXACTLY ${targetShotCount} shots as specified.` : 'MINIMUM 6 SHOTS - Never less. More if story requires (up to 30).'}
 2. SHOT DURATION: 4-8 seconds. Default 6 for cinematic flow.
 3. NEVER repeat same cameraScale + cameraAngle + movementType consecutively.
 4. Use ADVANCED angles (dutch, worms-eye, arc, vertigo) at least 2x per project.
@@ -192,7 +198,7 @@ Return ONLY valid JSON:
   "totalDurationSeconds": 36
 }
 
-MINIMUM 6 SHOTS with VARIED CAMERA WORK is MANDATORY.`;
+${targetShotCount ? `EXACTLY ${targetShotCount} SHOTS` : 'MINIMUM 6 SHOTS'} with VARIED CAMERA WORK is MANDATORY.`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -268,7 +274,7 @@ MINIMUM 6 SHOTS with VARIED CAMERA WORK is MANDATORY.`;
 
     // Normalize the response to ensure correct format with FIXED 6-second units
     const FIXED_SHOT_DURATION = 6; // Fixed 6-second units for cinematic quality
-    const MINIMUM_SHOTS = 6; // Minimum 6 shots required
+    // MINIMUM_SHOTS already defined above based on template or default
     
     // Camera scale progression for intelligent defaults
     const defaultScaleProgression = ['wide', 'medium', 'close-up', 'medium', 'wide', 'close-up'];

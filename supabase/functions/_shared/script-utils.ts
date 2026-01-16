@@ -334,7 +334,7 @@ export function detectUserContent(text: string): DetectedContent {
       dialogueLines: [],
       narrationText: '',
       estimatedDurationSeconds: 36,
-      recommendedClipCount: 6,
+      recommendedClipCount: 6, // Default, but templates can override
     };
   }
 
@@ -402,9 +402,10 @@ export function detectUserContent(text: string): DetectedContent {
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
   const estimatedDurationSeconds = Math.max(36, Math.ceil(wordCount / WORDS_PER_SECOND));
-  let recommendedClipCount = Math.max(6, Math.ceil(wordCount / WORDS_PER_CLIP));
+  // Allow dynamic clip counts - minimum 1 shot, max 30
+  let recommendedClipCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_CLIP));
   
-  // Cap at reasonable maximum
+  // Cap at reasonable maximum for long-form content
   recommendedClipCount = Math.min(recommendedClipCount, 30);
   
   console.log(`[ContentDetection] Words: ${wordCount}, Duration: ${estimatedDurationSeconds}s, Clips: ${recommendedClipCount}`);

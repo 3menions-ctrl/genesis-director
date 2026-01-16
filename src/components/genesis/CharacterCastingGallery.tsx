@@ -102,9 +102,9 @@ function CharacterCard({ character, onCast }: { character: GenesisPresetCharacte
         <CardContent className="p-4 space-y-3">
           <div>
             <h3 className="font-semibold text-lg">{character.name}</h3>
-            {character.age_range && character.gender && (
+            {(character.age_range || character.gender) && (
               <p className="text-xs text-muted-foreground">
-                {character.gender}, {character.age_range}
+                {[character.gender, character.age_range].filter(Boolean).join(', ')}
               </p>
             )}
           </div>
@@ -119,6 +119,25 @@ function CharacterCard({ character, onCast }: { character: GenesisPresetCharacte
             </p>
           )}
           
+          {/* Character Settings Preview */}
+          <div className="flex flex-wrap gap-1">
+            {character.wardrobe_notes && (
+              <Badge variant="outline" className="text-[10px] bg-muted/50">
+                🎭 Costume
+              </Badge>
+            )}
+            {character.voice_notes && (
+              <Badge variant="outline" className="text-[10px] bg-muted/50">
+                🎤 Voice
+              </Badge>
+            )}
+            {character.backstory && (
+              <Badge variant="outline" className="text-[10px] bg-muted/50">
+                📖 Backstory
+              </Badge>
+            )}
+          </div>
+          
           {!isCast && character.casting?.status !== 'pending' && (
             <Button 
               onClick={() => onCast(character)}
@@ -128,6 +147,12 @@ function CharacterCard({ character, onCast }: { character: GenesisPresetCharacte
               <Upload className="h-4 w-4 mr-2" />
               Cast as {character.name.split(' ')[0]}
             </Button>
+          )}
+          
+          {isCast && (
+            <div className="text-xs text-center text-green-400">
+              ✓ Role Filled
+            </div>
           )}
         </CardContent>
       </Card>
@@ -187,8 +212,8 @@ function CastingDialog({
         {character && (
           <div className="space-y-4">
             {/* Character Info */}
-            <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={roleColors[character.role_type]}>
                   {roleIcons[character.role_type]}
                   <span className="ml-1 capitalize">{character.role_type}</span>
@@ -197,17 +222,53 @@ function CastingDialog({
                   <Film className="h-3 w-3 mr-1" />
                   {character.total_scenes} scenes
                 </Badge>
+                {character.age_range && (
+                  <Badge variant="outline" className="text-xs">
+                    {character.age_range}
+                  </Badge>
+                )}
+                {character.gender && (
+                  <Badge variant="outline" className="text-xs">
+                    {character.gender}
+                  </Badge>
+                )}
               </div>
+              
               <p className="text-sm">{character.description}</p>
-              {character.appearance_description && (
-                <p className="text-xs text-muted-foreground">
-                  <strong>Look:</strong> {character.appearance_description}
-                </p>
+              
+              {character.personality && (
+                <div className="text-xs">
+                  <strong className="text-foreground">Personality:</strong>
+                  <span className="text-muted-foreground ml-1">{character.personality}</span>
+                </div>
               )}
+              
+              {character.appearance_description && (
+                <div className="text-xs">
+                  <strong className="text-foreground">Appearance:</strong>
+                  <span className="text-muted-foreground ml-1">{character.appearance_description}</span>
+                </div>
+              )}
+              
               {character.wardrobe_notes && (
-                <p className="text-xs text-muted-foreground">
-                  <strong>Wardrobe:</strong> {character.wardrobe_notes}
-                </p>
+                <div className="text-xs">
+                  <strong className="text-foreground">Wardrobe:</strong>
+                  <span className="text-muted-foreground ml-1">{character.wardrobe_notes}</span>
+                </div>
+              )}
+              
+              {character.voice_notes && (
+                <div className="text-xs">
+                  <strong className="text-foreground">Voice Style:</strong>
+                  <span className="text-muted-foreground ml-1">{character.voice_notes}</span>
+                </div>
+              )}
+              
+              {character.backstory && (
+                <div className="text-xs">
+                  <strong className="text-foreground">Backstory:</strong>
+                  <span className="text-muted-foreground ml-1 line-clamp-2">{character.backstory}</span>
+                </div>
               )}
             </div>
             

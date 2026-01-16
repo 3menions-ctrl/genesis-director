@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { 
   Megaphone, GraduationCap, Youtube, Building2, 
-  ShoppingBag, Gamepad2, Target
+  ShoppingBag, Gamepad2, Target, Presentation
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,16 @@ const USE_CASES = [
     color: 'bg-rose-500/10',
     iconColor: 'text-rose-400',
     borderColor: 'hover:border-rose-500/30',
+  },
+  {
+    icon: Presentation,
+    title: 'Training Videos',
+    description: 'Create professional training content with AI-powered talking heads. Upload a character, add your script, and generate engaging presentations.',
+    examples: ['Corporate training', 'Onboarding', 'How-to guides'],
+    color: 'bg-amber-500/10',
+    iconColor: 'text-amber-400',
+    borderColor: 'hover:border-amber-500/30',
+    featured: true,
   },
   {
     icon: GraduationCap,
@@ -50,15 +60,6 @@ const USE_CASES = [
     color: 'bg-emerald-500/10',
     iconColor: 'text-emerald-400',
     borderColor: 'hover:border-emerald-500/30',
-  },
-  {
-    icon: Gamepad2,
-    title: 'Gaming & Entertainment',
-    description: 'Create trailers, cutscenes, and promotional content for games and entertainment projects with cinematic flair.',
-    examples: ['Game trailers', 'Cutscenes', 'Promo videos'],
-    color: 'bg-purple-500/10',
-    iconColor: 'text-purple-400',
-    borderColor: 'hover:border-purple-500/30',
   },
 ];
 

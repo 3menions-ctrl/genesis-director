@@ -492,6 +492,212 @@ export type Database = {
         }
         Relationships: []
       }
+      genesis_character_appearances: {
+        Row: {
+          character_id: string | null
+          character_name: string
+          created_at: string | null
+          description: string | null
+          emotional_state: string | null
+          first_appearance_video: boolean | null
+          id: string
+          location_in_scene: string | null
+          outfit_description: string | null
+          role_type: string
+          video_id: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          character_name: string
+          created_at?: string | null
+          description?: string | null
+          emotional_state?: string | null
+          first_appearance_video?: boolean | null
+          id?: string
+          location_in_scene?: string | null
+          outfit_description?: string | null
+          role_type?: string
+          video_id?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          character_name?: string
+          created_at?: string | null
+          description?: string | null
+          emotional_state?: string | null
+          first_appearance_video?: boolean | null
+          id?: string
+          location_in_scene?: string | null
+          outfit_description?: string | null
+          role_type?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_character_appearances_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_character_appearances_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_character_interactions: {
+        Row: {
+          changes_relationship: boolean | null
+          character_1_id: string | null
+          character_1_name: string
+          character_2_id: string | null
+          character_2_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          interaction_outcome: string | null
+          interaction_type: string
+          is_first_meeting: boolean | null
+          new_relationship_status: string | null
+          video_id: string | null
+        }
+        Insert: {
+          changes_relationship?: boolean | null
+          character_1_id?: string | null
+          character_1_name: string
+          character_2_id?: string | null
+          character_2_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interaction_outcome?: string | null
+          interaction_type: string
+          is_first_meeting?: boolean | null
+          new_relationship_status?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          changes_relationship?: boolean | null
+          character_1_id?: string | null
+          character_1_name?: string
+          character_2_id?: string | null
+          character_2_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interaction_outcome?: string | null
+          interaction_type?: string
+          is_first_meeting?: boolean | null
+          new_relationship_status?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_character_interactions_character_1_id_fkey"
+            columns: ["character_1_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_character_interactions_character_2_id_fkey"
+            columns: ["character_2_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_character_interactions_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_continuity_anchors: {
+        Row: {
+          affected_characters: string[] | null
+          anchor_type: string
+          created_at: string | null
+          date_in_universe: string | null
+          description: string
+          era_id: string | null
+          established_by: string | null
+          id: string
+          is_canon: boolean | null
+          is_immutable: boolean | null
+          location_id: string | null
+          source_video_id: string | null
+          title: string
+          updated_at: string | null
+          votes_against: number | null
+          votes_for: number | null
+        }
+        Insert: {
+          affected_characters?: string[] | null
+          anchor_type: string
+          created_at?: string | null
+          date_in_universe?: string | null
+          description: string
+          era_id?: string | null
+          established_by?: string | null
+          id?: string
+          is_canon?: boolean | null
+          is_immutable?: boolean | null
+          location_id?: string | null
+          source_video_id?: string | null
+          title: string
+          updated_at?: string | null
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Update: {
+          affected_characters?: string[] | null
+          anchor_type?: string
+          created_at?: string | null
+          date_in_universe?: string | null
+          description?: string
+          era_id?: string | null
+          established_by?: string | null
+          id?: string
+          is_canon?: boolean | null
+          is_immutable?: boolean | null
+          location_id?: string | null
+          source_video_id?: string | null
+          title?: string
+          updated_at?: string | null
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_continuity_anchors_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_continuity_anchors_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_continuity_anchors_source_video_id_fkey"
+            columns: ["source_video_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       genesis_environment_templates: {
         Row: {
           atmosphere: string | null
@@ -810,6 +1016,135 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_story_arcs: {
+        Row: {
+          arc_type: string
+          created_at: string | null
+          created_by: string | null
+          current_chapter: number | null
+          description: string | null
+          end_date_in_universe: string | null
+          era_id: string | null
+          id: string
+          is_canon: boolean | null
+          location_id: string | null
+          start_date_in_universe: string | null
+          status: string
+          synopsis: string | null
+          themes: string[] | null
+          title: string
+          total_chapters: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          arc_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_chapter?: number | null
+          description?: string | null
+          end_date_in_universe?: string | null
+          era_id?: string | null
+          id?: string
+          is_canon?: boolean | null
+          location_id?: string | null
+          start_date_in_universe?: string | null
+          status?: string
+          synopsis?: string | null
+          themes?: string[] | null
+          title: string
+          total_chapters?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          arc_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_chapter?: number | null
+          description?: string | null
+          end_date_in_universe?: string | null
+          era_id?: string | null
+          id?: string
+          is_canon?: boolean | null
+          location_id?: string | null
+          start_date_in_universe?: string | null
+          status?: string
+          synopsis?: string | null
+          themes?: string[] | null
+          title?: string
+          total_chapters?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_story_arcs_era_id_fkey"
+            columns: ["era_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_eras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_story_arcs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      genesis_story_connections: {
+        Row: {
+          approved_by: string | null
+          arc_id: string | null
+          chapter_number: number | null
+          connection_type: string
+          created_at: string | null
+          id: string
+          is_official: boolean | null
+          narrative_notes: string | null
+          sequence_order: number | null
+          video_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          arc_id?: string | null
+          chapter_number?: number | null
+          connection_type?: string
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          narrative_notes?: string | null
+          sequence_order?: number | null
+          video_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          arc_id?: string | null
+          chapter_number?: number | null
+          connection_type?: string
+          created_at?: string | null
+          id?: string
+          is_official?: boolean | null
+          narrative_notes?: string | null
+          sequence_order?: number | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genesis_story_connections_arc_id_fkey"
+            columns: ["arc_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_story_arcs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genesis_story_connections_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "genesis_videos"
             referencedColumns: ["id"]
           },
         ]

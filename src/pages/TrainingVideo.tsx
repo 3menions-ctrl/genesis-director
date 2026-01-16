@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, User, Mic, Image, Play, Loader2, Check,
   Volume2, Sparkles, ArrowRight, RefreshCw, Download,
-  Video, AlertCircle, Trash2, Coins
+  Video, AlertCircle, Trash2, Coins, Zap
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 
@@ -621,6 +621,7 @@ export default function TrainingVideo() {
                 {VOICE_OPTIONS.map((voice) => {
                   const isPlaying = previewingVoiceId === voice.id;
                   const isSelected = selectedVoice === voice.id;
+                  const isCached = preloadedVoices.has(voice.id);
                   
                   return (
                     <div
@@ -641,7 +642,12 @@ export default function TrainingVideo() {
                       
                       <div className="relative z-10 pointer-events-none">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-sm">{voice.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm">{voice.name}</span>
+                            {isCached && (
+                              <Zap className="w-3 h-3 text-emerald-500 fill-emerald-500" />
+                            )}
+                          </div>
                           {isSelected && (
                             <Check className="w-4 h-4 text-primary" />
                           )}

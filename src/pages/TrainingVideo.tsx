@@ -326,7 +326,17 @@ export default function TrainingVideo() {
     toast.success('All voice samples preloaded!');
   };
 
-  // Check cached voices and auto-preload on mount
+  // Clear all cached voice samples
+  const handleClearVoiceCache = () => {
+    VOICE_OPTIONS.forEach(voice => {
+      const cacheKey = `${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voice.id}`;
+      localStorage.removeItem(cacheKey);
+    });
+    setPreloadedVoices(new Set());
+    setPreloadProgress(0);
+    toast.success('Voice cache cleared!');
+  };
+
   useEffect(() => {
     checkCachedVoices();
     
@@ -603,30 +613,44 @@ export default function TrainingVideo() {
                   <Mic className="w-4 h-4" />
                   Voice Selection
                 </Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePreloadAllVoices}
-                  disabled={isPreloadingVoices || preloadedVoices.size === VOICE_OPTIONS.length}
-                  className="h-7 text-xs gap-1.5"
-                >
-                  {isPreloadingVoices ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      {preloadProgress}%
-                    </>
-                  ) : preloadedVoices.size === VOICE_OPTIONS.length ? (
-                    <>
-                      <Check className="w-3 h-3" />
-                      All Cached
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3 h-3" />
-                      Preload All ({preloadedVoices.size}/{VOICE_OPTIONS.length})
-                    </>
+                <div className="flex items-center gap-2">
+                  {preloadedVoices.size > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearVoiceCache}
+                      disabled={isPreloadingVoices}
+                      className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Clear Cache
+                    </Button>
                   )}
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreloadAllVoices}
+                    disabled={isPreloadingVoices || preloadedVoices.size === VOICE_OPTIONS.length}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    {isPreloadingVoices ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        {preloadProgress}%
+                      </>
+                    ) : preloadedVoices.size === VOICE_OPTIONS.length ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        All Cached
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3 h-3" />
+                        Preload All ({preloadedVoices.size}/{VOICE_OPTIONS.length})
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {VOICE_OPTIONS.map((voice) => {

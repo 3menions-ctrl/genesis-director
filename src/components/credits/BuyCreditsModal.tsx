@@ -145,8 +145,11 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
   // Calculate based on 10 credits per clip (CREDIT_COSTS.TOTAL_PER_SHOT)
   const getClipsCount = (credits: number) => Math.floor(credits / CREDIT_COSTS.TOTAL_PER_SHOT);
   
-  // Standard video = 6 clips = 60 credits
-  const getCompleteVideos = (credits: number) => Math.floor(credits / 60);
+  // Calculate videos based on different durations
+  // 1-minute video (Pro tier) = 10 clips = 100 credits
+  const getOneMinuteVideos = (credits: number) => Math.floor(credits / 100);
+  const getTwoMinuteVideos = (credits: number) => Math.floor(credits / 200);
+  const getThreeMinuteVideos = (credits: number) => Math.floor(credits / 300);
 
   const getTierStyle = (name: string) => {
     return TIER_STYLES[name as keyof typeof TIER_STYLES] || TIER_STYLES.Starter;
@@ -180,24 +183,24 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                 <div className="p-4 rounded-xl bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">Credit Breakdown</span>
+                    <span className="text-sm font-semibold text-foreground">Credit Breakdown by Video Length</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Per clip</span>
+                      <span className="text-muted-foreground">Per clip (~6 sec)</span>
                       <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">6-clip video</span>
-                      <span className="font-semibold text-foreground">60 credits</span>
+                      <span className="text-muted-foreground">~30 sec video</span>
+                      <span className="font-semibold text-foreground">50 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Price per credit</span>
-                      <span className="font-semibold text-foreground">$0.10</span>
+                      <span className="text-muted-foreground">~1 min video</span>
+                      <span className="font-semibold text-primary">100 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Per video</span>
-                      <span className="font-semibold text-primary">60 credits</span>
+                      <span className="text-muted-foreground">~3 min video</span>
+                      <span className="font-semibold text-amber-500">300 credits</span>
                     </div>
                   </div>
                 </div>
@@ -207,7 +210,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                   {packages.map((pkg) => {
                     const tierStyle = getTierStyle(pkg.name);
                     const savings = getSavingsPercent(pkg, packages);
-                    const videos = getCompleteVideos(pkg.credits);
+                    const oneMinVideos = getOneMinuteVideos(pkg.credits);
                     const clips = getClipsCount(pkg.credits);
                     const TierIcon = tierStyle.icon;
                     
@@ -286,11 +289,11 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                           <div className="flex flex-wrap gap-2">
                             <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1.5">
                               <Film className="w-3.5 h-3.5" />
-                              {videos} complete videos
+                              {oneMinVideos}+ one-minute videos
                             </span>
                             <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
                               <Mic className="w-3.5 h-3.5" />
-                              {clips} individual clips
+                              {clips} total clips
                             </span>
                             <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />

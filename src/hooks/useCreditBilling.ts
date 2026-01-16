@@ -4,13 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { QualityTier } from '@/types/quality-tiers';
 
-// Pricing: 10 credits per clip, 60 credits per video (6 clips), $6 per video
-// $0.10 per credit = 10 credits per clip = $1 per clip = $6 per 6-clip video
+// Pricing: 10 credits per clip
+// Video durations by tier:
+// - Free: 5 clips (~30 sec) = 50 credits
+// - Pro: 10 clips (~1 min) = 100 credits  
+// - Growth: 20 clips (~2 min) = 200 credits
+// - Agency: 30 clips (~3 min) = 300 credits
 export const CREDIT_COSTS = {
   PRE_PRODUCTION: 2,    // Script analysis, scene optimization per clip
   PRODUCTION: 6,        // Video generation, voice synthesis per clip
   QUALITY_ASSURANCE: 2, // Director audit, visual debugger, retries per clip
-  TOTAL_PER_SHOT: 10,   // 10 credits per clip × 6 clips = 60 credits = $6/video
+  TOTAL_PER_SHOT: 10,   // 10 credits per clip
 } as const;
 
 // Quality Tier Credits - Premium-only model

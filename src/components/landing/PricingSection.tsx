@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
 
 // Pricing tiers - credits-based system
-// 10 credits per clip, 60 credits per video (6 clips), $6 per video
+// 10 credits per clip, video lengths vary by tier:
+// Free: 5 clips (~30s), Pro: 10 clips (~1min), Growth: 20 clips (~2min), Agency: 30 clips (~3min)
 const PRICING_TIERS = [
   {
     name: 'Starter',
@@ -17,9 +18,9 @@ const PRICING_TIERS = [
     description: 'Get started creating',
     features: [
       '370 credits',
-      '~6 complete videos',
+      '~7 one-minute videos',
+      'Up to 10 clips per video',
       'Automatic retry system',
-      '4K export available',
     ],
     cta: 'Get Started',
     popular: false,
@@ -34,10 +35,9 @@ const PRICING_TIERS = [
     description: 'For regular creators',
     features: [
       '1,000 credits',
-      '~16 complete videos',
-      'Automatic retry system',
+      '~5 two-minute videos',
+      'Up to 20 clips per video',
       '4K export',
-      'Email support',
     ],
     cta: 'Best Value',
     popular: true,
@@ -52,10 +52,9 @@ const PRICING_TIERS = [
     description: 'For teams and agencies',
     features: [
       '3,000 credits',
-      '~50 complete videos',
+      '~10 three-minute videos',
+      'Up to 30 clips per video',
       'Priority processing',
-      'All export formats',
-      'Priority support',
     ],
     cta: 'Go Agency',
     popular: false,
@@ -73,7 +72,6 @@ const PRICING_TIERS = [
       'Dedicated support',
       'API access',
       'Custom branding',
-      'SLA guarantee',
     ],
     cta: 'Contact Sales',
     popular: false,
@@ -81,12 +79,15 @@ const PRICING_TIERS = [
   },
 ];
 
-// Credit cost breakdown - 10 credits per clip, 60 per video
+// Credit cost breakdown - 10 credits per clip
+// Video lengths: Free ~30s (5 clips), Pro ~1min (10 clips), Growth ~2min (20 clips), Agency ~3min (30 clips)
 const CREDIT_COSTS = [
-  { action: 'Single video clip', credits: 10, breakdown: '10 credits per clip' },
-  { action: 'Complete video (6 clips)', credits: 60, breakdown: '60 credits total' },
+  { action: 'Single video clip (~6 sec)', credits: 10, breakdown: '10 credits per clip' },
+  { action: '30-second video (Free)', credits: 50, breakdown: '5 clips × 10 credits' },
+  { action: '1-minute video (Pro)', credits: 100, breakdown: '10 clips × 10 credits' },
+  { action: '2-minute video (Growth)', credits: 200, breakdown: '20 clips × 10 credits' },
+  { action: '3-minute video (Agency)', credits: 300, breakdown: '30 clips × 10 credits' },
   { action: 'Voice narration', credits: 'Included', breakdown: 'With each clip' },
-  { action: 'Automatic retries', credits: 'Included', breakdown: 'Up to 4 retries per clip' },
 ];
 
 export default function PricingSection() {
@@ -110,7 +111,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. 10 credits per clip. 60 credits per complete video.
+            Pay for what you use. 10 credits per clip. Videos from 30 seconds to 3 minutes.
           </p>
         </div>
 

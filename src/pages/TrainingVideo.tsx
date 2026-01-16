@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudio } from '@/contexts/StudioContext';
@@ -73,6 +73,9 @@ export default function TrainingVideo() {
   const [error, setError] = useState<string | null>(null);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [isPreloadingVoices, setIsPreloadingVoices] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState(0);
+  const [preloadedVoices, setPreloadedVoices] = useState<Set<string>>(new Set());
   const characterInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -255,6 +258,77 @@ export default function TrainingVideo() {
     setPreviewingVoiceId(null);
     setCurrentAudio(null);
   }, [currentAudio]);
+
+  // Check which voices are already cached on mount
+  const checkCachedVoices = useCallback(() => {
+    const cached = new Set<string>();
+    VOICE_OPTIONS.forEach(voice => {
+      if (getCachedVoicePreview(voice.id)) {
+        cached.add(voice.id);
+      }
+    });
+    setPreloadedVoices(cached);
+  }, []);
+
+  // Preload all voices in the background
+  const handlePreloadAllVoices = async () => {
+    if (isPreloadingVoices) return;
+    
+    setIsPreloadingVoices(true);
+    setPreloadProgress(0);
+    
+    const voicesToPreload = VOICE_OPTIONS.filter(v => !getCachedVoicePreview(v.id));
+    
+    if (voicesToPreload.length === 0) {
+      toast.success('All voices already cached!');
+      setIsPreloadingVoices(false);
+      setPreloadProgress(100);
+      return;
+    }
+    
+    toast.info(`Preloading ${voicesToPreload.length} voice samples...`);
+    
+    let completed = 0;
+    const alreadyCached = VOICE_OPTIONS.length - voicesToPreload.length;
+    
+    for (const voice of voicesToPreload) {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-voice', {
+          body: {
+            text: voice.sample,
+            voiceId: voice.id,
+          },
+        });
+
+        if (!error && data) {
+          let audioUrl: string;
+          if (data.audioUrl) {
+            audioUrl = data.audioUrl;
+          } else if (data.audioBase64) {
+            audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
+          } else {
+            throw new Error('No audio data');
+          }
+          
+          cacheVoicePreview(voice.id, audioUrl);
+          setPreloadedVoices(prev => new Set([...prev, voice.id]));
+        }
+      } catch (err) {
+        console.warn(`Failed to preload voice ${voice.id}:`, err);
+      }
+      
+      completed++;
+      setPreloadProgress(Math.round(((alreadyCached + completed) / VOICE_OPTIONS.length) * 100));
+    }
+    
+    setIsPreloadingVoices(false);
+    toast.success('All voice samples preloaded!');
+  };
+
+  // Check cached voices on mount
+  useEffect(() => {
+    checkCachedVoices();
+  }, [checkCachedVoices]);
 
   // Generate training video
   const handleGenerate = async () => {
@@ -513,10 +587,36 @@ export default function TrainingVideo() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Label className="text-sm font-medium mb-3 flex items-center gap-2">
-                <Mic className="w-4 h-4" />
-                Voice Selection
-              </Label>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Mic className="w-4 h-4" />
+                  Voice Selection
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreloadAllVoices}
+                  disabled={isPreloadingVoices || preloadedVoices.size === VOICE_OPTIONS.length}
+                  className="h-7 text-xs gap-1.5"
+                >
+                  {isPreloadingVoices ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {preloadProgress}%
+                    </>
+                  ) : preloadedVoices.size === VOICE_OPTIONS.length ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      All Cached
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3 h-3" />
+                      Preload All ({preloadedVoices.size}/{VOICE_OPTIONS.length})
+                    </>
+                  )}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {VOICE_OPTIONS.map((voice) => {
                   const isPlaying = previewingVoiceId === voice.id;

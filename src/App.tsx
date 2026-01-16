@@ -34,6 +34,7 @@ const Environments = lazy(() => import("./pages/Environments"));
 const Discover = lazy(() => import("./pages/Discover"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
+const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
 const queryClient = new QueryClient({
@@ -142,6 +143,13 @@ const App = () => (
                 <Route path="/templates" element={
                   <ProtectedRoute>
                     <Templates />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Training Video Mode */}
+                <Route path="/training-video" element={
+                  <ProtectedRoute>
+                    <TrainingVideo />
                   </ProtectedRoute>
                 } />
                 

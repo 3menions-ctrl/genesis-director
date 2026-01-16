@@ -25,9 +25,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Library', path: '/projects' },
   { label: 'Pipeline', path: '/production' },
+  { label: 'Training', path: '/training-video' },
   { label: 'Clips', path: '/clips' },
   { label: 'Discover', path: '/discover' },
-  { label: 'Universes', path: '/universes' },
 ];
 
 interface AppHeaderProps {

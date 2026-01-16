@@ -29,7 +29,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Pipeline', path: '/production' },
   { label: 'Training', path: '/training-video' },
   { label: 'Clips', path: '/clips' },
-  { label: 'Social', path: '/social' },
   { label: 'Discover', path: '/discover' },
 ];
 

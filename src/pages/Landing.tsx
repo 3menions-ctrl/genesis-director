@@ -16,7 +16,7 @@ import { lazy, Suspense } from 'react';
 const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
 const HeroVideoBackground = lazy(() => import('@/components/landing/HeroVideoBackground'));
 const CreatorShowcase = lazy(() => import('@/components/landing/CreatorShowcase'));
-const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
+
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
 const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
@@ -170,7 +170,6 @@ export default function Landing() {
                 {[
                   { label: 'Product', target: 'how-it-works' },
                   { label: 'Features', target: 'features' },
-                  { label: 'Pricing', target: 'pricing' },
                   { label: 'Contact', target: 'contact' },
                 ].map((item) => (
                   <button 
@@ -384,9 +383,6 @@ export default function Landing() {
         <TestimonialsSection />
       </Suspense>
 
-      <Suspense fallback={<SectionLoader />}>
-        <PricingSection />
-      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <ContactSection />

@@ -37,6 +37,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+// Dashboard components
+import { GamificationStatsCard } from '@/components/profile/GamificationStatsCard';
+import { DailyChallengesCard } from '@/components/profile/DailyChallengesCard';
+import { LeaderboardCard } from '@/components/profile/LeaderboardCard';
+import { AchievementsPreviewCard } from '@/components/profile/AchievementsPreviewCard';
+import { QuickStatsCard } from '@/components/profile/QuickStatsCard';
+
 interface Transaction {
   id: string;
   amount: number;
@@ -716,33 +723,46 @@ export default function Profile() {
           </div>
         </motion.div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'activity', label: 'Activity', icon: History },
-            { id: 'achievements', label: 'Achievements', icon: Trophy },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
-                activeTab === tab.id
-                  ? "bg-white text-black"
-                  : "text-white/50 hover:text-white hover:bg-white/[0.05]"
-              )}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-              {tab.id === 'achievements' && unlockedAchievements.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-xs flex items-center justify-center">
-                  {unlockedAchievements.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Gamification Stats Row */}
+        <GamificationStatsCard />
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Challenges & Stats */}
+          <div className="space-y-6">
+            <DailyChallengesCard />
+            <QuickStatsCard />
+          </div>
+
+          {/* Middle Column - Charts & Activity */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {[
+                { id: 'overview', label: 'Overview', icon: BarChart3 },
+                { id: 'activity', label: 'Activity', icon: History },
+                { id: 'achievements', label: 'Achievements', icon: Trophy },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
+                    activeTab === tab.id
+                      ? "bg-white text-black"
+                      : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+                  )}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                  {tab.id === 'achievements' && unlockedAchievements.length > 0 && (
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-xs flex items-center justify-center">
+                      {unlockedAchievements.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
         <AnimatePresence mode="wait">
           {/* Overview Tab */}
@@ -1159,6 +1179,14 @@ export default function Profile() {
             </motion.div>
           )}
         </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Leaderboard & Achievements Row - Below dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LeaderboardCard />
+          <AchievementsPreviewCard />
+        </div>
       </main>
 
       <BuyCreditsModal 

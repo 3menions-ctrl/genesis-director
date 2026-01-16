@@ -55,7 +55,7 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
                 "text-lg sm:text-xl font-bold",
                 variant === 'dark' ? "text-white" : "hero-text"
               )}>
-                Best Value
+                Flexible Pricing
               </span>
               <span className={cn(
                 "px-2.5 py-1 text-xs font-semibold uppercase tracking-wide rounded-full",
@@ -63,7 +63,7 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
                   ? "bg-white/10 text-white/80 border border-white/20"
                   : "bg-foreground/10 text-foreground border border-foreground/20"
               )}>
-                60 credits per video
+                30s to 3min videos
               </span>
             </div>
             <div className={cn(
@@ -74,7 +74,7 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
               <span className={cn(
                 "hidden sm:inline ml-1",
                 variant === 'dark' ? "text-white/40" : "text-muted-foreground"
-              )}>• 60 credits = complete video</span>
+              )}>• Up to 30 clips per video</span>
             </div>
           </div>
         </div>

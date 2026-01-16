@@ -194,13 +194,13 @@ const MAX_CLIP_DURATION = 8;
 // Tier-based clip limits (fail-safe defaults if DB unavailable)
 // NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts
 // Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
-// IMPORTANT: Max clips is 6 for all tiers to ensure consistency
+// Duration targets: Free=32sec (5 clips), Pro=1min (10 clips), Growth=2min (20 clips), Agency=3min (30 clips)
 // IRON-CLAD: All tiers get 4 retries for quality (matches DB tier_limits)
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 6, maxDuration: 60, maxRetries: 4, chunkedStitching: false },
-  'pro': { maxClips: 6, maxDuration: 60, maxRetries: 4, chunkedStitching: false },
-  'growth': { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
-  'agency': { maxClips: 6, maxDuration: 120, maxRetries: 4, chunkedStitching: true },
+  'free': { maxClips: 5, maxDuration: 32, maxRetries: 1, chunkedStitching: false },
+  'pro': { maxClips: 10, maxDuration: 60, maxRetries: 2, chunkedStitching: true },
+  'growth': { maxClips: 20, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
+  'agency': { maxClips: 30, maxDuration: 180, maxRetries: 4, chunkedStitching: true },
 };
 
 // IRON-CLAD: Minimum quality score threshold - clips MUST meet this to pass

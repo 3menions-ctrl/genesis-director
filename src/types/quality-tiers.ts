@@ -19,7 +19,7 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'standard',
     name: 'Premium',
-    credits: 10, // 10 credits per clip × 6 = 60 credits = $6/video
+    credits: 10, // 10 credits per clip. Video costs: 50 (5 clips), 100 (10), 200 (20), 300 (30)
     description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
@@ -56,7 +56,8 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   },
 ];
 
-// Credit cost breakdown - $6 per video (6 clips at 10 credits each)
+// Credit cost breakdown - 10 credits per clip
+// Video costs: Free ~30s (50), Pro ~1min (100), Growth ~2min (200), Agency ~3min (300)
 export const PROFESSIONAL_CREDIT_BREAKDOWN = {
   PRE_PRODUCTION: 2,    // Script analysis per clip
   PRODUCTION: 6,        // Video generation per clip

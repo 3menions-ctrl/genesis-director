@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip costs 10 credits (2 for pre-production + 6 for generation + 2 for quality assurance). A complete 6-clip video costs 60 credits. Voice narration and automatic retries are included at no extra cost. Credits never expire and you can buy more anytime."
+    answer: "Credits are our usage currency. Each video clip (~6 seconds) costs 10 credits. Video lengths vary by tier: Free users get ~30 second videos (5 clips = 50 credits), Pro gets 1-minute videos (10 clips = 100 credits), Growth gets 2-minute videos (20 clips = 200 credits), and Agency gets 3-minute videos (30 clips = 300 credits). Voice narration and automatic retries are included at no extra cost."
   },
   {
     question: "What video quality can I expect?",
@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes! Every new account starts with 50 free credits — enough for 5 video clips or nearly a complete video. No credit card required to start. This lets you try the platform before committing to a paid plan."
+    answer: "Yes! Every new account starts with 50 free credits — enough for 5 video clips or a complete 30-second video. No credit card required to start. This lets you try the platform before committing to a paid plan."
   },
   {
     question: "What file formats are supported?",

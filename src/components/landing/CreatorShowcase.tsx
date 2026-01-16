@@ -199,29 +199,14 @@ function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
         </Badge>
       </div>
 
-      {/* Info overlay */}
-      <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-10",
-        isLarge ? "p-6 md:p-8" : "p-4"
-      )}>
-        <motion.div
-          initial={false}
-          animate={{ y: isHovering ? 0 : 10, opacity: isHovering ? 1 : 0.8 }}
-          transition={{ duration: 0.2 }}
-        >
-          <h3 className={cn(
-            "font-bold text-white leading-tight",
-            isLarge ? "text-xl md:text-3xl mb-2" : "text-sm md:text-base"
-          )}>
-            {video.title}
-          </h3>
-          {isLarge && (
-            <p className="text-white/60 text-sm md:text-base hidden md:block">
-              AI-generated cinematic experience
-            </p>
-          )}
-        </motion.div>
-      </div>
+      {/* Info overlay - Genre only */}
+      {isLarge && (
+        <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-10">
+          <Badge className="bg-white/10 backdrop-blur-sm border-white/10 text-white">
+            {video.genre}
+          </Badge>
+        </div>
+      )}
 
       {/* Expand icon */}
       <motion.div
@@ -499,11 +484,9 @@ export default function CreatorShowcase() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-6"
                 >
-                  <Badge className="mb-3 bg-white/10 backdrop-blur-sm border-white/10 text-white">
+                  <Badge className="bg-white/10 backdrop-blur-sm border-white/10 text-white">
                     {activeVideo.genre}
                   </Badge>
-                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">{activeVideo.title}</h3>
-                  <p className="text-white/60 text-lg">AI-generated cinematic experience</p>
                 </motion.div>
 
                 {/* Controls */}

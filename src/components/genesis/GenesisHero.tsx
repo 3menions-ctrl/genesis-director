@@ -87,13 +87,13 @@ export function GenesisHero({ onExplore, onContribute }: GenesisHeroProps) {
           >
             <div className="flex items-center gap-2 text-muted-foreground">
               <Globe className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-foreground">{stats?.totalLocations || 0}</span>
-              <span>Locations</span>
+              <span className="font-semibold text-foreground">{stats?.totalCities || 0}</span>
+              <span>Cities</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Sparkles className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-foreground">{stats?.totalEras || 0}</span>
-              <span>Eras</span>
+              <span className="font-semibold text-foreground">{stats?.totalLandmarks || 0}</span>
+              <span>Landmarks</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Film className="h-5 w-5 text-primary" />

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
-  Menu, X, Globe, Shield
+  Menu, X, Globe, Shield, Users, Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { SignOutDialog } from '@/components/auth/SignOutDialog';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { NotificationBell } from '@/components/social/NotificationBell';
+import { UserStatsBar } from '@/components/social/UserStatsBar';
 
 interface NavItem {
   label: string;
@@ -27,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Pipeline', path: '/production' },
   { label: 'Training', path: '/training-video' },
   { label: 'Clips', path: '/clips' },
+  { label: 'Social', path: '/social' },
   { label: 'Discover', path: '/discover' },
 ];
 
@@ -116,6 +119,9 @@ export function AppHeader({
 
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-3">
+              {/* User Stats Bar - Gamification */}
+              <UserStatsBar />
+
               {showCreate && (
                 <Button 
                   onClick={handleCreate}
@@ -139,6 +145,9 @@ export function AppHeader({
                   <span className="text-sm font-bold text-white">{profile?.credits_balance?.toLocaleString() || 0}</span>
                 </button>
               )}
+
+              {/* Notifications */}
+              <NotificationBell />
 
               {/* User Menu */}
               <DropdownMenu>

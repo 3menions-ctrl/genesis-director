@@ -35,6 +35,7 @@ const Discover = lazy(() => import("./pages/Discover"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
+const Social = lazy(() => import("./pages/Social"));
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
 const queryClient = new QueryClient({
@@ -157,6 +158,13 @@ const App = () => (
                 <Route path="/environments" element={
                   <ProtectedRoute>
                     <Environments />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Social Hub */}
+                <Route path="/social" element={
+                  <ProtectedRoute>
+                    <Social />
                   </ProtectedRoute>
                 } />
                 

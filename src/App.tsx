@@ -29,6 +29,7 @@ const Production = lazy(() => import("./pages/Production"));
 const Clips = lazy(() => import("./pages/Clips"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Universes = lazy(() => import("./pages/Universes"));
+const UniverseDetail = lazy(() => import("./pages/UniverseDetail"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Environments = lazy(() => import("./pages/Environments"));
 const Discover = lazy(() => import("./pages/Discover"));
@@ -137,6 +138,11 @@ const App = () => (
                 <Route path="/universes" element={
                   <ProtectedRoute>
                     <Universes />
+                  </ProtectedRoute>
+                } />
+                <Route path="/universes/:id" element={
+                  <ProtectedRoute>
+                    <UniverseDetail />
                   </ProtectedRoute>
                 } />
                 

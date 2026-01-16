@@ -18,7 +18,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, User, Mic, Image, Play, Loader2, Check,
   Volume2, Sparkles, ArrowRight, RefreshCw, Download,
-  Video, AlertCircle, Trash2, Coins, Zap
+  Video, AlertCircle, Trash2, Coins, Zap, Wand2,
+  ChevronRight, CircleDot, Square, Pause, Settings2
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 
@@ -56,10 +57,22 @@ const BACKGROUND_PRESETS = [
 
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';
 
+// Wizard steps
+const WIZARD_STEPS = [
+  { id: 'character', label: 'Character', icon: User },
+  { id: 'voice', label: 'Voice', icon: Mic },
+  { id: 'scene', label: 'Scene', icon: Image },
+  { id: 'script', label: 'Script', icon: Sparkles },
+];
+
 export default function TrainingVideo() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { credits } = useStudio();
+  
+  // Wizard state
+  const [activeStep, setActiveStep] = useState(0);
+  
   // State
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [characterImageFile, setCharacterImageFile] = useState<File | null>(null);
@@ -134,12 +147,10 @@ export default function TrainingVideo() {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         const { audioUrl, timestamp } = JSON.parse(cached);
-        // Cache expires after 7 days
         const weekInMs = 7 * 24 * 60 * 60 * 1000;
         if (Date.now() - timestamp < weekInMs) {
           return audioUrl;
         }
-        // Expired, remove it
         localStorage.removeItem(cacheKey);
       }
     } catch (e) {
@@ -161,9 +172,8 @@ export default function TrainingVideo() {
     }
   };
 
-  // Preview a specific voice with its sample text (with caching)
+  // Preview a specific voice
   const handleVoicePreview = async (voiceId: string, sampleText?: string) => {
-    // If already playing this voice, stop it
     if (previewingVoiceId === voiceId && currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
@@ -172,7 +182,6 @@ export default function TrainingVideo() {
       return;
     }
     
-    // Stop any currently playing audio
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
@@ -181,11 +190,9 @@ export default function TrainingVideo() {
     setPreviewingVoiceId(voiceId);
     
     try {
-      // Check cache first
       const cachedAudioUrl = getCachedVoicePreview(voiceId);
       
       if (cachedAudioUrl) {
-        // Use cached audio - instant playback!
         const audio = new Audio(cachedAudioUrl);
         setCurrentAudio(audio);
         
@@ -194,7 +201,6 @@ export default function TrainingVideo() {
           setCurrentAudio(null);
         };
         audio.onerror = () => {
-          // Cache might be corrupted, clear it and try fresh
           localStorage.removeItem(`${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voiceId}`);
           toast.error('Cached audio failed, regenerating...');
           handleVoicePreview(voiceId, sampleText);
@@ -203,7 +209,6 @@ export default function TrainingVideo() {
         return;
       }
       
-      // Not in cache, generate fresh
       const voice = VOICE_OPTIONS.find(v => v.id === voiceId);
       const previewText = sampleText || voice?.sample || 'Hello, this is a voice preview for your training video.';
       
@@ -216,7 +221,6 @@ export default function TrainingVideo() {
 
       if (error) throw error;
       
-      // Handle both audioUrl (from storage) and audioBase64 (fallback) responses
       let audioUrl: string;
       if (data.audioUrl) {
         audioUrl = data.audioUrl;
@@ -226,7 +230,6 @@ export default function TrainingVideo() {
         throw new Error('No audio data received');
       }
       
-      // Cache for future use
       cacheVoicePreview(voiceId, audioUrl);
       
       const audio = new Audio(audioUrl);
@@ -287,8 +290,6 @@ export default function TrainingVideo() {
       return;
     }
     
-    toast.info(`Preloading ${voicesToPreload.length} voice samples...`);
-    
     let completed = 0;
     const alreadyCached = VOICE_OPTIONS.length - voicesToPreload.length;
     
@@ -326,30 +327,18 @@ export default function TrainingVideo() {
     toast.success('All voice samples preloaded!');
   };
 
-  // Clear all cached voice samples
-  const handleClearVoiceCache = () => {
-    VOICE_OPTIONS.forEach(voice => {
-      const cacheKey = `${VOICE_CACHE_KEY}${VOICE_CACHE_VERSION}_${voice.id}`;
-      localStorage.removeItem(cacheKey);
-    });
-    setPreloadedVoices(new Set());
-    setPreloadProgress(0);
-    toast.success('Voice cache cleared!');
-  };
-
   useEffect(() => {
     checkCachedVoices();
     
-    // Auto-preload all voices in the background after a short delay
     const autoPreloadTimeout = setTimeout(() => {
       const voicesToPreload = VOICE_OPTIONS.filter(v => !getCachedVoicePreview(v.id));
       if (voicesToPreload.length > 0) {
         handlePreloadAllVoices();
       }
-    }, 1000); // Small delay to let the page render first
+    }, 1000);
     
     return () => clearTimeout(autoPreloadTimeout);
-  }, []); // Run only once on mount
+  }, []);
 
   // Generate training video
   const handleGenerate = async () => {
@@ -383,7 +372,6 @@ export default function TrainingVideo() {
       if (audioError) throw audioError;
       if (!audioData.success) throw new Error(audioData.error || 'Failed to generate audio');
       
-      // Get audio URL - prefer storage URL, fallback to base64
       let audioUrl: string;
       let audioStorageUrl: string | undefined;
       
@@ -403,12 +391,10 @@ export default function TrainingVideo() {
       setGenerationStep('generating_video');
       toast.info('Generating character video...');
       
-      // Get background image URL
       const backgroundUrl = customBackground || 
         BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || 
         modernMinimalistImg;
 
-      // Upload character image to get a URL for video generation
       const imageBase64 = characterImage.split(',')[1];
       
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
@@ -417,7 +403,7 @@ export default function TrainingVideo() {
           imageUrl: characterImage,
           imageBase64,
           aspectRatio: '16:9',
-          duration: Math.min(Math.ceil(scriptText.length / 15), 10), // Estimate duration based on text length
+          duration: Math.min(Math.ceil(scriptText.length / 15), 10),
           userId: user.id,
         },
       });
@@ -431,8 +417,6 @@ export default function TrainingVideo() {
       setGenerationStep('applying_lipsync');
       toast.info('Applying lip synchronization...');
 
-      // Note: Lip sync requires the self-hosted service to be configured
-      // For now, we'll use the video without lip sync if the service isn't available
       try {
         const { data: lipSyncData, error: lipSyncError } = await supabase.functions.invoke('lip-sync-service', {
           body: {
@@ -449,7 +433,6 @@ export default function TrainingVideo() {
           setGeneratedVideoUrl(lipSyncData.outputVideoUrl);
           toast.success('Lip sync applied successfully!');
         } else {
-          // Fallback: use video without lip sync
           console.warn('Lip sync not available:', lipSyncData?.error || 'Service unavailable');
           setGeneratedVideoUrl(videoData.videoUrl);
           if (lipSyncData?.error?.includes('not configured')) {
@@ -487,463 +470,593 @@ export default function TrainingVideo() {
     setGeneratedVideoUrl(null);
     setGeneratedAudioUrl(null);
     setError(null);
+    setActiveStep(0);
   };
 
   const isGenerating = ['generating_audio', 'generating_video', 'applying_lipsync'].includes(generationStep);
   const canGenerate = characterImage && scriptText.trim() && !isGenerating;
-
-  // Estimated cost: ~12 credits (2 voice + 10 video)
   const ESTIMATED_CREDITS = 12;
+
+  // Check step completion
+  const isStepComplete = (stepIndex: number) => {
+    switch (stepIndex) {
+      case 0: return !!characterImage;
+      case 1: return !!selectedVoice;
+      case 2: return !!(selectedBackground || customBackground);
+      case 3: return scriptText.trim().length > 0;
+      default: return false;
+    }
+  };
+
+  const getBackgroundImage = () => {
+    return customBackground || BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || modernMinimalistImg;
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showCreate={false} />
       
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Credits */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Video className="w-5 h-5 text-primary" />
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                Training Video Studio
-              </h1>
-            </div>
-            <p className="text-muted-foreground text-sm max-w-lg">
-              Create professional training videos with AI-powered talking heads. Upload your character, choose a voice, and generate engaging presentations.
-            </p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <CreditsDisplay credits={credits} />
-          </motion.div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-border/50">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
-
-        {/* Cost estimate banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-6"
-        >
-          <Card className="p-3 bg-primary/5 border-primary/20">
-            <div className="flex items-center gap-2 text-sm">
-              <Coins className="w-4 h-4 text-primary" />
-              <span className="text-muted-foreground">Estimated cost:</span>
-              <span className="font-semibold text-foreground">{ESTIMATED_CREDITS} credits</span>
-              <span className="text-muted-foreground">per training video</span>
-            </div>
-          </Card>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column: Inputs */}
-          <div className="space-y-6">
-            {/* Character Image Upload */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            {/* Left: Title & Description */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex-1"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Wand2 className="w-7 h-7 text-primary-foreground" />
+                </div>
+                <div>
+                  <Badge variant="outline" className="mb-1 text-xs">AI-Powered</Badge>
+                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+                    Training Video Studio
+                  </h1>
+                </div>
+              </div>
+              <p className="text-muted-foreground max-w-xl text-lg">
+                Create professional AI-powered training videos with realistic talking heads. 
+                Upload your avatar, choose a voice, and let AI do the magic.
+              </p>
+              
+              {/* Quick stats */}
+              <div className="flex items-center gap-6 mt-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Coins className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Est. Cost</p>
+                    <p className="font-semibold">{ESTIMATED_CREDITS} credits</p>
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Generation Time</p>
+                    <p className="font-semibold">~2 min</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            
+            {/* Right: Credits Display */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <Label className="text-sm font-medium mb-3 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Character Image
-              </Label>
-              <Card 
-                className={cn(
-                  "p-6 border-2 border-dashed cursor-pointer transition-all hover:border-primary/50",
-                  characterImage ? "border-primary/30 bg-primary/5" : "border-muted-foreground/30"
-                )}
-                onClick={() => characterInputRef.current?.click()}
-              >
-                {characterImage ? (
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted">
-                      <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Check className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-sm">Character Uploaded</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Click to replace</p>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); setCharacterImage(null); }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="font-medium text-sm mb-1">Upload Character Image</p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
-                  </div>
-                )}
-              </Card>
-              <input
-                ref={characterInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCharacterUpload}
-                className="hidden"
-              />
-            </motion.div>
-
-            {/* Voice Selection */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Mic className="w-4 h-4" />
-                  Voice Selection
-                </Label>
-                <div className="flex items-center gap-2">
-                  {preloadedVoices.size > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearVoiceCache}
-                      disabled={isPreloadingVoices}
-                      className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Clear Cache
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePreloadAllVoices}
-                    disabled={isPreloadingVoices || preloadedVoices.size === VOICE_OPTIONS.length}
-                    className="h-7 text-xs gap-1.5"
-                  >
-                    {isPreloadingVoices ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        {preloadProgress}%
-                      </>
-                    ) : preloadedVoices.size === VOICE_OPTIONS.length ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        All Cached
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3 h-3" />
-                        Preload All ({preloadedVoices.size}/{VOICE_OPTIONS.length})
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {VOICE_OPTIONS.map((voice) => {
-                  const isPlaying = previewingVoiceId === voice.id;
-                  const isSelected = selectedVoice === voice.id;
-                  const isCached = preloadedVoices.has(voice.id);
-                  
-                  return (
-                    <div
-                      key={voice.id}
-                      className={cn(
-                        "relative p-3 rounded-xl border transition-all",
-                        isSelected
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      )}
-                    >
-                      {/* Selection overlay - click to select */}
-                      <button
-                        onClick={() => setSelectedVoice(voice.id)}
-                        className="absolute inset-0 w-full h-full z-0"
-                        aria-label={`Select ${voice.name} voice`}
-                      />
-                      
-                      <div className="relative z-10 pointer-events-none">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-sm">{voice.name}</span>
-                            {isCached && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Zap className="w-3 h-3 text-emerald-500 fill-emerald-500 pointer-events-auto cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Cached - Instant playback</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-primary" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{voice.description}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            {voice.gender}
-                          </Badge>
-                          
-                          {/* Preview button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-7 w-7 p-0 pointer-events-auto",
-                              isPlaying && "text-primary"
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVoicePreview(voice.id);
-                            }}
-                          >
-                            {isPlaying ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Volume2 className="w-3.5 h-3.5" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Playing indicator */}
-              <AnimatePresence>
-                {previewingVoiceId && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-3"
-                  >
-                    <Card className="p-3 bg-primary/5 border-primary/20">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-0.5">
-                            {[0, 1, 2, 3].map((i) => (
-                              <motion.div
-                                key={i}
-                                className="w-1 bg-primary rounded-full"
-                                animate={{
-                                  height: [8, 16, 8],
-                                }}
-                                transition={{
-                                  duration: 0.5,
-                                  repeat: Infinity,
-                                  delay: i * 0.1,
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            Playing <span className="font-medium text-foreground">{VOICE_OPTIONS.find(v => v.id === previewingVoiceId)?.name}</span>
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={stopVoicePreview}
-                          className="h-7 px-2"
-                        >
-                          Stop
-                        </Button>
-                      </div>
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Background Selection */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Label className="text-sm font-medium mb-3 flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                Background
-              </Label>
-              <ScrollArea className="w-full">
-                <div className="flex gap-2 pb-2">
-                  {/* Custom upload option */}
-                  <button
-                    onClick={() => backgroundInputRef.current?.click()}
-                    className={cn(
-                      "w-20 h-20 rounded-xl border-2 border-dashed flex-shrink-0 flex items-center justify-center transition-all",
-                      customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
-                    )}
-                  >
-                    {customBackground ? (
-                      <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-lg" />
-                    ) : (
-                      <Upload className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  
-                  {BACKGROUND_PRESETS.map((bg) => (
-                    <button
-                      key={bg.id}
-                      onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
-                      className={cn(
-                        "w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all",
-                        selectedBackground === bg.id && !customBackground
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-transparent hover:border-primary/50"
-                      )}
-                    >
-                      <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
-              <input
-                ref={backgroundInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleBackgroundUpload}
-                className="hidden"
-              />
-            </motion.div>
-
-            {/* Script Text */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Label className="text-sm font-medium mb-3 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Script Text
-                </span>
-                <span className="text-xs text-muted-foreground">{scriptText.length} characters</span>
-              </Label>
-              <Textarea
-                placeholder="Enter the text your character will speak..."
-                value={scriptText}
-                onChange={(e) => setScriptText(e.target.value)}
-                className="min-h-[150px] resize-none"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Recommended: 50-500 characters for best results
-              </p>
+              <CreditsDisplay credits={credits} />
             </motion.div>
           </div>
+        </div>
+      </section>
 
-          {/* Right Column: Preview & Generation */}
-          <div className="space-y-6">
-            {/* Preview Area */}
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* Left: Configuration Panel */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Wizard Steps Indicator */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  {WIZARD_STEPS.map((step, index) => {
+                    const isActive = activeStep === index;
+                    const isComplete = isStepComplete(index);
+                    const StepIcon = step.icon;
+                    
+                    return (
+                      <div key={step.id} className="flex items-center">
+                        <button
+                          onClick={() => setActiveStep(index)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
+                            isActive ? "bg-primary text-primary-foreground" : 
+                            isComplete ? "bg-primary/10 text-primary hover:bg-primary/20" :
+                            "text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium",
+                            isActive ? "bg-primary-foreground/20" :
+                            isComplete ? "bg-primary/20" : "bg-muted"
+                          )}>
+                            {isComplete && !isActive ? (
+                              <Check className="w-4 h-4" />
+                            ) : (
+                              <StepIcon className="w-4 h-4" />
+                            )}
+                          </div>
+                          <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
+                        </button>
+                        {index < WIZARD_STEPS.length - 1 && (
+                          <ChevronRight className="w-5 h-5 text-muted-foreground/30 mx-1" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Step Content */}
+            <AnimatePresence mode="wait">
+              {/* Step 0: Character */}
+              {activeStep === 0 && (
+                <motion.div
+                  key="character"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">Upload Your Character</h3>
+                        <p className="text-sm text-muted-foreground">Choose a front-facing image for best results</p>
+                      </div>
+                      <Badge variant="outline">Step 1 of 4</Badge>
+                    </div>
+                    
+                    <div 
+                      className={cn(
+                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center",
+                        characterImage ? "border-primary/30 bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50"
+                      )}
+                      onClick={() => characterInputRef.current?.click()}
+                    >
+                      {characterImage ? (
+                        <div className="flex flex-col items-center">
+                          <div className="w-40 h-40 rounded-2xl overflow-hidden bg-muted mb-4 ring-4 ring-primary/20">
+                            <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex items-center gap-2 text-primary mb-2">
+                            <Check className="w-5 h-5" />
+                            <span className="font-medium">Character Uploaded</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Click to replace</p>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="mt-3"
+                            onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="py-8">
+                          <div className="w-20 h-20 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+                            <Upload className="w-10 h-10 text-muted-foreground" />
+                          </div>
+                          <p className="font-medium text-lg mb-1">Drop your character image here</p>
+                          <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
+                          <Badge variant="secondary">PNG, JPG up to 10MB</Badge>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={characterInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCharacterUpload}
+                      className="hidden"
+                    />
+                    
+                    <div className="flex justify-end mt-6">
+                      <Button onClick={() => setActiveStep(1)} disabled={!characterImage}>
+                        Continue
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Step 1: Voice */}
+              {activeStep === 1 && (
+                <motion.div
+                  key="voice"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">Select a Voice</h3>
+                        <p className="text-sm text-muted-foreground">Choose the perfect voice for your character</p>
+                      </div>
+                      <Badge variant="outline">Step 2 of 4</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {VOICE_OPTIONS.map((voice) => {
+                        const isPlaying = previewingVoiceId === voice.id;
+                        const isSelected = selectedVoice === voice.id;
+                        const isCached = preloadedVoices.has(voice.id);
+                        
+                        return (
+                          <div
+                            key={voice.id}
+                            onClick={() => setSelectedVoice(voice.id)}
+                            className={cn(
+                              "relative p-4 rounded-xl border-2 cursor-pointer transition-all group",
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/50 hover:bg-muted/50"
+                            )}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-semibold text-base">{voice.name}</span>
+                                  {isCached && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Zap className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Instant playback</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                  {isSelected && (
+                                    <Badge variant="default" className="text-xs">Selected</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">{voice.description}</p>
+                                <Badge variant="outline" className="text-xs capitalize">{voice.gender}</Badge>
+                              </div>
+                              
+                              <Button
+                                variant={isPlaying ? "default" : "outline"}
+                                size="icon"
+                                className="h-10 w-10 rounded-full shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVoicePreview(voice.id);
+                                }}
+                              >
+                                {isPlaying ? (
+                                  <Pause className="w-4 h-4" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                            
+                            {/* Waveform visualization when playing */}
+                            {isPlaying && (
+                              <div className="flex items-center gap-1 mt-3">
+                                {[...Array(20)].map((_, i) => (
+                                  <motion.div
+                                    key={i}
+                                    className="w-1 bg-primary rounded-full"
+                                    animate={{
+                                      height: [4, Math.random() * 20 + 4, 4],
+                                    }}
+                                    transition={{
+                                      duration: 0.4,
+                                      repeat: Infinity,
+                                      delay: i * 0.05,
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="flex justify-between mt-6">
+                      <Button variant="outline" onClick={() => setActiveStep(0)}>
+                        Back
+                      </Button>
+                      <Button onClick={() => setActiveStep(2)}>
+                        Continue
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Step 2: Scene/Background */}
+              {activeStep === 2 && (
+                <motion.div
+                  key="scene"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">Choose Your Scene</h3>
+                        <p className="text-sm text-muted-foreground">Select a background environment</p>
+                      </div>
+                      <Badge variant="outline">Step 3 of 4</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {/* Custom upload */}
+                      <button
+                        onClick={() => backgroundInputRef.current?.click()}
+                        className={cn(
+                          "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center transition-all",
+                          customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
+                        )}
+                      >
+                        {customBackground ? (
+                          <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <div className="text-center p-2">
+                            <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
+                            <span className="text-xs text-muted-foreground">Custom</span>
+                          </div>
+                        )}
+                      </button>
+                      
+                      {BACKGROUND_PRESETS.map((bg) => (
+                        <button
+                          key={bg.id}
+                          onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
+                          className={cn(
+                            "aspect-video rounded-xl overflow-hidden border-2 transition-all relative group",
+                            selectedBackground === bg.id && !customBackground
+                              ? "border-primary ring-2 ring-primary/20"
+                              : "border-transparent hover:border-primary/50"
+                          )}
+                        >
+                          <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
+                            <span className="text-white text-xs font-medium">{bg.name}</span>
+                          </div>
+                          {selectedBackground === bg.id && !customBackground && (
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-4 h-4 text-primary-foreground" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      ref={backgroundInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBackgroundUpload}
+                      className="hidden"
+                    />
+                    
+                    <div className="flex justify-between mt-6">
+                      <Button variant="outline" onClick={() => setActiveStep(1)}>
+                        Back
+                      </Button>
+                      <Button onClick={() => setActiveStep(3)}>
+                        Continue
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Step 3: Script */}
+              {activeStep === 3 && (
+                <motion.div
+                  key="script"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">Write Your Script</h3>
+                        <p className="text-sm text-muted-foreground">What should your character say?</p>
+                      </div>
+                      <Badge variant="outline">Step 4 of 4</Badge>
+                    </div>
+                    
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Enter the text your character will speak...
+
+Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed. Let's get started!'"
+                        value={scriptText}
+                        onChange={(e) => setScriptText(e.target.value)}
+                        className="min-h-[200px] resize-none text-base"
+                      />
+                      <div className="absolute bottom-3 right-3">
+                        <Badge 
+                          variant={scriptText.length > 500 ? "destructive" : scriptText.length > 0 ? "secondary" : "outline"}
+                        >
+                          {scriptText.length} / 500
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-muted/50">
+                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between mt-6">
+                      <Button variant="outline" onClick={() => setActiveStep(2)}>
+                        Back
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Right: Live Preview */}
+          <div className="lg:col-span-2 space-y-4">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Label className="text-sm font-medium mb-3">Preview</Label>
-              <Card className="aspect-video bg-muted/50 overflow-hidden relative">
-                <AnimatePresence mode="wait">
-                  {generatedVideoUrl ? (
-                    <motion.video
-                      key="video"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      src={generatedVideoUrl}
-                      controls
-                      className="w-full h-full object-cover"
-                    />
-                  ) : characterImage ? (
-                    <motion.div
-                      key="preview"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="relative w-full h-full"
-                    >
-                      {/* Background */}
-                      <img 
-                        src={customBackground || BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || modernMinimalistImg}
-                        alt="Background"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/20" />
-                      
-                      {/* Character overlay (centered) */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
-                          <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                        </div>
-                      </div>
-                      
-                      {/* Generation overlay */}
-                      {isGenerating && (
-                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
-                          <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
-                          <p className="text-white font-medium mb-2">
-                            {generationStep === 'generating_audio' && 'Generating voice audio...'}
-                            {generationStep === 'generating_video' && 'Creating character video...'}
-                            {generationStep === 'applying_lipsync' && 'Applying lip sync...'}
-                          </p>
-                          <Progress value={progress} className="w-48 h-2" />
-                        </div>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="empty"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center h-full text-muted-foreground"
-                    >
-                      <Video className="w-16 h-16 mb-3 opacity-30" />
-                      <p className="text-sm">Upload a character to preview</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Error state */}
-                {generationStep === 'error' && (
-                  <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center">
-                    <AlertCircle className="w-12 h-12 text-destructive mb-3" />
-                    <p className="text-destructive font-medium mb-2">Generation Failed</p>
-                    <p className="text-sm text-muted-foreground mb-4">{error}</p>
-                    <Button variant="outline" size="sm" onClick={() => setGenerationStep('idle')}>
-                      Try Again
-                    </Button>
+              <Card className="overflow-hidden">
+                <div className="p-4 border-b border-border flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Video className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Live Preview</span>
                   </div>
-                )}
+                  <Badge variant="outline" className="text-xs">16:9</Badge>
+                </div>
+                
+                <div className="aspect-video bg-muted/50 relative">
+                  <AnimatePresence mode="wait">
+                    {generatedVideoUrl ? (
+                      <motion.video
+                        key="video"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        src={generatedVideoUrl}
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <motion.div
+                        key="preview"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="relative w-full h-full"
+                      >
+                        {/* Background */}
+                        <img 
+                          src={getBackgroundImage()}
+                          alt="Background"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/30" />
+                        
+                        {/* Character overlay */}
+                        {characterImage ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <motion.div 
+                              className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white/30 shadow-2xl"
+                              animate={{ scale: [1, 1.02, 1] }}
+                              transition={{ duration: 3, repeat: Infinity }}
+                            >
+                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                            </motion.div>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
+                            <User className="w-16 h-16 mb-2" />
+                            <p className="text-sm">Upload a character</p>
+                          </div>
+                        )}
+                        
+                        {/* Generation overlay */}
+                        {isGenerating && (
+                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent mb-4"
+                            />
+                            <p className="text-white font-medium mb-1">
+                              {generationStep === 'generating_audio' && 'Generating voice...'}
+                              {generationStep === 'generating_video' && 'Creating video...'}
+                              {generationStep === 'applying_lipsync' && 'Syncing lips...'}
+                            </p>
+                            <Progress value={progress} className="w-48 h-2" />
+                            <p className="text-white/60 text-sm mt-2">{progress}%</p>
+                          </div>
+                        )}
+                        
+                        {/* Error state */}
+                        {generationStep === 'error' && (
+                          <div className="absolute inset-0 bg-destructive/20 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <AlertCircle className="w-12 h-12 text-destructive mb-3" />
+                            <p className="text-destructive font-medium mb-2">Generation Failed</p>
+                            <p className="text-sm text-muted-foreground mb-4 text-center px-4">{error}</p>
+                            <Button variant="outline" size="sm" onClick={() => setGenerationStep('idle')}>
+                              Try Again
+                            </Button>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                {/* Voice indicator */}
+                <div className="p-4 border-t border-border bg-muted/30">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mic className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Voice:</span>
+                      <span className="font-medium">{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Scene:</span>
+                      <span className="font-medium">
+                        {customBackground ? 'Custom' : BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.name}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </Card>
             </motion.div>
 
-            {/* Action Buttons */}
+            {/* Generate Button */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="space-y-3"
             >
               {generationStep === 'complete' ? (
-                <>
-                  <Button className="w-full h-12" asChild>
+                <div className="space-y-3">
+                  <Button className="w-full h-14 text-lg" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
                       <Download className="w-5 h-5 mr-2" />
                       Download Video
@@ -953,10 +1066,11 @@ export default function TrainingVideo() {
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Create Another Video
                   </Button>
-                </>
+                </div>
               ) : (
                 <Button 
-                  className="w-full h-12"
+                  className="w-full h-14 text-lg"
+                  variant={canGenerate ? "default" : "secondary"}
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
@@ -967,32 +1081,45 @@ export default function TrainingVideo() {
                     </>
                   ) : (
                     <>
-                      <Play className="w-5 h-5 mr-2" />
-                      Generate Training Video
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <Wand2 className="w-5 h-5 mr-2" />
+                      Generate Video
+                      <Badge variant="secondary" className="ml-3">
+                        {ESTIMATED_CREDITS} credits
+                      </Badge>
                     </>
                   )}
                 </Button>
               )}
             </motion.div>
 
-            {/* Tips */}
+            {/* Checklist */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
             >
-              <Card className="p-4 bg-muted/30">
-                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Tips for Best Results
-                </h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Use a front-facing character image with visible face</li>
-                  <li>• Keep script between 50-500 characters for optimal quality</li>
-                  <li>• Choose a voice that matches your character's appearance</li>
-                  <li>• High-resolution character images produce better results</li>
-                </ul>
+              <Card className="p-4">
+                <h4 className="font-medium text-sm mb-3">Ready to generate?</h4>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Character uploaded', complete: !!characterImage },
+                    { label: 'Voice selected', complete: !!selectedVoice },
+                    { label: 'Background chosen', complete: !!(selectedBackground || customBackground) },
+                    { label: 'Script written', complete: scriptText.trim().length > 0 },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center",
+                        item.complete ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}>
+                        {item.complete ? <Check className="w-3 h-3" /> : <CircleDot className="w-3 h-3 text-muted-foreground" />}
+                      </div>
+                      <span className={item.complete ? "text-foreground" : "text-muted-foreground"}>
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </Card>
             </motion.div>
           </div>

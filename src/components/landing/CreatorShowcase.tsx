@@ -1,121 +1,241 @@
-import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX, Expand, Film, Clapperboard, Star, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-// Sample videos generated with Apex Studio (Cole's videos)
+// Sample videos generated with Apex Studio
 const CREATOR_VIDEOS = [
   {
     id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
+    featured: true,
   },
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
+    featured: true,
   },
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
+    featured: false,
   },
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
     title: 'Whispers by the River',
-    genre: 'Cinematic',
+    genre: 'Nature',
+    featured: false,
   },
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
-    title: 'Snowy Cabin',
-    genre: 'Cinematic',
+    title: 'Snowy Cabin Retreat',
+    genre: 'Nature',
+    featured: false,
   },
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4',
     title: 'Whispers of the Verdant Grove',
-    genre: 'Cinematic',
+    genre: 'Nature',
+    featured: false,
   },
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171807679.mp4',
     title: 'Soaring Above Snowy Serenity',
-    genre: 'Motivational',
+    genre: 'Aerial',
+    featured: true,
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     title: 'Whimsical Chocolate Adventures',
-    genre: 'Cinematic',
+    genre: 'Creative',
+    featured: false,
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
+    featured: false,
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
     title: 'Skyward Over Fiery Majesty',
-    genre: 'Cinematic',
+    genre: 'Aerial',
+    featured: false,
   },
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4',
     title: "Owl of Wisdom's Twilight",
-    genre: 'Cinematic',
+    genre: 'Creative',
+    featured: false,
   },
 ];
 
+const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
+
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
-  isActive: boolean;
+  isLarge?: boolean;
   onClick: () => void;
+  index: number;
 }
 
-function VideoCard({ video, isActive, onClick }: VideoCardProps) {
+function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    if (isHovering && isLoaded) {
+      vid.currentTime = 0;
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+    }
+  }, [isHovering, isLoaded]);
+
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
       onClick={onClick}
       className={cn(
-        "relative aspect-video rounded-2xl overflow-hidden cursor-pointer transition-all duration-300",
-        "border border-white/[0.06] bg-black/50",
-        isActive && "ring-2 ring-white/30 ring-offset-2 ring-offset-black"
+        "group relative overflow-hidden cursor-pointer",
+        isLarge 
+          ? "rounded-3xl aspect-[16/10] md:col-span-2 md:row-span-2" 
+          : "rounded-2xl aspect-video"
       )}
     >
-      {/* Static poster image from video */}
+      {/* Video */}
       <video
+        ref={videoRef}
         src={video.url}
-        className="w-full h-full object-cover"
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+          isHovering ? "scale-105" : "scale-100"
+        )}
         muted
+        loop
         playsInline
         preload="metadata"
-        poster=""
+        onLoadedData={() => setIsLoaded(true)}
       />
-      
+
       {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-      
-      {/* Play indicator */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-        <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg flex items-center justify-center border border-white/20">
-          <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+      <div className={cn(
+        "absolute inset-0 transition-opacity duration-300",
+        "bg-gradient-to-t from-black via-black/40 to-transparent",
+        isHovering ? "opacity-90" : "opacity-70"
+      )} />
+
+      {/* Animated border glow on hover */}
+      <div className={cn(
+        "absolute inset-0 rounded-inherit transition-opacity duration-300",
+        "bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0",
+        "opacity-0 group-hover:opacity-100"
+      )} 
+      style={{ 
+        mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+        maskComposite: 'exclude',
+        padding: '2px',
+      }}
+      />
+
+      {/* Play button overlay */}
+      <motion.div
+        initial={false}
+        animate={{ 
+          scale: isHovering ? 1 : 0.8, 
+          opacity: isHovering ? 1 : 0 
+        }}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      >
+        <div className={cn(
+          "rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center",
+          isLarge ? "w-20 h-20" : "w-14 h-14"
+        )}>
+          <Play className={cn("text-white ml-1", isLarge ? "w-8 h-8" : "w-5 h-5")} fill="currentColor" />
         </div>
+      </motion.div>
+
+      {/* Featured badge */}
+      {video.featured && (
+        <div className="absolute top-4 left-4 z-10">
+          <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm border-0">
+            <Star className="w-3 h-3 mr-1 fill-current" />
+            Featured
+          </Badge>
+        </div>
+      )}
+
+      {/* Genre badge */}
+      <div className={cn(
+        "absolute z-10",
+        isLarge ? "top-4 right-4" : "top-3 right-3"
+      )}>
+        <Badge variant="outline" className="bg-black/50 backdrop-blur-sm border-white/10 text-white/80 text-xs">
+          {video.genre}
+        </Badge>
       </div>
-      
-      {/* Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-3">
-        <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">{video.genre}</span>
-        <h4 className="text-xs font-semibold text-white truncate">{video.title}</h4>
+
+      {/* Info overlay */}
+      <div className={cn(
+        "absolute bottom-0 left-0 right-0 z-10",
+        isLarge ? "p-6 md:p-8" : "p-4"
+      )}>
+        <motion.div
+          initial={false}
+          animate={{ y: isHovering ? 0 : 10, opacity: isHovering ? 1 : 0.8 }}
+          transition={{ duration: 0.2 }}
+        >
+          <h3 className={cn(
+            "font-bold text-white leading-tight",
+            isLarge ? "text-xl md:text-3xl mb-2" : "text-sm md:text-base"
+          )}>
+            {video.title}
+          </h3>
+          {isLarge && (
+            <p className="text-white/60 text-sm md:text-base hidden md:block">
+              AI-generated cinematic experience
+            </p>
+          )}
+        </motion.div>
       </div>
+
+      {/* Expand icon */}
+      <motion.div
+        initial={false}
+        animate={{ opacity: isHovering ? 1 : 0 }}
+        className={cn(
+          "absolute z-10",
+          isLarge ? "bottom-6 right-6 md:bottom-8 md:right-8" : "bottom-3 right-3"
+        )}
+      >
+        <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <Expand className="w-4 h-4 text-white" />
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -125,14 +245,20 @@ export default function CreatorShowcase() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [showFullscreen, setShowFullscreen] = useState(false);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
-  
-  const activeVideo = CREATOR_VIDEOS[activeIndex];
+
+  const filteredVideos = selectedCategory === 'All' 
+    ? CREATOR_VIDEOS 
+    : CREATOR_VIDEOS.filter(v => v.genre === selectedCategory);
+
+  const activeVideo = filteredVideos[activeIndex] || CREATOR_VIDEOS[0];
 
   // Handle video source changes
   useEffect(() => {
     const video = mainVideoRef.current;
-    if (!video) return;
+    if (!video || showFullscreen) return;
     
     setIsVideoReady(false);
     video.pause();
@@ -149,7 +275,7 @@ export default function CreatorShowcase() {
     
     video.addEventListener('canplay', handleCanPlay);
     return () => video.removeEventListener('canplay', handleCanPlay);
-  }, [activeIndex, activeVideo.url]);
+  }, [activeIndex, activeVideo.url, showFullscreen]);
 
   // Handle play/pause and mute changes
   useEffect(() => {
@@ -164,134 +290,268 @@ export default function CreatorShowcase() {
     }
   }, [isPlaying, isMuted, isVideoReady]);
 
-  const goNext = () => {
-    setActiveIndex((prev) => (prev + 1) % CREATOR_VIDEOS.length);
-  };
+  // Auto-advance video
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % filteredVideos.length);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [isPlaying, filteredVideos.length]);
 
-  const goPrev = () => {
-    setActiveIndex((prev) => (prev - 1 + CREATOR_VIDEOS.length) % CREATOR_VIDEOS.length);
+  const goNext = useCallback(() => {
+    setActiveIndex((prev) => (prev + 1) % filteredVideos.length);
+  }, [filteredVideos.length]);
+
+  const goPrev = useCallback(() => {
+    setActiveIndex((prev) => (prev - 1 + filteredVideos.length) % filteredVideos.length);
+  }, [filteredVideos.length]);
+
+  const handleVideoClick = (index: number) => {
+    setActiveIndex(index);
+    setShowFullscreen(true);
   };
 
   return (
-    <section className="relative z-10 py-24 px-4 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-            <Sparkles className="w-4 h-4 text-foreground" />
-            <span className="text-sm font-medium text-foreground">From Our Creators</span>
-          </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Made with Apex Studio
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Real videos created by our community using AI-powered video generation.
-          </p>
+    <>
+      <section className="relative z-10 py-24 px-4 lg:px-8 overflow-hidden">
+        {/* Background ambient glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
         </div>
 
-        {/* Main Featured Video */}
-        <div className="relative mb-8">
-          <div className="relative aspect-video max-w-5xl mx-auto rounded-3xl overflow-hidden bg-black shadow-2xl shadow-black/50 border border-white/[0.08]">
+        <div className="max-w-7xl mx-auto relative">
+          {/* Header */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+              <Film className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Creator Gallery</span>
+            </div>
+            <h2 className="text-4xl lg:text-6xl font-bold text-foreground mb-4">
+              Stunning Videos,{' '}
+              <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+                Made by AI
+              </span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Explore videos created by our community. Each one generated entirely with AI.
+            </p>
+          </motion.div>
+
+          {/* Category Filter */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="flex justify-center mb-10"
+          >
+            <div className="inline-flex items-center gap-2 p-1.5 rounded-full bg-muted/50 backdrop-blur-sm border border-border">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setActiveIndex(0);
+                  }}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                    selectedCategory === category
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Bento Grid Gallery */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-fr"
+          >
+            {filteredVideos.slice(0, 7).map((video, index) => (
+              <VideoCard
+                key={video.id}
+                video={video}
+                isLarge={index === 0}
+                onClick={() => handleVideoClick(index)}
+                index={index}
+              />
+            ))}
+          </motion.div>
+
+          {/* Stats Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
+            {[
+              { icon: Film, label: 'Videos Created', value: '10,000+' },
+              { icon: Eye, label: 'Total Views', value: '500K+' },
+              { icon: Star, label: 'Avg. Rating', value: '4.9/5' },
+              { icon: Clapperboard, label: 'Genres', value: '20+' },
+            ].map((stat, i) => (
+              <div 
+                key={stat.label}
+                className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <stat.icon className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Fullscreen Video Modal */}
+      <AnimatePresence>
+        {showFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black"
+          >
+            {/* Loading state */}
+            {!isVideoReady && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="w-16 h-16 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
+              </div>
+            )}
+
+            {/* Video */}
             <video
               ref={mainVideoRef}
               className={cn(
-                "w-full h-full object-cover transition-opacity duration-300",
+                "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
                 isVideoReady ? "opacity-100" : "opacity-0"
               )}
               loop
               muted={isMuted}
               playsInline
-              preload="auto"
+              autoPlay
             />
+
+            {/* Vignette */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.5)_100%)] pointer-events-none" />
             
-            {/* Loading state */}
-            {!isVideoReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black">
-                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              </div>
-            )}
+            {/* Bottom gradient */}
+            <div className="absolute inset-x-0 bottom-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
             
-            {/* Gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
-            
-            {/* Navigation arrows */}
+            {/* Top gradient */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowFullscreen(false)}
+              className="absolute top-6 right-6 z-50 w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group hover:bg-white/20 transition-all"
+            >
+              <span className="text-white text-2xl group-hover:scale-110 transition-transform">×</span>
+            </button>
+
+            {/* Counter */}
+            <div className="absolute top-6 left-6 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+              <span className="text-sm font-medium text-white/60">
+                <span className="text-white">{activeIndex + 1}</span> / {filteredVideos.length}
+              </span>
+            </div>
+
+            {/* Navigation */}
             <button
               onClick={goPrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all"
+              className="absolute left-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-7 h-7" />
             </button>
             
             <button
               onClick={goNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all"
+              className="absolute right-8 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all hover:scale-110"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-7 h-7" />
             </button>
-            
+
             {/* Video info */}
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-              <div className="flex items-end justify-between">
-                <div>
-                  <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-white/80 mb-3 border border-white/10">
+            <div className="absolute bottom-0 left-0 right-0 p-10 z-40">
+              <div className="max-w-4xl">
+                <motion.div 
+                  key={activeVideo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6"
+                >
+                  <Badge className="mb-3 bg-white/10 backdrop-blur-sm border-white/10 text-white">
                     {activeVideo.genre}
-                  </span>
-                  <h3 className="text-2xl lg:text-3xl font-bold text-white mb-1">{activeVideo.title}</h3>
-                  <p className="text-white/50">AI Generated Sample</p>
-                </div>
-                
+                  </Badge>
+                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">{activeVideo.title}</h3>
+                  <p className="text-white/60 text-lg">AI-generated cinematic experience</p>
+                </motion.div>
+
                 {/* Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                   <button
                     onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+                    className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                    {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                   </button>
+                  
                   <button
                     onClick={() => setIsMuted(!isMuted)}
-                    className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+                    className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
                   >
-                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Thumbnail carousel */}
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {CREATOR_VIDEOS.slice(0, 6).map((video, index) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                isActive={index === activeIndex}
-                onClick={() => setActiveIndex(index)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Counter */}
-        <div className="flex justify-center mt-6">
-          <div className="flex items-center gap-2">
-            {CREATOR_VIDEOS.slice(0, 12).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveIndex(index)}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-all",
-                  index === activeIndex
-                    ? "w-8 bg-foreground"
-                    : "bg-foreground/30 hover:bg-foreground/50"
-                )}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
+            {/* Thumbnail strip */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 hidden md:block">
+              <div className="flex items-center gap-2 p-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10">
+                {filteredVideos.slice(0, 8).map((video, i) => (
+                  <button
+                    key={video.id}
+                    onClick={() => setActiveIndex(i)}
+                    className={cn(
+                      "relative w-20 h-12 rounded-lg overflow-hidden transition-all duration-300",
+                      activeIndex === i 
+                        ? "ring-2 ring-white/80 ring-offset-2 ring-offset-black/50 scale-110" 
+                        : "opacity-50 hover:opacity-80 hover:scale-105"
+                    )}
+                  >
+                    <video
+                      src={video.url}
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

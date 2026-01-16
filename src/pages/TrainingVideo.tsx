@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStudio } from '@/contexts/StudioContext';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,8 +17,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, User, Mic, Image, Play, Loader2, Check,
   Volume2, Sparkles, ArrowRight, RefreshCw, Download,
-  Video, AlertCircle, Trash2, Pause, Square
+  Video, AlertCircle, Trash2, Coins
 } from 'lucide-react';
+import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 
 // Import environment presets
 import goldenHourStudioImg from '@/assets/environments/golden-hour-studio.jpg';
@@ -56,7 +58,7 @@ type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applyi
 export default function TrainingVideo() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+  const { credits } = useStudio();
   // State
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [characterImageFile, setCharacterImageFile] = useState<File | null>(null);
@@ -125,31 +127,32 @@ export default function TrainingVideo() {
     try {
       const previewText = scriptText.slice(0, 100) || 'Hello, this is a voice preview for your training video.';
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            text: previewText,
-            voiceId: selectedVoice,
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('generate-voice', {
+        body: {
+          text: previewText,
+          voiceId: selectedVoice,
+        },
+      });
 
-      if (!response.ok) throw new Error('Failed to generate voice preview');
+      if (error) throw error;
       
-      const data = await response.json();
-      if (data.audioContent) {
-        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-        const audio = new Audio(audioUrl);
-        audio.onended = () => setIsPreviewingVoice(false);
-        await audio.play();
+      // Handle both audioUrl (from storage) and audioBase64 (fallback) responses
+      let audioUrl: string;
+      if (data.audioUrl) {
+        audioUrl = data.audioUrl;
+      } else if (data.audioBase64) {
+        audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
+      } else {
+        throw new Error('No audio data received');
       }
+      
+      const audio = new Audio(audioUrl);
+      audio.onended = () => setIsPreviewingVoice(false);
+      audio.onerror = () => {
+        toast.error('Failed to play audio');
+        setIsPreviewingVoice(false);
+      };
+      await audio.play();
     } catch (err) {
       console.error('Voice preview error:', err);
       toast.error('Failed to preview voice');
@@ -179,28 +182,29 @@ export default function TrainingVideo() {
       toast.info('Generating voice audio...');
       setProgress(10);
       
-      const audioResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            text: scriptText,
-            voiceId: selectedVoice,
-          }),
-        }
-      );
+      const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-voice', {
+        body: {
+          text: scriptText,
+          voiceId: selectedVoice,
+        },
+      });
 
-      if (!audioResponse.ok) throw new Error('Failed to generate audio');
+      if (audioError) throw audioError;
+      if (!audioData.success) throw new Error(audioData.error || 'Failed to generate audio');
       
-      const audioData = await audioResponse.json();
-      if (!audioData.audioContent) throw new Error('No audio content received');
+      // Get audio URL - prefer storage URL, fallback to base64
+      let audioUrl: string;
+      let audioStorageUrl: string | undefined;
       
-      const audioUrl = `data:audio/mpeg;base64,${audioData.audioContent}`;
+      if (audioData.audioUrl) {
+        audioUrl = audioData.audioUrl;
+        audioStorageUrl = audioData.audioUrl;
+      } else if (audioData.audioBase64) {
+        audioUrl = `data:audio/mpeg;base64,${audioData.audioBase64}`;
+      } else {
+        throw new Error('No audio content received');
+      }
+      
       setGeneratedAudioUrl(audioUrl);
       setProgress(30);
 
@@ -241,23 +245,30 @@ export default function TrainingVideo() {
       try {
         const { data: lipSyncData, error: lipSyncError } = await supabase.functions.invoke('lip-sync-service', {
           body: {
+            projectId: `training_${user.id}_${Date.now()}`,
             videoUrl: videoData.videoUrl,
-            audioUrl: audioData.storageUrl || audioUrl,
+            audioUrl: audioStorageUrl || audioUrl,
             userId: user.id,
             quality: 'balanced',
+            faceEnhance: true,
           },
         });
 
-        if (!lipSyncError && lipSyncData?.outputVideoUrl) {
+        if (!lipSyncError && lipSyncData?.success && lipSyncData?.outputVideoUrl) {
           setGeneratedVideoUrl(lipSyncData.outputVideoUrl);
+          toast.success('Lip sync applied successfully!');
         } else {
           // Fallback: use video without lip sync
-          console.warn('Lip sync not available, using original video');
+          console.warn('Lip sync not available:', lipSyncData?.error || 'Service unavailable');
           setGeneratedVideoUrl(videoData.videoUrl);
+          if (lipSyncData?.error?.includes('not configured')) {
+            toast.info('Video generated without lip sync (service not configured)');
+          }
         }
       } catch (lipSyncErr) {
         console.warn('Lip sync service not available:', lipSyncErr);
         setGeneratedVideoUrl(videoData.videoUrl);
+        toast.info('Video generated without lip sync');
       }
 
       setProgress(100);
@@ -290,26 +301,57 @@ export default function TrainingVideo() {
   const isGenerating = ['generating_audio', 'generating_video', 'applying_lipsync'].includes(generationStep);
   const canGenerate = characterImage && scriptText.trim() && !isGenerating;
 
+  // Estimated cost: ~12 credits (2 voice + 10 video)
+  const ESTIMATED_CREDITS = 12;
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader showCreate={false} />
       
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div 
-          className="text-center mb-10"
-          initial={{ opacity: 0, y: 20 }}
+        {/* Header with Credits */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Video className="w-5 h-5 text-primary" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Training Video Studio
+              </h1>
+            </div>
+            <p className="text-muted-foreground text-sm max-w-lg">
+              Create professional training videos with AI-powered talking heads. Upload your character, choose a voice, and generate engaging presentations.
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <CreditsDisplay credits={credits} />
+          </motion.div>
+        </div>
+
+        {/* Cost estimate banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6"
         >
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
-            <Video className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-2">
-            Training Video Studio
-          </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            Create professional training videos with AI-powered lip sync. Upload your character, choose a voice, and let AI do the rest.
-          </p>
+          <Card className="p-3 bg-primary/5 border-primary/20">
+            <div className="flex items-center gap-2 text-sm">
+              <Coins className="w-4 h-4 text-primary" />
+              <span className="text-muted-foreground">Estimated cost:</span>
+              <span className="font-semibold text-foreground">{ESTIMATED_CREDITS} credits</span>
+              <span className="text-muted-foreground">per training video</span>
+            </div>
+          </Card>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8">

@@ -297,6 +297,48 @@ function environmentToPrompt(env: EnvironmentDNA): string {
   return `${env.description}. ${lightingDesc}. ${env.mood} mood and atmosphere. ${env.category} setting.`;
 }
 
+// Shot sequence item from rich templates
+export interface TemplateShotSequence {
+  index: number;
+  title: string;
+  description: string;
+  durationSeconds: number;
+  sceneType: string;
+  cameraScale: string;
+  cameraAngle: string;
+  movementType: string;
+  mood: string;
+  dialogue?: string;
+}
+
+// Style anchor from rich templates
+export interface TemplateStyleAnchor {
+  visualStyle: string;
+  colorGrading: string;
+  lightingStyle: string;
+  cameraPhilosophy: string;
+  pacingNotes: string;
+}
+
+// Character template from rich templates
+export interface TemplateCharacter {
+  name: string;
+  role: string;
+  appearance: string;
+  personality: string;
+  voiceStyle?: string;
+}
+
+// Environment lock from rich templates
+export interface TemplateEnvironmentLock {
+  lighting: string;
+  colorPalette: string;
+  timeOfDay: string;
+  weather: string;
+  location: string;
+  prompt: string;
+}
+
 export interface AppliedSettings {
   concept: string;
   mood: string;
@@ -306,6 +348,12 @@ export interface AppliedSettings {
   environmentPrompt: string;
   templateName?: string;
   environmentName?: string;
+  // Rich template data
+  shotSequence?: TemplateShotSequence[];
+  styleAnchor?: TemplateStyleAnchor;
+  characterTemplates?: TemplateCharacter[];
+  environmentLock?: TemplateEnvironmentLock;
+  pacingStyle?: string;
 }
 
 export function useTemplateEnvironment() {
@@ -362,24 +410,53 @@ export function useTemplateEnvironment() {
         return null;
       }
 
+      // Parse rich template data with proper type casting through unknown
+      const shotSequence = Array.isArray(data.shot_sequence) 
+        ? (data.shot_sequence as unknown as TemplateShotSequence[])
+        : undefined;
+      
+      const styleAnchor = data.style_anchor && typeof data.style_anchor === 'object' && !Array.isArray(data.style_anchor)
+        ? (data.style_anchor as unknown as TemplateStyleAnchor)
+        : undefined;
+      
+      const characterTemplates = Array.isArray(data.character_templates)
+        ? (data.character_templates as unknown as TemplateCharacter[])
+        : undefined;
+      
       let envPrompt = '';
+      let environmentLock: TemplateEnvironmentLock | undefined;
       if (data.environment_lock && typeof data.environment_lock === 'object') {
         const envLock = data.environment_lock as any;
         envPrompt = envLock.prompt || '';
+        environmentLock = envLock as TemplateEnvironmentLock;
+      }
+
+      // Build concept from shot sequence if available
+      let conceptPrompt = data.description || '';
+      if (shotSequence && shotSequence.length > 0) {
+        conceptPrompt = shotSequence.map(shot => 
+          `[${shot.title}] ${shot.description}`
+        ).join('\n\n');
       }
 
       const settings: AppliedSettings = {
-        concept: (data.shot_sequence as any)?.conceptPrompt || data.description || '',
+        concept: conceptPrompt,
         mood: data.mood || 'epic',
         genre: data.genre || 'cinematic',
-        clipCount: data.clip_count || 6,
-        colorGrading: data.color_grading || 'cinematic',
+        clipCount: data.clip_count || shotSequence?.length || 6,
+        colorGrading: data.color_grading || styleAnchor?.colorGrading || 'cinematic',
         environmentPrompt: envPrompt,
         templateName: data.name,
+        // Rich template data
+        shotSequence,
+        styleAnchor,
+        characterTemplates,
+        environmentLock,
+        pacingStyle: data.pacing_style || undefined,
       };
 
       setAppliedSettings(settings);
-      toast.success(`Template "${data.name}" loaded`);
+      toast.success(`Template "${data.name}" loaded with ${shotSequence?.length || data.clip_count || 6} shots`);
       return settings;
     } catch (err) {
       console.error('Error loading template:', err);

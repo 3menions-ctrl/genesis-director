@@ -37,7 +37,7 @@ import {
   LayoutTemplate,
   TreePine
 } from 'lucide-react';
-import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
+import { useTemplateEnvironment, TemplateShotSequence, TemplateStyleAnchor, TemplateCharacter, TemplateEnvironmentLock } from '@/hooks/useTemplateEnvironment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -166,6 +166,13 @@ export function UnifiedStudio() {
   // Applied template/environment info for display
   const [appliedTemplateName, setAppliedTemplateName] = useState<string | null>(null);
   const [appliedEnvironmentName, setAppliedEnvironmentName] = useState<string | null>(null);
+  
+  // Rich template data from database templates
+  const [templateShotSequence, setTemplateShotSequence] = useState<TemplateShotSequence[] | null>(null);
+  const [templateStyleAnchor, setTemplateStyleAnchor] = useState<TemplateStyleAnchor | null>(null);
+  const [templateCharacters, setTemplateCharacters] = useState<TemplateCharacter[] | null>(null);
+  const [templateEnvironmentLock, setTemplateEnvironmentLock] = useState<TemplateEnvironmentLock | null>(null);
+  const [templatePacingStyle, setTemplatePacingStyle] = useState<string | null>(null);
   
   // UI State
   const [currentStage, setCurrentStage] = useState<PipelineStage>('idle');
@@ -359,6 +366,27 @@ export function UnifiedStudio() {
         setAppliedEnvironmentName(appliedSettings.environmentName);
       }
       
+      // Store rich template data for pipeline
+      if (appliedSettings.shotSequence) {
+        setTemplateShotSequence(appliedSettings.shotSequence);
+        // If we have a shot sequence, populate manual prompts with template shots
+        setManualPrompts(appliedSettings.shotSequence.map(shot => 
+          `[${shot.title}] ${shot.description}`
+        ));
+      }
+      if (appliedSettings.styleAnchor) {
+        setTemplateStyleAnchor(appliedSettings.styleAnchor);
+      }
+      if (appliedSettings.characterTemplates) {
+        setTemplateCharacters(appliedSettings.characterTemplates);
+      }
+      if (appliedSettings.environmentLock) {
+        setTemplateEnvironmentLock(appliedSettings.environmentLock);
+      }
+      if (appliedSettings.pacingStyle) {
+        setTemplatePacingStyle(appliedSettings.pacingStyle);
+      }
+      
       // Clear the applied settings after applying
       clearAppliedSettings();
     }
@@ -373,7 +401,7 @@ export function UnifiedStudio() {
   };
 
   const addPrompt = () => {
-    if (clipCount < 6) {
+    if (clipCount < 30) { // Allow up to 30 clips for rich templates
       setClipCount(prev => prev + 1);
       setManualPrompts(prev => [...prev, '']);
     }
@@ -823,6 +851,27 @@ export function UnifiedStudio() {
       if (referenceImageAnalysis) {
         requestBody.referenceImageUrl = referenceImageAnalysis.imageUrl;
         requestBody.referenceImageAnalysis = referenceImageAnalysis;
+      }
+
+      // Pass rich template data if available
+      if (templateShotSequence && templateShotSequence.length > 0) {
+        requestBody.templateShotSequence = templateShotSequence;
+        requestBody.useTemplateShots = true;
+      }
+      if (templateStyleAnchor) {
+        requestBody.templateStyleAnchor = templateStyleAnchor;
+      }
+      if (templateCharacters && templateCharacters.length > 0) {
+        requestBody.templateCharacters = templateCharacters;
+      }
+      if (templateEnvironmentLock) {
+        requestBody.templateEnvironmentLock = templateEnvironmentLock;
+      }
+      if (templatePacingStyle) {
+        requestBody.pacingStyle = templatePacingStyle;
+      }
+      if (appliedTemplateName) {
+        requestBody.templateName = appliedTemplateName;
       }
 
       // Call the unified Hollywood Pipeline (returns immediately, runs in background)

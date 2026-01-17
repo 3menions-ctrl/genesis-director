@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Palette, Search, Sun, Moon, Sunrise, CloudSun,
   TreePine, Waves, Mountain, Home, Sparkles,
-  Check, ArrowRight, X
+  Check, X, TrendingUp, Building2, Flame, 
+  Snowflake, Camera, Zap, Star, Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 // Import generated environment images
@@ -26,21 +27,123 @@ import overcastDramaImg from '@/assets/environments/overcast-drama.jpg';
 
 // Environment presets with generated images
 const ENVIRONMENT_PRESETS = [
+  // TRENDING ENVIRONMENTS
+  {
+    id: 'aesthetic_soft_glow',
+    name: 'Aesthetic Soft Glow',
+    description: 'Dreamy pastel lighting with soft bokeh, perfect for lifestyle and beauty content',
+    category: 'interior',
+    image: goldenHourStudioImg,
+    lighting: { type: 'natural', direction: 'diffused', intensity: 'soft', temperature: 'warm', timeOfDay: 'golden_hour' },
+    colorPalette: { primary: '#FFE4E1', secondary: '#E6E6FA', accent: '#FFB6C1', shadows: '#DDA0DD' },
+    mood: 'dreamy',
+    icon: Heart,
+    is_trending: true,
+    is_popular: true,
+  },
+  {
+    id: 'dark_moody_cinematic',
+    name: 'Dark Moody Cinematic',
+    description: 'High contrast shadows with dramatic rim lighting, Hollywood thriller vibes',
+    category: 'interior',
+    image: neonNoirCityImg,
+    lighting: { type: 'artificial', direction: 'rim', intensity: 'high_contrast', temperature: 'cool', timeOfDay: 'night' },
+    colorPalette: { primary: '#1A1A2E', secondary: '#16213E', accent: '#E94560', shadows: '#0F0F1A' },
+    mood: 'dramatic',
+    icon: Moon,
+    is_trending: true,
+    is_popular: true,
+  },
+  {
+    id: 'y2k_retro_future',
+    name: 'Y2K Retro Future',
+    description: 'Chrome reflections, pink and blue neon, early 2000s aesthetic revival',
+    category: 'interior',
+    image: neonNoirCityImg,
+    lighting: { type: 'artificial', direction: 'multi', intensity: 'vibrant', temperature: 'mixed', timeOfDay: 'night' },
+    colorPalette: { primary: '#FF00FF', secondary: '#00FFFF', accent: '#C0C0C0', shadows: '#4B0082' },
+    mood: 'nostalgic',
+    icon: Star,
+    is_trending: true,
+  },
+  {
+    id: 'cottagecore_warmth',
+    name: 'Cottagecore Warmth',
+    description: 'Soft natural light through lace curtains, rustic countryside charm',
+    category: 'interior',
+    image: cozyFirelightImg,
+    lighting: { type: 'natural', direction: 'window', intensity: 'soft', temperature: 'warm', timeOfDay: 'morning' },
+    colorPalette: { primary: '#F5DEB3', secondary: '#8B7355', accent: '#556B2F', shadows: '#6B4423' },
+    mood: 'cozy',
+    icon: Home,
+    is_trending: true,
+  },
+  {
+    id: 'cyberpunk_neon',
+    name: 'Cyberpunk Neon',
+    description: 'Intense neon blues and pinks, rain-soaked urban dystopia',
+    category: 'exterior',
+    image: neonNoirCityImg,
+    lighting: { type: 'artificial', direction: 'multi', intensity: 'high', temperature: 'cold', timeOfDay: 'night' },
+    colorPalette: { primary: '#FF1493', secondary: '#00CED1', accent: '#7B68EE', shadows: '#0D0D1A' },
+    mood: 'futuristic',
+    icon: Zap,
+    is_trending: true,
+    is_popular: true,
+  },
+  {
+    id: 'sunset_beach_vibes',
+    name: 'Sunset Beach Vibes',
+    description: 'Warm orange and pink sunset over calm ocean, vacation energy',
+    category: 'exterior',
+    image: coastalSerenityImg,
+    lighting: { type: 'natural', direction: 'backlit', intensity: 'warm', temperature: 'very_warm', timeOfDay: 'sunset' },
+    colorPalette: { primary: '#FF6B35', secondary: '#F7931E', accent: '#FFD700', shadows: '#8B4513' },
+    mood: 'relaxed',
+    icon: Sunrise,
+    is_trending: true,
+  },
+  {
+    id: 'clean_white_studio',
+    name: 'Clean White Studio',
+    description: 'Bright, even lighting on pure white backdrop, product photography standard',
+    category: 'interior',
+    image: modernMinimalistImg,
+    lighting: { type: 'artificial', direction: 'even', intensity: 'bright', temperature: 'neutral', timeOfDay: 'controlled' },
+    colorPalette: { primary: '#FFFFFF', secondary: '#F8F8F8', accent: '#E0E0E0', shadows: '#CCCCCC' },
+    mood: 'professional',
+    icon: Camera,
+    is_trending: true,
+  },
+  {
+    id: 'urban_rooftop',
+    name: 'Urban Rooftop',
+    description: 'City skyline backdrop with mixed ambient and artificial lighting',
+    category: 'exterior',
+    image: neonNoirCityImg,
+    lighting: { type: 'mixed', direction: 'ambient', intensity: 'medium', temperature: 'mixed', timeOfDay: 'blue_hour' },
+    colorPalette: { primary: '#2C3E50', secondary: '#34495E', accent: '#E74C3C', shadows: '#1A252F' },
+    mood: 'urban',
+    icon: Building2,
+    is_trending: true,
+  },
+  // CLASSIC ENVIRONMENTS
   {
     id: 'golden_hour_studio',
     name: 'Golden Hour Studio',
-    description: 'Warm natural light streaming through floor-to-ceiling windows, casting long golden shadows',
+    description: 'Warm natural light streaming through floor-to-ceiling windows',
     category: 'interior',
     image: goldenHourStudioImg,
     lighting: { type: 'natural', direction: 'side', intensity: 'soft', temperature: 'warm', timeOfDay: 'golden_hour' },
     colorPalette: { primary: '#D4A056', secondary: '#B87333', accent: '#F5C563', shadows: '#5C3D2E' },
     mood: 'cinematic',
     icon: Sunrise,
+    is_popular: true,
   },
   {
     id: 'neon_noir_city',
     name: 'Neon Noir City',
-    description: 'Rain-slicked streets reflecting vibrant neon signs, moody urban atmosphere',
+    description: 'Rain-slicked streets reflecting vibrant neon signs',
     category: 'exterior',
     image: neonNoirCityImg,
     lighting: { type: 'artificial', direction: 'multi', intensity: 'high_contrast', temperature: 'mixed', timeOfDay: 'night' },
@@ -51,7 +154,7 @@ const ENVIRONMENT_PRESETS = [
   {
     id: 'coastal_serenity',
     name: 'Coastal Serenity',
-    description: 'Soft diffused light with ocean breeze, peaceful beach villa atmosphere',
+    description: 'Soft diffused light with ocean breeze atmosphere',
     category: 'exterior',
     image: coastalSerenityImg,
     lighting: { type: 'natural', direction: 'overhead', intensity: 'bright', temperature: 'neutral', timeOfDay: 'midday' },
@@ -62,7 +165,7 @@ const ENVIRONMENT_PRESETS = [
   {
     id: 'forest_mystique',
     name: 'Forest Mystique',
-    description: 'Dappled sunlight through dense canopy, enchanting woodland setting',
+    description: 'Dappled sunlight through dense canopy',
     category: 'exterior',
     image: forestMystiqueImg,
     lighting: { type: 'natural', direction: 'scattered', intensity: 'dappled', temperature: 'cool', timeOfDay: 'afternoon' },
@@ -73,7 +176,7 @@ const ENVIRONMENT_PRESETS = [
   {
     id: 'modern_minimalist',
     name: 'Modern Minimalist',
-    description: 'Clean lines, neutral tones, and carefully controlled studio lighting',
+    description: 'Clean lines with carefully controlled studio lighting',
     category: 'interior',
     image: modernMinimalistImg,
     lighting: { type: 'artificial', direction: 'diffused', intensity: 'even', temperature: 'neutral', timeOfDay: 'controlled' },
@@ -84,7 +187,7 @@ const ENVIRONMENT_PRESETS = [
   {
     id: 'alpine_dawn',
     name: 'Alpine Dawn',
-    description: 'Crisp mountain air with early morning light painting snow-capped peaks',
+    description: 'Crisp mountain air with early morning light',
     category: 'exterior',
     image: alpineDawnImg,
     lighting: { type: 'natural', direction: 'low_angle', intensity: 'soft', temperature: 'cool', timeOfDay: 'dawn' },
@@ -95,18 +198,18 @@ const ENVIRONMENT_PRESETS = [
   {
     id: 'cozy_firelight',
     name: 'Cozy Firelight',
-    description: 'Warm flickering glow from fireplace, intimate cabin interior',
+    description: 'Warm flickering glow, intimate cabin interior',
     category: 'interior',
     image: cozyFirelightImg,
     lighting: { type: 'fire', direction: 'point', intensity: 'low', temperature: 'very_warm', timeOfDay: 'evening' },
     colorPalette: { primary: '#CD853F', secondary: '#8B4513', accent: '#DEB887', shadows: '#3D1F0F' },
     mood: 'intimate',
-    icon: Sun,
+    icon: Flame,
   },
   {
     id: 'overcast_drama',
     name: 'Overcast Drama',
-    description: 'Soft diffused light from cloudy sky, moody and contemplative atmosphere',
+    description: 'Soft diffused light from cloudy sky',
     category: 'exterior',
     image: overcastDramaImg,
     lighting: { type: 'natural', direction: 'overhead', intensity: 'soft', temperature: 'cool', timeOfDay: 'overcast' },
@@ -114,10 +217,22 @@ const ENVIRONMENT_PRESETS = [
     mood: 'contemplative',
     icon: CloudSun,
   },
+  {
+    id: 'winter_wonderland',
+    name: 'Winter Wonderland',
+    description: 'Bright snow reflection with crisp blue shadows',
+    category: 'exterior',
+    image: alpineDawnImg,
+    lighting: { type: 'natural', direction: 'reflected', intensity: 'bright', temperature: 'very_cool', timeOfDay: 'midday' },
+    colorPalette: { primary: '#E8F4F8', secondary: '#B0C4DE', accent: '#4682B4', shadows: '#5F9EA0' },
+    mood: 'magical',
+    icon: Snowflake,
+  },
 ];
 
 const CATEGORIES = [
-  { id: 'all', label: 'All Environments', icon: Palette },
+  { id: 'all', label: 'All', icon: Palette },
+  { id: 'trending', label: 'Trending', icon: TrendingUp },
   { id: 'interior', label: 'Interior', icon: Home },
   { id: 'exterior', label: 'Exterior', icon: TreePine },
 ];
@@ -132,114 +247,119 @@ function EnvironmentCard({
   index?: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const IconComponent = environment.icon;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative"
+      onClick={onApply}
+      className="group relative cursor-pointer"
     >
-      {/* Card Container */}
+      {/* Card Container - Compact */}
       <div className={cn(
-        "relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer",
-        "bg-muted transition-all duration-500",
-        "shadow-sm hover:shadow-xl"
+        "relative aspect-[3/4] rounded-xl overflow-hidden",
+        "bg-muted transition-all duration-300",
+        "border border-border/50 hover:border-border",
+        "shadow-sm hover:shadow-lg"
       )}>
-        {/* Full Image */}
+        {/* Image */}
         <img 
           src={environment.image} 
           alt={environment.name}
           className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+            "absolute inset-0 w-full h-full object-cover transition-transform duration-500",
             isHovered ? "scale-110" : "scale-100"
           )}
         />
         
-        {/* Subtle gradient overlay always visible at bottom */}
+        {/* Gradient Overlay */}
         <div className={cn(
-          "absolute inset-0 transition-all duration-500",
+          "absolute inset-0 transition-all duration-300",
           isHovered 
-            ? "bg-gradient-to-t from-black/80 via-black/40 to-black/10" 
-            : "bg-gradient-to-t from-black/60 via-transparent to-transparent"
+            ? "bg-gradient-to-t from-black/90 via-black/50 to-black/20" 
+            : "bg-gradient-to-t from-black/70 via-black/20 to-transparent"
         )} />
 
-        {/* Title - Always visible at bottom */}
-        <div className={cn(
-          "absolute bottom-0 left-0 right-0 p-5 transition-all duration-500",
-          isHovered ? "translate-y-[-60px]" : "translate-y-0"
-        )}>
-          <h3 className="text-xl font-semibold text-white mb-1 drop-shadow-lg">
-            {environment.name}
-          </h3>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs capitalize">
-              {environment.category}
-            </Badge>
-            <Badge variant="outline" className="bg-white/10 backdrop-blur-sm border-white/30 text-white/90 text-xs capitalize">
-              {environment.mood}
-            </Badge>
+        {/* Badges - Top */}
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+          <div className="flex gap-1">
+            {environment.is_trending && (
+              <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5">
+                <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
+                Hot
+              </Badge>
+            )}
+            {environment.is_popular && (
+              <Badge className="bg-rose-500/90 text-white border-0 text-[10px] px-1.5 py-0.5">
+                <Heart className="w-2.5 h-2.5 mr-0.5" />
+                Popular
+              </Badge>
+            )}
+          </div>
+          <div className="w-6 h-6 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+            <IconComponent className="w-3 h-3 text-white" />
           </div>
         </div>
 
-        {/* Expanded info on hover */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="absolute bottom-0 left-0 right-0 p-5"
-            >
-              <p className="text-sm text-white/80 mb-4 line-clamp-2">
-                {environment.description}
-              </p>
-              
-              {/* Color Palette */}
-              <div className="flex items-center gap-2 mb-4">
-                {Object.values(environment.colorPalette).map((color, i) => (
-                  <div
-                    key={i}
-                    className="w-6 h-6 rounded-full shadow-lg border-2 border-white/30"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-              
-              <Button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onApply();
-                }}
-                className="w-full bg-white text-foreground hover:bg-white/90 rounded-xl h-11 font-medium shadow-lg"
-              >
-                Apply Environment
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Quick Apply - Hover */}
+        {isHovered && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-lg z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onApply();
+            }}
+          >
+            <Check className="w-4 h-4 text-foreground" />
+          </motion.button>
+        )}
 
-        {/* Quick apply button - top right */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onApply();
-              }}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-            >
-              <Check className="w-5 h-5 text-foreground" />
-            </motion.button>
-          )}
-        </AnimatePresence>
+        {/* Content - Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          <h3 className="text-sm font-semibold text-white mb-1 line-clamp-1">
+            {environment.name}
+          </h3>
+          
+          {/* Show description on hover */}
+          <div className={cn(
+            "transition-all duration-300 overflow-hidden",
+            isHovered ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <p className="text-[11px] text-white/70 mb-2 line-clamp-2">
+              {environment.description}
+            </p>
+          </div>
+          
+          {/* Tags */}
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90 text-[10px] px-1.5 py-0 capitalize">
+              {environment.category}
+            </Badge>
+            <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90 text-[10px] px-1.5 py-0 capitalize">
+              {environment.mood}
+            </Badge>
+          </div>
+          
+          {/* Color Palette - Hover */}
+          <div className={cn(
+            "flex items-center gap-1 mt-2 transition-all duration-300",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}>
+            {Object.values(environment.colorPalette).slice(0, 4).map((color, i) => (
+              <div
+                key={i}
+                className="w-4 h-4 rounded-full border border-white/30"
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -257,6 +377,10 @@ export default function Environments() {
       env.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       env.mood.toLowerCase().includes(searchQuery.toLowerCase());
     
+    if (activeCategory === 'trending') {
+      return matchesSearch && env.is_trending;
+    }
+    
     const matchesCategory = activeCategory === 'all' || env.category === activeCategory;
     
     return matchesSearch && matchesCategory;
@@ -271,77 +395,61 @@ export default function Environments() {
     <div className="min-h-screen bg-background">
       <AppHeader showCreate={false} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Compact Header */}
         <motion.div 
-          className="text-center mb-16"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-foreground mb-6 shadow-lg">
-            <Palette className="w-8 h-8 text-background" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Environments
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {filteredEnvironments.length} visual atmospheres for your production
+            </p>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-4">
-            Environment Library
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Choose a visual atmosphere to define the lighting, colors, and mood of your production
-          </p>
-        </motion.div>
-
-        {/* Search and Filters */}
-        <motion.div 
-          className="flex flex-col sm:flex-row gap-4 mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
+          
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search environments..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-12 bg-card border-border rounded-xl"
+              className="pl-9 h-9 bg-card border-border rounded-lg text-sm"
             />
           </div>
-          
-          {/* Category Filters */}
-          <div className="flex gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
-                  activeCategory === cat.id
-                    ? "bg-foreground text-background shadow-md"
-                    : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
-                )}
-              >
-                <cat.icon className="w-4 h-4" />
-                {cat.label}
-              </button>
-            ))}
-          </div>
         </motion.div>
 
-        {/* Results count */}
-        <motion.div
-          className="mb-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
+        {/* Category Pills */}
+        <motion.div 
+          className="flex gap-2 mb-6 overflow-x-auto pb-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <p className="text-sm text-muted-foreground">
-            {filteredEnvironments.length} environment{filteredEnvironments.length !== 1 ? 's' : ''} available
-          </p>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap",
+                activeCategory === cat.id
+                  ? "bg-foreground text-background"
+                  : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
+              )}
+            >
+              <cat.icon className="w-3 h-3" />
+              {cat.label}
+            </button>
+          ))}
         </motion.div>
 
-        {/* Environments Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Environments Grid - Compact 6 columns */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredEnvironments.map((environment, index) => (
             <EnvironmentCard
               key={environment.id}
@@ -355,21 +463,22 @@ export default function Environments() {
         {/* Empty State */}
         {filteredEnvironments.length === 0 && (
           <motion.div 
-            className="text-center py-20"
+            className="text-center py-16"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No environments found</h3>
-            <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
+            <h3 className="text-sm font-semibold text-foreground mb-1">No environments found</h3>
+            <p className="text-xs text-muted-foreground mb-3">Try adjusting your search or filters</p>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-              className="rounded-xl"
+              className="rounded-lg text-xs"
             >
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-3 h-3 mr-1.5" />
               Clear Filters
             </Button>
           </motion.div>

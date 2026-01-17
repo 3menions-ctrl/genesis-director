@@ -116,6 +116,8 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -128,7 +130,6 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    // Stagger loading to avoid overwhelming the browser
     const preloadTimer = setTimeout(() => {
       vid.load();
     }, index * 150);
@@ -162,7 +163,7 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Stylized fallback background with title */}
+      {/* Stylized fallback background - always visible as base layer */}
       <div className="absolute inset-0 flex items-end bg-gradient-to-br from-primary/20 via-muted to-accent/20">
         <div className="p-4 w-full">
           <div className="flex items-center gap-2 mb-2">
@@ -175,13 +176,28 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         </div>
       </div>
 
-      {/* Video element - shows first frame as poster when loaded */}
+      {/* Thumbnail image - shows immediately when loaded */}
+      {!thumbnailError && (
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          onLoad={() => setThumbnailLoaded(true)}
+          onError={() => setThumbnailError(true)}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+            thumbnailLoaded ? "opacity-100" : "opacity-0",
+            isHovering ? "scale-105" : "scale-100"
+          )}
+        />
+      )}
+
+      {/* Video element - only visible on hover when ready */}
       <video
         ref={videoRef}
         src={video.url}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isHovering ? "scale-105" : "scale-100"
+          isHovering && isVideoReady ? "opacity-100 scale-105" : "opacity-0 scale-100"
         )}
         muted
         loop

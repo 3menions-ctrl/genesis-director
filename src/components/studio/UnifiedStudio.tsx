@@ -1081,58 +1081,79 @@ export function UnifiedStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-24 sm:pb-32 relative overflow-hidden">
-      {/* Background effects - Hidden on mobile for performance */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden hidden sm:block">
-        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-500/[0.03] to-transparent blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-blue-500/[0.02] to-transparent blur-[150px]" />
+    <div className="min-h-screen bg-gradient-to-br from-[#030308] via-[#0a0a12] to-[#050510] pb-24 sm:pb-32 relative overflow-hidden">
+      {/* Premium Ambient Background Effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Primary ambient orbs */}
+        <div className="absolute top-[-30%] left-[-15%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-violet-600/[0.08] via-purple-500/[0.04] to-transparent blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-25%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-cyan-500/[0.06] via-blue-500/[0.03] to-transparent blur-[140px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-emerald-500/[0.04] to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        
+        {/* Subtle grid pattern overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px'
+          }}
+        />
+        
+        {/* Radial vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
       </div>
-      {/* Professional Dark Header - Compact on mobile */}
+
+      {/* Premium Glass Header */}
       <header className="sticky top-0 z-50">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="bg-[#0a0a0a]/95 backdrop-blur-2xl">
+        {/* Gradient border line */}
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent blur-sm" />
+        
+        <div className="bg-black/40 backdrop-blur-2xl border-b border-white/[0.05]">
           <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="h-14 sm:h-16 flex items-center justify-between">
-              {/* Left - Logo & Branding */}
+              {/* Left - Logo & Branding with glow */}
               <button 
                 onClick={() => navigate('/projects')} 
                 className="flex items-center gap-2 sm:gap-3 group"
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center group-hover:border-white/20 transition-all">
-                    <Film className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
+                  <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500" />
+                  <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white/[0.12] to-white/[0.04] border border-white/[0.15] flex items-center justify-center group-hover:border-violet-400/40 group-hover:from-violet-500/20 group-hover:to-purple-500/10 transition-all duration-300 shadow-lg shadow-black/20">
+                    <Film className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 group-hover:text-violet-300 transition-colors" />
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <span className="text-lg font-bold text-white tracking-tight">Create</span>
-                  <p className="text-[11px] text-white/40 -mt-0.5">AI Video Studio</p>
+                  <span className="text-lg font-bold bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent tracking-tight">Create</span>
+                  <p className="text-[11px] text-white/40 -mt-0.5 font-medium">AI Video Studio</p>
                 </div>
               </button>
               
-              {/* Center - Stats Pills - Compact on mobile */}
+              {/* Center - Premium Glass Stats Pills */}
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm">
-                  <Clock className="w-3.5 h-3.5 text-white/50" />
-                  <span className="font-medium text-white/80">{totalDuration}s</span>
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] text-sm shadow-lg shadow-black/10">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400/80" />
+                  <span className="font-semibold text-white/90">{totalDuration}s</span>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-xs sm:text-sm">
-                  <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/50" />
-                  <span className="font-medium text-white/80">{clipCount}</span>
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] text-xs sm:text-sm shadow-lg shadow-black/10">
+                  <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400/80" />
+                  <span className="font-semibold text-white/90">{clipCount}</span>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white text-black text-xs sm:text-sm font-semibold shadow-lg shadow-white/10">
-                  <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>~{estimatedCredits}</span>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/40 to-orange-500/40 blur-lg opacity-60 group-hover:opacity-80 transition-opacity rounded-full" />
+                  <div className="relative flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-black text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/25">
+                    <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span>~{estimatedCredits}</span>
+                  </div>
                 </div>
               </div>
               
-              {/* Right - Navigation - Hidden on mobile, icon only on small screens */}
+              {/* Right - Navigation */}
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => navigate('/projects')}
-                  className="h-8 sm:h-9 px-2 sm:px-4 text-white/60 hover:text-white hover:bg-white/[0.06] rounded-full text-sm font-medium"
+                  className="h-8 sm:h-9 px-2 sm:px-4 text-white/60 hover:text-white hover:bg-white/[0.08] rounded-full text-sm font-medium transition-all duration-200"
                 >
                   <Eye className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">Library</span>
@@ -1149,56 +1170,66 @@ export function UnifiedStudio() {
           <PromotionalBanner />
         </div>
         
-        {/* Hero Section - Compact on mobile */}
-        <div className="text-center space-y-2 sm:space-y-3 mb-4 sm:mb-8">
+        {/* Premium Hero Section */}
+        <div className="text-center space-y-3 sm:space-y-4 mb-4 sm:mb-8">
           {/* Project Title - Show when a project is active */}
           {activeProjectId && projectTitle && currentStage === 'idle' && (
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Badge variant="outline" className="bg-white/5 border-white/10 text-white/70 text-xs px-3 py-1">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Badge variant="outline" className="bg-violet-500/10 border-violet-500/30 text-violet-300 text-xs px-4 py-1.5 backdrop-blur-sm">
                 <Film className="w-3 h-3 mr-1.5" />
                 {projectTitle}
               </Badge>
             </div>
           )}
           
-          <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-white">
-            What will you create?
-          </h2>
-          <p className="text-sm sm:text-base text-white/50 max-w-xl mx-auto hidden sm:block">
+          {/* Glowing title */}
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-cyan-500/20 blur-3xl" />
+            <h2 className="relative text-3xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+              What will you create?
+            </h2>
+          </div>
+          <p className="text-sm sm:text-base text-white/50 max-w-xl mx-auto hidden sm:block font-medium">
             Transform your ideas into stunning videos with AI-powered production
           </p>
           
-          {/* Template/Environment Applied Indicator - Compact on mobile */}
+          {/* Template/Environment Applied Indicator - Premium pills */}
           {(appliedTemplateName || appliedEnvironmentName) && (
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2 pt-1 sm:pt-2 flex-wrap">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 pt-2 sm:pt-3 flex-wrap">
               {appliedTemplateName && (
-                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-violet-500/20 border border-violet-500/30">
-                  <LayoutTemplate className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400" />
-                  <span className="text-xs sm:text-sm font-medium text-violet-300 truncate max-w-[100px] sm:max-w-none">{appliedTemplateName}</span>
-                  <button 
-                    onClick={() => {
-                      setAppliedTemplateName(null);
-                      setConcept('');
-                    }}
-                    className="ml-0.5 sm:ml-1 text-violet-400 hover:text-violet-300"
-                  >
-                    <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
+                <div className="group relative">
+                  <div className="absolute inset-0 bg-violet-500/30 blur-lg opacity-60 rounded-full" />
+                  <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-400/40 backdrop-blur-xl">
+                    <LayoutTemplate className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-300" />
+                    <span className="text-xs sm:text-sm font-semibold text-violet-200 truncate max-w-[100px] sm:max-w-none">{appliedTemplateName}</span>
+                    <button 
+                      onClick={() => {
+                        setAppliedTemplateName(null);
+                        setConcept('');
+                      }}
+                      className="ml-0.5 sm:ml-1 text-violet-300 hover:text-white transition-colors"
+                    >
+                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
               {appliedEnvironmentName && (
-                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                  <TreePine className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
-                  <span className="text-xs sm:text-sm font-medium text-emerald-300 truncate max-w-[100px] sm:max-w-none">{appliedEnvironmentName}</span>
-                  <button 
-                    onClick={() => {
-                      setAppliedEnvironmentName(null);
-                      setEnvironmentPrompt('');
-                    }}
-                    className="ml-0.5 sm:ml-1 text-emerald-400 hover:text-emerald-300"
-                  >
-                    <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
+                <div className="group relative">
+                  <div className="absolute inset-0 bg-emerald-500/30 blur-lg opacity-60 rounded-full" />
+                  <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/40 backdrop-blur-xl">
+                    <TreePine className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
+                    <span className="text-xs sm:text-sm font-semibold text-emerald-200 truncate max-w-[100px] sm:max-w-none">{appliedEnvironmentName}</span>
+                    <button 
+                      onClick={() => {
+                        setAppliedEnvironmentName(null);
+                        setEnvironmentPrompt('');
+                      }}
+                      className="ml-0.5 sm:ml-1 text-emerald-300 hover:text-white transition-colors"
+                    >
+                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1228,229 +1259,245 @@ export function UnifiedStudio() {
           />
         )}
 
-        {/* Mode Selection Tabs - Compact on mobile */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-sm">
-          <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-            <div className="border-b border-white/[0.06] bg-white/[0.02] p-2 sm:p-3">
-              <TabsList className="grid w-full grid-cols-2 h-10 sm:h-12 bg-white/[0.03] p-1 rounded-lg sm:rounded-xl border border-white/[0.05]">
-                <TabsTrigger 
-                  value="ai" 
-                  disabled={isRunning}
-                  className="gap-1.5 sm:gap-2.5 rounded-md sm:rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
-                >
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="font-semibold">AI</span>
-                  <span className="hidden sm:inline font-semibold">Hollywood</span>
-                  <Badge className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 h-3.5 sm:h-4 hidden md:flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
-                    PRO
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="manual" 
-                  disabled={isRunning}
-                  className="gap-1.5 sm:gap-2.5 rounded-md sm:rounded-lg text-white/60 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
-                >
-                  <Clapperboard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="font-semibold">Manual</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* AI Mode */}
-            <TabsContent value="ai" className="m-0 p-3 sm:p-6 space-y-4 sm:space-y-6 bg-white/[0.01]">
-              {/* Concept Input - Hero Section */}
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold flex items-center gap-2 text-white/90">
-                  <Sparkles className="w-4 h-4 text-violet-400" />
-                  Story Concept
-                </Label>
-                <div className="relative">
-                  <Textarea
-                    value={concept}
-                    onChange={(e) => setConcept(e.target.value)}
-                    placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins."
-                    rows={4}
+        {/* Premium Glass Mode Selection Tabs */}
+        <div className="relative group">
+          {/* Glow effect behind card */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-purple-500/10 to-cyan-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+          
+          <div className="relative bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.02] border border-white/[0.12] rounded-2xl sm:rounded-3xl overflow-hidden backdrop-blur-2xl shadow-2xl shadow-black/20">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
+              {/* Premium tab header */}
+              <div className="border-b border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-white/[0.04] p-2.5 sm:p-4">
+                <TabsList className="grid w-full grid-cols-2 h-11 sm:h-14 bg-black/30 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-white/[0.08] backdrop-blur-xl">
+                  <TabsTrigger 
+                    value="ai" 
                     disabled={isRunning}
-                    className="resize-none text-base leading-relaxed pr-4 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-white/20 focus:ring-2 focus:ring-white/10"
-                  />
-                  {concept.length > 0 && (
-                    <div className="absolute bottom-3 right-3 text-xs text-white/40">
-                      {concept.length} chars
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Creative Options Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Mood</Label>
-                  <Select value={mood} onValueChange={setMood} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
-                      {MOOD_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">
-                          <span className="flex items-center gap-2">
-                            <span>{opt.icon}</span>
-                            <span>{opt.label}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Genre</Label>
-                  <Select value={genre} onValueChange={setGenre} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
-                      {GENRE_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Color</Label>
-                  <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
-                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
-                      {COLOR_PRESETS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white">{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-white/50 uppercase tracking-wide">Clips</Label>
-                  <Select 
-                    value={clipCount.toString()} 
-                    onValueChange={(v) => setClipCount(parseInt(v))} 
-                    disabled={isRunning}
+                    className="gap-2 sm:gap-3 rounded-lg sm:rounded-xl text-white/60 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/30 transition-all duration-300 text-xs sm:text-sm font-semibold"
                   >
-                    <SelectTrigger className="h-10 bg-white/[0.03] border-white/[0.08] text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/[0.1]">
-                      {[2, 3, 4, 5, 6].map(n => (
-                        <SelectItem key={n} value={n.toString()} className="text-white/80 focus:bg-white/10 focus:text-white">
-                          {n} clips ({n * CLIP_DURATION}s)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>AI</span>
+                    <span className="hidden sm:inline">Hollywood</span>
+                    <Badge className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 h-4 sm:h-5 hidden md:flex bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 font-bold">
+                      PRO
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="manual" 
+                    disabled={isRunning}
+                    className="gap-2 sm:gap-3 rounded-lg sm:rounded-xl text-white/60 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/30 transition-all duration-300 text-xs sm:text-sm font-semibold"
+                  >
+                    <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Manual</span>
+                  </TabsTrigger>
+                </TabsList>
               </div>
 
-              {/* Feature Toggles */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
-                  includeVoice 
-                    ? "bg-white/[0.08] border-white/20" 
-                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
-                )}
-                onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
-                >
-                  <Switch
-                    id="voice"
-                    checked={includeVoice}
-                    onCheckedChange={setIncludeVoice}
-                    disabled={isRunning}
-                    className="scale-90"
-                  />
-                  <Label htmlFor="voice" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
-                    <Mic className="w-4 h-4" />
-                    Narration
+              {/* AI Mode - Premium styling */}
+              <TabsContent value="ai" className="m-0 p-4 sm:p-8 space-y-5 sm:space-y-8 bg-gradient-to-b from-transparent to-white/[0.01]">
+                {/* Concept Input - Hero Section with glow */}
+                <div className="space-y-4">
+                  <Label className="text-sm sm:text-base font-semibold flex items-center gap-2 text-white">
+                    <div className="p-1.5 rounded-lg bg-violet-500/20 border border-violet-500/30">
+                      <Sparkles className="w-4 h-4 text-violet-400" />
+                    </div>
+                    Story Concept
                   </Label>
-                </div>
-                
-                <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
-                  includeMusic 
-                    ? "bg-white/[0.08] border-white/20" 
-                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
-                )}
-                onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
-                >
-                  <Switch
-                    id="music"
-                    checked={includeMusic}
-                    onCheckedChange={setIncludeMusic}
-                    disabled={isRunning}
-                    className="scale-90"
-                  />
-                  <Label htmlFor="music" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
-                    <Music className="w-4 h-4" />
-                    Music
-                  </Label>
+                  <div className="relative group/input">
+                    {/* Input glow effect */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/30 via-purple-500/20 to-cyan-500/30 rounded-2xl blur-lg opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-300" />
+                    <Textarea
+                      value={concept}
+                      onChange={(e) => setConcept(e.target.value)}
+                      placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins."
+                      rows={4}
+                      disabled={isRunning}
+                      className="relative resize-none text-base sm:text-lg leading-relaxed pr-4 bg-black/40 border-white/[0.12] text-white placeholder:text-white/30 focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-200"
+                    />
+                    {concept.length > 0 && (
+                      <div className="absolute bottom-3 right-3 text-xs text-white/40 font-medium">
+                        {concept.length} chars
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {qualityTier === 'professional' && (
+                {/* Premium Creative Options Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="space-y-2.5">
+                    <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Mood</Label>
+                    <Select value={mood} onValueChange={setMood} disabled={isRunning}>
+                      <SelectTrigger className="h-11 sm:h-12 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                        {MOOD_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg">
+                            <span className="flex items-center gap-2">
+                              <span className="text-lg">{opt.icon}</span>
+                              <span className="font-medium">{opt.label}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Genre</Label>
+                    <Select value={genre} onValueChange={setGenre} disabled={isRunning}>
+                      <SelectTrigger className="h-11 sm:h-12 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                        {GENRE_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Color</Label>
+                    <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
+                      <SelectTrigger className="h-11 sm:h-12 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                        {COLOR_PRESETS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Clips</Label>
+                    <Select 
+                      value={clipCount.toString()} 
+                      onValueChange={(v) => setClipCount(parseInt(v))} 
+                      disabled={isRunning}
+                    >
+                      <SelectTrigger className="h-11 sm:h-12 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                        {[2, 3, 4, 5, 6].map(n => (
+                          <SelectItem key={n} value={n.toString()} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">
+                            {n} clips ({n * CLIP_DURATION}s)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Premium Feature Toggles */}
+                <div className="flex flex-wrap items-center gap-3 pt-3">
                   <div className={cn(
-                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
-                    includeSfx 
-                      ? "bg-cyan-500/20 border-cyan-500/40" 
-                      : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
+                    "flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all duration-300 cursor-pointer backdrop-blur-xl",
+                    includeVoice 
+                      ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-400/40 shadow-lg shadow-cyan-500/10" 
+                      : "bg-black/30 border-white/[0.1] hover:border-white/20 hover:bg-white/[0.05]"
                   )}
-                  onClick={() => !isRunning && setIncludeSfx(!includeSfx)}
+                  onClick={() => !isRunning && setIncludeVoice(!includeVoice)}
                   >
                     <Switch
-                      id="sfx"
-                      checked={includeSfx}
-                      onCheckedChange={setIncludeSfx}
+                      id="voice"
+                      checked={includeVoice}
+                      onCheckedChange={setIncludeVoice}
                       disabled={isRunning}
                       className="scale-90"
                     />
-                    <Label htmlFor="sfx" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
-                      <Volume2 className="w-4 h-4" />
-                      SFX
+                    <Label htmlFor="voice" className="flex items-center gap-2 text-sm font-semibold cursor-pointer text-white/90">
+                      <Mic className={cn("w-4 h-4", includeVoice ? "text-cyan-400" : "text-white/60")} />
+                      Narration
                     </Label>
                   </div>
-                )}
-                
-                <div className="flex-1" />
-                
-                <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer",
-                  qualityTier === 'professional' 
-                    ? "bg-emerald-500/20 border-emerald-500/40" 
-                    : "bg-white/[0.02] border-white/[0.08] hover:border-white/15"
-                )}
-                onClick={() => {
-                  if (!isRunning) {
-                    const newTier = qualityTier === 'professional' ? 'standard' : 'professional';
-                    setQualityTier(newTier);
-                    if (newTier === 'professional') setIncludeSfx(true);
-                  }
-                }}
-                >
-                  <Switch
-                    id="proTier"
-                    checked={qualityTier === 'professional'}
-                    onCheckedChange={(checked) => {
-                      setQualityTier(checked ? 'professional' : 'standard');
-                      if (checked) setIncludeSfx(true);
+                  
+                  <div className={cn(
+                    "flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all duration-300 cursor-pointer backdrop-blur-xl",
+                    includeMusic 
+                      ? "bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-400/40 shadow-lg shadow-pink-500/10" 
+                      : "bg-black/30 border-white/[0.1] hover:border-white/20 hover:bg-white/[0.05]"
+                  )}
+                  onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
+                  >
+                    <Switch
+                      id="music"
+                      checked={includeMusic}
+                      onCheckedChange={setIncludeMusic}
+                      disabled={isRunning}
+                      className="scale-90"
+                    />
+                    <Label htmlFor="music" className="flex items-center gap-2 text-sm font-semibold cursor-pointer text-white/90">
+                      <Music className={cn("w-4 h-4", includeMusic ? "text-pink-400" : "text-white/60")} />
+                      Music
+                    </Label>
+                  </div>
+
+                  {qualityTier === 'professional' && (
+                    <div className={cn(
+                      "flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all duration-300 cursor-pointer backdrop-blur-xl",
+                      includeSfx 
+                        ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-400/40 shadow-lg shadow-amber-500/10" 
+                        : "bg-black/30 border-white/[0.1] hover:border-white/20 hover:bg-white/[0.05]"
+                    )}
+                    onClick={() => !isRunning && setIncludeSfx(!includeSfx)}
+                    >
+                      <Switch
+                        id="sfx"
+                        checked={includeSfx}
+                        onCheckedChange={setIncludeSfx}
+                        disabled={isRunning}
+                        className="scale-90"
+                      />
+                      <Label htmlFor="sfx" className="flex items-center gap-2 text-sm font-semibold cursor-pointer text-white/90">
+                        <Volume2 className={cn("w-4 h-4", includeSfx ? "text-amber-400" : "text-white/60")} />
+                        SFX
+                      </Label>
+                    </div>
+                  )}
+                  
+                  <div className="flex-1" />
+                  
+                  {/* Premium Pro Quality Toggle */}
+                  <div className="relative group/pro">
+                    <div className={cn(
+                      "absolute -inset-1 rounded-2xl blur-lg transition-opacity duration-300",
+                      qualityTier === 'professional' ? "bg-gradient-to-r from-emerald-500/40 to-teal-500/40 opacity-60" : "opacity-0"
+                    )} />
+                    <div className={cn(
+                      "relative flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all duration-300 cursor-pointer backdrop-blur-xl",
+                      qualityTier === 'professional' 
+                        ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-emerald-400/50" 
+                        : "bg-black/30 border-white/[0.1] hover:border-white/20 hover:bg-white/[0.05]"
+                    )}
+                    onClick={() => {
+                      if (!isRunning) {
+                        const newTier = qualityTier === 'professional' ? 'standard' : 'professional';
+                        setQualityTier(newTier);
+                        if (newTier === 'professional') setIncludeSfx(true);
+                      }
                     }}
-                    disabled={isRunning}
-                    className="scale-90"
-                  />
-                  <Label htmlFor="proTier" className="flex items-center gap-2 text-sm font-medium cursor-pointer text-white/80">
-                    <Shield className="w-4 h-4" />
-                    Pro Quality
-                  </Label>
+                    >
+                      <Switch
+                        id="proTier"
+                        checked={qualityTier === 'professional'}
+                        onCheckedChange={(checked) => {
+                          setQualityTier(checked ? 'professional' : 'standard');
+                          if (checked) setIncludeSfx(true);
+                        }}
+                        disabled={isRunning}
+                        className="scale-90"
+                      />
+                      <Label htmlFor="proTier" className="flex items-center gap-2 text-sm font-bold cursor-pointer text-white">
+                        <Shield className={cn("w-4 h-4", qualityTier === 'professional' ? "text-emerald-400" : "text-white/60")} />
+                        Pro Quality
+                      </Label>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
             {/* Manual Mode */}
             <TabsContent value="manual" className="m-0 p-5 sm:p-6 space-y-6 bg-white/[0.01]">

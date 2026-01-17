@@ -114,16 +114,56 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const posterVideoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
-  const [thumbnailError, setThumbnailError] = useState(false);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [posterLoading, setPosterLoading] = useState(true);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
     medium: 'h-52 md:h-64',
     short: 'h-40 md:h-48',
   };
+
+  // Extract first frame from video as poster
+  useEffect(() => {
+    const posterVideo = posterVideoRef.current;
+    const canvas = canvasRef.current;
+    if (!posterVideo || !canvas || posterUrl) return;
+
+    const handleLoadedData = () => {
+      // Seek to first frame
+      posterVideo.currentTime = 0.1;
+    };
+
+    const handleSeeked = () => {
+      try {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = posterVideo.videoWidth;
+          canvas.height = posterVideo.videoHeight;
+          ctx.drawImage(posterVideo, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setPosterUrl(dataUrl);
+          setPosterLoading(false);
+        }
+      } catch (e) {
+        setPosterLoading(false);
+      }
+    };
+
+    posterVideo.addEventListener('loadeddata', handleLoadedData);
+    posterVideo.addEventListener('seeked', handleSeeked);
+    posterVideo.load();
+
+    return () => {
+      posterVideo.removeEventListener('loadeddata', handleLoadedData);
+      posterVideo.removeEventListener('seeked', handleSeeked);
+    };
+  }, [posterUrl, video.url]);
 
   // Start loading video when user hovers
   useEffect(() => {
@@ -159,20 +199,33 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Fallback background with title */}
+      {/* Hidden video and canvas for extracting poster frame */}
+      <video
+        ref={posterVideoRef}
+        src={video.url}
+        className="hidden"
+        muted
+        playsInline
+        preload="metadata"
+        crossOrigin="anonymous"
+      />
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Fallback background with loading state */}
       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/10">
-        <div className="text-center p-4">
-          <Film className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-          <span className="text-sm text-muted-foreground/70 line-clamp-2">{video.title}</span>
-        </div>
+        {posterLoading && (
+          <div className="text-center p-4">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+            <span className="text-xs text-muted-foreground/70">Loading...</span>
+          </div>
+        )}
       </div>
 
-      {/* Thumbnail poster image - always visible until hover */}
-      {!thumbnailError && (
+      {/* Extracted poster image - always visible until hover */}
+      {posterUrl && (
         <img
-          src={video.thumbnail}
+          src={posterUrl}
           alt={video.title}
-          onError={() => setThumbnailError(true)}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-all duration-500",
             isHovering ? "scale-105 opacity-0" : "scale-100 opacity-100"
@@ -184,7 +237,6 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
       <video
         ref={videoRef}
         src={video.url}
-        poster={video.thumbnail}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-700",
           isHovering && isVideoReady ? "scale-105 opacity-100" : "scale-100 opacity-0"

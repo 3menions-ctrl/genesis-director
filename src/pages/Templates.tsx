@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,7 +39,7 @@ const CATEGORIES = [
   { id: 'corporate', label: 'Corporate', icon: Briefcase },
 ];
 
-// Built-in featured templates with varying heights for masonry
+// Built-in templates with varying heights for masonry
 const BUILT_IN_TEMPLATES = [
   {
     id: 'featured-1',
@@ -53,7 +53,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'epic',
     genre: 'ad',
     is_featured: true,
-    height: 'tall',
+    height: 'tall' as const,
   },
   {
     id: 'featured-2',
@@ -67,7 +67,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'documentary',
     is_featured: true,
-    height: 'medium',
+    height: 'medium' as const,
   },
   {
     id: 'featured-3',
@@ -81,7 +81,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'vlog',
     is_featured: true,
-    height: 'short',
+    height: 'short' as const,
   },
   {
     id: 'template-edu-1',
@@ -95,7 +95,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'educational',
     is_featured: false,
-    height: 'tall',
+    height: 'tall' as const,
   },
   {
     id: 'template-story-1',
@@ -109,7 +109,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'storytelling',
     is_featured: false,
-    height: 'medium',
+    height: 'medium' as const,
   },
   {
     id: 'template-noir-1',
@@ -123,7 +123,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'mysterious',
     genre: 'cinematic',
     is_featured: false,
-    height: 'tall',
+    height: 'tall' as const,
   },
   {
     id: 'template-action-1',
@@ -137,7 +137,7 @@ const BUILT_IN_TEMPLATES = [
     mood: 'action',
     genre: 'cinematic',
     is_featured: false,
-    height: 'short',
+    height: 'short' as const,
   },
   {
     id: 'template-corp-1',
@@ -151,19 +151,23 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'corporate',
     is_featured: false,
-    height: 'medium',
+    height: 'medium' as const,
   },
 ];
 
-function MasonryCard({ 
+type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
+
+interface MasonryCardProps {
+  template: TemplateItem;
+  onUse: () => void;
+  isFeatured?: boolean;
+}
+
+const MasonryCard = forwardRef<HTMLDivElement, MasonryCardProps>(({ 
   template, 
   onUse, 
   isFeatured = false,
-}: { 
-  template: typeof BUILT_IN_TEMPLATES[0]; 
-  onUse: () => void;
-  isFeatured?: boolean;
-}) {
+}, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   
@@ -178,23 +182,21 @@ function MasonryCard({
   };
 
   return (
-    <motion.div
-      className={cn("relative group cursor-pointer", getHeightClass())}
+    <div
+      ref={ref}
+      className={cn("relative group cursor-pointer h-full", getHeightClass())}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
       onClick={() => setIsPressed(!isPressed)}
       onDoubleClick={onUse}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {/* Card Container */}
       <div className={cn(
-        "relative h-full w-full overflow-hidden rounded-2xl",
-        "bg-gradient-to-br from-white/[0.08] to-white/[0.02]",
-        "border border-white/[0.08] hover:border-white/20",
+        "relative h-full w-full overflow-hidden rounded-xl",
+        "bg-neutral-900",
+        "border border-white/[0.06] hover:border-white/20",
         "transition-all duration-500",
-        showContent && "border-white/30 shadow-2xl shadow-violet-500/20"
+        showContent && "border-white/40 shadow-2xl shadow-black/50"
       )}>
         {/* Background Image */}
         {template.thumbnail_url ? (
@@ -203,25 +205,25 @@ function MasonryCard({
               src={template.thumbnail_url} 
               alt={template.name}
               className={cn(
-                "w-full h-full object-cover transition-all duration-700",
-                showContent ? "scale-110 blur-sm" : "scale-100"
+                "w-full h-full object-cover transition-all duration-700 grayscale",
+                showContent ? "scale-110 blur-sm grayscale-0" : "scale-100"
               )}
             />
             <div className={cn(
               "absolute inset-0 transition-all duration-500",
               showContent 
                 ? "bg-gradient-to-t from-black via-black/80 to-black/40" 
-                : "bg-gradient-to-t from-black/60 via-transparent to-transparent"
+                : "bg-gradient-to-t from-black/80 via-black/20 to-transparent"
             )} />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-fuchsia-500/20" />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
         )}
 
         {/* Featured Badge - Always visible */}
         {isFeatured && (
-          <div className="absolute top-4 left-4 z-20">
-            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg backdrop-blur-sm">
+          <div className="absolute top-3 left-3 z-20">
+            <Badge className="bg-white text-black border-0 shadow-lg text-[10px] font-bold uppercase tracking-wider">
               <Star className="w-3 h-3 mr-1" />
               Featured
             </Badge>
@@ -236,42 +238,42 @@ function MasonryCard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-10 flex flex-col justify-end p-5"
+              className="absolute inset-0 z-10 flex flex-col justify-end p-4"
             >
               {/* Title */}
               <motion.h3 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3, delay: 0.05 }}
-                className="text-xl font-bold text-white mb-2 drop-shadow-lg"
+                transition={{ duration: 0.25, delay: 0.05 }}
+                className="text-lg font-bold text-white mb-1.5 drop-shadow-lg"
               >
                 {template.name}
               </motion.h3>
               
               {/* Description */}
               <motion.p 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="text-sm text-white/70 line-clamp-2 mb-4"
+                transition={{ duration: 0.25, delay: 0.1 }}
+                className="text-xs text-white/60 line-clamp-2 mb-3"
               >
                 {template.description || 'No description available'}
               </motion.p>
               
               {/* Stats */}
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3, delay: 0.15 }}
-                className="flex items-center gap-3 text-xs text-white/50 mb-4"
+                transition={{ duration: 0.25, delay: 0.15 }}
+                className="flex items-center gap-2 text-[10px] text-white/40 mb-3"
               >
                 {template.clip_count && (
                   <span className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
                     <Film className="w-3 h-3" />
-                    {template.clip_count} clips
+                    {template.clip_count}
                   </span>
                 )}
                 {template.target_duration_minutes && (
@@ -290,14 +292,14 @@ function MasonryCard({
               
               {/* Action Button */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
+                transition={{ duration: 0.25, delay: 0.2 }}
               >
                 <Button 
                   onClick={(e) => { e.stopPropagation(); onUse(); }}
-                  className="w-full bg-white text-black hover:bg-white/90 shadow-xl font-semibold"
+                  className="w-full bg-white text-black hover:bg-neutral-200 shadow-xl font-semibold text-sm"
                   size="sm"
                 >
                   <Play className="w-4 h-4 mr-2" />
@@ -310,17 +312,19 @@ function MasonryCard({
 
         {/* Mood Badge - Bottom right, always visible but subtle */}
         <div className={cn(
-          "absolute bottom-4 right-4 z-5 transition-all duration-300",
+          "absolute bottom-3 right-3 z-5 transition-all duration-300",
           showContent ? "opacity-0" : "opacity-100"
         )}>
-          <Badge variant="outline" className="bg-black/40 backdrop-blur-md border-white/20 text-white/80 text-xs">
+          <Badge variant="outline" className="bg-black/60 backdrop-blur-md border-white/10 text-white/60 text-[10px] uppercase tracking-wider">
             {template.mood}
           </Badge>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
-}
+});
+
+MasonryCard.displayName = 'MasonryCard';
 
 export default function Templates() {
   const navigate = useNavigate();
@@ -354,10 +358,10 @@ export default function Templates() {
   };
 
   // Combine DB templates with built-in templates
-  const allTemplates = [...BUILT_IN_TEMPLATES, ...templates.map((t, idx) => ({
+  const allTemplates: TemplateItem[] = [...BUILT_IN_TEMPLATES, ...templates.map((t, idx) => ({
     ...t,
     is_featured: false,
-    height: ['tall', 'medium', 'short'][idx % 3] as 'tall' | 'medium' | 'short',
+    height: (['tall', 'medium', 'short'] as const)[idx % 3],
   }))];
 
   const filteredTemplates = allTemplates.filter(template => {
@@ -375,16 +379,15 @@ export default function Templates() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050508] relative overflow-hidden">
-      {/* Premium Background Effects */}
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Minimal Background - Black & White only */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Gradient orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-violet-500/[0.08] via-purple-500/[0.04] to-transparent blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-tl from-fuchsia-500/[0.06] via-pink-500/[0.03] to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-cyan-500/[0.04] to-transparent blur-[80px]" />
+        {/* Subtle white gradient for depth */}
+        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.02] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-30%] right-[-20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-white/[0.015] to-transparent blur-[120px]" />
         
         {/* Noise texture */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
       </div>
       
       <AppHeader showCreate={false} />
@@ -400,26 +403,26 @@ export default function Templates() {
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-2">
             Templates
           </h1>
-          <p className="text-lg text-white/40">
+          <p className="text-base text-white/30">
             Hover or tap to explore
           </p>
         </motion.div>
 
-        {/* Search and Filters - Floating style */}
+        {/* Search and Filters - Minimal floating style */}
         <motion.div 
           className="sticky top-20 z-40 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/[0.08]">
+          <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-xl bg-neutral-950/80 backdrop-blur-2xl border border-white/[0.06]">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
               <Input
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-11 bg-white/[0.05] border-0 text-white placeholder:text-white/30 focus:ring-1 focus:ring-white/20 rounded-xl"
+                className="pl-11 h-11 bg-white/[0.03] border-0 text-white placeholder:text-white/20 focus:ring-1 focus:ring-white/20 rounded-lg"
               />
             </div>
             
@@ -429,10 +432,10 @@ export default function Templates() {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                    "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300",
                     activeCategory === cat.id
-                      ? "bg-white text-black shadow-lg"
-                      : "text-white/50 hover:text-white hover:bg-white/[0.08]"
+                      ? "bg-white text-black"
+                      : "text-white/40 hover:text-white hover:bg-white/[0.05]"
                   )}
                 >
                   <cat.icon className="w-4 h-4" />
@@ -447,20 +450,17 @@ export default function Templates() {
         {loading ? (
           <div className="flex items-center justify-center py-32">
             <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full" />
-                <Loader2 className="relative w-10 h-10 animate-spin text-white/60" />
-              </div>
-              <p className="text-white/40">Loading templates...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-white/40" />
+              <p className="text-white/30 text-sm">Loading templates...</p>
             </div>
           </div>
         ) : filteredTemplates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="w-24 h-24 rounded-3xl bg-white/[0.03] flex items-center justify-center mb-6 border border-white/[0.08]">
-              <LayoutTemplate className="w-12 h-12 text-white/20" />
+            <div className="w-20 h-20 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6 border border-white/[0.06]">
+              <LayoutTemplate className="w-10 h-10 text-white/15" />
             </div>
-            <h3 className="font-semibold text-white text-xl mb-2">No templates found</h3>
-            <p className="text-white/40 max-w-sm">
+            <h3 className="font-semibold text-white text-lg mb-2">No templates found</h3>
+            <p className="text-white/30 max-w-sm text-sm">
               {searchQuery 
                 ? 'Try adjusting your search or filters'
                 : 'More templates coming soon'}
@@ -468,7 +468,7 @@ export default function Templates() {
           </div>
         ) : (
           <motion.div 
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 auto-rows-[200px]"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-[180px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -478,7 +478,10 @@ export default function Templates() {
                 key={template.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
+                transition={{ duration: 0.4, delay: index * 0.03 }}
+                className={cn(
+                  template.height === 'tall' && 'row-span-2'
+                )}
               >
                 <MasonryCard 
                   template={template}
@@ -490,7 +493,7 @@ export default function Templates() {
           </motion.div>
         )}
 
-        {/* Floating CTA */}
+        {/* Floating CTA - Black & White */}
         <motion.div 
           className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
           initial={{ opacity: 0, y: 20 }}
@@ -498,21 +501,21 @@ export default function Templates() {
           transition={{ duration: 0.6, delay: 0.5 }}
         >
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 rounded-2xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -inset-0.5 bg-white/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <Button 
               onClick={() => navigate('/create')} 
               size="lg"
-              className="relative bg-black text-white hover:bg-black/90 shadow-2xl h-14 px-8 rounded-2xl border border-white/20 font-semibold"
+              className="relative bg-white text-black hover:bg-neutral-100 shadow-2xl h-12 px-6 rounded-xl font-semibold"
             >
-              <Zap className="w-5 h-5 mr-2" />
+              <Zap className="w-4 h-4 mr-2" />
               Create from Scratch
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </motion.div>
 
         {/* Bottom spacing for floating CTA */}
-        <div className="h-32" />
+        <div className="h-28" />
       </main>
     </div>
   );

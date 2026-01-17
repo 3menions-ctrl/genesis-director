@@ -123,17 +123,14 @@ export default function HeroVideoBackground({
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)}>
-      {/* Poster image - shows immediately while video loads */}
+      {/* Poster image - always visible as fallback */}
       <img
         src={SHOWCASE_VIDEOS[currentIndex].poster}
         alt="Video preview"
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-          isLoaded ? "opacity-0" : "opacity-100"
-        )}
+        className="absolute inset-0 w-full h-full object-cover"
       />
       
-      {/* Main video player */}
+      {/* Main video player - overlays poster when loaded */}
       <video
         ref={videoRef}
         autoPlay
@@ -142,8 +139,7 @@ export default function HeroVideoBackground({
         poster={SHOWCASE_VIDEOS[currentIndex].poster}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-          isTransitioning ? "opacity-0" : "opacity-100",
-          !isLoaded && "opacity-0"
+          isLoaded && !isTransitioning ? "opacity-100" : "opacity-0"
         )}
         src={SHOWCASE_VIDEOS[currentIndex].url}
       />
@@ -179,10 +175,6 @@ export default function HeroVideoBackground({
         }}
       />
 
-      {/* Loading shimmer */}
-      {!isLoaded && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
 
       {/* Video indicator dots */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">

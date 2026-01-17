@@ -37,7 +37,7 @@ const Terms = () => {
             </p>
             <p className="mb-4">
               <strong className="text-foreground">Third-Party AI Services:</strong> Our Service utilizes 
-              third-party artificial intelligence providers, including but not limited to Google Veo 
+              third-party artificial intelligence providers, including but not limited to Kling AI 
               (video generation), OpenAI, and other AI technology partners. These third-party services 
               operate under their own terms and policies. By using our Service, you acknowledge that:
             </p>
@@ -166,7 +166,7 @@ const Terms = () => {
               <strong className="text-foreground">IMPORTANT NOTICE REGARDING AI-GENERATED CONTENT:</strong>
             </p>
             <p className="mb-4">
-              Our Service relies on third-party artificial intelligence technologies, including Google Veo 
+              Our Service relies on third-party artificial intelligence technologies, including Kling AI 
               and other AI providers, to generate video content. You expressly acknowledge and agree that:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4 mb-4">

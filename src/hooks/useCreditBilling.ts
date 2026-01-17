@@ -36,7 +36,7 @@ export const TIER_CREDIT_COSTS = {
 
 // Estimated real API costs in cents for profit tracking
 export const API_COSTS_CENTS = {
-  REPLICATE_VIDEO_6S: 120,   // ~$1.20 per 6-sec video (50% more than 4s)
+  KLING_VIDEO_5S: 40,        // ~$0.40 per 5-sec video (Kling 2.6)
   ELEVENLABS_VOICE: 15,     // ~$0.15 per voice clip
   OPENAI_SCRIPT: 5,         // ~$0.05 for script generation
   VISUAL_DEBUGGER: 3,       // ~$0.03 per AI vision analysis

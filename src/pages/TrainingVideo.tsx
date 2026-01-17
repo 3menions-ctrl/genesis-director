@@ -20,15 +20,15 @@ import {
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 
-// Import environment presets
-import goldenHourStudioImg from '@/assets/environments/golden-hour-studio.jpg';
-import neonNoirCityImg from '@/assets/environments/neon-noir-city.jpg';
-import coastalSerenityImg from '@/assets/environments/coastal-serenity.jpg';
-import forestMystiqueImg from '@/assets/environments/forest-mystique.jpg';
-import modernMinimalistImg from '@/assets/environments/modern-minimalist.jpg';
-import alpineDawnImg from '@/assets/environments/alpine-dawn.jpg';
-import cozyFirelightImg from '@/assets/environments/cozy-firelight.jpg';
-import overcastDramaImg from '@/assets/environments/overcast-drama.jpg';
+// Import learning-themed environment presets
+import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
+import lectureHallImg from '@/assets/environments/lecture-hall.jpg';
+import startupOfficeImg from '@/assets/environments/startup-office.jpg';
+import homeStudioImg from '@/assets/environments/home-studio.jpg';
+import newsStudioImg from '@/assets/environments/news-studio.jpg';
+import scienceLabImg from '@/assets/environments/science-lab.jpg';
+import executiveLibraryImg from '@/assets/environments/executive-library.jpg';
+import podcastStudioImg from '@/assets/environments/podcast-studio.jpg';
 
 // Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
@@ -40,16 +40,16 @@ const VOICE_OPTIONS = [
   { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft, gentle', sample: 'Take a moment to reflect on what you have learned. Every step forward matters.' },
 ];
 
-// Background presets
+// Background presets - Learning/Training themed
 const BACKGROUND_PRESETS = [
-  { id: 'golden_hour_studio', name: 'Golden Hour Studio', image: goldenHourStudioImg },
-  { id: 'modern_minimalist', name: 'Modern Minimalist', image: modernMinimalistImg },
-  { id: 'neon_noir_city', name: 'Neon Noir', image: neonNoirCityImg },
-  { id: 'coastal_serenity', name: 'Coastal Serenity', image: coastalSerenityImg },
-  { id: 'forest_mystique', name: 'Forest Mystique', image: forestMystiqueImg },
-  { id: 'alpine_dawn', name: 'Alpine Dawn', image: alpineDawnImg },
-  { id: 'cozy_firelight', name: 'Cozy Firelight', image: cozyFirelightImg },
-  { id: 'overcast_drama', name: 'Overcast Drama', image: overcastDramaImg },
+  { id: 'corporate_boardroom', name: 'Corporate Boardroom', image: corporateBoardroomImg },
+  { id: 'lecture_hall', name: 'Lecture Hall', image: lectureHallImg },
+  { id: 'home_studio', name: 'Home Studio', image: homeStudioImg },
+  { id: 'startup_office', name: 'Startup Office', image: startupOfficeImg },
+  { id: 'news_studio', name: 'News Studio', image: newsStudioImg },
+  { id: 'science_lab', name: 'Science Lab', image: scienceLabImg },
+  { id: 'executive_library', name: 'Executive Library', image: executiveLibraryImg },
+  { id: 'podcast_studio', name: 'Podcast Studio', image: podcastStudioImg },
 ];
 
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';
@@ -74,7 +74,7 @@ export default function TrainingVideo() {
   const [characterImage, setCharacterImage] = useState<string | null>(null);
   const [characterImageFile, setCharacterImageFile] = useState<File | null>(null);
   const [customBackground, setCustomBackground] = useState<string | null>(null);
-  const [selectedBackground, setSelectedBackground] = useState<string | null>('modern_minimalist');
+  const [selectedBackground, setSelectedBackground] = useState<string | null>('home_studio');
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
   const [scriptText, setScriptText] = useState('');
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
@@ -379,7 +379,7 @@ export default function TrainingVideo() {
       
       const backgroundUrl = customBackground || 
         BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || 
-        modernMinimalistImg;
+        homeStudioImg;
 
       const imageBase64 = characterImage.split(',')[1];
       
@@ -448,7 +448,7 @@ export default function TrainingVideo() {
     setCharacterImage(null);
     setCharacterImageFile(null);
     setCustomBackground(null);
-    setSelectedBackground('modern_minimalist');
+    setSelectedBackground('home_studio');
     setSelectedVoice('nova');
     setScriptText('');
     setGenerationStep('idle');
@@ -475,7 +475,7 @@ export default function TrainingVideo() {
   };
 
   const getBackgroundImage = () => {
-    return customBackground || BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || modernMinimalistImg;
+    return customBackground || BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || homeStudioImg;
   };
 
   return (

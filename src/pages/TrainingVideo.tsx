@@ -479,521 +479,305 @@ export default function TrainingVideo() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-background">
       <AppHeader showCreate={false} />
       
-      {/* Hero Section - Compact */}
-      <section className="relative z-10 px-4 lg:px-8 pt-24 pb-6">
-        <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-lg" />
-                <div className="relative w-12 h-12 rounded-2xl bg-glossy-black flex items-center justify-center shadow-obsidian">
-                  <Film className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full glass-card mb-1 border border-primary/30 bg-primary/10">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  <span className="text-[10px] font-medium text-primary uppercase tracking-wide">AI-Powered</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight hero-text">
-                  Training Video Studio
-                </h1>
-              </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Compact Header */}
+        <motion.div 
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
+              <Film className="w-5 h-5 text-background" />
             </div>
-            
-            {/* Quick stats - inline */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card">
-                <Coins className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-semibold hero-text">{ESTIMATED_CREDITS} credits</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card">
-                <Zap className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-semibold hero-text">~2 min</span>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Training Video Studio</h1>
+              <p className="text-xs text-muted-foreground">Create AI presenter videos with lip-sync</p>
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              <Coins className="w-3 h-3 mr-1" />
+              {ESTIMATED_CREDITS} credits
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              <Zap className="w-3 h-3 mr-1" />
+              ~2 min
+            </Badge>
+          </div>
+        </motion.div>
 
-      {/* Main Content - Equal columns for better space usage */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left: Configuration Panel */}
-          <div className="space-y-4">
-            {/* Wizard Steps Indicator */}
+        {/* Main Grid - More condensed */}
+        <div className="grid lg:grid-cols-5 gap-4">
+          {/* Left: All Steps Stacked Compact */}
+          <div className="lg:col-span-3 space-y-3">
+            {/* Step 1: Script - Compact */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="p-4 rounded-xl border bg-card"
             >
-              <div className="p-1.5 rounded-2xl glass-card">
-                <div className="flex items-center justify-between">
-                  {WIZARD_STEPS.map((step, index) => {
-                    const isActive = activeStep === index;
-                    const isComplete = isStepComplete(index);
-                    const StepIcon = step.icon;
-                    
-                    return (
-                      <div key={step.id} className="flex items-center flex-1">
-                        <button
-                          onClick={() => setActiveStep(index)}
-                          className={cn(
-                            "flex items-center gap-2 px-4 py-3 rounded-xl transition-all flex-1 justify-center",
-                            isActive 
-                              ? "bg-glossy-black text-white shadow-obsidian" 
-                              : isComplete 
-                                ? "bg-primary/10 text-primary hover:bg-primary/20" 
-                                : "text-muted-foreground hover:bg-muted/50"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
-                            isActive 
-                              ? "bg-white/20" 
-                              : isComplete 
-                                ? "bg-primary/20" 
-                                : "bg-muted"
-                          )}>
-                            {isComplete && !isActive ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <StepIcon className="w-4 h-4" />
-                            )}
-                          </div>
-                          <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-                        </button>
-                        {index < WIZARD_STEPS.length - 1 && (
-                          <ChevronRight className="w-5 h-5 text-muted-foreground/30 mx-1 shrink-0" />
-                        )}
-                      </div>
-                    );
-                  })}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                    scriptText.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {scriptText.trim() ? <Check className="w-3.5 h-3.5" /> : "1"}
+                  </div>
+                  <h3 className="font-semibold text-sm">Script</h3>
                 </div>
+                <Badge variant="outline" className="text-[10px]">{scriptText.length}/500</Badge>
+              </div>
+              <Textarea
+                placeholder="Enter what your character will say..."
+                value={scriptText}
+                onChange={(e) => setScriptText(e.target.value.slice(0, 500))}
+                className="min-h-[80px] resize-none text-sm"
+              />
+            </motion.div>
+
+            {/* Step 2: Voice - Compact Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="p-4 rounded-xl border bg-card"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                  selectedVoice ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {selectedVoice ? <Check className="w-3.5 h-3.5" /> : "2"}
+                </div>
+                <h3 className="font-semibold text-sm">Voice</h3>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                {VOICE_OPTIONS.map((voice) => {
+                  const isPlaying = previewingVoiceId === voice.id;
+                  const isSelected = selectedVoice === voice.id;
+                  
+                  return (
+                    <button
+                      key={voice.id}
+                      onClick={() => setSelectedVoice(voice.id)}
+                      className={cn(
+                        "relative p-2 rounded-lg border text-center transition-all group",
+                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <div className="text-xs font-medium truncate">{voice.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{voice.gender}</div>
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleVoicePreview(voice.id); }}
+                        className={cn(
+                          "absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all",
+                          isPlaying ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"
+                        )}
+                      >
+                        {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
+                      </button>
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
 
-            {/* Step Content */}
-            <AnimatePresence mode="wait">
-              {/* Step 0: Script (First - what to say) */}
-              {activeStep === 0 && (
-                <motion.div
-                  key="script"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="p-5 rounded-2xl glass-card">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold hero-text">Write Your Script</h3>
-                        <p className="text-xs hero-text-secondary mt-0.5">Start with what your character will say</p>
-                      </div>
-                      <Badge variant="outline" className="text-muted-foreground text-xs">1 / 4</Badge>
-                    </div>
-                    
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Enter the text your character will speak...
-
-Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed.'"
-                        value={scriptText}
-                        onChange={(e) => setScriptText(e.target.value)}
-                        className="min-h-[140px] resize-none text-sm"
-                      />
-                      <div className="absolute bottom-3 right-3">
-                        <Badge 
-                          variant={scriptText.length > 500 ? "destructive" : scriptText.length > 0 ? "secondary" : "outline"}
-                        >
-                          {scriptText.length} / 500
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                      <p className="text-xs hero-text-secondary">
-                        <span className="font-medium text-primary">Tip:</span> 50-500 characters for best results.
-                      </p>
-                    </div>
-                    
-                    <div className="flex justify-end mt-4">
-                      <Button 
-                        onClick={() => setActiveStep(1)} 
-                        disabled={!scriptText.trim()}
-                        size="sm"
-                        className="shadow-obsidian"
-                      >
-                        Continue
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
+            {/* Step 3 & 4: Character + Scene - Side by Side */}
+            <div className="grid sm:grid-cols-2 gap-3">
+              {/* Character Upload */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="p-4 rounded-xl border bg-card"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                    characterImage ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {characterImage ? <Check className="w-3.5 h-3.5" /> : "3"}
                   </div>
-                </motion.div>
-              )}
-
-              {/* Step 1: Voice (Second - how it sounds) */}
-              {activeStep === 1 && (
-                <motion.div
-                  key="voice"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  <h3 className="font-semibold text-sm">Character</h3>
+                </div>
+                <div 
+                  className={cn(
+                    "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all overflow-hidden",
+                    characterImage ? "border-primary/50" : "border-muted-foreground/30 hover:border-primary/50"
+                  )}
+                  onClick={() => characterInputRef.current?.click()}
                 >
-                  <div className="p-5 rounded-2xl glass-card">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold hero-text">Select a Voice</h3>
-                        <p className="text-xs hero-text-secondary mt-0.5">Choose how your script will sound</p>
+                  {characterImage ? (
+                    <div className="relative w-full h-full group">
+                      <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-white" />
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground text-xs">2 / 4</Badge>
                     </div>
-                    
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {VOICE_OPTIONS.map((voice) => {
-                        const isPlaying = previewingVoiceId === voice.id;
-                        const isSelected = selectedVoice === voice.id;
-                        const isCached = preloadedVoices.has(voice.id);
-                        
-                        return (
-                          <div
-                            key={voice.id}
-                            onClick={() => setSelectedVoice(voice.id)}
-                            className={cn(
-                              "relative p-3 rounded-xl border-2 cursor-pointer transition-all group",
-                              isSelected
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/50 hover:bg-muted/30"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="font-medium text-sm hero-text truncate">{voice.name}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                </div>
-                                <p className="text-xs hero-text-secondary truncate">{voice.description}</p>
-                              </div>
-                              
-                              <Button
-                                variant={isPlaying ? "default" : "ghost"}
-                                size="icon"
-                                className="h-8 w-8 rounded-full shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVoicePreview(voice.id);
-                                }}
-                              >
-                                {isPlaying ? (
-                                  <Pause className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Play className="w-3.5 h-3.5" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  ) : (
+                    <div className="text-center p-4">
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-xs text-muted-foreground">Upload image</p>
                     </div>
-                    
-                    <div className="flex justify-between mt-4">
-                      <Button variant="outline" size="sm" onClick={() => setActiveStep(0)}>
-                        Back
-                      </Button>
-                      <Button size="sm" onClick={() => setActiveStep(2)} className="shadow-obsidian">
-                        Continue
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
+                  )}
+                </div>
+                <input ref={characterInputRef} type="file" accept="image/*" onChange={handleCharacterUpload} className="hidden" />
+              </motion.div>
+
+              {/* Scene Selection */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="p-4 rounded-xl border bg-card"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                    (selectedBackground || customBackground) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {(selectedBackground || customBackground) ? <Check className="w-3.5 h-3.5" /> : "4"}
                   </div>
-                </motion.div>
-              )}
-
-              {/* Step 2: Character (Third - who speaks) */}
-              {activeStep === 2 && (
-                <motion.div
-                  key="character"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="p-5 rounded-2xl glass-card">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold hero-text">Upload Character</h3>
-                        <p className="text-xs hero-text-secondary mt-0.5">Choose who will deliver your message</p>
-                      </div>
-                      <Badge variant="outline" className="text-muted-foreground text-xs">3 / 4</Badge>
-                    </div>
-                    
-                    <div 
+                  <h3 className="font-semibold text-sm">Scene</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {/* Custom upload */}
+                  <button
+                    onClick={() => backgroundInputRef.current?.click()}
+                    className={cn(
+                      "aspect-video rounded-md border-2 border-dashed flex items-center justify-center transition-all overflow-hidden",
+                      customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
+                    )}
+                  >
+                    {customBackground ? (
+                      <img src={customBackground} alt="Custom" className="w-full h-full object-cover" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                  {BACKGROUND_PRESETS.slice(0, 8).map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
                       className={cn(
-                        "border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all text-center group",
-                        characterImage 
-                          ? "border-primary/50 bg-primary/5" 
-                          : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
+                        "aspect-video rounded-md overflow-hidden border-2 transition-all relative",
+                        selectedBackground === bg.id && !customBackground ? "border-primary" : "border-transparent hover:border-primary/50"
                       )}
-                      onClick={() => characterInputRef.current?.click()}
                     >
-                      {characterImage ? (
-                        <div className="flex items-center gap-4">
-                          <div className="relative shrink-0">
-                            <div className="relative w-20 h-20 rounded-xl overflow-hidden ring-2 ring-primary/30">
-                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                            </div>
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="flex items-center gap-2 text-primary mb-1">
-                              <Check className="w-4 h-4" />
-                              <span className="font-medium text-sm">Character Uploaded</span>
-                            </div>
-                            <p className="text-xs hero-text-secondary">Click to replace</p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive shrink-0"
-                            onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="py-4">
-                          <div className="w-16 h-16 rounded-xl bg-muted mx-auto mb-3 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                            <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </div>
-                          <p className="font-medium text-sm hero-text mb-1">Drop image here or click to browse</p>
-                          <p className="text-xs hero-text-secondary">PNG, JPG up to 10MB</p>
+                      <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
+                      {selectedBackground === bg.id && !customBackground && (
+                        <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-2 h-2 text-primary-foreground" />
                         </div>
                       )}
-                    </div>
-                    <input
-                      ref={characterInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCharacterUpload}
-                      className="hidden"
-                    />
-                    
-                    <div className="flex justify-between mt-4">
-                      <Button variant="outline" size="sm" onClick={() => setActiveStep(1)}>
-                        Back
-                      </Button>
-                      <Button 
-                        onClick={() => setActiveStep(3)} 
-                        disabled={!characterImage}
-                        size="sm"
-                        className="shadow-obsidian"
-                      >
-                        Continue
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Step 3: Scene/Background (Fourth - the backdrop) */}
-              {activeStep === 3 && (
-                <motion.div
-                  key="scene"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="p-5 rounded-2xl glass-card">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold hero-text">Choose Scene</h3>
-                        <p className="text-xs hero-text-secondary mt-0.5">Select the backdrop for your video</p>
-                      </div>
-                      <Badge variant="outline" className="text-muted-foreground text-xs">4 / 4</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {/* Custom upload */}
-                      <button
-                        onClick={() => backgroundInputRef.current?.click()}
-                        className={cn(
-                          "aspect-video rounded-lg border-2 border-dashed flex items-center justify-center transition-all group",
-                          customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
-                        )}
-                      >
-                        {customBackground ? (
-                          <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-md" />
-                        ) : (
-                          <div className="text-center">
-                            <Upload className="w-4 h-4 text-muted-foreground mx-auto group-hover:text-primary transition-colors" />
-                          </div>
-                        )}
-                      </button>
-                      
-                      {BACKGROUND_PRESETS.map((bg) => (
-                        <button
-                          key={bg.id}
-                          onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
-                          className={cn(
-                            "aspect-video rounded-lg overflow-hidden border-2 transition-all relative",
-                            selectedBackground === bg.id && !customBackground
-                              ? "border-primary ring-1 ring-primary/30"
-                              : "border-transparent hover:border-primary/50"
-                          )}
-                        >
-                          <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
-                          {selectedBackground === bg.id && !customBackground && (
-                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      ref={backgroundInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBackgroundUpload}
-                      className="hidden"
-                    />
-                    
-                    <div className="flex justify-between mt-4">
-                      <Button variant="outline" size="sm" onClick={() => setActiveStep(2)}>
-                        Back
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </button>
+                  ))}
+                </div>
+                <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
+              </motion.div>
+            </div>
           </div>
 
-          {/* Right: Live Preview - Sticky */}
-          <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          {/* Right: Preview + Generate */}
+          <div className="lg:col-span-2 space-y-3 lg:sticky lg:top-20 lg:self-start">
+            {/* Preview */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-xl border bg-card overflow-hidden"
             >
-              <div className="rounded-2xl glass-card overflow-hidden">
-                <div className="p-3 border-b border-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center">
-                      <Video className="w-3 h-3" />
-                    </div>
-                    <span className="font-medium text-sm hero-text">Preview</span>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">16:9</Badge>
+              <div className="p-2.5 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Video className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Preview</span>
                 </div>
-                
-                <div className="aspect-video bg-muted/50 relative">
-                  <AnimatePresence mode="wait">
-                    {generatedVideoUrl ? (
-                      <motion.video
-                        key="video"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        src={generatedVideoUrl}
-                        controls
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <motion.div
-                        key="preview"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="relative w-full h-full"
-                      >
-                        {/* Background */}
-                        <img 
-                          src={getBackgroundImage()}
-                          alt="Background"
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40" />
-                        
-                        {/* Character overlay */}
-                        {characterImage ? (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-3 border-white/30 shadow-lg">
-                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                            </div>
+                <Badge variant="outline" className="text-[10px]">16:9</Badge>
+              </div>
+              
+              <div className="aspect-video bg-muted/50 relative">
+                <AnimatePresence mode="wait">
+                  {generatedVideoUrl ? (
+                    <motion.video
+                      key="video"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      src={generatedVideoUrl}
+                      controls
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-full h-full">
+                      <img src={getBackgroundImage()} alt="Background" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40" />
+                      
+                      {characterImage ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
+                            <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
                           </div>
-                        ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="w-14 h-14 rounded-full bg-muted/80 flex items-center justify-center mb-2">
-                              <User className="w-7 h-7 text-muted-foreground" />
-                            </div>
-                            <p className="text-xs text-muted-foreground">No character</p>
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center">
+                            <User className="w-6 h-6 text-muted-foreground" />
                           </div>
-                        )}
-                        
-                        {/* Generation overlay */}
-                        {isGenerating && (
-                          <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center backdrop-blur-sm">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                              className="w-12 h-12 rounded-full border-3 border-primary border-t-transparent mb-3"
-                            />
-                            <p className="hero-text font-medium text-sm mb-2">
-                              {generationStep === 'generating_audio' && 'Generating voice...'}
-                              {generationStep === 'generating_video' && 'Creating video...'}
-                              {generationStep === 'applying_lipsync' && 'Syncing lips...'}
-                            </p>
-                            <Progress value={progress} className="w-32 h-1.5" />
-                          </div>
-                        )}
-                        
-                        {/* Error state */}
-                        {generationStep === 'error' && (
-                          <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
-                            <AlertCircle className="w-8 h-8 text-destructive mb-2" />
-                            <p className="text-destructive font-medium text-sm mb-1">Failed</p>
-                            <p className="text-xs hero-text-secondary mb-3 text-center line-clamp-2">{error}</p>
-                            <Button variant="outline" size="sm" onClick={() => setGenerationStep('idle')}>
-                              Retry
-                            </Button>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </div>
+                      )}
+                      
+                      {isGenerating && (
+                        <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                          <p className="text-sm font-medium mb-2">
+                            {generationStep === 'generating_audio' && 'Generating voice...'}
+                            {generationStep === 'generating_video' && 'Creating video...'}
+                            {generationStep === 'applying_lipsync' && 'Syncing lips...'}
+                          </p>
+                          <Progress value={progress} className="w-24 h-1.5" />
+                        </div>
+                      )}
+                      
+                      {generationStep === 'error' && (
+                        <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
+                          <AlertCircle className="w-6 h-6 text-destructive mb-2" />
+                          <p className="text-xs text-destructive text-center line-clamp-2">{error}</p>
+                          <Button variant="outline" size="sm" className="mt-2" onClick={() => setGenerationStep('idle')}>Retry</Button>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              {/* Quick Summary */}
+              <div className="p-2.5 border-t bg-muted/30 flex items-center justify-between text-[10px]">
+                <div className="flex items-center gap-1">
+                  <Mic className="w-3 h-3" />
+                  <span>{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
                 </div>
-                
-                {/* Selection summary */}
-                <div className="p-3 border-t border-border/50 bg-muted/30">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Mic className="w-3 h-3 text-muted-foreground" />
-                      <span className="font-medium hero-text">{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Image className="w-3 h-3 text-muted-foreground" />
-                      <span className="font-medium hero-text truncate max-w-[100px]">
-                        {customBackground ? 'Custom' : BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.name}
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Image className="w-3 h-3" />
+                  <span className="truncate max-w-[60px]">{customBackground ? 'Custom' : BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.name}</span>
                 </div>
               </div>
             </motion.div>
 
             {/* Generate Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               {generationStep === 'complete' ? (
                 <div className="space-y-2">
-                  <Button className="w-full h-11 shadow-obsidian" asChild>
+                  <Button className="w-full h-10" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
                       <Download className="w-4 h-4 mr-2" />
                       Download Video
@@ -1006,61 +790,35 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                 </div>
               ) : (
                 <Button 
-                  className={cn(
-                    "w-full h-11 transition-all",
-                    canGenerate && "shadow-obsidian hover:shadow-obsidian-lg"
-                  )}
-                  variant={canGenerate ? "default" : "secondary"}
+                  className="w-full h-10"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
                   {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
                   ) : (
-                    <>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Generate Video
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        {ESTIMATED_CREDITS} cr
-                      </Badge>
-                    </>
+                    <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge variant="secondary" className="ml-2 text-xs">{ESTIMATED_CREDITS} cr</Badge></>
                   )}
                 </Button>
               )}
             </motion.div>
 
-            {/* Compact Checklist */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div className="p-3 rounded-xl glass-card">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {[
-                    { label: 'Script', complete: scriptText.trim().length > 0 },
-                    { label: 'Voice', complete: !!selectedVoice },
-                    { label: 'Character', complete: !!characterImage },
-                    { label: 'Scene', complete: !!(selectedBackground || customBackground) },
-                  ].map((item, i) => (
-                    <div 
-                      key={i} 
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all",
-                        item.complete 
-                          ? "bg-primary/10 text-primary" 
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {item.complete ? <Check className="w-3 h-3" /> : <CircleDot className="w-3 h-3" />}
-                      {item.label}
-                    </div>
-                  ))}
+            {/* Checklist Pills */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Script', ok: scriptText.trim().length > 0 },
+                { label: 'Voice', ok: !!selectedVoice },
+                { label: 'Character', ok: !!characterImage },
+                { label: 'Scene', ok: !!(selectedBackground || customBackground) },
+              ].map((item, i) => (
+                <div key={i} className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-[10px]",
+                  item.ok ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                )}>
+                  {item.ok ? <Check className="w-2.5 h-2.5" /> : <CircleDot className="w-2.5 h-2.5" />}
+                  {item.label}
                 </div>
-              </div>
+              ))}
             </motion.div>
           </div>
         </div>

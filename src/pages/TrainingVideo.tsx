@@ -29,6 +29,12 @@ import newsStudioImg from '@/assets/environments/news-studio.jpg';
 import scienceLabImg from '@/assets/environments/science-lab.jpg';
 import executiveLibraryImg from '@/assets/environments/executive-library.jpg';
 import podcastStudioImg from '@/assets/environments/podcast-studio.jpg';
+import medicalTrainingImg from '@/assets/environments/medical-training.jpg';
+import greenScreenImg from '@/assets/environments/green-screen.jpg';
+import workshopTrainingImg from '@/assets/environments/workshop-training.jpg';
+import modernClassroomImg from '@/assets/environments/modern-classroom.jpg';
+import webinarStageImg from '@/assets/environments/webinar-stage.jpg';
+import coffeeShopImg from '@/assets/environments/coffee-shop.jpg';
 
 // Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
@@ -42,14 +48,20 @@ const VOICE_OPTIONS = [
 
 // Background presets - Learning/Training themed
 const BACKGROUND_PRESETS = [
+  { id: 'home_studio', name: 'Home Studio', image: homeStudioImg },
   { id: 'corporate_boardroom', name: 'Corporate Boardroom', image: corporateBoardroomImg },
   { id: 'lecture_hall', name: 'Lecture Hall', image: lectureHallImg },
-  { id: 'home_studio', name: 'Home Studio', image: homeStudioImg },
+  { id: 'modern_classroom', name: 'Modern Classroom', image: modernClassroomImg },
   { id: 'startup_office', name: 'Startup Office', image: startupOfficeImg },
   { id: 'news_studio', name: 'News Studio', image: newsStudioImg },
+  { id: 'webinar_stage', name: 'Webinar Stage', image: webinarStageImg },
   { id: 'science_lab', name: 'Science Lab', image: scienceLabImg },
+  { id: 'medical_training', name: 'Medical Training', image: medicalTrainingImg },
   { id: 'executive_library', name: 'Executive Library', image: executiveLibraryImg },
   { id: 'podcast_studio', name: 'Podcast Studio', image: podcastStudioImg },
+  { id: 'workshop_training', name: 'Workshop Training', image: workshopTrainingImg },
+  { id: 'coffee_shop', name: 'Coffee Shop', image: coffeeShopImg },
+  { id: 'green_screen', name: 'Green Screen', image: greenScreenImg },
 ];
 
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';

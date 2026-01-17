@@ -1666,51 +1666,55 @@ export function UnifiedStudio() {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
 
         {/* Reference Image - Collapsible */}
         <Collapsible open={referenceExpanded} onOpenChange={setReferenceExpanded}>
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
-            <CollapsibleTrigger asChild>
-              <div className="py-4 px-5 cursor-pointer hover:bg-white/[0.02] transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08]">
-                      <Image className="w-5 h-5 text-white/60" />
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-3xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
+            <div className="relative bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.1] rounded-2xl overflow-hidden backdrop-blur-xl">
+              <CollapsibleTrigger asChild>
+                <div className="py-4 px-5 cursor-pointer hover:bg-white/[0.04] transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-white/[0.08] to-white/[0.04] border border-white/[0.1]">
+                        <Image className="w-5 h-5 text-white/70" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-white/90">Reference Image</h3>
+                        <p className="text-sm text-white/50 mt-0.5">
+                          {referenceImageAnalysis ? 'Character consistency ready' : 'Optional: Upload for visual consistency'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-white/90">Reference Image</h3>
-                      <p className="text-sm text-white/50 mt-0.5">
-                        {referenceImageAnalysis ? 'Character consistency ready' : 'Optional: Upload for visual consistency'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {referenceImageAnalysis && (
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                        Analyzed
-                      </Badge>
-                    )}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.05]">
-                      {referenceExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-white/50" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-white/50" />
+                    <div className="flex items-center gap-3">
+                      {referenceImageAnalysis && (
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                          Analyzed
+                        </Badge>
                       )}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/[0.08]">
+                        {referenceExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-white/60" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-white/60" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="pt-0 pb-5 px-5">
-                <ReferenceImageUpload
-                  onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
-                  onClear={() => setReferenceImageAnalysis(undefined)}
-                  existingAnalysis={referenceImageAnalysis}
-                />
-              </div>
-            </CollapsibleContent>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-0 pb-5 px-5">
+                  <ReferenceImageUpload
+                    onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
+                    onClear={() => setReferenceImageAnalysis(undefined)}
+                    existingAnalysis={referenceImageAnalysis}
+                  />
+                </div>
+              </CollapsibleContent>
+            </div>
           </div>
         </Collapsible>
 

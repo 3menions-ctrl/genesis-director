@@ -80,9 +80,11 @@ const DAILY_CHALLENGES = [
 
 type TabType = 'overview' | 'achievements' | 'activity';
 
-// Glassmorphism component styles
-const glassCard = "relative backdrop-blur-2xl bg-white/[0.03] border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]";
-const glassCardHover = "hover:bg-white/[0.05] hover:border-white/[0.12] hover:shadow-[0_12px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]";
+// Premium card styles - matching landing page aesthetic
+const glassCard = "relative backdrop-blur-xl bg-white/40 border border-white/60 shadow-lg";
+const glassCardHover = "hover:bg-white/50 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
+const darkCard = "relative bg-glossy-black border border-white/10 shadow-obsidian";
+const darkCardHover = "hover:shadow-obsidian-lg hover:-translate-y-0.5 transition-all duration-300";
 
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -307,47 +309,44 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-background">
         <AppHeader showCreate={false} />
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-          <Skeleton className="h-80 rounded-3xl bg-white/5" />
-          <Skeleton className="h-32 rounded-2xl bg-white/5" />
+          <Skeleton className="h-80 rounded-3xl bg-muted" />
+          <Skeleton className="h-32 rounded-2xl bg-muted" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black overflow-hidden">
-      {/* === STUNNING AMBIENT BACKGROUND === */}
+    <div className="min-h-screen bg-background overflow-hidden">
+      {/* === PREMIUM AMBIENT BACKGROUND - Matching Landing === */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Primary gradient orb */}
-        <div className="absolute top-[-20%] left-[30%] w-[800px] h-[800px] rounded-full bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-transparent blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        {/* Secondary gradient orb */}
-        <div className="absolute bottom-[-10%] right-[10%] w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-cyan-500/15 via-blue-600/10 to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '12s' }} />
-        {/* Accent orb */}
-        <div className="absolute top-[40%] right-[30%] w-[400px] h-[400px] rounded-full bg-gradient-to-br from-amber-500/10 via-orange-600/5 to-transparent blur-[80px] animate-pulse" style={{ animationDuration: '10s' }} />
-        {/* Mesh gradient overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]" />
-        {/* Noise texture */}
-        <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMSIvPjwvc3ZnPg==')]" />
+        {/* Subtle gradient base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+        {/* Soft ambient glow - top */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-foreground/[0.02] to-transparent blur-[100px]" />
+        {/* Mesh gradient for depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(var(--foreground-rgb),0.03)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(var(--foreground-rgb),0.02)_0%,_transparent_50%)]" />
       </div>
 
       {/* Video Picker Modal */}
       <Dialog open={showVideoPicker} onOpenChange={setShowVideoPicker}>
-        <DialogContent className={cn("max-w-2xl border-white/10", glassCard)}>
+        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Select Cover Video</DialogTitle>
+            <DialogTitle className="text-foreground">Select Cover Video</DialogTitle>
           </DialogHeader>
           <div className="mt-4">
             {loadingVideos ? (
               <div className="grid grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-video rounded-xl bg-white/5" />)}
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-video rounded-xl bg-muted" />)}
               </div>
             ) : userVideoClips.length === 0 ? (
               <div className="py-16 text-center">
-                <Video className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                <p className="text-white/40">No videos yet</p>
+                <Video className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">No videos yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
@@ -357,13 +356,13 @@ export default function Profile() {
                     onClick={() => { setCoverVideo(clip); setShowVideoPicker(false); toast.success('Cover updated'); }}
                     className={cn(
                       "relative aspect-video rounded-xl overflow-hidden transition-all",
-                      coverVideo === clip ? 'ring-2 ring-white' : 'hover:ring-1 hover:ring-white/50'
+                      coverVideo === clip ? 'ring-2 ring-foreground' : 'hover:ring-1 hover:ring-foreground/50'
                     )}
                   >
                     <video src={clip} className="w-full h-full object-cover" muted preload="metadata" />
                     {coverVideo === clip && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                        <Check className="w-3 h-3 text-black" />
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-foreground flex items-center justify-center">
+                        <Check className="w-3 h-3 text-background" />
                       </div>
                     )}
                   </button>
@@ -379,15 +378,15 @@ export default function Profile() {
       <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8">
         
         {/* ═══════════════════════════════════════════════════════════════
-            HERO PROFILE CARD - Premium Glassmorphism
+            HERO PROFILE CARD - Premium Design matching Landing
         ═══════════════════════════════════════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className={cn("relative rounded-[2rem] overflow-hidden", glassCard)}
+          className={cn("relative rounded-3xl overflow-hidden", darkCard)}
         >
-          {/* Cover Background with Parallax Effect */}
+          {/* Cover Background */}
           <div className="relative h-48 sm:h-56 overflow-hidden">
             {coverVideo ? (
               <>
@@ -397,18 +396,18 @@ export default function Profile() {
                   className="absolute inset-0 w-full h-full object-cover scale-110" 
                   loop muted playsInline autoPlay 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-glossy-black via-black/60 to-transparent" />
                 <button 
                   onClick={() => setCoverVideo(null)} 
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-black/30 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/50 transition-all"
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-foreground/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-foreground/20 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </>
             ) : (
               <>
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-900/30 via-fuchsia-900/20 to-black" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(139,92,246,0.15)_0%,_transparent_50%)]" />
+                <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.08] via-transparent to-transparent" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 <button
                   onClick={() => { fetchUserVideoClips(); setShowVideoPicker(true); }}
                   className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm"
@@ -420,27 +419,27 @@ export default function Profile() {
               </>
             )}
             
-            {/* Frosted top border */}
+            {/* Top accent line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
           {/* Profile Content */}
           <div className="relative px-6 sm:px-8 pb-8 -mt-20">
             <div className="flex flex-col sm:flex-row gap-6 items-start">
-              {/* Avatar with Glow */}
+              {/* Avatar with Premium Styling */}
               <div className="relative group">
-                <div className="absolute -inset-1 rounded-[1.5rem] bg-gradient-to-br from-violet-500/50 via-fuchsia-500/50 to-amber-500/50 blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-32 h-32 rounded-[1.5rem] bg-black border-4 border-black shadow-2xl flex items-center justify-center overflow-hidden">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-foreground/30 to-foreground/10 blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-32 h-32 rounded-2xl bg-glossy-black border-4 border-glossy-black shadow-obsidian-lg flex items-center justify-center overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-violet-600 via-fuchsia-600 to-amber-500 flex items-center justify-center">
-                      <User className="w-12 h-12 text-white/80" />
+                    <div className="w-full h-full bg-foreground flex items-center justify-center">
+                      <User className="w-12 h-12 text-background" />
                     </div>
                   )}
                 </div>
                 {/* Level Badge */}
-                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-xs font-bold text-white shadow-lg shadow-amber-500/30 border border-white/20">
+                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs font-bold shadow-obsidian">
                   Lv.{level}
                 </div>
               </div>
@@ -452,13 +451,13 @@ export default function Profile() {
                     {profile?.display_name || profile?.full_name || 'Creator'}
                   </h1>
                   {streak > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 text-orange-400 text-sm font-medium">
-                      <Flame className="w-3.5 h-3.5" /> {streak} day streak
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/80 text-sm font-medium">
+                      <Flame className="w-3.5 h-3.5 text-orange-400" /> {streak} day streak
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-4 mt-2 text-sm text-white/40">
+                <div className="flex items-center gap-4 mt-2 text-sm text-white/50">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" /> Joined {memberSince}
                   </span>
@@ -473,15 +472,13 @@ export default function Profile() {
                     <span className="text-white/60 font-medium">Progress to Level {level + 1}</span>
                     <span className="text-white/40">{xpProgress?.current || 0} / {xpProgress?.needed || 100} XP</span>
                   </div>
-                  <div className="relative h-3 rounded-full overflow-hidden bg-white/[0.06] border border-white/[0.08]">
+                  <div className="relative h-2.5 rounded-full overflow-hidden bg-white/[0.08] border border-white/[0.08]">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${xpProgress?.percentage || 0}%` }}
                       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-500 rounded-full"
+                      className="absolute inset-y-0 left-0 bg-foreground rounded-full"
                     />
-                    {/* Shimmer effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite] opacity-50" />
                   </div>
                 </div>
               </div>
@@ -490,7 +487,7 @@ export default function Profile() {
               <div className="flex gap-3 sm:pt-6">
                 <Button 
                   onClick={() => setShowBuyModal(true)} 
-                  className="h-12 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-semibold shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-105 transition-all border-0"
+                  className="h-12 px-6 rounded-full bg-foreground text-background font-semibold shadow-obsidian hover:shadow-obsidian-lg hover:scale-105 transition-all border-0"
                 >
                   <Coins className="w-4 h-4 mr-2" />
                   {profile?.credits_balance?.toLocaleString() || 0}
@@ -498,7 +495,7 @@ export default function Profile() {
                 <Button 
                   onClick={() => navigate('/settings')} 
                   variant="ghost" 
-                  className={cn("h-12 w-12 rounded-2xl transition-all", glassCard, glassCardHover, "text-white/60 hover:text-white")}
+                  className="h-12 w-12 rounded-full bg-white/10 border border-white/20 text-white/70 hover:text-white hover:bg-white/20 transition-all"
                 >
                   <Settings className="w-5 h-5" />
                 </Button>
@@ -508,7 +505,7 @@ export default function Profile() {
         </motion.section>
 
         {/* ═══════════════════════════════════════════════════════════════
-            STATS GRID - Floating Glass Cards
+            STATS GRID - Premium Transparent Cards
         ═══════════════════════════════════════════════════════════════ */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -517,29 +514,26 @@ export default function Profile() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { label: 'Videos Created', value: metrics.totalVideosGenerated, icon: Video, gradient: 'from-blue-500 to-cyan-400', glow: 'shadow-blue-500/20' },
-            { label: 'Projects', value: metrics.totalProjects, icon: FolderOpen, gradient: 'from-violet-500 to-purple-400', glow: 'shadow-violet-500/20' },
-            { label: 'Total XP', value: xpTotal.toLocaleString(), icon: Sparkles, gradient: 'from-amber-500 to-orange-400', glow: 'shadow-amber-500/20' },
-            { label: 'Followers', value: followersCount || 0, icon: Users, gradient: 'from-pink-500 to-rose-400', glow: 'shadow-pink-500/20' },
+            { label: 'Videos Created', value: metrics.totalVideosGenerated, icon: Video },
+            { label: 'Projects', value: metrics.totalProjects, icon: FolderOpen },
+            { label: 'Total XP', value: xpTotal.toLocaleString(), icon: Sparkles },
+            { label: 'Followers', value: followersCount || 0, icon: Users },
           ].map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.05 }}
-              className={cn("group relative p-5 rounded-2xl transition-all duration-300", glassCard, glassCardHover, stat.glow)}
+              className={cn("group relative p-5 rounded-2xl transition-all duration-300", glassCard, glassCardHover)}
             >
-              {/* Gradient accent line */}
-              <div className={cn("absolute top-0 left-4 right-4 h-px bg-gradient-to-r opacity-50 group-hover:opacity-100 transition-opacity", stat.gradient)} />
-              
               <div className="flex items-start justify-between">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg", stat.gradient, stat.glow)}>
-                  <stat.icon className="w-5 h-5 text-white" />
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-foreground text-background shadow-lg">
+                  <stat.icon className="w-5 h-5" />
                 </div>
               </div>
               
-              <p className="text-3xl font-bold text-white mt-4 tracking-tight">{stat.value}</p>
-              <p className="text-sm text-white/40 mt-1">{stat.label}</p>
+              <p className="text-3xl font-bold text-foreground mt-4 tracking-tight">{stat.value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
             </motion.div>
           ))}
         </motion.section>
@@ -553,7 +547,7 @@ export default function Profile() {
           transition={{ delay: 0.2 }}
           className="flex items-center justify-center"
         >
-          <div className={cn("inline-flex p-1.5 rounded-2xl", glassCard)}>
+          <div className={cn("inline-flex p-1.5 rounded-full", glassCard)}>
             {[
               { id: 'overview' as TabType, label: 'Overview', icon: BarChart3 },
               { id: 'achievements' as TabType, label: 'Achievements', icon: Trophy, badge: localUnlockedAchievements.length },
@@ -563,10 +557,10 @@ export default function Profile() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-xl",
+                  "flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-full",
                   activeTab === tab.id
-                    ? "bg-white text-black shadow-lg"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.05]"
+                    ? "bg-foreground text-background shadow-obsidian"
+                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
               >
                 <tab.icon className="w-4 h-4" />
@@ -574,7 +568,7 @@ export default function Profile() {
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-xs font-semibold",
-                    activeTab === tab.id ? "bg-amber-500 text-white" : "bg-amber-500/20 text-amber-400"
+                    activeTab === tab.id ? "bg-background/20 text-background" : "bg-foreground/10 text-foreground"
                   )}>
                     {tab.badge}
                   </span>
@@ -600,17 +594,17 @@ export default function Profile() {
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
                 
-                {/* Activity Chart */}
-                <div className={cn("rounded-2xl overflow-hidden", glassCard)}>
-                  <div className="p-5 border-b border-white/[0.06]">
+                {/* Activity Chart - Dark Card */}
+                <div className={cn("rounded-3xl overflow-hidden", darkCard)}>
+                  <div className="p-5 border-b border-white/[0.08]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
                           <Activity className="w-5 h-5 text-white" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-white">Activity Overview</h3>
-                          <p className="text-xs text-white/40">Last 14 days</p>
+                          <p className="text-xs text-white/50">Last 14 days</p>
                         </div>
                       </div>
                     </div>
@@ -624,69 +618,68 @@ export default function Profile() {
                         <AreaChart data={dailyUsage}>
                           <defs>
                             <linearGradient id="chartGradientProfile" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity={0.3} />
-                              <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity={0} />
+                              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" stopOpacity={0.3} />
+                              <stop offset="100%" stopColor="rgba(255,255,255,0.3)" stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.1)" fontSize={10} tickLine={false} axisLine={false} interval={2} />
-                          <YAxis stroke="rgba(255,255,255,0.1)" fontSize={10} tickLine={false} axisLine={false} width={30} />
+                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} interval={2} />
+                          <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} width={30} />
                           <Tooltip
                             contentStyle={{ 
-                              backgroundColor: 'rgba(0,0,0,0.8)', 
+                              backgroundColor: 'rgba(0,0,0,0.9)', 
                               backdropFilter: 'blur(12px)',
                               border: '1px solid rgba(255,255,255,0.1)', 
                               borderRadius: '12px', 
                               fontSize: '12px',
-                              boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
                             }}
                             labelStyle={{ color: '#fff' }}
                           />
-                          <Area type="monotone" dataKey="credits" stroke="rgb(139, 92, 246)" strokeWidth={2} fill="url(#chartGradientProfile)" />
+                          <Area type="monotone" dataKey="credits" stroke="rgba(255,255,255,0.6)" strokeWidth={2} fill="url(#chartGradientProfile)" />
                         </AreaChart>
                       </ResponsiveContainer>
                     )}
                   </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions - Premium Dark Cards */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'New Project', icon: Plus, onClick: () => navigate('/create'), gradient: 'from-blue-600 via-blue-500 to-cyan-400', glow: 'hover:shadow-blue-500/30' },
-                    { label: 'My Videos', icon: Video, onClick: () => navigate('/clips'), gradient: 'from-violet-600 via-purple-500 to-fuchsia-400', glow: 'hover:shadow-violet-500/30' },
-                    { label: 'Buy Credits', icon: Coins, onClick: () => setShowBuyModal(true), gradient: 'from-amber-600 via-orange-500 to-red-400', glow: 'hover:shadow-amber-500/30' },
+                    { label: 'New Project', icon: Plus, onClick: () => navigate('/create') },
+                    { label: 'My Videos', icon: Video, onClick: () => navigate('/clips') },
+                    { label: 'Buy Credits', icon: Coins, onClick: () => setShowBuyModal(true) },
                   ].map((action, i) => (
                     <motion.button
                       key={i}
-                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={action.onClick}
                       className={cn(
-                        "group relative p-5 rounded-2xl text-white transition-all overflow-hidden",
-                        `bg-gradient-to-br ${action.gradient} shadow-lg ${action.glow}`
+                        "group relative p-5 rounded-2xl transition-all overflow-hidden",
+                        darkCard, darkCardHover
                       )}
                     >
-                      {/* Shimmer overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
-                      <action.icon className="w-7 h-7 mb-3" />
-                      <span className="text-sm font-semibold">{action.label}</span>
+                      {/* Top accent line */}
+                      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                      <action.icon className="w-7 h-7 mb-3 text-white" />
+                      <span className="text-sm font-semibold text-white">{action.label}</span>
                     </motion.button>
                   ))}
                 </div>
 
-                {/* Leaderboard */}
+                {/* Leaderboard - Transparent Glass Card */}
                 <div className={cn("rounded-2xl overflow-hidden", glassCard)}>
-                  <div className="p-5 border-b border-white/[0.06]">
+                  <div className="p-5 border-b border-border/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                          <Trophy className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center">
+                          <Trophy className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">Leaderboard</h3>
-                          <p className="text-xs text-white/40">Top creators this week</p>
+                          <h3 className="font-semibold text-foreground">Leaderboard</h3>
+                          <p className="text-xs text-muted-foreground">Top creators this week</p>
                         </div>
                       </div>
-                      <button className="flex items-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors">
+                      <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                         View all <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -696,23 +689,18 @@ export default function Profile() {
                     {leaderboardLoading ? (
                       <div className="space-y-2">
                         {Array.from({ length: 3 }).map((_, i) => (
-                          <Skeleton key={i} className="h-16 rounded-xl bg-white/5" />
+                          <Skeleton key={i} className="h-16 rounded-xl bg-muted" />
                         ))}
                       </div>
                     ) : (leaderboard || []).length === 0 ? (
                       <div className="text-center py-12">
-                        <Trophy className="w-10 h-10 text-white/15 mx-auto mb-3" />
-                        <p className="text-sm text-white/40">No rankings yet</p>
+                        <Trophy className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground">No rankings yet</p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         {(leaderboard || []).slice(0, 5).map((entry, i) => {
                           const isCurrentUser = entry.user_id === user?.id;
-                          const rankColors = [
-                            'from-amber-500/20 to-orange-500/10 border-amber-500/30',
-                            'from-gray-400/20 to-gray-500/10 border-gray-400/20',
-                            'from-amber-700/20 to-amber-800/10 border-amber-700/20',
-                          ];
                           
                           return (
                             <motion.div
@@ -722,37 +710,37 @@ export default function Profile() {
                               transition={{ delay: i * 0.05 }}
                               className={cn(
                                 "flex items-center gap-4 p-4 rounded-xl transition-all border",
-                                i < 3 ? `bg-gradient-to-r ${rankColors[i]}` : 'bg-white/[0.02] border-white/[0.06]',
-                                isCurrentUser && "ring-1 ring-white/30"
+                                i === 0 ? "bg-foreground/5 border-foreground/20" : "bg-background/50 border-border/50",
+                                isCurrentUser && "ring-1 ring-foreground/30"
                               )}
                             >
                               <div className="w-8 flex-shrink-0 text-center">
-                                {i === 0 ? <Crown className="w-5 h-5 text-amber-400 mx-auto" /> :
-                                 i === 1 ? <Medal className="w-5 h-5 text-gray-300 mx-auto" /> :
-                                 i === 2 ? <Medal className="w-5 h-5 text-amber-600 mx-auto" /> :
-                                 <span className="text-sm font-bold text-white/40">#{i + 1}</span>}
+                                {i === 0 ? <Crown className="w-5 h-5 text-foreground mx-auto" /> :
+                                 i === 1 ? <Medal className="w-5 h-5 text-muted-foreground mx-auto" /> :
+                                 i === 2 ? <Medal className="w-5 h-5 text-muted-foreground mx-auto" /> :
+                                 <span className="text-sm font-bold text-muted-foreground">#{i + 1}</span>}
                               </div>
                               
-                              <Avatar className={cn("h-10 w-10 border-2", i === 0 ? "border-amber-500/50" : "border-white/10")}>
+                              <Avatar className={cn("h-10 w-10 border-2", i === 0 ? "border-foreground/30" : "border-border")}>
                                 <AvatarImage src={entry.avatar_url || undefined} />
-                                <AvatarFallback className="bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white text-sm font-medium">
+                                <AvatarFallback className="bg-foreground text-background text-sm font-medium">
                                   {entry.display_name?.charAt(0) || '?'}
                                 </AvatarFallback>
                               </Avatar>
                               
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-white truncate">
+                                <p className="font-semibold text-sm text-foreground truncate">
                                   {entry.display_name || 'Anonymous'}
-                                  {isCurrentUser && <span className="text-white/40 font-normal ml-1.5">(You)</span>}
+                                  {isCurrentUser && <span className="text-muted-foreground font-normal ml-1.5">(You)</span>}
                                 </p>
-                                <p className="text-xs text-white/40">Level {entry.level}</p>
+                                <p className="text-xs text-muted-foreground">Level {entry.level}</p>
                               </div>
                               
                               <div className="text-right">
-                                <p className={cn("font-bold tabular-nums", i === 0 ? "text-amber-400" : "text-white")}>
+                                <p className={cn("font-bold tabular-nums", i === 0 ? "text-foreground" : "text-foreground/80")}>
                                   {entry.xp_total.toLocaleString()}
                                 </p>
-                                <p className="text-xs text-white/40">XP</p>
+                                <p className="text-xs text-muted-foreground">XP</p>
                               </div>
                             </motion.div>
                           );
@@ -766,17 +754,17 @@ export default function Profile() {
               {/* Right Column */}
               <div className="space-y-6">
                 
-                {/* Daily Challenges */}
+                {/* Daily Challenges - Transparent Card */}
                 <div className={cn("rounded-2xl overflow-hidden", glassCard)}>
-                  <div className="p-5 border-b border-white/[0.06]">
+                  <div className="p-5 border-b border-border/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
-                          <Target className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center">
+                          <Target className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-white">Daily Challenges</h3>
-                          <p className="text-xs text-white/40">Reset in 8 hours</p>
+                          <h3 className="font-semibold text-foreground">Daily Challenges</h3>
+                          <p className="text-xs text-muted-foreground">Reset in 8 hours</p>
                         </div>
                       </div>
                     </div>
@@ -794,41 +782,41 @@ export default function Profile() {
                           className={cn(
                             "p-4 rounded-xl transition-all border",
                             isComplete 
-                              ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/10 border-emerald-500/30" 
-                              : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]"
+                              ? "bg-emerald-500/10 border-emerald-500/30" 
+                              : "bg-background/50 border-border/50 hover:bg-background/80"
                           )}
                         >
                           <div className="flex items-center gap-3">
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center",
-                              isComplete ? "bg-emerald-500/30" : "bg-white/[0.05]"
+                              isComplete ? "bg-emerald-500/20" : "bg-foreground/5"
                             )}>
                               {isComplete ? (
-                                <Check className="w-5 h-5 text-emerald-400" />
+                                <Check className="w-5 h-5 text-emerald-500" />
                               ) : (
-                                <challenge.icon className="w-5 h-5 text-white/40" />
+                                <challenge.icon className="w-5 h-5 text-muted-foreground" />
                               )}
                             </div>
                             <div className="flex-1">
-                              <p className={cn("text-sm font-medium", isComplete ? "text-emerald-300" : "text-white")}>
+                              <p className={cn("text-sm font-medium", isComplete ? "text-emerald-600" : "text-foreground")}>
                                 {challenge.description}
                               </p>
                               <div className="flex items-center gap-2 mt-2">
-                                <div className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                                <div className="flex-1 h-1.5 rounded-full bg-foreground/10 overflow-hidden">
                                   <div 
                                     className={cn(
                                       "h-full rounded-full transition-all",
-                                      isComplete ? "bg-emerald-500" : "bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                                      isComplete ? "bg-emerald-500" : "bg-foreground"
                                     )}
                                     style={{ width: `${(challenge.progress / challenge.target) * 100}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-white/40">{challenge.progress}/{challenge.target}</span>
+                                <span className="text-xs text-muted-foreground">{challenge.progress}/{challenge.target}</span>
                               </div>
                             </div>
                             <div className={cn(
                               "px-3 py-1.5 rounded-lg text-xs font-bold",
-                              isComplete ? "bg-emerald-500 text-white" : "bg-amber-500/20 text-amber-400"
+                              isComplete ? "bg-emerald-500 text-white" : "bg-foreground/10 text-foreground"
                             )}>
                               +{challenge.xp} XP
                             </div>
@@ -839,28 +827,28 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Stats Summary */}
+                {/* Stats Summary - Transparent Card */}
                 <div className={cn("rounded-2xl p-5", glassCard)}>
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                      <BarChart3 className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5" />
                     </div>
-                    <h3 className="font-semibold text-white">Stats Summary</h3>
+                    <h3 className="font-semibold text-foreground">Stats Summary</h3>
                   </div>
                   
                   <div className="space-y-4">
                     {[
-                      { label: 'This Week', value: `${metrics.videosThisWeek} videos`, sub: `${metrics.creditsThisMonth} credits used`, icon: TrendingUp, color: 'text-emerald-400' },
-                      { label: 'Total Duration', value: formatDuration(metrics.totalVideoDuration), sub: 'Content created', icon: Clock, color: 'text-blue-400' },
-                      { label: 'Completion Rate', value: `${metrics.totalProjects > 0 ? Math.round((metrics.completedProjects / metrics.totalProjects) * 100) : 0}%`, sub: `${metrics.completedProjects} of ${metrics.totalProjects}`, icon: Target, color: 'text-amber-400' },
+                      { label: 'This Week', value: `${metrics.videosThisWeek} videos`, sub: `${metrics.creditsThisMonth} credits used`, icon: TrendingUp },
+                      { label: 'Total Duration', value: formatDuration(metrics.totalVideoDuration), sub: 'Content created', icon: Clock },
+                      { label: 'Completion Rate', value: `${metrics.totalProjects > 0 ? Math.round((metrics.completedProjects / metrics.totalProjects) * 100) : 0}%`, sub: `${metrics.completedProjects} of ${metrics.totalProjects}`, icon: Target },
                     ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-4 py-3 border-t border-white/[0.06] first:border-t-0 first:pt-0">
-                        <item.icon className={cn("w-5 h-5", item.color)} />
+                      <div key={i} className="flex items-center gap-4 py-3 border-t border-border/50 first:border-t-0 first:pt-0">
+                        <item.icon className="w-5 h-5 text-foreground" />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-white">{item.value}</p>
-                          <p className="text-xs text-white/40">{item.label}</p>
+                          <p className="text-sm font-medium text-foreground">{item.value}</p>
+                          <p className="text-xs text-muted-foreground">{item.label}</p>
                         </div>
-                        <p className="text-xs text-white/30">{item.sub}</p>
+                        <p className="text-xs text-muted-foreground">{item.sub}</p>
                       </div>
                     ))}
                   </div>

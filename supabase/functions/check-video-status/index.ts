@@ -50,7 +50,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { taskId, provider = "vertex-ai", projectId: reqProjectId, userId } = await req.json();
+    const { taskId, provider = "kling", projectId: reqProjectId, userId } = await req.json();
 
     if (!taskId) {
       throw new Error("Task ID is required");
@@ -58,8 +58,76 @@ serve(async (req) => {
 
     console.log("Checking video status for task:", taskId, "provider:", provider);
 
-    // Handle Vertex AI (Google Veo 3.1)
-    if (provider === "vertex-ai" || taskId.includes("projects/")) {
+    // Handle Kling (Replicate) - PRIMARY PROVIDER
+    if (provider === "kling" || provider === "replicate") {
+      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+      if (!REPLICATE_API_KEY) {
+        throw new Error("REPLICATE_API_KEY is not configured");
+      }
+
+      const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+      const prediction = await replicate.predictions.get(taskId);
+
+      console.log("Kling/Replicate prediction:", {
+        id: prediction.id,
+        status: prediction.status,
+        model: prediction.model,
+      });
+
+      if (prediction.status === "failed" && prediction.error) {
+        console.error("Kling prediction failed with error:", prediction.error);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "FAILED",
+            progress: 0,
+            videoUrl: null,
+            error: prediction.error,
+            provider: "kling",
+            model: "kling-v2.0-master",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let status = prediction.status.toUpperCase();
+      if (status === "PROCESSING" || status === "STARTING") status = "RUNNING";
+      if (status === "SUCCEEDED") status = "SUCCEEDED";
+      if (status === "FAILED" || status === "CANCELED") status = "FAILED";
+
+      let videoUrl = null;
+      if (prediction.output) {
+        if (typeof prediction.output === "string") {
+          videoUrl = prediction.output;
+        } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
+          videoUrl = prediction.output[0];
+        } else if (typeof prediction.output === "object" && prediction.output.video) {
+          videoUrl = prediction.output.video;
+        }
+      }
+
+      // Calculate progress based on status
+      let progress = 0;
+      if (status === "SUCCEEDED") progress = 100;
+      else if (status === "RUNNING") progress = prediction.logs ? 50 : 25;
+      else if (status === "STARTING") progress = 10;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: status,
+          progress: progress,
+          videoUrl: videoUrl,
+          error: prediction.error || null,
+          provider: "kling",
+          model: "kling-v2.0-master",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle Vertex AI (Google Veo 3.1) - FALLBACK PROVIDER
+    if (provider === "vertex-ai" || provider === "veo3" || taskId.includes("projects/")) {
       const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
       if (!serviceAccountJson) {
         throw new Error("GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured");
@@ -69,20 +137,16 @@ serve(async (req) => {
       const accessToken = await getAccessToken(serviceAccount);
 
       // Extract project ID, location, and model from the task ID
-      // Format: projects/{project}/locations/{location}/publishers/google/models/{model}/operations/{operation_id}
       const taskMatch = taskId.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
       if (!taskMatch) {
-        throw new Error("Invalid task ID format");
+        throw new Error("Invalid Veo3 task ID format");
       }
       
       const [, gcpProjectId, location, modelId, operationId] = taskMatch;
       
-      // Use the fetchPredictOperation endpoint for Veo operations
-      // This is a POST request with the operation name in the body
       const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
       
-      console.log("Polling Vertex AI operation:", fetchOperationUrl);
-      console.log("Operation name:", taskId);
+      console.log("Polling Veo3 operation:", fetchOperationUrl);
       
       // Log the GCP API poll call
       await logGcpApiCall(
@@ -108,17 +172,17 @@ serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Vertex AI operation error:", response.status, errorText);
-        throw new Error(`Vertex AI error: ${response.status}`);
+        console.error("Veo3 operation error:", response.status, errorText);
+        throw new Error(`Veo3 error: ${response.status}`);
       }
 
       const operation = await response.json();
-      console.log("Vertex AI operation:", JSON.stringify(operation).substring(0, 500));
+      console.log("Veo3 operation:", JSON.stringify(operation).substring(0, 500));
 
       // Check if operation is complete
       if (operation.done) {
         if (operation.error) {
-          console.error("Vertex AI operation failed:", operation.error);
+          console.error("Veo3 operation failed:", operation.error);
           return new Response(
             JSON.stringify({
               success: true,
@@ -126,7 +190,8 @@ serve(async (req) => {
               progress: 0,
               videoUrl: null,
               error: operation.error.message || "Video generation failed",
-              provider: "vertex-ai",
+              provider: "veo3",
+              model: "veo-3.1-generate-001",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
@@ -148,7 +213,7 @@ serve(async (req) => {
               videoUrl: null,
               error: "Content filter blocked generation. Prompt needs rephrasing.",
               contentFilterReason: filterReasons[0] || "Content policy violation",
-              provider: "vertex-ai",
+              provider: "veo3",
               model: "veo-3.1-generate-001",
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -168,10 +233,6 @@ serve(async (req) => {
           console.log("Video returned as base64, uploading to storage...");
           
           try {
-            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-            const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-            const supabase = createClient(supabaseUrl, supabaseKey);
-            
             const base64Data = result.videos[0].bytesBase64Encoded;
             const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             
@@ -187,7 +248,6 @@ serve(async (req) => {
             
             if (uploadError) {
               console.error("Failed to upload video to storage:", uploadError);
-              // Return base64 as data URL fallback
               videoUrl = `data:video/mp4;base64,${base64Data.substring(0, 100)}...`;
             } else {
               const { data: publicUrl } = supabase.storage
@@ -201,13 +261,9 @@ serve(async (req) => {
             console.error("Error uploading video:", uploadErr);
             videoUrl = "upload-failed";
           }
-        } else if (result?.predictions?.[0]?.bytesBase64Encoded) {
-          // Alternative format - also upload to storage
-          console.log("Video in predictions format as base64");
-          videoUrl = "base64-encoded";
         }
 
-        console.log("Veo 3.1 generation complete, video URL:", videoUrl);
+        console.log("Veo3 generation complete, video URL:", videoUrl);
 
         return new Response(
           JSON.stringify({
@@ -216,7 +272,7 @@ serve(async (req) => {
             progress: 100,
             videoUrl: videoUrl,
             error: null,
-            provider: "vertex-ai",
+            provider: "veo3",
             model: "veo-3.1-generate-001",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -234,13 +290,14 @@ serve(async (req) => {
           progress: progress,
           videoUrl: null,
           error: null,
-          provider: "vertex-ai",
+          provider: "veo3",
+          model: "veo-3.1-generate-001",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fallback to Replicate for legacy tasks
+    // Unknown provider - try Replicate as fallback for legacy tasks
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
@@ -249,21 +306,13 @@ serve(async (req) => {
     const replicate = new Replicate({ auth: REPLICATE_API_KEY });
     const prediction = await replicate.predictions.get(taskId);
 
-    console.log("Replicate prediction:", {
+    console.log("Legacy Replicate prediction:", {
       id: prediction.id,
       status: prediction.status,
-      model: prediction.model,
-      version: prediction.version,
     });
-
-    if (prediction.status === "failed" && prediction.error) {
-      console.error("Replicate prediction failed with error:", prediction.error);
-    }
 
     let status = prediction.status.toUpperCase();
     if (status === "PROCESSING") status = "RUNNING";
-    if (status === "SUCCEEDED") status = "SUCCEEDED";
-    if (status === "FAILED") status = "FAILED";
 
     let videoUrl = null;
     if (prediction.output) {
@@ -271,8 +320,6 @@ serve(async (req) => {
         videoUrl = prediction.output;
       } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
         videoUrl = prediction.output[0];
-      } else if (prediction.output.video) {
-        videoUrl = prediction.output.video;
       }
     }
 
@@ -280,7 +327,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         status: status,
-        progress: prediction.status === "succeeded" ? 100 : (prediction.status === "processing" ? 50 : 0),
+        progress: prediction.status === "succeeded" ? 100 : 50,
         videoUrl: videoUrl,
         error: prediction.error || null,
         provider: "replicate",

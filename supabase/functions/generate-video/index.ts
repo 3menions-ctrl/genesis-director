@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import Replicate from "https://esm.sh/replicate@0.25.2";
 import { getAccessToken } from "../_shared/gcp-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Provider selection - Kling 2.0 as primary, Veo3 as fallback
+type VideoProvider = "kling" | "veo3";
+const PRIMARY_PROVIDER: VideoProvider = "kling";
+const FALLBACK_PROVIDER: VideoProvider = "veo3";
+
+// Kling 2.0 model on Replicate
+const KLING_MODEL = "kwaivgi/kling-video" as const;
 
 // Scene context for consistency
 interface SceneContext {
@@ -784,6 +793,198 @@ async function ensureImageUrl(input: string | undefined): Promise<string | null>
   return null;
 }
 
+// Generate video with Kling 2.0 via Replicate
+async function generateWithKling(
+  prompt: string,
+  enhancedPrompt: string,
+  negativePrompt: string,
+  duration: number,
+  aspectRatio: string,
+  startImageUrl: string | null
+): Promise<{ success: true; taskId: string; provider: "kling"; model: string } | { success: false; error: string }> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    return { success: false, error: "REPLICATE_API_KEY is not configured" };
+  }
+
+  try {
+    const replicate = new Replicate({ auth: REPLICATE_API_KEY });
+
+    // Kling 2.0 parameters
+    // Duration: 5 or 10 seconds for Kling
+    const klingDuration = duration <= 6 ? 5 : 10;
+    
+    // Aspect ratio mapping for Kling
+    const klingAspectRatio = aspectRatio === "9:16" ? "9:16" : 
+                              aspectRatio === "1:1" ? "1:1" : "16:9";
+
+    const input: Record<string, any> = {
+      prompt: enhancedPrompt.slice(0, 2500), // Kling has generous prompt limit
+      negative_prompt: negativePrompt.slice(0, 1000),
+      duration: klingDuration,
+      aspect_ratio: klingAspectRatio,
+      cfg_scale: 0.5, // Creativity/fidelity balance
+    };
+
+    // Image-to-video mode
+    if (startImageUrl) {
+      input.start_image = startImageUrl;
+    }
+
+    console.log("[generate-video] Starting Kling 2.0 generation:", {
+      mode: startImageUrl ? "image-to-video" : "text-to-video",
+      duration: klingDuration,
+      aspectRatio: klingAspectRatio,
+      promptLength: enhancedPrompt.length,
+    });
+
+    // Create prediction (async mode)
+    const prediction = await replicate.predictions.create({
+      model: KLING_MODEL,
+      input,
+    });
+
+    console.log("[generate-video] Kling 2.0 prediction created:", prediction.id);
+
+    return {
+      success: true,
+      taskId: prediction.id,
+      provider: "kling",
+      model: "kling-v2.0-master",
+    };
+  } catch (error) {
+    console.error("[generate-video] Kling error:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Kling generation failed" 
+    };
+  }
+}
+
+// Generate video with Veo 3.1 via Vertex AI (fallback)
+async function generateWithVeo3(
+  prompt: string,
+  enhancedPrompt: string,
+  negativePrompt: string,
+  duration: number,
+  aspectRatio: string,
+  startImageUrl: string | null
+): Promise<{ success: true; taskId: string; provider: "veo3"; model: string } | { success: false; error: string }> {
+  const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
+  if (!serviceAccountJson) {
+    return { success: false, error: "GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured" };
+  }
+
+  try {
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    const projectId = serviceAccount.project_id;
+    if (!projectId) {
+      return { success: false, error: "project_id not found in service account" };
+    }
+
+    const accessToken = await getAccessToken(serviceAccount);
+
+    const location = "us-central1";
+    const model = "veo-3.1-generate-001";
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+
+    const instance: Record<string, any> = {
+      prompt: enhancedPrompt,
+    };
+
+    // Add image for image-to-video mode
+    if (startImageUrl && startImageUrl.startsWith("http")) {
+      try {
+        const imageResponse = await fetch(startImageUrl);
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const uint8Array = new Uint8Array(imageBuffer);
+        
+        let binary = '';
+        const chunkSize = 32768;
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const base64Image = btoa(binary);
+        
+        const mimeType = startImageUrl.includes('.png') ? 'image/png' : 
+                        startImageUrl.includes('.webp') ? 'image/webp' : 'image/jpeg';
+        
+        instance.image = {
+          bytesBase64Encoded: base64Image,
+          mimeType: mimeType
+        };
+      } catch (imgError) {
+        console.error("Failed to fetch image for Veo3:", imgError);
+      }
+    }
+
+    const isImageToVideo = !!instance.image;
+    
+    // Duration handling for Veo
+    let finalDuration = duration;
+    if (isImageToVideo) {
+      if (duration <= 5) finalDuration = 6;
+      else if (duration <= 7) finalDuration = 6;
+      else finalDuration = 8;
+    } else {
+      finalDuration = Math.min(Math.max(duration, 6), 8);
+    }
+
+    const validAspectRatios = ["16:9", "9:16", "1:1"];
+    const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "16:9";
+
+    const requestBody = {
+      instances: [instance],
+      parameters: {
+        aspectRatio: finalAspectRatio,
+        durationSeconds: finalDuration,
+        sampleCount: 1,
+        negativePrompt: negativePrompt,
+        resolution: "1080p",
+        personGeneration: "allow_adult",
+      }
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Veo3 error:", response.status, errorText);
+      return { success: false, error: `Veo3 error: ${response.status}` };
+    }
+
+    const result = await response.json();
+    const operationName = result.name;
+    
+    if (!operationName) {
+      return { success: false, error: "No operation name in Veo3 response" };
+    }
+
+    console.log("[generate-video] Veo3 operation started:", operationName);
+
+    return {
+      success: true,
+      taskId: operationName,
+      provider: "veo3",
+      model: "veo-3.1-generate-001",
+    };
+  } catch (error) {
+    console.error("[generate-video] Veo3 error:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Veo3 generation failed" 
+    };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -799,34 +1000,12 @@ serve(async (req) => {
       negativePrompt: inputNegativePrompt,
       transitionOut,
       aspectRatio = "16:9",
+      preferredProvider, // Optional: allow caller to request specific provider
     } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
-
-    // Get service account credentials
-    const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
-    if (!serviceAccountJson) {
-      throw new Error("GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured");
-    }
-
-    let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(serviceAccountJson);
-    } catch {
-      throw new Error("Invalid GOOGLE_VERTEX_SERVICE_ACCOUNT JSON format");
-    }
-
-    const projectId = serviceAccount.project_id;
-    if (!projectId) {
-      throw new Error("project_id not found in service account");
-    }
-
-    // Get access token
-    console.log("Getting OAuth2 access token...");
-    const accessToken = await getAccessToken(serviceAccount);
-    console.log("Access token obtained successfully");
 
     // Build enhanced prompt
     const { prompt: enhancedPrompt, negativePrompt } = buildConsistentPrompt(
@@ -841,142 +1020,69 @@ serve(async (req) => {
     const startImageUrl = await ensureImageUrl(rawStartImage);
     const isImageToVideo = !!startImageUrl;
 
-    console.log("Generating video with Google Vertex AI Veo 3.1:", {
-      projectId,
+    console.log("[generate-video] Starting video generation:", {
+      primaryProvider: PRIMARY_PROVIDER,
+      fallbackProvider: FALLBACK_PROVIDER,
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
       duration,
-      transitionOut: transitionOut || "continuous",
+      aspectRatio,
       promptLength: enhancedPrompt.length,
-      hasStartImage: isImageToVideo,
     });
 
-    // Build Vertex AI request
-    const location = "us-central1";
-    const model = "veo-3.1-generate-001"; // Latest stable Veo 3.1
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+    // Determine provider order
+    const providers: VideoProvider[] = preferredProvider === "veo3" 
+      ? ["veo3", "kling"] 
+      : [PRIMARY_PROVIDER, FALLBACK_PROVIDER];
 
-    // Build instances array
-    const instance: Record<string, any> = {
-      prompt: enhancedPrompt,
-    };
+    let lastError = "";
 
-    // Add image for image-to-video mode
-    if (isImageToVideo && startImageUrl) {
-      // For HTTP URLs, we need to fetch and encode as base64
-      if (startImageUrl.startsWith("http")) {
-        try {
-          const imageResponse = await fetch(startImageUrl);
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const uint8Array = new Uint8Array(imageBuffer);
-          
-          // Convert to base64 in chunks to avoid stack overflow
-          let binary = '';
-          const chunkSize = 32768; // 32KB chunks
-          for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-            binary += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          const base64Image = btoa(binary);
-          
-          // Determine mime type from URL or default to jpeg
-          const mimeType = startImageUrl.includes('.png') ? 'image/png' : 
-                          startImageUrl.includes('.webp') ? 'image/webp' : 'image/jpeg';
-          
-          instance.image = {
-            bytesBase64Encoded: base64Image,
-            mimeType: mimeType
-          };
-          console.log("Image converted to base64 for Vertex AI, size:", base64Image.length);
-        } catch (imgError) {
-          console.error("Failed to fetch image for Vertex AI:", imgError);
-          // Continue without image - will use text-to-video mode
-        }
-      }
-    }
-
-    // For image-to-video, Veo 3.1 only supports [4, 6, 8] seconds
-    // For text-to-video, it supports [5, 6, 7, 8] seconds
-    // DEFAULT TO 6 SECONDS for cinematic quality
-    let finalDuration = duration;
-    if (isImageToVideo) {
-      // Snap to nearest valid duration for image-to-video: 4, 6, or 8
-      // PREFER 6 SECONDS as default for cinematic quality
-      if (duration <= 4) finalDuration = 6; // Changed: was 4, now 6 for better quality
-      else if (duration <= 5) finalDuration = 6; // Changed: was 4, now 6
-      else if (duration <= 7) finalDuration = 6;
-      else finalDuration = 8;
-    } else {
-      // Text-to-video: clamp to 5-8, prefer 6
-      finalDuration = Math.min(Math.max(duration, 6), 8);
-    }
-
-    // Validate and use the aspect ratio from request
-    const validAspectRatios = ["16:9", "9:16", "1:1"];
-    const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "16:9";
-
-    const requestBody = {
-      instances: [instance],
-      parameters: {
-        aspectRatio: finalAspectRatio,
-        durationSeconds: finalDuration,
-        sampleCount: 1,
-        negativePrompt: negativePrompt,
-        resolution: "1080p", // Upgraded to 1080p for Avatar-quality
-        personGeneration: "allow_adult", // Allow person generation
-      }
-    };
-
-    console.log("[generate-video] Using aspect ratio:", finalAspectRatio);
-
-    console.log("Sending request to Vertex AI:", endpoint);
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Vertex AI error:", response.status, errorText);
+    // Try providers in order
+    for (const provider of providers) {
+      console.log(`[generate-video] Trying provider: ${provider}`);
       
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      let result;
+      if (provider === "kling") {
+        result = await generateWithKling(
+          prompt,
+          enhancedPrompt,
+          negativePrompt,
+          duration,
+          aspectRatio,
+          startImageUrl
+        );
+      } else {
+        result = await generateWithVeo3(
+          prompt,
+          enhancedPrompt,
+          negativePrompt,
+          duration,
+          aspectRatio,
+          startImageUrl
         );
       }
-      
-      throw new Error(`Vertex AI error: ${response.status} - ${errorText}`);
+
+      if (result.success) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            taskId: result.taskId,
+            status: "STARTING",
+            mode: isImageToVideo ? "image-to-video" : "text-to-video",
+            provider: result.provider,
+            model: result.model,
+            promptRewritten: enhancedPrompt !== prompt,
+            message: `Video generation started with ${result.model}. Poll the status endpoint for updates.`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      lastError = result.error;
+      console.log(`[generate-video] Provider ${provider} failed: ${lastError}, trying next...`);
     }
 
-    const result = await response.json();
-    console.log("Vertex AI response:", JSON.stringify(result).substring(0, 500));
-
-    // The response contains an operation name for long-running operation
-    const operationName = result.name;
-    if (!operationName) {
-      throw new Error("No operation name in Vertex AI response");
-    }
-
-    console.log("Veo 3.1 operation started:", operationName);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        taskId: operationName,
-        status: "STARTING",
-        mode: isImageToVideo ? "image-to-video" : "text-to-video",
-        provider: "vertex-ai",
-        model: "veo-3.1-generate-001",
-        promptRewritten: enhancedPrompt !== prompt,
-        message: "Video generation started with Veo 3.1. Poll the status endpoint for updates.",
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // All providers failed
+    throw new Error(`All video providers failed. Last error: ${lastError}`);
 
   } catch (error: unknown) {
     console.error("Error in generate-video function:", error);

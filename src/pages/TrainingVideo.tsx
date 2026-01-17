@@ -54,12 +54,12 @@ const BACKGROUND_PRESETS = [
 
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';
 
-// Wizard steps
+// Wizard steps - logical order: Script first (content), Voice (how it sounds), Character (who speaks), Scene (backdrop)
 const WIZARD_STEPS = [
-  { id: 'character', label: 'Character', icon: User },
-  { id: 'voice', label: 'Voice', icon: Mic },
-  { id: 'scene', label: 'Scene', icon: Image },
   { id: 'script', label: 'Script', icon: Sparkles },
+  { id: 'voice', label: 'Voice', icon: Mic },
+  { id: 'character', label: 'Character', icon: User },
+  { id: 'scene', label: 'Scene', icon: Image },
 ];
 
 export default function TrainingVideo() {
@@ -463,13 +463,13 @@ export default function TrainingVideo() {
   const canGenerate = characterImage && scriptText.trim() && !isGenerating;
   const ESTIMATED_CREDITS = 12;
 
-  // Check step completion
+  // Check step completion - matches new order: Script, Voice, Character, Scene
   const isStepComplete = (stepIndex: number) => {
     switch (stepIndex) {
-      case 0: return !!characterImage;
+      case 0: return scriptText.trim().length > 0;
       case 1: return !!selectedVoice;
-      case 2: return !!(selectedBackground || customBackground);
-      case 3: return scriptText.trim().length > 0;
+      case 2: return !!characterImage;
+      case 3: return !!(selectedBackground || customBackground);
       default: return false;
     }
   };
@@ -609,10 +609,10 @@ export default function TrainingVideo() {
 
             {/* Step Content */}
             <AnimatePresence mode="wait">
-              {/* Step 0: Character */}
+              {/* Step 0: Script (First - what to say) */}
               {activeStep === 0 && (
                 <motion.div
-                  key="character"
+                  key="script"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -620,67 +620,41 @@ export default function TrainingVideo() {
                   <div className="p-6 rounded-3xl glass-card">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-xl font-bold hero-text">Upload Your Character</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Choose a front-facing image for best results</p>
+                        <h3 className="text-xl font-bold hero-text">Write Your Script</h3>
+                        <p className="text-sm hero-text-secondary mt-1">Start with what your character will say</p>
                       </div>
                       <Badge variant="outline" className="text-muted-foreground">Step 1 of 4</Badge>
                     </div>
                     
-                    <div 
-                      className={cn(
-                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center group",
-                        characterImage 
-                          ? "border-primary/50 bg-primary/5" 
-                          : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
-                      )}
-                      onClick={() => characterInputRef.current?.click()}
-                    >
-                      {characterImage ? (
-                        <div className="flex flex-col items-center">
-                          <div className="relative">
-                            <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-xl" />
-                            <div className="relative w-40 h-40 rounded-2xl overflow-hidden ring-4 ring-primary/30 shadow-obsidian">
-                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-primary mt-4 mb-2">
-                            <Check className="w-5 h-5" />
-                            <span className="font-semibold">Character Uploaded</span>
-                          </div>
-                          <p className="text-sm hero-text-secondary">Click to replace</p>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="mt-4 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Remove
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="py-8">
-                          <div className="w-24 h-24 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                            <Upload className="w-12 h-12 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </div>
-                          <p className="font-semibold text-lg hero-text mb-1">Drop your character image here</p>
-                          <p className="text-sm hero-text-secondary mb-4">or click to browse</p>
-                          <Badge variant="secondary">PNG, JPG up to 10MB</Badge>
-                        </div>
-                      )}
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Enter the text your character will speak...
+
+Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed. Let's get started!'"
+                        value={scriptText}
+                        onChange={(e) => setScriptText(e.target.value)}
+                        className="min-h-[200px] resize-none text-base"
+                      />
+                      <div className="absolute bottom-3 right-3">
+                        <Badge 
+                          variant={scriptText.length > 500 ? "destructive" : scriptText.length > 0 ? "secondary" : "outline"}
+                        >
+                          {scriptText.length} / 500
+                        </Badge>
+                      </div>
                     </div>
-                    <input
-                      ref={characterInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCharacterUpload}
-                      className="hidden"
-                    />
+                    
+                    <div className="flex items-center gap-3 mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                      <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                      <p className="text-sm hero-text-secondary">
+                        <span className="font-medium text-primary">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
+                      </p>
+                    </div>
                     
                     <div className="flex justify-end mt-6">
                       <Button 
                         onClick={() => setActiveStep(1)} 
-                        disabled={!characterImage}
+                        disabled={!scriptText.trim()}
                         className="shadow-obsidian"
                       >
                         Continue
@@ -691,7 +665,7 @@ export default function TrainingVideo() {
                 </motion.div>
               )}
 
-              {/* Step 1: Voice */}
+              {/* Step 1: Voice (Second - how it sounds) */}
               {activeStep === 1 && (
                 <motion.div
                   key="voice"
@@ -703,7 +677,7 @@ export default function TrainingVideo() {
                     <div className="flex items-center justify-between mb-6">
                       <div>
                         <h3 className="text-xl font-bold hero-text">Select a Voice</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Choose the perfect voice for your character</p>
+                        <p className="text-sm hero-text-secondary mt-1">Choose how your script will sound</p>
                       </div>
                       <Badge variant="outline" className="text-muted-foreground">Step 2 of 4</Badge>
                     </div>
@@ -801,8 +775,93 @@ export default function TrainingVideo() {
                 </motion.div>
               )}
 
-              {/* Step 2: Scene/Background */}
+              {/* Step 2: Character (Third - who speaks) */}
               {activeStep === 2 && (
+                <motion.div
+                  key="character"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <div className="p-6 rounded-3xl glass-card">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-xl font-bold hero-text">Upload Your Character</h3>
+                        <p className="text-sm hero-text-secondary mt-1">Choose who will deliver your message</p>
+                      </div>
+                      <Badge variant="outline" className="text-muted-foreground">Step 3 of 4</Badge>
+                    </div>
+                    
+                    <div 
+                      className={cn(
+                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center group",
+                        characterImage 
+                          ? "border-primary/50 bg-primary/5" 
+                          : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
+                      )}
+                      onClick={() => characterInputRef.current?.click()}
+                    >
+                      {characterImage ? (
+                        <div className="flex flex-col items-center">
+                          <div className="relative">
+                            <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-xl" />
+                            <div className="relative w-40 h-40 rounded-2xl overflow-hidden ring-4 ring-primary/30 shadow-obsidian">
+                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-primary mt-4 mb-2">
+                            <Check className="w-5 h-5" />
+                            <span className="font-semibold">Character Uploaded</span>
+                          </div>
+                          <p className="text-sm hero-text-secondary">Click to replace</p>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="mt-4 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="py-8">
+                          <div className="w-24 h-24 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                            <Upload className="w-12 h-12 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                          <p className="font-semibold text-lg hero-text mb-1">Drop your character image here</p>
+                          <p className="text-sm hero-text-secondary mb-4">or click to browse</p>
+                          <Badge variant="secondary">PNG, JPG up to 10MB</Badge>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={characterInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCharacterUpload}
+                      className="hidden"
+                    />
+                    
+                    <div className="flex justify-between mt-6">
+                      <Button variant="outline" onClick={() => setActiveStep(1)}>
+                        Back
+                      </Button>
+                      <Button 
+                        onClick={() => setActiveStep(3)} 
+                        disabled={!characterImage}
+                        className="shadow-obsidian"
+                      >
+                        Continue
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 3: Scene/Background (Fourth - the backdrop) */}
+              {activeStep === 3 && (
                 <motion.div
                   key="scene"
                   initial={{ opacity: 0, x: -20 }}
@@ -813,9 +872,9 @@ export default function TrainingVideo() {
                     <div className="flex items-center justify-between mb-6">
                       <div>
                         <h3 className="text-xl font-bold hero-text">Choose Your Scene</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Select a background environment</p>
+                        <p className="text-sm hero-text-secondary mt-1">Select the perfect backdrop for your video</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 3 of 4</Badge>
+                      <Badge variant="outline" className="text-muted-foreground">Step 4 of 4</Badge>
                     </div>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -867,61 +926,6 @@ export default function TrainingVideo() {
                       onChange={handleBackgroundUpload}
                       className="hidden"
                     />
-                    
-                    <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(1)}>
-                        Back
-                      </Button>
-                      <Button onClick={() => setActiveStep(3)} className="shadow-obsidian">
-                        Continue
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Step 3: Script */}
-              {activeStep === 3 && (
-                <motion.div
-                  key="script"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="p-6 rounded-3xl glass-card">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-xl font-bold hero-text">Write Your Script</h3>
-                        <p className="text-sm hero-text-secondary mt-1">What should your character say?</p>
-                      </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 4 of 4</Badge>
-                    </div>
-                    
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Enter the text your character will speak...
-
-Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed. Let's get started!'"
-                        value={scriptText}
-                        onChange={(e) => setScriptText(e.target.value)}
-                        className="min-h-[200px] resize-none text-base"
-                      />
-                      <div className="absolute bottom-3 right-3">
-                        <Badge 
-                          variant={scriptText.length > 500 ? "destructive" : scriptText.length > 0 ? "secondary" : "outline"}
-                        >
-                          {scriptText.length} / 500
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <Sparkles className="w-5 h-5 text-primary shrink-0" />
-                      <p className="text-sm hero-text-secondary">
-                        <span className="font-medium text-primary">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
-                      </p>
-                    </div>
                     
                     <div className="flex justify-between mt-6">
                       <Button variant="outline" onClick={() => setActiveStep(2)}>
@@ -1112,10 +1116,10 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                 <h4 className="font-semibold hero-text text-sm mb-4">Ready to generate?</h4>
                 <div className="space-y-3">
                   {[
-                    { label: 'Character uploaded', complete: !!characterImage },
-                    { label: 'Voice selected', complete: !!selectedVoice },
-                    { label: 'Background chosen', complete: !!(selectedBackground || customBackground) },
                     { label: 'Script written', complete: scriptText.trim().length > 0 },
+                    { label: 'Voice selected', complete: !!selectedVoice },
+                    { label: 'Character uploaded', complete: !!characterImage },
+                    { label: 'Background chosen', complete: !!(selectedBackground || customBackground) },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className={cn(

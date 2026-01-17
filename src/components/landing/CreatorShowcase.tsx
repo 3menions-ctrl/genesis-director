@@ -11,11 +11,12 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
-// Sample videos generated with Apex Studio
+// Sample videos generated with Apex Studio - with thumbnail URLs
 const CREATOR_VIDEOS = [
   {
     id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a1b6f181-26fa-4306-a663-d5892977b3fc.jpg',
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
     featured: true,
@@ -23,6 +24,7 @@ const CREATOR_VIDEOS = [
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a0016bb1-34ea-45e3-a173-da9441a84bda.jpg',
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
     featured: true,
@@ -30,6 +32,7 @@ const CREATOR_VIDEOS = [
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_71e83837-9ae4-4e79-a4f2-599163741b03.jpg',
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
     featured: false,
@@ -37,6 +40,7 @@ const CREATOR_VIDEOS = [
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_c09f52b7-442c-41cd-be94-2895e78bd0ba.jpg',
     title: 'Whispers by the River',
     genre: 'Nature',
     featured: false,
@@ -44,6 +48,7 @@ const CREATOR_VIDEOS = [
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba.jpg',
     title: 'Snowy Cabin Retreat',
     genre: 'Nature',
     featured: false,
@@ -51,6 +56,7 @@ const CREATOR_VIDEOS = [
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_f6b90eb8-fc54-4a82-b8db-7592a601a0f6.jpg',
     title: 'Whispers of the Verdant Grove',
     genre: 'Nature',
     featured: false,
@@ -58,6 +64,7 @@ const CREATOR_VIDEOS = [
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171807679.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_099597a1-0cbf-4d71-b000-7d140ab896d1.jpg',
     title: 'Soaring Above Snowy Serenity',
     genre: 'Aerial',
     featured: true,
@@ -65,6 +72,7 @@ const CREATOR_VIDEOS = [
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_1b0ac63f-643a-4d43-b8ed-44b8083257ed.jpg',
     title: 'Whimsical Chocolate Adventures',
     genre: 'Creative',
     featured: false,
@@ -72,6 +80,7 @@ const CREATOR_VIDEOS = [
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_dc255261-7bc3-465f-a9ec-ef2acd47b4fb.jpg',
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
     featured: false,
@@ -79,6 +88,7 @@ const CREATOR_VIDEOS = [
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_7434c756-78d3-4f68-8107-b205930027c4.jpg',
     title: 'Skyward Over Fiery Majesty',
     genre: 'Aerial',
     featured: false,
@@ -86,6 +96,7 @@ const CREATOR_VIDEOS = [
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4',
+    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_5bd6da17-734b-452b-b8b0-3381e7c710e3.jpg',
     title: "Owl of Wisdom's Twilight",
     genre: 'Creative',
     featured: false,
@@ -103,6 +114,7 @@ interface VideoCardProps {
 
 function VideoCard({ video, height, onClick, index }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const posterVideoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -111,6 +123,14 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
     medium: 'h-52 md:h-64',
     short: 'h-40 md:h-48',
   };
+
+  // Set poster video to first frame on load
+  useEffect(() => {
+    const posterVid = posterVideoRef.current;
+    if (posterVid) {
+      posterVid.currentTime = 0.1;
+    }
+  }, []);
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -133,17 +153,27 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
       onMouseLeave={() => setIsHovering(false)}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden cursor-pointer rounded-2xl w-full",
+        "group relative overflow-hidden cursor-pointer rounded-2xl w-full bg-muted",
         heightClasses[height]
       )}
     >
-      {/* Video */}
+      {/* Static poster video - shows first frame as thumbnail */}
+      <video
+        ref={posterVideoRef}
+        src={`${video.url}#t=0.1`}
+        className="absolute inset-0 w-full h-full object-cover"
+        muted
+        playsInline
+        preload="auto"
+      />
+      
+      {/* Video - plays on hover */}
       <video
         ref={videoRef}
         src={video.url}
         className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-          isHovering ? "scale-105" : "scale-100"
+          "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+          isHovering ? "scale-105 opacity-100" : "scale-100 opacity-0"
         )}
         muted
         loop

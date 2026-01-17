@@ -481,18 +481,19 @@ export default function Clips() {
                 </span>
               </motion.div>
               
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
-                  {projectIdFilter ? projectTitle : 'Your Clips'}
-                </span>
-              </h1>
-              
-              <p className="text-white/40 text-base max-w-md">
-                {projectIdFilter 
-                  ? 'All generated clips for this project'
-                  : 'Browse, manage and preview all your generated video clips'
-                }
-              </p>
+              {projectIdFilter && (
+                <>
+                  <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
+                    <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
+                      {projectTitle}
+                    </span>
+                  </h1>
+                  
+                  <p className="text-white/40 text-base max-w-md">
+                    All generated clips for this project
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Action Buttons */}

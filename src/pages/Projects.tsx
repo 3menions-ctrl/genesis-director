@@ -217,36 +217,6 @@ function HeroHeader({
       </div>
 
       <div className="relative">
-        {/* Title Section */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] mb-4"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs font-medium text-white/60 tracking-wide">Your Creative Portfolio</span>
-          </motion.div>
-          
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-4"
-          >
-            Your <span className="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">Masterpieces</span>
-          </motion.h1>
-          
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-white/40 text-lg max-w-md mx-auto"
-          >
-            Every project is a step toward cinematic excellence
-          </motion.p>
-        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">

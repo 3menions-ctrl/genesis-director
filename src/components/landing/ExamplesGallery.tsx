@@ -3,62 +3,82 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
+// Import local thumbnails for instant loading
+import sunsetDreams from '@/assets/thumbnails/sunset-dreams.jpg';
+import snowySerenity from '@/assets/thumbnails/snowy-serenity.jpg';
+import chocolateAdventures from '@/assets/thumbnails/chocolate-adventures.jpg';
+import illuminatedDreams from '@/assets/thumbnails/illuminated-dreams.jpg';
+import ruinedValor from '@/assets/thumbnails/ruined-valor.jpg';
+import fieryMajesty from '@/assets/thumbnails/fiery-majesty.jpg';
+import verdantGrove from '@/assets/thumbnails/verdant-grove.jpg';
+import wildHunt from '@/assets/thumbnails/wild-hunt.jpg';
+
 const SHOWCASE_VIDEOS = [
-  // Newest videos first
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
     title: 'Sunset Dreams on Winding Roads',
     description: 'A cinematic journey through golden-hour landscapes and endless horizons',
+    thumbnail: sunsetDreams,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171376851.mp4',
     title: 'Soaring Above Snowy Serenity',
     description: 'A breathtaking aerial journey through pristine winter landscapes',
+    thumbnail: snowySerenity,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ed88401a-7a11-404c-acbc-55e375aee05d_1768166059131.mp4',
     title: 'Haunted Whispers of the Past',
     description: 'A chilling exploration of forgotten places and lost memories',
+    thumbnail: illuminatedDreams,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
     title: 'Whimsical Chocolate Adventures',
     description: 'A delightful journey through a world of sweet confections',
+    thumbnail: chocolateAdventures,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_2e3503b6-a687-4d3e-bd97-9a1c264a7af2_1768153499834.mp4',
     title: 'Echoes of Desolation',
     description: 'A haunting exploration of abandoned landscapes and forgotten memories',
+    thumbnail: verdantGrove,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_56f2b0ca-e570-4ab0-b73d-39318a6c2ea8_1768128683272.mp4',
     title: 'Illuminated Conversations',
     description: 'Light and shadow dance in meaningful dialogue',
+    thumbnail: illuminatedDreams,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
     title: 'Silent Vigil in Ruined Valor',
     description: 'An epic tale of courage standing against the test of time',
+    thumbnail: ruinedValor,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
     title: 'Skyward Over Fiery Majesty',
     description: 'Drone cinematography capturing volcanic power from above',
+    thumbnail: fieryMajesty,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_171d8bf6-2911-4c6a-b715-6ed0e93ff226_1768118838934.mp4',
     title: 'Editing Dreams in Motion',
     description: 'A cinematic ad showcasing creative video editing possibilities',
+    thumbnail: wildHunt,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9ee134ca-5526-4e7f-9c10-1345f7b7b01f_1768109298602.mp4',
     title: 'Whispers of the Enchanted Jungle',
     description: 'Explore the magical depths of an untouched rainforest',
+    thumbnail: verdantGrove,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5d530ba0-a1e7-4954-8d90-05ffb5a346c2_1768108186067.mp4',
     title: 'Shadows of the Predator',
     description: "A thrilling wildlife documentary capturing nature's fierce beauty",
+    thumbnail: wildHunt,
   },
 ];
 
@@ -248,10 +268,9 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
                     : "opacity-50 hover:opacity-80 hover:scale-105"
                 )}
               >
-                <video
-                  src={video.url}
-                  muted
-                  playsInline
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
                   className="w-full h-full object-cover"
                 />
                 {currentIndex === i && (

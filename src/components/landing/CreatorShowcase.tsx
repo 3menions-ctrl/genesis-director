@@ -140,43 +140,60 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    let retryCount = 0;
-    const maxRetries = 3;
+    let isMounted = true;
 
-    const tryLoad = () => {
-      vid.load();
-    };
-
-    const handleLoadedData = () => {
-      // Seek to show a frame
-      vid.currentTime = 0.5;
+    const handleLoadedMetadata = () => {
+      // Seek to a very small time to ensure we're within video range
+      vid.currentTime = 0.01;
     };
 
     const handleSeeked = () => {
-      setIsLoaded(true);
+      if (isMounted) setIsLoaded(true);
     };
 
-    const handleError = () => {
-      if (retryCount < maxRetries) {
-        retryCount++;
-        setTimeout(tryLoad, 1000 * retryCount);
+    const handleCanPlayThrough = () => {
+      // Fallback: if seeked never fired but video can play, show it
+      if (isMounted && !isLoaded) {
+        vid.currentTime = 0.01;
+        setIsLoaded(true);
       }
     };
 
-    vid.addEventListener('loadeddata', handleLoadedData);
+    const handleTimeUpdate = () => {
+      // Once we have any frame, show the video
+      if (isMounted && vid.currentTime > 0) {
+        setIsLoaded(true);
+        vid.removeEventListener('timeupdate', handleTimeUpdate);
+      }
+    };
+
+    vid.addEventListener('loadedmetadata', handleLoadedMetadata);
     vid.addEventListener('seeked', handleSeeked);
-    vid.addEventListener('error', handleError);
+    vid.addEventListener('canplaythrough', handleCanPlayThrough);
+    vid.addEventListener('timeupdate', handleTimeUpdate);
 
     // Staggered initial load
-    const timer = setTimeout(tryLoad, index * 200);
+    const loadTimer = setTimeout(() => {
+      vid.load();
+    }, index * 150);
+
+    // Fallback timeout - show video even if events don't fire properly
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted && !isLoaded && vid.readyState >= 2) {
+        setIsLoaded(true);
+      }
+    }, 3000 + index * 150);
 
     return () => {
-      clearTimeout(timer);
-      vid.removeEventListener('loadeddata', handleLoadedData);
+      isMounted = false;
+      clearTimeout(loadTimer);
+      clearTimeout(fallbackTimer);
+      vid.removeEventListener('loadedmetadata', handleLoadedMetadata);
       vid.removeEventListener('seeked', handleSeeked);
-      vid.removeEventListener('error', handleError);
+      vid.removeEventListener('canplaythrough', handleCanPlayThrough);
+      vid.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [isVisible, index]);
+  }, [isVisible, index, isLoaded]);
 
   // Handle hover play/pause
   useEffect(() => {

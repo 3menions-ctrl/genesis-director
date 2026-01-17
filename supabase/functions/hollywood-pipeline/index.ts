@@ -186,10 +186,10 @@ interface PipelineState {
   error?: string;
 }
 
-// Avatar-quality: Configurable clip duration (4-8 seconds for Veo 3.1)
-const DEFAULT_CLIP_DURATION = 6; // 6 seconds for cinematic quality
-const MIN_CLIP_DURATION = 4;
-const MAX_CLIP_DURATION = 8;
+// Kling 2.6: Configurable clip duration (5 or 10 seconds)
+const DEFAULT_CLIP_DURATION = 5; // 5 seconds for Kling 2.6
+const MIN_CLIP_DURATION = 5;
+const MAX_CLIP_DURATION = 10;
 
 // Tier-based clip limits (fail-safe defaults if DB unavailable)
 // NOTE: These should match DEFAULT_TIER_LIMITS in src/types/tier-limits.ts

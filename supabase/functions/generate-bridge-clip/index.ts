@@ -1,11 +1,55 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { getAccessToken } from "../_shared/gcp-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// ============================================================================
+// Kling 2.6 Configuration - Primary and ONLY video provider
+// ============================================================================
+const KLING_API_BASE = "https://api.klingai.com/v1";
+const KLING_MODEL = "kling-v2-6-master";
+const KLING_ENABLE_AUDIO = true; // Native audio generation
+
+// Generate Kling JWT token
+async function generateKlingJWT(): Promise<string> {
+  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
+  const secretKey = Deno.env.get("KLING_SECRET_KEY");
+  
+  if (!accessKey || !secretKey) {
+    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
+  }
+
+  // Kling uses HMAC-SHA256 JWT
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: accessKey,
+    exp: now + 1800, // 30 minutes
+    nbf: now - 5,
+  };
+
+  const encoder = new TextEncoder();
+  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const message = `${headerB64}.${payloadB64}`;
+  
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secretKey),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  
+  return `${message}.${signatureB64}`;
+}
 
 // ============================================================================
 // APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
@@ -14,7 +58,7 @@ const corsHeaders = {
 const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
 
 /**
- * Generate Bridge Clip - Veed-Level Transition Filler
+ * Generate Bridge Clip - Transition Filler using Kling 2.6
  * 
  * Creates a short transition clip that bridges two incompatible scenes.
  * Uses the last frame of clip A as a starting point and generates a
@@ -34,20 +78,6 @@ interface BridgeClipRequest {
     environment?: string;
     mood?: string;
   };
-}
-
-// Fetch image and convert to base64
-async function imageToBase64(imageUrl: string): Promise<string> {
-  const response = await fetch(imageUrl);
-  const buffer = await response.arrayBuffer();
-  const uint8Array = new Uint8Array(buffer);
-  let binary = '';
-  const chunkSize = 32768;
-  for (let i = 0; i < uint8Array.length; i += chunkSize) {
-    const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-    binary += String.fromCharCode.apply(null, Array.from(chunk));
-  }
-  return btoa(binary);
 }
 
 serve(async (req) => {
@@ -74,19 +104,11 @@ serve(async (req) => {
     }
 
     console.log(`[BridgeClip] Generating ${durationSeconds}s bridge clip for project ${projectId}`);
+    console.log(`[BridgeClip] Using Kling 2.6 (${KLING_MODEL})`);
     console.log(`[BridgeClip] Prompt: ${bridgePrompt.substring(0, 100)}...`);
 
-    // Get service account credentials
-    const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
-    if (!serviceAccountJson) {
-      throw new Error("GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured");
-    }
-
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    const gcpProjectId = serviceAccount.project_id;
-
-    // Get access token
-    const accessToken = await getAccessToken(serviceAccount);
+    // Generate Kling JWT
+    const jwtToken = await generateKlingJWT();
 
     // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -112,69 +134,76 @@ serve(async (req) => {
     console.log(`[BridgeClip] 🎬 APEX Quality Suffix appended`);
     console.log(`[BridgeClip] Enhanced prompt: ${enhancedPrompt.substring(0, 150)}...`);
 
-    // Convert starting frame to base64
-    const imageBase64 = await imageToBase64(fromClipLastFrame);
+    // Kling 2.6 duration: "5" or "10" seconds
+    const klingDuration = durationSeconds <= 6 ? "5" : "10";
 
-    // Generate video using Veo 3.1 with image-to-video
-    const model = "veo-3.1-generate-001"; // Latest stable Veo 3.1
-    const veoEndpoint = `https://us-central1-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/us-central1/publishers/google/models/${model}:predictLongRunning`;
+    // Build Kling request body for image-to-video
+    const requestBody: Record<string, any> = {
+      model_name: KLING_MODEL,
+      prompt: enhancedPrompt.slice(0, 2500),
+      negative_prompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut, character morphing, face changing",
+      aspect_ratio: "16:9",
+      duration: klingDuration,
+      mode: "std",
+      cfg_scale: 0.5,
+      generate_audio: KLING_ENABLE_AUDIO,
+    };
+
+    // Add starting frame as image URL
+    if (fromClipLastFrame.startsWith("http")) {
+      requestBody.image_url = fromClipLastFrame;
+    }
+
+    // If we have a destination frame, use it as second reference for smooth transition
+    if (toClipFirstFrame && toClipFirstFrame.startsWith("http")) {
+      requestBody.image_urls = [fromClipLastFrame, toClipFirstFrame];
+      console.log(`[BridgeClip] Using 2-point reference for smooth transition`);
+    }
+
+    // Generate video using Kling 2.6 image-to-video
+    const endpoint = `${KLING_API_BASE}/videos/image2video`;
     
-    // For image-to-video, Veo 3.1 supports [4, 6, 8] seconds - prefer 6 for quality
-    const validDuration = durationSeconds <= 4 ? 6 : (durationSeconds <= 7 ? 6 : 8);
+    console.log(`[BridgeClip] Calling Kling API: ${endpoint}`);
     
-    const veoResponse = await fetch(veoEndpoint, {
+    const klingResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${jwtToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        instances: [{
-          prompt: enhancedPrompt,
-          image: {
-            bytesBase64Encoded: imageBase64,
-            mimeType: "image/jpeg"
-          }
-        }],
-        parameters: {
-          aspectRatio: "16:9",
-          sampleCount: 1,
-          durationSeconds: validDuration,
-          resolution: "1080p",
-          personGeneration: "allow_adult",
-          negativePrompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut"
-        }
-      })
+      body: JSON.stringify(requestBody)
     });
 
-    if (!veoResponse.ok) {
-      const errorText = await veoResponse.text();
-      console.error('[BridgeClip] Veo API error:', errorText);
-      throw new Error(`Veo API failed: ${veoResponse.status}`);
+    if (!klingResponse.ok) {
+      const errorText = await klingResponse.text();
+      console.error('[BridgeClip] Kling API error:', errorText);
+      throw new Error(`Kling API failed: ${klingResponse.status}`);
     }
 
-    const veoData = await veoResponse.json();
-    const operationName = veoData.name;
+    const klingData = await klingResponse.json();
+    const taskId = klingData.data?.task_id;
     
-    if (!operationName) {
-      throw new Error('No operation name returned from Veo');
+    if (!taskId) {
+      console.error('[BridgeClip] Kling response:', JSON.stringify(klingData));
+      throw new Error('No task_id returned from Kling');
     }
 
-    console.log(`[BridgeClip] Veo operation started: ${operationName}`);
+    console.log(`[BridgeClip] Kling task started: ${taskId}`);
 
     // Poll for completion (max 5 minutes)
     const maxPollTime = 5 * 60 * 1000;
-    const pollInterval = 10000;
+    const pollInterval = 5000; // Kling is faster, poll every 5s
     const pollStartTime = Date.now();
     
     let videoUrl: string | null = null;
 
     while (Date.now() - pollStartTime < maxPollTime) {
       const pollResponse = await fetch(
-        `https://us-central1-aiplatform.googleapis.com/v1/${operationName}`,
+        `${KLING_API_BASE}/videos/tasks/${taskId}`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${jwtToken}`,
+            'Content-Type': 'application/json',
           }
         }
       );
@@ -186,37 +215,22 @@ serve(async (req) => {
       }
 
       const pollData = await pollResponse.json();
+      const taskData = pollData.data || pollData;
+      const status = taskData.task_status;
 
-      if (pollData.done) {
-        if (pollData.error) {
-          throw new Error(`Veo generation failed: ${pollData.error.message}`);
-        }
-
-        // Extract video from response
-        const predictions = pollData.response?.predictions || [];
-        if (predictions.length > 0 && predictions[0].bytesBase64Encoded) {
-          // Upload to Supabase storage
-          const videoBuffer = Uint8Array.from(atob(predictions[0].bytesBase64Encoded), c => c.charCodeAt(0));
-          const fileName = `bridge_${projectId}_${Date.now()}.mp4`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('video-clips')
-            .upload(fileName, videoBuffer, {
-              contentType: 'video/mp4',
-              upsert: true
-            });
-
-          if (uploadError) {
-            throw new Error(`Failed to upload bridge clip: ${uploadError.message}`);
-          }
-
-          videoUrl = `${supabaseUrl}/storage/v1/object/public/video-clips/${fileName}`;
-          console.log(`[BridgeClip] Bridge clip uploaded: ${videoUrl}`);
+      if (status === 'succeed') {
+        // Extract video URL from Kling response
+        const videos = taskData.task_result?.videos || [];
+        if (videos.length > 0 && videos[0].url) {
+          videoUrl = videos[0].url;
+          console.log(`[BridgeClip] Bridge clip ready: ${videoUrl}`);
         }
         break;
+      } else if (status === 'failed') {
+        throw new Error(`Kling generation failed: ${taskData.task_status_msg || 'Unknown error'}`);
       }
 
-      console.log(`[BridgeClip] Still generating... (${Math.round((Date.now() - pollStartTime) / 1000)}s)`);
+      console.log(`[BridgeClip] Status: ${status} (${Math.round((Date.now() - pollStartTime) / 1000)}s)`);
       await new Promise(r => setTimeout(r, pollInterval));
     }
 
@@ -233,13 +247,17 @@ serve(async (req) => {
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId,
           p_shot_id: 'bridge_clip',
-          p_service: 'veo',
+          p_service: 'kling',
           p_operation: 'bridge_clip_generation',
-          p_credits_charged: 10, // Bridge clips cost 10 credits
-          p_real_cost_cents: 50, // Approximate Veo cost
-          p_duration_seconds: durationSeconds,
+          p_credits_charged: 8, // Bridge clips cost 8 credits
+          p_real_cost_cents: 4, // Kling is more cost-effective
+          p_duration_seconds: parseInt(klingDuration),
           p_status: 'completed',
-          p_metadata: JSON.stringify({ bridgePrompt: bridgePrompt.substring(0, 200) }),
+          p_metadata: JSON.stringify({ 
+            bridgePrompt: bridgePrompt.substring(0, 200),
+            model: KLING_MODEL,
+            audioEnabled: KLING_ENABLE_AUDIO
+          }),
         });
       } catch (costError) {
         console.warn('[BridgeClip] Failed to log cost:', costError);
@@ -250,8 +268,11 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         videoUrl,
-        durationSeconds,
+        durationSeconds: parseInt(klingDuration),
         processingTimeMs,
+        provider: 'kling',
+        model: KLING_MODEL,
+        audioIncluded: KLING_ENABLE_AUDIO,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

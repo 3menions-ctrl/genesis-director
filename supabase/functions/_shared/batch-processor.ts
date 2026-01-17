@@ -274,7 +274,7 @@ export async function processClipBatch(
       maxRetries: 2,
       retryDelayMs: 2000,
       timeoutMs: 180000, // 3 minutes per clip
-      serviceName: 'veo-api',
+      serviceName: 'kling-api',
       onProgress: (completed, total) => {
         if (onProgress) onProgress(completed, total);
       },

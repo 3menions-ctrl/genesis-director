@@ -644,57 +644,57 @@ function ProjectCard({
                 <MoreVertical className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-card border-border shadow-2xl backdrop-blur-2xl p-1.5">
+            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900 border-zinc-700 shadow-2xl backdrop-blur-2xl p-1.5">
               {hasVideo && (
                 <>
                   <DropdownMenuItem 
                     onClick={(e) => { e.stopPropagation(); onPlay(); }}
-                    className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+                    className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
                   >
                     <Play className="w-4 h-4" />
                     Watch Now
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={(e) => { e.stopPropagation(); onDownload(); }}
-                    className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+                    className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
                   >
                     <Download className="w-4 h-4" />
                     Download
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10 my-1" />
+                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
                 </>
               )}
               <DropdownMenuItem 
                 onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}
-                className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
               >
                 {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                 {isPinned ? 'Unpin' : 'Pin to Top'}
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={(e) => { e.stopPropagation(); onRename(); }} 
-                className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
               >
                 <Pencil className="w-4 h-4" />
                 Rename
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={(e) => { e.stopPropagation(); onEdit(); }} 
-                className="gap-2.5 text-sm text-white/80 focus:text-white focus:bg-white/10 rounded-lg py-2.5 px-3"
+                className="gap-2.5 text-sm text-zinc-300 focus:text-white focus:bg-zinc-800 rounded-lg py-2.5 px-3"
               >
                 <Edit2 className="w-4 h-4" />
                 Edit Project
               </DropdownMenuItem>
               {hasVideo && (
                 <>
-                  <DropdownMenuSeparator className="bg-white/10 my-1" />
+                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
                   <DropdownMenuItem 
                     onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }}
                     className={cn(
                       "gap-2.5 text-sm rounded-lg py-2.5 px-3",
                       project.is_public 
                         ? "text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10" 
-                        : "text-white/80 focus:text-white focus:bg-white/10"
+                        : "text-zinc-300 focus:text-white focus:bg-zinc-800"
                     )}
                   >
                     {project.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
@@ -704,7 +704,7 @@ function ProjectCard({
               )}
               {status === 'stitching_failed' && onRetryStitch && (
                 <>
-                  <DropdownMenuSeparator className="bg-white/10 my-1" />
+                  <DropdownMenuSeparator className="bg-zinc-700 my-1" />
                   <DropdownMenuItem
                     onClick={(e) => { e.stopPropagation(); onRetryStitch(); }}
                     disabled={isRetrying}
@@ -715,7 +715,7 @@ function ProjectCard({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuSeparator className="bg-white/10 my-1" />
+              <DropdownMenuSeparator className="bg-zinc-700 my-1" />
               <DropdownMenuItem
                 className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2.5 px-3"
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}

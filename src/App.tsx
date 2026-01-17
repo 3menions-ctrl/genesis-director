@@ -36,6 +36,7 @@ const Discover = lazy(() => import("./pages/Discover"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
+const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
 
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
@@ -178,6 +179,13 @@ const App = () => (
                 <Route path="/admin" element={
                   <ProtectedRoute>
                     <Admin />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Thumbnail extraction utility */}
+                <Route path="/extract-thumbnails" element={
+                  <ProtectedRoute>
+                    <ExtractThumbnails />
                   </ProtectedRoute>
                 } />
                 

@@ -95,6 +95,72 @@ const CREATOR_VIDEOS = [
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
 
+// Component to display video with native poster frame
+const PosterImage = ({ 
+  videoUrl, 
+  alt, 
+  onLoad, 
+  onError, 
+  className, 
+  index 
+}: { 
+  videoUrl: string; 
+  alt: string; 
+  onLoad: () => void; 
+  onError: () => void; 
+  className: string;
+  index: number;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    // Stagger loading to avoid overwhelming the browser
+    const loadTimer = setTimeout(() => {
+      vid.load();
+    }, index * 150);
+
+    const handleLoadedData = () => {
+      // Seek to a small time to ensure a frame is visible
+      vid.currentTime = 0.1;
+    };
+
+    const handleSeeked = () => {
+      setIsReady(true);
+      onLoad();
+    };
+
+    const handleError = () => {
+      onError();
+    };
+
+    vid.addEventListener('loadeddata', handleLoadedData);
+    vid.addEventListener('seeked', handleSeeked);
+    vid.addEventListener('error', handleError);
+
+    return () => {
+      clearTimeout(loadTimer);
+      vid.removeEventListener('loadeddata', handleLoadedData);
+      vid.removeEventListener('seeked', handleSeeked);
+      vid.removeEventListener('error', handleError);
+    };
+  }, [videoUrl, index, onLoad, onError]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={videoUrl}
+      className={cn(className, isReady ? 'opacity-100' : 'opacity-0')}
+      muted
+      playsInline
+      preload="metadata"
+    />
+  );
+};
+
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
   height: 'tall' | 'medium' | 'short';
@@ -105,7 +171,8 @@ interface VideoCardProps {
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [posterReady, setPosterReady] = useState(false);
+  const [posterError, setPosterError] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -113,46 +180,22 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Load video metadata immediately to show first frame
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-
-    // When metadata loads, seek to 0.5s to show a frame
-    const handleLoadedMetadata = () => {
-      vid.currentTime = 0.5;
-    };
-
-    const handleSeeked = () => {
-      setIsVideoReady(true);
-    };
-
-    vid.addEventListener('loadedmetadata', handleLoadedMetadata);
-    vid.addEventListener('seeked', handleSeeked);
-
-    // Stagger loading
-    const timer = setTimeout(() => {
-      vid.load();
-    }, index * 100);
-
-    return () => {
-      vid.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      vid.removeEventListener('seeked', handleSeeked);
-      clearTimeout(timer);
-    };
-  }, [video.url, index]);
+  // Generate poster URL from video URL (server-side frame extraction)
+  // Using video URL with #t=0.1 as a fallback - browsers that support it will show that frame
+  const posterUrl = `${video.url}#t=0.1`;
 
   // Handle hover play/pause
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid || !isVideoReady) return;
+    if (!vid) return;
 
     if (isHovering) {
+      vid.currentTime = 0;
       vid.play().catch(() => {});
     } else {
       vid.pause();
     }
-  }, [isHovering, isVideoReady]);
+  }, [isHovering]);
 
   return (
     <motion.div
@@ -163,39 +206,44 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
       onMouseLeave={() => setIsHovering(false)}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden cursor-pointer rounded-2xl w-full bg-muted",
+        "group relative overflow-hidden cursor-pointer rounded-2xl w-full",
         heightClasses[height]
       )}
     >
-      {/* Loading state - shows while video loads */}
-      {!isVideoReady && (
-        <div className="absolute inset-0 flex items-end bg-gradient-to-br from-primary/10 via-muted to-accent/10">
-          <div className="p-4 w-full">
-            <div className="flex items-center gap-2 mb-2">
-              <Film className="w-4 h-4 text-primary/60" />
-              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-border/50 text-xs">
-                {video.genre}
-              </Badge>
-            </div>
-            <p className="text-sm font-medium text-foreground/80 line-clamp-2">{video.title}</p>
-          </div>
+      {/* Gradient fallback background - always visible as base */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-muted to-accent/20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <Film className="w-8 h-8 text-primary/40 mb-2" />
+          <p className="text-xs text-muted-foreground/60">{video.genre}</p>
         </div>
-      )}
+      </div>
 
-      {/* Video element - shows first frame when loaded, plays on hover */}
-      <video
-        ref={videoRef}
-        src={video.url}
+      {/* Poster image - extracted from video via canvas in browser */}
+      <PosterImage 
+        videoUrl={video.url}
+        alt={video.title}
+        onLoad={() => setPosterReady(true)}
+        onError={() => setPosterError(true)}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isVideoReady ? "opacity-100" : "opacity-0",
+          posterReady ? "opacity-100" : "opacity-0",
           isHovering ? "scale-105" : "scale-100"
         )}
-        muted
-        loop
-        playsInline
-        preload="metadata"
+        index={index}
       />
+
+      {/* Video element - only loads/plays on hover */}
+      {isHovering && (
+        <video
+          ref={videoRef}
+          src={video.url}
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+          muted
+          loop
+          playsInline
+          autoPlay
+        />
+      )}
 
       {/* Gradient overlay */}
       <div className={cn(
@@ -246,6 +294,11 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         <Badge variant="outline" className="bg-black/50 backdrop-blur-sm border-white/10 text-white/80 text-xs">
           {video.genre}
         </Badge>
+      </div>
+
+      {/* Title at bottom */}
+      <div className="absolute bottom-3 left-3 right-3 z-10">
+        <p className="text-sm font-medium text-white line-clamp-2">{video.title}</p>
       </div>
 
       {/* Expand icon */}

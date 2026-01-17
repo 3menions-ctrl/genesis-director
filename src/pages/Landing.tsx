@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
-  Video, Mic, Image,
-  Zap, 
-  Brain, Layers, Eye, Stars
+  Video, Image,
+  Brain
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -31,86 +30,6 @@ const CAPABILITIES = [
   'Voice Synthesis',
   'Character Lock',
 ];
-
-const FEATURES = [
-  {
-    icon: Video,
-    title: 'Powered by Veo',
-    description: 'Generate video clips using Google\'s latest Veo AI model for high-quality results.',
-    highlight: true,
-  },
-  {
-    icon: Image,
-    title: 'Image-to-Video',
-    description: 'Animate your reference images into video scenes with AI-powered motion.',
-    highlight: true,
-  },
-  {
-    icon: Layers,
-    title: 'Cloud Stitch',
-    description: 'Seamlessly combine multiple clips into a single video with our cloud stitching technology.',
-    highlight: true,
-  },
-  {
-    icon: Brain,
-    title: 'Automatic Retries',
-    description: 'AI automatically retries clip generation to help ensure quality results.',
-  },
-  {
-    icon: Mic,
-    title: 'Voice Synthesis',
-    description: 'Add AI-generated voice narration to your video projects.',
-  },
-  {
-    icon: Eye,
-    title: 'Quality Checks',
-    description: 'AI analyzes generated clips to help identify and address quality issues.',
-  },
-];
-
-// Memoized feature card for performance
-const FeatureCard = memo(({ feature, index }: { feature: typeof FEATURES[0]; index: number }) => (
-  <div 
-    className={cn(
-      "group relative p-8 rounded-2xl transition-all duration-300",
-      feature.highlight 
-        ? "bg-glossy-black text-white shadow-obsidian hover:shadow-obsidian-lg hover:-translate-y-1" 
-        : "glass-card hover:border-foreground/10 hover:-translate-y-1"
-    )}
-  >
-    {feature.highlight && (
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.08] to-transparent pointer-events-none" />
-    )}
-    <div className={cn(
-      "w-12 h-12 mb-6 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-      feature.highlight 
-        ? "bg-white/10 backdrop-blur-sm" 
-        : "bg-foreground text-background shadow-lg"
-    )}>
-      <feature.icon className={cn("w-6 h-6", feature.highlight ? "text-white" : "")} />
-    </div>
-    <h3 className={cn(
-      "text-xl font-semibold mb-3",
-      feature.highlight ? "text-white" : "hero-text"
-    )}>
-      {feature.title}
-    </h3>
-    <p className={cn(
-      "leading-relaxed",
-      feature.highlight ? "text-white/70" : "hero-text-secondary"
-    )}>
-      {feature.description}
-    </p>
-    {feature.highlight && (
-      <div className="mt-6 flex items-center gap-2 text-white/60 text-sm font-medium group-hover:text-white/80 transition-colors">
-        <span>Learn more</span>
-        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-      </div>
-    )}
-  </div>
-));
-
-FeatureCard.displayName = 'FeatureCard';
 
 // Section loading placeholder
 const SectionLoader = () => (
@@ -328,31 +247,6 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="relative z-10 py-16 sm:py-24 px-4 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-              <Zap className="w-4 h-4 hero-text" />
-              <span className="text-sm font-medium hero-text">Powerful Features</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold hero-text mb-4">
-              Everything you need
-            </h2>
-            <p className="text-base sm:text-lg hero-text-secondary max-w-2xl mx-auto px-4">
-              Professional-grade AI tools that make video creation effortless.
-            </p>
-          </div>
-
-          {/* Bento Grid Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((feature, i) => (
-              <FeatureCard key={i} feature={feature} index={i} />
-            ))}
           </div>
         </div>
       </section>

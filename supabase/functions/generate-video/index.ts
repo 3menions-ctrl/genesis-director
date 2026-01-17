@@ -7,14 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Provider selection - Kling 2.1 as primary, Veo3 as fallback
+// Provider selection - Kling 2.6 as primary, Veo3 as fallback
 type VideoProvider = "kling" | "veo3";
 const PRIMARY_PROVIDER: VideoProvider = "kling";
 const FALLBACK_PROVIDER: VideoProvider = "veo3";
 
 // Kling API configuration
 const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-1-master";
+const KLING_MODEL = "kling-v2-6-master";
 
 // Generate Kling JWT token
 async function generateKlingJWT(): Promise<string> {

@@ -7,9 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -17,9 +15,9 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, User, Mic, Image, Play, Loader2, Check,
-  Volume2, Sparkles, ArrowRight, RefreshCw, Download,
+  Sparkles, ArrowRight, RefreshCw, Download,
   Video, AlertCircle, Trash2, Coins, Zap, Wand2,
-  ChevronRight, CircleDot, Square, Pause, Settings2
+  ChevronRight, CircleDot, Pause, Film, Star
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 
@@ -92,7 +90,6 @@ export default function TrainingVideo() {
   const [preloadedVoices, setPreloadedVoices] = useState<Set<string>>(new Set());
   const characterInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   // Handle character image upload
   const handleCharacterUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,16 +249,6 @@ export default function TrainingVideo() {
       setCurrentAudio(null);
     }
   };
-
-  // Stop voice preview
-  const stopVoicePreview = useCallback(() => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-    }
-    setPreviewingVoiceId(null);
-    setCurrentAudio(null);
-  }, [currentAudio]);
 
   // Check which voices are already cached on mount
   const checkCachedVoices = useCallback(() => {
@@ -493,18 +480,31 @@ export default function TrainingVideo() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0a0f] text-white relative overflow-hidden">
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* Gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/10 rounded-full blur-[150px]" />
+        
+        {/* Noise texture */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-50" />
+        
+        {/* Grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }}
+        />
+      </div>
+
       <AppHeader showCreate={false} />
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border/50">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-        
+      <section className="relative border-b border-white/10">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             {/* Left: Title & Description */}
@@ -513,43 +513,66 @@ export default function TrainingVideo() {
               animate={{ opacity: 1, y: 0 }}
               className="flex-1"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Wand2 className="w-7 h-7 text-primary-foreground" />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-3 mb-6"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50" />
+                  <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-2xl">
+                    <Film className="w-8 h-8 text-white" />
+                  </div>
                 </div>
                 <div>
-                  <Badge variant="outline" className="mb-1 text-xs">AI-Powered</Badge>
-                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-                    Training Video Studio
+                  <Badge className="mb-1 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/30 text-purple-300">
+                    <Star className="w-3 h-3 mr-1 fill-current" />
+                    AI-Powered Studio
+                  </Badge>
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+                    <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
+                      Training Video Studio
+                    </span>
                   </h1>
                 </div>
-              </div>
-              <p className="text-muted-foreground max-w-xl text-lg">
+              </motion.div>
+              
+              <p className="text-white/50 max-w-xl text-lg leading-relaxed">
                 Create professional AI-powered training videos with realistic talking heads. 
                 Upload your avatar, choose a voice, and let AI do the magic.
               </p>
               
               {/* Quick stats */}
-              <div className="flex items-center gap-6 mt-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Coins className="w-4 h-4 text-primary" />
+              <div className="flex items-center gap-6 mt-8">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                    <Coins className="w-5 h-5 text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Est. Cost</p>
-                    <p className="font-semibold">{ESTIMATED_CREDITS} credits</p>
+                    <p className="text-xs text-white/40">Est. Cost</p>
+                    <p className="font-bold text-white">{ESTIMATED_CREDITS} credits</p>
                   </div>
-                </div>
-                <div className="w-px h-8 bg-border" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-primary" />
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Generation Time</p>
-                    <p className="font-semibold">~2 min</p>
+                    <p className="text-xs text-white/40">Generation Time</p>
+                    <p className="font-bold text-white">~2 min</p>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
             
@@ -566,7 +589,7 @@ export default function TrainingVideo() {
       </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-5 gap-8">
           {/* Left: Configuration Panel */}
           <div className="lg:col-span-3 space-y-6">
@@ -575,7 +598,7 @@ export default function TrainingVideo() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="p-4">
+              <div className="p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   {WIZARD_STEPS.map((step, index) => {
                     const isActive = activeStep === index;
@@ -583,20 +606,25 @@ export default function TrainingVideo() {
                     const StepIcon = step.icon;
                     
                     return (
-                      <div key={step.id} className="flex items-center">
+                      <div key={step.id} className="flex items-center flex-1">
                         <button
                           onClick={() => setActiveStep(index)}
                           className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
-                            isActive ? "bg-primary text-primary-foreground" : 
-                            isComplete ? "bg-primary/10 text-primary hover:bg-primary/20" :
-                            "text-muted-foreground hover:bg-muted"
+                            "flex items-center gap-2 px-4 py-3 rounded-xl transition-all flex-1 justify-center",
+                            isActive 
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/25" 
+                              : isComplete 
+                                ? "bg-white/10 text-emerald-400 hover:bg-white/15" 
+                                : "text-white/40 hover:bg-white/5"
                           )}
                         >
                           <div className={cn(
-                            "w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium",
-                            isActive ? "bg-primary-foreground/20" :
-                            isComplete ? "bg-primary/20" : "bg-muted"
+                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
+                            isActive 
+                              ? "bg-white/20" 
+                              : isComplete 
+                                ? "bg-emerald-500/20" 
+                                : "bg-white/10"
                           )}>
                             {isComplete && !isActive ? (
                               <Check className="w-4 h-4" />
@@ -607,13 +635,13 @@ export default function TrainingVideo() {
                           <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
                         </button>
                         {index < WIZARD_STEPS.length - 1 && (
-                          <ChevronRight className="w-5 h-5 text-muted-foreground/30 mx-1" />
+                          <ChevronRight className="w-5 h-5 text-white/20 mx-1 shrink-0" />
                         )}
                       </div>
                     );
                   })}
                 </div>
-              </Card>
+              </div>
             </motion.div>
 
             {/* Step Content */}
@@ -626,36 +654,41 @@ export default function TrainingVideo() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-lg font-semibold">Upload Your Character</h3>
-                        <p className="text-sm text-muted-foreground">Choose a front-facing image for best results</p>
+                        <h3 className="text-xl font-bold text-white">Upload Your Character</h3>
+                        <p className="text-sm text-white/50 mt-1">Choose a front-facing image for best results</p>
                       </div>
-                      <Badge variant="outline">Step 1 of 4</Badge>
+                      <Badge className="bg-white/10 border-white/20 text-white/70">Step 1 of 4</Badge>
                     </div>
                     
                     <div 
                       className={cn(
-                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center",
-                        characterImage ? "border-primary/30 bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50"
+                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center group",
+                        characterImage 
+                          ? "border-purple-500/50 bg-purple-500/5" 
+                          : "border-white/20 hover:border-purple-500/50 hover:bg-white/5"
                       )}
                       onClick={() => characterInputRef.current?.click()}
                     >
                       {characterImage ? (
                         <div className="flex flex-col items-center">
-                          <div className="w-40 h-40 rounded-2xl overflow-hidden bg-muted mb-4 ring-4 ring-primary/20">
-                            <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl blur-xl opacity-30" />
+                            <div className="relative w-40 h-40 rounded-2xl overflow-hidden ring-4 ring-purple-500/30">
+                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-primary mb-2">
+                          <div className="flex items-center gap-2 text-emerald-400 mt-4 mb-2">
                             <Check className="w-5 h-5" />
-                            <span className="font-medium">Character Uploaded</span>
+                            <span className="font-semibold">Character Uploaded</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">Click to replace</p>
+                          <p className="text-sm text-white/40">Click to replace</p>
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            className="mt-3"
+                            className="mt-4 text-white/60 hover:text-red-400 hover:bg-red-500/10"
                             onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -664,12 +697,12 @@ export default function TrainingVideo() {
                         </div>
                       ) : (
                         <div className="py-8">
-                          <div className="w-20 h-20 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
-                            <Upload className="w-10 h-10 text-muted-foreground" />
+                          <div className="w-24 h-24 rounded-2xl bg-white/10 mx-auto mb-4 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                            <Upload className="w-12 h-12 text-white/40 group-hover:text-purple-400 transition-colors" />
                           </div>
-                          <p className="font-medium text-lg mb-1">Drop your character image here</p>
-                          <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
-                          <Badge variant="secondary">PNG, JPG up to 10MB</Badge>
+                          <p className="font-semibold text-lg text-white mb-1">Drop your character image here</p>
+                          <p className="text-sm text-white/40 mb-4">or click to browse</p>
+                          <Badge className="bg-white/10 border-white/20 text-white/60">PNG, JPG up to 10MB</Badge>
                         </div>
                       )}
                     </div>
@@ -682,12 +715,16 @@ export default function TrainingVideo() {
                     />
                     
                     <div className="flex justify-end mt-6">
-                      <Button onClick={() => setActiveStep(1)} disabled={!characterImage}>
+                      <Button 
+                        onClick={() => setActiveStep(1)} 
+                        disabled={!characterImage}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0"
+                      >
                         Continue
                         <ChevronRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               )}
 
@@ -699,13 +736,13 @@ export default function TrainingVideo() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-lg font-semibold">Select a Voice</h3>
-                        <p className="text-sm text-muted-foreground">Choose the perfect voice for your character</p>
+                        <h3 className="text-xl font-bold text-white">Select a Voice</h3>
+                        <p className="text-sm text-white/50 mt-1">Choose the perfect voice for your character</p>
                       </div>
-                      <Badge variant="outline">Step 2 of 4</Badge>
+                      <Badge className="bg-white/10 border-white/20 text-white/70">Step 2 of 4</Badge>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -721,36 +758,41 @@ export default function TrainingVideo() {
                             className={cn(
                               "relative p-4 rounded-xl border-2 cursor-pointer transition-all group",
                               isSelected
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/50 hover:bg-muted/50"
+                                ? "border-purple-500 bg-purple-500/10"
+                                : "border-white/10 hover:border-purple-500/50 hover:bg-white/5"
                             )}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-semibold text-base">{voice.name}</span>
+                                  <span className="font-semibold text-white">{voice.name}</span>
                                   {isCached && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger>
-                                          <Zap className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
+                                          <Zap className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
                                         </TooltipTrigger>
                                         <TooltipContent>Instant playback</TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
                                   )}
                                   {isSelected && (
-                                    <Badge variant="default" className="text-xs">Selected</Badge>
+                                    <Badge className="text-xs bg-purple-500/20 text-purple-300 border-purple-500/30">Selected</Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-2">{voice.description}</p>
-                                <Badge variant="outline" className="text-xs capitalize">{voice.gender}</Badge>
+                                <p className="text-sm text-white/50 mb-2">{voice.description}</p>
+                                <Badge className="text-xs capitalize bg-white/10 border-white/20 text-white/60">{voice.gender}</Badge>
                               </div>
                               
                               <Button
                                 variant={isPlaying ? "default" : "outline"}
                                 size="icon"
-                                className="h-10 w-10 rounded-full shrink-0"
+                                className={cn(
+                                  "h-10 w-10 rounded-full shrink-0 transition-all",
+                                  isPlaying 
+                                    ? "bg-purple-600 hover:bg-purple-500 border-0" 
+                                    : "border-white/20 text-white/60 hover:border-purple-500 hover:text-purple-400 hover:bg-transparent"
+                                )}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleVoicePreview(voice.id);
@@ -770,7 +812,7 @@ export default function TrainingVideo() {
                                 {[...Array(20)].map((_, i) => (
                                   <motion.div
                                     key={i}
-                                    className="w-1 bg-primary rounded-full"
+                                    className="w-1 bg-purple-500 rounded-full"
                                     animate={{
                                       height: [4, Math.random() * 20 + 4, 4],
                                     }}
@@ -789,15 +831,22 @@ export default function TrainingVideo() {
                     </div>
                     
                     <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(0)}>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveStep(0)}
+                        className="border-white/20 text-white/70 hover:bg-white/5 hover:text-white"
+                      >
                         Back
                       </Button>
-                      <Button onClick={() => setActiveStep(2)}>
+                      <Button 
+                        onClick={() => setActiveStep(2)}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0"
+                      >
                         Continue
                         <ChevronRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               )}
 
@@ -809,13 +858,13 @@ export default function TrainingVideo() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-lg font-semibold">Choose Your Scene</h3>
-                        <p className="text-sm text-muted-foreground">Select a background environment</p>
+                        <h3 className="text-xl font-bold text-white">Choose Your Scene</h3>
+                        <p className="text-sm text-white/50 mt-1">Select a background environment</p>
                       </div>
-                      <Badge variant="outline">Step 3 of 4</Badge>
+                      <Badge className="bg-white/10 border-white/20 text-white/70">Step 3 of 4</Badge>
                     </div>
                     
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -823,16 +872,16 @@ export default function TrainingVideo() {
                       <button
                         onClick={() => backgroundInputRef.current?.click()}
                         className={cn(
-                          "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center transition-all",
-                          customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
+                          "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center transition-all group",
+                          customBackground ? "border-purple-500" : "border-white/20 hover:border-purple-500/50"
                         )}
                       >
                         {customBackground ? (
                           <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-lg" />
                         ) : (
                           <div className="text-center p-2">
-                            <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
-                            <span className="text-xs text-muted-foreground">Custom</span>
+                            <Upload className="w-6 h-6 text-white/40 mx-auto mb-1 group-hover:text-purple-400 transition-colors" />
+                            <span className="text-xs text-white/40 group-hover:text-purple-400 transition-colors">Custom</span>
                           </div>
                         )}
                       </button>
@@ -844,17 +893,17 @@ export default function TrainingVideo() {
                           className={cn(
                             "aspect-video rounded-xl overflow-hidden border-2 transition-all relative group",
                             selectedBackground === bg.id && !customBackground
-                              ? "border-primary ring-2 ring-primary/20"
-                              : "border-transparent hover:border-primary/50"
+                              ? "border-purple-500 ring-2 ring-purple-500/30"
+                              : "border-transparent hover:border-purple-500/50"
                           )}
                         >
                           <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
                             <span className="text-white text-xs font-medium">{bg.name}</span>
                           </div>
                           {selectedBackground === bg.id && !customBackground && (
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="w-4 h-4 text-primary-foreground" />
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center shadow-lg">
+                              <Check className="w-4 h-4 text-white" />
                             </div>
                           )}
                         </button>
@@ -869,15 +918,22 @@ export default function TrainingVideo() {
                     />
                     
                     <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(1)}>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveStep(1)}
+                        className="border-white/20 text-white/70 hover:bg-white/5 hover:text-white"
+                      >
                         Back
                       </Button>
-                      <Button onClick={() => setActiveStep(3)}>
+                      <Button 
+                        onClick={() => setActiveStep(3)}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0"
+                      >
                         Continue
                         <ChevronRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               )}
 
@@ -889,13 +945,13 @@ export default function TrainingVideo() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-lg font-semibold">Write Your Script</h3>
-                        <p className="text-sm text-muted-foreground">What should your character say?</p>
+                        <h3 className="text-xl font-bold text-white">Write Your Script</h3>
+                        <p className="text-sm text-white/50 mt-1">What should your character say?</p>
                       </div>
-                      <Badge variant="outline">Step 4 of 4</Badge>
+                      <Badge className="bg-white/10 border-white/20 text-white/70">Step 4 of 4</Badge>
                     </div>
                     
                     <div className="relative">
@@ -905,30 +961,41 @@ export default function TrainingVideo() {
 Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed. Let's get started!'"
                         value={scriptText}
                         onChange={(e) => setScriptText(e.target.value)}
-                        className="min-h-[200px] resize-none text-base"
+                        className="min-h-[200px] resize-none text-base bg-white/5 border-white/20 text-white placeholder:text-white/30 focus:border-purple-500 focus:ring-purple-500/20"
                       />
                       <div className="absolute bottom-3 right-3">
                         <Badge 
-                          variant={scriptText.length > 500 ? "destructive" : scriptText.length > 0 ? "secondary" : "outline"}
+                          className={cn(
+                            "transition-colors",
+                            scriptText.length > 500 
+                              ? "bg-red-500/20 text-red-400 border-red-500/30" 
+                              : scriptText.length > 0 
+                                ? "bg-white/10 text-white/60 border-white/20" 
+                                : "bg-white/5 text-white/40 border-white/10"
+                          )}
                         >
                           {scriptText.length} / 500
                         </Badge>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-muted/50">
-                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
+                    <div className="flex items-center gap-3 mt-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                      <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
+                      <p className="text-sm text-white/60">
+                        <span className="font-medium text-purple-300">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
                       </p>
                     </div>
                     
                     <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(2)}>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveStep(2)}
+                        className="border-white/20 text-white/70 hover:bg-white/5 hover:text-white"
+                      >
                         Back
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -941,16 +1008,18 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Card className="overflow-hidden">
-                <div className="p-4 border-b border-border flex items-center justify-between">
+              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Video className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Live Preview</span>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                      <Video className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <span className="font-semibold text-white">Live Preview</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">16:9</Badge>
+                  <Badge className="bg-white/10 border-white/20 text-white/60 text-xs">16:9</Badge>
                 </div>
                 
-                <div className="aspect-video bg-muted/50 relative">
+                <div className="aspect-video bg-black/50 relative">
                   <AnimatePresence mode="wait">
                     {generatedVideoUrl ? (
                       <motion.video
@@ -974,51 +1043,61 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                           alt="Background"
                           className="absolute inset-0 w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/30" />
+                        <div className="absolute inset-0 bg-black/40" />
                         
                         {/* Character overlay */}
                         {characterImage ? (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <motion.div 
-                              className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white/30 shadow-2xl"
+                              className="relative"
                               animate={{ scale: [1, 1.02, 1] }}
                               transition={{ duration: 3, repeat: Infinity }}
                             >
-                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full blur-xl opacity-30" />
+                              <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white/30 shadow-2xl">
+                                <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                              </div>
                             </motion.div>
                           </div>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
-                            <User className="w-16 h-16 mb-2" />
-                            <p className="text-sm">Upload a character</p>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                              <User className="w-10 h-10 text-white/40" />
+                            </div>
+                            <p className="text-sm text-white/40">Upload a character</p>
                           </div>
                         )}
                         
                         {/* Generation overlay */}
                         {isGenerating && (
-                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center backdrop-blur-sm">
+                          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
                             <motion.div
                               animate={{ rotate: 360 }}
                               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                              className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent mb-4"
+                              className="w-16 h-16 rounded-full border-4 border-purple-500 border-t-transparent mb-4"
                             />
-                            <p className="text-white font-medium mb-1">
+                            <p className="text-white font-semibold mb-2">
                               {generationStep === 'generating_audio' && 'Generating voice...'}
                               {generationStep === 'generating_video' && 'Creating video...'}
                               {generationStep === 'applying_lipsync' && 'Syncing lips...'}
                             </p>
-                            <Progress value={progress} className="w-48 h-2" />
-                            <p className="text-white/60 text-sm mt-2">{progress}%</p>
+                            <Progress value={progress} className="w-48 h-2 bg-white/20" />
+                            <p className="text-white/50 text-sm mt-2">{progress}%</p>
                           </div>
                         )}
                         
                         {/* Error state */}
                         {generationStep === 'error' && (
-                          <div className="absolute inset-0 bg-destructive/20 flex flex-col items-center justify-center backdrop-blur-sm">
-                            <AlertCircle className="w-12 h-12 text-destructive mb-3" />
-                            <p className="text-destructive font-medium mb-2">Generation Failed</p>
-                            <p className="text-sm text-muted-foreground mb-4 text-center px-4">{error}</p>
-                            <Button variant="outline" size="sm" onClick={() => setGenerationStep('idle')}>
+                          <div className="absolute inset-0 bg-red-500/20 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <AlertCircle className="w-12 h-12 text-red-400 mb-3" />
+                            <p className="text-red-400 font-semibold mb-2">Generation Failed</p>
+                            <p className="text-sm text-white/50 mb-4 text-center px-4">{error}</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => setGenerationStep('idle')}
+                              className="border-white/20 text-white/70 hover:bg-white/10"
+                            >
                               Try Again
                             </Button>
                           </div>
@@ -1029,23 +1108,23 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                 </div>
                 
                 {/* Voice indicator */}
-                <div className="p-4 border-t border-border bg-muted/30">
+                <div className="p-4 border-t border-white/10 bg-white/5">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <Mic className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Voice:</span>
-                      <span className="font-medium">{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
+                      <Mic className="w-4 h-4 text-white/40" />
+                      <span className="text-white/40">Voice:</span>
+                      <span className="font-medium text-white">{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Settings2 className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Scene:</span>
-                      <span className="font-medium">
+                      <Image className="w-4 h-4 text-white/40" />
+                      <span className="text-white/40">Scene:</span>
+                      <span className="font-medium text-white">
                         {customBackground ? 'Custom' : BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.name}
                       </span>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
 
             {/* Generate Button */}
@@ -1056,21 +1135,29 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
             >
               {generationStep === 'complete' ? (
                 <div className="space-y-3">
-                  <Button className="w-full h-14 text-lg" asChild>
+                  <Button className="w-full h-14 text-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
                       <Download className="w-5 h-5 mr-2" />
                       Download Video
                     </a>
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={handleReset}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-white/20 text-white/70 hover:bg-white/5 hover:text-white" 
+                    onClick={handleReset}
+                  >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Create Another Video
                   </Button>
                 </div>
               ) : (
                 <Button 
-                  className="w-full h-14 text-lg"
-                  variant={canGenerate ? "default" : "secondary"}
+                  className={cn(
+                    "w-full h-14 text-lg transition-all",
+                    canGenerate 
+                      ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-purple-500/25" 
+                      : "bg-white/10 text-white/50 border-white/10 cursor-not-allowed"
+                  )}
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
@@ -1083,7 +1170,7 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                     <>
                       <Wand2 className="w-5 h-5 mr-2" />
                       Generate Video
-                      <Badge variant="secondary" className="ml-3">
+                      <Badge className="ml-3 bg-white/20 text-white border-0">
                         {ESTIMATED_CREDITS} credits
                       </Badge>
                     </>
@@ -1098,29 +1185,31 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <Card className="p-4">
-                <h4 className="font-medium text-sm mb-3">Ready to generate?</h4>
-                <div className="space-y-2">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <h4 className="font-semibold text-white text-sm mb-4">Ready to generate?</h4>
+                <div className="space-y-3">
                   {[
                     { label: 'Character uploaded', complete: !!characterImage },
                     { label: 'Voice selected', complete: !!selectedVoice },
                     { label: 'Background chosen', complete: !!(selectedBackground || customBackground) },
                     { label: 'Script written', complete: scriptText.trim().length > 0 },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
+                    <div key={i} className="flex items-center gap-3 text-sm">
                       <div className={cn(
-                        "w-5 h-5 rounded-full flex items-center justify-center",
-                        item.complete ? "bg-primary text-primary-foreground" : "bg-muted"
+                        "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                        item.complete 
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white" 
+                          : "bg-white/10"
                       )}>
-                        {item.complete ? <Check className="w-3 h-3" /> : <CircleDot className="w-3 h-3 text-muted-foreground" />}
+                        {item.complete ? <Check className="w-3.5 h-3.5" /> : <CircleDot className="w-3.5 h-3.5 text-white/30" />}
                       </div>
-                      <span className={item.complete ? "text-foreground" : "text-muted-foreground"}>
+                      <span className={item.complete ? "text-white" : "text-white/40"}>
                         {item.label}
                       </span>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </div>
         </div>

@@ -1363,107 +1363,167 @@ export default function Projects() {
             {/* Cinematic Hero Header with Stats */}
             <HeroHeader stats={stats} onCreateClick={handleCreateProject} />
 
-            {/* Search, Filter & View Controls */}
+            {/* Modern Search & Filter Toolbar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8"
+              className="mb-8"
             >
-              {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="project-search"
-                  placeholder="Search projects..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 pl-10 pr-10 glass-card border-border text-foreground placeholder:text-muted-foreground rounded-xl focus:border-foreground/20 focus:ring-0"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">/</kbd>
-              </div>
-
-              {/* Filters */}
-              <div className="flex items-center gap-2">
-                {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                  <SelectTrigger className="w-[130px] h-10 glass-card border-border text-foreground rounded-xl">
-                    <Filter className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Sort */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-10 px-3 glass-card border-border text-foreground hover:bg-muted rounded-xl">
-                      {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-card border-border">
-                    <DropdownMenuLabel className="text-muted-foreground text-xs">Sort by</DropdownMenuLabel>
-                    <DropdownMenuCheckboxItem 
-                      checked={sortBy === 'updated'} 
-                      onCheckedChange={() => setSortBy('updated')}
-                    >
-                      Last Updated
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem 
-                      checked={sortBy === 'created'} 
-                      onCheckedChange={() => setSortBy('created')}
-                    >
-                      Date Created
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem 
-                      checked={sortBy === 'name'} 
-                      onCheckedChange={() => setSortBy('name')}
-                    >
-                      Name
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuSeparator className="bg-border" />
-                    <DropdownMenuItem 
-                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    >
-                      {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* View Mode Toggle */}
-                <div className="flex items-center gap-0.5 p-1 rounded-xl glass-card border border-border">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={cn(
-                      "p-2 rounded-lg transition-all",
-                      viewMode === 'grid' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+              <div className="glass-card rounded-2xl border border-border/50 p-4">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+                  {/* Search Bar */}
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="project-search"
+                      placeholder="Search your projects..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-12 pl-12 pr-12 bg-muted/30 border-0 text-foreground placeholder:text-muted-foreground rounded-xl focus:ring-2 focus:ring-primary/20 text-base"
+                    />
+                    {searchQuery ? (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">/</kbd>
                     )}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={cn(
-                      "p-2 rounded-lg transition-all",
-                      viewMode === 'list' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <LayoutList className="w-4 h-4" />
-                  </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="hidden lg:block w-px h-8 bg-border/50" />
+
+                  {/* Filter Controls */}
+                  <div className="flex items-center gap-3">
+                    {/* Status Filter Tabs */}
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/30">
+                      {[
+                        { value: 'all', label: 'All', icon: Layers },
+                        { value: 'completed', label: 'Ready', icon: Check },
+                        { value: 'processing', label: 'Processing', icon: Activity },
+                        { value: 'failed', label: 'Failed', icon: AlertCircle },
+                      ].map((filter) => (
+                        <button
+                          key={filter.value}
+                          onClick={() => setStatusFilter(filter.value as any)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                            statusFilter === filter.value 
+                              ? "bg-foreground text-background shadow-sm" 
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          )}
+                        >
+                          <filter.icon className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{filter.label}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Sort Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-10 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-2">
+                          {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
+                          <span className="hidden sm:inline text-sm">Sort</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-xl border-border">
+                        <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-wider">Sort by</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-border/50" />
+                        <DropdownMenuCheckboxItem 
+                          checked={sortBy === 'updated'} 
+                          onCheckedChange={() => setSortBy('updated')}
+                          className="gap-2"
+                        >
+                          <Clock className="w-4 h-4" />
+                          Last Updated
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={sortBy === 'created'} 
+                          onCheckedChange={() => setSortBy('created')}
+                          className="gap-2"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          Date Created
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={sortBy === 'name'} 
+                          onCheckedChange={() => setSortBy('name')}
+                          className="gap-2"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Name
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator className="bg-border/50" />
+                        <DropdownMenuItem 
+                          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                          className="gap-2"
+                        >
+                          {sortOrder === 'desc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                          {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-muted/30">
+                      <button
+                        onClick={() => setViewMode('grid')}
+                        className={cn(
+                          "p-2.5 rounded-lg transition-all",
+                          viewMode === 'grid' ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        title="Grid view"
+                      >
+                        <Grid3X3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={cn(
+                          "p-2.5 rounded-lg transition-all",
+                          viewMode === 'list' ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        title="List view"
+                      >
+                        <LayoutList className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Active filters indicator */}
+                {(searchQuery || statusFilter !== 'all') && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30"
+                  >
+                    <span className="text-xs text-muted-foreground">Showing:</span>
+                    {searchQuery && (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        "{searchQuery}"
+                        <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-foreground">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    {statusFilter !== 'all' && (
+                      <Badge variant="secondary" className="gap-1 text-xs capitalize">
+                        {statusFilter}
+                        <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-foreground">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
+                    </span>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
 
@@ -1510,101 +1570,159 @@ export default function Projects() {
               </motion.section>
             )}
 
-            {/* Main Grid/List */}
-            <div className="flex gap-6 xl:gap-8">
-              {/* Projects Grid */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex-1"
-              >
-                {filteredProjects.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Search className="w-10 h-10 text-white/20 mb-4" />
-                    <p className="text-white/50 mb-2">No projects found</p>
-                    <p className="text-white/30 text-sm">Try adjusting your search or filters</p>
+            {/* Categorized Projects Grid */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-10"
+            >
+              {filteredProjects.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-20 h-20 rounded-2xl bg-muted/30 flex items-center justify-center mb-6">
+                    <Search className="w-8 h-8 text-muted-foreground" />
                   </div>
-                ) : viewMode === 'list' ? (
-                  <div className="space-y-2">
-                    {filteredProjects.map((project, index) => (
-                      <ProjectCard
-                        key={project.id}
-                        project={project}
-                        index={index}
-                        viewMode="list"
-                        onPlay={() => handlePlayVideo(project)}
-                        onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                        onRename={() => handleRenameProject(project)}
-                        onDelete={() => deleteProject(project.id)}
-                        onDownload={() => handleDownloadAll(project)}
-                        onRetryStitch={() => handleGoogleStitch(project.id)}
-                        onTogglePin={() => togglePin(project.id)}
-                        onTogglePublic={() => handleTogglePublic(project)}
-                        isActive={activeProjectId === project.id}
-                        isRetrying={retryingProjectId === project.id}
-                        isPinned={pinnedProjects.has(project.id)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 [column-gap:1.25rem]">
-                    {filteredProjects.map((project, index) => (
-                      <div key={project.id} className="break-inside-avoid mb-5 inline-block w-full">
-                        <ProjectCard
-                          project={project}
-                          index={index}
-                          viewMode="grid"
-                          onPlay={() => handlePlayVideo(project)}
-                          onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                          onRename={() => handleRenameProject(project)}
-                          onDelete={() => deleteProject(project.id)}
-                          onDownload={() => handleDownloadAll(project)}
-                          onRetryStitch={() => handleGoogleStitch(project.id)}
-                          onTogglePin={() => togglePin(project.id)}
-                          onTogglePublic={() => handleTogglePublic(project)}
-                          isActive={activeProjectId === project.id}
-                          isRetrying={retryingProjectId === project.id}
-                          isPinned={pinnedProjects.has(project.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Activity Sidebar - Desktop only */}
-              <motion.aside
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="hidden 2xl:block w-60 shrink-0"
-              >
-                <div className="sticky top-24 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Activity className="w-3.5 h-3.5" />
-                    Recent Activity
-                  </h3>
-                  
-                  <div className="space-y-1">
-                    {recentActivity.map((item, i) => (
-                      <ActivityItem key={i} {...item} />
-                    ))}
-                  </div>
-
-                  {/* Keyboard shortcuts hint */}
-                  <div className="mt-6 pt-4 border-t border-white/[0.06]">
-                    <button 
-                      onClick={() => setShowKeyboardHints(prev => !prev)}
-                      className="flex items-center gap-2 text-xs text-white/40 hover:text-white/60 transition-colors"
-                    >
-                      <Command className="w-3.5 h-3.5" />
-                      Keyboard shortcuts
-                    </button>
-                  </div>
+                  <p className="text-lg font-medium text-foreground mb-2">No projects found</p>
+                  <p className="text-muted-foreground text-sm max-w-sm">Try adjusting your search or filters to find what you're looking for</p>
+                  <Button variant="outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-6 gap-2">
+                    <X className="w-4 h-4" />
+                    Clear filters
+                  </Button>
                 </div>
-              </motion.aside>
-            </div>
+              ) : (
+                <>
+                  {/* Pinned Projects Section */}
+                  {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
+                    <section>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                          <Pin className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-foreground">Pinned</h2>
+                          <p className="text-xs text-muted-foreground">Your favorite projects</p>
+                        </div>
+                        <Badge variant="outline" className="ml-auto text-amber-400 border-amber-500/30">
+                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).length}
+                        </Badge>
+                      </div>
+                      {viewMode === 'list' ? (
+                        <div className="space-y-2">
+                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
+                            <ProjectCard
+                              key={project.id}
+                              project={project}
+                              index={index}
+                              viewMode="list"
+                              onPlay={() => handlePlayVideo(project)}
+                              onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                              onRename={() => handleRenameProject(project)}
+                              onDelete={() => deleteProject(project.id)}
+                              onDownload={() => handleDownloadAll(project)}
+                              onRetryStitch={() => handleGoogleStitch(project.id)}
+                              onTogglePin={() => togglePin(project.id)}
+                              onTogglePublic={() => handleTogglePublic(project)}
+                              isActive={activeProjectId === project.id}
+                              isRetrying={retryingProjectId === project.id}
+                              isPinned={true}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                          {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
+                            <ProjectCard
+                              key={project.id}
+                              project={project}
+                              index={index}
+                              viewMode="grid"
+                              onPlay={() => handlePlayVideo(project)}
+                              onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                              onRename={() => handleRenameProject(project)}
+                              onDelete={() => deleteProject(project.id)}
+                              onDownload={() => handleDownloadAll(project)}
+                              onRetryStitch={() => handleGoogleStitch(project.id)}
+                              onTogglePin={() => togglePin(project.id)}
+                              onTogglePublic={() => handleTogglePublic(project)}
+                              isActive={activeProjectId === project.id}
+                              isRetrying={retryingProjectId === project.id}
+                              isPinned={true}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                  {/* All Projects Section */}
+                  <section>
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+                        <Film className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-foreground">
+                          {pinnedProjects.size > 0 ? 'All Projects' : 'Your Projects'}
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          {statusFilter === 'all' ? 'All your video creations' : 
+                           statusFilter === 'completed' ? 'Ready to watch' :
+                           statusFilter === 'processing' ? 'Currently being processed' : 'Need attention'}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="ml-auto">
+                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).length}
+                      </Badge>
+                    </div>
+                    {viewMode === 'list' ? (
+                      <div className="space-y-2">
+                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            index={index}
+                            viewMode="list"
+                            onPlay={() => handlePlayVideo(project)}
+                            onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                            onRename={() => handleRenameProject(project)}
+                            onDelete={() => deleteProject(project.id)}
+                            onDownload={() => handleDownloadAll(project)}
+                            onRetryStitch={() => handleGoogleStitch(project.id)}
+                            onTogglePin={() => togglePin(project.id)}
+                            onTogglePublic={() => handleTogglePublic(project)}
+                            isActive={activeProjectId === project.id}
+                            isRetrying={retryingProjectId === project.id}
+                            isPinned={pinnedProjects.has(project.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            index={index}
+                            viewMode="grid"
+                            onPlay={() => handlePlayVideo(project)}
+                            onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                            onRename={() => handleRenameProject(project)}
+                            onDelete={() => deleteProject(project.id)}
+                            onDownload={() => handleDownloadAll(project)}
+                            onRetryStitch={() => handleGoogleStitch(project.id)}
+                            onTogglePin={() => togglePin(project.id)}
+                            onTogglePublic={() => handleTogglePublic(project)}
+                            isActive={activeProjectId === project.id}
+                            isRetrying={retryingProjectId === project.id}
+                            isPinned={pinnedProjects.has(project.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
+            </motion.div>
           </>
         )}
       </main>

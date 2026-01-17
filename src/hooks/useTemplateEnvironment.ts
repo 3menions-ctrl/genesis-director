@@ -205,6 +205,47 @@ interface BuiltInTemplate {
 }
 
 const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
+  // Quick Start Templates (matched to sidebar)
+  {
+    id: 'cinematic',
+    name: 'Cinematic',
+    description: 'Hollywood-quality filmmaking with dramatic lighting and emotional storytelling',
+    category: 'cinematic',
+    genre: 'cinematic',
+    mood: 'epic',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'cinematic',
+    environmentId: 'golden_hour_studio',
+    conceptPrompt: 'A cinematic masterpiece with Hollywood-quality visuals. Open with a sweeping establishing shot that sets the mood. Build atmosphere through carefully composed frames with dramatic lighting. Capture emotion through intimate character moments. Create tension with purposeful pacing and visual storytelling. End with a powerful, memorable final image.',
+  },
+  {
+    id: 'commercial',
+    name: 'Commercial',
+    description: 'Professional advertising content with premium visuals and brand impact',
+    category: 'commercial',
+    genre: 'ad',
+    mood: 'uplifting',
+    clipCount: 5,
+    targetDurationMinutes: 1,
+    colorGrading: 'neutral',
+    environmentId: 'modern_minimalist',
+    conceptPrompt: 'A premium commercial that captures attention and drives action. Open with a hook that stops the scroll. Showcase the product or service with stunning visuals and dynamic motion. Highlight key benefits through clear, engaging storytelling. Build desire with lifestyle imagery. End with a strong call-to-action and brand moment.',
+  },
+  {
+    id: 'explainer',
+    name: 'Explainer',
+    description: 'Clear, engaging content that makes complex topics simple to understand',
+    category: 'educational',
+    genre: 'explainer',
+    mood: 'uplifting',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'neutral',
+    environmentId: 'modern_minimalist',
+    conceptPrompt: 'An engaging explainer video that simplifies the complex. Open with a relatable problem or question that hooks viewers. Break down concepts step-by-step using clear visuals and metaphors. Build understanding progressively from basics to key insights. Reinforce learning with practical examples. End with a clear summary and next steps.',
+  },
+  // Featured Templates
   {
     id: 'featured-1',
     name: 'Cinematic Product Reveal',

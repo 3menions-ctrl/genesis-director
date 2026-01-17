@@ -100,39 +100,39 @@ function StatCard({
   label, 
   value, 
   trend,
-  color = 'white',
+  color = 'default',
   delay = 0 
 }: { 
   icon: React.ElementType;
   label: string;
   value: string | number;
   trend?: { value: number; isPositive: boolean };
-  color?: 'white' | 'amber' | 'emerald' | 'blue';
+  color?: 'default' | 'amber' | 'emerald' | 'blue';
   delay?: number;
 }) {
   const colorConfig = {
-    white: { 
-      bg: 'bg-white/[0.03]', 
-      border: 'border-white/[0.08]',
-      icon: 'bg-white/10 text-white/80',
-      glow: 'from-white/5 via-transparent to-transparent'
+    default: { 
+      bg: 'bg-muted/50', 
+      border: 'border-border',
+      icon: 'bg-foreground text-background',
+      glow: 'from-foreground/5 via-transparent to-transparent'
     },
     amber: { 
-      bg: 'bg-amber-500/[0.03]', 
+      bg: 'bg-amber-500/5', 
       border: 'border-amber-500/20',
-      icon: 'bg-amber-500/20 text-amber-400',
+      icon: 'bg-amber-500/20 text-amber-500',
       glow: 'from-amber-500/10 via-transparent to-transparent'
     },
     emerald: { 
-      bg: 'bg-emerald-500/[0.03]', 
+      bg: 'bg-emerald-500/5', 
       border: 'border-emerald-500/20',
-      icon: 'bg-emerald-500/20 text-emerald-400',
+      icon: 'bg-emerald-500/20 text-emerald-500',
       glow: 'from-emerald-500/10 via-transparent to-transparent'
     },
     blue: { 
-      bg: 'bg-blue-500/[0.03]', 
+      bg: 'bg-blue-500/5', 
       border: 'border-blue-500/20',
-      icon: 'bg-blue-500/20 text-blue-400',
+      icon: 'bg-blue-500/20 text-blue-500',
       glow: 'from-blue-500/10 via-transparent to-transparent'
     },
   };
@@ -146,11 +146,11 @@ function StatCard({
       transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ scale: 1.02, y: -2 }}
       className={cn(
-        "group relative p-4 rounded-2xl overflow-hidden cursor-default",
+        "group relative p-4 rounded-2xl overflow-hidden cursor-default glass-card",
         config.bg,
         "border",
         config.border,
-        "hover:border-white/20 transition-all duration-500"
+        "hover:border-foreground/20 transition-all duration-500"
       )}
     >
       {/* Cinematic glow on hover */}
@@ -160,7 +160,7 @@ function StatCard({
       )} />
       
       {/* Film grain texture */}
-      <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
+      <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
       
       <div className="relative flex items-center gap-3">
         <motion.div 
@@ -171,8 +171,8 @@ function StatCard({
           <Icon className="w-5 h-5" />
         </motion.div>
         <div className="min-w-0">
-          <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest leading-none mb-1">{label}</p>
-          <p className="text-xl font-bold text-white tracking-tight">{value}</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest leading-none mb-1">{label}</p>
+          <p className="text-xl font-bold hero-text tracking-tight">{value}</p>
         </div>
         {trend && (
           <div className={cn(
@@ -220,7 +220,7 @@ function HeroHeader({
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">
-          <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="white" delay={0.3} />
+          <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="default" delay={0.3} />
           <StatCard icon={Check} label="Completed" value={stats.completed} color="emerald" delay={0.4} />
           <StatCard icon={Activity} label="In Progress" value={stats.processing} color="amber" delay={0.5} />
           <StatCard icon={Film} label="Total Clips" value={stats.totalClips} color="blue" delay={0.6} />
@@ -357,15 +357,14 @@ function ProjectCard({
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
-          "bg-white/[0.02] border border-white/[0.04]",
-          "hover:bg-white/[0.05] hover:border-white/[0.08]",
-          isActive && "ring-1 ring-white/20"
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer glass-card",
+          "hover:bg-muted/50 hover:border-border",
+          isActive && "ring-1 ring-foreground/20"
         )}
         onClick={onPlay}
       >
         {/* Thumbnail */}
-        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-white/5 shrink-0">
+        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
           {hasVideo && videoSrc ? (
             <img 
               src={project.thumbnail_url || undefined}
@@ -374,7 +373,7 @@ function ProjectCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Film className="w-5 h-5 text-white/20" />
+              <Film className="w-5 h-5 text-muted-foreground" />
             </div>
           )}
           {isPinned && (
@@ -386,13 +385,13 @@ function ProjectCard({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+          <h3 className="text-sm font-medium hero-text truncate">{project.name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-white/40">{formatTimeAgo(project.updated_at)}</span>
+            <span className="text-xs text-muted-foreground">{formatTimeAgo(project.updated_at)}</span>
             {(project.video_clips?.length ?? 0) > 0 && (
               <>
-                <span className="text-white/20">•</span>
-                <span className="text-xs text-white/40">{project.video_clips?.length} clips</span>
+                <span className="text-muted-foreground/50">•</span>
+                <span className="text-xs text-muted-foreground">{project.video_clips?.length} clips</span>
               </>
             )}
           </div>
@@ -410,45 +409,44 @@ function ProjectCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-white/50 hover:text-white"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-zinc-900/95 border-white/10 backdrop-blur-xl">
+            <DropdownMenuContent align="end" className="w-44 bg-card border-border backdrop-blur-xl">
               {hasVideo && (
                 <>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }}>
                     <Play className="w-4 h-4 mr-2" />
                     Watch
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }}>
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}>
                 {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
                 {isPinned ? 'Unpin' : 'Pin'}
               </DropdownMenuItem>
               {hasVideo && (
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn(
-                  "focus:bg-white/10",
-                  project.is_public ? "text-emerald-400 focus:text-emerald-300" : "text-white/80 focus:text-white"
+                  project.is_public && "text-emerald-500"
                 )}>
                   {project.is_public ? <Globe className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                   {project.is_public ? 'Public' : 'Share to Feed'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-white/80 focus:text-white focus:bg-white/10">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }}>
                 <Pencil className="w-4 h-4 mr-2" />
                 Rename
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-400 focus:text-red-300 focus:bg-red-500/10">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -477,15 +475,14 @@ function ProjectCard({
     >
       {/* Dramatic glow effect on hover */}
       <motion.div
-        className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-white/10 via-white/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none"
+        className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none"
       />
       
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-700 aspect-video",
-        "bg-gradient-to-br from-white/[0.04] to-white/[0.01]",
-        "border border-white/[0.08]",
-        isHovered && "border-white/25 shadow-2xl shadow-white/10",
-        isActive && "ring-2 ring-white/40"
+        "relative overflow-hidden rounded-2xl transition-all duration-700 aspect-video glass-card",
+        "border border-border",
+        isHovered && "border-foreground/25 shadow-2xl",
+        isActive && "ring-2 ring-foreground/40"
       )}>
         
         {/* Video/Thumbnail - always visible, no loading state */}
@@ -522,14 +519,14 @@ function ProjectCard({
             />
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
             {status === 'generating' || status === 'rendering' || status === 'stitching' ? (
               <div className="relative">
                 <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse scale-150" />
-                <Loader2 className="relative w-10 h-10 text-amber-400/70 animate-spin" strokeWidth={1} />
+                <Loader2 className="relative w-10 h-10 text-amber-500/70 animate-spin" strokeWidth={1} />
               </div>
             ) : (
-              <Film className="w-12 h-12 text-white/10" strokeWidth={1} />
+              <Film className="w-12 h-12 text-muted-foreground/30" strokeWidth={1} />
             )}
           </div>
         )}
@@ -553,19 +550,19 @@ function ProjectCard({
               <div className="relative">
                 {/* Multiple expanding rings */}
                 <motion.div 
-                  className="absolute inset-[-8px] rounded-full border border-white/10"
+                  className="absolute inset-[-8px] rounded-full border border-foreground/10"
                   animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
                 <motion.div 
-                  className="absolute inset-[-4px] rounded-full border border-white/20"
+                  className="absolute inset-[-4px] rounded-full border border-foreground/20"
                   animate={{ scale: [1, 1.2], opacity: [0.6, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
                 />
                 
                 {/* Main play button with glow */}
                 <motion.div 
-                  className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg shadow-white/20"
+                  className="relative w-16 h-16 rounded-full bg-foreground/20 backdrop-blur-2xl flex items-center justify-center border border-foreground/40 shadow-lg"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -633,7 +630,7 @@ function ProjectCard({
                 <MoreVertical className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-zinc-900/95 border-white/10 shadow-2xl backdrop-blur-2xl p-1.5">
+            <DropdownMenuContent align="end" className="w-44 rounded-xl bg-card border-border shadow-2xl backdrop-blur-2xl p-1.5">
               {hasVideo && (
                 <>
                   <DropdownMenuItem 
@@ -1120,12 +1117,11 @@ export default function Projects() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-[#050505] relative overflow-x-hidden">
-      {/* Ambient background */}
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Ambient background - matches landing page */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.015] to-transparent blur-[150px]" />
-        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-white/[0.01] to-transparent blur-[180px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-foreground/[0.02] to-transparent blur-[150px]" />
+        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-foreground/[0.015] to-transparent blur-[180px]" />
       </div>
 
       {/* Navigation */}
@@ -1142,10 +1138,10 @@ export default function Projects() {
             className="flex flex-col items-center justify-center py-32"
           >
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150 animate-pulse" />
-              <Loader2 className="relative w-10 h-10 text-white/50 animate-spin" />
+              <div className="absolute inset-0 bg-foreground/5 rounded-full blur-2xl scale-150 animate-pulse" />
+              <Loader2 className="relative w-10 h-10 text-muted-foreground animate-spin" />
             </div>
-            <p className="text-white/40">Loading your projects...</p>
+            <p className="text-muted-foreground">Loading your projects...</p>
           </motion.div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
           /* Cinematic Empty State */
@@ -1160,7 +1156,7 @@ export default function Projects() {
               <motion.div 
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full"
                 style={{
-                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)',
+                  background: 'radial-gradient(ellipse at center, hsl(var(--foreground) / 0.03) 0%, transparent 70%)',
                 }}
                 animate={{ 
                   scale: [1, 1.2, 1],
@@ -1179,12 +1175,12 @@ export default function Projects() {
             >
               {/* Outer glow ring */}
               <motion.div
-                className="absolute inset-[-20px] rounded-full border border-white/10"
+                className="absolute inset-[-20px] rounded-full border border-foreground/10"
                 animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <motion.div
-                className="absolute inset-[-40px] rounded-full border border-white/5"
+                className="absolute inset-[-40px] rounded-full border border-foreground/5"
                 animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
                 transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
               />
@@ -1198,21 +1194,21 @@ export default function Projects() {
                   repeat: Infinity, 
                   ease: "linear"
                 }}
-                className="relative w-32 h-32 rounded-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.12] flex items-center justify-center shadow-2xl"
+                className="relative w-32 h-32 rounded-full glass-card border border-border flex items-center justify-center shadow-2xl"
               >
                 {/* Inner details to look like film reel */}
-                <div className="absolute inset-4 rounded-full border border-white/[0.08]" />
-                <div className="absolute inset-8 rounded-full border border-white/[0.05]" />
+                <div className="absolute inset-4 rounded-full border border-border/50" />
+                <div className="absolute inset-8 rounded-full border border-border/30" />
                 {[...Array(8)].map((_, i) => (
                   <div 
                     key={i}
-                    className="absolute w-2 h-2 rounded-full bg-white/20"
+                    className="absolute w-2 h-2 rounded-full bg-foreground/20"
                     style={{
                       transform: `rotate(${i * 45}deg) translateY(-40px)`
                     }}
                   />
                 ))}
-                <Film className="w-10 h-10 text-white/40" strokeWidth={1} />
+                <Film className="w-10 h-10 text-muted-foreground" strokeWidth={1} />
               </motion.div>
             </motion.div>
             
@@ -1220,7 +1216,7 @@ export default function Projects() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 text-center tracking-tight"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold hero-text mb-4 text-center tracking-tight"
             >
               The Stage is Set
             </motion.h2>
@@ -1229,7 +1225,7 @@ export default function Projects() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-white/40 text-lg sm:text-xl mb-4 text-center max-w-lg"
+              className="hero-text-secondary text-lg sm:text-xl mb-4 text-center max-w-lg"
             >
               Your creative journey begins here. Every great director started with their first scene.
             </motion.p>
@@ -1238,7 +1234,7 @@ export default function Projects() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-white/25 text-sm mb-10 text-center italic"
+              className="text-muted-foreground/50 text-sm mb-10 text-center italic"
             >
               "Every frame is a chance to tell a story"
             </motion.p>
@@ -1250,11 +1246,11 @@ export default function Projects() {
             >
               <Button 
                 onClick={handleCreateProject}
-                className="group relative h-14 px-10 rounded-full bg-white text-black hover:bg-white/95 font-bold text-lg shadow-2xl shadow-white/20 overflow-hidden"
+                className="group relative h-14 px-10 rounded-full shadow-obsidian font-bold text-lg overflow-hidden"
               >
                 {/* Shimmer effect */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-background/10 to-transparent"
                   animate={{ x: ['-100%', '100%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
                 />
@@ -1278,7 +1274,7 @@ export default function Projects() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 0.3 + i * 0.1, y: 0 }}
                   transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
-                  className="w-16 h-12 rounded bg-white/[0.03] border border-white/[0.06]"
+                  className="w-16 h-12 rounded glass-card border border-border/30"
                   style={{ transform: `rotate(${(i - 3) * 3}deg)` }}
                 />
               ))}
@@ -1298,34 +1294,34 @@ export default function Projects() {
             >
               {/* Search */}
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="project-search"
                   placeholder="Search projects..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 pl-10 pr-10 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:border-white/20 focus:ring-0"
+                  className="h-10 pl-10 pr-10 glass-card border-border text-foreground placeholder:text-muted-foreground rounded-xl focus:border-foreground/20 focus:ring-0"
                 />
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-[10px] font-mono text-white/30 bg-white/5 px-1.5 py-0.5 rounded">/</kbd>
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">/</kbd>
               </div>
 
               {/* Filters */}
               <div className="flex items-center gap-2">
                 {/* Status Filter */}
                 <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-                  <SelectTrigger className="w-[130px] h-10 bg-white/[0.03] border-white/[0.08] text-white rounded-xl">
-                    <Filter className="w-3.5 h-3.5 mr-2 text-white/50" />
+                  <SelectTrigger className="w-[130px] h-10 glass-card border-border text-foreground rounded-xl">
+                    <Filter className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-white/10">
+                  <SelectContent className="bg-card border-border">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
@@ -1336,37 +1332,33 @@ export default function Projects() {
                 {/* Sort */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-10 px-3 bg-white/[0.03] border-white/[0.08] text-white hover:bg-white/[0.06] rounded-xl">
+                    <Button variant="outline" className="h-10 px-3 glass-card border-border text-foreground hover:bg-muted rounded-xl">
                       {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10">
-                    <DropdownMenuLabel className="text-white/50 text-xs">Sort by</DropdownMenuLabel>
+                  <DropdownMenuContent align="end" className="bg-card border-border">
+                    <DropdownMenuLabel className="text-muted-foreground text-xs">Sort by</DropdownMenuLabel>
                     <DropdownMenuCheckboxItem 
                       checked={sortBy === 'updated'} 
                       onCheckedChange={() => setSortBy('updated')}
-                      className="text-white/80"
                     >
                       Last Updated
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem 
                       checked={sortBy === 'created'} 
                       onCheckedChange={() => setSortBy('created')}
-                      className="text-white/80"
                     >
                       Date Created
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem 
                       checked={sortBy === 'name'} 
                       onCheckedChange={() => setSortBy('name')}
-                      className="text-white/80"
                     >
                       Name
                     </DropdownMenuCheckboxItem>
-                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem 
                       onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      className="text-white/80"
                     >
                       {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
                     </DropdownMenuItem>
@@ -1374,12 +1366,12 @@ export default function Projects() {
                 </DropdownMenu>
 
                 {/* View Mode Toggle */}
-                <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-0.5 p-1 rounded-xl glass-card border border-border">
                   <button
                     onClick={() => setViewMode('grid')}
                     className={cn(
                       "p-2 rounded-lg transition-all",
-                      viewMode === 'grid' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                      viewMode === 'grid' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Grid3X3 className="w-4 h-4" />
@@ -1388,7 +1380,7 @@ export default function Projects() {
                     onClick={() => setViewMode('list')}
                     className={cn(
                       "p-2 rounded-lg transition-all",
-                      viewMode === 'list' ? "bg-white/10 text-white" : "text-white/40 hover:text-white"
+                      viewMode === 'list' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <LayoutList className="w-4 h-4" />

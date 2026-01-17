@@ -93,47 +93,37 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// ============= CINEMATIC STAT CARD COMPONENT =============
+// ============= COMPACT STAT CARD COMPONENT =============
 
 function StatCard({ 
   icon: Icon, 
   label, 
   value, 
-  trend,
   color = 'default',
   delay = 0 
 }: { 
   icon: React.ElementType;
   label: string;
   value: string | number;
-  trend?: { value: number; isPositive: boolean };
   color?: 'default' | 'amber' | 'emerald' | 'blue';
   delay?: number;
 }) {
   const colorConfig = {
     default: { 
-      bg: 'bg-muted/50', 
-      border: 'border-border',
-      icon: 'bg-foreground text-background',
-      glow: 'from-foreground/5 via-transparent to-transparent'
+      icon: 'text-foreground/70',
+      text: 'text-foreground'
     },
     amber: { 
-      bg: 'bg-amber-500/5', 
-      border: 'border-amber-500/20',
-      icon: 'bg-amber-500/20 text-amber-500',
-      glow: 'from-amber-500/10 via-transparent to-transparent'
+      icon: 'text-amber-400',
+      text: 'text-amber-400'
     },
     emerald: { 
-      bg: 'bg-emerald-500/5', 
-      border: 'border-emerald-500/20',
-      icon: 'bg-emerald-500/20 text-emerald-500',
-      glow: 'from-emerald-500/10 via-transparent to-transparent'
+      icon: 'text-emerald-400',
+      text: 'text-emerald-400'
     },
     blue: { 
-      bg: 'bg-blue-500/5', 
-      border: 'border-blue-500/20',
-      icon: 'bg-blue-500/20 text-blue-500',
-      glow: 'from-blue-500/10 via-transparent to-transparent'
+      icon: 'text-blue-400',
+      text: 'text-blue-400'
     },
   };
 
@@ -141,49 +131,14 @@ function StatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ scale: 1.02, y: -2 }}
-      className={cn(
-        "group relative p-4 rounded-2xl overflow-hidden cursor-default glass-card",
-        config.bg,
-        "border",
-        config.border,
-        "hover:border-foreground/20 transition-all duration-500"
-      )}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-center gap-2"
     >
-      {/* Cinematic glow on hover */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-700",
-        config.glow
-      )} />
-      
-      {/* Film grain texture */}
-      <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
-      
-      <div className="relative flex items-center gap-3">
-        <motion.div 
-          className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", config.icon)}
-          whileHover={{ rotate: [0, -5, 5, 0] }}
-          transition={{ duration: 0.5 }}
-        >
-          <Icon className="w-5 h-5" />
-        </motion.div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest leading-none mb-1">{label}</p>
-          <p className="text-xl font-bold hero-text tracking-tight">{value}</p>
-        </div>
-        {trend && (
-          <div className={cn(
-            "ml-auto flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
-            trend.isPositive ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
-          )}>
-            <TrendingUp className={cn("w-3 h-3", !trend.isPositive && "rotate-180")} />
-            {trend.value}%
-          </div>
-        )}
-      </div>
+      <Icon className={cn("w-4 h-4", config.icon)} />
+      <span className={cn("text-sm font-semibold", config.text)}>{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
     </motion.div>
   );
 }
@@ -216,63 +171,58 @@ function HeroHeader({
         />
       </div>
 
-      <div className="relative py-8 sm:py-12">
-        {/* Title Section */}
-        <div className="text-center mb-10">
+      <div className="relative py-6">
+        {/* Compact Header with Stats in One Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          {/* Title */}
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl sm:text-3xl font-bold tracking-tight hero-text"
+            >
+              Your Projects
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-sm text-muted-foreground mt-1"
+            >
+              Manage your video creations
+            </motion.p>
+          </div>
+          
+          {/* Stats Row - Compact */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 mb-6"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 }}
+            className="flex items-center gap-6 px-4 py-2.5 rounded-xl bg-muted/20 border border-border/30"
           >
-            <Film className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Your Creative Studio</span>
+            <StatCard icon={FolderOpen} label="total" value={stats.total} color="default" delay={0.2} />
+            <div className="w-px h-4 bg-border/50" />
+            <StatCard icon={Check} label="ready" value={stats.completed} color="emerald" delay={0.25} />
+            <div className="w-px h-4 bg-border/50" />
+            <StatCard icon={Activity} label="processing" value={stats.processing} color="amber" delay={0.3} />
+            <div className="w-px h-4 bg-border/50" />
+            <StatCard icon={Film} label="clips" value={stats.totalClips} color="blue" delay={0.35} />
           </motion.div>
           
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
-          >
-            <span className="hero-text">Your </span>
-            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
-              Projects
-            </span>
-          </motion.h1>
-          
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
-          >
-            Manage, organize, and bring your video creations to life
-          </motion.p>
-          
+          {/* Create Button */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25 }}
+            transition={{ delay: 0.2 }}
           >
             <Button 
               onClick={onCreateClick}
-              size="lg"
-              className="h-12 px-8 rounded-full shadow-obsidian font-semibold text-base gap-2 group"
+              className="h-10 px-5 rounded-xl font-medium gap-2 group"
             >
-              <Plus className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
-              Create New Video
-              <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+              <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
+              New Project
             </Button>
           </motion.div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">
-          <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="default" delay={0.3} />
-          <StatCard icon={Check} label="Completed" value={stats.completed} color="emerald" delay={0.4} />
-          <StatCard icon={Activity} label="In Progress" value={stats.processing} color="amber" delay={0.5} />
-          <StatCard icon={Film} label="Total Clips" value={stats.totalClips} color="blue" delay={0.6} />
         </div>
       </div>
     </motion.div>
@@ -1167,39 +1117,21 @@ export default function Projects() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Premium ambient background with multiple layers */}
+    <div className="min-h-screen bg-[hsl(var(--background)/0.97)] relative overflow-x-hidden">
+      {/* Darker, subtle ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Primary gradient orb */}
+        {/* Dark overlay for less brightness */}
+        <div className="absolute inset-0 bg-background/40" />
+        {/* Very subtle primary gradient orb */}
         <motion.div 
-          className="absolute top-[-20%] left-[10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-primary/[0.03] via-primary/[0.015] to-transparent blur-[120px]"
+          className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-primary/[0.015] to-transparent blur-[150px]"
           animate={{ 
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1],
+            scale: [1, 1.05, 1],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Secondary gradient orb */}
-        <motion.div 
-          className="absolute bottom-[-30%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-tl from-accent/[0.02] via-accent/[0.01] to-transparent blur-[150px]"
-          animate={{ 
-            x: [0, -30, 0],
-            y: [0, -40, 0],
-            scale: [1, 1.05, 1],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Subtle grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: 'linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)',
-            backgroundSize: '60px 60px'
-          }}
-        />
-        {/* Top vignette */}
-        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-background to-transparent" />
+        {/* Edge vignette for depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_80%)]" />
       </div>
 
       {/* Navigation */}
@@ -1593,16 +1525,11 @@ export default function Projects() {
                 <>
                   {/* Pinned Projects Section */}
                   {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
-                    <section>
+                    <section className="p-5 rounded-2xl bg-amber-500/[0.03] border border-amber-500/10 backdrop-blur-sm">
                       <div className="flex items-center gap-3 mb-5">
-                        <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                          <Pin className="w-4 h-4 text-amber-400" />
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-semibold text-foreground">Pinned</h2>
-                          <p className="text-xs text-muted-foreground">Your favorite projects</p>
-                        </div>
-                        <Badge variant="outline" className="ml-auto text-amber-400 border-amber-500/30">
+                        <Pin className="w-4 h-4 text-amber-400" />
+                        <h2 className="text-sm font-semibold text-foreground">Pinned</h2>
+                        <Badge variant="outline" className="ml-auto text-xs text-amber-400 border-amber-500/30">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).length}
                         </Badge>
                       </div>
@@ -1629,7 +1556,7 @@ export default function Projects() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
                             <ProjectCard
                               key={project.id}
@@ -1655,22 +1582,18 @@ export default function Projects() {
                   )}
 
                   {/* All Projects Section */}
-                  <section>
+                  <section className="p-5 rounded-2xl bg-muted/[0.03] border border-border/20 backdrop-blur-sm">
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
-                        <Film className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-semibold text-foreground">
-                          {pinnedProjects.size > 0 ? 'All Projects' : 'Your Projects'}
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                          {statusFilter === 'all' ? 'All your video creations' : 
-                           statusFilter === 'completed' ? 'Ready to watch' :
-                           statusFilter === 'processing' ? 'Currently being processed' : 'Need attention'}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="ml-auto">
+                      <Film className="w-4 h-4 text-primary" />
+                      <h2 className="text-sm font-semibold text-foreground">
+                        {pinnedProjects.size > 0 ? 'All Projects' : 'Your Projects'}
+                      </h2>
+                      <span className="text-xs text-muted-foreground">
+                        {statusFilter === 'all' ? '' : 
+                         statusFilter === 'completed' ? '• Ready to watch' :
+                         statusFilter === 'processing' ? '• Processing' : '• Need attention'}
+                      </span>
+                      <Badge variant="outline" className="ml-auto text-xs">
                         {filteredProjects.filter(p => !pinnedProjects.has(p.id)).length}
                       </Badge>
                     </div>
@@ -1697,7 +1620,7 @@ export default function Projects() {
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
                           <ProjectCard
                             key={project.id}

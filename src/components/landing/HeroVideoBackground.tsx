@@ -1,13 +1,28 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
-// Cole's showcase videos - Cloud Run stitched final videos
+// Cole's showcase videos - Cloud Run stitched final videos with thumbnails
 const SHOWCASE_VIDEOS = [
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4', // Fractured Dreams in Shadows (latest)
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ef39dd93-3216-4e76-88ff-69fb2d407914_1768476284014.mp4', // Frustration in the Glow (2nd latest)
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4', // Illuminated Dreams in Darkness
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4', // Whispers of the Wild Hunt
-  'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4', // Sunset Dreams on Winding Roads
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4',
+    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_9174320c-ede9-4d97-96b3-3f4f730622d8.jpg',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ef39dd93-3216-4e76-88ff-69fb2d407914_1768476284014.mp4',
+    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_ef39dd93-3216-4e76-88ff-69fb2d407914.jpg',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
+    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a1b6f181-26fa-4306-a663-d5892977b3fc.jpg',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
+    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a0016bb1-34ea-45e3-a173-da9441a84bda.jpg',
+  },
+  {
+    url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
+    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_71e83837-9ae4-4e79-a4f2-599163741b03.jpg',
+  },
 ];
 
 interface HeroVideoBackgroundProps {
@@ -50,7 +65,7 @@ export default function HeroVideoBackground({
   useEffect(() => {
     const nextIndex = (currentIndex + 1) % SHOWCASE_VIDEOS.length;
     if (nextVideoRef.current) {
-      nextVideoRef.current.src = SHOWCASE_VIDEOS[nextIndex];
+      nextVideoRef.current.src = SHOWCASE_VIDEOS[nextIndex].url;
       nextVideoRef.current.load();
     }
   }, [currentIndex]);
@@ -108,18 +123,29 @@ export default function HeroVideoBackground({
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)}>
+      {/* Poster image - shows immediately while video loads */}
+      <img
+        src={SHOWCASE_VIDEOS[currentIndex].poster}
+        alt="Video preview"
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
+          isLoaded ? "opacity-0" : "opacity-100"
+        )}
+      />
+      
       {/* Main video player */}
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
+        poster={SHOWCASE_VIDEOS[currentIndex].poster}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
           isTransitioning ? "opacity-0" : "opacity-100",
           !isLoaded && "opacity-0"
         )}
-        src={SHOWCASE_VIDEOS[currentIndex]}
+        src={SHOWCASE_VIDEOS[currentIndex].url}
       />
 
       {/* Hidden preload video */}

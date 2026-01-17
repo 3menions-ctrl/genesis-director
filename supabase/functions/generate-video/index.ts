@@ -7,14 +7,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Provider selection - Kling 2.6 as primary, Veo3 as fallback
-type VideoProvider = "kling" | "veo3";
-const PRIMARY_PROVIDER: VideoProvider = "kling";
-const FALLBACK_PROVIDER: VideoProvider = "veo3";
+// Provider selection - Kling 2.6 ONLY (all-in)
+type VideoProvider = "kling";
 
-// Kling API configuration
+// Kling API configuration - v2.6 with native audio
 const KLING_API_BASE = "https://api.klingai.com/v1";
 const KLING_MODEL = "kling-v2-6-master";
+const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 // Generate Kling JWT token
 async function generateKlingJWT(): Promise<string> {
@@ -849,19 +848,22 @@ async function ensureImageUrl(input: string | undefined): Promise<string | null>
   return null;
 }
 
-// Generate video with Kling 2.1 via Direct API
+// Generate video with Kling 2.6 via Direct API
+// Supports: native audio, 4-image reference array, frame chaining
 async function generateWithKling(
   prompt: string,
   enhancedPrompt: string,
   negativePrompt: string,
   duration: number,
   aspectRatio: string,
-  startImageUrl: string | null
+  startImageUrl: string | null,
+  referenceImages: string[] = [],
+  enableAudio: boolean = true
 ): Promise<{ success: true; taskId: string; provider: "kling"; model: string } | { success: false; error: string }> {
   try {
     const jwtToken = await generateKlingJWT();
 
-    // Kling 2.1 parameters
+    // Kling 2.6 parameters
     // Duration: "5" or "10" seconds for Kling
     const klingDuration = duration <= 6 ? "5" : "10";
     
@@ -870,28 +872,36 @@ async function generateWithKling(
                               aspectRatio === "1:1" ? "1:1" : "16:9";
 
     // Determine endpoint based on mode
-    const isImageToVideo = !!startImageUrl;
+    const isImageToVideo = !!startImageUrl || referenceImages.length > 0;
     const endpoint = isImageToVideo 
       ? `${KLING_API_BASE}/videos/image2video`
       : `${KLING_API_BASE}/videos/text2video`;
 
+    // Build prompt with reference markers if using multiple references
+    let finalPrompt = enhancedPrompt;
+    if (referenceImages.length > 1) {
+      // Kling 2.6 supports @Image1, @Image2, etc. references
+      const referenceMarkers = referenceImages.map((_, i) => `@Image${i + 1}`).join(", ");
+      finalPrompt = `[CHARACTER REFERENCES: ${referenceMarkers}] ${enhancedPrompt}`;
+    }
+
     const requestBody: Record<string, any> = {
       model_name: KLING_MODEL,
-      prompt: enhancedPrompt.slice(0, 2500),
+      prompt: finalPrompt.slice(0, 2500),
       negative_prompt: negativePrompt.slice(0, 1000),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,
       mode: "std", // Standard quality mode
       cfg_scale: 0.5,
+      // Kling 2.6: Native audio generation
+      generate_audio: enableAudio,
     };
 
-    // Image-to-video mode
-    if (isImageToVideo && startImageUrl) {
-      // Check if it's a URL or base64
+    // Primary image (start frame for continuity)
+    if (startImageUrl) {
       if (startImageUrl.startsWith("http")) {
         requestBody.image_url = startImageUrl;
       } else if (startImageUrl.startsWith("data:")) {
-        // Extract base64 data
         const matches = startImageUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (matches) {
           requestBody.image = matches[2];
@@ -899,11 +909,20 @@ async function generateWithKling(
       }
     }
 
-    console.log("[generate-video] Starting Kling 2.1 generation:", {
+    // Reference images for character consistency (Kling 2.6 feature)
+    if (referenceImages.length > 0) {
+      // Kling 2.6 accepts image_urls array for multi-reference
+      requestBody.image_urls = referenceImages;
+      console.log(`[generate-video] Using ${referenceImages.length} identity reference images`);
+    }
+
+    console.log("[generate-video] Starting Kling 2.6 generation:", {
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
       duration: klingDuration,
       aspectRatio: klingAspectRatio,
-      promptLength: enhancedPrompt.length,
+      audioEnabled: enableAudio,
+      referenceCount: referenceImages.length,
+      promptLength: finalPrompt.length,
       endpoint,
     });
 
@@ -932,7 +951,10 @@ async function generateWithKling(
       return { success: false, error: "No task_id in Kling response" };
     }
 
-    console.log("[generate-video] Kling 2.1 task created:", taskId);
+    console.log("[generate-video] Kling 2.6 task created:", taskId, {
+      audioEnabled: enableAudio,
+      referenceImages: referenceImages.length,
+    });
 
     return {
       success: true,
@@ -949,129 +971,7 @@ async function generateWithKling(
   }
 }
 
-// Generate video with Veo 3.1 via Vertex AI (fallback)
-async function generateWithVeo3(
-  prompt: string,
-  enhancedPrompt: string,
-  negativePrompt: string,
-  duration: number,
-  aspectRatio: string,
-  startImageUrl: string | null
-): Promise<{ success: true; taskId: string; provider: "veo3"; model: string } | { success: false; error: string }> {
-  const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
-  if (!serviceAccountJson) {
-    return { success: false, error: "GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured" };
-  }
-
-  try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    const projectId = serviceAccount.project_id;
-    if (!projectId) {
-      return { success: false, error: "project_id not found in service account" };
-    }
-
-    const accessToken = await getAccessToken(serviceAccount);
-
-    const location = "us-central1";
-    const model = "veo-3.1-generate-001";
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
-
-    const instance: Record<string, any> = {
-      prompt: enhancedPrompt,
-    };
-
-    // Add image for image-to-video mode
-    if (startImageUrl && startImageUrl.startsWith("http")) {
-      try {
-        const imageResponse = await fetch(startImageUrl);
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const uint8Array = new Uint8Array(imageBuffer);
-        
-        let binary = '';
-        const chunkSize = 32768;
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-          binary += String.fromCharCode.apply(null, Array.from(chunk));
-        }
-        const base64Image = btoa(binary);
-        
-        const mimeType = startImageUrl.includes('.png') ? 'image/png' : 
-                        startImageUrl.includes('.webp') ? 'image/webp' : 'image/jpeg';
-        
-        instance.image = {
-          bytesBase64Encoded: base64Image,
-          mimeType: mimeType
-        };
-      } catch (imgError) {
-        console.error("Failed to fetch image for Veo3:", imgError);
-      }
-    }
-
-    const isImageToVideo = !!instance.image;
-    
-    // Duration handling for Veo
-    let finalDuration = duration;
-    if (isImageToVideo) {
-      if (duration <= 5) finalDuration = 6;
-      else if (duration <= 7) finalDuration = 6;
-      else finalDuration = 8;
-    } else {
-      finalDuration = Math.min(Math.max(duration, 6), 8);
-    }
-
-    const validAspectRatios = ["16:9", "9:16", "1:1"];
-    const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "16:9";
-
-    const requestBody = {
-      instances: [instance],
-      parameters: {
-        aspectRatio: finalAspectRatio,
-        durationSeconds: finalDuration,
-        sampleCount: 1,
-        negativePrompt: negativePrompt,
-        resolution: "1080p",
-        personGeneration: "allow_adult",
-      }
-    };
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Veo3 error:", response.status, errorText);
-      return { success: false, error: `Veo3 error: ${response.status}` };
-    }
-
-    const result = await response.json();
-    const operationName = result.name;
-    
-    if (!operationName) {
-      return { success: false, error: "No operation name in Veo3 response" };
-    }
-
-    console.log("[generate-video] Veo3 operation started:", operationName);
-
-    return {
-      success: true,
-      taskId: operationName,
-      provider: "veo3",
-      model: "veo-3.1-generate-001",
-    };
-  } catch (error) {
-    console.error("[generate-video] Veo3 error:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Veo3 generation failed" 
-    };
-  }
-}
+// NOTE: Veo3 fallback removed - All-in on Kling 2.6
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1088,7 +988,10 @@ serve(async (req) => {
       negativePrompt: inputNegativePrompt,
       transitionOut,
       aspectRatio = "16:9",
-      preferredProvider, // Optional: allow caller to request specific provider
+      // NEW: Identity Bible reference images for character consistency
+      identityBibleUrls,
+      // NEW: Enable/disable native audio
+      enableAudio = KLING_ENABLE_AUDIO,
     } = await req.json();
 
     if (!prompt) {
@@ -1108,69 +1011,58 @@ serve(async (req) => {
     const startImageUrl = await ensureImageUrl(rawStartImage);
     const isImageToVideo = !!startImageUrl;
 
-    console.log("[generate-video] Starting video generation:", {
-      primaryProvider: PRIMARY_PROVIDER,
-      fallbackProvider: FALLBACK_PROVIDER,
+    // Prepare identity bible reference images (up to 4)
+    let referenceImages: string[] = [];
+    if (identityBibleUrls && Array.isArray(identityBibleUrls)) {
+      for (const url of identityBibleUrls.slice(0, 4)) {
+        const validUrl = await ensureImageUrl(url);
+        if (validUrl) referenceImages.push(validUrl);
+      }
+    }
+
+    console.log("[generate-video] Starting Kling 2.6 generation:", {
+      provider: "kling",
+      model: KLING_MODEL,
       mode: isImageToVideo ? "image-to-video" : "text-to-video",
       duration,
       aspectRatio,
+      enableAudio,
+      referenceImageCount: referenceImages.length,
       promptLength: enhancedPrompt.length,
     });
 
-    // Determine provider order
-    const providers: VideoProvider[] = preferredProvider === "veo3" 
-      ? ["veo3", "kling"] 
-      : [PRIMARY_PROVIDER, FALLBACK_PROVIDER];
+    // Generate with Kling 2.6 (only provider)
+    const result = await generateWithKling(
+      prompt,
+      enhancedPrompt,
+      negativePrompt,
+      duration,
+      aspectRatio,
+      startImageUrl,
+      referenceImages,
+      enableAudio
+    );
 
-    let lastError = "";
-
-    // Try providers in order
-    for (const provider of providers) {
-      console.log(`[generate-video] Trying provider: ${provider}`);
-      
-      let result;
-      if (provider === "kling") {
-        result = await generateWithKling(
-          prompt,
-          enhancedPrompt,
-          negativePrompt,
-          duration,
-          aspectRatio,
-          startImageUrl
-        );
-      } else {
-        result = await generateWithVeo3(
-          prompt,
-          enhancedPrompt,
-          negativePrompt,
-          duration,
-          aspectRatio,
-          startImageUrl
-        );
-      }
-
-      if (result.success) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            taskId: result.taskId,
-            status: "STARTING",
-            mode: isImageToVideo ? "image-to-video" : "text-to-video",
-            provider: result.provider,
-            model: result.model,
-            promptRewritten: enhancedPrompt !== prompt,
-            message: `Video generation started with ${result.model}. Poll the status endpoint for updates.`,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      lastError = result.error;
-      console.log(`[generate-video] Provider ${provider} failed: ${lastError}, trying next...`);
+    if (result.success) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          taskId: result.taskId,
+          status: "STARTING",
+          mode: isImageToVideo ? "image-to-video" : "text-to-video",
+          provider: result.provider,
+          model: result.model,
+          audioEnabled: enableAudio,
+          referenceImagesUsed: referenceImages.length,
+          promptRewritten: enhancedPrompt !== prompt,
+          message: `Video generation started with ${result.model}. Poll the status endpoint for updates.`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // All providers failed
-    throw new Error(`All video providers failed. Last error: ${lastError}`);
+    // Kling failed
+    throw new Error(`Kling generation failed: ${result.error}`);
 
   } catch (error: unknown) {
     console.error("Error in generate-video function:", error);

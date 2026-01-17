@@ -10,10 +10,10 @@ const corsHeaders = {
 // Provider selection - Kling 2.6 ONLY (all-in)
 type VideoProvider = "kling";
 
-// Kling API configuration - v2.1 Latest with native audio
-// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master, kling-v2.1-master
+// Kling API configuration - v2.0 Master (Latest available on direct API)
+// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
 const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2.1-master";
+const KLING_MODEL = "kling-v2-master";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 // Generate Kling JWT token

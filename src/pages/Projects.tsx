@@ -110,9 +110,9 @@ function StatCard({
 }) {
   const colorConfig = {
     default: { 
-      icon: 'text-foreground/70',
-      text: 'text-foreground',
-      glow: 'from-foreground/10 to-foreground/5'
+      icon: 'text-zinc-400',
+      text: 'text-white',
+      glow: 'from-white/10 to-white/5'
     },
     amber: { 
       icon: 'text-amber-400',
@@ -144,7 +144,7 @@ function StatCard({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ scale: 1.03 }}
-      className="relative group flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-xl"
+      className="relative group flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/60 border border-white/[0.06] backdrop-blur-xl"
     >
       {/* Glow effect on hover */}
       <div className={cn(
@@ -153,15 +153,12 @@ function StatCard({
       )} />
       
       <div className="relative flex items-center gap-1.5">
-        <div className={cn(
-          "w-6 h-6 rounded-md flex items-center justify-center",
-          "bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40"
-        )}>
+        <div className="w-6 h-6 rounded-md flex items-center justify-center bg-zinc-800 border border-white/[0.06]">
           <Icon className={cn("w-3 h-3", config.icon)} />
         </div>
         <div className="flex flex-col">
           <span className={cn("text-sm font-bold leading-none", config.text)}>{value}</span>
-          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</span>
+          <span className="text-[9px] text-zinc-500 uppercase tracking-wider">{label}</span>
         </div>
       </div>
     </motion.div>
@@ -182,10 +179,10 @@ function HeroHeader({
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className="relative mb-4"
     >
-      {/* Premium glass container */}
-      <div className="relative p-4 rounded-2xl bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 border border-border/40 backdrop-blur-2xl overflow-hidden">
+      {/* Dark theme container */}
+      <div className="relative p-4 rounded-2xl bg-zinc-900/80 border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
         {/* Subtle inner glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
         
         {/* Content */}
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -195,10 +192,10 @@ function HeroHeader({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
           >
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight hero-text">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
               Your Projects
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-zinc-500">
               Manage and watch your AI-generated videos
             </p>
           </motion.div>
@@ -343,14 +340,15 @@ function ProjectCard({
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer glass-card",
-          "hover:bg-muted/50 hover:border-border",
-          isActive && "ring-1 ring-foreground/20"
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
+          "bg-zinc-900/60 border border-white/[0.06]",
+          "hover:bg-zinc-800/60 hover:border-white/[0.1]",
+          isActive && "ring-1 ring-white/20"
         )}
         onClick={onPlay}
       >
         {/* Thumbnail */}
-        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-zinc-800 shrink-0">
           {hasVideo && videoSrc ? (
             <img 
               src={project.thumbnail_url || undefined}
@@ -359,7 +357,7 @@ function ProjectCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Film className="w-5 h-5 text-muted-foreground" />
+              <Film className="w-5 h-5 text-zinc-600" />
             </div>
           )}
           {isPinned && (
@@ -371,13 +369,13 @@ function ProjectCard({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium hero-text truncate">{project.name}</h3>
+          <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-muted-foreground">{formatTimeAgo(project.updated_at)}</span>
+            <span className="text-xs text-zinc-500">{formatTimeAgo(project.updated_at)}</span>
             {(project.video_clips?.length ?? 0) > 0 && (
               <>
-                <span className="text-muted-foreground/50">•</span>
-                <span className="text-xs text-muted-foreground">{project.video_clips?.length} clips</span>
+                <span className="text-zinc-700">•</span>
+                <span className="text-xs text-zinc-500">{project.video_clips?.length} clips</span>
               </>
             )}
           </div>
@@ -395,44 +393,45 @@ function ProjectCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                className="h-8 w-8 text-zinc-500 hover:text-white"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-card border-border backdrop-blur-xl">
+            <DropdownMenuContent align="end" className="w-44 bg-zinc-900 border-white/10 backdrop-blur-xl">
               {hasVideo && (
                 <>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }}>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlay(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
                     <Play className="w-4 h-4 mr-2" />
                     Watch
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }}>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDownload(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-white/10" />
                 </>
               )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin?.(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
                 {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
                 {isPinned ? 'Unpin' : 'Pin'}
               </DropdownMenuItem>
               {hasVideo && (
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePublic?.(); }} className={cn(
-                  project.is_public && "text-emerald-500"
+                  "text-zinc-300 focus:text-white focus:bg-white/10",
+                  project.is_public && "text-emerald-400"
                 )}>
                   {project.is_public ? <Globe className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                   {project.is_public ? 'Public' : 'Share to Feed'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }} className="text-zinc-300 focus:text-white focus:bg-white/10">
                 <Pencil className="w-4 h-4 mr-2" />
                 Rename
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-400 focus:text-red-300 focus:bg-red-500/10">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -465,11 +464,11 @@ function ProjectCard({
       />
       
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-700 glass-card",
+        "relative overflow-hidden rounded-2xl transition-all duration-700",
+        "bg-zinc-900 border border-white/[0.06]",
         hasVideo ? "aspect-video" : index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-video",
-        "border border-border",
-        isHovered && "border-foreground/25 shadow-2xl",
-        isActive && "ring-2 ring-foreground/40"
+        isHovered && "border-white/20 shadow-2xl shadow-black/50",
+        isActive && "ring-2 ring-white/30"
       )}>
         
         {/* Video/Thumbnail - always visible, no loading state */}
@@ -506,14 +505,14 @@ function ProjectCard({
             />
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
             {status === 'generating' || status === 'rendering' || status === 'stitching' ? (
               <div className="relative">
                 <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-2xl animate-pulse scale-150" />
                 <Loader2 className="relative w-10 h-10 text-amber-500/70 animate-spin" strokeWidth={1} />
               </div>
             ) : (
-              <Film className="w-12 h-12 text-muted-foreground/30" strokeWidth={1} />
+              <Film className="w-12 h-12 text-zinc-700" strokeWidth={1} />
             )}
           </div>
         )}
@@ -537,19 +536,19 @@ function ProjectCard({
               <div className="relative">
                 {/* Multiple expanding rings */}
                 <motion.div 
-                  className="absolute inset-[-8px] rounded-full border border-foreground/10"
+                  className="absolute inset-[-8px] rounded-full border border-white/10"
                   animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
                 <motion.div 
-                  className="absolute inset-[-4px] rounded-full border border-foreground/20"
+                  className="absolute inset-[-4px] rounded-full border border-white/20"
                   animate={{ scale: [1, 1.2], opacity: [0.6, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
                 />
                 
                 {/* Main play button with glow */}
                 <motion.div 
-                  className="relative w-16 h-16 rounded-full bg-foreground/20 backdrop-blur-2xl flex items-center justify-center border border-foreground/40 shadow-lg"
+                  className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1126,15 +1125,15 @@ export default function Projects() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Premium Animated Ambient Background */}
+    <div className="min-h-screen bg-[#0a0a0b] relative overflow-x-hidden">
+      {/* Dark Theme Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Base overlay */}
-        <div className="absolute inset-0 bg-background/60" />
+        {/* Base dark overlay */}
+        <div className="absolute inset-0 bg-[#0a0a0b]" />
         
-        {/* Animated gradient orbs */}
+        {/* Subtle animated gradient orbs - very muted for dark theme */}
         <motion.div 
-          className="absolute top-[-30%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-purple-500/[0.08] via-primary/[0.05] to-transparent blur-[120px]"
+          className="absolute top-[-30%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-white/[0.02] via-white/[0.01] to-transparent blur-[120px]"
           animate={{ 
             scale: [1, 1.1, 1],
             x: [0, 30, 0],
@@ -1143,7 +1142,7 @@ export default function Projects() {
           transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-emerald-500/[0.06] via-blue-500/[0.04] to-transparent blur-[100px]"
+          className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-white/[0.02] via-white/[0.01] to-transparent blur-[100px]"
           animate={{ 
             scale: [1, 1.15, 1],
             x: [0, -40, 0],
@@ -1151,27 +1150,19 @@ export default function Projects() {
           }}
           transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 5 }}
         />
-        <motion.div 
-          className="absolute top-[40%] left-[50%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-br from-amber-500/[0.04] to-transparent blur-[80px]"
-          animate={{ 
-            scale: [1, 1.2, 1],
-            x: [-100, 100, -100],
-          }}
-          transition={{ duration: 35, repeat: Infinity, ease: "easeInOut", delay: 10 }}
-        />
         
         {/* Subtle grid pattern */}
         <div 
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0 opacity-[0.015]"
           style={{
-            backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
-                              linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px'
           }}
         />
         
         {/* Edge vignette for depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_75%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0b_80%)]" />
       </div>
 
       {/* Navigation */}
@@ -1188,10 +1179,10 @@ export default function Projects() {
             className="flex flex-col items-center justify-center py-32"
           >
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-foreground/5 rounded-full blur-2xl scale-150 animate-pulse" />
-              <Loader2 className="relative w-10 h-10 text-muted-foreground animate-spin" />
+              <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl scale-150 animate-pulse" />
+              <Loader2 className="relative w-10 h-10 text-zinc-500 animate-spin" />
             </div>
-            <p className="text-muted-foreground">Loading your projects...</p>
+            <p className="text-zinc-500">Loading your projects...</p>
           </motion.div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
           /* Cinematic Empty State */
@@ -1206,7 +1197,7 @@ export default function Projects() {
               <motion.div 
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full"
                 style={{
-                  background: 'radial-gradient(ellipse at center, hsl(var(--foreground) / 0.03) 0%, transparent 70%)',
+                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)',
                 }}
                 animate={{ 
                   scale: [1, 1.2, 1],
@@ -1225,12 +1216,12 @@ export default function Projects() {
             >
               {/* Outer glow ring */}
               <motion.div
-                className="absolute inset-[-20px] rounded-full border border-foreground/10"
+                className="absolute inset-[-20px] rounded-full border border-white/10"
                 animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <motion.div
-                className="absolute inset-[-40px] rounded-full border border-foreground/5"
+                className="absolute inset-[-40px] rounded-full border border-white/5"
                 animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
                 transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
               />
@@ -1244,21 +1235,21 @@ export default function Projects() {
                   repeat: Infinity, 
                   ease: "linear"
                 }}
-                className="relative w-32 h-32 rounded-full glass-card border border-border flex items-center justify-center shadow-2xl"
+                className="relative w-32 h-32 rounded-full bg-zinc-900 border border-white/[0.06] flex items-center justify-center shadow-2xl"
               >
                 {/* Inner details to look like film reel */}
-                <div className="absolute inset-4 rounded-full border border-border/50" />
-                <div className="absolute inset-8 rounded-full border border-border/30" />
+                <div className="absolute inset-4 rounded-full border border-white/[0.06]" />
+                <div className="absolute inset-8 rounded-full border border-white/[0.04]" />
                 {[...Array(8)].map((_, i) => (
                   <div 
                     key={i}
-                    className="absolute w-2 h-2 rounded-full bg-foreground/20"
+                    className="absolute w-2 h-2 rounded-full bg-white/20"
                     style={{
                       transform: `rotate(${i * 45}deg) translateY(-40px)`
                     }}
                   />
                 ))}
-                <Film className="w-10 h-10 text-muted-foreground" strokeWidth={1} />
+                <Film className="w-10 h-10 text-zinc-600" strokeWidth={1} />
               </motion.div>
             </motion.div>
             
@@ -1266,7 +1257,7 @@ export default function Projects() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold hero-text mb-4 text-center tracking-tight"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 text-center tracking-tight"
             >
               The Stage is Set
             </motion.h2>
@@ -1275,7 +1266,7 @@ export default function Projects() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="hero-text-secondary text-lg sm:text-xl mb-4 text-center max-w-lg"
+              className="text-zinc-400 text-lg sm:text-xl mb-4 text-center max-w-lg"
             >
               Your creative journey begins here. Every great director started with their first scene.
             </motion.p>
@@ -1284,7 +1275,7 @@ export default function Projects() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="text-muted-foreground/50 text-sm mb-10 text-center italic"
+              className="text-zinc-600 text-sm mb-10 text-center italic"
             >
               "Every frame is a chance to tell a story"
             </motion.p>
@@ -1296,11 +1287,11 @@ export default function Projects() {
             >
               <Button 
                 onClick={handleCreateProject}
-                className="group relative h-14 px-10 rounded-full shadow-obsidian font-bold text-lg overflow-hidden"
+                className="group relative h-14 px-10 rounded-full bg-white text-black hover:bg-white/90 font-bold text-lg overflow-hidden shadow-xl"
               >
                 {/* Shimmer effect */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-background/10 to-transparent"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent"
                   animate={{ x: ['-100%', '100%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
                 />
@@ -1324,7 +1315,7 @@ export default function Projects() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 0.3 + i * 0.1, y: 0 }}
                   transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
-                  className="w-16 h-12 rounded glass-card border border-border/30"
+                  className="w-16 h-12 rounded bg-zinc-900 border border-white/[0.06]"
                   style={{ transform: `rotate(${(i - 3) * 3}deg)` }}
                 />
               ))}
@@ -1342,41 +1333,41 @@ export default function Projects() {
               transition={{ delay: 0.2, duration: 0.6 }}
               className="mb-4"
             >
-              <div className="relative p-3 rounded-xl bg-gradient-to-br from-muted/40 via-muted/30 to-muted/20 border border-border/40 backdrop-blur-2xl overflow-hidden">
+              <div className="relative p-3 rounded-xl bg-zinc-900/80 border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
                 {/* Subtle inner highlight */}
-                <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                 
                 <div className="relative flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
                   {/* Search Bar - Premium */}
                   <div className="relative flex-1 group">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/5 to-white/[0.02] opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-white transition-colors" />
                     <Input
                       id="project-search"
                       placeholder="Search your projects..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="relative h-12 pl-12 pr-12 bg-muted/40 border border-border/30 text-foreground placeholder:text-muted-foreground rounded-xl focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-base backdrop-blur-xl transition-all"
+                      className="relative h-12 pl-12 pr-12 bg-zinc-800/60 border border-white/[0.06] text-white placeholder:text-zinc-500 rounded-xl focus:ring-2 focus:ring-white/20 focus:border-white/20 text-base backdrop-blur-xl transition-all"
                     />
                     {searchQuery ? (
                       <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     ) : (
-                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg border border-border/40">/</kbd>
+                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-zinc-500 bg-zinc-800 px-2.5 py-1 rounded-lg border border-white/[0.06]">/</kbd>
                     )}
                   </div>
 
                   {/* Divider */}
-                  <div className="hidden lg:block w-px h-8 bg-border/50" />
+                  <div className="hidden lg:block w-px h-8 bg-white/10" />
 
                   {/* Filter Controls */}
                   <div className="flex items-center gap-3">
                     {/* Status Filter Tabs */}
-                    <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/30">
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-800/60">
                       {[
                         { value: 'all', label: 'All', icon: Layers },
                         { value: 'completed', label: 'Ready', icon: Check },
@@ -1389,8 +1380,8 @@ export default function Projects() {
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                             statusFilter === filter.value 
-                              ? "bg-foreground text-background shadow-sm" 
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                              ? "bg-white text-black shadow-sm" 
+                              : "text-zinc-500 hover:text-white hover:bg-white/10"
                           )}
                         >
                           <filter.icon className="w-3.5 h-3.5" />
@@ -1402,18 +1393,18 @@ export default function Projects() {
                     {/* Sort Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-10 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-2">
+                        <Button variant="ghost" className="h-10 px-3 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 gap-2">
                           {sortOrder === 'desc' ? <SortDesc className="w-4 h-4" /> : <SortAsc className="w-4 h-4" />}
                           <span className="hidden sm:inline text-sm">Sort</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-xl border-border">
-                        <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-wider">Sort by</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-border/50" />
+                      <DropdownMenuContent align="end" className="w-48 bg-zinc-900 backdrop-blur-xl border-white/10">
+                        <DropdownMenuLabel className="text-zinc-500 text-xs uppercase tracking-wider">Sort by</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-white/10" />
                         <DropdownMenuCheckboxItem 
                           checked={sortBy === 'updated'} 
                           onCheckedChange={() => setSortBy('updated')}
-                          className="gap-2"
+                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
                         >
                           <Clock className="w-4 h-4" />
                           Last Updated
@@ -1421,7 +1412,7 @@ export default function Projects() {
                         <DropdownMenuCheckboxItem 
                           checked={sortBy === 'created'} 
                           onCheckedChange={() => setSortBy('created')}
-                          className="gap-2"
+                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
                         >
                           <Calendar className="w-4 h-4" />
                           Date Created
@@ -1429,15 +1420,15 @@ export default function Projects() {
                         <DropdownMenuCheckboxItem 
                           checked={sortBy === 'name'} 
                           onCheckedChange={() => setSortBy('name')}
-                          className="gap-2"
+                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
                         >
                           <Edit2 className="w-4 h-4" />
                           Name
                         </DropdownMenuCheckboxItem>
-                        <DropdownMenuSeparator className="bg-border/50" />
+                        <DropdownMenuSeparator className="bg-white/10" />
                         <DropdownMenuItem 
                           onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                          className="gap-2"
+                          className="gap-2 text-zinc-300 focus:text-white focus:bg-white/10"
                         >
                           {sortOrder === 'desc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
                           {sortOrder === 'desc' ? 'Ascending' : 'Descending'}
@@ -1446,12 +1437,12 @@ export default function Projects() {
                     </DropdownMenu>
 
                     {/* View Mode Toggle */}
-                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-muted/30">
+                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-zinc-800/60">
                       <button
                         onClick={() => setViewMode('grid')}
                         className={cn(
                           "p-2.5 rounded-lg transition-all",
-                          viewMode === 'grid' ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          viewMode === 'grid' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-white"
                         )}
                         title="Grid view"
                       >
@@ -1461,7 +1452,7 @@ export default function Projects() {
                         onClick={() => setViewMode('list')}
                         className={cn(
                           "p-2.5 rounded-lg transition-all",
-                          viewMode === 'list' ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                          viewMode === 'list' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-white"
                         )}
                         title="List view"
                       >
@@ -1476,26 +1467,26 @@ export default function Projects() {
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30"
+                    className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06]"
                   >
-                    <span className="text-xs text-muted-foreground">Showing:</span>
+                    <span className="text-xs text-zinc-500">Showing:</span>
                     {searchQuery && (
-                      <Badge variant="secondary" className="gap-1 text-xs">
+                      <Badge className="gap-1 text-xs bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700">
                         "{searchQuery}"
-                        <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-foreground">
+                        <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-white">
                           <X className="w-3 h-3" />
                         </button>
                       </Badge>
                     )}
                     {statusFilter !== 'all' && (
-                      <Badge variant="secondary" className="gap-1 text-xs capitalize">
+                      <Badge className="gap-1 text-xs capitalize bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700">
                         {statusFilter}
-                        <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-foreground">
+                        <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-white">
                           <X className="w-3 h-3" />
                         </button>
                       </Badge>
                     )}
-                    <span className="text-xs text-muted-foreground ml-auto">
+                    <span className="text-xs text-zinc-500 ml-auto">
                       {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
                     </span>
                   </motion.div>
@@ -1555,12 +1546,12 @@ export default function Projects() {
             >
               {filteredProjects.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 rounded-xl bg-muted/30 flex items-center justify-center mb-4">
-                    <Search className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-16 h-16 rounded-xl bg-zinc-800/60 flex items-center justify-center mb-4">
+                    <Search className="w-6 h-6 text-zinc-500" />
                   </div>
-                  <p className="text-base font-medium text-foreground mb-1">No projects found</p>
-                  <p className="text-muted-foreground text-sm max-w-sm">Try adjusting your search or filters</p>
-                  <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-4 gap-2">
+                  <p className="text-base font-medium text-white mb-1">No projects found</p>
+                  <p className="text-zinc-500 text-sm max-w-sm">Try adjusting your search or filters</p>
+                  <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-4 gap-2 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white">
                     <X className="w-3 h-3" />
                     Clear filters
                   </Button>

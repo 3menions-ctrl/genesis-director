@@ -1081,153 +1081,170 @@ export function UnifiedStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#030308] via-[#0a0a12] to-[#050510] pb-24 sm:pb-32 relative overflow-hidden">
-      {/* Premium Ambient Background Effects */}
+    <div className="min-h-screen bg-[#030306] pb-24 sm:pb-32 relative overflow-hidden">
+      {/* Dramatic Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Primary ambient orbs */}
-        <div className="absolute top-[-30%] left-[-15%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-violet-600/[0.08] via-purple-500/[0.04] to-transparent blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-25%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-cyan-500/[0.06] via-blue-500/[0.03] to-transparent blur-[140px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-emerald-500/[0.04] to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        {/* Central spotlight effect */}
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[120vw] h-[80vh] bg-gradient-to-b from-violet-600/[0.12] via-purple-500/[0.06] to-transparent blur-[100px]" />
         
-        {/* Subtle grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px'
-          }}
-        />
+        {/* Floating orbs */}
+        <div className="absolute top-[10%] left-[5%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-br from-blue-600/[0.08] to-cyan-500/[0.04] blur-[120px] animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute bottom-[10%] right-[5%] w-[35vw] h-[35vw] rounded-full bg-gradient-to-tl from-rose-500/[0.06] via-pink-500/[0.04] to-transparent blur-[100px] animate-pulse" style={{ animationDuration: '12s', animationDelay: '3s' }} />
+        <div className="absolute top-[50%] left-[60%] w-[25vw] h-[25vw] rounded-full bg-gradient-to-bl from-emerald-500/[0.05] to-transparent blur-[80px] animate-pulse" style={{ animationDuration: '14s', animationDelay: '5s' }} />
         
-        {/* Radial vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+        {/* Subtle noise texture */}
+        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
+        
+        {/* Radial gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(120,80,200,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(3,3,6,0.8)_100%)]" />
       </div>
 
-      {/* Premium Glass Header */}
+      {/* Floating Header with Glass Effect */}
       <header className="sticky top-0 z-50">
-        {/* Gradient border line */}
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent blur-sm" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-transparent to-black/20 blur-xl pointer-events-none" />
         
-        <div className="bg-black/40 backdrop-blur-2xl border-b border-white/[0.05]">
-          <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
-            <div className="h-14 sm:h-16 flex items-center justify-between">
-              {/* Left - Logo & Branding with glow */}
+        <div className="bg-black/60 backdrop-blur-3xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="h-16 sm:h-20 flex items-center justify-between">
+              {/* Logo with hover glow */}
               <button 
                 onClick={() => navigate('/projects')} 
-                className="flex items-center gap-2 sm:gap-3 group"
+                className="flex items-center gap-3 group"
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500" />
-                  <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-white/[0.12] to-white/[0.04] border border-white/[0.15] flex items-center justify-center group-hover:border-violet-400/40 group-hover:from-violet-500/20 group-hover:to-purple-500/10 transition-all duration-300 shadow-lg shadow-black/20">
-                    <Film className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 group-hover:text-violet-300 transition-colors" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500 blur-2xl rounded-full opacity-0 group-hover:opacity-40 transition-all duration-700 scale-150" />
+                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/30 via-purple-500/20 to-fuchsia-500/30 border border-white/20 flex items-center justify-center group-hover:border-violet-400/50 transition-all duration-500 shadow-xl shadow-violet-500/10">
+                    <Film className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <span className="text-lg font-bold bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent tracking-tight">Create</span>
-                  <p className="text-[11px] text-white/40 -mt-0.5 font-medium">AI Video Studio</p>
+                  <span className="text-xl font-bold bg-gradient-to-r from-white via-violet-100 to-purple-200 bg-clip-text text-transparent">Genesis Studio</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-500/30">AI POWERED</span>
+                  </div>
                 </div>
               </button>
               
-              {/* Center - Premium Glass Stats Pills */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] text-sm shadow-lg shadow-black/10">
-                  <Clock className="w-3.5 h-3.5 text-cyan-400/80" />
-                  <span className="font-semibold text-white/90">{totalDuration}s</span>
+              {/* Premium Floating Stats */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Duration pill */}
+                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-white/[0.08] to-white/[0.04] backdrop-blur-xl border border-white/[0.12] shadow-xl">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Duration</p>
+                    <p className="text-sm font-bold text-white">{totalDuration}s</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] text-xs sm:text-sm shadow-lg shadow-black/10">
-                  <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-400/80" />
-                  <span className="font-semibold text-white/90">{clipCount}</span>
+                
+                {/* Clips pill */}
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-white/[0.08] to-white/[0.04] backdrop-blur-xl border border-white/[0.12] shadow-xl">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+                    <Layers className="w-4 h-4 text-violet-400" />
+                  </div>
+                  <div className="hidden sm:block">
+                    <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Clips</p>
+                    <p className="text-sm font-bold text-white">{clipCount}</p>
+                  </div>
+                  <span className="sm:hidden text-sm font-bold text-white">{clipCount}</span>
                 </div>
+                
+                {/* Credits pill - Premium gold */}
                 <div className="relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/40 to-orange-500/40 blur-lg opacity-60 group-hover:opacity-80 transition-opacity rounded-full" />
-                  <div className="relative flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-black text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/25">
-                    <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    <span>~{estimatedCredits}</span>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+                  <div className="relative flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 shadow-2xl shadow-amber-500/30">
+                    <Coins className="w-5 h-5 text-amber-900" />
+                    <div className="hidden sm:block">
+                      <p className="text-[10px] text-amber-900/70 font-bold uppercase tracking-wider">Cost</p>
+                      <p className="text-sm font-black text-amber-900">~{estimatedCredits}</p>
+                    </div>
+                    <span className="sm:hidden text-sm font-black text-amber-900">~{estimatedCredits}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Right - Navigation */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate('/projects')}
-                  className="h-8 sm:h-9 px-2 sm:px-4 text-white/60 hover:text-white hover:bg-white/[0.08] rounded-full text-sm font-medium transition-all duration-200"
-                >
-                  <Eye className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Library</span>
-                </Button>
-              </div>
+              {/* Navigation */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/projects')}
+                className="h-10 px-4 text-white/70 hover:text-white hover:bg-white/[0.08] rounded-xl text-sm font-medium transition-all duration-300 border border-transparent hover:border-white/10"
+              >
+                <Eye className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">My Projects</span>
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-        {/* Promotional Banner - Hidden on mobile */}
-        <div className="hidden sm:block">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        {/* Promotional Banner */}
+        <div className="hidden sm:block mb-8">
           <PromotionalBanner />
         </div>
         
-        {/* Premium Hero Section */}
-        <div className="text-center space-y-3 sm:space-y-4 mb-4 sm:mb-8">
-          {/* Project Title - Show when a project is active */}
+        {/* Epic Hero Section */}
+        <div className="text-center mb-10 sm:mb-14">
+          {/* Floating badge */}
           {activeProjectId && projectTitle && currentStage === 'idle' && (
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Badge variant="outline" className="bg-violet-500/10 border-violet-500/30 text-violet-300 text-xs px-4 py-1.5 backdrop-blur-sm">
-                <Film className="w-3 h-3 mr-1.5" />
-                {projectTitle}
-              </Badge>
+            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/20 via-purple-500/15 to-fuchsia-500/20 border border-violet-400/30 backdrop-blur-xl">
+              <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+              <span className="text-sm font-medium text-violet-200">{projectTitle}</span>
             </div>
           )}
           
-          {/* Glowing title */}
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-cyan-500/20 blur-3xl" />
-            <h2 className="relative text-3xl sm:text-5xl font-bold tracking-tight bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
-              What will you create?
-            </h2>
+          {/* Main title with dramatic styling */}
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/30 via-purple-500/20 to-cyan-500/30 blur-3xl scale-150" />
+            <h1 className="relative text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight">
+              <span className="bg-gradient-to-br from-white via-white to-white/60 bg-clip-text text-transparent">Create</span>
+              <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent"> Magic</span>
+            </h1>
           </div>
-          <p className="text-sm sm:text-base text-white/50 max-w-xl mx-auto hidden sm:block font-medium">
-            Transform your ideas into stunning videos with AI-powered production
+          
+          <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto font-medium hidden sm:block">
+            Transform your imagination into cinematic reality with AI-powered video generation
           </p>
           
-          {/* Template/Environment Applied Indicator - Premium pills */}
+          {/* Template/Environment badges */}
           {(appliedTemplateName || appliedEnvironmentName) && (
-            <div className="flex items-center justify-center gap-2 sm:gap-3 pt-2 sm:pt-3 flex-wrap">
+            <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
               {appliedTemplateName && (
                 <div className="group relative">
-                  <div className="absolute inset-0 bg-violet-500/30 blur-lg opacity-60 rounded-full" />
-                  <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-400/40 backdrop-blur-xl">
-                    <LayoutTemplate className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-300" />
-                    <span className="text-xs sm:text-sm font-semibold text-violet-200 truncate max-w-[100px] sm:max-w-none">{appliedTemplateName}</span>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-violet-400/40 backdrop-blur-xl">
+                    <LayoutTemplate className="w-4 h-4 text-violet-400" />
+                    <span className="text-sm font-semibold text-violet-200">{appliedTemplateName}</span>
                     <button 
                       onClick={() => {
                         setAppliedTemplateName(null);
                         setConcept('');
                       }}
-                      className="ml-0.5 sm:ml-1 text-violet-300 hover:text-white transition-colors"
+                      className="ml-1 text-violet-300 hover:text-white transition-colors"
                     >
-                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <XCircle className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
               {appliedEnvironmentName && (
                 <div className="group relative">
-                  <div className="absolute inset-0 bg-emerald-500/30 blur-lg opacity-60 rounded-full" />
-                  <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-400/40 backdrop-blur-xl">
-                    <TreePine className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
-                    <span className="text-xs sm:text-sm font-semibold text-emerald-200 truncate max-w-[100px] sm:max-w-none">{appliedEnvironmentName}</span>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-emerald-400/40 backdrop-blur-xl">
+                    <TreePine className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-semibold text-emerald-200">{appliedEnvironmentName}</span>
                     <button 
                       onClick={() => {
                         setAppliedEnvironmentName(null);
                         setEnvironmentPrompt('');
                       }}
-                      className="ml-0.5 sm:ml-1 text-emerald-300 hover:text-white transition-colors"
+                      className="ml-1 text-emerald-300 hover:text-white transition-colors"
                     >
-                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <XCircle className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -1259,68 +1276,83 @@ export function UnifiedStudio() {
           />
         )}
 
-        {/* Premium Glass Mode Selection Tabs */}
-        <div className="relative group">
-          {/* Glow effect behind card */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-purple-500/10 to-cyan-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
+        {/* Epic Main Card with Multi-layer Glass Effect */}
+        <div className="relative">
+          {/* Outer glow layers */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-violet-600/20 via-purple-500/15 to-fuchsia-500/20 rounded-[2rem] blur-2xl opacity-60" />
+          <div className="absolute -inset-1 bg-gradient-to-b from-white/[0.08] to-transparent rounded-[1.75rem] blur-xl opacity-40" />
           
-          <div className="relative bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.02] border border-white/[0.12] rounded-2xl sm:rounded-3xl overflow-hidden backdrop-blur-2xl shadow-2xl shadow-black/20">
+          {/* Main glass card */}
+          <div className="relative bg-gradient-to-br from-white/[0.1] via-white/[0.05] to-white/[0.02] border border-white/[0.15] rounded-3xl overflow-hidden backdrop-blur-3xl shadow-[0_20px_80px_-20px_rgba(120,80,200,0.3)]">
+            {/* Inner highlight */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
+            
             <Tabs value={mode} onValueChange={(v) => setMode(v as PipelineMode)} className="w-full">
-              {/* Premium tab header */}
-              <div className="border-b border-white/[0.08] bg-gradient-to-r from-white/[0.04] via-white/[0.02] to-white/[0.04] p-2.5 sm:p-4">
-                <TabsList className="grid w-full grid-cols-2 h-11 sm:h-14 bg-black/30 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-white/[0.08] backdrop-blur-xl">
+              {/* Premium Tab Header with glowing indicator */}
+              <div className="relative border-b border-white/[0.1] bg-gradient-to-r from-black/40 via-black/20 to-black/40 p-3 sm:p-5">
+                <TabsList className="grid w-full grid-cols-2 h-12 sm:h-16 bg-black/50 p-1.5 sm:p-2 rounded-2xl border border-white/[0.1] backdrop-blur-xl shadow-inner">
                   <TabsTrigger 
                     value="ai" 
                     disabled={isRunning}
-                    className="gap-2 sm:gap-3 rounded-lg sm:rounded-xl text-white/60 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/30 transition-all duration-300 text-xs sm:text-sm font-semibold"
+                    className="relative gap-2 sm:gap-3 rounded-xl text-white/50 data-[state=active]:text-white transition-all duration-500 text-xs sm:text-sm font-bold overflow-hidden group"
                   >
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>AI</span>
-                    <span className="hidden sm:inline">Hollywood</span>
-                    <Badge className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 h-4 sm:h-5 hidden md:flex bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 font-bold">
-                      PRO
-                    </Badge>
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 opacity-0 data-[state=active]:opacity-100 transition-opacity duration-500 rounded-xl" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 data-[state=active]:opacity-100 rounded-xl" />
+                    <div className="relative flex items-center gap-2 sm:gap-3">
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span>AI Hollywood</span>
+                      <Badge className="text-[9px] px-1.5 py-0.5 hidden sm:flex bg-white/20 text-white/90 border border-white/30 font-black">
+                        PRO
+                      </Badge>
+                    </div>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="manual" 
                     disabled={isRunning}
-                    className="gap-2 sm:gap-3 rounded-lg sm:rounded-xl text-white/60 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/30 transition-all duration-300 text-xs sm:text-sm font-semibold"
+                    className="relative gap-2 sm:gap-3 rounded-xl text-white/50 data-[state=active]:text-white transition-all duration-500 text-xs sm:text-sm font-bold overflow-hidden"
                   >
-                    <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>Manual</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 opacity-0 data-[state=active]:opacity-100 transition-opacity duration-500 rounded-xl" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 data-[state=active]:opacity-100 rounded-xl" />
+                    <div className="relative flex items-center gap-2 sm:gap-3">
+                      <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span>Manual Control</span>
+                    </div>
                   </TabsTrigger>
                 </TabsList>
               </div>
 
-              {/* AI Mode - Premium styling */}
-              <TabsContent value="ai" className="m-0 p-4 sm:p-8 space-y-5 sm:space-y-8 bg-gradient-to-b from-transparent to-white/[0.01]">
-                {/* Concept Input - Hero Section with glow */}
+              {/* AI Mode Content */}
+              <TabsContent value="ai" className="m-0 p-5 sm:p-10 space-y-6 sm:space-y-10">
+                {/* Premium Concept Input */}
                 <div className="space-y-4">
-                  <Label className="text-sm sm:text-base font-semibold flex items-center gap-2 text-white">
-                    <div className="p-1.5 rounded-lg bg-violet-500/20 border border-violet-500/30">
-                      <Sparkles className="w-4 h-4 text-violet-400" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/30 to-purple-500/20 border border-violet-400/30 flex items-center justify-center shadow-lg shadow-violet-500/10">
+                      <Sparkles className="w-5 h-5 text-violet-400" />
                     </div>
-                    Story Concept
-                  </Label>
+                    <div>
+                      <Label className="text-base sm:text-lg font-bold text-white">Story Concept</Label>
+                      <p className="text-xs text-white/40">Describe your cinematic vision</p>
+                    </div>
+                  </div>
+                  
                   <div className="relative group/input">
-                    {/* Input glow effect */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/30 via-purple-500/20 to-cyan-500/30 rounded-2xl blur-lg opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-300" />
+                    {/* Dramatic input glow */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/40 via-purple-500/30 to-fuchsia-500/40 rounded-2xl blur-xl opacity-0 group-focus-within/input:opacity-60 transition-all duration-500" />
                     <Textarea
                       value={concept}
                       onChange={(e) => setConcept(e.target.value)}
-                      placeholder="Describe your video idea... Example: A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins."
-                      rows={4}
+                      placeholder="A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins..."
+                      rows={5}
                       disabled={isRunning}
-                      className="relative resize-none text-base sm:text-lg leading-relaxed pr-4 bg-black/40 border-white/[0.12] text-white placeholder:text-white/30 focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/20 rounded-xl sm:rounded-2xl backdrop-blur-xl transition-all duration-200"
+                      className="relative resize-none text-base sm:text-lg leading-relaxed p-5 bg-black/50 border-2 border-white/[0.1] text-white placeholder:text-white/25 focus:border-violet-400/60 focus:ring-4 focus:ring-violet-500/10 rounded-2xl backdrop-blur-xl transition-all duration-300 shadow-inner"
                     />
                     {concept.length > 0 && (
-                      <div className="absolute bottom-3 right-3 text-xs text-white/40 font-medium">
-                        {concept.length} chars
+                      <div className="absolute bottom-4 right-4 px-2 py-1 rounded-lg bg-white/10 text-xs text-white/50 font-medium backdrop-blur-xl">
+                        {concept.length} characters
                       </div>
                     )}
                   </div>
                 </div>
-
                 {/* Premium Creative Options Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div className="space-y-2.5">

@@ -94,73 +94,6 @@ const CREATOR_VIDEOS = [
 ];
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
-
-// Component to display video with native poster frame
-const PosterImage = ({ 
-  videoUrl, 
-  alt, 
-  onLoad, 
-  onError, 
-  className, 
-  index 
-}: { 
-  videoUrl: string; 
-  alt: string; 
-  onLoad: () => void; 
-  onError: () => void; 
-  className: string;
-  index: number;
-}) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-
-    // Stagger loading to avoid overwhelming the browser
-    const loadTimer = setTimeout(() => {
-      vid.load();
-    }, index * 150);
-
-    const handleLoadedData = () => {
-      // Seek to a small time to ensure a frame is visible
-      vid.currentTime = 0.1;
-    };
-
-    const handleSeeked = () => {
-      setIsReady(true);
-      onLoad();
-    };
-
-    const handleError = () => {
-      onError();
-    };
-
-    vid.addEventListener('loadeddata', handleLoadedData);
-    vid.addEventListener('seeked', handleSeeked);
-    vid.addEventListener('error', handleError);
-
-    return () => {
-      clearTimeout(loadTimer);
-      vid.removeEventListener('loadeddata', handleLoadedData);
-      vid.removeEventListener('seeked', handleSeeked);
-      vid.removeEventListener('error', handleError);
-    };
-  }, [videoUrl, index, onLoad, onError]);
-
-  return (
-    <video
-      ref={videoRef}
-      src={videoUrl}
-      className={cn(className, isReady ? 'opacity-100' : 'opacity-0')}
-      muted
-      playsInline
-      preload="metadata"
-    />
-  );
-};
-
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
   height: 'tall' | 'medium' | 'short';
@@ -171,8 +104,7 @@ interface VideoCardProps {
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [posterReady, setPosterReady] = useState(false);
-  const [posterError, setPosterError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -180,22 +112,50 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Generate poster URL from video URL (server-side frame extraction)
-  // Using video URL with #t=0.1 as a fallback - browsers that support it will show that frame
-  const posterUrl = `${video.url}#t=0.1`;
-
-  // Handle hover play/pause
+  // Single video element handles both poster display and playback
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
+    const handleLoaded = () => {
+      // Seek to 0.1s to show a frame
+      if (vid.currentTime === 0) {
+        vid.currentTime = 0.1;
+      }
+    };
+
+    const handleSeeked = () => {
+      setIsLoaded(true);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoaded(true);
+    };
+
+    vid.addEventListener('loadeddata', handleLoaded);
+    vid.addEventListener('seeked', handleSeeked);
+    vid.addEventListener('canplay', handleCanPlay);
+
+    return () => {
+      vid.removeEventListener('loadeddata', handleLoaded);
+      vid.removeEventListener('seeked', handleSeeked);
+      vid.removeEventListener('canplay', handleCanPlay);
+    };
+  }, []);
+
+  // Handle hover play/pause
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !isLoaded) return;
+
     if (isHovering) {
-      vid.currentTime = 0;
       vid.play().catch(() => {});
     } else {
       vid.pause();
+      // Reset to show poster frame when not hovering
+      vid.currentTime = 0.1;
     }
-  }, [isHovering]);
+  }, [isHovering, isLoaded]);
 
   return (
     <motion.div
@@ -210,60 +170,40 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Gradient fallback background - always visible as base */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-muted to-accent/20">
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <Film className="w-8 h-8 text-primary/40 mb-2" />
-          <p className="text-xs text-muted-foreground/60">{video.genre}</p>
+      {/* Stylized loading/fallback background - always visible as base */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-muted to-accent/10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Film className="w-6 h-6 text-primary/50" />
+          </div>
+          <div className="text-center px-4">
+            <p className="text-sm font-medium text-foreground/70 line-clamp-2">{video.title}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">{video.genre}</p>
+          </div>
         </div>
       </div>
 
-      {/* Poster image - extracted from video via canvas in browser */}
-      <PosterImage 
-        videoUrl={video.url}
-        alt={video.title}
-        onLoad={() => setPosterReady(true)}
-        onError={() => setPosterError(true)}
+      {/* Single video element - shows frame when loaded, plays on hover */}
+      <video
+        ref={videoRef}
+        src={video.url}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          posterReady ? "opacity-100" : "opacity-0",
+          isLoaded ? "opacity-100" : "opacity-0",
           isHovering ? "scale-105" : "scale-100"
         )}
-        index={index}
+        muted
+        loop
+        playsInline
+        preload="metadata"
       />
-
-      {/* Video element - only loads/plays on hover */}
-      {isHovering && (
-        <video
-          ref={videoRef}
-          src={video.url}
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-          muted
-          loop
-          playsInline
-          autoPlay
-        />
-      )}
 
       {/* Gradient overlay */}
       <div className={cn(
-        "absolute inset-0 transition-opacity duration-300",
-        "bg-gradient-to-t from-black via-black/40 to-transparent",
-        isHovering ? "opacity-90" : "opacity-70"
+        "absolute inset-0 transition-opacity duration-300 pointer-events-none",
+        "bg-gradient-to-t from-black/80 via-black/30 to-transparent",
+        isHovering ? "opacity-100" : "opacity-70"
       )} />
-
-      {/* Animated border glow on hover */}
-      <div className={cn(
-        "absolute inset-0 rounded-inherit transition-opacity duration-300",
-        "bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0",
-        "opacity-0 group-hover:opacity-100"
-      )} 
-      style={{ 
-        mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-        maskComposite: 'exclude',
-        padding: '2px',
-      }}
-      />
 
       {/* Play button overlay */}
       <motion.div
@@ -281,7 +221,7 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
 
       {/* Featured badge */}
       {video.featured && (
-        <div className="absolute top-4 left-4 z-10">
+        <div className="absolute top-3 left-3 z-10">
           <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm border-0">
             <Star className="w-3 h-3 mr-1 fill-current" />
             Featured
@@ -297,7 +237,7 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
       </div>
 
       {/* Title at bottom */}
-      <div className="absolute bottom-3 left-3 right-3 z-10">
+      <div className="absolute bottom-3 left-3 right-12 z-10">
         <p className="text-sm font-medium text-white line-clamp-2">{video.title}</p>
       </div>
 

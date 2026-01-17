@@ -282,6 +282,32 @@ const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
     environmentId: 'neon_noir_city',
     conceptPrompt: 'A noir mystery unfolding in rain-soaked city streets. Open on a solitary figure in the shadows. Reveal clues through atmospheric shots and tense encounters. Build paranoia with surveillance angles and reflective surfaces. Maintain ambiguity between hunter and hunted. End on a morally complex resolution.',
   },
+  {
+    id: 'template-action-1',
+    name: 'Action Sequence',
+    description: 'High-energy action scenes with dynamic camera movements',
+    category: 'cinematic',
+    genre: 'cinematic',
+    mood: 'action',
+    clipCount: 6,
+    targetDurationMinutes: 2,
+    colorGrading: 'cinematic',
+    environmentId: 'neon_noir_city',
+    conceptPrompt: 'An adrenaline-fueled action sequence with relentless energy. Open with a moment of calm before the storm. Explode into motion with rapid cuts and dynamic camera movements. Alternate between wide establishing shots and intense close-ups. Build through escalating stakes and obstacles. Climax with a spectacular final moment of triumph or escape.',
+  },
+  {
+    id: 'template-corp-1',
+    name: 'Corporate Presentation',
+    description: 'Professional business videos with clean, modern aesthetics',
+    category: 'corporate',
+    genre: 'ad',
+    mood: 'uplifting',
+    clipCount: 8,
+    targetDurationMinutes: 3,
+    colorGrading: 'neutral',
+    environmentId: 'modern_minimalist',
+    conceptPrompt: 'A polished corporate presentation showcasing innovation and professionalism. Open with establishing shots of modern architecture or technology. Introduce the company vision through clean, purposeful visuals. Highlight key achievements and capabilities with data-driven imagery. Feature team collaboration and expertise. Close with a confident look toward the future and clear call to action.',
+  },
 ];
 
 // Convert environment DNA to a comprehensive prompt string

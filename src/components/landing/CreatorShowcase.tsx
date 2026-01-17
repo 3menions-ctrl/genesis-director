@@ -11,8 +11,20 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
+// Import thumbnail images
+import thumbIlluminated from '@/assets/thumbnails/illuminated-dreams.jpg';
+import thumbWildHunt from '@/assets/thumbnails/wild-hunt.jpg';
+import thumbSunset from '@/assets/thumbnails/sunset-dreams.jpg';
+import thumbRiver from '@/assets/thumbnails/river-whispers.jpg';
+import thumbSnowyCabin from '@/assets/thumbnails/snowy-cabin.jpg';
+import thumbVerdant from '@/assets/thumbnails/verdant-grove.jpg';
+import thumbSnowySerenity from '@/assets/thumbnails/snowy-serenity.jpg';
+import thumbChocolate from '@/assets/thumbnails/chocolate-adventures.jpg';
+import thumbRuined from '@/assets/thumbnails/ruined-valor.jpg';
+import thumbFiery from '@/assets/thumbnails/fiery-majesty.jpg';
+import thumbOwl from '@/assets/thumbnails/owl-wisdom.jpg';
+
 // Sample videos generated with Apex Studio
-// Using video URL with #t=0.5 to grab a frame as poster
 const CREATOR_VIDEOS = [
   {
     id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
@@ -20,6 +32,7 @@ const CREATOR_VIDEOS = [
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
     featured: true,
+    thumbnail: thumbIlluminated,
   },
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
@@ -27,6 +40,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
     featured: true,
+    thumbnail: thumbWildHunt,
   },
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
@@ -34,6 +48,7 @@ const CREATOR_VIDEOS = [
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
     featured: false,
+    thumbnail: thumbSunset,
   },
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
@@ -41,6 +56,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers by the River',
     genre: 'Nature',
     featured: false,
+    thumbnail: thumbRiver,
   },
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
@@ -48,6 +64,7 @@ const CREATOR_VIDEOS = [
     title: 'Snowy Cabin Retreat',
     genre: 'Nature',
     featured: false,
+    thumbnail: thumbSnowyCabin,
   },
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
@@ -55,6 +72,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Verdant Grove',
     genre: 'Nature',
     featured: false,
+    thumbnail: thumbVerdant,
   },
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
@@ -62,6 +80,7 @@ const CREATOR_VIDEOS = [
     title: 'Soaring Above Snowy Serenity',
     genre: 'Aerial',
     featured: true,
+    thumbnail: thumbSnowySerenity,
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
@@ -69,6 +88,7 @@ const CREATOR_VIDEOS = [
     title: 'Whimsical Chocolate Adventures',
     genre: 'Creative',
     featured: false,
+    thumbnail: thumbChocolate,
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
@@ -76,6 +96,7 @@ const CREATOR_VIDEOS = [
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
     featured: false,
+    thumbnail: thumbRuined,
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
@@ -83,6 +104,7 @@ const CREATOR_VIDEOS = [
     title: 'Skyward Over Fiery Majesty',
     genre: 'Aerial',
     featured: false,
+    thumbnail: thumbFiery,
   },
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
@@ -90,10 +112,12 @@ const CREATOR_VIDEOS = [
     title: "Owl of Wisdom's Twilight",
     genre: 'Creative',
     featured: false,
+    thumbnail: thumbOwl,
   },
 ];
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
+
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
   height: 'tall' | 'medium' | 'short';
@@ -103,10 +127,8 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -114,104 +136,21 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Use IntersectionObserver to detect when card is visible
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  // Load video when visible
-  useEffect(() => {
-    if (!isVisible) return;
-    
-    const vid = videoRef.current;
-    if (!vid) return;
-
-    let isMounted = true;
-
-    const handleLoadedMetadata = () => {
-      // Seek to a very small time to ensure we're within video range
-      vid.currentTime = 0.01;
-    };
-
-    const handleSeeked = () => {
-      if (isMounted) setIsLoaded(true);
-    };
-
-    const handleCanPlayThrough = () => {
-      // Fallback: if seeked never fired but video can play, show it
-      if (isMounted && !isLoaded) {
-        vid.currentTime = 0.01;
-        setIsLoaded(true);
-      }
-    };
-
-    const handleTimeUpdate = () => {
-      // Once we have any frame, show the video
-      if (isMounted && vid.currentTime > 0) {
-        setIsLoaded(true);
-        vid.removeEventListener('timeupdate', handleTimeUpdate);
-      }
-    };
-
-    vid.addEventListener('loadedmetadata', handleLoadedMetadata);
-    vid.addEventListener('seeked', handleSeeked);
-    vid.addEventListener('canplaythrough', handleCanPlayThrough);
-    vid.addEventListener('timeupdate', handleTimeUpdate);
-
-    // Staggered initial load
-    const loadTimer = setTimeout(() => {
-      vid.load();
-    }, index * 150);
-
-    // Fallback timeout - show video even if events don't fire properly
-    const fallbackTimer = setTimeout(() => {
-      if (isMounted && !isLoaded && vid.readyState >= 2) {
-        setIsLoaded(true);
-      }
-    }, 3000 + index * 150);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(loadTimer);
-      clearTimeout(fallbackTimer);
-      vid.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      vid.removeEventListener('seeked', handleSeeked);
-      vid.removeEventListener('canplaythrough', handleCanPlayThrough);
-      vid.removeEventListener('timeupdate', handleTimeUpdate);
-    };
-  }, [isVisible, index, isLoaded]);
-
   // Handle hover play/pause
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid || !isLoaded) return;
+    if (!vid) return;
 
     if (isHovering) {
       vid.currentTime = 0;
       vid.play().catch(() => {});
     } else {
       vid.pause();
-      vid.currentTime = 0.5;
     }
-  }, [isHovering, isLoaded]);
+  }, [isHovering]);
 
   return (
     <motion.div
-      ref={containerRef}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -223,33 +162,28 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Stylized loading/fallback background - always visible as base */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-muted to-accent/10">
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Film className="w-6 h-6 text-primary/50" />
-          </div>
-          <div className="text-center px-4">
-            <p className="text-sm font-medium text-foreground/70 line-clamp-2">{video.title}</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">{video.genre}</p>
-          </div>
-        </div>
-      </div>
+      {/* Static thumbnail image - always reliable */}
+      <img
+        src={video.thumbnail}
+        alt={video.title}
+        onLoad={() => setImageLoaded(true)}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+          imageLoaded ? "opacity-100" : "opacity-0",
+          isHovering ? "scale-105" : "scale-100"
+        )}
+      />
 
-      {/* Single video element - only renders when visible, shows frame when loaded */}
-      {isVisible && (
+      {/* Video element - only plays on hover */}
+      {isHovering && (
         <video
           ref={videoRef}
           src={video.url}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-            isLoaded ? "opacity-100" : "opacity-0",
-            isHovering ? "scale-105" : "scale-100"
-          )}
+          className="absolute inset-0 w-full h-full object-cover scale-105"
           muted
           loop
           playsInline
-          preload="auto"
+          autoPlay
         />
       )}
 

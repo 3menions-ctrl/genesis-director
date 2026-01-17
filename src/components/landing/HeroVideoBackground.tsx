@@ -1,27 +1,34 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
-// Cole's showcase videos - Cloud Run stitched final videos with thumbnails
+// Import local poster images for instant loading
+import heroPoster1 from '@/assets/hero/hero-poster-1.jpg';
+import heroPoster2 from '@/assets/hero/hero-poster-2.jpg';
+import heroPoster3 from '@/assets/hero/hero-poster-3.jpg';
+import heroPoster4 from '@/assets/hero/hero-poster-4.jpg';
+import heroPoster5 from '@/assets/hero/hero-poster-5.jpg';
+
+// Showcase videos with local poster images for instant display
 const SHOWCASE_VIDEOS = [
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_9174320c-ede9-4d97-96b3-3f4f730622d8_1768476847502.mp4',
-    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_9174320c-ede9-4d97-96b3-3f4f730622d8.jpg',
+    poster: heroPoster1,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_ef39dd93-3216-4e76-88ff-69fb2d407914_1768476284014.mp4',
-    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_ef39dd93-3216-4e76-88ff-69fb2d407914.jpg',
+    poster: heroPoster2,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
-    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a1b6f181-26fa-4306-a663-d5892977b3fc.jpg',
+    poster: heroPoster3,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
-    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a0016bb1-34ea-45e3-a173-da9441a84bda.jpg',
+    poster: heroPoster4,
   },
   {
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
-    poster: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_71e83837-9ae4-4e79-a4f2-599163741b03.jpg',
+    poster: heroPoster5,
   },
 ];
 

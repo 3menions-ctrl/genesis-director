@@ -183,14 +183,6 @@ export default function Landing() {
               Start Creating Free
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setShowExamples(true)}
-              className="h-14 px-8 text-base font-medium rounded-full border-foreground/20 hover:bg-foreground/5"
-            >
-              View Examples
-            </Button>
           </motion.div>
 
           {/* Examples Gallery Modal - Lazy loaded */}

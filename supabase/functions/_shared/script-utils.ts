@@ -396,9 +396,9 @@ export function detectUserContent(text: string): DetectedContent {
   const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
   
   // Average speaking rate: 150 words per minute = 2.5 words per second
-  // Each clip is 6 seconds = 15 words per clip comfortable pace
+  // Kling 2.6: Each clip is 5 seconds = 12.5 words per clip comfortable pace
   const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 6;
+  const CLIP_DURATION = 5; // Kling 2.6: 5-second clips
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
   const estimatedDurationSeconds = Math.max(36, Math.ceil(wordCount / WORDS_PER_SECOND));

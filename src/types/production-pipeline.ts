@@ -159,10 +159,10 @@ export type AudioMixMode = 'full' | 'dialogue-only' | 'music-only' | 'mute';
 // Transition types for seamless shot connections
 export type TransitionType = 'continuous' | 'match-cut' | 'dissolve' | 'fade';
 
-// Avatar-quality: Configurable clip duration (6-8 seconds)
-export const MAX_SHOT_DURATION_SECONDS = 8;
-export const MIN_SHOT_DURATION_SECONDS = 4;
-export const DEFAULT_SHOT_DURATION_SECONDS = 6; // 6 seconds for cinematic flow
+// Kling 2.6: Configurable clip duration (5 or 10 seconds)
+export const MAX_SHOT_DURATION_SECONDS = 10;
+export const MIN_SHOT_DURATION_SECONDS = 5;
+export const DEFAULT_SHOT_DURATION_SECONDS = 5; // 5 seconds for Kling 2.6
 
 // Maximum clips per project (extended for longer productions)
 export const MAX_CLIPS_PER_PROJECT = 24;
@@ -178,7 +178,7 @@ export interface Shot {
   title: string;
   description: string; // Visual description for video generation
   dialogue: string; // Dialogue/narration text for this shot
-  durationSeconds: number; // 6 seconds per shot (standard)
+  durationSeconds: number; // 5 seconds per shot (Kling 2.6 standard)
   mood: string;
   cameraMovement: string; // Will be rewritten by Cameraman Filter
   transitionOut?: TransitionType; // How this shot flows into the next

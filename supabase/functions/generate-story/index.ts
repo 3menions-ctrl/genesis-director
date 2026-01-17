@@ -71,7 +71,7 @@ function detectUserContent(text: string): DetectedContent {
   const wordCount = allText.split(/\s+/).filter(w => w.length > 0).length;
   
   const WORDS_PER_SECOND = 2.5;
-  const CLIP_DURATION = 6;
+  const CLIP_DURATION = 5; // Kling 2.6: 5-second clips
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
   const estimatedDurationSeconds = Math.ceil(wordCount / WORDS_PER_SECOND);
@@ -250,10 +250,11 @@ serve(async (req) => {
     const sceneMode = request.sceneMode || 'single_scene';
     
     // Calculate EXACT clip count from targetDuration - this is the user's selection
-    const CLIP_DURATION = 6;
+    // Kling 2.6: 5-second clips for optimal quality
+    const CLIP_DURATION = 5;
     const requestedClips = Math.round(targetDuration / CLIP_DURATION);
     const clipCount = requestedClips > 0 ? requestedClips : 6; // Default to 6 only if no duration specified
-    console.log(`[GenerateStory] Using ${clipCount} clips (targetDuration: ${targetDuration}s, voiceDisabled: ${voiceDisabled})`);
+    console.log(`[GenerateStory] Using ${clipCount} clips @ ${CLIP_DURATION}s each (Kling 2.6)`);
 
     // SCENE-BASED SYSTEM PROMPT - use dynamic clip count
     const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across EXACTLY ${clipCount} connected clips.

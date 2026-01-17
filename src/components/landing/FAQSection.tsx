@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip (~6 seconds) costs 10 credits. Video lengths vary by tier: Free users get ~30 second videos (5 clips = 50 credits), Pro gets 1-minute videos (10 clips = 100 credits), Growth gets 2-minute videos (20 clips = 200 credits), and Agency gets 3-minute videos (30 clips = 300 credits). Voice narration and automatic retries are included at no extra cost."
+    answer: "Credits are our usage currency. Each video clip (~5 seconds) costs 10 credits. Video lengths vary by tier: Free users get ~25 second videos (5 clips = 50 credits), Pro gets ~50 second videos (10 clips = 100 credits), Growth gets ~100 second videos (20 clips = 200 credits), and Agency gets ~150 second videos (30 clips = 300 credits). Voice narration and automatic retries are included at no extra cost."
   },
   {
     question: "What video quality can I expect?",
@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     question: "How long does video generation take?",
-    answer: "A 4-second video clip typically generates in about 45 seconds. Full video projects with multiple clips, voice, and music usually complete in 3-5 minutes depending on length and complexity."
+    answer: "A 5-second video clip typically generates in about 30 seconds. Full video projects with multiple clips, voice, and music usually complete in 3-5 minutes depending on length and complexity."
   },
   {
     question: "What is Character Lock?",

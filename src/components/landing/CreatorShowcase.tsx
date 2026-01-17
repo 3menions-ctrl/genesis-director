@@ -11,6 +11,10 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
+// Thumbnail URLs from storage (preloaded static images)
+const getThumbnailUrl = (videoId: string) => 
+  `https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-thumbnails/${videoId}.jpg`;
+
 // Sample videos generated with Apex Studio
 const CREATOR_VIDEOS = [
   {
@@ -90,58 +94,9 @@ const CREATOR_VIDEOS = [
     genre: 'Creative',
     featured: false,
   },
-];
+].map(v => ({ ...v, thumbnail: getThumbnailUrl(v.id) }));
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
-
-// Component that shows a video frame as thumbnail using video element
-const VideoThumbnail = ({ 
-  videoUrl, 
-  alt, 
-  className 
-}: { 
-  videoUrl: string; 
-  alt: string; 
-  className?: string;
-}) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleLoadedMetadata = () => {
-      video.currentTime = 1; // Seek to 1 second
-    };
-
-    const handleSeeked = () => {
-      setIsReady(true);
-    };
-
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('seeked', handleSeeked);
-
-    return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('seeked', handleSeeked);
-    };
-  }, []);
-
-  return (
-    <>
-      {!isReady && <div className={cn("bg-muted animate-pulse", className)} />}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        muted
-        playsInline
-        preload="metadata"
-        className={cn(className, isReady ? "opacity-100" : "opacity-0")}
-      />
-    </>
-  );
-};
 
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
@@ -186,10 +141,11 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Video thumbnail - shows first frame */}
-      <VideoThumbnail
-        videoUrl={video.url}
+      {/* Preloaded thumbnail image from storage */}
+      <img
+        src={video.thumbnail}
         alt={video.title}
+        loading="lazy"
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
           isHovering ? "scale-105" : "scale-100"
@@ -621,7 +577,7 @@ export default function CreatorShowcase() {
                         : "opacity-50 hover:opacity-80 hover:scale-105"
                     )}
                   >
-                    <VideoThumbnail videoUrl={video.url} alt={video.title} className="w-full h-full object-cover" />
+                    <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

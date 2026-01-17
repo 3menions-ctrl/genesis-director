@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  Download, Loader2, Zap, Clock, Sparkles,
+  Download, Loader2, Zap, Clock, Sparkles, ArrowRight,
   Pencil, Star, TrendingUp, Grid3X3, LayoutGrid, ChevronRight,
   Eye, Heart, Share2, RefreshCw, AlertCircle, Layers,
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
@@ -202,12 +202,12 @@ function HeroHeader({
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mb-10 py-8 sm:py-12"
+      className="relative mb-10"
     >
       {/* Cinematic spotlight effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-white/[0.03] to-transparent rounded-full blur-3xl"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-primary/[0.03] to-transparent rounded-full blur-3xl"
           animate={{ 
             opacity: [0.3, 0.5, 0.3],
             scale: [1, 1.1, 1]
@@ -216,7 +216,56 @@ function HeroHeader({
         />
       </div>
 
-      <div className="relative">
+      <div className="relative py-8 sm:py-12">
+        {/* Title Section */}
+        <div className="text-center mb-10">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/10 mb-6"
+          >
+            <Film className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">Your Creative Studio</span>
+          </motion.div>
+          
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
+          >
+            <span className="hero-text">Your </span>
+            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+              Projects
+            </span>
+          </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
+          >
+            Manage, organize, and bring your video creations to life
+          </motion.p>
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.25 }}
+          >
+            <Button 
+              onClick={onCreateClick}
+              size="lg"
+              className="h-12 px-8 rounded-full shadow-obsidian font-semibold text-base gap-2 group"
+            >
+              <Plus className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
+              Create New Video
+              <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+            </Button>
+          </motion.div>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">
@@ -1119,17 +1168,45 @@ export default function Projects() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Ambient background - matches landing page */}
+      {/* Premium ambient background with multiple layers */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-foreground/[0.02] to-transparent blur-[150px]" />
-        <div className="absolute bottom-[-40%] right-[-20%] w-[90vw] h-[90vw] rounded-full bg-gradient-to-tl from-foreground/[0.015] to-transparent blur-[180px]" />
+        {/* Primary gradient orb */}
+        <motion.div 
+          className="absolute top-[-20%] left-[10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-primary/[0.03] via-primary/[0.015] to-transparent blur-[120px]"
+          animate={{ 
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Secondary gradient orb */}
+        <motion.div 
+          className="absolute bottom-[-30%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-tl from-accent/[0.02] via-accent/[0.01] to-transparent blur-[150px]"
+          animate={{ 
+            x: [0, -30, 0],
+            y: [0, -40, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Subtle grid pattern overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: 'linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }}
+        />
+        {/* Top vignette */}
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-background to-transparent" />
       </div>
 
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-24">
         
         {/* Loading state */}
         {(isLoadingProjects && !hasLoadedOnce) ? (

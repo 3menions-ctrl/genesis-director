@@ -134,13 +134,13 @@ serve(async (req) => {
     console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
 
     // Use passed targetDurationSeconds to determine exact clip count
-    // This ensures consistency with user's selection
-    const CLIP_DURATION = 6;
+    // Kling 2.6: 5-second clips for optimal quality
+    const CLIP_DURATION = 5;
     const requestedClips = Math.round(request.targetDurationSeconds / CLIP_DURATION);
     // Only use detected content recommendation if no explicit duration was passed
     const recommendedClips = requestedClips > 0 ? requestedClips : detectedContent.recommendedClipCount;
     const targetSeconds = recommendedClips * CLIP_DURATION;
-    console.log(`[SmartScript] Using ${recommendedClips} clips (requested: ${requestedClips}, detected: ${detectedContent.recommendedClipCount})`);
+    console.log(`[SmartScript] Using ${recommendedClips} clips @ ${CLIP_DURATION}s each (Kling 2.6)`);
     
     // VOICE CONTROL: If includeVoice is explicitly false, NEVER include dialogue or narration
     const voiceDisabled = request.includeVoice === false;
@@ -214,11 +214,11 @@ OUTPUT FORMAT (STRICT JSON):
       "index": 0,
       "title": "Clip title",
       "description": "Detailed visual description for AI video generation${voiceDisabled ? ' - NO dialogue or speech' : ''}",
-      "durationSeconds": 6,
+      "durationSeconds": 5,
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "What happened in previous clip (empty for clip 0)",
-      "currentAction": "What happens in this exact 6-second moment",
-      "nextAction": "What will happen in next clip (empty for clip 5)",
+      "currentAction": "What happens in this exact 5-second moment",
+      "nextAction": "What will happen in next clip (empty for last clip)",
       "characterDescription": "EXACT character description - SAME in all clips",
       "locationDescription": "EXACT location description - SAME in all clips",
       "lightingDescription": "EXACT lighting description - SAME in all clips",
@@ -323,7 +323,7 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 
 REQUIREMENTS:
 - Extract the ${recommendedClips} sequential moments from this scene
-- Each clip = 6 seconds of the continuous action
+- Each clip = 5 seconds of the continuous action (Kling 2.6)
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 ${request.environmentPrompt ? '- MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription' : ''}
@@ -374,7 +374,7 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
-Create ONE continuous scene with ${recommendedClips} progressive clips. Each clip = 6 seconds.
+Create ONE continuous scene with ${recommendedClips} progressive clips. Each clip = 5 seconds (Kling 2.6).
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.

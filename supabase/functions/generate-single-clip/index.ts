@@ -4932,8 +4932,8 @@ serve(async (req) => {
       console.log(`[SingleClip] Skipping continuity manifest extraction - no frame available`);
     }
     
-    // IMPORTANT: Use 6-second duration as the standard for all clips
-    const clipDurationSeconds = 6;
+    // Kling 2.6: Use 5-second duration as the standard for all clips
+    const clipDurationSeconds = 5;
     
     // =====================================================
     // BULLETPROOF FRAME PERSISTENCE: Critical for continuity chain

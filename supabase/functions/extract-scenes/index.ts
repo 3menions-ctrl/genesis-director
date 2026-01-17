@@ -154,7 +154,7 @@ For each scene type, use appropriate camera:
 
 CRITICAL REQUIREMENTS:
 1. SHOT COUNT: ${targetShotCount ? `Generate EXACTLY ${targetShotCount} shots as specified.` : 'MINIMUM 6 SHOTS - Never less. More if story requires (up to 30).'}
-2. SHOT DURATION: 4-8 seconds. Default 6 for cinematic flow.
+2. SHOT DURATION: 5 or 10 seconds (Kling 2.6). Default 5 for cinematic flow.
 3. NEVER repeat same cameraScale + cameraAngle + movementType consecutively.
 4. Use ADVANCED angles (dutch, worms-eye, arc, vertigo) at least 2x per project.
 5. Match camera choices to scene emotional content.
@@ -165,7 +165,7 @@ For each shot, provide:
 - title: Brief moment title
 - description: VISUAL description with camera perspective woven in naturally
 - dialogue: Any narration (empty string if none)
-- durationSeconds: 6 seconds (fixed)
+- durationSeconds: 5 seconds (Kling 2.6 standard)
 - mood: Emotional tone
 - sceneType: establishing|action|reaction|detail|climax|resolution|dialogue|chase|reveal|emotional
 - cameraScale: REQUIRED from list above
@@ -272,8 +272,8 @@ ${targetShotCount ? `EXACTLY ${targetShotCount} SHOTS` : 'MINIMUM 6 SHOTS'} with
       }
     }
 
-    // Normalize the response to ensure correct format with FIXED 6-second units
-    const FIXED_SHOT_DURATION = 6; // Fixed 6-second units for cinematic quality
+    // Normalize the response to ensure correct format with Kling 2.6 5-second units
+    const FIXED_SHOT_DURATION = 5; // Kling 2.6: 5-second clips
     // MINIMUM_SHOTS already defined above based on template or default
     
     // Camera scale progression for intelligent defaults
@@ -291,7 +291,7 @@ ${targetShotCount ? `EXACTLY ${targetShotCount} SHOTS` : 'MINIMUM 6 SHOTS'} with
         title: scene.title || `Shot ${index + 1}`,
         description: scene.description || scene.visualDescription || '',
         dialogue: scene.dialogue || scene.scriptText || '',
-        durationSeconds: FIXED_SHOT_DURATION, // Always 6 seconds
+        durationSeconds: FIXED_SHOT_DURATION, // 5 seconds (Kling 2.6)
         mood: scene.mood || 'neutral',
         cameraMovement: scene.cameraMovement || 'steady',
         // SMART CAMERA PROPERTIES

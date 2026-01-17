@@ -93,7 +93,7 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// ============= COMPACT STAT CARD COMPONENT =============
+// ============= PREMIUM STAT CARD COMPONENT =============
 
 function StatCard({ 
   icon: Icon, 
@@ -105,25 +105,34 @@ function StatCard({
   icon: React.ElementType;
   label: string;
   value: string | number;
-  color?: 'default' | 'amber' | 'emerald' | 'blue';
+  color?: 'default' | 'amber' | 'emerald' | 'blue' | 'purple';
   delay?: number;
 }) {
   const colorConfig = {
     default: { 
       icon: 'text-foreground/70',
-      text: 'text-foreground'
+      text: 'text-foreground',
+      glow: 'from-foreground/10 to-foreground/5'
     },
     amber: { 
       icon: 'text-amber-400',
-      text: 'text-amber-400'
+      text: 'text-amber-400',
+      glow: 'from-amber-500/20 to-amber-500/5'
     },
     emerald: { 
       icon: 'text-emerald-400',
-      text: 'text-emerald-400'
+      text: 'text-emerald-400',
+      glow: 'from-emerald-500/20 to-emerald-500/5'
     },
     blue: { 
       icon: 'text-blue-400',
-      text: 'text-blue-400'
+      text: 'text-blue-400',
+      glow: 'from-blue-500/20 to-blue-500/5'
+    },
+    purple: { 
+      icon: 'text-purple-400',
+      text: 'text-purple-400',
+      glow: 'from-purple-500/20 to-purple-500/5'
     },
   };
 
@@ -131,19 +140,35 @@ function StatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="flex items-center gap-2"
+      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.05 }}
+      className="relative group flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-xl"
     >
-      <Icon className={cn("w-4 h-4", config.icon)} />
-      <span className={cn("text-sm font-semibold", config.text)}>{value}</span>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      {/* Glow effect on hover */}
+      <div className={cn(
+        "absolute inset-0 rounded-xl bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl",
+        config.glow
+      )} />
+      
+      <div className="relative flex items-center gap-2">
+        <div className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center",
+          "bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40"
+        )}>
+          <Icon className={cn("w-4 h-4", config.icon)} />
+        </div>
+        <div className="flex flex-col">
+          <span className={cn("text-lg font-bold leading-none", config.text)}>{value}</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+        </div>
+      </div>
     </motion.div>
   );
 }
 
-// ============= MINIMAL HEADER COMPONENT =============
+// ============= PREMIUM HERO HEADER COMPONENT =============
 
 function HeroHeader({ 
   stats, 
@@ -154,30 +179,62 @@ function HeroHeader({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="relative mb-8"
     >
-      {/* Stats Row - Compact */}
-      <div className="flex items-center gap-6 px-4 py-2.5 rounded-xl bg-muted/20 border border-border/30">
-        <StatCard icon={FolderOpen} label="total" value={stats.total} color="default" delay={0} />
-        <div className="w-px h-4 bg-border/50" />
-        <StatCard icon={Check} label="ready" value={stats.completed} color="emerald" delay={0.05} />
-        <div className="w-px h-4 bg-border/50" />
-        <StatCard icon={Activity} label="processing" value={stats.processing} color="amber" delay={0.1} />
-        <div className="w-px h-4 bg-border/50" />
-        <StatCard icon={Film} label="clips" value={stats.totalClips} color="blue" delay={0.15} />
+      {/* Premium glass container */}
+      <div className="relative p-6 rounded-3xl bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 border border-border/40 backdrop-blur-2xl overflow-hidden">
+        {/* Subtle inner glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        
+        {/* Content */}
+        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          {/* Title & Description */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight hero-text mb-1">
+              Your Projects
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Manage and watch your AI-generated videos
+            </p>
+          </motion.div>
+
+          {/* Stats Row - Premium Floating Cards */}
+          <div className="flex flex-wrap items-center gap-3">
+            <StatCard icon={FolderOpen} label="Total" value={stats.total} color="purple" delay={0} />
+            <StatCard icon={Check} label="Ready" value={stats.completed} color="emerald" delay={0.05} />
+            <StatCard icon={Activity} label="Active" value={stats.processing} color="amber" delay={0.1} />
+            <StatCard icon={Film} label="Clips" value={stats.totalClips} color="blue" delay={0.15} />
+          </div>
+          
+          {/* Create Button - Premium Style */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <Button 
+              onClick={onCreateClick}
+              className="relative h-12 px-6 rounded-2xl font-semibold gap-2 group overflow-hidden shadow-lg"
+            >
+              {/* Shimmer effect */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+              />
+              <Plus className="relative w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
+              <span className="relative">New Project</span>
+            </Button>
+          </motion.div>
+        </div>
       </div>
-      
-      {/* Create Button */}
-      <Button 
-        onClick={onCreateClick}
-        className="h-10 px-5 rounded-xl font-medium gap-2 group"
-      >
-        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
-        New Project
-      </Button>
     </motion.div>
   );
 }
@@ -1092,21 +1149,52 @@ export default function Projects() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background)/0.97)] relative overflow-x-hidden">
-      {/* Darker, subtle ambient background */}
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Premium Animated Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Dark overlay for less brightness */}
-        <div className="absolute inset-0 bg-background/40" />
-        {/* Very subtle primary gradient orb */}
+        {/* Base overlay */}
+        <div className="absolute inset-0 bg-background/60" />
+        
+        {/* Animated gradient orbs */}
         <motion.div 
-          className="absolute top-[-20%] left-[10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-primary/[0.015] to-transparent blur-[150px]"
+          className="absolute top-[-30%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-purple-500/[0.08] via-primary/[0.05] to-transparent blur-[120px]"
           animate={{ 
-            scale: [1, 1.05, 1],
+            scale: [1, 1.1, 1],
+            x: [0, 30, 0],
+            y: [0, -20, 0],
           }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
         />
+        <motion.div 
+          className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-emerald-500/[0.06] via-blue-500/[0.04] to-transparent blur-[100px]"
+          animate={{ 
+            scale: [1, 1.15, 1],
+            x: [0, -40, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+        />
+        <motion.div 
+          className="absolute top-[40%] left-[50%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-br from-amber-500/[0.04] to-transparent blur-[80px]"
+          animate={{ 
+            scale: [1, 1.2, 1],
+            x: [-100, 100, -100],
+          }}
+          transition={{ duration: 35, repeat: Infinity, ease: "easeInOut", delay: 10 }}
+        />
+        
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
+                              linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }}
+        />
+        
         {/* Edge vignette for depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_80%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_75%)]" />
       </div>
 
       {/* Navigation */}
@@ -1270,34 +1358,38 @@ export default function Projects() {
             {/* Cinematic Hero Header with Stats */}
             <HeroHeader stats={stats} onCreateClick={handleCreateProject} />
 
-            {/* Modern Search & Filter Toolbar */}
+            {/* Premium Search & Filter Toolbar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
               className="mb-8"
             >
-              <div className="glass-card rounded-2xl border border-border/50 p-4">
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
-                  {/* Search Bar */}
-                  <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <div className="relative p-5 rounded-2xl bg-gradient-to-br from-muted/40 via-muted/30 to-muted/20 border border-border/40 backdrop-blur-2xl overflow-hidden">
+                {/* Subtle inner highlight */}
+                <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-transparent pointer-events-none" />
+                
+                <div className="relative flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+                  {/* Search Bar - Premium */}
+                  <div className="relative flex-1 group">
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       id="project-search"
                       placeholder="Search your projects..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-12 pl-12 pr-12 bg-muted/30 border-0 text-foreground placeholder:text-muted-foreground rounded-xl focus:ring-2 focus:ring-primary/20 text-base"
+                      className="relative h-12 pl-12 pr-12 bg-muted/40 border border-border/30 text-foreground placeholder:text-muted-foreground rounded-xl focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-base backdrop-blur-xl transition-all"
                     />
                     {searchQuery ? (
                       <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     ) : (
-                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">/</kbd>
+                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg border border-border/40">/</kbd>
                     )}
                   </div>
 
@@ -1498,13 +1590,23 @@ export default function Projects() {
                 </div>
               ) : (
                 <>
-                  {/* Pinned Projects Section */}
+                  {/* Pinned Projects Section - Premium */}
                   {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
-                    <section className="p-5 rounded-2xl bg-amber-500/[0.03] border border-amber-500/10 backdrop-blur-sm">
-                      <div className="flex items-center gap-3 mb-5">
-                        <Pin className="w-4 h-4 text-amber-400" />
-                        <h2 className="text-sm font-semibold text-foreground">Pinned</h2>
-                        <Badge variant="outline" className="ml-auto text-xs text-amber-400 border-amber-500/30">
+                    <motion.section 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="relative p-6 rounded-3xl bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent border border-amber-500/20 backdrop-blur-2xl overflow-hidden"
+                    >
+                      {/* Subtle glow */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                      
+                      <div className="relative flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
+                          <Pin className="w-4 h-4 text-black" />
+                        </div>
+                        <h2 className="text-base font-semibold text-foreground">Pinned Projects</h2>
+                        <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).length}
                         </Badge>
                       </div>
@@ -1553,21 +1655,29 @@ export default function Projects() {
                           ))}
                         </div>
                       )}
-                    </section>
+                    </motion.section>
                   )}
 
-                  {/* Genre-based Project Sections */}
-                  {groupedProjects.sortedGenres.map((genre) => {
+                  {/* Genre-based Project Sections - Premium */}
+                  {groupedProjects.sortedGenres.map((genre, genreIndex) => {
                     const genreProjects = groupedProjects.groups[genre];
                     const config = GENRE_CONFIG[genre] || { label: genre.charAt(0).toUpperCase() + genre.slice(1), icon: Film, color: 'text-primary' };
                     const GenreIcon = config.icon;
                     
                     return (
-                      <section key={genre} className="p-5 rounded-2xl bg-muted/[0.03] border border-border/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-3 mb-5">
-                          <GenreIcon className={cn("w-4 h-4", config.color)} />
-                          <h2 className="text-sm font-semibold text-foreground">{config.label}</h2>
-                          <Badge variant="outline" className="ml-auto text-xs">
+                      <motion.section 
+                        key={genre} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 + genreIndex * 0.05 }}
+                        className="relative p-6 rounded-3xl bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border border-border/30 backdrop-blur-2xl overflow-hidden"
+                      >
+                        <div className="relative flex items-center gap-3 mb-6">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border border-border/40 bg-gradient-to-br from-muted/80 to-muted/40">
+                            <GenreIcon className={cn("w-4 h-4", config.color)} />
+                          </div>
+                          <h2 className="text-base font-semibold text-foreground">{config.label}</h2>
+                          <Badge variant="outline" className="ml-auto text-xs border-border/40 bg-muted/30">
                             {genreProjects.length}
                           </Badge>
                         </div>
@@ -1616,7 +1726,7 @@ export default function Projects() {
                             ))}
                           </div>
                         )}
-                      </section>
+                      </motion.section>
                     );
                   })}
                 </>

@@ -11,11 +11,20 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
-// Thumbnail URLs from storage (preloaded static images)
-const getThumbnailUrl = (videoId: string) => 
-  `https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/video-thumbnails/${videoId}.jpg`;
+// Import local thumbnail images for instant loading
+import illuminatedDreams from '@/assets/thumbnails/illuminated-dreams.jpg';
+import wildHunt from '@/assets/thumbnails/wild-hunt.jpg';
+import sunsetDreams from '@/assets/thumbnails/sunset-dreams.jpg';
+import riverWhispers from '@/assets/thumbnails/river-whispers.jpg';
+import snowyCabin from '@/assets/thumbnails/snowy-cabin.jpg';
+import verdantGrove from '@/assets/thumbnails/verdant-grove.jpg';
+import snowySerenity from '@/assets/thumbnails/snowy-serenity.jpg';
+import chocolateAdventures from '@/assets/thumbnails/chocolate-adventures.jpg';
+import ruinedValor from '@/assets/thumbnails/ruined-valor.jpg';
+import fieryMajesty from '@/assets/thumbnails/fiery-majesty.jpg';
+import owlWisdom from '@/assets/thumbnails/owl-wisdom.jpg';
 
-// Sample videos generated with Apex Studio
+// Sample videos generated with Apex Studio - using local thumbnails for fast loading
 const CREATOR_VIDEOS = [
   {
     id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
@@ -23,6 +32,7 @@ const CREATOR_VIDEOS = [
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
     featured: true,
+    thumbnail: illuminatedDreams,
   },
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
@@ -30,6 +40,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
     featured: true,
+    thumbnail: wildHunt,
   },
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
@@ -37,6 +48,7 @@ const CREATOR_VIDEOS = [
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
     featured: false,
+    thumbnail: sunsetDreams,
   },
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
@@ -44,6 +56,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers by the River',
     genre: 'Nature',
     featured: false,
+    thumbnail: riverWhispers,
   },
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
@@ -51,6 +64,7 @@ const CREATOR_VIDEOS = [
     title: 'Snowy Cabin Retreat',
     genre: 'Nature',
     featured: false,
+    thumbnail: snowyCabin,
   },
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
@@ -58,6 +72,7 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Verdant Grove',
     genre: 'Nature',
     featured: false,
+    thumbnail: verdantGrove,
   },
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
@@ -65,6 +80,7 @@ const CREATOR_VIDEOS = [
     title: 'Soaring Above Snowy Serenity',
     genre: 'Aerial',
     featured: true,
+    thumbnail: snowySerenity,
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
@@ -72,6 +88,7 @@ const CREATOR_VIDEOS = [
     title: 'Whimsical Chocolate Adventures',
     genre: 'Creative',
     featured: false,
+    thumbnail: chocolateAdventures,
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
@@ -79,6 +96,7 @@ const CREATOR_VIDEOS = [
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
     featured: false,
+    thumbnail: ruinedValor,
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
@@ -86,6 +104,7 @@ const CREATOR_VIDEOS = [
     title: 'Skyward Over Fiery Majesty',
     genre: 'Aerial',
     featured: false,
+    thumbnail: fieryMajesty,
   },
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
@@ -93,8 +112,9 @@ const CREATOR_VIDEOS = [
     title: "Owl of Wisdom's Twilight",
     genre: 'Creative',
     featured: false,
+    thumbnail: owlWisdom,
   },
-].map(v => ({ ...v, thumbnail: getThumbnailUrl(v.id) }));
+];
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
 
@@ -141,31 +161,19 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Preloaded thumbnail image from storage */}
+      {/* Local thumbnail image - loads instantly from bundle */}
       <img
         src={video.thumbnail}
         alt={video.title}
-        loading="lazy"
+        loading="eager"
+        decoding="async"
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isHovering ? "scale-105" : "scale-100"
+          isHovering ? "scale-105 opacity-0" : "scale-100 opacity-100"
         )}
       />
 
-      {/* Video element - only plays on hover */}
-      {isHovering && (
-        <video
-          ref={videoRef}
-          src={video.url}
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-          muted
-          loop
-          playsInline
-          autoPlay
-        />
-      )}
-
-      {/* Video element - only plays on hover */}
+      {/* Video element - only loads and plays on hover */}
       {isHovering && (
         <video
           ref={videoRef}

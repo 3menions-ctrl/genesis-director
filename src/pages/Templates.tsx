@@ -205,8 +205,8 @@ const MasonryCard = forwardRef<HTMLDivElement, MasonryCardProps>(({
               src={template.thumbnail_url} 
               alt={template.name}
               className={cn(
-                "w-full h-full object-cover transition-all duration-700 grayscale",
-                showContent ? "scale-110 blur-sm grayscale-0" : "scale-100"
+                "w-full h-full object-cover transition-all duration-700",
+                showContent ? "scale-110 blur-sm" : "scale-100"
               )}
             />
             <div className={cn(

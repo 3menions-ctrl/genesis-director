@@ -5,11 +5,17 @@ import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
   Video, Image,
-  Brain
+  Brain,
+  Play,
+  Sparkles,
+  Zap,
+  Lock,
+  Mic
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { lazy, Suspense } from 'react';
+import { motion } from 'framer-motion';
 
 // Lazy load heavy components
 const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
@@ -24,11 +30,11 @@ const ContactSection = lazy(() => import('@/components/landing/ContactSection'))
 const Footer = lazy(() => import('@/components/landing/Footer'));
 
 const CAPABILITIES = [
-  'Text to Video',
-  'Image to Video', 
-  'AI Script Writer',
-  'Voice Synthesis',
-  'Character Lock',
+  { label: 'Text to Video', icon: Video },
+  { label: 'Image to Video', icon: Image }, 
+  { label: 'AI Script Writer', icon: Brain },
+  { label: 'Voice Synthesis', icon: Mic },
+  { label: 'Character Lock', icon: Lock },
 ];
 
 // Section loading placeholder
@@ -67,13 +73,13 @@ export default function Landing() {
     <div className="min-h-screen min-h-[100dvh] bg-background overflow-hidden relative">
       {/* Premium Video Background - Lazy loaded */}
       <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
-        <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.88} />
+        <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.92} />
       </Suspense>
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-4 lg:px-8 py-4 safe-area-inset-top">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 rounded-2xl nav-glass">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 rounded-full nav-glass border border-white/20">
             <div className="flex items-center gap-4 sm:gap-10">
               <div className="flex items-center gap-2.5">
                 <div className="relative">
@@ -112,13 +118,13 @@ export default function Landing() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}
-                className="h-9 sm:h-10 px-3 sm:px-5 text-xs sm:text-sm font-medium rounded-xl"
+                className="h-9 sm:h-10 px-3 sm:px-5 text-xs sm:text-sm font-medium rounded-full"
               >
                 Sign in
               </Button>
               <Button
                 onClick={() => navigate('/auth')}
-                className="h-9 sm:h-10 px-4 sm:px-6 text-xs sm:text-sm font-semibold rounded-xl shadow-obsidian"
+                className="h-9 sm:h-10 px-4 sm:px-6 text-xs sm:text-sm font-semibold rounded-full shadow-obsidian"
               >
                 <span className="hidden sm:inline">Get Started</span>
                 <span className="sm:hidden">Start</span>
@@ -129,125 +135,196 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative z-10 px-4 lg:px-8 pt-28 sm:pt-32 lg:pt-48 pb-16 sm:pb-32">
+      {/* Hero Section - Reimagined */}
+      <section className="relative z-10 px-4 lg:px-8 pt-32 sm:pt-40 lg:pt-48 pb-16 sm:pb-24">
         <div className="max-w-7xl mx-auto">
-
-          {/* Main headline */}
-          <div className="text-center max-w-5xl mx-auto mb-8 sm:mb-10">
-            {/* Quality Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6 border border-emerald-500/30 bg-emerald-500/10">
+          {/* Floating badge */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex justify-center mb-8"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium text-emerald-400">Automatic Retry System Included</span>
+              <span className="text-sm font-medium text-emerald-600">Automatic Retry System Active</span>
             </div>
-            
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[6.5rem] font-bold tracking-tighter leading-[0.95] mb-6 sm:mb-8">
-              <span className="block hero-text">AI Video Generation.</span>
-              <span className="block mt-2 hero-text">
-                Simple and Fast.
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl hero-text-secondary max-w-2xl mx-auto leading-relaxed font-light px-4">
-              Create videos from text or images. Automatic retries help ensure quality.
-            </p>
-          </div>
+          </motion.div>
 
-          {/* CTA buttons */}
-          <div className="flex items-center justify-center mb-10 sm:mb-16 px-4">
+          {/* Main headline - Larger, bolder */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="text-center max-w-5xl mx-auto mb-10"
+          >
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.9] mb-6">
+              <span className="block hero-text">AI Video</span>
+              <span className="block hero-text bg-clip-text">Generation.</span>
+            </h1>
+            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Create stunning videos from text or images in minutes.
+            </p>
+          </motion.div>
+
+          {/* CTA buttons - Centered, prominent */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+          >
             <Button
               onClick={() => navigate('/auth')}
               size="lg"
-              className="group h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
+              className="group h-14 px-8 text-base font-semibold rounded-full shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
             >
-              Start creating for free
-              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <Play className="w-5 h-5 mr-2 fill-current" />
+              Start Creating Free
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-          </div>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setShowExamples(true)}
+              className="h-14 px-8 text-base font-medium rounded-full border-foreground/20 hover:bg-foreground/5"
+            >
+              View Examples
+            </Button>
+          </motion.div>
 
           {/* Examples Gallery Modal - Lazy loaded */}
           <Suspense fallback={null}>
             <ExamplesGallery open={showExamples} onOpenChange={setShowExamples} />
           </Suspense>
 
-          {/* Capabilities */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-16 sm:mb-24 px-4">
-            {CAPABILITIES.map((cap, i) => (
-              <div
-                key={cap}
-                className={cn(
-                  "relative px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-500 cursor-pointer",
-                  activeCapability === i 
-                    ? "bg-glossy-black text-white shadow-obsidian scale-105" 
-                    : "glass-card text-muted-foreground hover:text-foreground border-transparent hover:scale-105"
-                )}
-                onClick={() => setActiveCapability(i)}
-              >
-                {activeCapability === i && (
-                  <div className="absolute inset-0 rounded-full bg-foreground/10 blur-xl" />
-                )}
-                <span className="relative">{cap}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Feature Showcase Cards */}
-          <div className="relative max-w-6xl mx-auto px-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.02] to-transparent blur-[60px]" />
-            
-            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Main feature - Text to Video */}
-              <div className="md:col-span-2 group relative p-6 sm:p-8 lg:p-10 rounded-3xl bg-black/60 backdrop-blur-xl text-white shadow-obsidian-xl hover:shadow-obsidian-xl transition-all hover:-translate-y-1 overflow-hidden border border-white/10">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.1] via-transparent to-transparent pointer-events-none" />
-                <div className="absolute top-0 right-0 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] bg-white/[0.05] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+          {/* BENTO GRID - Modern Feature Cards */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="max-w-6xl mx-auto"
+          >
+            <div className="grid grid-cols-12 gap-4 auto-rows-[140px] sm:auto-rows-[160px]">
+              
+              {/* Hero Card - Text to Video (Large) */}
+              <div className="col-span-12 md:col-span-8 row-span-2 group relative rounded-3xl bg-glossy-black p-6 sm:p-8 overflow-hidden border border-white/10 shadow-obsidian-xl hover:shadow-2xl transition-all hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 
-                <div className="relative">
-                  <div className="w-12 sm:w-14 h-12 sm:h-14 mb-4 sm:mb-6 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                    <Video className="w-6 sm:w-7 h-6 sm:h-7 text-white" />
+                <div className="relative h-full flex flex-col justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 mb-4">
+                      <Sparkles className="w-3.5 h-3.5 text-white/70" />
+                      <span className="text-xs font-medium text-white/70">Featured</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3">Text-to-Video</h3>
+                    <p className="text-base sm:text-lg text-white/50 max-w-md leading-relaxed">
+                      Describe any scene and watch AI bring your vision to life with cinematic quality.
+                    </p>
                   </div>
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3">Text-to-Video</h3>
-                  <p className="text-base sm:text-lg text-white/60 max-w-md leading-relaxed">
-                    Describe a scene and our AI generates video content from your text description.
-                  </p>
                   
-                  <div className="mt-6 sm:mt-8 flex items-center gap-3 text-white/40">
-                    <div className="flex gap-1">
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse" />
                       <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: '200ms' }} />
                       <span className="w-2 h-2 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: '400ms' }} />
                     </div>
-                    <span className="text-xs sm:text-sm font-medium">Generating your vision...</span>
+                    <span className="text-sm text-white/40">Generating...</span>
+                  </div>
+                </div>
+                
+                {/* Icon */}
+                <div className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity">
+                  <Video className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                </div>
+              </div>
+
+              {/* Image to Video - Transparent Card (Medium) */}
+              <div className="col-span-6 md:col-span-4 row-span-2 group relative rounded-3xl p-5 sm:p-6 overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 hover:bg-white/50 transition-all hover:-translate-y-1 shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative h-full flex flex-col">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-foreground text-background flex items-center justify-center shadow-lg mb-4 group-hover:scale-110 transition-transform">
+                    <Image className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+                  <h4 className="text-lg sm:text-xl font-bold text-foreground mb-2">Image-to-Video</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">Animate any static image with AI-powered motion.</p>
+                  <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Instant animation</span>
                   </div>
                 </div>
               </div>
 
-              {/* Side features */}
-              <div className="flex flex-row md:flex-col gap-4">
-                {/* Image to Video */}
-                <div className="group relative flex-1 p-4 sm:p-6 rounded-2xl glass-card hover:border-foreground/10 transition-all hover:-translate-y-1 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative">
-                    <div className="w-10 sm:w-12 h-10 sm:h-12 mb-3 sm:mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <Image className="w-5 sm:w-6 h-5 sm:h-6" />
-                    </div>
-                    <h4 className="text-base sm:text-lg font-semibold hero-text mb-1 sm:mb-2">Image-to-Video</h4>
-                    <p className="text-xs sm:text-sm hero-text-secondary">Animate any image</p>
+              {/* AI Script - Compact Card */}
+              <div className="col-span-6 md:col-span-4 row-span-1 group relative rounded-2xl p-4 sm:p-5 overflow-hidden bg-foreground text-background shadow-obsidian hover:-translate-y-1 transition-all">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.1] to-transparent pointer-events-none" />
+                <div className="relative flex items-center gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                </div>
-
-                {/* AI Script */}
-                <div className="group relative flex-1 p-4 sm:p-6 rounded-2xl glass-card hover:border-foreground/10 transition-all hover:-translate-y-1 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative">
-                    <div className="w-10 sm:w-12 h-10 sm:h-12 mb-3 sm:mb-4 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <Brain className="w-5 sm:w-6 h-5 sm:h-6" />
-                    </div>
-                    <h4 className="text-base sm:text-lg font-semibold hero-text mb-1 sm:mb-2">AI Script Writer</h4>
-                    <p className="text-xs sm:text-sm hero-text-secondary">Generate narratives</p>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold">AI Script Writer</h4>
+                    <p className="text-xs sm:text-sm text-white/60">Generate narratives instantly</p>
                   </div>
                 </div>
               </div>
+
+              {/* Voice Synthesis - Compact Transparent */}
+              <div className="col-span-6 md:col-span-4 row-span-1 group relative rounded-2xl p-4 sm:p-5 overflow-hidden bg-white/30 backdrop-blur-md border border-white/50 hover:bg-white/40 transition-all hover:-translate-y-1">
+                <div className="relative flex items-center gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-foreground/10 flex items-center justify-center shrink-0">
+                    <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-foreground">Voice Synthesis</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">AI-powered narration</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Character Lock - Small */}
+              <div className="col-span-6 md:col-span-4 row-span-1 group relative rounded-2xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-muted/80 to-muted/40 backdrop-blur-sm border border-foreground/5 hover:border-foreground/10 transition-all hover:-translate-y-1">
+                <div className="relative flex items-center gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-foreground text-background flex items-center justify-center shrink-0 shadow-lg">
+                    <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-foreground">Character Lock</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Consistent characters</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
-          </div>
+          </motion.div>
+
+          {/* Animated Capabilities Pills */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-12"
+          >
+            {CAPABILITIES.map((cap, i) => {
+              const Icon = cap.icon;
+              return (
+                <div
+                  key={cap.label}
+                  className={cn(
+                    "relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
+                    activeCapability === i 
+                      ? "bg-foreground text-background shadow-obsidian scale-105" 
+                      : "bg-white/50 backdrop-blur-sm text-muted-foreground hover:text-foreground border border-white/60 hover:scale-105"
+                  )}
+                  onClick={() => setActiveCapability(i)}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{cap.label}</span>
+                </div>
+              );
+            })}
+          </motion.div>
         </div>
       </section>
 
@@ -270,29 +347,43 @@ export default function Landing() {
       </Suspense>
 
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-16 sm:py-24 px-4 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="relative p-8 sm:p-12 lg:p-16 text-center rounded-3xl bg-glossy-black shadow-obsidian-xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent pointer-events-none" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[200px] sm:h-[300px] bg-white/[0.03] rounded-full blur-[100px] pointer-events-none" />
+      {/* CTA Section - Refined */}
+      <section className="relative z-10 py-20 sm:py-28 px-4 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative rounded-[2rem] overflow-hidden">
+            {/* Gradient background */}
+            <div className="absolute inset-0 bg-glossy-black" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-white/[0.04] rounded-full blur-[100px]" />
             
-            <div className="relative">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-                Ready to try it?
-              </h2>
-              <p className="text-base sm:text-lg text-white/60 mb-6 sm:mb-8 max-w-xl mx-auto px-4">
-                Start with 60 free credits — enough for 1 clip
-              </p>
-              <Button
-                onClick={() => navigate('/auth')}
-                size="lg"
-                variant="secondary"
-                className="h-12 sm:h-14 px-8 sm:px-10 text-sm sm:text-base font-semibold rounded-2xl"
+            <div className="relative p-10 sm:p-16 lg:p-20 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
               >
-                Start for free
-                <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" />
-              </Button>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 mb-6">
+                  <Sparkles className="w-4 h-4 text-white/70" />
+                  <span className="text-sm font-medium text-white/70">Start for free</span>
+                </div>
+                
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+                  Ready to create?
+                </h2>
+                <p className="text-lg text-white/50 mb-8 max-w-xl mx-auto">
+                  Get 60 free credits — enough for your first video clip
+                </p>
+                <Button
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  variant="secondary"
+                  className="h-14 px-10 text-base font-semibold rounded-full"
+                >
+                  Start for free
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>

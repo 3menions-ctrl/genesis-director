@@ -35,7 +35,7 @@ const STEPS = [
 ];
 
 const CAPABILITIES = [
-  { icon: Video, label: 'Veo Powered', description: 'Google\'s latest AI' },
+  { icon: Video, label: 'Kling 2.6', description: 'Cinema-grade AI' },
   { icon: Image, label: 'Image-to-Video', description: 'Animate images' },
   { icon: Layers, label: 'Cloud Stitch', description: 'Seamless merging' },
   { icon: Brain, label: 'Auto Retry', description: 'Quality assured' },

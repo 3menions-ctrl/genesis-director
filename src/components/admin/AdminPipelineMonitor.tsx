@@ -132,7 +132,7 @@ export function AdminPipelineMonitor() {
       });
 
       const serviceConfigs = [
-        { key: 'google_veo', name: 'Veo Video Gen', icon: Video },
+        { key: 'kling', name: 'Kling 2.6 Video', icon: Video },
         { key: 'openai-tts', name: 'OpenAI TTS', icon: Mic },
         { key: 'cloud_run_stitcher', name: 'Cloud Run Stitcher', icon: Scissors },
         { key: 'openai', name: 'OpenAI GPT', icon: Sparkles },

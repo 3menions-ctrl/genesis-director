@@ -40,13 +40,13 @@ type DateRangePreset = 'today' | '7days' | '30days' | 'all' | 'custom';
 // REAL COST DEFINITIONS - UPDATE THESE VALUES
 // ============================================
 
-// Google Vertex AI Veo Pricing (per 6-second clip)
-// Veo 3.1: $0.08 per 6-second clip (based on usage)
-const VEO_COST_PER_CLIP_CENTS = 8;
+// Kling 2.6 Pricing (per 5-second clip)
+// Kling 2.6: $0.04 per 5-second clip (more cost-effective)
+const KLING_COST_PER_CLIP_CENTS = 4;
 
-// Veo Status Poll Pricing (minimal but adds up with frequent polling)
-// Each fetchPredictOperation call costs ~$0.0001
-const VEO_POLL_COST_CENTS = 0.01;
+// Kling Status Poll Pricing (minimal)
+// Each status poll costs ~$0.0001
+const KLING_POLL_COST_CENTS = 0.01;
 
 // OpenAI TTS Pricing
 // HD voices: $0.030 per 1,000 characters (roughly 2 cents for 60 words)
@@ -209,12 +209,12 @@ export function CostAnalysisDashboard() {
         // Calculate real costs based on service - EVEN FOR FAILED CALLS
         // Failed API calls still cost us money!
         switch (row.service) {
-          case 'google_veo':
-            apiAggregated[key].calculated_cost_cents += VEO_COST_PER_CLIP_CENTS;
+          case 'kling':
+            apiAggregated[key].calculated_cost_cents += KLING_COST_PER_CLIP_CENTS;
             break;
-          case 'google_veo_poll':
+          case 'kling_poll':
             // Status polling calls - minimal cost but adds up
-            apiAggregated[key].calculated_cost_cents += VEO_POLL_COST_CENTS;
+            apiAggregated[key].calculated_cost_cents += KLING_POLL_COST_CENTS;
             break;
           case 'openai-tts':
             apiAggregated[key].calculated_cost_cents += OPENAI_TTS_COST_PER_CALL_CENTS;
@@ -260,7 +260,7 @@ export function CostAnalysisDashboard() {
       const clips = clipsData || [];
       const totalRetries = clips.reduce((sum, c) => sum + (c.retry_count || 0), 0);
       const clipsWithRetries = clips.filter(c => (c.retry_count || 0) > 0).length;
-      const retryCostCents = totalRetries * VEO_COST_PER_CLIP_CENTS; // Each retry is a Veo call
+      const retryCostCents = totalRetries * KLING_COST_PER_CLIP_CENTS; // Each retry is a Kling call
       
       setRetryData({
         total_retries: totalRetries,
@@ -967,10 +967,10 @@ export function CostAnalysisDashboard() {
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Video className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Veo 3.1</span>
+                    <span className="font-medium">Kling 2.6</span>
                   </div>
-                  <p className="text-lg font-bold">${(VEO_COST_PER_CLIP_CENTS / 100).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">per 6s clip</p>
+                  <p className="text-lg font-bold">${(KLING_COST_PER_CLIP_CENTS / 100).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">per 5s clip</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">

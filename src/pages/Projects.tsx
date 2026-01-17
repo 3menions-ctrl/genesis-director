@@ -524,6 +524,7 @@ function ProjectCard({
             <video
               ref={videoRef}
               src={videoSrc}
+              poster={project.thumbnail_url || undefined}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
                 isHovered && "scale-105"

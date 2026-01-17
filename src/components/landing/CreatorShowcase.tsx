@@ -117,7 +117,6 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const posterVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(true);
@@ -128,14 +127,15 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Extract first frame from video as poster
+  // Extract first frame from video as poster AND preload the video
   useEffect(() => {
     const posterVideo = posterVideoRef.current;
+    const mainVideo = videoRef.current;
     const canvas = canvasRef.current;
-    if (!posterVideo || !canvas || posterUrl) return;
+    if (!posterVideo || !canvas) return;
 
     const handleLoadedData = () => {
-      // Seek to first frame
+      // Seek to first frame for poster
       posterVideo.currentTime = 0.1;
     };
 
@@ -157,34 +157,38 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
 
     posterVideo.addEventListener('loadeddata', handleLoadedData);
     posterVideo.addEventListener('seeked', handleSeeked);
-    posterVideo.load();
+    
+    // Start loading poster video immediately
+    if (!posterUrl) {
+      posterVideo.load();
+    }
+
+    // Preload main video in background after a short delay to stagger requests
+    const preloadTimer = setTimeout(() => {
+      if (mainVideo) {
+        mainVideo.load();
+      }
+    }, index * 200); // Stagger loading to avoid overwhelming the browser
 
     return () => {
       posterVideo.removeEventListener('loadeddata', handleLoadedData);
       posterVideo.removeEventListener('seeked', handleSeeked);
+      clearTimeout(preloadTimer);
     };
-  }, [posterUrl, video.url]);
+  }, [posterUrl, video.url, index]);
 
-  // Start loading video when user hovers
+  // Handle hover play/pause
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    if (isHovering) {
-      // Start loading the video if not already loading
-      if (!isVideoLoading) {
-        setIsVideoLoading(true);
-        vid.load();
-      }
-      // Play when ready
-      if (isVideoReady) {
-        vid.currentTime = 0;
-        vid.play().catch(() => {});
-      }
-    } else {
+    if (isHovering && isVideoReady) {
+      vid.currentTime = 0;
+      vid.play().catch(() => {});
+    } else if (!isHovering) {
       vid.pause();
     }
-  }, [isHovering, isVideoLoading, isVideoReady]);
+  }, [isHovering, isVideoReady]);
 
   return (
     <motion.div

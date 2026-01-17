@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Replicate from "https://esm.sh/replicate@0.25.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getAccessToken } from "../_shared/gcp-auth.ts";
 
@@ -8,8 +7,67 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Log GCP API calls for accurate cost tracking
-async function logGcpApiCall(
+// Kling API configuration
+const KLING_API_BASE = "https://api.klingai.com/v1";
+
+// Generate Kling JWT token
+async function generateKlingJWT(): Promise<string> {
+  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
+  const secretKey = Deno.env.get("KLING_SECRET_KEY");
+  
+  if (!accessKey || !secretKey) {
+    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: accessKey,
+    exp: now + 1800, // 30 minutes
+    nbf: now - 5,    // 5 seconds buffer
+  };
+
+  // Create JWT header
+  const header = { alg: "HS256", typ: "JWT" };
+  
+  // Base64URL encode
+  const base64UrlEncode = (obj: object): string => {
+    const json = JSON.stringify(obj);
+    const base64 = btoa(json);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+
+  const headerEncoded = base64UrlEncode(header);
+  const payloadEncoded = base64UrlEncode(payload);
+  const message = `${headerEncoded}.${payloadEncoded}`;
+
+  // Sign with HMAC-SHA256
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secretKey);
+  const messageData = encoder.encode(message);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+  const signatureArray = new Uint8Array(signature);
+  
+  // Convert to base64url
+  let binary = '';
+  for (let i = 0; i < signatureArray.length; i++) {
+    binary += String.fromCharCode(signatureArray[i]);
+  }
+  const signatureBase64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  return `${message}.${signatureBase64}`;
+}
+
+// Log API calls for cost tracking
+async function logApiCall(
   supabase: any,
   operation: string,
   service: string,
@@ -19,14 +77,13 @@ async function logGcpApiCall(
   userId?: string
 ) {
   try {
-    // Status polls cost ~$0.0001 each (minimal but adds up)
-    const POLL_COST_CENTS = 0.01; // $0.0001 per poll
+    const POLL_COST_CENTS = 0.01;
     
     await supabase.rpc('log_api_cost', {
       p_service: service,
       p_operation: operation,
       p_real_cost_cents: Math.round(POLL_COST_CENTS * 100) / 100,
-      p_credits_charged: 0, // Polls don't charge user credits
+      p_credits_charged: 0,
       p_status: status,
       p_project_id: projectId || null,
       p_shot_id: shotId || 'status-poll',
@@ -34,7 +91,6 @@ async function logGcpApiCall(
       p_metadata: { timestamp: new Date().toISOString() }
     });
   } catch (err) {
-    // Don't fail the request if logging fails
     console.warn('[Cost Log] Failed to log API call:', err);
   }
 }
@@ -58,72 +114,101 @@ serve(async (req) => {
 
     console.log("Checking video status for task:", taskId, "provider:", provider);
 
-    // Handle Kling (Replicate) - PRIMARY PROVIDER
-    if (provider === "kling" || provider === "replicate") {
-      const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-      if (!REPLICATE_API_KEY) {
-        throw new Error("REPLICATE_API_KEY is not configured");
-      }
+    // Handle Kling Direct API - PRIMARY PROVIDER
+    if (provider === "kling") {
+      try {
+        const jwtToken = await generateKlingJWT();
+        
+        // Query Kling task status
+        const statusUrl = `${KLING_API_BASE}/videos/tasks/${taskId}`;
+        
+        console.log("Polling Kling task:", statusUrl);
+        
+        const response = await fetch(statusUrl, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${jwtToken}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      const replicate = new Replicate({ auth: REPLICATE_API_KEY });
-      const prediction = await replicate.predictions.get(taskId);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Kling API error:", response.status, errorText);
+          throw new Error(`Kling API error: ${response.status}`);
+        }
 
-      console.log("Kling/Replicate prediction:", {
-        id: prediction.id,
-        status: prediction.status,
-        model: prediction.model,
-      });
+        const result = await response.json();
+        const taskData = result.data || result;
+        
+        console.log("Kling task status:", {
+          task_id: taskData.task_id,
+          task_status: taskData.task_status,
+        });
 
-      if (prediction.status === "failed" && prediction.error) {
-        console.error("Kling prediction failed with error:", prediction.error);
+        // Map Kling status to our standard status
+        // Kling statuses: submitted, processing, succeed, failed
+        let status = "RUNNING";
+        let progress = 0;
+        let videoUrl = null;
+        let error = null;
+
+        switch (taskData.task_status) {
+          case "submitted":
+            status = "STARTING";
+            progress = 10;
+            break;
+          case "processing":
+            status = "RUNNING";
+            progress = 50;
+            break;
+          case "succeed":
+            status = "SUCCEEDED";
+            progress = 100;
+            // Extract video URL from works array
+            if (taskData.task_result?.videos && taskData.task_result.videos.length > 0) {
+              videoUrl = taskData.task_result.videos[0].url;
+            }
+            break;
+          case "failed":
+            status = "FAILED";
+            progress = 0;
+            error = taskData.task_status_msg || "Kling generation failed";
+            break;
+          default:
+            status = "RUNNING";
+            progress = 25;
+        }
+
+        await logApiCall(supabase, "status-poll", "kling", status, reqProjectId, taskId, userId);
+
         return new Response(
           JSON.stringify({
             success: true,
+            status: status,
+            progress: progress,
+            videoUrl: videoUrl,
+            error: error,
+            provider: "kling",
+            model: "kling-v2-1-master",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (klingError) {
+        console.error("Kling status check error:", klingError);
+        return new Response(
+          JSON.stringify({
+            success: false,
             status: "FAILED",
             progress: 0,
             videoUrl: null,
-            error: prediction.error,
+            error: klingError instanceof Error ? klingError.message : "Kling status check failed",
             provider: "kling",
-            model: "kling-v2.0-master",
+            model: "kling-v2-1-master",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      let status = prediction.status.toUpperCase();
-      if (status === "PROCESSING" || status === "STARTING") status = "RUNNING";
-      if (status === "SUCCEEDED") status = "SUCCEEDED";
-      if (status === "FAILED" || status === "CANCELED") status = "FAILED";
-
-      let videoUrl = null;
-      if (prediction.output) {
-        if (typeof prediction.output === "string") {
-          videoUrl = prediction.output;
-        } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
-          videoUrl = prediction.output[0];
-        } else if (typeof prediction.output === "object" && prediction.output.video) {
-          videoUrl = prediction.output.video;
-        }
-      }
-
-      // Calculate progress based on status
-      let progress = 0;
-      if (status === "SUCCEEDED") progress = 100;
-      else if (status === "RUNNING") progress = prediction.logs ? 50 : 25;
-      else if (status === "STARTING") progress = 10;
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          status: status,
-          progress: progress,
-          videoUrl: videoUrl,
-          error: prediction.error || null,
-          provider: "kling",
-          model: "kling-v2.0-master",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Handle Vertex AI (Google Veo 3.1) - FALLBACK PROVIDER
@@ -149,7 +234,7 @@ serve(async (req) => {
       console.log("Polling Veo3 operation:", fetchOperationUrl);
       
       // Log the GCP API poll call
-      await logGcpApiCall(
+      await logApiCall(
         supabase,
         'status_poll',
         'google_veo_poll',
@@ -297,40 +382,16 @@ serve(async (req) => {
       );
     }
 
-    // Unknown provider - try Replicate as fallback for legacy tasks
-    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-    if (!REPLICATE_API_KEY) {
-      throw new Error("REPLICATE_API_KEY is not configured");
-    }
-
-    const replicate = new Replicate({ auth: REPLICATE_API_KEY });
-    const prediction = await replicate.predictions.get(taskId);
-
-    console.log("Legacy Replicate prediction:", {
-      id: prediction.id,
-      status: prediction.status,
-    });
-
-    let status = prediction.status.toUpperCase();
-    if (status === "PROCESSING") status = "RUNNING";
-
-    let videoUrl = null;
-    if (prediction.output) {
-      if (typeof prediction.output === "string") {
-        videoUrl = prediction.output;
-      } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
-        videoUrl = prediction.output[0];
-      }
-    }
-
+    // Unknown provider - return error
+    console.log("Unknown provider for task:", taskId, provider);
     return new Response(
       JSON.stringify({
-        success: true,
-        status: status,
-        progress: prediction.status === "succeeded" ? 100 : 50,
-        videoUrl: videoUrl,
-        error: prediction.error || null,
-        provider: "replicate",
+        success: false,
+        status: "FAILED",
+        progress: 0,
+        videoUrl: null,
+        error: `Unknown provider: ${provider}. Supported providers are: kling, veo3`,
+        provider: provider,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

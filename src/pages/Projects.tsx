@@ -93,7 +93,7 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// ============= STAT CARD COMPONENT =============
+// ============= CINEMATIC STAT CARD COMPONENT =============
 
 function StatCard({ 
   icon: Icon, 
@@ -110,27 +110,150 @@ function StatCard({
   color?: 'white' | 'amber' | 'emerald' | 'blue';
   delay?: number;
 }) {
-  const colorClasses = {
-    white: 'bg-white/5 text-white/70',
-    amber: 'bg-amber-500/10 text-amber-400',
-    emerald: 'bg-emerald-500/10 text-emerald-400',
-    blue: 'bg-blue-500/10 text-blue-400',
+  const colorConfig = {
+    white: { 
+      bg: 'bg-white/[0.03]', 
+      border: 'border-white/[0.08]',
+      icon: 'bg-white/10 text-white/80',
+      glow: 'from-white/5 via-transparent to-transparent'
+    },
+    amber: { 
+      bg: 'bg-amber-500/[0.03]', 
+      border: 'border-amber-500/20',
+      icon: 'bg-amber-500/20 text-amber-400',
+      glow: 'from-amber-500/10 via-transparent to-transparent'
+    },
+    emerald: { 
+      bg: 'bg-emerald-500/[0.03]', 
+      border: 'border-emerald-500/20',
+      icon: 'bg-emerald-500/20 text-emerald-400',
+      glow: 'from-emerald-500/10 via-transparent to-transparent'
+    },
+    blue: { 
+      bg: 'bg-blue-500/[0.03]', 
+      border: 'border-blue-500/20',
+      icon: 'bg-blue-500/20 text-blue-400',
+      glow: 'from-blue-500/10 via-transparent to-transparent'
+    },
   };
+
+  const config = colorConfig[color];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      initial={{ opacity: 0, y: 12, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.3, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="group relative p-2 rounded-lg bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300"
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      className={cn(
+        "group relative p-4 rounded-2xl overflow-hidden cursor-default",
+        config.bg,
+        "border",
+        config.border,
+        "hover:border-white/20 transition-all duration-500"
+      )}
     >
-      <div className="relative flex items-center gap-2">
-        <div className={cn("w-6 h-6 rounded-md flex items-center justify-center shrink-0", colorClasses[color])}>
-          <Icon className="w-3 h-3" />
-        </div>
+      {/* Cinematic glow on hover */}
+      <div className={cn(
+        "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-700",
+        config.glow
+      )} />
+      
+      {/* Film grain texture */}
+      <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
+      
+      <div className="relative flex items-center gap-3">
+        <motion.div 
+          className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", config.icon)}
+          whileHover={{ rotate: [0, -5, 5, 0] }}
+          transition={{ duration: 0.5 }}
+        >
+          <Icon className="w-5 h-5" />
+        </motion.div>
         <div className="min-w-0">
-          <p className="text-[9px] font-medium text-white/40 uppercase tracking-wider leading-none">{label}</p>
-          <p className="text-sm font-bold text-white tracking-tight">{value}</p>
+          <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest leading-none mb-1">{label}</p>
+          <p className="text-xl font-bold text-white tracking-tight">{value}</p>
+        </div>
+        {trend && (
+          <div className={cn(
+            "ml-auto flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
+            trend.isPositive ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+          )}>
+            <TrendingUp className={cn("w-3 h-3", !trend.isPositive && "rotate-180")} />
+            {trend.value}%
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ============= HERO HEADER COMPONENT =============
+
+function HeroHeader({ 
+  stats, 
+  onCreateClick 
+}: { 
+  stats: { total: number; completed: number; processing: number; totalClips: number };
+  onCreateClick: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="relative mb-10 py-8 sm:py-12"
+    >
+      {/* Cinematic spotlight effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-white/[0.03] to-transparent rounded-full blur-3xl"
+          animate={{ 
+            opacity: [0.3, 0.5, 0.3],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      <div className="relative">
+        {/* Title Section */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] mb-4"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-xs font-medium text-white/60 tracking-wide">Your Creative Portfolio</span>
+          </motion.div>
+          
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-4"
+          >
+            Your <span className="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">Masterpieces</span>
+          </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-white/40 text-lg max-w-md mx-auto"
+          >
+            Every project is a step toward cinematic excellence
+          </motion.p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">
+          <StatCard icon={FolderOpen} label="Total Projects" value={stats.total} color="white" delay={0.3} />
+          <StatCard icon={Check} label="Completed" value={stats.completed} color="emerald" delay={0.4} />
+          <StatCard icon={Activity} label="In Progress" value={stats.processing} color="amber" delay={0.5} />
+          <StatCard icon={Film} label="Total Clips" value={stats.totalClips} color="blue" delay={0.6} />
         </div>
       </div>
     </motion.div>
@@ -366,27 +489,33 @@ function ProjectCard({
     );
   }
 
-  // Grid view
+  // Cinematic Grid view
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      initial={{ opacity: 0, y: 30, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
-        duration: 0.5, 
-        delay: index * 0.05,
+        duration: 0.6, 
+        delay: index * 0.06,
         ease: [0.16, 1, 0.3, 1]
       }}
+      whileHover={{ y: -8 }}
       className="group relative cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={onPlay}
     >
+      {/* Dramatic glow effect on hover */}
+      <motion.div
+        className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-white/10 via-white/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none"
+      />
+      
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-500 aspect-video",
-        "bg-gradient-to-br from-white/[0.03] to-white/[0.01]",
-        "border border-white/[0.06]",
-        isHovered && "border-white/20 shadow-2xl shadow-white/5 scale-[1.02]",
-        isActive && "ring-2 ring-white/30"
+        "relative overflow-hidden rounded-2xl transition-all duration-700 aspect-video",
+        "bg-gradient-to-br from-white/[0.04] to-white/[0.01]",
+        "border border-white/[0.08]",
+        isHovered && "border-white/25 shadow-2xl shadow-white/10",
+        isActive && "ring-2 ring-white/40"
       )}>
         
         {/* Video/Thumbnail - always visible, no loading state */}
@@ -440,21 +569,37 @@ function ProjectCard({
           isHovered ? "opacity-90" : "opacity-70"
         )} />
         
-        {/* Play button */}
+        {/* Cinematic Play button */}
         <AnimatePresence>
           {hasVideo && isHovered && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, scale: 0.7 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="absolute inset-0 flex items-center justify-center z-10"
             >
               <div className="relative">
-                <div className="absolute inset-[-4px] rounded-full border border-white/20 animate-ping" style={{ animationDuration: '1.5s' }} />
-                <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/30">
-                  <Play className="w-6 h-6 text-white ml-0.5" fill="currentColor" />
-                </div>
+                {/* Multiple expanding rings */}
+                <motion.div 
+                  className="absolute inset-[-8px] rounded-full border border-white/10"
+                  animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                <motion.div 
+                  className="absolute inset-[-4px] rounded-full border border-white/20"
+                  animate={{ scale: [1, 1.2], opacity: [0.6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                />
+                
+                {/* Main play button with glow */}
+                <motion.div 
+                  className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg shadow-white/20"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
+                </motion.div>
               </div>
             </motion.div>
           )}
@@ -1032,48 +1177,146 @@ export default function Projects() {
             <p className="text-white/40">Loading your projects...</p>
           </motion.div>
         ) : stats.total === 0 && stitchingProjects.length === 0 ? (
-          /* Empty state */
+          /* Cinematic Empty State */
           <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col items-center justify-center py-32 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="relative flex flex-col items-center justify-center py-24 sm:py-32 px-4"
           >
+            {/* Dramatic spotlight */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <motion.div 
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full"
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)',
+                }}
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 0.8, 0.5]
+                }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+
+            {/* Film reel icon with animation */}
             <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.1] flex items-center justify-center mb-8"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative mb-10"
             >
-              <Sparkles className="w-10 h-10 text-white/30" strokeWidth={1} />
+              {/* Outer glow ring */}
+              <motion.div
+                className="absolute inset-[-20px] rounded-full border border-white/10"
+                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute inset-[-40px] rounded-full border border-white/5"
+                animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
+                transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
+              />
+              
+              <motion.div
+                animate={{ 
+                  rotate: [0, 360],
+                }}
+                transition={{ 
+                  duration: 20, 
+                  repeat: Infinity, 
+                  ease: "linear"
+                }}
+                className="relative w-32 h-32 rounded-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/[0.12] flex items-center justify-center shadow-2xl"
+              >
+                {/* Inner details to look like film reel */}
+                <div className="absolute inset-4 rounded-full border border-white/[0.08]" />
+                <div className="absolute inset-8 rounded-full border border-white/[0.05]" />
+                {[...Array(8)].map((_, i) => (
+                  <div 
+                    key={i}
+                    className="absolute w-2 h-2 rounded-full bg-white/20"
+                    style={{
+                      transform: `rotate(${i * 45}deg) translateY(-40px)`
+                    }}
+                  />
+                ))}
+                <Film className="w-10 h-10 text-white/40" strokeWidth={1} />
+              </motion.div>
             </motion.div>
             
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 text-center tracking-tight">
-              Your Creative Space
-            </h2>
-            <p className="text-white/40 text-lg mb-10 text-center max-w-lg">
-              Your completed masterpieces will appear here. Ready to create something extraordinary?
-            </p>
-            
-            <Button 
-              onClick={handleCreateProject}
-              className="h-12 px-8 rounded-full bg-white text-black hover:bg-white/90 font-bold shadow-xl shadow-white/10"
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 text-center tracking-tight"
             >
-              <Plus className="w-5 h-5 mr-2" />
-              Start Creating
-            </Button>
+              The Stage is Set
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="text-white/40 text-lg sm:text-xl mb-4 text-center max-w-lg"
+            >
+              Your creative journey begins here. Every great director started with their first scene.
+            </motion.p>
+            
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="text-white/25 text-sm mb-10 text-center italic"
+            >
+              "Every frame is a chance to tell a story"
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+            >
+              <Button 
+                onClick={handleCreateProject}
+                className="group relative h-14 px-10 rounded-full bg-white text-black hover:bg-white/95 font-bold text-lg shadow-2xl shadow-white/20 overflow-hidden"
+              >
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
+                />
+                <span className="relative flex items-center gap-2">
+                  <Plus className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
+                  Create Your First Film
+                </span>
+              </Button>
+            </motion.div>
+
+            {/* Decorative film strips */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              transition={{ delay: 1, duration: 1 }}
+              className="absolute bottom-10 left-0 right-0 flex justify-center gap-2 pointer-events-none"
+            >
+              {[...Array(7)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 0.3 + i * 0.1, y: 0 }}
+                  transition={{ delay: 1 + i * 0.1, duration: 0.5 }}
+                  className="w-16 h-12 rounded bg-white/[0.03] border border-white/[0.06]"
+                  style={{ transform: `rotate(${(i - 3) * 3}deg)` }}
+                />
+              ))}
+            </motion.div>
           </motion.div>
         ) : (
           <>
-            {/* Stats Dashboard */}
-            <motion.div 
-              style={{ opacity: headerOpacity }}
-              className="grid grid-cols-4 gap-2 mb-6"
-            >
-              <StatCard icon={FolderOpen} label="Projects" value={stats.total} color="white" delay={0} />
-              <StatCard icon={Check} label="Done" value={stats.completed} color="emerald" delay={0.03} />
-              <StatCard icon={Activity} label="Active" value={stats.processing} color="amber" delay={0.06} />
-              <StatCard icon={Film} label="Clips" value={stats.totalClips} color="blue" delay={0.09} />
-            </motion.div>
+            {/* Cinematic Hero Header with Stats */}
+            <HeroHeader stats={stats} onCreateClick={handleCreateProject} />
 
             {/* Search, Filter & View Controls */}
             <motion.div

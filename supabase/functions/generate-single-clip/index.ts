@@ -1,6 +1,62 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { getAccessToken } from "../_shared/gcp-auth.ts";
+
+// Kling 2.6 Configuration - Primary and ONLY video provider
+const KLING_API_BASE = "https://api.klingai.com/v1";
+const KLING_MODEL = "kling-v2-6-master";
+const KLING_ENABLE_AUDIO = true; // Native audio generation
+
+// Generate Kling JWT token
+async function generateKlingJWT(): Promise<string> {
+  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
+  const secretKey = Deno.env.get("KLING_SECRET_KEY");
+  
+  if (!accessKey || !secretKey) {
+    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: accessKey,
+    exp: now + 1800, // 30 minutes
+    nbf: now - 5,    // 5 seconds buffer
+  };
+
+  const header = { alg: "HS256", typ: "JWT" };
+  
+  const base64UrlEncode = (obj: object): string => {
+    const json = JSON.stringify(obj);
+    const base64 = btoa(json);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+
+  const headerEncoded = base64UrlEncode(header);
+  const payloadEncoded = base64UrlEncode(payload);
+  const message = `${headerEncoded}.${payloadEncoded}`;
+
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secretKey);
+  const messageData = encoder.encode(message);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+  const signatureArray = new Uint8Array(signature);
+  
+  let binary = '';
+  for (let i = 0; i < signatureArray.length; i++) {
+    binary += String.fromCharCode(signatureArray[i]);
+  }
+  const signatureBase64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  return `${message}.${signatureBase64}`;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2797,127 +2853,112 @@ interface ClipResult {
     cameraMomentum?: string;
   };
 }
-// Generate a single clip with Veo API
-async function generateClip(
-  accessToken: string,
-  projectId: string,
+// =====================================================
+// KLING 2.6 VIDEO GENERATION
+// Replaces Veo with Kling for superior character consistency
+// Supports: 4-image reference array, native audio, frame chaining
+// =====================================================
+
+type KlingGenerationResult = {
+  success: true;
+  taskId: string;
+} | {
+  success: false;
+  error: string;
+};
+
+// Generate a single clip with Kling 2.6 API
+async function generateClipWithKling(
   prompt: string,
+  negativePrompt: string,
   startImageUrl?: string,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
-  occlusionNegatives?: string[]
-): Promise<{ operationName: string }> {
-  const location = "us-central1";
-  const model = "veo-3.1-generate-001";
-  const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+  referenceImages: string[] = [],
+  enableAudio: boolean = KLING_ENABLE_AUDIO
+): Promise<{ taskId: string }> {
+  const jwtToken = await generateKlingJWT();
+  
+  // Kling 2.6 duration: "5" or "10" seconds
+  const klingDuration = "5"; // 5-second clips for quality
+  
+  // Aspect ratio mapping for Kling
+  const klingAspectRatio = aspectRatio === "9:16" ? "9:16" : 
+                            aspectRatio === "1:1" ? "1:1" : "16:9";
 
-  const instance: Record<string, any> = {
-    prompt: `${prompt}. High quality, cinematic, realistic physics, natural motion, detailed textures.`,
-  };
-
+  // Determine endpoint based on mode
+  let useStartImageUrl: string | null = null;
+  
+  // Validate and prepare start image
   if (startImageUrl) {
-    try {
-      // CRITICAL: Pre-validate URL - reject obvious video URLs before fetching
-      const lowerUrl = startImageUrl.toLowerCase();
-      if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov') || lowerUrl.includes('/video-clips/clip_')) {
-        console.error(`[SingleClip] ⚠️ REJECTED: startImageUrl is a VIDEO file, not an image!`);
-        console.error(`[SingleClip] URL: ${startImageUrl.substring(0, 100)}...`);
-        console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - Veo requires images, not videos`);
-      } else {
-        console.log(`[SingleClip] Fetching start image for frame-chaining: ${startImageUrl.substring(0, 100)}...`);
-        const imageResponse = await fetch(startImageUrl);
-        
-        // Check if fetch was successful
-        if (!imageResponse.ok) {
-          console.error(`[SingleClip] Failed to fetch start image: HTTP ${imageResponse.status} - ${imageResponse.statusText}`);
-          console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to image fetch failure`);
-        } else {
-          const contentType = imageResponse.headers.get('content-type') || '';
-          console.log(`[SingleClip] Image response content-type: ${contentType}`);
-          
-          // CRITICAL: Reject video content types - Veo ONLY accepts images
-          if (contentType.includes('video/') || contentType.includes('application/octet-stream')) {
-            console.error(`[SingleClip] ⚠️ REJECTED: Response is ${contentType}, not an image!`);
-            console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - Veo requires images, not videos`);
-          } else if (!contentType.includes('image/')) {
-            console.error(`[SingleClip] ⚠️ WARNING: Unexpected content-type: ${contentType}`);
-            console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - content-type is not an image`);
-          } else {
-            const imageBuffer = await imageResponse.arrayBuffer();
-            const uint8Array = new Uint8Array(imageBuffer);
-            
-            // Validate image size
-            if (uint8Array.length < 1000) {
-              console.error(`[SingleClip] Image too small (${uint8Array.length} bytes) - likely invalid or error page`);
-              console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to invalid image`);
-            } else if (uint8Array.length > 10000000) {
-              // Video files are typically > 1MB, images are usually < 1MB
-              console.error(`[SingleClip] ⚠️ File too large (${uint8Array.length} bytes) - likely a video file`);
-              console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - file size indicates video`);
-            } else {
-              console.log(`[SingleClip] ✓ Valid image size: ${uint8Array.length} bytes`);
-              
-              let binary = '';
-              const chunkSize = 32768;
-              for (let i = 0; i < uint8Array.length; i += chunkSize) {
-                const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-                binary += String.fromCharCode.apply(null, Array.from(chunk));
-              }
-              const base64Image = btoa(binary);
-              
-              // Determine mime type from content-type header
-              let mimeType = 'image/jpeg';
-              if (contentType.includes('png')) {
-                mimeType = 'image/png';
-              } else if (contentType.includes('webp')) {
-                mimeType = 'image/webp';
-              } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-                mimeType = 'image/jpeg';
-              }
-              
-              instance.image = {
-                bytesBase64Encoded: base64Image,
-                mimeType: mimeType
-              };
-              console.log(`[SingleClip] ✓ Added start image for frame-chaining (${mimeType}, ${base64Image.length} base64 chars)`);
-            }
-          }
-        }
-      }
-    } catch (imgError) {
-      console.error("[SingleClip] Failed to fetch start image:", imgError);
-      console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining due to error`);
+    const lowerUrl = startImageUrl.toLowerCase();
+    if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov') || lowerUrl.includes('/video-clips/clip_')) {
+      console.error(`[SingleClip] ⚠️ REJECTED: startImageUrl is a VIDEO file, not an image!`);
+      console.error(`[SingleClip] URL: ${startImageUrl.substring(0, 100)}...`);
+      console.warn(`[SingleClip] Proceeding WITHOUT frame-chaining - Kling requires images, not videos`);
+    } else {
+      useStartImageUrl = startImageUrl;
+      console.log(`[SingleClip] Using start image for frame-chaining: ${startImageUrl.substring(0, 100)}...`);
     }
   }
 
-  // Build negative prompt with occlusion negatives
-  const baseNegatives = "blurry, low quality, distorted, artifacts, watermark, text overlay, glitch, jittery motion";
-  const identityNegatives = occlusionNegatives && occlusionNegatives.length > 0
-    ? `, ${occlusionNegatives.slice(0, 10).join(', ')}`
-    : '';
-  const fullNegativePrompt = baseNegatives + identityNegatives;
-  
-  if (occlusionNegatives && occlusionNegatives.length > 0) {
-    console.log(`[SingleClip] Added ${Math.min(occlusionNegatives.length, 10)} occlusion negatives to prevent identity drift`);
+  const isImageToVideo = !!useStartImageUrl || referenceImages.length > 0;
+  const endpoint = isImageToVideo 
+    ? `${KLING_API_BASE}/videos/image2video`
+    : `${KLING_API_BASE}/videos/text2video`;
+
+  // Build prompt with reference markers if using multiple references
+  let finalPrompt = prompt;
+  if (referenceImages.length > 1) {
+    // Kling 2.6 supports @Image1, @Image2, etc. references
+    const referenceMarkers = referenceImages.map((_, i) => `@Image${i + 1}`).join(", ");
+    finalPrompt = `[CHARACTER REFERENCES: ${referenceMarkers}] ${prompt}`;
   }
 
-  const requestBody = {
-    instances: [instance],
-    parameters: {
-      aspectRatio: aspectRatio, // Dynamic based on reference image orientation
-      durationSeconds: DEFAULT_CLIP_DURATION,
-      sampleCount: 1,
-      negativePrompt: fullNegativePrompt,
-      resolution: "720p",
-      personGeneration: "allow_adult",
-    }
+  // Kling 2.6 request body
+  const requestBody: Record<string, any> = {
+    model_name: KLING_MODEL,
+    prompt: finalPrompt.slice(0, 2500),
+    negative_prompt: negativePrompt.slice(0, 1000),
+    aspect_ratio: klingAspectRatio,
+    duration: klingDuration,
+    mode: "std", // Standard quality mode
+    cfg_scale: 0.5,
+    // Kling 2.6: Native audio generation
+    generate_audio: enableAudio,
   };
-  
-  console.log(`[SingleClip] Using aspect ratio: ${aspectRatio}`);
+
+  // Primary image (start frame for continuity)
+  if (useStartImageUrl) {
+    if (useStartImageUrl.startsWith("http")) {
+      requestBody.image_url = useStartImageUrl;
+    } else if (useStartImageUrl.startsWith("data:")) {
+      const matches = useStartImageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        requestBody.image = matches[2];
+      }
+    }
+  }
+
+  // Reference images for character consistency (Kling 2.6 feature)
+  if (referenceImages.length > 0) {
+    requestBody.image_urls = referenceImages;
+    console.log(`[SingleClip] Using ${referenceImages.length} identity reference images from Identity Bible`);
+  }
+
+  console.log("[SingleClip] Starting Kling 2.6 generation:", {
+    mode: isImageToVideo ? "image-to-video" : "text-to-video",
+    duration: klingDuration,
+    aspectRatio: klingAspectRatio,
+    audioEnabled: enableAudio,
+    referenceCount: referenceImages.length,
+    promptLength: finalPrompt.length,
+    endpoint,
+  });
 
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
+      "Authorization": `Bearer ${jwtToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(requestBody),
@@ -2925,46 +2966,48 @@ async function generateClip(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Veo API error: ${response.status} - ${errorText}`);
+    console.error("[SingleClip] Kling API error:", response.status, errorText);
+    throw new Error(`Kling API error: ${response.status} - ${errorText}`);
   }
 
   const result = await response.json();
-  const operationName = result.name;
   
-  if (!operationName) {
-    throw new Error("No operation name in Veo response");
+  // Kling returns task_id in the response
+  const taskId = result.data?.task_id || result.task_id;
+  
+  if (!taskId) {
+    console.error("[SingleClip] No task_id in Kling response:", result);
+    throw new Error("No task_id in Kling response");
   }
 
-  return { operationName };
+  console.log("[SingleClip] Kling 2.6 task created:", taskId, {
+    audioEnabled: enableAudio,
+    referenceImages: referenceImages.length,
+  });
+
+  return { taskId };
 }
 
-// Poll for operation completion
-// CRITICAL: Extended timeout to handle Veo 3.1 generation times
-// Veo typically takes 60-120 seconds for a 6-second clip
-async function pollOperation(
-  accessToken: string,
-  operationName: string,
+// Poll Kling task for completion
+// Kling typically takes 60-120 seconds for a 5-second clip
+async function pollKlingTask(
+  taskId: string,
   maxAttempts = 60,      // 60 attempts x 3 seconds = 180 seconds max
-  pollInterval = 3000    // 3 second intervals for faster feedback
+  pollInterval = 3000    // 3 second intervals
 ): Promise<{ videoUrl: string }> {
-  const match = operationName.match(/projects\/([^\/]+)\/locations\/([^\/]+)\/publishers\/google\/models\/([^\/]+)\/operations\/([^\/]+)/);
-  if (!match) {
-    throw new Error(`Invalid operation name format: ${operationName}`);
-  }
-  
-  const [, projectId, location, modelId] = match;
-  const fetchOperationUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:fetchPredictOperation`;
+  const statusUrl = `${KLING_API_BASE}/videos/tasks/${taskId}`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise(resolve => setTimeout(resolve, pollInterval));
     
-    const response = await fetch(fetchOperationUrl, {
-      method: "POST",
+    const jwtToken = await generateKlingJWT();
+    
+    const response = await fetch(statusUrl, {
+      method: "GET",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        "Authorization": `Bearer ${jwtToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ operationName }),
     });
     
     if (!response.ok) {
@@ -2973,43 +3016,35 @@ async function pollOperation(
     }
     
     const result = await response.json();
+    const taskData = result.data || result;
     
-    if (result.done) {
-      if (result.error) {
-        throw new Error(`Veo generation failed: ${result.error.message}`);
-      }
-      
-      if (result.response?.raiMediaFilteredCount > 0) {
-        throw new Error("Content filter blocked generation. Prompt needs rephrasing.");
-      }
-      
-      let videoUri = result.response?.generatedSamples?.[0]?.video?.uri ||
-                     result.response?.videos?.[0]?.gcsUri ||
-                     result.response?.videos?.[0]?.uri;
-      
-      if (!videoUri) {
-        const base64Data = result.response?.videos?.[0]?.bytesBase64Encoded ||
-                          result.response?.generatedSamples?.[0]?.video?.bytesBase64Encoded;
-        if (base64Data) {
-          console.log(`[SingleClip] Video returned as base64 (${base64Data.length} chars)`);
-          return { videoUrl: "base64:" + base64Data };
+    console.log(`[SingleClip] Poll attempt ${attempt + 1}: status=${taskData.task_status}`);
+    
+    switch (taskData.task_status) {
+      case "succeed":
+        // Extract video URL from works array
+        if (taskData.task_result?.videos && taskData.task_result.videos.length > 0) {
+          const videoUrl = taskData.task_result.videos[0].url;
+          console.log(`[SingleClip] ✓ Kling clip completed: ${videoUrl.substring(0, 80)}...`);
+          return { videoUrl };
         }
-        throw new Error("No video URI in completed response");
-      }
-      
-      const videoUrl = videoUri.startsWith("gs://") 
-        ? `https://storage.googleapis.com/${videoUri.slice(5)}`
-        : videoUri;
-      
-      console.log(`[SingleClip] Clip completed: ${videoUrl.substring(0, 80)}...`);
-      return { videoUrl };
+        throw new Error("No video URL in completed Kling response");
+        
+      case "failed":
+        const errorMsg = taskData.task_status_msg || "Kling generation failed";
+        throw new Error(`Kling generation failed: ${errorMsg}`);
+        
+      case "submitted":
+      case "processing":
+        // Still running, continue polling
+        break;
+        
+      default:
+        console.log(`[SingleClip] Unknown Kling status: ${taskData.task_status}`);
     }
-    
-    const progress = result.metadata?.progressPercent || 0;
-    console.log(`[SingleClip] Poll attempt ${attempt + 1}: ${progress}% complete`);
   }
   
-  throw new Error("Operation timed out after maximum polling attempts");
+  throw new Error("Kling operation timed out after maximum polling attempts");
 }
 
 // =====================================================
@@ -3599,23 +3634,21 @@ OUTPUT ONLY THE REPHRASED PROMPT:`;
 
 // =====================================================
 // RETRY WITH REPHRASE
-// Called when Veo rejects a prompt - attempts AI rephrase and retry
+// Called when Kling rejects a prompt - attempts AI rephrase and retry
 // =====================================================
 async function retryWithRephrasedPrompt(
   originalPrompt: string,
-  accessToken: string,
-  gcpProjectId: string,
   startImageUrl?: string,
   aspectRatio: '16:9' | '9:16' | '1:1' = '16:9',
-  negatives?: string[]
-): Promise<{ operationName: string; rephrasedPrompt: string }> {
+  referenceImages: string[] = []
+): Promise<{ taskId: string; rephrasedPrompt: string }> {
   // Try OpenAI first, then fallback to simple text replacement
   const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   
   console.log(`[ContentSafety] Generating alternative safe prompt via OpenAI...`);
   
   // Generate a completely new safe prompt that captures the essence
-  const systemPrompt = `You are a video prompt expert. Create a COMPLETELY NEW video prompt that captures the same visual story but is 100% safe for Google's AI video generator.
+  const systemPrompt = `You are a video prompt expert. Create a COMPLETELY NEW video prompt that captures the same visual story but is 100% safe for AI video generation.
 
 STRICT RULES:
 1. NO violence, weapons, fighting, attacks, or physical confrontation
@@ -3631,7 +3664,7 @@ STRICT RULES:
 
 OUTPUT ONLY THE NEW PROMPT, nothing else.`;
 
-  const userPrompt = `The following prompt was rejected by Google's content filter. Create a SAFE alternative that captures similar visual energy and story mood:
+  const userPrompt = `The following prompt was rejected by the content filter. Create a SAFE alternative that captures similar visual energy and story mood:
 
 REJECTED PROMPT:
 ${originalPrompt}
@@ -3686,52 +3719,17 @@ Create a completely new, safe video prompt that captures a similar cinematic fee
   console.log(`[ContentSafety] ✓ Final rephrased prompt: "${rephrasedPrompt.substring(0, 100)}..."`);
   
   try {
-    // Now try to generate with the rephrased prompt
-    const location = "us-central1";
-    const model = "veo-3.1-generate-001";
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${gcpProjectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
+    // Now try to generate with the rephrased prompt using Kling
+    const result = await generateClipWithKling(
+      rephrasedPrompt,
+      "blurry, low quality, distorted, artifacts, watermark, text overlay",
+      startImageUrl,
+      aspectRatio,
+      referenceImages,
+      KLING_ENABLE_AUDIO
+    );
     
-    const instance: Record<string, any> = {
-      prompt: `${rephrasedPrompt}. High quality, cinematic, realistic physics, natural motion, detailed textures.`,
-    };
-    
-    // Note: We don't add startImageUrl here since the prompt has changed significantly
-    // The visual continuity would be broken anyway
-    
-    const requestBody = {
-      instances: [instance],
-      parameters: {
-        aspectRatio: aspectRatio,
-        durationSeconds: 6,
-        sampleCount: 1,
-        negativePrompt: "blurry, low quality, distorted, artifacts, watermark, text overlay",
-        resolution: "720p",
-        personGeneration: "allow_adult",
-      }
-    };
-    
-    const veoResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    if (!veoResponse.ok) {
-      const errorText = await veoResponse.text();
-      throw new Error(`Veo API error on retry: ${veoResponse.status} - ${errorText}`);
-    }
-    
-    const result = await veoResponse.json();
-    const operationName = result.name;
-    
-    if (!operationName) {
-      throw new Error("No operation name in Veo response on retry");
-    }
-    
-    return { operationName, rephrasedPrompt };
+    return { taskId: result.taskId, rephrasedPrompt };
   } catch (error) {
     console.error("[ContentSafety] Retry with rephrase failed:", error);
     throw error;
@@ -4568,14 +4566,14 @@ serve(async (req) => {
     
     // =====================================================
     // PROMPT CONSTRUCTION ORDER (from highest to lowest priority):
-    // 0. APEX PHYSICS ENGINE + QUALITY MAXIMIZER (steering Veo 3.1) - APEX PRIORITY
+    // 0. APEX PHYSICS ENGINE + QUALITY MAXIMIZER (steering Kling 2.6) - APEX PRIORITY
     // 1. MASTER VISUAL DNA (color/lighting lock from Clip 1) - HIGHEST PRIORITY
     // 2. Scene continuity (character, location, lighting locks)
     // 3. Base prompt (what happens in this clip)
     // =====================================================
     
     // STEP 0: APEX Physics Engine + Quality Maximizer at the VERY TOP
-    // This steers Veo 3.1 to produce physics-accurate, Hollywood-grade output
+    // This steers Kling 2.6 to produce physics-accurate, Hollywood-grade output
     const apexHeader = `${qualityInjection}\n${physicsInjection}\n\n`;
     enhancedPrompt = apexHeader + enhancedPrompt;
     console.log(`[SingleClip] 🚀 APEX TIER INJECTION: Physics + Quality prepended to prompt`);
@@ -4635,13 +4633,11 @@ serve(async (req) => {
       p_status: 'generating',
     });
 
-    // Get OAuth access token
-    const accessToken = await getAccessToken(serviceAccount);
-    console.log("[SingleClip] OAuth access token obtained");
-
-    // Generate clip with Veo - use aspect ratio from request or default to 16:9
+    // =====================================================
+    // KLING 2.6 VIDEO GENERATION
+    // =====================================================
     const aspectRatio = request.aspectRatio || '16:9';
-    console.log(`[SingleClip] Using aspect ratio from request: ${aspectRatio}`);
+    console.log(`[SingleClip] Using aspect ratio: ${aspectRatio}`);
     
     // Merge all negative prompts: identity + occlusion + spatial + manifest + ANTI-PHYSICS negatives
     const allNegatives = [
@@ -4652,96 +4648,104 @@ serve(async (req) => {
       antiPhysicsNegatives, // APEX: Anti-physics violation terms (150+)
     ];
     
-    // Remove duplicates while preserving order
+    // Remove duplicates and join for negative prompt
     const uniqueNegatives = [...new Set(allNegatives)];
+    const negativePromptString = uniqueNegatives.slice(0, 50).join(", "); // Kling has limit
     
     if (uniqueNegatives.length > 0) {
       console.log(`[SingleClip] Negative prompts: ${uniqueNegatives.length} unique (${identityNegatives.length} identity, ${spatialNegatives.length} spatial, ${manifestNegatives.length} manifest, +150 anti-physics)`);
     }
     
-    let operationName: string = '';
+    // Build reference images array from Identity Bible for Kling's 4-image reference feature
+    let referenceImages: string[] = [];
+    if (request.identityBible) {
+      const bible = request.identityBible as any; // Cast to any for extended properties
+      // Collect available views from identity bible
+      const potentialRefs = [
+        bible.originalReferenceUrl,
+        bible.frontViewUrl,
+        bible.sideViewUrl,
+        bible.threeQuarterViewUrl,
+        bible.backViewUrl,
+        // Also check for multiViewUrls array if present
+        ...(bible.multiViewUrls || []),
+      ].filter(Boolean) as string[];
+      
+      // Take up to 4 for Kling's reference array
+      referenceImages = potentialRefs.slice(0, 4);
+      if (referenceImages.length > 0) {
+        console.log(`[SingleClip] 🎯 Identity Bible providing ${referenceImages.length} reference images for Kling`);
+      }
+    }
+    
+    // Also check request for additional reference images
+    if (request.referenceImageUrl && !referenceImages.includes(request.referenceImageUrl)) {
+      referenceImages = [request.referenceImageUrl, ...referenceImages].slice(0, 4);
+      console.log(`[SingleClip] Added referenceImageUrl to Kling references`);
+    }
+    
+    let taskId: string = '';
     let finalPrompt = velocityAwarePrompt;
     let rawVideoUrl: string = '';
     const MAX_CONTENT_RETRIES = 2;
     
     // =====================================================
-    // VIDEO GENERATION WITH AUTO-RETRY ON CONTENT FILTER
+    // VIDEO GENERATION WITH KLING 2.6
     // =====================================================
     for (let contentRetry = 0; contentRetry <= MAX_CONTENT_RETRIES; contentRetry++) {
       try {
-        if (contentRetry === 0) {
-          // First attempt with original (sanitized) prompt
-          const result = await generateClip(
-            accessToken,
-            gcpProjectId,
-            finalPrompt,
-            request.startImageUrl,
-            aspectRatio,
-            uniqueNegatives.length > 0 ? uniqueNegatives : undefined
-          );
-          operationName = result.operationName;
-        } else {
-          // Retry with AI-rephrased prompt
-          console.log(`[SingleClip] Content retry ${contentRetry}/${MAX_CONTENT_RETRIES} - using AI rephrase...`);
-          const retryResult = await retryWithRephrasedPrompt(
-            request.prompt, // Use original prompt for best context
-            accessToken,
-            gcpProjectId,
-            undefined, // Skip startImageUrl since prompt changed significantly
-            aspectRatio,
-            undefined
-          );
-          operationName = retryResult.operationName;
-          finalPrompt = retryResult.rephrasedPrompt;
-          
-          // Update clip with rephrased prompt
-          await supabase
-            .from('video_clips')
-            .update({ 
-              prompt: finalPrompt,
-              corrective_prompts: [...(safetyCheck.warnings.length > 0 ? [request.prompt] : []), velocityAwarePrompt]
-            })
-            .eq('project_id', request.projectId)
-            .eq('shot_index', request.clipIndex);
-        }
+        console.log(`[SingleClip] Starting Kling 2.6 generation (attempt ${contentRetry + 1}/${MAX_CONTENT_RETRIES + 1})...`);
         
-        console.log(`[SingleClip] Operation started: ${operationName}`);
+        // Generate with Kling
+        const result = await generateClipWithKling(
+          finalPrompt,
+          negativePromptString,
+          request.startImageUrl,
+          aspectRatio as '16:9' | '9:16' | '1:1',
+          referenceImages,
+          KLING_ENABLE_AUDIO
+        );
+        taskId = result.taskId;
         
-        // Save operation name
+        console.log(`[SingleClip] Kling task started: ${taskId}`);
+        
+        // Save task ID (replaces Veo operation name)
         await supabase.rpc('upsert_video_clip', {
           p_project_id: request.projectId,
           p_user_id: request.userId,
           p_shot_index: request.clipIndex,
           p_prompt: finalPrompt,
           p_status: 'generating',
-          p_veo_operation_name: operationName,
+          p_veo_operation_name: taskId, // Reuse field for Kling task ID
         });
 
         // Poll for completion
-        const pollResult = await pollOperation(accessToken, operationName);
+        const pollResult = await pollKlingTask(taskId);
         rawVideoUrl = pollResult.videoUrl;
         
         // Success! Break out of retry loop
-        console.log(`[SingleClip] ✓ Video generated successfully${contentRetry > 0 ? ` on retry ${contentRetry}` : ''}`);
+        console.log(`[SingleClip] ✓ Video generated successfully with Kling 2.6${contentRetry > 0 ? ` on retry ${contentRetry}` : ''}`);
         break;
         
       } catch (genError) {
         const errorMsg = genError instanceof Error ? genError.message : String(genError);
         
-        // Check if it's a content filter error
-        const isContentFilterError = 
-          errorMsg.includes('usage guidelines') ||
-          errorMsg.includes('content filter') ||
-          errorMsg.includes('violate') ||
-          errorMsg.includes('policy') ||
-          errorMsg.includes('raiMediaFilteredCount');
+        // Check if it's a content filter error or rate limit
+        const isRetryableError = 
+          errorMsg.includes('content') ||
+          errorMsg.includes('filter') ||
+          errorMsg.includes('rate') ||
+          errorMsg.includes('429') ||
+          errorMsg.includes('timeout');
         
-        if (isContentFilterError && contentRetry < MAX_CONTENT_RETRIES) {
-          console.warn(`[SingleClip] ⚠️ Content filter rejected - attempting AI rephrase (retry ${contentRetry + 1}/${MAX_CONTENT_RETRIES})...`);
+        if (isRetryableError && contentRetry < MAX_CONTENT_RETRIES) {
+          console.warn(`[SingleClip] ⚠️ Kling error - retrying (${contentRetry + 1}/${MAX_CONTENT_RETRIES})...`);
+          // Wait before retry
+          await new Promise(r => setTimeout(r, 3000 * (contentRetry + 1)));
           continue;
         }
         
-        // Not a content filter error or max retries reached
+        // Not retryable or max retries reached
         throw genError;
       }
     }
@@ -5043,26 +5047,28 @@ serve(async (req) => {
     // Log API cost for this video generation
     try {
       const creditsCharged = request.qualityTier === 'professional' ? 20 : 20; // Production credits per shot
-      const realCostCents = 8; // Veo API estimated cost (~$0.08 per 4s clip)
+      const realCostCents = 6; // Kling API estimated cost (~$0.06 per 5s clip)
       
       await supabase.rpc('log_api_cost', {
         p_project_id: request.projectId,
         p_shot_id: `clip_${request.clipIndex}`,
-        p_service: 'google_veo',
+        p_service: 'kling',
         p_operation: 'video_generation',
         p_credits_charged: creditsCharged,
         p_real_cost_cents: realCostCents,
         p_duration_seconds: DEFAULT_CLIP_DURATION,
         p_status: 'completed',
         p_metadata: JSON.stringify({
-          model: 'veo-3.1-generate-001',
+          model: KLING_MODEL,
           aspectRatio: request.aspectRatio || '16:9',
           qualityTier: request.qualityTier || 'standard',
           hasStartImage: !!request.startImageUrl,
           hasContinuityManifest: !!extractedManifest,
+          referenceImagesUsed: referenceImages.length,
+          audioEnabled: KLING_ENABLE_AUDIO,
         }),
       });
-      console.log(`[SingleClip] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost`);
+      console.log(`[SingleClip] API cost logged: ${creditsCharged} credits, ${realCostCents}¢ real cost (Kling 2.6)`);
     } catch (costError) {
       console.warn(`[SingleClip] Failed to log API cost:`, costError);
     }

@@ -479,7 +479,8 @@ function ProjectCard({
       />
       
       <div className={cn(
-        "relative overflow-hidden rounded-2xl transition-all duration-700 aspect-video glass-card",
+        "relative overflow-hidden rounded-2xl transition-all duration-700 glass-card",
+        hasVideo ? "aspect-video" : index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-video",
         "border border-border",
         isHovered && "border-foreground/25 shadow-2xl",
         isActive && "ring-2 ring-foreground/40"
@@ -1470,9 +1471,9 @@ export default function Projects() {
                     ))}
                   </div>
                 ) : (
-                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5">
+                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 [column-gap:1.25rem]">
                     {filteredProjects.map((project, index) => (
-                      <div key={project.id} className="break-inside-avoid mb-5">
+                      <div key={project.id} className="break-inside-avoid mb-5 inline-block w-full">
                         <ProjectCard
                           project={project}
                           index={index}

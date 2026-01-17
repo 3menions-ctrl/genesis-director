@@ -48,6 +48,7 @@ import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer
 import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
 
 // ============= HELPERS =============
 
@@ -350,11 +351,17 @@ function ProjectCard({
         {/* Thumbnail */}
         <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-zinc-800 shrink-0">
           {hasVideo && videoSrc ? (
-            <img 
-              src={project.thumbnail_url || undefined}
-              alt={project.name}
-              className="w-full h-full object-cover"
-            />
+            project.thumbnail_url ? (
+              <img 
+                src={project.thumbnail_url}
+                alt={project.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+              </div>
+            )
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Film className="w-5 h-5 text-zinc-600" />
@@ -474,21 +481,42 @@ function ProjectCard({
         {/* Video/Thumbnail - always visible, no loading state */}
         {hasVideo && videoSrc ? (
           <>
+            {/* Static thumbnail image - always visible as base layer */}
+            {project.thumbnail_url && (
+              <img
+                src={project.thumbnail_url}
+                alt={project.name}
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
+                  isHovered && "scale-105"
+                )}
+              />
+            )}
+            
+            {/* Video element - overlays thumbnail on hover */}
             <video
               ref={videoRef}
               src={videoSrc}
               poster={project.thumbnail_url || undefined}
               className={cn(
-                "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-                isHovered && "scale-105"
+                "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                isHovered ? "opacity-100 scale-105" : "opacity-0",
+                !project.thumbnail_url && "opacity-100" // Show video if no thumbnail
               )}
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               onLoadedData={handleVideoLoaded}
               crossOrigin="anonymous"
             />
+            
+            {/* Loading spinner when no thumbnail */}
+            {!project.thumbnail_url && (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/50">
+                <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+              </div>
+            )}
             
             {/* Cinematic bars on hover */}
             <motion.div 
@@ -741,6 +769,9 @@ export default function Projects() {
     hasLoadedOnce 
   } = useStudio();
   
+  // Thumbnail generation hook
+  const { generateMissingThumbnails, isGenerating } = useProjectThumbnails();
+  
   // UI State
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -761,6 +792,18 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'failed'>('all');
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
+  
+  // Auto-generate missing thumbnails when projects load
+  useEffect(() => {
+    if (hasLoadedOnce && projects.length > 0) {
+      const projectsNeedingThumbnails = projects.map(p => ({
+        id: p.id,
+        video_url: p.video_url,
+        thumbnail_url: p.thumbnail_url
+      }));
+      generateMissingThumbnails(projectsNeedingThumbnails);
+    }
+  }, [hasLoadedOnce, projects, generateMissingThumbnails]);
 
   // Scroll animation
   const { scrollY } = useScroll();

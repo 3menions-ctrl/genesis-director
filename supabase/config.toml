@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.gamification-event]
 verify_jwt = false
+
+[functions.generate-project-thumbnail]
+verify_jwt = false

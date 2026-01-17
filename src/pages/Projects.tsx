@@ -1470,9 +1470,9 @@ export default function Projects() {
                     ))}
                   </div>
                 ) : (
-                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">
+                  <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5">
                     {filteredProjects.map((project, index) => (
-                      <div key={project.id} className="break-inside-avoid">
+                      <div key={project.id} className="break-inside-avoid mb-5">
                         <ProjectCard
                           project={project}
                           index={index}

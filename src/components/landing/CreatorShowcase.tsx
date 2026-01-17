@@ -103,8 +103,10 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -112,36 +114,69 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Single video element handles both poster display and playback
+  // Use IntersectionObserver to detect when card is visible
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Load video when visible
+  useEffect(() => {
+    if (!isVisible) return;
+    
     const vid = videoRef.current;
     if (!vid) return;
 
-    const handleLoaded = () => {
-      // Seek to 0.1s to show a frame
-      if (vid.currentTime === 0) {
-        vid.currentTime = 0.1;
-      }
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const tryLoad = () => {
+      vid.load();
+    };
+
+    const handleLoadedData = () => {
+      // Seek to show a frame
+      vid.currentTime = 0.5;
     };
 
     const handleSeeked = () => {
       setIsLoaded(true);
     };
 
-    const handleCanPlay = () => {
-      setIsLoaded(true);
+    const handleError = () => {
+      if (retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(tryLoad, 1000 * retryCount);
+      }
     };
 
-    vid.addEventListener('loadeddata', handleLoaded);
+    vid.addEventListener('loadeddata', handleLoadedData);
     vid.addEventListener('seeked', handleSeeked);
-    vid.addEventListener('canplay', handleCanPlay);
+    vid.addEventListener('error', handleError);
+
+    // Staggered initial load
+    const timer = setTimeout(tryLoad, index * 200);
 
     return () => {
-      vid.removeEventListener('loadeddata', handleLoaded);
+      clearTimeout(timer);
+      vid.removeEventListener('loadeddata', handleLoadedData);
       vid.removeEventListener('seeked', handleSeeked);
-      vid.removeEventListener('canplay', handleCanPlay);
+      vid.removeEventListener('error', handleError);
     };
-  }, []);
+  }, [isVisible, index]);
 
   // Handle hover play/pause
   useEffect(() => {
@@ -149,16 +184,17 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     if (!vid || !isLoaded) return;
 
     if (isHovering) {
+      vid.currentTime = 0;
       vid.play().catch(() => {});
     } else {
       vid.pause();
-      // Reset to show poster frame when not hovering
-      vid.currentTime = 0.1;
+      vid.currentTime = 0.5;
     }
   }, [isHovering, isLoaded]);
 
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -183,20 +219,22 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         </div>
       </div>
 
-      {/* Single video element - shows frame when loaded, plays on hover */}
-      <video
-        ref={videoRef}
-        src={video.url}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isLoaded ? "opacity-100" : "opacity-0",
-          isHovering ? "scale-105" : "scale-100"
-        )}
-        muted
-        loop
-        playsInline
-        preload="metadata"
-      />
+      {/* Single video element - only renders when visible, shows frame when loaded */}
+      {isVisible && (
+        <video
+          ref={videoRef}
+          src={video.url}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+            isLoaded ? "opacity-100" : "opacity-0",
+            isHovering ? "scale-105" : "scale-100"
+          )}
+          muted
+          loop
+          playsInline
+          preload="auto"
+        />
+      )}
 
       {/* Gradient overlay */}
       <div className={cn(

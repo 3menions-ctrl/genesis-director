@@ -112,10 +112,11 @@ interface VideoCardProps {
   index: number;
 }
 
-function VideoCard({ video, height, onClick, index }: VideoCardProps) {
+const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   const heightClasses = {
@@ -124,17 +125,26 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
     short: 'h-40 md:h-48',
   };
 
+  // Start loading video when user hovers
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    if (isHovering && isLoaded) {
-      vid.currentTime = 0;
-      vid.play().catch(() => {});
+    if (isHovering) {
+      // Start loading the video if not already loading
+      if (!isVideoLoading) {
+        setIsVideoLoading(true);
+        vid.load();
+      }
+      // Play when ready
+      if (isVideoReady) {
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      }
     } else {
       vid.pause();
     }
-  }, [isHovering, isLoaded]);
+  }, [isHovering, isVideoLoading, isVideoReady]);
 
   return (
     <motion.div
@@ -177,13 +187,14 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
         poster={video.thumbnail}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-          isHovering ? "scale-105 opacity-100" : "scale-100 opacity-0"
+          isHovering && isVideoReady ? "scale-105 opacity-100" : "scale-100 opacity-0"
         )}
         muted
         loop
         playsInline
         preload="none"
-        onLoadedData={() => setIsLoaded(true)}
+        onCanPlayThrough={() => setIsVideoReady(true)}
+        onLoadedData={() => setIsVideoReady(true)}
       />
 
       {/* Gradient overlay */}

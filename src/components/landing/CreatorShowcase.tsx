@@ -259,26 +259,40 @@ export default function CreatorShowcase() {
 
   const activeVideo = filteredVideos[activeIndex] || CREATOR_VIDEOS[0];
 
-  // Handle video source changes
+  // Handle video source changes - runs when modal opens or video changes
   useEffect(() => {
-    const video = mainVideoRef.current;
-    if (!video || showFullscreen) return;
+    if (!showFullscreen) return;
     
-    setIsVideoReady(false);
-    video.pause();
-    video.src = activeVideo.url;
-    video.load();
-    
-    const handleCanPlay = () => {
-      setIsVideoReady(true);
-      video.muted = isMuted;
-      if (isPlaying) {
+    // Small delay to ensure video element is mounted
+    const timer = setTimeout(() => {
+      const video = mainVideoRef.current;
+      if (!video) return;
+      
+      setIsVideoReady(false);
+      video.pause();
+      video.src = activeVideo.url;
+      video.load();
+      
+      const handleCanPlay = () => {
+        setIsVideoReady(true);
+        video.muted = isMuted;
         video.play().catch(() => {});
-      }
-    };
+      };
+      
+      const handleError = () => {
+        // Retry once on error
+        video.load();
+      };
+      
+      video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('error', handleError, { once: true });
+      
+      return () => {
+        video.removeEventListener('canplay', handleCanPlay);
+      };
+    }, 50);
     
-    video.addEventListener('canplay', handleCanPlay);
-    return () => video.removeEventListener('canplay', handleCanPlay);
+    return () => clearTimeout(timer);
   }, [activeIndex, activeVideo.url, showFullscreen]);
 
   // Handle play/pause and mute changes
@@ -560,10 +574,9 @@ export default function CreatorShowcase() {
                         : "opacity-50 hover:opacity-80 hover:scale-105"
                     )}
                   >
-                    <video
-                      src={video.url}
-                      muted
-                      playsInline
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
                       className="w-full h-full object-cover"
                     />
                   </button>

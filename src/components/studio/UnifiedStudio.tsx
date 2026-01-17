@@ -1102,7 +1102,7 @@ export function UnifiedStudio() {
 
       {/* Floating Header with Glass Effect */}
       <header className="sticky top-0 z-50">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-transparent to-black/20 blur-xl pointer-events-none" />
         
         <div className="bg-black/60 backdrop-blur-3xl">
@@ -1114,15 +1114,15 @@ export function UnifiedStudio() {
                 className="flex items-center gap-3 group"
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500 blur-2xl rounded-full opacity-0 group-hover:opacity-40 transition-all duration-700 scale-150" />
-                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/30 via-purple-500/20 to-fuchsia-500/30 border border-white/20 flex items-center justify-center group-hover:border-violet-400/50 transition-all duration-500 shadow-xl shadow-violet-500/10">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 blur-2xl rounded-full opacity-0 group-hover:opacity-40 transition-all duration-700 scale-150" />
+                  <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/30 via-orange-500/20 to-yellow-500/30 border border-white/20 flex items-center justify-center group-hover:border-amber-400/50 transition-all duration-500 shadow-xl shadow-amber-500/10">
                     <Film className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <span className="text-xl font-bold bg-gradient-to-r from-white via-violet-100 to-purple-200 bg-clip-text text-transparent">Genesis Studio</span>
+                  <span className="text-xl font-bold bg-gradient-to-r from-white via-amber-100 to-orange-200 bg-clip-text text-transparent">Genesis Studio</span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-300 border border-violet-500/30">AI POWERED</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30">AI POWERED</span>
                   </div>
                 </div>
               </button>
@@ -1142,8 +1142,8 @@ export function UnifiedStudio() {
                 
                 {/* Clips pill */}
                 <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-white/[0.08] to-white/[0.04] backdrop-blur-xl border border-white/[0.12] shadow-xl">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
-                    <Layers className="w-4 h-4 text-violet-400" />
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                    <Layers className="w-4 h-4 text-amber-400" />
                   </div>
                   <div className="hidden sm:block">
                     <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Clips</p>
@@ -1187,16 +1187,16 @@ export function UnifiedStudio() {
           <div className="flex items-center justify-center gap-3 mb-8 flex-wrap">
             {appliedTemplateName && (
               <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
-                <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-violet-400/40 backdrop-blur-xl">
-                  <LayoutTemplate className="w-4 h-4 text-violet-400" />
-                  <span className="text-sm font-semibold text-violet-200">{appliedTemplateName}</span>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-amber-400/40 backdrop-blur-xl">
+                  <LayoutTemplate className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-amber-200">{appliedTemplateName}</span>
                   <button 
                     onClick={() => {
                       setAppliedTemplateName(null);
                       setConcept('');
                     }}
-                    className="ml-1 text-violet-300 hover:text-white transition-colors"
+                    className="ml-1 text-amber-300 hover:text-white transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
@@ -1250,11 +1250,11 @@ export function UnifiedStudio() {
         {/* Epic Main Card with Multi-layer Glass Effect */}
         <div className="relative">
           {/* Outer glow layers */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-violet-600/20 via-purple-500/15 to-fuchsia-500/20 rounded-[2rem] blur-2xl opacity-60" />
+          <div className="absolute -inset-2 bg-gradient-to-r from-amber-600/20 via-orange-500/15 to-yellow-500/20 rounded-[2rem] blur-2xl opacity-60" />
           <div className="absolute -inset-1 bg-gradient-to-b from-white/[0.08] to-transparent rounded-[1.75rem] blur-xl opacity-40" />
           
           {/* Main glass card */}
-          <div className="relative bg-gradient-to-br from-white/[0.1] via-white/[0.05] to-white/[0.02] border border-white/[0.15] rounded-3xl overflow-hidden backdrop-blur-3xl shadow-[0_20px_80px_-20px_rgba(120,80,200,0.3)]">
+          <div className="relative bg-gradient-to-br from-white/[0.1] via-white/[0.05] to-white/[0.02] border border-white/[0.15] rounded-3xl overflow-hidden backdrop-blur-3xl shadow-[0_20px_80px_-20px_rgba(180,120,40,0.3)]">
             {/* Inner highlight */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
             
@@ -1267,7 +1267,7 @@ export function UnifiedStudio() {
                     disabled={isRunning}
                     className="relative gap-2 sm:gap-3 rounded-xl text-white/50 data-[state=active]:text-white transition-all duration-500 text-xs sm:text-sm font-bold overflow-hidden group"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 opacity-0 data-[state=active]:opacity-100 transition-opacity duration-500 rounded-xl" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 opacity-0 data-[state=active]:opacity-100 transition-opacity duration-500 rounded-xl" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 data-[state=active]:opacity-100 rounded-xl" />
                     <div className="relative flex items-center gap-2 sm:gap-3">
                       <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1297,8 +1297,8 @@ export function UnifiedStudio() {
                 {/* Premium Concept Input */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/30 to-purple-500/20 border border-violet-400/30 flex items-center justify-center shadow-lg shadow-violet-500/10">
-                      <Sparkles className="w-5 h-5 text-violet-400" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/20 border border-amber-400/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                      <Sparkles className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
                       <Label className="text-base sm:text-lg font-bold text-white">Story Concept</Label>
@@ -1308,14 +1308,14 @@ export function UnifiedStudio() {
                   
                   <div className="relative group/input">
                     {/* Dramatic input glow */}
-                    <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/40 via-purple-500/30 to-fuchsia-500/40 rounded-2xl blur-xl opacity-0 group-focus-within/input:opacity-60 transition-all duration-500" />
+                    <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/40 via-orange-500/30 to-yellow-500/40 rounded-2xl blur-xl opacity-0 group-focus-within/input:opacity-60 transition-all duration-500" />
                     <Textarea
                       value={concept}
                       onChange={(e) => setConcept(e.target.value)}
                       placeholder="A lone astronaut discovers ancient alien ruins on Mars, revealing humanity's true origins..."
                       rows={5}
                       disabled={isRunning}
-                      className="relative resize-none text-base sm:text-lg leading-relaxed p-5 bg-black/50 border-2 border-white/[0.1] text-white placeholder:text-white/25 focus:border-violet-400/60 focus:ring-4 focus:ring-violet-500/10 rounded-2xl backdrop-blur-xl transition-all duration-300 shadow-inner"
+                      className="relative resize-none text-base sm:text-lg leading-relaxed p-5 bg-black/50 border-2 border-white/[0.1] text-white placeholder:text-white/25 focus:border-amber-400/60 focus:ring-4 focus:ring-amber-500/10 rounded-2xl backdrop-blur-xl transition-all duration-300 shadow-inner"
                     />
                     {concept.length > 0 && (
                       <div className="absolute bottom-4 right-4 px-2 py-1 rounded-lg bg-white/10 text-xs text-white/50 font-medium backdrop-blur-xl">
@@ -1419,8 +1419,8 @@ export function UnifiedStudio() {
                   
                   <div className={cn(
                     "flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all duration-300 cursor-pointer backdrop-blur-xl",
-                    includeMusic 
-                      ? "bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-400/40 shadow-lg shadow-pink-500/10" 
+                    includeMusic
+                      ? "bg-gradient-to-r from-rose-500/20 to-red-500/20 border-rose-400/40 shadow-lg shadow-rose-500/10" 
                       : "bg-black/30 border-white/[0.1] hover:border-white/20 hover:bg-white/[0.05]"
                   )}
                   onClick={() => !isRunning && setIncludeMusic(!includeMusic)}
@@ -1433,7 +1433,7 @@ export function UnifiedStudio() {
                       className="scale-90"
                     />
                     <Label htmlFor="music" className="flex items-center gap-2 text-sm font-semibold cursor-pointer text-white/90">
-                      <Music className={cn("w-4 h-4", includeMusic ? "text-pink-400" : "text-white/60")} />
+                      <Music className={cn("w-4 h-4", includeMusic ? "text-rose-400" : "text-white/60")} />
                       Music
                     </Label>
                   </div>

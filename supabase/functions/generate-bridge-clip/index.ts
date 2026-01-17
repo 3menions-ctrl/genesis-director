@@ -7,10 +7,11 @@ const corsHeaders = {
 };
 
 // ============================================================================
-// Kling 2.6 Configuration - Primary and ONLY video provider
+// Kling 2.0 Configuration - Primary and ONLY video provider
+// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
 // ============================================================================
 const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-6-master";
+const KLING_MODEL = "kling-v2-master";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 // Generate Kling JWT token

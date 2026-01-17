@@ -143,25 +143,25 @@ function StatCard({
       initial={{ opacity: 0, y: 8, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ scale: 1.05 }}
-      className="relative group flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-xl"
+      whileHover={{ scale: 1.03 }}
+      className="relative group flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-br from-muted/40 to-muted/20 border border-border/30 backdrop-blur-xl"
     >
       {/* Glow effect on hover */}
       <div className={cn(
-        "absolute inset-0 rounded-xl bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl",
+        "absolute inset-0 rounded-lg bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl",
         config.glow
       )} />
       
-      <div className="relative flex items-center gap-2">
+      <div className="relative flex items-center gap-1.5">
         <div className={cn(
-          "w-8 h-8 rounded-lg flex items-center justify-center",
+          "w-6 h-6 rounded-md flex items-center justify-center",
           "bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40"
         )}>
-          <Icon className={cn("w-4 h-4", config.icon)} />
+          <Icon className={cn("w-3 h-3", config.icon)} />
         </div>
         <div className="flex flex-col">
-          <span className={cn("text-lg font-bold leading-none", config.text)}>{value}</span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+          <span className={cn("text-sm font-bold leading-none", config.text)}>{value}</span>
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</span>
         </div>
       </div>
     </motion.div>
@@ -171,68 +171,45 @@ function StatCard({
 // ============= PREMIUM HERO HEADER COMPONENT =============
 
 function HeroHeader({ 
-  stats, 
-  onCreateClick 
+  stats 
 }: { 
   stats: { total: number; completed: number; processing: number; totalClips: number };
-  onCreateClick: () => void;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mb-8"
+      className="relative mb-4"
     >
       {/* Premium glass container */}
-      <div className="relative p-6 rounded-3xl bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 border border-border/40 backdrop-blur-2xl overflow-hidden">
+      <div className="relative p-4 rounded-2xl bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 border border-border/40 backdrop-blur-2xl overflow-hidden">
         {/* Subtle inner glow */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
         
         {/* Content */}
-        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Title & Description */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
           >
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight hero-text mb-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight hero-text">
               Your Projects
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Manage and watch your AI-generated videos
             </p>
           </motion.div>
 
-          {/* Stats Row - Premium Floating Cards */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Stats Row - Compact Cards */}
+          <div className="flex flex-wrap items-center gap-2">
             <StatCard icon={FolderOpen} label="Total" value={stats.total} color="purple" delay={0} />
             <StatCard icon={Check} label="Ready" value={stats.completed} color="emerald" delay={0.05} />
             <StatCard icon={Activity} label="Active" value={stats.processing} color="amber" delay={0.1} />
             <StatCard icon={Film} label="Clips" value={stats.totalClips} color="blue" delay={0.15} />
           </div>
-          
-          {/* Create Button - Premium Style */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <Button 
-              onClick={onCreateClick}
-              className="relative h-12 px-6 rounded-2xl font-semibold gap-2 group overflow-hidden shadow-lg"
-            >
-              {/* Shimmer effect */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-transparent"
-                animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
-              />
-              <Plus className="relative w-5 h-5 transition-transform group-hover:rotate-90 duration-300" />
-              <span className="relative">New Project</span>
-            </Button>
-          </motion.div>
         </div>
       </div>
     </motion.div>
@@ -1201,7 +1178,7 @@ export default function Projects() {
       <AppHeader onCreateClick={handleCreateProject} />
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-24">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pt-20">
         
         {/* Loading state */}
         {(isLoadingProjects && !hasLoadedOnce) ? (
@@ -1356,16 +1333,16 @@ export default function Projects() {
         ) : (
           <>
             {/* Cinematic Hero Header with Stats */}
-            <HeroHeader stats={stats} onCreateClick={handleCreateProject} />
+            <HeroHeader stats={stats} />
 
             {/* Premium Search & Filter Toolbar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="mb-8"
+              className="mb-4"
             >
-              <div className="relative p-5 rounded-2xl bg-gradient-to-br from-muted/40 via-muted/30 to-muted/20 border border-border/40 backdrop-blur-2xl overflow-hidden">
+              <div className="relative p-3 rounded-xl bg-gradient-to-br from-muted/40 via-muted/30 to-muted/20 border border-border/40 backdrop-blur-2xl overflow-hidden">
                 {/* Subtle inner highlight */}
                 <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.02] via-transparent to-transparent pointer-events-none" />
                 
@@ -1532,13 +1509,13 @@ export default function Projects() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
-                className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/10"
+                className="mb-4 p-3 rounded-xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/10"
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-amber-400" />
-                    <h2 className="text-sm font-semibold text-white">Ready to Stitch</h2>
-                    <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px]">
+                    <Layers className="w-3.5 h-3.5 text-amber-400" />
+                    <h2 className="text-xs font-semibold text-white">Ready to Stitch</h2>
+                    <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
                       {needsStitching.length + stitchingProjects.length}
                     </Badge>
                   </div>
@@ -1574,17 +1551,17 @@ export default function Projects() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="space-y-10"
+              className="space-y-6"
             >
               {filteredProjects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-20 h-20 rounded-2xl bg-muted/30 flex items-center justify-center mb-6">
-                    <Search className="w-8 h-8 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 rounded-xl bg-muted/30 flex items-center justify-center mb-4">
+                    <Search className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-lg font-medium text-foreground mb-2">No projects found</p>
-                  <p className="text-muted-foreground text-sm max-w-sm">Try adjusting your search or filters to find what you're looking for</p>
-                  <Button variant="outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-6 gap-2">
-                    <X className="w-4 h-4" />
+                  <p className="text-base font-medium text-foreground mb-1">No projects found</p>
+                  <p className="text-muted-foreground text-sm max-w-sm">Try adjusting your search or filters</p>
+                  <Button variant="outline" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} className="mt-4 gap-2">
+                    <X className="w-3 h-3" />
                     Clear filters
                   </Button>
                 </div>
@@ -1596,17 +1573,17 @@ export default function Projects() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="relative p-6 rounded-3xl bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent border border-amber-500/20 backdrop-blur-2xl overflow-hidden"
+                      className="relative p-4 rounded-2xl bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent border border-amber-500/20 backdrop-blur-2xl overflow-hidden"
                     >
                       {/* Subtle glow */}
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
                       
-                      <div className="relative flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
-                          <Pin className="w-4 h-4 text-black" />
+                      <div className="relative flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
+                          <Pin className="w-3 h-3 text-black" />
                         </div>
-                        <h2 className="text-base font-semibold text-foreground">Pinned Projects</h2>
-                        <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30">
+                        <h2 className="text-sm font-semibold text-foreground">Pinned</h2>
+                        <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30 text-[10px] px-1.5">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).length}
                         </Badge>
                       </div>
@@ -1633,7 +1610,7 @@ export default function Projects() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                           {filteredProjects.filter(p => pinnedProjects.has(p.id)).map((project, index) => (
                             <ProjectCard
                               key={project.id}
@@ -1670,14 +1647,14 @@ export default function Projects() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 + genreIndex * 0.05 }}
-                        className="relative p-6 rounded-3xl bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border border-border/30 backdrop-blur-2xl overflow-hidden"
+                        className="relative p-4 rounded-2xl bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border border-border/30 backdrop-blur-2xl overflow-hidden"
                       >
-                        <div className="relative flex items-center gap-3 mb-6">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border border-border/40 bg-gradient-to-br from-muted/80 to-muted/40">
-                            <GenreIcon className={cn("w-4 h-4", config.color)} />
+                        <div className="relative flex items-center gap-2 mb-4">
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center shadow-lg border border-border/40 bg-gradient-to-br from-muted/80 to-muted/40">
+                            <GenreIcon className={cn("w-3 h-3", config.color)} />
                           </div>
-                          <h2 className="text-base font-semibold text-foreground">{config.label}</h2>
-                          <Badge variant="outline" className="ml-auto text-xs border-border/40 bg-muted/30">
+                          <h2 className="text-sm font-semibold text-foreground">{config.label}</h2>
+                          <Badge variant="outline" className="ml-auto text-[10px] border-border/40 bg-muted/30 px-1.5">
                             {genreProjects.length}
                           </Badge>
                         </div>
@@ -1704,7 +1681,7 @@ export default function Projects() {
                             ))}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                             {genreProjects.map((project, index) => (
                               <ProjectCard
                                 key={project.id}

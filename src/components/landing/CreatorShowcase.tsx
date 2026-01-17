@@ -11,19 +11,6 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
-// Import thumbnail images
-import thumbIlluminated from '@/assets/thumbnails/illuminated-dreams.jpg';
-import thumbWildHunt from '@/assets/thumbnails/wild-hunt.jpg';
-import thumbSunset from '@/assets/thumbnails/sunset-dreams.jpg';
-import thumbRiver from '@/assets/thumbnails/river-whispers.jpg';
-import thumbSnowyCabin from '@/assets/thumbnails/snowy-cabin.jpg';
-import thumbVerdant from '@/assets/thumbnails/verdant-grove.jpg';
-import thumbSnowySerenity from '@/assets/thumbnails/snowy-serenity.jpg';
-import thumbChocolate from '@/assets/thumbnails/chocolate-adventures.jpg';
-import thumbRuined from '@/assets/thumbnails/ruined-valor.jpg';
-import thumbFiery from '@/assets/thumbnails/fiery-majesty.jpg';
-import thumbOwl from '@/assets/thumbnails/owl-wisdom.jpg';
-
 // Sample videos generated with Apex Studio
 const CREATOR_VIDEOS = [
   {
@@ -32,7 +19,6 @@ const CREATOR_VIDEOS = [
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
     featured: true,
-    thumbnail: thumbIlluminated,
   },
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
@@ -40,7 +26,6 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
     featured: true,
-    thumbnail: thumbWildHunt,
   },
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
@@ -48,7 +33,6 @@ const CREATOR_VIDEOS = [
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
     featured: false,
-    thumbnail: thumbSunset,
   },
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
@@ -56,7 +40,6 @@ const CREATOR_VIDEOS = [
     title: 'Whispers by the River',
     genre: 'Nature',
     featured: false,
-    thumbnail: thumbRiver,
   },
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
@@ -64,7 +47,6 @@ const CREATOR_VIDEOS = [
     title: 'Snowy Cabin Retreat',
     genre: 'Nature',
     featured: false,
-    thumbnail: thumbSnowyCabin,
   },
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
@@ -72,7 +54,6 @@ const CREATOR_VIDEOS = [
     title: 'Whispers of the Verdant Grove',
     genre: 'Nature',
     featured: false,
-    thumbnail: thumbVerdant,
   },
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
@@ -80,7 +61,6 @@ const CREATOR_VIDEOS = [
     title: 'Soaring Above Snowy Serenity',
     genre: 'Aerial',
     featured: true,
-    thumbnail: thumbSnowySerenity,
   },
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
@@ -88,7 +68,6 @@ const CREATOR_VIDEOS = [
     title: 'Whimsical Chocolate Adventures',
     genre: 'Creative',
     featured: false,
-    thumbnail: thumbChocolate,
   },
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
@@ -96,7 +75,6 @@ const CREATOR_VIDEOS = [
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
     featured: false,
-    thumbnail: thumbRuined,
   },
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
@@ -104,7 +82,6 @@ const CREATOR_VIDEOS = [
     title: 'Skyward Over Fiery Majesty',
     genre: 'Aerial',
     featured: false,
-    thumbnail: thumbFiery,
   },
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
@@ -112,11 +89,67 @@ const CREATOR_VIDEOS = [
     title: "Owl of Wisdom's Twilight",
     genre: 'Creative',
     featured: false,
-    thumbnail: thumbOwl,
   },
 ];
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
+
+// Hook to extract thumbnail from video using canvas
+function useVideoThumbnail(videoUrl: string): string | null {
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'metadata';
+    
+    const handleLoadedData = () => {
+      // Seek to 1 second for a good frame
+      video.currentTime = 1;
+    };
+    
+    const handleSeeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setThumbnail(dataUrl);
+        }
+      } catch (e) {
+        console.warn('Could not extract thumbnail:', e);
+      }
+      video.src = ''; // Clean up
+    };
+    
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('seeked', handleSeeked);
+    video.src = videoUrl;
+    video.load();
+    
+    return () => {
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('seeked', handleSeeked);
+      video.src = '';
+    };
+  }, [videoUrl]);
+
+  return thumbnail;
+}
+
+// Small thumbnail component for the strip
+const ThumbnailImage = ({ videoUrl, alt }: { videoUrl: string; alt: string }) => {
+  const thumbnail = useVideoThumbnail(videoUrl);
+  return thumbnail ? (
+    <img src={thumbnail} alt={alt} className="w-full h-full object-cover" />
+  ) : (
+    <div className="w-full h-full bg-muted animate-pulse" />
+  );
+};
 
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
@@ -128,7 +161,7 @@ interface VideoCardProps {
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const thumbnail = useVideoThumbnail(video.url);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -162,17 +195,22 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Static thumbnail image - always reliable */}
-      <img
-        src={video.thumbnail}
-        alt={video.title}
-        onLoad={() => setImageLoaded(true)}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          imageLoaded ? "opacity-100" : "opacity-0",
-          isHovering ? "scale-105" : "scale-100"
-        )}
-      />
+      {/* Loading placeholder */}
+      {!thumbnail && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
+      
+      {/* Extracted video thumbnail */}
+      {thumbnail && (
+        <img
+          src={thumbnail}
+          alt={video.title}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+            isHovering ? "scale-105" : "scale-100"
+          )}
+        />
+      )}
 
       {/* Video element - only plays on hover */}
       {isHovering && (
@@ -586,11 +624,7 @@ export default function CreatorShowcase() {
                         : "opacity-50 hover:opacity-80 hover:scale-105"
                     )}
                   >
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
+                    <ThumbnailImage videoUrl={video.url} alt={video.title} />
                   </button>
                 ))}
               </div>

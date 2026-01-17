@@ -229,7 +229,7 @@ export function AdminPipelineMonitor() {
 
   const getServiceIcon = (name: string) => {
     const icons: Record<string, any> = {
-      'Veo Video Gen': Video,
+      'Kling 2.6 Video': Video,
       'OpenAI TTS': Mic,
       'Cloud Run Stitcher': Scissors,
       'OpenAI GPT': Sparkles,

@@ -102,7 +102,7 @@ const Privacy = () => {
               by these third-party AI systems:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-              <li><strong>Google Veo:</strong> Video generation AI service operated by Google LLC, subject to Google's Privacy Policy and Terms of Service</li>
+              <li><strong>Kling AI:</strong> Video generation AI service for creating cinematic video content</li>
               <li><strong>OpenAI:</strong> Script and text generation services, subject to OpenAI's usage policies</li>
               <li><strong>Other AI Providers:</strong> We may utilize additional AI services as our technology evolves</li>
             </ul>

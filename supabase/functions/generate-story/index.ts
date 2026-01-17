@@ -287,7 +287,7 @@ CRITICAL CLIP COUNT REQUIREMENT:
 CRITICAL CONCEPT: SCENE vs STORY
 - A SCENE is ONE continuous moment in ONE location with ONE action sequence
 - A STORY spans multiple scenes/episodes
-- Each ${targetDuration}-second video = 1 SCENE = ${clipCount} clips of 6 seconds each
+- Each ${targetDuration}-second video = 1 SCENE = ${clipCount} clips of 5 seconds each (Kling 2.6)
 - The ${clipCount} clips show PROGRESSIVE ACTION within the SAME moment
 
 SCENE STRUCTURE (${clipCount} PROGRESSIVE CLIPS):
@@ -311,7 +311,7 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
 2. CONTINUOUS TIME: No time jumps within a scene
    - Clip 2 starts where Clip 1 ends
    - If character is mid-step in Clip 3, they complete the step in Clip 4
-   - Total time elapsed in scene: ~36 seconds of story time
+   - Total time elapsed in scene: ~${clipCount * 5} seconds of story time
    
 3. CONSISTENT LIGHTING: Same light throughout
    - Sun position doesn't change
@@ -328,7 +328,7 @@ CRITICAL RULES FOR CONTINUOUS FLOW:
    - Physical position connects between clips
 
 OUTPUT FORMAT:
-Write the scene as ${clipCount} connected paragraphs, each describing 6 seconds of continuous action.
+Write the scene as ${clipCount} connected paragraphs, each describing 5 seconds of continuous action (Kling 2.6).
 Label each: [CLIP 1], [CLIP 2], etc.
 ${voiceDisabled ? 'DO NOT include any [NARRATION] or [DIALOGUE] tags. NO SPOKEN WORDS.' : (mustPreserveContent ? "Include [NARRATION] or [DIALOGUE] tags with the user's EXACT text for each clip." : '')}
 End each clip at a moment that naturally flows into the next.
@@ -405,7 +405,7 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include these dialogue lines in the appropriate clips. Use the EXACT words provided.
 ` : ''}
 
-This scene will be a ${targetDuration}-second video made of ${clipCount} clips (6 seconds each).
+This scene will be a ${targetDuration}-second video made of ${clipCount} clips (5 seconds each, Kling 2.6).
 All ${clipCount} clips must show CONTINUOUS PROGRESSIVE ACTION in the SAME location.
 ${mustPreserveContent ? 'CRITICAL: Preserve the user\'s narration/dialogue EXACTLY as written - only add visual descriptions.' : ''}
 ${request.environmentPrompt ? 'CRITICAL: Use the EXACT environment, lighting, and atmosphere specified in ENVIRONMENT DNA for ALL clips.' : ''}

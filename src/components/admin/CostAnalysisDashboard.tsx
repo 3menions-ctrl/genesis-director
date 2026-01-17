@@ -451,8 +451,8 @@ export function CostAnalysisDashboard() {
 
   const getServiceIcon = (service: string) => {
     switch (service) {
-      case 'google_veo': return <Video className="w-4 h-4" />;
-      case 'google_veo_poll': return <RefreshCw className="w-4 h-4" />;
+      case 'kling': return <Video className="w-4 h-4" />;
+      case 'kling_poll': return <RefreshCw className="w-4 h-4" />;
       case 'openai-tts': return <Mic className="w-4 h-4" />;
       case 'cloud_run_stitcher': return <Scissors className="w-4 h-4" />;
       case 'music-generation': return <Music className="w-4 h-4" />;

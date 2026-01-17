@@ -146,8 +146,8 @@ serve(async (req) => {
     console.log(`[generate-script] Recommended clips based on content: ${recommendedClips}`);
     
     if (isFullMovieMode) {
-      // Full movie script generation - dynamic shot count based on content
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${recommendedClips} shots, each 6 seconds.
+      // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${recommendedClips} shots, each 5 seconds.
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -191,7 +191,7 @@ MOTION REQUIREMENTS:
 
 RULES:
 - Generate EXACTLY ${recommendedClips} shots to fit the content
-- Each shot is EXACTLY 6 seconds
+- Each shot is EXACTLY 5 seconds (Kling 2.6)
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
 - NO static scenes - always movement (even buffer shots have subtle motion)

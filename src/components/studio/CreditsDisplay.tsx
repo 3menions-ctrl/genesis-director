@@ -73,18 +73,15 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
       </div>
 
       {/* Credits count */}
-      <div className="mb-3">
+      <div className="mb-4">
         <div className="flex items-baseline gap-1.5">
           <span className="text-2xl font-display font-bold text-white">
             {credits.remaining.toLocaleString()}
           </span>
           <span className="text-xs text-white/40">
-            / {credits.total.toLocaleString()}
+            credits
           </span>
         </div>
-        <p className="text-[10px] text-white/50 mt-1">
-          ≈ {Math.floor(credits.remaining / 60)} videos ({affordableShots} clips)
-        </p>
       </div>
 
       {/* Progress bar */}
@@ -96,28 +93,6 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
             )}
             style={{ width: `${Math.max(0, 100 - usagePercentage)}%` }}
           />
-        </div>
-      </div>
-
-      {/* Two-phase billing breakdown */}
-      <div className="space-y-2 mb-4">
-        <p className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
-          Cost Per Shot
-        </p>
-        <div className="p-3 rounded-lg bg-white/5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/60">Pre-Production</span>
-            <span className="text-xs font-semibold text-white/80">{CREDIT_COSTS.PRE_PRODUCTION} credits</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/60">Production</span>
-            <span className="text-xs font-semibold text-white/80">{CREDIT_COSTS.PRODUCTION} credits</span>
-          </div>
-          <div className="h-px bg-white/10" />
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-white">Total per shot</span>
-            <span className="text-xs font-bold text-white">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
-          </div>
         </div>
       </div>
 
@@ -157,10 +132,6 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
         </div>
       )}
 
-      {/* Refund notice */}
-      <p className="text-[10px] text-white/30 mb-4">
-        Failed generations are automatically refunded
-      </p>
 
       {/* Buy button */}
       <Button

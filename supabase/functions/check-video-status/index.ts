@@ -6,9 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Kling API configuration - Kling 2.6 ONLY
+// Kling API configuration - Kling 2.0 ONLY
+// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
 const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-6-master";
+const KLING_MODEL = "kling-v2-master";
 
 // Generate Kling JWT token
 async function generateKlingJWT(): Promise<string> {

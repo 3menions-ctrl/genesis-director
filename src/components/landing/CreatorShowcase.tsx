@@ -116,6 +116,7 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -148,15 +149,26 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
         heightClasses[height]
       )}
     >
+      {/* Fallback background with title */}
+      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted-foreground/10">
+        <div className="text-center p-4">
+          <Film className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+          <span className="text-sm text-muted-foreground/70 line-clamp-2">{video.title}</span>
+        </div>
+      </div>
+
       {/* Thumbnail poster image - always visible until hover */}
-      <img
-        src={video.thumbnail}
-        alt={video.title}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isHovering ? "scale-105 opacity-0" : "scale-100 opacity-100"
-        )}
-      />
+      {!thumbnailError && (
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          onError={() => setThumbnailError(true)}
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+            isHovering ? "scale-105 opacity-0" : "scale-100 opacity-100"
+          )}
+        />
+      )}
       
       {/* Video - plays on hover */}
       <video
@@ -170,7 +182,7 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="none"
         onLoadedData={() => setIsLoaded(true)}
       />
 

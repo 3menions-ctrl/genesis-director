@@ -59,18 +59,18 @@ export function TemplatePreviewPanel({
   const totalDuration = shotSequence?.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0) || 0;
 
   return (
-    <Card className="bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-transparent border-violet-500/20 overflow-hidden">
+    <Card className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-amber-500/20 overflow-hidden">
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
-                <Clapperboard className="w-4 h-4 text-violet-400" />
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                <Clapperboard className="w-4 h-4 text-amber-400" />
               </div>
               <div>
                 <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                   Using Template: {templateName}
-                  <Badge variant="secondary" className="bg-violet-500/20 text-violet-300 text-[10px] px-1.5">
+                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-300 text-[10px] px-1.5">
                     {shotSequence?.length || 0} shots
                   </Badge>
                 </CardTitle>
@@ -103,7 +103,7 @@ export function TemplatePreviewPanel({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {shotSequence && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                  <Film className="w-4 h-4 text-violet-400" />
+                  <Film className="w-4 h-4 text-amber-400" />
                   <div>
                     <p className="text-xs text-white/50">Shots</p>
                     <p className="text-sm font-semibold text-white">{shotSequence.length}</p>

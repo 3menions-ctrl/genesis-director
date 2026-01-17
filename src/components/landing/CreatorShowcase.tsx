@@ -263,36 +263,48 @@ export default function CreatorShowcase() {
   useEffect(() => {
     if (!showFullscreen) return;
     
-    // Small delay to ensure video element is mounted
-    const timer = setTimeout(() => {
-      const video = mainVideoRef.current;
-      if (!video) return;
-      
-      setIsVideoReady(false);
-      video.pause();
-      video.src = activeVideo.url;
-      video.load();
-      
-      const handleCanPlay = () => {
-        setIsVideoReady(true);
-        video.muted = isMuted;
-        video.play().catch(() => {});
-      };
-      
-      const handleError = () => {
-        // Retry once on error
-        video.load();
-      };
-      
-      video.addEventListener('canplay', handleCanPlay);
-      video.addEventListener('error', handleError, { once: true });
-      
-      return () => {
-        video.removeEventListener('canplay', handleCanPlay);
-      };
-    }, 50);
+    const video = mainVideoRef.current;
+    if (!video) return;
     
-    return () => clearTimeout(timer);
+    setIsVideoReady(false);
+    
+    const handleCanPlayThrough = () => {
+      setIsVideoReady(true);
+      video.muted = isMuted;
+      video.play().catch(() => {});
+    };
+    
+    const handleLoadedData = () => {
+      // Fallback: if canplaythrough doesn't fire, use loadeddata
+      setIsVideoReady(true);
+      video.muted = isMuted;
+      video.play().catch(() => {});
+    };
+    
+    // Remove old listeners before adding new ones
+    video.removeEventListener('canplaythrough', handleCanPlayThrough);
+    video.removeEventListener('loadeddata', handleLoadedData);
+    
+    video.addEventListener('canplaythrough', handleCanPlayThrough, { once: true });
+    video.addEventListener('loadeddata', handleLoadedData, { once: true });
+    
+    // Set source and load
+    video.src = activeVideo.url;
+    video.load();
+    
+    // Fallback timeout - if video doesn't load in 5s, try playing anyway
+    const fallbackTimer = setTimeout(() => {
+      if (!isVideoReady) {
+        setIsVideoReady(true);
+        video.play().catch(() => {});
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(fallbackTimer);
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
+      video.removeEventListener('loadeddata', handleLoadedData);
+    };
   }, [activeIndex, activeVideo.url, showFullscreen]);
 
   // Handle play/pause and mute changes

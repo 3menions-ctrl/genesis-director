@@ -114,7 +114,6 @@ interface VideoCardProps {
 
 function VideoCard({ video, height, onClick, index }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const posterVideoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -123,14 +122,6 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
     medium: 'h-52 md:h-64',
     short: 'h-40 md:h-48',
   };
-
-  // Set poster video to first frame on load
-  useEffect(() => {
-    const posterVid = posterVideoRef.current;
-    if (posterVid) {
-      posterVid.currentTime = 0.1;
-    }
-  }, []);
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -157,20 +148,21 @@ function VideoCard({ video, height, onClick, index }: VideoCardProps) {
         heightClasses[height]
       )}
     >
-      {/* Static poster video - shows first frame as thumbnail */}
-      <video
-        ref={posterVideoRef}
-        src={`${video.url}#t=0.1`}
-        className="absolute inset-0 w-full h-full object-cover"
-        muted
-        playsInline
-        preload="auto"
+      {/* Thumbnail poster image - always visible until hover */}
+      <img
+        src={video.thumbnail}
+        alt={video.title}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+          isHovering ? "scale-105 opacity-0" : "scale-100 opacity-100"
+        )}
       />
       
       {/* Video - plays on hover */}
       <video
         ref={videoRef}
         src={video.url}
+        poster={video.thumbnail}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-700",
           isHovering ? "scale-105 opacity-100" : "scale-100 opacity-0"

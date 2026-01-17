@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX, Expand, Film, Clapperboard, Star, Eye } from 'lucide-react';
+import { Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX, Expand, Film, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 // Sample videos generated with Apex Studio
 const CREATOR_VIDEOS = [
@@ -90,15 +96,21 @@ const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
 
 interface VideoCardProps {
   video: typeof CREATOR_VIDEOS[0];
-  isLarge?: boolean;
+  height: 'tall' | 'medium' | 'short';
   onClick: () => void;
   index: number;
 }
 
-function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
+function VideoCard({ video, height, onClick, index }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const heightClasses = {
+    tall: 'h-80 md:h-96',
+    medium: 'h-52 md:h-64',
+    short: 'h-40 md:h-48',
+  };
 
   useEffect(() => {
     const vid = videoRef.current;
@@ -114,17 +126,15 @@ function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden cursor-pointer",
-        isLarge 
-          ? "rounded-3xl aspect-[16/10] md:col-span-2 md:row-span-2" 
-          : "rounded-2xl aspect-video"
+        "group relative overflow-hidden cursor-pointer rounded-2xl w-full",
+        heightClasses[height]
       )}
     >
       {/* Video */}
@@ -171,11 +181,8 @@ function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
         }}
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
       >
-        <div className={cn(
-          "rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center",
-          isLarge ? "w-20 h-20" : "w-14 h-14"
-        )}>
-          <Play className={cn("text-white ml-1", isLarge ? "w-8 h-8" : "w-5 h-5")} fill="currentColor" />
+        <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
+          <Play className="w-5 h-5 text-white ml-1" fill="currentColor" />
         </div>
       </motion.div>
 
@@ -190,32 +197,17 @@ function VideoCard({ video, isLarge = false, onClick, index }: VideoCardProps) {
       )}
 
       {/* Genre badge */}
-      <div className={cn(
-        "absolute z-10",
-        isLarge ? "top-4 right-4" : "top-3 right-3"
-      )}>
+      <div className="absolute top-3 right-3 z-10">
         <Badge variant="outline" className="bg-black/50 backdrop-blur-sm border-white/10 text-white/80 text-xs">
           {video.genre}
         </Badge>
       </div>
 
-      {/* Info overlay - Genre only */}
-      {isLarge && (
-        <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-10">
-          <Badge className="bg-white/10 backdrop-blur-sm border-white/10 text-white">
-            {video.genre}
-          </Badge>
-        </div>
-      )}
-
       {/* Expand icon */}
       <motion.div
         initial={false}
         animate={{ opacity: isHovering ? 1 : 0 }}
-        className={cn(
-          "absolute z-10",
-          isLarge ? "bottom-6 right-6 md:bottom-8 md:right-8" : "bottom-3 right-3"
-        )}
+        className="absolute bottom-3 right-3 z-10"
       >
         <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
           <Expand className="w-4 h-4 text-white" />
@@ -357,23 +349,70 @@ export default function CreatorShowcase() {
             </div>
           </motion.div>
 
-          {/* Bento Grid Gallery */}
+          {/* Masonry Carousel Gallery */}
           <motion.div 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-fr"
+            className="relative"
           >
-            {filteredVideos.slice(0, 7).map((video, index) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                isLarge={index === 0}
-                onClick={() => handleVideoClick(index)}
-                index={index}
-              />
-            ))}
+            <Carousel
+              opts={{
+                align: 'start',
+                loop: true,
+                dragFree: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-3 md:-ml-4">
+                {/* Create masonry-style columns */}
+                {Array.from({ length: Math.ceil(filteredVideos.length / 2) }).map((_, colIndex) => {
+                  const video1 = filteredVideos[colIndex * 2];
+                  const video2 = filteredVideos[colIndex * 2 + 1];
+                  // Alternate height patterns for masonry effect
+                  const pattern = colIndex % 3;
+                  const heights: Array<'tall' | 'medium' | 'short'> = 
+                    pattern === 0 ? ['tall', 'short'] :
+                    pattern === 1 ? ['medium', 'medium'] :
+                    ['short', 'tall'];
+                  
+                  return (
+                    <CarouselItem key={colIndex} className="pl-3 md:pl-4 basis-[280px] md:basis-[320px] lg:basis-[360px]">
+                      <div className="flex flex-col gap-3 md:gap-4">
+                        {video1 && (
+                          <VideoCard
+                            video={video1}
+                            height={heights[0]}
+                            onClick={() => handleVideoClick(colIndex * 2)}
+                            index={colIndex * 2}
+                          />
+                        )}
+                        {video2 && (
+                          <VideoCard
+                            video={video2}
+                            height={heights[1]}
+                            onClick={() => handleVideoClick(colIndex * 2 + 1)}
+                            index={colIndex * 2 + 1}
+                          />
+                        )}
+                      </div>
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              <CarouselPrevious className="hidden md:flex -left-4 lg:-left-6 w-12 h-12 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
+              <CarouselNext className="hidden md:flex -right-4 lg:-right-6 w-12 h-12 bg-background/80 backdrop-blur-sm border-border hover:bg-background" />
+            </Carousel>
+            
+            {/* Swipe hint for mobile */}
+            <div className="flex md:hidden justify-center mt-6">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <ChevronLeft className="w-4 h-4" />
+                <span>Swipe to explore</span>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </div>
           </motion.div>
 
         </div>

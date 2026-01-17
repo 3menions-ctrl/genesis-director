@@ -482,71 +482,52 @@ export default function TrainingVideo() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       <AppHeader showCreate={false} />
       
-      {/* Hero Section */}
-      <section className="relative z-10 px-4 lg:px-8 pt-24 pb-8 border-b border-border/50">
+      {/* Hero Section - Compact */}
+      <section className="relative z-10 px-4 lg:px-8 pt-24 pb-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-            {/* Left: Title & Description */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex-1"
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-lg" />
-                  <div className="relative w-14 h-14 rounded-2xl bg-glossy-black flex items-center justify-center shadow-obsidian">
-                    <Film className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card mb-2 border border-primary/30 bg-primary/10">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    <span className="text-xs font-medium text-primary">AI-Powered Studio</span>
-                  </div>
-                  <h1 className="text-3xl sm:text-4xl font-bold tracking-tight hero-text">
-                    Training Video Studio
-                  </h1>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-lg" />
+                <div className="relative w-12 h-12 rounded-2xl bg-glossy-black flex items-center justify-center shadow-obsidian">
+                  <Film className="w-6 h-6 text-white" />
                 </div>
               </div>
-              
-              <p className="hero-text-secondary max-w-xl text-lg leading-relaxed">
-                Create professional AI-powered training videos with realistic talking heads. 
-                Upload your avatar, choose a voice, and let AI do the magic.
-              </p>
-              
-              {/* Quick stats */}
-              <div className="flex items-center gap-4 mt-6">
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl glass-card">
-                  <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg">
-                    <Coins className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs hero-text-secondary">Est. Cost</p>
-                    <p className="font-bold hero-text">{ESTIMATED_CREDITS} credits</p>
-                  </div>
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full glass-card mb-1 border border-primary/30 bg-primary/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-medium text-primary uppercase tracking-wide">AI-Powered</span>
                 </div>
-                
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl glass-card">
-                  <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center shadow-lg">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs hero-text-secondary">Generation Time</p>
-                    <p className="font-bold hero-text">~2 min</p>
-                  </div>
-                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight hero-text">
+                  Training Video Studio
+                </h1>
               </div>
-            </motion.div>
-          </div>
+            </div>
+            
+            {/* Quick stats - inline */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card">
+                <Coins className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold hero-text">{ESTIMATED_CREDITS} credits</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card">
+                <Zap className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold hero-text">~2 min</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-5 gap-8">
+      {/* Main Content - Equal columns for better space usage */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid lg:grid-cols-2 gap-6">
           {/* Left: Configuration Panel */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="space-y-4">
             {/* Wizard Steps Indicator */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -608,23 +589,23 @@ export default function TrainingVideo() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="p-6 rounded-3xl glass-card">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="p-5 rounded-2xl glass-card">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-bold hero-text">Write Your Script</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Start with what your character will say</p>
+                        <h3 className="text-lg font-bold hero-text">Write Your Script</h3>
+                        <p className="text-xs hero-text-secondary mt-0.5">Start with what your character will say</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 1 of 4</Badge>
+                      <Badge variant="outline" className="text-muted-foreground text-xs">1 / 4</Badge>
                     </div>
                     
                     <div className="relative">
                       <Textarea
                         placeholder="Enter the text your character will speak...
 
-Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed. Let's get started!'"
+Example: 'Welcome to today's training session! In this video, we'll cover the essential skills you need to succeed.'"
                         value={scriptText}
                         onChange={(e) => setScriptText(e.target.value)}
-                        className="min-h-[200px] resize-none text-base"
+                        className="min-h-[140px] resize-none text-sm"
                       />
                       <div className="absolute bottom-3 right-3">
                         <Badge 
@@ -635,17 +616,18 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <Sparkles className="w-5 h-5 text-primary shrink-0" />
-                      <p className="text-sm hero-text-secondary">
-                        <span className="font-medium text-primary">Pro tip:</span> Keep your script between 50-500 characters for optimal quality and natural pacing.
+                    <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-xs hero-text-secondary">
+                        <span className="font-medium text-primary">Tip:</span> 50-500 characters for best results.
                       </p>
                     </div>
                     
-                    <div className="flex justify-end mt-6">
+                    <div className="flex justify-end mt-4">
                       <Button 
                         onClick={() => setActiveStep(1)} 
                         disabled={!scriptText.trim()}
+                        size="sm"
                         className="shadow-obsidian"
                       >
                         Continue
@@ -664,16 +646,16 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="p-6 rounded-3xl glass-card">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="p-5 rounded-2xl glass-card">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-bold hero-text">Select a Voice</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Choose how your script will sound</p>
+                        <h3 className="text-lg font-bold hero-text">Select a Voice</h3>
+                        <p className="text-xs hero-text-secondary mt-0.5">Choose how your script will sound</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 2 of 4</Badge>
+                      <Badge variant="outline" className="text-muted-foreground text-xs">2 / 4</Badge>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {VOICE_OPTIONS.map((voice) => {
                         const isPlaying = previewingVoiceId === voice.id;
                         const isSelected = selectedVoice === voice.id;
@@ -684,82 +666,49 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                             key={voice.id}
                             onClick={() => setSelectedVoice(voice.id)}
                             className={cn(
-                              "relative p-4 rounded-xl border-2 cursor-pointer transition-all group",
+                              "relative p-3 rounded-xl border-2 cursor-pointer transition-all group",
                               isSelected
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/50 hover:bg-muted/30"
                             )}
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="font-semibold hero-text">{voice.name}</span>
-                                  {isCached && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <Zap className="w-3.5 h-3.5 text-primary fill-primary" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>Instant playback</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                  {isSelected && (
-                                    <Badge className="text-xs">Selected</Badge>
-                                  )}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="font-medium text-sm hero-text truncate">{voice.name}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
                                 </div>
-                                <p className="text-sm hero-text-secondary mb-2">{voice.description}</p>
-                                <Badge variant="outline" className="text-xs capitalize">{voice.gender}</Badge>
+                                <p className="text-xs hero-text-secondary truncate">{voice.description}</p>
                               </div>
                               
                               <Button
-                                variant={isPlaying ? "default" : "outline"}
+                                variant={isPlaying ? "default" : "ghost"}
                                 size="icon"
-                                className="h-10 w-10 rounded-full shrink-0"
+                                className="h-8 w-8 rounded-full shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleVoicePreview(voice.id);
                                 }}
                               >
                                 {isPlaying ? (
-                                  <Pause className="w-4 h-4" />
+                                  <Pause className="w-3.5 h-3.5" />
                                 ) : (
-                                  <Play className="w-4 h-4" />
+                                  <Play className="w-3.5 h-3.5" />
                                 )}
                               </Button>
                             </div>
-                            
-                            {/* Waveform visualization when playing */}
-                            {isPlaying && (
-                              <div className="flex items-center gap-1 mt-3">
-                                {[...Array(20)].map((_, i) => (
-                                  <motion.div
-                                    key={i}
-                                    className="w-1 bg-primary rounded-full"
-                                    animate={{
-                                      height: [4, Math.random() * 20 + 4, 4],
-                                    }}
-                                    transition={{
-                                      duration: 0.4,
-                                      repeat: Infinity,
-                                      delay: i * 0.05,
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            )}
                           </div>
                         );
                       })}
                     </div>
                     
-                    <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(0)}>
+                    <div className="flex justify-between mt-4">
+                      <Button variant="outline" size="sm" onClick={() => setActiveStep(0)}>
                         Back
                       </Button>
-                      <Button onClick={() => setActiveStep(2)} className="shadow-obsidian">
+                      <Button size="sm" onClick={() => setActiveStep(2)} className="shadow-obsidian">
                         Continue
-                        <ChevronRight className="w-4 h-4 ml-2" />
+                        <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
                   </div>
@@ -774,18 +723,18 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="p-6 rounded-3xl glass-card">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="p-5 rounded-2xl glass-card">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-bold hero-text">Upload Your Character</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Choose who will deliver your message</p>
+                        <h3 className="text-lg font-bold hero-text">Upload Character</h3>
+                        <p className="text-xs hero-text-secondary mt-0.5">Choose who will deliver your message</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 3 of 4</Badge>
+                      <Badge variant="outline" className="text-muted-foreground text-xs">3 / 4</Badge>
                     </div>
                     
                     <div 
                       className={cn(
-                        "border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-all text-center group",
+                        "border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all text-center group",
                         characterImage 
                           ? "border-primary/50 bg-primary/5" 
                           : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
@@ -793,36 +742,35 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                       onClick={() => characterInputRef.current?.click()}
                     >
                       {characterImage ? (
-                        <div className="flex flex-col items-center">
-                          <div className="relative">
-                            <div className="absolute inset-0 rounded-2xl bg-foreground/20 blur-xl" />
-                            <div className="relative w-40 h-40 rounded-2xl overflow-hidden ring-4 ring-primary/30 shadow-obsidian">
+                        <div className="flex items-center gap-4">
+                          <div className="relative shrink-0">
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden ring-2 ring-primary/30">
                               <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 text-primary mt-4 mb-2">
-                            <Check className="w-5 h-5" />
-                            <span className="font-semibold">Character Uploaded</span>
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2 text-primary mb-1">
+                              <Check className="w-4 h-4" />
+                              <span className="font-medium text-sm">Character Uploaded</span>
+                            </div>
+                            <p className="text-xs hero-text-secondary">Click to replace</p>
                           </div>
-                          <p className="text-sm hero-text-secondary">Click to replace</p>
                           <Button 
                             variant="ghost" 
-                            size="sm"
-                            className="mt-4 text-muted-foreground hover:text-destructive"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive shrink-0"
                             onClick={(e) => { e.stopPropagation(); setCharacterImage(null); setCharacterImageFile(null); }}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Remove
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       ) : (
-                        <div className="py-8">
-                          <div className="w-24 h-24 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                            <Upload className="w-12 h-12 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <div className="py-4">
+                          <div className="w-16 h-16 rounded-xl bg-muted mx-auto mb-3 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                            <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
                           </div>
-                          <p className="font-semibold text-lg hero-text mb-1">Drop your character image here</p>
-                          <p className="text-sm hero-text-secondary mb-4">or click to browse</p>
-                          <Badge variant="secondary">PNG, JPG up to 10MB</Badge>
+                          <p className="font-medium text-sm hero-text mb-1">Drop image here or click to browse</p>
+                          <p className="text-xs hero-text-secondary">PNG, JPG up to 10MB</p>
                         </div>
                       )}
                     </div>
@@ -834,17 +782,18 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                       className="hidden"
                     />
                     
-                    <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(1)}>
+                    <div className="flex justify-between mt-4">
+                      <Button variant="outline" size="sm" onClick={() => setActiveStep(1)}>
                         Back
                       </Button>
                       <Button 
                         onClick={() => setActiveStep(3)} 
                         disabled={!characterImage}
+                        size="sm"
                         className="shadow-obsidian"
                       >
                         Continue
-                        <ChevronRight className="w-4 h-4 ml-2" />
+                        <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
                   </div>
@@ -859,30 +808,29 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="p-6 rounded-3xl glass-card">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="p-5 rounded-2xl glass-card">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-bold hero-text">Choose Your Scene</h3>
-                        <p className="text-sm hero-text-secondary mt-1">Select the perfect backdrop for your video</p>
+                        <h3 className="text-lg font-bold hero-text">Choose Scene</h3>
+                        <p className="text-xs hero-text-secondary mt-0.5">Select the backdrop for your video</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">Step 4 of 4</Badge>
+                      <Badge variant="outline" className="text-muted-foreground text-xs">4 / 4</Badge>
                     </div>
                     
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {/* Custom upload */}
                       <button
                         onClick={() => backgroundInputRef.current?.click()}
                         className={cn(
-                          "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center transition-all group",
+                          "aspect-video rounded-lg border-2 border-dashed flex items-center justify-center transition-all group",
                           customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
                         )}
                       >
                         {customBackground ? (
-                          <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-lg" />
+                          <img src={customBackground} alt="Custom" className="w-full h-full object-cover rounded-md" />
                         ) : (
-                          <div className="text-center p-2">
-                            <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1 group-hover:text-primary transition-colors" />
-                            <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">Custom</span>
+                          <div className="text-center">
+                            <Upload className="w-4 h-4 text-muted-foreground mx-auto group-hover:text-primary transition-colors" />
                           </div>
                         )}
                       </button>
@@ -892,19 +840,16 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                           key={bg.id}
                           onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
                           className={cn(
-                            "aspect-video rounded-xl overflow-hidden border-2 transition-all relative group",
+                            "aspect-video rounded-lg overflow-hidden border-2 transition-all relative",
                             selectedBackground === bg.id && !customBackground
-                              ? "border-primary ring-2 ring-primary/30"
+                              ? "border-primary ring-1 ring-primary/30"
                               : "border-transparent hover:border-primary/50"
                           )}
                         >
                           <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
-                            <span className="text-white text-xs font-medium">{bg.name}</span>
-                          </div>
                           {selectedBackground === bg.id && !customBackground && (
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                              <Check className="w-4 h-4 text-primary-foreground" />
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
                             </div>
                           )}
                         </button>
@@ -918,8 +863,8 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                       className="hidden"
                     />
                     
-                    <div className="flex justify-between mt-6">
-                      <Button variant="outline" onClick={() => setActiveStep(2)}>
+                    <div className="flex justify-between mt-4">
+                      <Button variant="outline" size="sm" onClick={() => setActiveStep(2)}>
                         Back
                       </Button>
                     </div>
@@ -929,22 +874,22 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
             </AnimatePresence>
           </div>
 
-          {/* Right: Live Preview */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Right: Live Preview - Sticky */}
+          <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="rounded-3xl glass-card overflow-hidden">
-                <div className="p-4 border-b border-border/50 flex items-center justify-between">
+              <div className="rounded-2xl glass-card overflow-hidden">
+                <div className="p-3 border-b border-border/50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-foreground text-background flex items-center justify-center">
-                      <Video className="w-4 h-4" />
+                    <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center">
+                      <Video className="w-3 h-3" />
                     </div>
-                    <span className="font-semibold hero-text">Live Preview</span>
+                    <span className="font-medium text-sm hero-text">Preview</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">16:9</Badge>
+                  <Badge variant="outline" className="text-[10px]">16:9</Badge>
                 </div>
                 
                 <div className="aspect-video bg-muted/50 relative">
@@ -976,23 +921,16 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                         {/* Character overlay */}
                         {characterImage ? (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <motion.div 
-                              className="relative"
-                              animate={{ scale: [1, 1.02, 1] }}
-                              transition={{ duration: 3, repeat: Infinity }}
-                            >
-                              <div className="absolute inset-0 bg-foreground/20 rounded-full blur-xl" />
-                              <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white/30 shadow-obsidian-xl">
-                                <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
-                              </div>
-                            </motion.div>
+                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-3 border-white/30 shadow-lg">
+                              <img src={characterImage} alt="Character" className="w-full h-full object-cover" />
+                            </div>
                           </div>
                         ) : (
                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-3">
-                              <User className="w-10 h-10 text-muted-foreground" />
+                            <div className="w-14 h-14 rounded-full bg-muted/80 flex items-center justify-center mb-2">
+                              <User className="w-7 h-7 text-muted-foreground" />
                             </div>
-                            <p className="text-sm text-muted-foreground">Upload a character</p>
+                            <p className="text-xs text-muted-foreground">No character</p>
                           </div>
                         )}
                         
@@ -1002,26 +940,25 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                             <motion.div
                               animate={{ rotate: 360 }}
                               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                              className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent mb-4"
+                              className="w-12 h-12 rounded-full border-3 border-primary border-t-transparent mb-3"
                             />
-                            <p className="hero-text font-semibold mb-2">
+                            <p className="hero-text font-medium text-sm mb-2">
                               {generationStep === 'generating_audio' && 'Generating voice...'}
                               {generationStep === 'generating_video' && 'Creating video...'}
                               {generationStep === 'applying_lipsync' && 'Syncing lips...'}
                             </p>
-                            <Progress value={progress} className="w-48 h-2" />
-                            <p className="hero-text-secondary text-sm mt-2">{progress}%</p>
+                            <Progress value={progress} className="w-32 h-1.5" />
                           </div>
                         )}
                         
                         {/* Error state */}
                         {generationStep === 'error' && (
-                          <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center backdrop-blur-sm">
-                            <AlertCircle className="w-12 h-12 text-destructive mb-3" />
-                            <p className="text-destructive font-semibold mb-2">Generation Failed</p>
-                            <p className="text-sm hero-text-secondary mb-4 text-center px-4">{error}</p>
+                          <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
+                            <AlertCircle className="w-8 h-8 text-destructive mb-2" />
+                            <p className="text-destructive font-medium text-sm mb-1">Failed</p>
+                            <p className="text-xs hero-text-secondary mb-3 text-center line-clamp-2">{error}</p>
                             <Button variant="outline" size="sm" onClick={() => setGenerationStep('idle')}>
-                              Try Again
+                              Retry
                             </Button>
                           </div>
                         )}
@@ -1030,18 +967,16 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                   </AnimatePresence>
                 </div>
                 
-                {/* Voice indicator */}
-                <div className="p-4 border-t border-border/50 bg-muted/30">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Mic className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Voice:</span>
+                {/* Selection summary */}
+                <div className="p-3 border-t border-border/50 bg-muted/30">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Mic className="w-3 h-3 text-muted-foreground" />
                       <span className="font-medium hero-text">{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Image className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Scene:</span>
-                      <span className="font-medium hero-text">
+                    <div className="flex items-center gap-1.5">
+                      <Image className="w-3 h-3 text-muted-foreground" />
+                      <span className="font-medium hero-text truncate max-w-[100px]">
                         {customBackground ? 'Custom' : BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.name}
                       </span>
                     </div>
@@ -1052,28 +987,28 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
 
             {/* Generate Button */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               {generationStep === 'complete' ? (
-                <div className="space-y-3">
-                  <Button className="w-full h-14 text-lg shadow-obsidian" asChild>
+                <div className="space-y-2">
+                  <Button className="w-full h-11 shadow-obsidian" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
-                      <Download className="w-5 h-5 mr-2" />
+                      <Download className="w-4 h-4 mr-2" />
                       Download Video
                     </a>
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={handleReset}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Create Another Video
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleReset}>
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Create Another
                   </Button>
                 </div>
               ) : (
                 <Button 
                   className={cn(
-                    "w-full h-14 text-lg transition-all",
-                    canGenerate && "shadow-obsidian hover:shadow-obsidian-lg hover:-translate-y-0.5"
+                    "w-full h-11 transition-all",
+                    canGenerate && "shadow-obsidian hover:shadow-obsidian-lg"
                   )}
                   variant={canGenerate ? "default" : "secondary"}
                   onClick={handleGenerate}
@@ -1081,15 +1016,15 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
                 >
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Generating...
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-5 h-5 mr-2" />
+                      <Wand2 className="w-4 h-4 mr-2" />
                       Generate Video
-                      <Badge variant="secondary" className="ml-3">
-                        {ESTIMATED_CREDITS} credits
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {ESTIMATED_CREDITS} cr
                       </Badge>
                     </>
                   )}
@@ -1097,33 +1032,31 @@ Example: 'Welcome to today's training session! In this video, we'll cover the es
               )}
             </motion.div>
 
-            {/* Checklist */}
+            {/* Compact Checklist */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <div className="p-4 rounded-2xl glass-card">
-                <h4 className="font-semibold hero-text text-sm mb-4">Ready to generate?</h4>
-                <div className="space-y-3">
+              <div className="p-3 rounded-xl glass-card">
+                <div className="flex items-center gap-2 flex-wrap">
                   {[
-                    { label: 'Script written', complete: scriptText.trim().length > 0 },
-                    { label: 'Voice selected', complete: !!selectedVoice },
-                    { label: 'Character uploaded', complete: !!characterImage },
-                    { label: 'Background chosen', complete: !!(selectedBackground || customBackground) },
+                    { label: 'Script', complete: scriptText.trim().length > 0 },
+                    { label: 'Voice', complete: !!selectedVoice },
+                    { label: 'Character', complete: !!characterImage },
+                    { label: 'Scene', complete: !!(selectedBackground || customBackground) },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      <div className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                    <div 
+                      key={i} 
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all",
                         item.complete 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-muted"
-                      )}>
-                        {item.complete ? <Check className="w-3.5 h-3.5" /> : <CircleDot className="w-3.5 h-3.5 text-muted-foreground" />}
-                      </div>
-                      <span className={item.complete ? "hero-text" : "text-muted-foreground"}>
-                        {item.label}
-                      </span>
+                          ? "bg-primary/10 text-primary" 
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {item.complete ? <Check className="w-3 h-3" /> : <CircleDot className="w-3 h-3" />}
+                      {item.label}
                     </div>
                   ))}
                 </div>

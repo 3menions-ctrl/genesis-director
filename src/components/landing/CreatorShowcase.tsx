@@ -11,12 +11,12 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 
-// Sample videos generated with Apex Studio - with thumbnail URLs
+// Sample videos generated with Apex Studio
+// Using video URL with #t=0.5 to grab a frame as poster
 const CREATOR_VIDEOS = [
   {
     id: 'a1b6f181-26fa-4306-a663-d5892977b3fc',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a1b6f181-26fa-4306-a663-d5892977b3fc_1768451441287.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a1b6f181-26fa-4306-a663-d5892977b3fc.jpg',
     title: 'Illuminated Dreams in Darkness',
     genre: 'Cinematic',
     featured: true,
@@ -24,7 +24,6 @@ const CREATOR_VIDEOS = [
   {
     id: 'a0016bb1-34ea-45e3-a173-da9441a84bda',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_a0016bb1-34ea-45e3-a173-da9441a84bda_1768449857055.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_a0016bb1-34ea-45e3-a173-da9441a84bda.jpg',
     title: 'Whispers of the Wild Hunt',
     genre: 'Cinematic',
     featured: true,
@@ -32,7 +31,6 @@ const CREATOR_VIDEOS = [
   {
     id: '71e83837-9ae4-4e79-a4f2-599163741b03',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_71e83837-9ae4-4e79-a4f2-599163741b03_1768354737035.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_71e83837-9ae4-4e79-a4f2-599163741b03.jpg',
     title: 'Sunset Dreams on Winding Roads',
     genre: 'Cinematic',
     featured: false,
@@ -40,7 +38,6 @@ const CREATOR_VIDEOS = [
   {
     id: 'c09f52b7-442c-41cd-be94-2895e78bd0ba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_c09f52b7-442c-41cd-be94-2895e78bd0ba_1768330950513.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_c09f52b7-442c-41cd-be94-2895e78bd0ba.jpg',
     title: 'Whispers by the River',
     genre: 'Nature',
     featured: false,
@@ -48,7 +45,6 @@ const CREATOR_VIDEOS = [
   {
     id: '72e42238-ddfc-4ce1-8bae-dce8d8fc6bba',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba_1768263824409.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_72e42238-ddfc-4ce1-8bae-dce8d8fc6bba.jpg',
     title: 'Snowy Cabin Retreat',
     genre: 'Nature',
     featured: false,
@@ -56,7 +52,6 @@ const CREATOR_VIDEOS = [
   {
     id: 'f6b90eb8-fc54-4a82-b8db-7592a601a0f6',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_f6b90eb8-fc54-4a82-b8db-7592a601a0f6_1768205766918.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_f6b90eb8-fc54-4a82-b8db-7592a601a0f6.jpg',
     title: 'Whispers of the Verdant Grove',
     genre: 'Nature',
     featured: false,
@@ -64,7 +59,6 @@ const CREATOR_VIDEOS = [
   {
     id: '099597a1-0cbf-4d71-b000-7d140ab896d1',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_099597a1-0cbf-4d71-b000-7d140ab896d1_1768171807679.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_099597a1-0cbf-4d71-b000-7d140ab896d1.jpg',
     title: 'Soaring Above Snowy Serenity',
     genre: 'Aerial',
     featured: true,
@@ -72,7 +66,6 @@ const CREATOR_VIDEOS = [
   {
     id: '1b0ac63f-643a-4d43-b8ed-44b8083257ed',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_1b0ac63f-643a-4d43-b8ed-44b8083257ed_1768157346652.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_1b0ac63f-643a-4d43-b8ed-44b8083257ed.jpg',
     title: 'Whimsical Chocolate Adventures',
     genre: 'Creative',
     featured: false,
@@ -80,7 +73,6 @@ const CREATOR_VIDEOS = [
   {
     id: 'dc255261-7bc3-465f-a9ec-ef2acd47b4fb',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_dc255261-7bc3-465f-a9ec-ef2acd47b4fb_1768124786072.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_dc255261-7bc3-465f-a9ec-ef2acd47b4fb.jpg',
     title: 'Silent Vigil in Ruined Valor',
     genre: 'Cinematic',
     featured: false,
@@ -88,7 +80,6 @@ const CREATOR_VIDEOS = [
   {
     id: '7434c756-78d3-4f68-8107-b205930027c4',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_7434c756-78d3-4f68-8107-b205930027c4_1768120634478.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_7434c756-78d3-4f68-8107-b205930027c4.jpg',
     title: 'Skyward Over Fiery Majesty',
     genre: 'Aerial',
     featured: false,
@@ -96,7 +87,6 @@ const CREATOR_VIDEOS = [
   {
     id: '5bd6da17-734b-452b-b8b0-3381e7c710e3',
     url: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/final-videos/stitched_5bd6da17-734b-452b-b8b0-3381e7c710e3_1768069835550.mp4',
-    thumbnail: 'https://ahlikyhgcqvrdvbtkghh.supabase.co/storage/v1/object/public/thumbnails/thumb_5bd6da17-734b-452b-b8b0-3381e7c710e3.jpg',
     title: "Owl of Wisdom's Twilight",
     genre: 'Creative',
     featured: false,
@@ -116,8 +106,6 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
-  const [thumbnailError, setThumbnailError] = useState(false);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -125,27 +113,43 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
     short: 'h-40 md:h-48',
   };
 
-  // Preload video on mount
+  // Load video metadata immediately to show first frame
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    const preloadTimer = setTimeout(() => {
-      vid.load();
-    }, index * 150);
+    // When metadata loads, seek to 0.5s to show a frame
+    const handleLoadedMetadata = () => {
+      vid.currentTime = 0.5;
+    };
 
-    return () => clearTimeout(preloadTimer);
+    const handleSeeked = () => {
+      setIsVideoReady(true);
+    };
+
+    vid.addEventListener('loadedmetadata', handleLoadedMetadata);
+    vid.addEventListener('seeked', handleSeeked);
+
+    // Stagger loading
+    const timer = setTimeout(() => {
+      vid.load();
+    }, index * 100);
+
+    return () => {
+      vid.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      vid.removeEventListener('seeked', handleSeeked);
+      clearTimeout(timer);
+    };
   }, [video.url, index]);
 
   // Handle hover play/pause
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid) return;
+    if (!vid || !isVideoReady) return;
 
-    if (isHovering && isVideoReady) {
-      vid.currentTime = 0;
+    if (isHovering) {
       vid.play().catch(() => {});
-    } else if (!isHovering) {
+    } else {
       vid.pause();
     }
   }, [isHovering, isVideoReady]);
@@ -163,48 +167,34 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Stylized fallback background - always visible as base layer */}
-      <div className="absolute inset-0 flex items-end bg-gradient-to-br from-primary/20 via-muted to-accent/20">
-        <div className="p-4 w-full">
-          <div className="flex items-center gap-2 mb-2">
-            <Film className="w-4 h-4 text-primary/60" />
-            <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-border/50 text-xs">
-              {video.genre}
-            </Badge>
+      {/* Loading state - shows while video loads */}
+      {!isVideoReady && (
+        <div className="absolute inset-0 flex items-end bg-gradient-to-br from-primary/10 via-muted to-accent/10">
+          <div className="p-4 w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <Film className="w-4 h-4 text-primary/60" />
+              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm border-border/50 text-xs">
+                {video.genre}
+              </Badge>
+            </div>
+            <p className="text-sm font-medium text-foreground/80 line-clamp-2">{video.title}</p>
           </div>
-          <p className="text-sm font-medium text-foreground/80 line-clamp-2">{video.title}</p>
         </div>
-      </div>
-
-      {/* Thumbnail image - shows immediately when loaded */}
-      {!thumbnailError && (
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          onLoad={() => setThumbnailLoaded(true)}
-          onError={() => setThumbnailError(true)}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-            thumbnailLoaded ? "opacity-100" : "opacity-0",
-            isHovering ? "scale-105" : "scale-100"
-          )}
-        />
       )}
 
-      {/* Video element - only visible on hover when ready */}
+      {/* Video element - shows first frame when loaded, plays on hover */}
       <video
         ref={videoRef}
         src={video.url}
         className={cn(
           "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-          isHovering && isVideoReady ? "opacity-100 scale-105" : "opacity-0 scale-100"
+          isVideoReady ? "opacity-100" : "opacity-0",
+          isHovering ? "scale-105" : "scale-100"
         )}
         muted
         loop
         playsInline
         preload="metadata"
-        onLoadedData={() => setIsVideoReady(true)}
-        onCanPlayThrough={() => setIsVideoReady(true)}
       />
 
       {/* Gradient overlay */}

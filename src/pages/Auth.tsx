@@ -160,69 +160,90 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-foreground">
-        {/* Decorative elements */}
+      {/* Left Side - Stunning Visual Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent">
+        {/* Animated gradient orbs */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-white/5 blur-3xl" />
+          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-white/10 blur-3xl animate-pulse" />
+          <div className="absolute top-1/3 -left-24 w-96 h-96 rounded-full bg-white/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute -bottom-32 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/30 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+          
+          {/* Grid pattern overlay */}
           <div 
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0 opacity-[0.05]"
             style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '40px 40px',
+              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+              backgroundSize: '32px 32px',
             }}
           />
+          
+          {/* Floating shapes */}
+          <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/20 rounded-2xl rotate-12 animate-float" />
+          <div className="absolute bottom-32 left-16 w-12 h-12 border-2 border-white/20 rounded-full animate-float" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute top-1/2 right-32 w-8 h-8 bg-white/10 rounded-lg rotate-45 animate-float" style={{ animationDelay: '1s' }} />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+          {/* Logo */}
           <div>
-            <div className="flex items-center gap-3 mb-12">
-              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-xl font-display font-bold text-white">AS</span>
+            <div className="flex items-center gap-3 mb-16">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl">
+                <span className="text-2xl font-display font-bold text-white">AS</span>
               </div>
-              <span className="text-xl font-display font-bold text-white">Apex Studio</span>
+              <span className="text-2xl font-display font-bold text-white">Apex Studio</span>
             </div>
 
-            <h1 className="text-5xl font-display font-bold text-white leading-tight mb-6">
-              Create videos<br />
-              <span className="text-white/70">with AI</span>
+            {/* Hero text */}
+            <h1 className="text-6xl xl:text-7xl font-display font-bold text-white leading-[1.1] mb-8">
+              Create<br />
+              <span className="text-white/60">cinematic</span><br />
+              videos
             </h1>
-            <p className="text-xl text-white/50 max-w-md">
-              Transform your ideas into video content with our AI-powered video generation platform.
+            <p className="text-xl text-white/70 max-w-md leading-relaxed">
+              Transform your ideas into stunning video content with our AI-powered generation platform.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-4">
+          {/* Features with glass cards */}
+          <div className="space-y-3 mb-8">
             {[
-              { icon: Zap, text: 'Generate scripts with AI' },
-              { icon: Play, text: 'Create videos from text or images' },
-              { icon: Sparkles, text: 'Automatic retry system included' },
+              { icon: Zap, text: 'AI-powered script generation', highlight: true },
+              { icon: Play, text: 'Text & image to video' },
+              { icon: Sparkles, text: 'Smart retry system' },
             ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-3 text-white/60">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                  <feature.icon className="w-4 h-4 text-white/80" />
+              <div 
+                key={i} 
+                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                  feature.highlight 
+                    ? 'bg-white/20 backdrop-blur-xl border border-white/30' 
+                    : 'bg-white/5 backdrop-blur-sm border border-white/10'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  feature.highlight ? 'bg-white text-primary' : 'bg-white/10 text-white'
+                }`}>
+                  <feature.icon className="w-5 h-5" />
                 </div>
-                <span className="text-sm">{feature.text}</span>
+                <span className={`font-medium ${feature.highlight ? 'text-white' : 'text-white/80'}`}>
+                  {feature.text}
+                </span>
               </div>
             ))}
           </div>
 
-          {/* Info Box */}
-          <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-            <p className="text-white/70 text-sm mb-4">
-              Start with 60 free credits to create your first clip. No credit card required.
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white/60" />
+          {/* Credits callout */}
+          <div className="p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/30 to-white/10 flex items-center justify-center border border-white/30">
+                <Film className="w-7 h-7 text-white" />
               </div>
-              <div>
-                <p className="text-white font-medium text-sm">Free Trial</p>
-                <p className="text-white/40 text-xs">1 clip included</p>
+              <div className="flex-1">
+                <p className="text-white font-bold text-lg">Start Free</p>
+                <p className="text-white/60 text-sm">60 credits • No card required</p>
+              </div>
+              <div className="px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm">
+                <span className="text-white font-bold text-sm">1 clip</span>
               </div>
             </div>
           </div>
@@ -230,12 +251,18 @@ export default function Auth() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative">
+        {/* Subtle background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -right-32 w-64 h-64 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-accent/5 blur-3xl" />
+        </div>
+
+        <div className="w-full max-w-md relative z-10">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-foreground mb-4">
-              <span className="text-xl font-display font-bold text-background">AS</span>
+          <div className="lg:hidden text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 shadow-lg shadow-primary/25">
+              <span className="text-2xl font-display font-bold text-white">AS</span>
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">
               Apex Studio
@@ -243,12 +270,16 @@ export default function Auth() {
           </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-display font-bold text-foreground mb-2">
-              {isLogin ? 'Welcome back' : 'Create your account'}
+          <div className="mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <User className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">{isLogin ? 'Welcome back' : 'Get started'}</span>
+            </div>
+            <h2 className="text-4xl font-display font-bold text-foreground mb-3">
+              {isLogin ? 'Sign in' : 'Create account'}
             </h2>
-            <p className="text-muted-foreground">
-              {isLogin ? 'Sign in to continue to your studio' : 'Start your filmmaking journey today'}
+            <p className="text-muted-foreground text-lg">
+              {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
             </p>
           </div>
 

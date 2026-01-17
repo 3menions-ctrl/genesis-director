@@ -18,7 +18,7 @@ const CreatorShowcase = lazy(() => import('@/components/landing/CreatorShowcase'
 
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
-const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
+
 const ContactSection = lazy(() => import('@/components/landing/ContactSection'));
 
 const Footer = lazy(() => import('@/components/landing/Footer'));
@@ -260,9 +260,6 @@ export default function Landing() {
         <CreatorShowcase />
       </Suspense>
 
-      <Suspense fallback={<SectionLoader />}>
-        <TestimonialsSection />
-      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <UseCasesSection />

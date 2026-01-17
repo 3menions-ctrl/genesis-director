@@ -257,10 +257,6 @@ export default function Landing() {
       </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
-        <UseCasesSection />
-      </Suspense>
-
-      <Suspense fallback={<SectionLoader />}>
         <CreatorShowcase />
       </Suspense>
 
@@ -268,6 +264,9 @@ export default function Landing() {
         <TestimonialsSection />
       </Suspense>
 
+      <Suspense fallback={<SectionLoader />}>
+        <UseCasesSection />
+      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <ContactSection />

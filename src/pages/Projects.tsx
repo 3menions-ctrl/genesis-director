@@ -903,14 +903,36 @@ export default function Projects() {
     return { total: allProjects.length, completed, processing, totalClips };
   }, [projects]);
 
-  // Recent activity (mock for now - could be real from API)
-  const recentActivity = useMemo(() => {
-    return filteredProjects.slice(0, 5).map(p => ({
-      project: p.name,
-      action: isPlayableProject(p) ? 'was completed' : 'was updated',
-      time: formatTimeAgo(p.updated_at)
-    }));
-  }, [filteredProjects]);
+  // Genre categories config
+  const GENRE_CONFIG: Record<string, { label: string; icon: typeof Film; color: string }> = {
+    cinematic: { label: 'Cinematic', icon: Film, color: 'text-purple-400' },
+    ad: { label: 'Advertisement', icon: Zap, color: 'text-amber-400' },
+    documentary: { label: 'Documentary', icon: Eye, color: 'text-blue-400' },
+    educational: { label: 'Educational', icon: Sparkles, color: 'text-emerald-400' },
+    funny: { label: 'Comedy', icon: Star, color: 'text-pink-400' },
+    religious: { label: 'Religious', icon: Heart, color: 'text-rose-400' },
+    motivational: { label: 'Motivational', icon: TrendingUp, color: 'text-orange-400' },
+    storytelling: { label: 'Storytelling', icon: Layers, color: 'text-cyan-400' },
+  };
+
+  // Group projects by genre
+  const groupedProjects = useMemo(() => {
+    const unpinnedProjects = filteredProjects.filter(p => !pinnedProjects.has(p.id));
+    const groups: Record<string, Project[]> = {};
+    
+    unpinnedProjects.forEach(project => {
+      const genre = project.genre || 'cinematic';
+      if (!groups[genre]) {
+        groups[genre] = [];
+      }
+      groups[genre].push(project);
+    });
+    
+    // Sort genres by count (most projects first)
+    const sortedGenres = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+    
+    return { groups, sortedGenres };
+  }, [filteredProjects, pinnedProjects]);
 
   // Handlers
   const handleCreateProject = () => {
@@ -1534,68 +1556,69 @@ export default function Projects() {
                     </section>
                   )}
 
-                  {/* All Projects Section */}
-                  <section className="p-5 rounded-2xl bg-muted/[0.03] border border-border/20 backdrop-blur-sm">
-                    <div className="flex items-center gap-3 mb-5">
-                      <Film className="w-4 h-4 text-primary" />
-                      <h2 className="text-sm font-semibold text-foreground">
-                        {pinnedProjects.size > 0 ? 'All Projects' : 'Your Projects'}
-                      </h2>
-                      <span className="text-xs text-muted-foreground">
-                        {statusFilter === 'all' ? '' : 
-                         statusFilter === 'completed' ? '• Ready to watch' :
-                         statusFilter === 'processing' ? '• Processing' : '• Need attention'}
-                      </span>
-                      <Badge variant="outline" className="ml-auto text-xs">
-                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).length}
-                      </Badge>
-                    </div>
-                    {viewMode === 'list' ? (
-                      <div className="space-y-2">
-                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                          <ProjectCard
-                            key={project.id}
-                            project={project}
-                            index={index}
-                            viewMode="list"
-                            onPlay={() => handlePlayVideo(project)}
-                            onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                            onRename={() => handleRenameProject(project)}
-                            onDelete={() => deleteProject(project.id)}
-                            onDownload={() => handleDownloadAll(project)}
-                            onRetryStitch={() => handleGoogleStitch(project.id)}
-                            onTogglePin={() => togglePin(project.id)}
-                            onTogglePublic={() => handleTogglePublic(project)}
-                            isActive={activeProjectId === project.id}
-                            isRetrying={retryingProjectId === project.id}
-                            isPinned={pinnedProjects.has(project.id)}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filteredProjects.filter(p => !pinnedProjects.has(p.id)).map((project, index) => (
-                          <ProjectCard
-                            key={project.id}
-                            project={project}
-                            index={index}
-                            viewMode="grid"
-                            onPlay={() => handlePlayVideo(project)}
-                            onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
-                            onRename={() => handleRenameProject(project)}
-                            onDelete={() => deleteProject(project.id)}
-                            onDownload={() => handleDownloadAll(project)}
-                            onRetryStitch={() => handleGoogleStitch(project.id)}
-                            onTogglePin={() => togglePin(project.id)}
-                            onTogglePublic={() => handleTogglePublic(project)}
-                            isActive={activeProjectId === project.id}
-                            isRetrying={retryingProjectId === project.id}
-                            isPinned={pinnedProjects.has(project.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </section>
+                  {/* Genre-based Project Sections */}
+                  {groupedProjects.sortedGenres.map((genre) => {
+                    const genreProjects = groupedProjects.groups[genre];
+                    const config = GENRE_CONFIG[genre] || { label: genre.charAt(0).toUpperCase() + genre.slice(1), icon: Film, color: 'text-primary' };
+                    const GenreIcon = config.icon;
+                    
+                    return (
+                      <section key={genre} className="p-5 rounded-2xl bg-muted/[0.03] border border-border/20 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 mb-5">
+                          <GenreIcon className={cn("w-4 h-4", config.color)} />
+                          <h2 className="text-sm font-semibold text-foreground">{config.label}</h2>
+                          <Badge variant="outline" className="ml-auto text-xs">
+                            {genreProjects.length}
+                          </Badge>
+                        </div>
+                        {viewMode === 'list' ? (
+                          <div className="space-y-2">
+                            {genreProjects.map((project, index) => (
+                              <ProjectCard
+                                key={project.id}
+                                project={project}
+                                index={index}
+                                viewMode="list"
+                                onPlay={() => handlePlayVideo(project)}
+                                onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                                onRename={() => handleRenameProject(project)}
+                                onDelete={() => deleteProject(project.id)}
+                                onDownload={() => handleDownloadAll(project)}
+                                onRetryStitch={() => handleGoogleStitch(project.id)}
+                                onTogglePin={() => togglePin(project.id)}
+                                onTogglePublic={() => handleTogglePublic(project)}
+                                isActive={activeProjectId === project.id}
+                                isRetrying={retryingProjectId === project.id}
+                                isPinned={pinnedProjects.has(project.id)}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {genreProjects.map((project, index) => (
+                              <ProjectCard
+                                key={project.id}
+                                project={project}
+                                index={index}
+                                viewMode="grid"
+                                onPlay={() => handlePlayVideo(project)}
+                                onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
+                                onRename={() => handleRenameProject(project)}
+                                onDelete={() => deleteProject(project.id)}
+                                onDownload={() => handleDownloadAll(project)}
+                                onRetryStitch={() => handleGoogleStitch(project.id)}
+                                onTogglePin={() => togglePin(project.id)}
+                                onTogglePublic={() => handleTogglePublic(project)}
+                                isActive={activeProjectId === project.id}
+                                isRetrying={retryingProjectId === project.id}
+                                isPinned={pinnedProjects.has(project.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
                 </>
               )}
             </motion.div>

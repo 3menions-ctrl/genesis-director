@@ -75,6 +75,7 @@ function mapDbProject(dbProject: any): Project {
     thumbnail_url: dbProject.thumbnail_url,
     pending_video_tasks: dbProject.pending_video_tasks || [],
     is_public: dbProject.is_public ?? false,
+    genre: dbProject.genre || 'cinematic',
   };
 }
 

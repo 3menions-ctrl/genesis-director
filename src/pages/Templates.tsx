@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { 
   LayoutTemplate, Search, Play, Clock, Users, Sparkles,
   Film, Megaphone, BookOpen, Smile, Briefcase,
-  Loader2, ArrowRight, Star, Zap
+  ArrowRight, Star, X, Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface Template {
   id: string;
@@ -31,7 +32,7 @@ interface Template {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'All', icon: LayoutTemplate },
+  { id: 'all', label: 'All Templates', icon: LayoutTemplate },
   { id: 'cinematic', label: 'Cinematic', icon: Film },
   { id: 'commercial', label: 'Commercial', icon: Megaphone },
   { id: 'educational', label: 'Educational', icon: BookOpen },
@@ -53,7 +54,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'epic',
     genre: 'ad',
     is_featured: true,
-    height: 'tall' as const,
   },
   {
     id: 'featured-2',
@@ -67,7 +67,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'documentary',
     is_featured: true,
-    height: 'medium' as const,
   },
   {
     id: 'featured-3',
@@ -81,7 +80,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'vlog',
     is_featured: true,
-    height: 'short' as const,
   },
   {
     id: 'template-edu-1',
@@ -95,7 +93,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'educational',
     is_featured: false,
-    height: 'tall' as const,
   },
   {
     id: 'template-story-1',
@@ -109,7 +106,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'emotional',
     genre: 'storytelling',
     is_featured: false,
-    height: 'medium' as const,
   },
   {
     id: 'template-noir-1',
@@ -123,7 +119,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'mysterious',
     genre: 'cinematic',
     is_featured: false,
-    height: 'tall' as const,
   },
   {
     id: 'template-action-1',
@@ -137,7 +132,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'action',
     genre: 'cinematic',
     is_featured: false,
-    height: 'short' as const,
   },
   {
     id: 'template-corp-1',
@@ -151,7 +145,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'corporate',
     is_featured: false,
-    height: 'medium' as const,
   },
   {
     id: 'template-travel-1',
@@ -165,7 +158,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'vlog',
     is_featured: false,
-    height: 'tall' as const,
   },
   {
     id: 'template-music-1',
@@ -179,7 +171,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'epic',
     genre: 'cinematic',
     is_featured: false,
-    height: 'short' as const,
   },
   {
     id: 'template-food-1',
@@ -193,7 +184,6 @@ const BUILT_IN_TEMPLATES = [
     mood: 'uplifting',
     genre: 'ad',
     is_featured: false,
-    height: 'medium' as const,
   },
   {
     id: 'template-tech-1',
@@ -207,180 +197,158 @@ const BUILT_IN_TEMPLATES = [
     mood: 'epic',
     genre: 'ad',
     is_featured: false,
-    height: 'tall' as const,
   },
 ];
 
 type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
 
-interface MasonryCardProps {
+function TemplateCard({ 
+  template,
+  onUse,
+  index = 0,
+}: { 
   template: TemplateItem;
   onUse: () => void;
-  isFeatured?: boolean;
-}
-
-const MasonryCard = forwardRef<HTMLDivElement, MasonryCardProps>(({ 
-  template, 
-  onUse, 
-  isFeatured = false,
-}, ref) => {
+  index?: number;
+}) {
   const [isHovered, setIsHovered] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
-  
-  const showContent = isHovered || isPressed;
-  
-  const getHeightClass = () => {
-    switch(template.height) {
-      case 'tall': return 'row-span-2';
-      case 'short': return 'row-span-1';
-      default: return 'row-span-1';
-    }
-  };
 
   return (
-    <div
-      ref={ref}
-      className={cn("relative group cursor-pointer h-full", getHeightClass())}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
-      onClick={() => setIsPressed(!isPressed)}
-      onDoubleClick={onUse}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group relative"
     >
       {/* Card Container */}
       <div className={cn(
-        "relative h-full w-full overflow-hidden rounded-xl",
-        "bg-neutral-900",
-        "border border-white/[0.06] hover:border-white/20",
-        "transition-all duration-500",
-        showContent && "border-white/40 shadow-2xl shadow-black/50"
+        "relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer",
+        "bg-muted transition-all duration-500",
+        "shadow-sm hover:shadow-xl"
       )}>
-        {/* Background Image */}
+        {/* Full Image */}
         {template.thumbnail_url ? (
-          <div className="absolute inset-0">
-            <img 
-              src={template.thumbnail_url} 
-              alt={template.name}
-              className={cn(
-                "w-full h-full object-cover transition-all duration-700",
-                showContent ? "scale-110 blur-sm" : "scale-100"
-              )}
-            />
-            <div className={cn(
-              "absolute inset-0 transition-all duration-500",
-              showContent 
-                ? "bg-gradient-to-t from-black via-black/80 to-black/40" 
-                : "bg-gradient-to-t from-black/80 via-black/20 to-transparent"
-            )} />
-          </div>
+          <img 
+            src={template.thumbnail_url} 
+            alt={template.name}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+              isHovered ? "scale-110" : "scale-100"
+            )}
+          />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/20" />
         )}
+        
+        {/* Subtle gradient overlay always visible at bottom */}
+        <div className={cn(
+          "absolute inset-0 transition-all duration-500",
+          isHovered 
+            ? "bg-gradient-to-t from-black/80 via-black/40 to-black/10" 
+            : "bg-gradient-to-t from-black/60 via-transparent to-transparent"
+        )} />
 
-        {/* Featured Badge - Always visible */}
-        {isFeatured && (
-          <div className="absolute top-3 left-3 z-20">
-            <Badge className="bg-white text-black border-0 shadow-lg text-[10px] font-bold uppercase tracking-wider">
+        {/* Featured Badge */}
+        {template.is_featured && (
+          <div className="absolute top-4 left-4 z-20">
+            <Badge className="bg-white text-foreground border-0 shadow-lg text-xs font-semibold">
               <Star className="w-3 h-3 mr-1" />
               Featured
             </Badge>
           </div>
         )}
 
-        {/* Content Overlay - Only visible on hover/click */}
+        {/* Title - Always visible at bottom */}
+        <div className={cn(
+          "absolute bottom-0 left-0 right-0 p-5 transition-all duration-500",
+          isHovered ? "translate-y-[-80px]" : "translate-y-0"
+        )}>
+          <h3 className="text-xl font-semibold text-white mb-1 drop-shadow-lg">
+            {template.name}
+          </h3>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs capitalize">
+              {template.category}
+            </Badge>
+            <Badge variant="outline" className="bg-white/10 backdrop-blur-sm border-white/30 text-white/90 text-xs capitalize">
+              {template.mood}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Expanded info on hover */}
         <AnimatePresence>
-          {showContent && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          {isHovered && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-10 flex flex-col justify-end p-4"
+              className="absolute bottom-0 left-0 right-0 p-5"
             >
-              {/* Title */}
-              <motion.h3 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
-                className="text-lg font-bold text-white mb-1.5 drop-shadow-lg"
-              >
-                {template.name}
-              </motion.h3>
-              
-              {/* Description */}
-              <motion.p 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.25, delay: 0.1 }}
-                className="text-xs text-white/60 line-clamp-2 mb-3"
-              >
+              <p className="text-sm text-white/80 mb-4 line-clamp-2">
                 {template.description || 'No description available'}
-              </motion.p>
+              </p>
               
               {/* Stats */}
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.25, delay: 0.15 }}
-                className="flex items-center gap-2 text-[10px] text-white/40 mb-3"
-              >
+              <div className="flex items-center gap-2 mb-4">
                 {template.clip_count && (
-                  <span className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 text-xs text-white/60 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
                     <Film className="w-3 h-3" />
-                    {template.clip_count}
-                  </span>
+                    {template.clip_count} clips
+                  </div>
                 )}
                 {template.target_duration_minutes && (
-                  <span className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 text-xs text-white/60 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
                     <Clock className="w-3 h-3" />
                     {template.target_duration_minutes}m
-                  </span>
+                  </div>
                 )}
                 {template.use_count && template.use_count > 0 && (
-                  <span className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 text-xs text-white/60 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
                     <Users className="w-3 h-3" />
                     {template.use_count.toLocaleString()}
-                  </span>
+                  </div>
                 )}
-              </motion.div>
+              </div>
               
-              {/* Action Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.25, delay: 0.2 }}
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUse();
+                }}
+                className="w-full bg-white text-foreground hover:bg-white/90 rounded-xl h-11 font-medium shadow-lg"
               >
-                <Button 
-                  onClick={(e) => { e.stopPropagation(); onUse(); }}
-                  className="w-full bg-white text-black hover:bg-neutral-200 shadow-xl font-semibold text-sm"
-                  size="sm"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Use Template
-                </Button>
-              </motion.div>
+                Use Template
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Mood Badge - Bottom right, always visible but subtle */}
-        <div className={cn(
-          "absolute bottom-3 right-3 z-5 transition-all duration-300",
-          showContent ? "opacity-0" : "opacity-100"
-        )}>
-          <Badge variant="outline" className="bg-black/60 backdrop-blur-md border-white/10 text-white/60 text-[10px] uppercase tracking-wider">
-            {template.mood}
-          </Badge>
-        </div>
+        {/* Quick apply button - top right */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUse();
+              }}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+            >
+              <Play className="w-5 h-5 text-foreground" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
-});
-
-MasonryCard.displayName = 'MasonryCard';
+}
 
 export default function Templates() {
   const navigate = useNavigate();
@@ -414,164 +382,134 @@ export default function Templates() {
   };
 
   // Combine DB templates with built-in templates
-  const allTemplates: TemplateItem[] = [...BUILT_IN_TEMPLATES, ...templates.map((t, idx) => ({
+  const allTemplates: TemplateItem[] = [...BUILT_IN_TEMPLATES, ...templates.map((t) => ({
     ...t,
     is_featured: false,
-    height: (['tall', 'medium', 'short'] as const)[idx % 3],
   }))];
 
   const filteredTemplates = allTemplates.filter(template => {
     const matchesSearch = !searchQuery || 
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.mood?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCategory = activeCategory === 'all' || template.category === activeCategory;
     
     return matchesSearch && matchesCategory;
   });
 
-  const handleUseTemplate = (templateId: string) => {
-    navigate(`/create?template=${templateId}`);
+  const handleUseTemplate = (template: TemplateItem) => {
+    navigate(`/create?template=${template.id}`);
+    toast.success(`Using "${template.name}" template`);
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Minimal Background - Black & White only */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Subtle white gradient for depth */}
-        <div className="absolute top-[-30%] left-[-20%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-white/[0.02] to-transparent blur-[150px]" />
-        <div className="absolute bottom-[-30%] right-[-20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-white/[0.015] to-transparent blur-[120px]" />
-        
-        {/* Noise texture */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
-      </div>
-      
+    <div className="min-h-screen bg-background">
       <AppHeader showCreate={false} />
       
-      <main className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Minimal Hero */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Hero Section */}
         <motion.div 
-          className="mb-10"
+          className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-2">
-            Templates
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-foreground mb-6 shadow-lg">
+            <LayoutTemplate className="w-8 h-8 text-background" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-4">
+            Template Library
           </h1>
-          <p className="text-base text-white/30">
-            Hover or tap to explore
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+            Start with a professionally crafted template and customize it to match your vision
           </p>
         </motion.div>
 
-        {/* Search and Filters - Minimal floating style */}
+        {/* Search and Filters */}
         <motion.div 
-          className="sticky top-20 z-40 mb-8"
+          className="flex flex-col sm:flex-row gap-4 mb-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-xl bg-neutral-950/80 backdrop-blur-2xl border border-white/[0.06]">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-11 bg-white/[0.03] border-0 text-white placeholder:text-white/20 focus:ring-1 focus:ring-white/20 rounded-lg"
-              />
-            </div>
-            
-            <div className="flex gap-2 flex-wrap">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300",
-                    activeCategory === cat.id
-                      ? "bg-white text-black"
-                      : "text-white/40 hover:text-white hover:bg-white/[0.05]"
-                  )}
-                >
-                  <cat.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{cat.label}</span>
-                </button>
-              ))}
-            </div>
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 h-12 bg-card border-border rounded-xl"
+            />
           </div>
-        </motion.div>
-
-        {/* Masonry Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-white/40" />
-              <p className="text-white/30 text-sm">Loading templates...</p>
-            </div>
-          </div>
-        ) : filteredTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6 border border-white/[0.06]">
-              <LayoutTemplate className="w-10 h-10 text-white/15" />
-            </div>
-            <h3 className="font-semibold text-white text-lg mb-2">No templates found</h3>
-            <p className="text-white/30 max-w-sm text-sm">
-              {searchQuery 
-                ? 'Try adjusting your search or filters'
-                : 'More templates coming soon'}
-            </p>
-          </div>
-        ) : (
-          <motion.div 
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 auto-rows-[180px]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            {filteredTemplates.map((template, index) => (
-              <motion.div
-                key={template.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.03 }}
+          
+          {/* Category Filters */}
+          <div className="flex gap-2 flex-wrap">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
                 className={cn(
-                  template.height === 'tall' && 'row-span-2'
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                  activeCategory === cat.id
+                    ? "bg-foreground text-background shadow-md"
+                    : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
                 )}
               >
-                <MasonryCard 
-                  template={template}
-                  onUse={() => handleUseTemplate(template.id)}
-                  isFeatured={template.is_featured}
-                />
-              </motion.div>
+                <cat.icon className="w-4 h-4" />
+                {cat.label}
+              </button>
             ))}
-          </motion.div>
-        )}
-
-        {/* Floating CTA - Black & White */}
-        <motion.div 
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-white/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Button 
-              onClick={() => navigate('/create')} 
-              size="lg"
-              className="relative bg-white text-black hover:bg-neutral-100 shadow-2xl h-12 px-6 rounded-xl font-semibold"
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              Create from Scratch
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
           </div>
         </motion.div>
 
-        {/* Bottom spacing for floating CTA */}
-        <div className="h-28" />
+        {/* Results count */}
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <p className="text-sm text-muted-foreground">
+            {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} available
+          </p>
+        </motion.div>
+
+        {/* Templates Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredTemplates.map((template, index) => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              onUse={() => handleUseTemplate(template)}
+              index={index}
+            />
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredTemplates.length === 0 && (
+          <motion.div 
+            className="text-center py-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No templates found</h3>
+            <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
+            <Button 
+              variant="outline" 
+              onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
+              className="rounded-xl"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear Filters
+            </Button>
+          </motion.div>
+        )}
       </main>
     </div>
   );

@@ -64,7 +64,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import type { ReferenceImageAnalysis } from '@/types/production-pipeline';
 import { parsePendingVideoTasks, type PendingVideoTasks } from '@/types/pending-video-tasks';
 import { cn } from '@/lib/utils';
-import { PromotionalBanner } from '@/components/studio/PromotionalBanner';
+
 import { TemplatePreviewPanel } from '@/components/studio/TemplatePreviewPanel';
 
 type PipelineMode = 'ai' | 'manual';
@@ -1182,76 +1182,47 @@ export function UnifiedStudio() {
       </header>
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* Promotional Banner */}
-        <div className="hidden sm:block mb-8">
-          <PromotionalBanner />
-        </div>
-        
-        {/* Epic Hero Section */}
-        <div className="text-center mb-10 sm:mb-14">
-          {/* Floating badge */}
-          {activeProjectId && projectTitle && currentStage === 'idle' && (
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/20 via-purple-500/15 to-fuchsia-500/20 border border-violet-400/30 backdrop-blur-xl">
-              <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-              <span className="text-sm font-medium text-violet-200">{projectTitle}</span>
-            </div>
-          )}
-          
-          {/* Main title with dramatic styling */}
-          <div className="relative inline-block mb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/30 via-purple-500/20 to-cyan-500/30 blur-3xl scale-150" />
-            <h1 className="relative text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight">
-              <span className="bg-gradient-to-br from-white via-white to-white/60 bg-clip-text text-transparent">Create</span>
-              <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent"> Magic</span>
-            </h1>
+        {/* Template/Environment badges */}
+        {(appliedTemplateName || appliedEnvironmentName) && (
+          <div className="flex items-center justify-center gap-3 mb-8 flex-wrap">
+            {appliedTemplateName && (
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-violet-400/40 backdrop-blur-xl">
+                  <LayoutTemplate className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-semibold text-violet-200">{appliedTemplateName}</span>
+                  <button 
+                    onClick={() => {
+                      setAppliedTemplateName(null);
+                      setConcept('');
+                    }}
+                    className="ml-1 text-violet-300 hover:text-white transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {appliedEnvironmentName && (
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-emerald-400/40 backdrop-blur-xl">
+                  <TreePine className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-emerald-200">{appliedEnvironmentName}</span>
+                  <button 
+                    onClick={() => {
+                      setAppliedEnvironmentName(null);
+                      setEnvironmentPrompt('');
+                    }}
+                    className="ml-1 text-emerald-300 hover:text-white transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          
-          <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto font-medium hidden sm:block">
-            Transform your imagination into cinematic reality with AI-powered video generation
-          </p>
-          
-          {/* Template/Environment badges */}
-          {(appliedTemplateName || appliedEnvironmentName) && (
-            <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
-              {appliedTemplateName && (
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
-                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-violet-400/40 backdrop-blur-xl">
-                    <LayoutTemplate className="w-4 h-4 text-violet-400" />
-                    <span className="text-sm font-semibold text-violet-200">{appliedTemplateName}</span>
-                    <button 
-                      onClick={() => {
-                        setAppliedTemplateName(null);
-                        setConcept('');
-                      }}
-                      className="ml-1 text-violet-300 hover:text-white transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-              {appliedEnvironmentName && (
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity" />
-                  <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-emerald-400/40 backdrop-blur-xl">
-                    <TreePine className="w-4 h-4 text-emerald-400" />
-                    <span className="text-sm font-semibold text-emerald-200">{appliedEnvironmentName}</span>
-                    <button 
-                      onClick={() => {
-                        setAppliedEnvironmentName(null);
-                        setEnvironmentPrompt('');
-                      }}
-                      className="ml-1 text-emerald-300 hover:text-white transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Template Preview Panel - Shows rich template data when a template is applied */}
         {appliedTemplateName && (templateShotSequence || templateStyleAnchor || templateCharacters || templateEnvironmentLock) && (

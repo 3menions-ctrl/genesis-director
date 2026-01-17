@@ -258,9 +258,10 @@ export default function Auth() {
           <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-accent/5 blur-3xl" />
         </div>
 
+        {/* Transparent container */}
         <div className="w-full max-w-md relative z-10">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-10">
+          <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 shadow-lg shadow-primary/25">
               <span className="text-2xl font-display font-bold text-white">AS</span>
             </div>
@@ -269,19 +270,24 @@ export default function Auth() {
             </h1>
           </div>
 
-          {/* Header */}
-          <div className="mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <User className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">{isLogin ? 'Welcome back' : 'Get started'}</span>
+          {/* Glass container for form */}
+          <div className="relative p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-primary/[0.03] via-primary/[0.02] to-transparent backdrop-blur-xl border border-primary/10 shadow-xl">
+            {/* Glow effect */}
+            <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 via-transparent to-accent/10 rounded-3xl blur-xl opacity-50 -z-10" />
+            
+            {/* Header */}
+            <div className="mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                <User className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">{isLogin ? 'Welcome back' : 'Get started'}</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
+                {isLogin ? 'Sign in' : 'Create account'}
+              </h2>
+              <p className="text-muted-foreground">
+                {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
+              </p>
             </div>
-            <h2 className="text-4xl font-display font-bold text-foreground mb-3">
-              {isLogin ? 'Sign in' : 'Create account'}
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
-            </p>
-          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -464,13 +470,14 @@ export default function Auth() {
             </div>
           )}
 
-          {/* Footer */}
-          <p className="mt-8 text-center text-xs text-muted-foreground">
+          {/* Footer inside glass container */}
+          <p className="mt-6 text-center text-xs text-muted-foreground">
             By continuing, you agree to our{' '}
             <a href="/terms" className="text-foreground hover:text-foreground/80">Terms of Service</a>
             {' '}and{' '}
             <a href="/privacy" className="text-foreground hover:text-foreground/80">Privacy Policy</a>
           </p>
+          </div>
         </div>
       </div>
     </div>

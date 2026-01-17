@@ -94,60 +94,52 @@ const CREATOR_VIDEOS = [
 
 const CATEGORIES = ['All', 'Cinematic', 'Nature', 'Aerial', 'Creative'];
 
-// Hook to extract thumbnail from video using canvas
-function useVideoThumbnail(videoUrl: string): string | null {
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
+// Component that shows a video frame as thumbnail using video element
+const VideoThumbnail = ({ 
+  videoUrl, 
+  alt, 
+  className 
+}: { 
+  videoUrl: string; 
+  alt: string; 
+  className?: string;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.muted = true;
-    video.preload = 'metadata';
-    
-    const handleLoadedData = () => {
-      // Seek to 1 second for a good frame
-      video.currentTime = 1;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      video.currentTime = 1; // Seek to 1 second
     };
-    
+
     const handleSeeked = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 360;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          setThumbnail(dataUrl);
-        }
-      } catch (e) {
-        console.warn('Could not extract thumbnail:', e);
-      }
-      video.src = ''; // Clean up
+      setIsReady(true);
     };
-    
-    video.addEventListener('loadeddata', handleLoadedData);
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('seeked', handleSeeked);
-    video.src = videoUrl;
-    video.load();
-    
+
     return () => {
-      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('seeked', handleSeeked);
-      video.src = '';
     };
-  }, [videoUrl]);
+  }, []);
 
-  return thumbnail;
-}
-
-// Small thumbnail component for the strip
-const ThumbnailImage = ({ videoUrl, alt }: { videoUrl: string; alt: string }) => {
-  const thumbnail = useVideoThumbnail(videoUrl);
-  return thumbnail ? (
-    <img src={thumbnail} alt={alt} className="w-full h-full object-cover" />
-  ) : (
-    <div className="w-full h-full bg-muted animate-pulse" />
+  return (
+    <>
+      {!isReady && <div className={cn("bg-muted animate-pulse", className)} />}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        muted
+        playsInline
+        preload="metadata"
+        className={cn(className, isReady ? "opacity-100" : "opacity-0")}
+      />
+    </>
   );
 };
 
@@ -161,7 +153,6 @@ interface VideoCardProps {
 const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const thumbnail = useVideoThumbnail(video.url);
 
   const heightClasses = {
     tall: 'h-80 md:h-96',
@@ -195,20 +186,26 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
         heightClasses[height]
       )}
     >
-      {/* Loading placeholder */}
-      {!thumbnail && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
-      
-      {/* Extracted video thumbnail */}
-      {thumbnail && (
-        <img
-          src={thumbnail}
-          alt={video.title}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-            isHovering ? "scale-105" : "scale-100"
-          )}
+      {/* Video thumbnail - shows first frame */}
+      <VideoThumbnail
+        videoUrl={video.url}
+        alt={video.title}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+          isHovering ? "scale-105" : "scale-100"
+        )}
+      />
+
+      {/* Video element - only plays on hover */}
+      {isHovering && (
+        <video
+          ref={videoRef}
+          src={video.url}
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+          muted
+          loop
+          playsInline
+          autoPlay
         />
       )}
 
@@ -624,7 +621,7 @@ export default function CreatorShowcase() {
                         : "opacity-50 hover:opacity-80 hover:scale-105"
                     )}
                   >
-                    <ThumbnailImage videoUrl={video.url} alt={video.title} />
+                    <VideoThumbnail videoUrl={video.url} alt={video.title} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

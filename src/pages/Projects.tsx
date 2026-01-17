@@ -143,7 +143,7 @@ function StatCard({
   );
 }
 
-// ============= HERO HEADER COMPONENT =============
+// ============= MINIMAL HEADER COMPONENT =============
 
 function HeroHeader({ 
   stats, 
@@ -154,77 +154,30 @@ function HeroHeader({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mb-10"
+      transition={{ duration: 0.4 }}
+      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
     >
-      {/* Cinematic spotlight effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-primary/[0.03] to-transparent rounded-full blur-3xl"
-          animate={{ 
-            opacity: [0.3, 0.5, 0.3],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
+      {/* Stats Row - Compact */}
+      <div className="flex items-center gap-6 px-4 py-2.5 rounded-xl bg-muted/20 border border-border/30">
+        <StatCard icon={FolderOpen} label="total" value={stats.total} color="default" delay={0} />
+        <div className="w-px h-4 bg-border/50" />
+        <StatCard icon={Check} label="ready" value={stats.completed} color="emerald" delay={0.05} />
+        <div className="w-px h-4 bg-border/50" />
+        <StatCard icon={Activity} label="processing" value={stats.processing} color="amber" delay={0.1} />
+        <div className="w-px h-4 bg-border/50" />
+        <StatCard icon={Film} label="clips" value={stats.totalClips} color="blue" delay={0.15} />
       </div>
-
-      <div className="relative py-6">
-        {/* Compact Header with Stats in One Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          {/* Title */}
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-2xl sm:text-3xl font-bold tracking-tight hero-text"
-            >
-              Your Projects
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-sm text-muted-foreground mt-1"
-            >
-              Manage your video creations
-            </motion.p>
-          </div>
-          
-          {/* Stats Row - Compact */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 }}
-            className="flex items-center gap-6 px-4 py-2.5 rounded-xl bg-muted/20 border border-border/30"
-          >
-            <StatCard icon={FolderOpen} label="total" value={stats.total} color="default" delay={0.2} />
-            <div className="w-px h-4 bg-border/50" />
-            <StatCard icon={Check} label="ready" value={stats.completed} color="emerald" delay={0.25} />
-            <div className="w-px h-4 bg-border/50" />
-            <StatCard icon={Activity} label="processing" value={stats.processing} color="amber" delay={0.3} />
-            <div className="w-px h-4 bg-border/50" />
-            <StatCard icon={Film} label="clips" value={stats.totalClips} color="blue" delay={0.35} />
-          </motion.div>
-          
-          {/* Create Button */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Button 
-              onClick={onCreateClick}
-              className="h-10 px-5 rounded-xl font-medium gap-2 group"
-            >
-              <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
-              New Project
-            </Button>
-          </motion.div>
-        </div>
-      </div>
+      
+      {/* Create Button */}
+      <Button 
+        onClick={onCreateClick}
+        className="h-10 px-5 rounded-xl font-medium gap-2 group"
+      >
+        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
+        New Project
+      </Button>
     </motion.div>
   );
 }

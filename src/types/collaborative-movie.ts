@@ -83,14 +83,16 @@ export interface GenesisSceneCharacter {
 
 export interface GenesisCharacterCasting {
   id: string;
-  character_id: string;
-  user_id: string;
+  character_id: string | null;
+  user_id: string | null;
   face_image_url: string;
   additional_images: string[] | null;
   status: 'pending' | 'approved' | 'rejected' | 'replaced';
   admin_notes: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  image_consent_given: boolean;
+  consent_given_at: string | null;
   created_at: string;
   updated_at: string;
   // Joined data

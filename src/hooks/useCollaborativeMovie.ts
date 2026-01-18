@@ -109,12 +109,12 @@ export function useUserCastings() {
         .from('genesis_character_castings')
         .select(`
           *,
-          character:genesis_preset_characters(id, name, role_type, description)
+          character:genesis_preset_characters(*)
         `)
         .eq('user_id', user.id);
       
       if (error) throw error;
-      return data as (GenesisCharacterCasting & { character: GenesisPresetCharacter })[];
+      return data as (GenesisCharacterCasting & { character: GenesisPresetCharacter | null })[];
     },
     enabled: !!user?.id
   });
@@ -143,14 +143,16 @@ export function useSubmitCasting() {
         .from('genesis-castings')
         .getPublicUrl(fileName);
       
-      // Create casting record
+      // Create casting record with consent
       const { data, error } = await supabase
         .from('genesis_character_castings')
         .insert({
           character_id: characterId,
           user_id: user.id,
           face_image_url: publicUrl,
-          status: 'pending'
+          status: 'pending',
+          image_consent_given: true,
+          consent_given_at: new Date().toISOString()
         })
         .select()
         .single();

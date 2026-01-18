@@ -141,10 +141,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "api_cost_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "api_cost_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_cost_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -204,6 +218,13 @@ export type Database = {
             referencedRelation: "movie_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "character_loans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_voice_assignments: {
@@ -250,6 +271,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_voice_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -427,10 +455,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "credit_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "credit_transactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -556,9 +598,11 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           character_id: string | null
+          consent_given_at: string | null
           created_at: string | null
           face_image_url: string
           id: string
+          image_consent_given: boolean | null
           status: string | null
           updated_at: string | null
           user_id: string | null
@@ -569,9 +613,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           character_id?: string | null
+          consent_given_at?: string | null
           created_at?: string | null
           face_image_url: string
           id?: string
+          image_consent_given?: boolean | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -582,9 +628,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           character_id?: string | null
+          consent_given_at?: string | null
           created_at?: string | null
           face_image_url?: string
           id?: string
+          image_consent_given?: boolean | null
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -1327,6 +1375,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "genesis_scene_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "genesis_scene_clips_scene_id_fkey"
             columns: ["scene_id"]
             isOneToOne: false
@@ -1748,6 +1803,13 @@ export type Database = {
             referencedRelation: "movie_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "genesis_videos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       movie_projects: {
@@ -1874,6 +1936,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movie_projects_parent_project_id_fkey"
+            columns: ["parent_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movie_projects_universe_id_fkey"
             columns: ["universe_id"]
             isOneToOne: false
@@ -1995,10 +2064,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "production_credit_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "production_credit_phases_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_credit_phases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2103,6 +2186,13 @@ export type Database = {
             referencedRelation: "movie_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_characters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_comments: {
@@ -2142,6 +2232,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
             referencedColumns: ["id"]
           },
           {
@@ -2356,10 +2453,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stitch_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stitch_jobs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stitch_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2367,6 +2478,7 @@ export type Database = {
       support_messages: {
         Row: {
           admin_notes: string | null
+          client_ip: string | null
           created_at: string
           email: string
           id: string
@@ -2375,11 +2487,13 @@ export type Database = {
           source: string
           status: string
           subject: string
+          submitted_count: number | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           admin_notes?: string | null
+          client_ip?: string | null
           created_at?: string
           email: string
           id?: string
@@ -2388,11 +2502,13 @@ export type Database = {
           source?: string
           status?: string
           subject: string
+          submitted_count?: number | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           admin_notes?: string | null
+          client_ip?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -2401,6 +2517,7 @@ export type Database = {
           source?: string
           status?: string
           subject?: string
+          submitted_count?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2550,6 +2667,13 @@ export type Database = {
             columns: ["source_project_id"]
             isOneToOne: false
             referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "universe_continuity_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
             referencedColumns: ["id"]
           },
           {
@@ -2841,6 +2965,7 @@ export type Database = {
           current_streak: number
           id: string
           last_activity_date: string | null
+          leaderboard_visible: boolean | null
           level: number
           longest_streak: number
           total_likes_received: number
@@ -2859,6 +2984,7 @@ export type Database = {
           current_streak?: number
           id?: string
           last_activity_date?: string | null
+          leaderboard_visible?: boolean | null
           level?: number
           longest_streak?: number
           total_likes_received?: number
@@ -2877,6 +3003,7 @@ export type Database = {
           current_streak?: number
           id?: string
           last_activity_date?: string | null
+          leaderboard_visible?: boolean | null
           level?: number
           longest_streak?: number
           total_likes_received?: number
@@ -2999,10 +3126,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "video_clips_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "video_clips_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_clips_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3032,6 +3173,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "movie_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "movie_projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3083,6 +3231,66 @@ export type Database = {
         }
         Relationships: []
       }
+      movie_projects_public: {
+        Row: {
+          created_at: string | null
+          genre: Database["public"]["Enums"]["movie_genre"] | null
+          id: string | null
+          is_public: boolean | null
+          likes_count: number | null
+          mood: string | null
+          setting: string | null
+          thumbnail_url: string | null
+          title: string | null
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"] | null
+          id?: string | null
+          is_public?: boolean | null
+          likes_count?: number | null
+          mood?: string | null
+          setting?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          genre?: Database["public"]["Enums"]["movie_genre"] | null
+          id?: string | null
+          is_public?: boolean | null
+          likes_count?: number | null
+          mood?: string | null
+          setting?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {
@@ -3105,6 +3313,19 @@ export type Database = {
       admin_adjust_credits: {
         Args: { p_amount: number; p_reason: string; p_target_user_id: string }
         Returns: Json
+      }
+      admin_get_aggregated_stats: { Args: never; Returns: Json }
+      admin_get_audit_logs: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json
+          id: string
+          target_id: string
+          target_type: string
+        }[]
       }
       admin_list_users: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
@@ -3130,6 +3351,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_view_user_profile: {
+        Args: { p_target_user_id: string }
+        Returns: Json
+      }
       calculate_level: { Args: { xp: number }; Returns: number }
       charge_preproduction_credits:
         | { Args: { p_project_id: string; p_shot_id: string }; Returns: Json }
@@ -3143,6 +3368,7 @@ export type Database = {
             Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
             Returns: Json
           }
+      check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
       deduct_credits: {
         Args: {
           p_amount: number

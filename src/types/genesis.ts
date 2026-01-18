@@ -253,3 +253,42 @@ export interface GenesisContinuityAnchor {
   location?: GenesisLocation;
   source_video?: GenesisVideo;
 }
+
+// Character casting types
+export interface GenesisCharacterCasting {
+  id: string;
+  character_id: string | null;
+  user_id: string | null;
+  face_image_url: string;
+  additional_images: string[] | null;
+  status: 'pending' | 'approved' | 'rejected' | 'replaced';
+  admin_notes: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  image_consent_given: boolean;
+  consent_given_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GenesisPresetCharacter {
+  id: string;
+  screenplay_id: string | null;
+  name: string;
+  description: string | null;
+  personality: string | null;
+  appearance_description: string | null;
+  backstory: string | null;
+  age_range: string | null;
+  gender: string | null;
+  role_type: 'protagonist' | 'antagonist' | 'supporting' | 'featured' | 'cameo' | null;
+  voice_notes: string | null;
+  wardrobe_notes: string | null;
+  total_scenes: number | null;
+  is_cast: boolean;
+  cast_by: string | null;
+  cast_at: string | null;
+  reference_image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}

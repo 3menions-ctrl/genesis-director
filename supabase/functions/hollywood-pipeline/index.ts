@@ -3550,6 +3550,130 @@ async function runProduction(
           }
         }
       }
+      
+      // =====================================================
+      // CRITICAL FAILSAFE: Build fallback anchors after Clip 1 if extraction failed
+      // This ensures clips 2+ have the required ingredients to pass THE LAW validation
+      // Without this, credit failures or AI errors would cascade to all subsequent clips
+      // =====================================================
+      if (i === 0 && result.videoUrl) {
+        // Check if we have empty anchors (extraction failures)
+        const hasAccumulatedAnchors = accumulatedAnchors.length > 0;
+        const consistencyAnchorsLength = state.identityBible?.consistencyAnchors?.length ?? 0;
+        const hasConsistencyAnchors = consistencyAnchorsLength > 0;
+        const hasReferenceImage = !!referenceImageUrl;
+        const hasPreviousManifest = previousContinuityManifest && Object.keys(previousContinuityManifest).length > 0;
+        
+        console.log(`[Hollywood] 🔍 POST-CLIP-1 INGREDIENT CHECK:`);
+        console.log(`  - accumulatedAnchors: ${hasAccumulatedAnchors ? accumulatedAnchors.length : 'EMPTY'}`);
+        console.log(`  - consistencyAnchors: ${hasConsistencyAnchors ? consistencyAnchorsLength : 'EMPTY'}`);
+        console.log(`  - referenceImageUrl: ${hasReferenceImage ? 'SET' : 'MISSING'}`);
+        console.log(`  - previousContinuityManifest: ${hasPreviousManifest ? 'SET' : 'EMPTY'}`);
+        
+        // BUILD FALLBACK ANCHORS if any are missing
+        if (!hasAccumulatedAnchors || !hasConsistencyAnchors || !hasPreviousManifest) {
+          console.log(`[Hollywood] 🔧 BUILDING FALLBACK ANCHORS from identityBible...`);
+          
+          // Build minimal scene anchor from identity bible
+          const fallbackAnchor: any = {
+            clipIndex: 0,
+            lastFrameUrl: result.lastFrameUrl,
+            timestamp: Date.now(),
+            isFallback: true,
+            lighting: {
+              promptFragment: state.sceneConsistency?.lighting || 'natural lighting',
+            },
+            colorPalette: {
+              promptFragment: 'cinematic color palette',
+            },
+            keyObjects: {
+              promptFragment: state.sceneConsistency?.location || 'professional environment',
+            },
+          };
+          
+          if (!hasAccumulatedAnchors) {
+            accumulatedAnchors.push(fallbackAnchor);
+            console.log(`[Hollywood] ✓ Created fallback accumulatedAnchor`);
+          }
+          
+          // Build consistency anchors from character data
+          if (!hasConsistencyAnchors && state.identityBible) {
+            const fallbackConsistencyAnchors: string[] = [];
+            
+            if (state.identityBible.consistencyPrompt) {
+              fallbackConsistencyAnchors.push(`CHARACTER: ${state.identityBible.consistencyPrompt}`);
+            }
+            if (state.identityBible.characterIdentity?.description) {
+              fallbackConsistencyAnchors.push(`APPEARANCE: ${state.identityBible.characterIdentity.description}`);
+            }
+            if (state.identityBible.characterIdentity?.clothing) {
+              fallbackConsistencyAnchors.push(`WARDROBE: ${state.identityBible.characterIdentity.clothing}`);
+            }
+            if (state.sceneConsistency?.lighting) {
+              fallbackConsistencyAnchors.push(`LIGHTING: ${state.sceneConsistency.lighting}`);
+            }
+            if (state.sceneConsistency?.location) {
+              fallbackConsistencyAnchors.push(`ENVIRONMENT: ${state.sceneConsistency.location}`);
+            }
+            
+            if (fallbackConsistencyAnchors.length > 0) {
+              state.identityBible.consistencyAnchors = fallbackConsistencyAnchors;
+              console.log(`[Hollywood] ✓ Created ${fallbackConsistencyAnchors.length} fallback consistencyAnchors`);
+            }
+          }
+          
+          // Build minimal continuity manifest if empty
+          if (!hasPreviousManifest) {
+            previousContinuityManifest = {
+              clipIndex: 0,
+              isFallback: true,
+              criticalAnchors: state.identityBible?.consistencyAnchors || [],
+              spatial: {
+                primaryCharacter: { screenPosition: 'center', depth: 'midground', facingDirection: 'camera' },
+              },
+              lighting: {
+                colorTemperature: 'neutral',
+              },
+              injectionPrompt: state.identityBible?.consistencyPrompt || 'Maintain visual consistency',
+            };
+            console.log(`[Hollywood] ✓ Created fallback continuityManifest with ${previousContinuityManifest.criticalAnchors?.length || 0} anchors`);
+          }
+          
+          // Persist fallback data to DB for resume support
+          try {
+            const { data: currentProject } = await supabase
+              .from('movie_projects')
+              .select('pro_features_data')
+              .eq('id', state.projectId)
+              .single();
+            
+            const updatedProData = {
+              ...(currentProject?.pro_features_data || {}),
+              accumulatedAnchors: accumulatedAnchors,
+              identityBible: state.identityBible,
+              fallbackAnchorsCreatedAt: new Date().toISOString(),
+            };
+            
+            await supabase
+              .from('movie_projects')
+              .update({ pro_features_data: updatedProData })
+              .eq('id', state.projectId);
+            
+            // Also persist manifest to video_clips table
+            await supabase
+              .from('video_clips')
+              .update({ continuity_manifest: previousContinuityManifest })
+              .eq('project_id', state.projectId)
+              .eq('shot_index', 0);
+            
+            console.log(`[Hollywood] ✓ PERSISTED fallback anchors to DB`);
+          } catch (persistErr) {
+            console.warn(`[Hollywood] Failed to persist fallback anchors:`, persistErr);
+          }
+        } else {
+          console.log(`[Hollywood] ✓ All ingredients present for clips 2+`);
+        }
+      }
     } // Close if (result.videoUrl) block
     
       // =====================================================

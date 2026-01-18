@@ -2945,6 +2945,13 @@ async function generateClipWithKling(
     requestBody.image_urls = referenceImages;
     console.log(`[SingleClip] Using ${referenceImages.length} identity reference images from Identity Bible`);
   }
+  
+  // CRITICAL FIX: For image2video endpoint, image or image_url is REQUIRED
+  // If we only have reference images but no start image, use the first reference as primary
+  if (isImageToVideo && !requestBody.image && !requestBody.image_url && referenceImages.length > 0) {
+    requestBody.image_url = referenceImages[0];
+    console.log(`[SingleClip] ⚠️ FAILSAFE: Using first reference image as primary image_url for image2video endpoint`);
+  }
 
   console.log("[SingleClip] Starting Kling 2.6 generation:", {
     mode: isImageToVideo ? "image-to-video" : "text-to-video",

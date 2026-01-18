@@ -120,8 +120,9 @@ serve(async (req) => {
       try {
         const jwtToken = await generateKlingJWT();
         
-        // Query Kling task status
-        const statusUrl = `${KLING_API_BASE}/videos/tasks/${taskId}`;
+        // Query Kling task status - use text2video endpoint for polling
+        // The correct endpoint mirrors the creation path: /videos/text2video/{taskId}
+        const statusUrl = `${KLING_API_BASE}/videos/text2video/${taskId}`;
         
         console.log("Polling Kling task:", statusUrl);
         

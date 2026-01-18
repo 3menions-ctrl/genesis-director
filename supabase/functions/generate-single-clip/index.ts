@@ -2996,7 +2996,8 @@ async function pollKlingTask(
   maxAttempts = 60,      // 60 attempts x 3 seconds = 180 seconds max
   pollInterval = 3000    // 3 second intervals
 ): Promise<{ videoUrl: string }> {
-  const statusUrl = `${KLING_API_BASE}/videos/tasks/${taskId}`;
+  // Use text2video endpoint for polling - matches the creation endpoint
+  const statusUrl = `${KLING_API_BASE}/videos/text2video/${taskId}`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise(resolve => setTimeout(resolve, pollInterval));

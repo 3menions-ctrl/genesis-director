@@ -8,18 +8,19 @@ const corsHeaders = {
 };
 
 // Credit packages with Stripe price IDs (must match database stripe_price_id)
+// Pricing: $1 = 10 credits
 const CREDIT_PACKAGES: Record<string, { priceId: string; credits: number }> = {
   starter: {
-    priceId: "price_1SpKEvCZh4qZNjWWqIG0CC17",
+    priceId: "price_1SqjeMCZh4qZNjWWSGv3M7eu", // $37 for 370 credits
     credits: 370,
   },
   growth: {
-    priceId: "price_1SpKNZCZh4qZNjWWN8QwPqPc",
+    priceId: "price_1SqjezCZh4qZNjWWbQZ9yEdx", // $99 for 1000 credits (1¢ discount)
     credits: 1000,
   },
   agency: {
-    priceId: "price_1SpKPsCZh4qZNjWWcafLgUhd",
-    credits: 3000,
+    priceId: "price_1SqjoHCZh4qZNjWWmdXoh3sm", // $249 for 2500 credits (1¢ discount)
+    credits: 2500,
   },
 };
 

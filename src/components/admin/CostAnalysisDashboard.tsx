@@ -307,7 +307,7 @@ export function CostAnalysisDashboard() {
       
       // Calculate actual revenue from credit packages pricing
       // Based on credit_packages table: credits / price_cents ratio
-      const CREDIT_PRICE_CENTS = 11.6; // Average $0.116 per credit
+      const CREDIT_PRICE_CENTS = 10.0; // $0.10 per credit (1 dollar = 10 credits)
       const purchases = purchasesData || [];
       const totalPurchasedCredits = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
       setActualRevenueCents(Math.round(totalPurchasedCredits * CREDIT_PRICE_CENTS));
@@ -438,7 +438,7 @@ export function CostAnalysisDashboard() {
   const totalWithDevCents = totalMonthlyCostCents + devCostCents;
 
   // Revenue calculation - ONLY actual Stripe purchases
-  const CREDIT_PRICE_CENTS = 11.6; // $0.116 per credit (for refund calculation)
+  const CREDIT_PRICE_CENTS = 10.0; // $0.10 per credit (for refund calculation)
   const refundValueCents = Math.round(Math.abs(refundData.refund_credits) * CREDIT_PRICE_CENTS);
   const adjustedRevenueCents = actualRevenueCents - refundValueCents;
   

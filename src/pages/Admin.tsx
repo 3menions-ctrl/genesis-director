@@ -335,7 +335,7 @@ export default function AdminDashboard() {
         .select('amount')
         .eq('transaction_type', 'refund');
       
-      const CREDIT_PRICE_CENTS = 11.6;
+      const CREDIT_PRICE_CENTS = 10.0;
       const purchases = purchasesData || [];
       const refunds = refundsData || [];
       

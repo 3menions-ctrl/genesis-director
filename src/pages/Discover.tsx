@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { TrailerGenerator } from '@/components/TrailerGenerator';
 
 interface PublicVideo {
   id: string;
@@ -179,6 +180,11 @@ export default function Discover() {
             </div>
           </motion.div>
         </div>
+      </div>
+
+      {/* Trailer Generator */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <TrailerGenerator />
       </div>
 
       {/* Video Grid */}

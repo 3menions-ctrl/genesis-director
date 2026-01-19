@@ -178,40 +178,20 @@ serve(async (req) => {
     // Check for Cloud Run
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
     
-    // CRITICAL: Only use Google Cloud Run for stitching - no manifest fallbacks
-    if (!cloudRunUrl) {
-      console.error("[SimpleStitch] CLOUD_RUN_STITCHER_URL not configured - cannot stitch");
+    // LOCAL MANIFEST MODE: Use manifest fallback when Cloud Run is unavailable or forceManifest is set
+    if (!cloudRunUrl || forceManifest) {
+      console.log("[SimpleStitch] Using LOCAL MANIFEST mode (Cloud Run unavailable or forceManifest=true)");
       
-      // Update project to show Cloud Run is required
-      await supabase
-        .from('movie_projects')
-        .update({
-          status: 'stitching_blocked',
-          pending_video_tasks: {
-            stage: 'stitching_blocked',
-            progress: 0,
-            error: 'Cloud Run stitcher not configured. Please configure CLOUD_RUN_STITCHER_URL.',
-            clipCount: clips.length,
-            totalDuration,
-          },
-          last_error: 'CLOUD_RUN_STITCHER_URL not configured',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', projectId);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Cloud Run stitcher not configured. Only Google Cloud Run is supported for video stitching.",
-          processingTimeMs: Date.now() - startTime,
-        }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return await createManifestFallback(
+        supabaseUrl,
+        supabaseKey,
+        projectId,
+        project,
+        clipData,
+        clips.length,
+        totalDuration,
+        startTime
       );
-    }
-    
-    // forceManifest is deprecated - Cloud Run only
-    if (forceManifest) {
-      console.warn("[SimpleStitch] forceManifest=true ignored - Cloud Run only mode enabled");
     }
 
     // Determine stitching mode
@@ -660,41 +640,26 @@ async function scheduleRetryOrFallback(
       })
       .eq('id', projectId);
   } else {
-    // Max retries reached - mark as failed (no manifest fallback)
-    console.error(`[SimpleStitch] Max Cloud Run retries (${maxAttempts}) reached - stitching failed`);
+    // Max retries reached - FALL BACK TO MANIFEST for immediate playback
+    console.warn(`[SimpleStitch] Max Cloud Run retries (${maxAttempts}) reached - falling back to manifest`);
+    
+    // Create manifest fallback so users can at least view their video
+    await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
     
     if (jobId) {
       await supabase
         .from('stitch_jobs')
         .update({
-          status: 'failed',
-          last_error: `Max retries reached: ${errorMessage}`,
+          status: 'completed_manifest',
+          last_error: `Cloud Run failed, using manifest: ${errorMessage}`,
           updated_at: new Date().toISOString(),
         })
         .eq('id', jobId);
     }
-    
-    await supabase
-      .from('movie_projects')
-      .update({
-        status: 'stitching_failed',
-        pending_video_tasks: {
-          stage: 'stitching_failed',
-          progress: 0,
-          lastError: errorMessage,
-          attempts: maxAttempts,
-          clipCount,
-          totalDuration,
-          message: 'Cloud Run stitching failed after maximum retries. Please retry manually.',
-        },
-        last_error: `Stitching failed after ${maxAttempts} attempts: ${errorMessage}`,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', projectId);
   }
 }
 
-// Fallback to manifest
+// Fallback to manifest - returns the manifest URL
 async function fallbackToManifest(
   supabaseUrl: string,
   supabaseKey: string,
@@ -703,10 +668,11 @@ async function fallbackToManifest(
   clipData: ClipData[],
   clipCount: number,
   totalDuration: number
-) {
+): Promise<string> {
   console.log("[SimpleStitch] Creating manifest fallback...");
   
   const supabase = createClient(supabaseUrl, supabaseKey);
+  const timestamp = Date.now();
   
   const manifest = {
     version: "1.0",
@@ -720,13 +686,14 @@ async function fallbackToManifest(
       videoUrl: clip.videoUrl,
       duration: clip.durationSeconds,
       startTime: clipData.slice(0, index).reduce((sum, c) => sum + c.durationSeconds, 0),
+      transitionOut: 'fade',
     })),
     totalDuration,
     voiceUrl: project?.voice_audio_url || null,
     musicUrl: project?.music_url || null,
   };
 
-  const fileName = `manifest_${projectId}_${Date.now()}.json`;
+  const fileName = `manifest_${projectId}_${timestamp}.json`;
   const manifestJson = JSON.stringify(manifest, null, 2);
   const manifestBytes = new TextEncoder().encode(manifestJson);
 
@@ -756,6 +723,7 @@ async function fallbackToManifest(
     .eq('id', projectId);
 
   console.log(`[SimpleStitch] ✅ Manifest created: ${manifestUrl}`);
+  return manifestUrl;
 }
 
 // Helper for immediate manifest creation
@@ -769,9 +737,7 @@ async function createManifestFallback(
   totalDuration: number,
   startTime: number
 ) {
-  await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
-  
-  const manifestUrl = `${supabaseUrl}/storage/v1/object/public/temp-frames/manifest_${projectId}_${Date.now()}.json`;
+  const manifestUrl = await fallbackToManifest(supabaseUrl, supabaseKey, projectId, project, clipData, clipCount, totalDuration);
   
   return new Response(
     JSON.stringify({

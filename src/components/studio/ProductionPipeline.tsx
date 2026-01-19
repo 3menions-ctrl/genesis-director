@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FullscreenVideoPlayer } from './FullscreenVideoPlayer';
+import { ManifestVideoPlayer } from './ManifestVideoPlayer';
 import { ProFeaturesPanel } from './ProFeaturesPanel';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -795,14 +796,29 @@ export function ProductionPipeline({
         </DialogContent>
       </Dialog>
 
-      {/* Fullscreen Video Player */}
+      {/* Fullscreen Video Player - detect manifest URLs */}
       {showVideoPlayer && finalVideoUrl && (
-        <div className="fixed inset-0 z-50">
-          <FullscreenVideoPlayer
-            clips={[finalVideoUrl]}
-            title="Production Complete"
-            onClose={() => setShowVideoPlayer(false)}
-          />
+        <div className="fixed inset-0 z-50 bg-black">
+          {finalVideoUrl.includes('.json') || finalVideoUrl.includes('manifest') ? (
+            <>
+              <button 
+                onClick={() => setShowVideoPlayer(false)}
+                className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+              <ManifestVideoPlayer 
+                manifestUrl={finalVideoUrl} 
+                className="w-full h-full" 
+              />
+            </>
+          ) : (
+            <FullscreenVideoPlayer
+              clips={[finalVideoUrl]}
+              title="Production Complete"
+              onClose={() => setShowVideoPlayer(false)}
+            />
+          )}
         </div>
       )}
 

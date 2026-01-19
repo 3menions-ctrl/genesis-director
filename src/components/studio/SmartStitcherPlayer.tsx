@@ -139,8 +139,8 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds
-const CROSSFADE_DURATION = 500;
+// Crossfade duration in milliseconds (0.15s like Cloud Run)
+const CROSSFADE_DURATION = 150;
 
 export function SmartStitcherPlayer({
   projectId,

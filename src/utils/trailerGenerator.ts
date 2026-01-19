@@ -596,14 +596,37 @@ export async function convertToMp4(
  * Download a blob as a file
  */
 export function downloadTrailer(blob: Blob, filename = 'community-trailer.webm'): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  console.log(`[Trailer] Starting download: ${filename}, size: ${blob.size} bytes`);
+  
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    
+    // Append to body
+    document.body.appendChild(a);
+    
+    // Use setTimeout to ensure the element is in the DOM
+    setTimeout(() => {
+      a.click();
+      
+      // Clean up after a delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log(`[Trailer] Download initiated: ${filename}`);
+      }, 100);
+    }, 0);
+  } catch (error) {
+    console.error('[Trailer] Download failed:', error);
+    
+    // Fallback: open in new tab
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
 }
 
 /**

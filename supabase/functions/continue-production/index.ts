@@ -34,6 +34,7 @@ interface ContinueProductionRequest {
     referenceImageUrl?: string;
     colorGrading?: string;
     qualityTier?: string;
+    aspectRatio?: '16:9' | '9:16' | '1:1';
     sceneImageLookup?: Record<number, string>;
     tierLimits?: any;
     // CRITICAL FIX: Add extractedCharacters to context interface
@@ -352,6 +353,7 @@ serve(async (req: Request) => {
       identityBible: context?.identityBible,
       colorGrading: context?.colorGrading || 'cinematic',
       qualityTier: context?.qualityTier || 'standard',
+      aspectRatio: context?.aspectRatio || '16:9',
       referenceImageUrl: context?.referenceImageUrl,
       sceneImageUrl: context?.sceneImageLookup?.[nextClipIndex] || context?.sceneImageLookup?.[0],
       accumulatedAnchors: context?.accumulatedAnchors || [],

@@ -52,6 +52,8 @@ interface PipelineRequest {
   templateEnvironmentLock?: any;
   pacingStyle?: string;
   templateName?: string;
+  // Video format
+  aspectRatio?: '16:9' | '9:16' | '1:1';
 }
 
 interface ExtractedCharacter {
@@ -901,7 +903,7 @@ async function runPreProduction(
         })),
         style: cameraStyle,
         pacingPreference: 'moderate',
-        aspectRatio: '16:9',
+        aspectRatio: request.aspectRatio || '16:9',
         enforceCoverage: true,
       });
       
@@ -2857,6 +2859,7 @@ async function runProduction(
           } : undefined,
           colorGrading: request.colorGrading || 'cinematic',
           qualityTier: request.qualityTier || 'standard',
+          aspectRatio: request.aspectRatio || '16:9',
           referenceImageUrl, // Still passed for character identity reference
           // CRITICAL FIX: Pass scene image for fallback when frame extraction fails
           sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
@@ -2899,6 +2902,7 @@ async function runProduction(
             referenceImageUrl,
             colorGrading: request.colorGrading || 'cinematic',
             qualityTier: request.qualityTier || 'standard',
+            aspectRatio: request.aspectRatio || '16:9',
             sceneImageLookup,
             tierLimits: (request as any)._tierLimits || { maxRetries: 1 },
             // CRITICAL FIX: Include extractedCharacters for multi-character scenes
@@ -3311,6 +3315,7 @@ async function runProduction(
                 identityBible: state.identityBible,
                 colorGrading: request.colorGrading || 'cinematic',
                 qualityTier: request.qualityTier || 'standard',
+                aspectRatio: request.aspectRatio || '16:9',
                 referenceImageUrl,
                 isRetry: true,
                 sceneContext: clip.sceneContext,
@@ -3839,6 +3844,7 @@ async function runProduction(
                   identityBible: state.identityBible,
                   colorGrading: request.colorGrading || 'cinematic',
                   qualityTier: request.qualityTier || 'standard',
+                  aspectRatio: request.aspectRatio || '16:9',
                   referenceImageUrl,
                   isRetry: true,
                   isIdentityRetry: true,
@@ -5163,6 +5169,7 @@ async function executePipelineInBackground(
                 genre: request.genre,
                 mood: request.mood,
                 colorGrading: request.colorGrading,
+                aspectRatio: request.aspectRatio || '16:9',
               },
               awaitingApprovalAt: new Date().toISOString(),
             },
@@ -5595,6 +5602,7 @@ serve(async (req) => {
           genre: request.genre || 'cinematic',
           mood: request.mood,
           story_structure: 'episodic',
+          aspect_ratio: request.aspectRatio || '16:9',
           target_duration_minutes: Math.ceil((clipCount * clipDuration) / 60),
           pending_video_tasks: {
             stage: 'initializing',
@@ -5613,6 +5621,7 @@ serve(async (req) => {
         .from('movie_projects')
         .update({
           status: 'generating',
+          aspect_ratio: request.aspectRatio || '16:9',
           pending_video_tasks: {
             stage: 'initializing',
             progress: 0,

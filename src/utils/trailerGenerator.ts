@@ -72,18 +72,20 @@ async function loadVideo(url: string): Promise<HTMLVideoElement> {
     video.preload = 'auto';
     
     const timeout = setTimeout(() => {
+      console.error('[Trailer] Video load timeout for:', url.substring(0, 60));
       video.src = '';
       reject(new Error('Video load timeout'));
-    }, 30000);
+    }, 60000); // Increased timeout to 60s
     
-    video.onloadedmetadata = () => {
+    video.onloadeddata = () => {
       clearTimeout(timeout);
       console.log(`[Trailer] Video loaded: ${video.videoWidth}x${video.videoHeight}, ${video.duration}s`);
       resolve(video);
     };
     
-    video.onerror = () => {
+    video.onerror = (e) => {
       clearTimeout(timeout);
+      console.error('[Trailer] Video load error:', e);
       reject(new Error('Failed to load video'));
     };
     

@@ -18,17 +18,30 @@ export function TrailerGenerator() {
     setIsGenerating(true);
     setTrailerBlob(null);
     setPreviewUrl(null);
+    setProgress(null);
 
     toast.info('Generating trailer...', {
-      description: 'This may take 30-60 seconds',
+      description: 'This may take 1-2 minutes',
+      duration: 5000,
     });
 
     try {
+      console.log('[TrailerGenerator] Starting generation...');
       const blob = await generateTrailer({
         snippetDuration: 2,
         partsPerVideo: 2,
-        onProgress: setProgress,
+        includeMusic: false, // Disable music for now to speed up generation
+        onProgress: (p) => {
+          console.log('[TrailerGenerator] Progress:', p.phase, p.percentComplete + '%');
+          setProgress(p);
+        },
       });
+
+      console.log('[TrailerGenerator] Generation complete, blob size:', blob.size);
+      
+      if (blob.size < 1000) {
+        throw new Error('Generated trailer is too small - recording may have failed');
+      }
 
       setTrailerBlob(blob);
       const url = URL.createObjectURL(blob);
@@ -39,7 +52,8 @@ export function TrailerGenerator() {
         description: 'Click download to save your trailer',
       });
     } catch (error) {
-      console.error('Trailer generation failed:', error);
+      console.error('[TrailerGenerator] Generation failed:', error);
+      setProgress(null);
       toast.error('Failed to generate trailer', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });

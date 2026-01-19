@@ -7,7 +7,8 @@ import {
   Eye, Heart, Share2, RefreshCw, AlertCircle, Layers,
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
   BarChart3, Activity, Settings2, ChevronDown, X, Check,
-  Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock
+  Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock,
+  GraduationCap, Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -793,6 +794,23 @@ export default function Projects() {
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
   
+  // Training videos state
+  interface TrainingVideo {
+    id: string;
+    title: string;
+    description: string | null;
+    video_url: string;
+    thumbnail_url: string | null;
+    voice_id: string | null;
+    environment: string | null;
+    created_at: string;
+    updated_at: string;
+  }
+  const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
+  const [isLoadingTrainingVideos, setIsLoadingTrainingVideos] = useState(true);
+  const [selectedTrainingVideo, setSelectedTrainingVideo] = useState<TrainingVideo | null>(null);
+  const [trainingVideoModalOpen, setTrainingVideoModalOpen] = useState(false);
+  
   // Auto-generate missing thumbnails when projects load
   useEffect(() => {
     if (hasLoadedOnce && projects.length > 0) {
@@ -808,6 +826,49 @@ export default function Projects() {
   // Scroll animation
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
+
+  // Fetch training videos
+  useEffect(() => {
+    const fetchTrainingVideos = async () => {
+      if (!user) return;
+      
+      setIsLoadingTrainingVideos(true);
+      try {
+        const { data, error } = await supabase
+          .from('training_videos')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setTrainingVideos(data || []);
+      } catch (err) {
+        console.error('Failed to fetch training videos:', err);
+      } finally {
+        setIsLoadingTrainingVideos(false);
+      }
+    };
+    
+    fetchTrainingVideos();
+  }, [user]);
+
+  // Delete training video handler
+  const handleDeleteTrainingVideo = useCallback(async (videoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('training_videos')
+        .delete()
+        .eq('id', videoId);
+      
+      if (error) throw error;
+      
+      setTrainingVideos(prev => prev.filter(v => v.id !== videoId));
+      toast.success('Training video deleted');
+    } catch (err) {
+      console.error('Failed to delete training video:', err);
+      toast.error('Failed to delete video');
+    }
+  }, []);
 
   // Load pinned projects from localStorage
   useEffect(() => {
@@ -1669,6 +1730,98 @@ export default function Projects() {
                     </motion.section>
                   )}
 
+                  {/* Training Videos Section */}
+                  {trainingVideos.length > 0 && (
+                    <motion.section 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="relative p-4 rounded-2xl bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent border border-emerald-500/20 backdrop-blur-2xl overflow-hidden"
+                    >
+                      {/* Subtle glow */}
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                      
+                      <div className="relative flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
+                          <GraduationCap className="w-3 h-3 text-black" />
+                        </div>
+                        <h2 className="text-sm font-semibold text-foreground">Training Videos</h2>
+                        <Badge className="ml-auto bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 text-[10px] px-1.5">
+                          {trainingVideos.length}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate('/training-video')}
+                          className="h-7 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          New
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {trainingVideos.map((video, index) => (
+                          <motion.div
+                            key={video.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="group relative cursor-pointer"
+                            onClick={() => {
+                              setSelectedTrainingVideo(video);
+                              setTrainingVideoModalOpen(true);
+                            }}
+                          >
+                            <div className={cn(
+                              "relative aspect-video rounded-xl overflow-hidden",
+                              "bg-zinc-900 border border-white/[0.06]",
+                              "group-hover:border-emerald-500/30 transition-all duration-300"
+                            )}>
+                              {/* Video preview */}
+                              <video
+                                src={video.video_url}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                preload="metadata"
+                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                              />
+                              
+                              {/* Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              
+                              {/* Play button on hover */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
+                                  <Play className="w-5 h-5 text-black ml-0.5" />
+                                </div>
+                              </div>
+                              
+                              {/* Delete button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTrainingVideo(video.id);
+                                }}
+                                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-white" />
+                              </button>
+                              
+                              {/* Info */}
+                              <div className="absolute bottom-0 left-0 right-0 p-3">
+                                <h3 className="text-xs font-medium text-white truncate">{video.title}</h3>
+                                <p className="text-[10px] text-white/50 mt-0.5">{formatTimeAgo(video.created_at)}</p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.section>
+                  )}
+
                   {/* Genre-based Project Sections - Premium */}
                   {groupedProjects.sortedGenres.map((genre, genreIndex) => {
                     const genreProjects = groupedProjects.groups[genre];
@@ -1765,6 +1918,28 @@ export default function Projects() {
             setResolvedClips([]);
             setActiveProjectId(selectedProject.id);
             navigate('/create');
+          }}
+        />
+      )}
+
+      {/* Training Video Player Modal */}
+      {trainingVideoModalOpen && selectedTrainingVideo && (
+        <FullscreenVideoPlayer
+          clips={[selectedTrainingVideo.video_url]}
+          title={selectedTrainingVideo.title}
+          onClose={() => {
+            setTrainingVideoModalOpen(false);
+            setSelectedTrainingVideo(null);
+          }}
+          onDownload={() => {
+            if (selectedTrainingVideo.video_url) {
+              window.open(selectedTrainingVideo.video_url, '_blank');
+            }
+          }}
+          onOpenExternal={() => {
+            if (selectedTrainingVideo.video_url) {
+              window.open(selectedTrainingVideo.video_url, '_blank');
+            }
           }}
         />
       )}

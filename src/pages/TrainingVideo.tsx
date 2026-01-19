@@ -498,6 +498,28 @@ export default function TrainingVideo() {
 
       setProgress(100);
       setGenerationStep('complete');
+      
+      // Save training video to database
+      const finalUrl = generatedVideoUrl || finalVideoUrl;
+      if (finalUrl && user) {
+        try {
+          const { error: saveError } = await supabase.from('training_videos').insert({
+            user_id: user.id,
+            title: `Training Video - ${new Date().toLocaleDateString()}`,
+            description: scriptText.slice(0, 200),
+            video_url: finalUrl,
+            voice_id: selectedVoice,
+            environment: selectedBackground,
+          });
+          
+          if (saveError) {
+            console.error('Failed to save training video:', saveError);
+          }
+        } catch (saveErr) {
+          console.error('Error saving training video:', saveErr);
+        }
+      }
+      
       toast.success('Training video generated successfully!');
 
     } catch (err) {

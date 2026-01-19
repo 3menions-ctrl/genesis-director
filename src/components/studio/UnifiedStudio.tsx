@@ -120,6 +120,12 @@ const GENRE_OPTIONS = [
   { value: 'vlog', label: 'Vlog' },
 ];
 
+const ASPECT_RATIO_OPTIONS = [
+  { value: '16:9', label: '16:9', description: 'Landscape (YouTube, TV)' },
+  { value: '9:16', label: '9:16', description: 'Portrait (TikTok, Reels)' },
+  { value: '1:1', label: '1:1', description: 'Square (Instagram)' },
+];
+
 const CLIP_DURATION = 6;
 
 export function UnifiedStudio() {
@@ -158,6 +164,7 @@ export function UnifiedStudio() {
   
   // Shared options
   const [colorGrading, setColorGrading] = useState('cinematic');
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   const [includeVoice, setIncludeVoice] = useState(false);
   const [includeMusic, setIncludeMusic] = useState(false);
   const [includeSfx, setIncludeSfx] = useState(false); // SFX only for pro tier
@@ -832,6 +839,7 @@ export function UnifiedStudio() {
         genre,
         mood,
         colorGrading,
+        aspectRatio,
         includeVoice,
         includeMusic,
         includeSfx: qualityTier === 'professional' ? includeSfx : false,
@@ -1336,7 +1344,7 @@ export function UnifiedStudio() {
                   </div>
                 </div>
                 {/* Premium Creative Options Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
                   <div className="space-y-2.5">
                     <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Mood</Label>
                     <Select value={mood} onValueChange={setMood} disabled={isRunning}>
@@ -1379,6 +1387,24 @@ export function UnifiedStudio() {
                       <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
                         {COLOR_PRESETS.map(opt => (
                           <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Aspect</Label>
+                    <Select value={aspectRatio} onValueChange={(v) => setAspectRatio(v as '16:9' | '9:16' | '1:1')} disabled={isRunning}>
+                      <SelectTrigger className="h-11 sm:h-12 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                        {ASPECT_RATIO_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">
+                            <span className="flex items-center gap-2">
+                              <span className="font-mono font-bold">{opt.label}</span>
+                            </span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1609,6 +1635,61 @@ export function UnifiedStudio() {
 
               {/* Manual Mode Options */}
               <Separator className="my-4 bg-white/[0.06]" />
+              
+              {/* Aspect Ratio & Color for Manual Mode */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <div className="space-y-2">
+                  <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Aspect Ratio</Label>
+                  <Select value={aspectRatio} onValueChange={(v) => setAspectRatio(v as '16:9' | '9:16' | '1:1')} disabled={isRunning}>
+                    <SelectTrigger className="h-10 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                      {ASPECT_RATIO_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">
+                          <span className="flex items-center gap-2">
+                            <span className="font-mono font-bold">{opt.label}</span>
+                            <span className="text-white/50 text-xs">{opt.description}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Color</Label>
+                  <Select value={colorGrading} onValueChange={setColorGrading} disabled={isRunning}>
+                    <SelectTrigger className="h-10 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                      {COLOR_PRESETS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[11px] sm:text-xs font-bold text-white/50 uppercase tracking-wider">Mood</Label>
+                  <Select value={mood} onValueChange={setMood} disabled={isRunning}>
+                    <SelectTrigger className="h-10 bg-black/40 border-white/[0.12] text-white rounded-xl backdrop-blur-xl hover:border-white/25 transition-colors">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
+                      {MOOD_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">{opt.icon}</span>
+                            <span className="font-medium">{opt.label}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               
               {/* Feature Toggles */}
               <div className="flex flex-wrap items-center gap-3">

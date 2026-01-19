@@ -4866,21 +4866,44 @@ serve(async (req) => {
         const errorMsg = genError instanceof Error ? genError.message : String(genError);
         
         // Check if it's a content filter error or rate limit
-        const isRetryableError = 
-          errorMsg.includes('content') ||
-          errorMsg.includes('filter') ||
+        const isRateLimitError = 
           errorMsg.includes('rate') ||
           errorMsg.includes('429') ||
-          errorMsg.includes('timeout');
+          errorMsg.includes('1303') ||
+          errorMsg.includes('parallel task');
+        
+        const isContentFilterError = 
+          errorMsg.includes('content') ||
+          errorMsg.includes('filter');
+        
+        const isRetryableError = isRateLimitError || isContentFilterError || errorMsg.includes('timeout');
         
         if (isRetryableError && contentRetry < MAX_CONTENT_RETRIES) {
-          console.warn(`[SingleClip] ⚠️ Kling error - retrying (${contentRetry + 1}/${MAX_CONTENT_RETRIES})...`);
-          // Wait before retry
-          await new Promise(r => setTimeout(r, 3000 * (contentRetry + 1)));
+          // CRITICAL FIX: Use MUCH longer backoff for rate limits (429)
+          // Kling API parallel task limit needs 20-45 seconds to clear
+          let waitMs: number;
+          
+          if (isRateLimitError) {
+            // Rate limit: Start at 20s, exponential with jitter
+            // 20s, 35s, 55s for attempts 1, 2, 3
+            waitMs = 20000 * Math.pow(1.75, contentRetry) + (Math.random() * 5000);
+            console.warn(`[SingleClip] ⚠️ RATE LIMIT (429) - waiting ${Math.round(waitMs / 1000)}s before retry ${contentRetry + 1}/${MAX_CONTENT_RETRIES}...`);
+          } else if (isContentFilterError) {
+            // Content filter: Short wait, prompt mutation needed
+            waitMs = 5000 * (contentRetry + 1);
+            console.warn(`[SingleClip] ⚠️ Content filter - waiting ${Math.round(waitMs / 1000)}s before retry ${contentRetry + 1}/${MAX_CONTENT_RETRIES}...`);
+          } else {
+            // Timeout or other: Medium wait
+            waitMs = 10000 * (contentRetry + 1);
+            console.warn(`[SingleClip] ⚠️ Timeout/other error - waiting ${Math.round(waitMs / 1000)}s before retry ${contentRetry + 1}/${MAX_CONTENT_RETRIES}...`);
+          }
+          
+          await new Promise(r => setTimeout(r, waitMs));
           continue;
         }
         
         // Not retryable or max retries reached
+        console.error(`[SingleClip] Error: ${errorMsg}`);
         throw genError;
       }
     }

@@ -30,8 +30,8 @@ export function TrailerGenerator() {
     try {
       console.log('[TrailerGenerator] Starting generation...');
       const blob = await generateTrailer({
-        snippetDuration: 2,
-        partsPerVideo: 2,
+        snippetDuration: 3, // 3 seconds per movie
+        partsPerVideo: 1,   // 1 snippet per movie for smooth flow
         includeMusic: false,
         onProgress: (p) => {
           console.log('[TrailerGenerator] Progress:', p.phase, p.percentComplete + '%');

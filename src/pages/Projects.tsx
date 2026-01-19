@@ -8,7 +8,7 @@ import {
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
   BarChart3, Activity, Settings2, ChevronDown, X, Check,
   Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock,
-  GraduationCap, Video
+  GraduationCap, Video, MonitorPlay
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,8 @@ import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
+import { BrowserStitcherPanel } from '@/components/studio/BrowserStitcherPanel';
+import { useBrowserStitcher } from '@/hooks/useBrowserStitcher';
 
 // ============= HELPERS =============
 
@@ -227,10 +229,12 @@ function ProjectCard({
   onDelete,
   onDownload,
   onRetryStitch,
+  onBrowserStitch,
   onTogglePin,
   onTogglePublic,
   isActive,
   isRetrying = false,
+  isBrowserStitching = false,
   isPinned = false,
   viewMode = 'grid'
 }: {
@@ -242,10 +246,12 @@ function ProjectCard({
   onDelete: () => void;
   onDownload: () => void;
   onRetryStitch?: () => void;
+  onBrowserStitch?: () => void;
   onTogglePin?: () => void;
   onTogglePublic?: () => void;
   isActive: boolean;
   isRetrying?: boolean;
+  isBrowserStitching?: boolean;
   isPinned?: boolean;
   viewMode?: 'grid' | 'list';
 }) {
@@ -717,6 +723,16 @@ function ProjectCard({
                   </DropdownMenuItem>
                 </>
               )}
+              {onBrowserStitch && project.video_clips?.length && (
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onBrowserStitch(); }}
+                  disabled={isBrowserStitching}
+                  className="gap-2.5 text-sm text-purple-400 focus:text-purple-300 focus:bg-purple-500/10 rounded-lg py-2.5 px-3"
+                >
+                  <MonitorPlay className={cn("w-4 h-4", isBrowserStitching && "animate-pulse")} />
+                  Browser Stitch
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className="bg-zinc-700 my-1" />
               <DropdownMenuItem
                 className="gap-2.5 text-sm text-red-400 focus:text-red-300 focus:bg-red-500/10 rounded-lg py-2.5 px-3"
@@ -783,6 +799,8 @@ export default function Projects() {
   const [resolvedClips, setResolvedClips] = useState<string[]>([]);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
+  const [browserStitchingProjectId, setBrowserStitchingProjectId] = useState<string | null>(null);
+  const [showBrowserStitcher, setShowBrowserStitcher] = useState<string | null>(null);
   const [isStitchingAll, setIsStitchingAll] = useState(false);
   const [stitchQueue, setStitchQueue] = useState<string[]>([]);
   
@@ -1218,7 +1236,10 @@ export default function Projects() {
     }
   };
 
-  // Needs stitching & processing projects
+  const handleBrowserStitch = (projectId: string) => {
+    setShowBrowserStitcher(projectId);
+  };
+
   const needsStitching = projects.filter(p => {
     const hasClips = hasVideoContent(p);
     const isPlayable = isPlayableProject(p);
@@ -1697,10 +1718,12 @@ export default function Projects() {
                               onDelete={() => deleteProject(project.id)}
                               onDownload={() => handleDownloadAll(project)}
                               onRetryStitch={() => handleGoogleStitch(project.id)}
+                              onBrowserStitch={() => handleBrowserStitch(project.id)}
                               onTogglePin={() => togglePin(project.id)}
                               onTogglePublic={() => handleTogglePublic(project)}
                               isActive={activeProjectId === project.id}
                               isRetrying={retryingProjectId === project.id}
+                              isBrowserStitching={browserStitchingProjectId === project.id}
                               isPinned={true}
                             />
                           ))}
@@ -1719,10 +1742,12 @@ export default function Projects() {
                               onDelete={() => deleteProject(project.id)}
                               onDownload={() => handleDownloadAll(project)}
                               onRetryStitch={() => handleGoogleStitch(project.id)}
+                              onBrowserStitch={() => handleBrowserStitch(project.id)}
                               onTogglePin={() => togglePin(project.id)}
                               onTogglePublic={() => handleTogglePublic(project)}
                               isActive={activeProjectId === project.id}
                               isRetrying={retryingProjectId === project.id}
+                              isBrowserStitching={browserStitchingProjectId === project.id}
                               isPinned={true}
                             />
                           ))}
@@ -2055,6 +2080,28 @@ export default function Projects() {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Browser Stitcher Modal */}
+      <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+          <DialogHeader>
+            <DialogTitle>Browser Video Stitcher</DialogTitle>
+            <DialogDescription>
+              Combine your clips locally in the browser
+            </DialogDescription>
+          </DialogHeader>
+          {showBrowserStitcher && (
+            <BrowserStitcherPanel
+              projectId={showBrowserStitcher}
+              clipUrls={projects.find(p => p.id === showBrowserStitcher)?.video_clips || []}
+              onComplete={() => {
+                setShowBrowserStitcher(null);
+                refreshProjects();
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

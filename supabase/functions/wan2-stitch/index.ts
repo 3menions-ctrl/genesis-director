@@ -88,8 +88,8 @@ serve(async (req) => {
     const {
       projectId,
       userId,
-      maxBridgeClips = 3,
-      transitionThreshold = 70,
+      maxBridgeClips = 0,           // DISABLED: No bridge clips by default
+      transitionThreshold = 0,      // DISABLED: Never trigger bridges
       bridgeDurationSeconds = 4,
       resolution = "480p",
       includeNarration = false,

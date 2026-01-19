@@ -526,55 +526,70 @@ export async function generateTrailer(
 }
 
 /**
- * Convert WebM blob to MP4 using ffmpeg.wasm
+ * Convert WebM blob to MP4
+ * Uses ffmpeg.wasm with SharedArrayBuffer if available,
+ * otherwise falls back to direct WebM download with guidance
  */
 export async function convertToMp4(
   webmBlob: Blob,
   onProgress?: (percent: number) => void
 ): Promise<Blob> {
-  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-  const { fetchFile } = await import('@ffmpeg/util');
+  // Check if SharedArrayBuffer is available (required for ffmpeg.wasm)
+  const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
   
-  const ffmpeg = new FFmpeg();
-  
-  ffmpeg.on('progress', ({ progress }) => {
-    onProgress?.(Math.round(progress * 100));
-  });
+  if (!hasSharedArrayBuffer) {
+    console.warn('[Trailer] SharedArrayBuffer not available - MP4 conversion not supported in this environment');
+    throw new Error('MP4 conversion requires a secure context with SharedArrayBuffer. Please download as WebM instead, or use a tool like HandBrake to convert locally.');
+  }
 
-  // Load ffmpeg
-  await ffmpeg.load({
-    coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
-    wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
-  });
+  try {
+    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+    const { fetchFile } = await import('@ffmpeg/util');
+    
+    const ffmpeg = new FFmpeg();
+    
+    ffmpeg.on('progress', ({ progress }) => {
+      onProgress?.(Math.round(progress * 100));
+    });
 
-  // Write input file
-  const inputData = await fetchFile(webmBlob);
-  await ffmpeg.writeFile('input.webm', inputData);
+    // Load ffmpeg with multi-threaded core if possible
+    await ffmpeg.load({
+      coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+    });
 
-  // Convert to MP4
-  await ffmpeg.exec([
-    '-i', 'input.webm',
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-crf', '23',
-    '-c:a', 'aac',
-    '-b:a', '128k',
-    '-movflags', '+faststart',
-    'output.mp4'
-  ]);
+    // Write input file
+    const inputData = await fetchFile(webmBlob);
+    await ffmpeg.writeFile('input.webm', inputData);
 
-  // Read output - copy to regular ArrayBuffer to avoid SharedArrayBuffer issues
-  const outputData = await ffmpeg.readFile('output.mp4') as Uint8Array;
-  const buffer = new ArrayBuffer(outputData.byteLength);
-  new Uint8Array(buffer).set(outputData);
-  const mp4Blob = new Blob([buffer], { type: 'video/mp4' });
+    // Convert to MP4
+    await ffmpeg.exec([
+      '-i', 'input.webm',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-movflags', '+faststart',
+      'output.mp4'
+    ]);
 
-  // Cleanup
-  await ffmpeg.deleteFile('input.webm');
-  await ffmpeg.deleteFile('output.mp4');
-  ffmpeg.terminate();
+    // Read output - copy to regular ArrayBuffer to avoid SharedArrayBuffer issues
+    const outputData = await ffmpeg.readFile('output.mp4') as Uint8Array;
+    const buffer = new ArrayBuffer(outputData.byteLength);
+    new Uint8Array(buffer).set(outputData);
+    const mp4Blob = new Blob([buffer], { type: 'video/mp4' });
 
-  return mp4Blob;
+    // Cleanup
+    await ffmpeg.deleteFile('input.webm');
+    await ffmpeg.deleteFile('output.mp4');
+    ffmpeg.terminate();
+
+    return mp4Blob;
+  } catch (err) {
+    console.error('[Trailer] FFmpeg conversion failed:', err);
+    throw new Error('MP4 conversion failed. Please download as WebM instead.');
+  }
 }
 
 /**

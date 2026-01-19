@@ -75,6 +75,17 @@ export function TrailerGenerator() {
   const handleDownloadMp4 = useCallback(async () => {
     if (!trailerBlob) return;
     
+    // Check if SharedArrayBuffer is available
+    const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+    
+    if (!hasSharedArrayBuffer) {
+      toast.error('MP4 conversion not available', {
+        description: 'Your browser environment doesn\'t support MP4 conversion. Please download as WebM and convert using a tool like HandBrake.',
+        duration: 8000,
+      });
+      return;
+    }
+    
     setIsConverting(true);
     setConvertProgress(0);
     
@@ -92,8 +103,8 @@ export function TrailerGenerator() {
       toast.success('MP4 download started!');
     } catch (error) {
       console.error('[TrailerGenerator] MP4 conversion failed:', error);
-      toast.error('Failed to convert to MP4', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+      toast.error('MP4 conversion failed', {
+        description: 'Please download as WebM instead',
       });
     } finally {
       setIsConverting(false);

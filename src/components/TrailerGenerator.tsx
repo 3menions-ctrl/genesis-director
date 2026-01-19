@@ -1,14 +1,16 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, Download, Loader2, Play, X, Sparkles, Music } from 'lucide-react';
+import { Film, Download, Loader2, Play, X, Sparkles, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { generateTrailer, downloadTrailer, TrailerProgress } from '@/utils/trailerGenerator';
+import { generateTrailer, downloadTrailer, downloadTrailerAsMp4, TrailerProgress } from '@/utils/trailerGenerator';
 import { toast } from 'sonner';
 
 export function TrailerGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertProgress, setConvertProgress] = useState(0);
   const [progress, setProgress] = useState<TrailerProgress | null>(null);
   const [trailerBlob, setTrailerBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function TrailerGenerator() {
       const blob = await generateTrailer({
         snippetDuration: 2,
         partsPerVideo: 2,
-        includeMusic: false, // Disable music for now to speed up generation
+        includeMusic: false,
         onProgress: (p) => {
           console.log('[TrailerGenerator] Progress:', p.phase, p.percentComplete + '%');
           setProgress(p);
@@ -49,7 +51,7 @@ export function TrailerGenerator() {
       setShowPreview(true);
 
       toast.success('Trailer generated!', {
-        description: 'Click download to save your trailer',
+        description: 'Download as WebM or MP4',
       });
     } catch (error) {
       console.error('[TrailerGenerator] Generation failed:', error);
@@ -62,11 +64,40 @@ export function TrailerGenerator() {
     }
   }, []);
 
-  const handleDownload = useCallback(() => {
+  const handleDownloadWebm = useCallback(() => {
     if (trailerBlob) {
       const filename = `community-trailer-${Date.now()}.webm`;
       downloadTrailer(trailerBlob, filename);
-      toast.success('Download started!');
+      toast.success('WebM download started!');
+    }
+  }, [trailerBlob]);
+
+  const handleDownloadMp4 = useCallback(async () => {
+    if (!trailerBlob) return;
+    
+    setIsConverting(true);
+    setConvertProgress(0);
+    
+    toast.info('Converting to MP4...', {
+      description: 'This may take a moment',
+      duration: 5000,
+    });
+
+    try {
+      await downloadTrailerAsMp4(
+        trailerBlob,
+        `community-trailer-${Date.now()}.mp4`,
+        (percent) => setConvertProgress(percent)
+      );
+      toast.success('MP4 download started!');
+    } catch (error) {
+      console.error('[TrailerGenerator] MP4 conversion failed:', error);
+      toast.error('Failed to convert to MP4', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsConverting(false);
+      setConvertProgress(0);
     }
   }, [trailerBlob]);
 
@@ -93,16 +124,23 @@ export function TrailerGenerator() {
           {isGenerating && progress ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-white/70">
-                {progress.phase === 'music' ? (
-                  <Music className="w-4 h-4 animate-pulse text-primary" />
-                ) : (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                )}
+                <Loader2 className="w-4 h-4 animate-spin" />
                 <span>{progress.message}</span>
               </div>
               <Progress value={progress.percentComplete} className="h-2" />
               <p className="text-xs text-white/50 text-right">
                 {progress.percentComplete}% complete
+              </p>
+            </div>
+          ) : isConverting ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-white/70">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Converting to MP4...</span>
+              </div>
+              <Progress value={convertProgress} className="h-2" />
+              <p className="text-xs text-white/50 text-right">
+                {convertProgress}% complete
               </p>
             </div>
           ) : trailerBlob ? (
@@ -116,11 +154,19 @@ export function TrailerGenerator() {
                 Preview
               </Button>
               <Button
-                onClick={handleDownload}
-                className="flex-1 gap-2 bg-primary hover:bg-primary/90"
+                onClick={handleDownloadWebm}
+                variant="outline"
+                className="gap-2"
               >
                 <Download className="w-4 h-4" />
-                Download
+                WebM
+              </Button>
+              <Button
+                onClick={handleDownloadMp4}
+                className="gap-2 bg-primary hover:bg-primary/90"
+              >
+                <FileVideo className="w-4 h-4" />
+                MP4
               </Button>
             </div>
           ) : (
@@ -166,11 +212,25 @@ export function TrailerGenerator() {
                 <h3 className="font-semibold text-white">Community Trailer Preview</h3>
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleDownload}
+                    onClick={handleDownloadWebm}
+                    variant="outline"
                     className="gap-2"
+                    disabled={isConverting}
                   >
                     <Download className="w-4 h-4" />
-                    Download Trailer
+                    WebM
+                  </Button>
+                  <Button
+                    onClick={handleDownloadMp4}
+                    className="gap-2"
+                    disabled={isConverting}
+                  >
+                    {isConverting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileVideo className="w-4 h-4" />
+                    )}
+                    {isConverting ? `${convertProgress}%` : 'MP4'}
                   </Button>
                 </div>
               </div>

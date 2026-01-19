@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
-import { BrowserStitcherPanel } from '@/components/studio/BrowserStitcherPanel';
+import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
@@ -556,6 +556,17 @@ export default function Clips() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Play All / Smart Player button for project view */}
+              {projectIdFilter && completedCount > 0 && (
+                <Button
+                  onClick={() => setShowBrowserStitcher(projectIdFilter)}
+                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Play All ({completedCount})
+                </Button>
+              )}
+              
               {failedCount > 0 && (
                 <Button
                   onClick={handleDeleteAllFailed}
@@ -1308,35 +1319,38 @@ export default function Clips() {
         />
       )}
 
-      {/* Browser Stitcher Modal */}
+      {/* Smart Stitcher Player Modal */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
         if (!open) setShowBrowserStitcher(null);
       }}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg" hideCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Browser Video Stitcher</DialogTitle>
+        <DialogContent className="bg-zinc-950 border-zinc-800 max-w-4xl p-0 overflow-hidden" hideCloseButton={false}>
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <MonitorPlay className="w-5 h-5 text-primary" />
+              Smart Player & Stitcher
+            </DialogTitle>
             <DialogDescription>
-              Combine your clips locally in the browser. After stitching completes, you can preview, download, or save to cloud.
+              Play clips seamlessly. Click "Export Video" to stitch into a single file.
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <BrowserStitcherPanel
-              projectId={showBrowserStitcher}
-              onComplete={(videoUrl) => {
-                // Don't close the dialog - let user preview/download/save
-                // The dialog will show the preview and action buttons
-                console.log('Stitching complete, video ready:', videoUrl);
-              }}
-            />
+            <div className="p-4 pt-2">
+              <SmartStitcherPlayer
+                projectId={showBrowserStitcher}
+                className="aspect-video rounded-lg"
+                onExportComplete={(videoUrl) => {
+                  console.log('Export complete:', videoUrl);
+                  // Optionally close and refresh
+                  setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
+                }}
+              />
+            </div>
           )}
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end p-4 pt-0">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setShowBrowserStitcher(null);
-                setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
-              }}
+              onClick={() => setShowBrowserStitcher(null)}
               className="text-zinc-400 hover:text-white"
             >
               Close

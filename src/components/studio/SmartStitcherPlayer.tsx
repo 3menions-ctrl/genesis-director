@@ -625,7 +625,7 @@ export function SmartStitcherPlayer({
     }, 3000);
   }, [isPlaying]);
 
-  // High-quality stitching with RAF-based frame capture
+  // High-quality stitching with RAF-based frame capture and crossfade transitions
   const startStitching = useCallback(async () => {
     const loadedClips = clips.filter((c) => c.loaded && c.blobUrl);
     if (loadedClips.length === 0) {
@@ -637,6 +637,7 @@ export function SmartStitcherPlayer({
     const quality = QUALITY_PRESETS[selectedQuality];
     const fps = 30;
     const frameTime = 1000 / fps;
+    const crossfadeDurationSec = CROSSFADE_DURATION / 1000; // 0.15s crossfade
 
     setStitchState({
       status: 'stitching',
@@ -673,42 +674,8 @@ export function SmartStitcherPlayer({
       let processedTime = 0;
       const startTime = performance.now();
 
-      // Process each clip
-      for (let clipIdx = 0; clipIdx < loadedClips.length; clipIdx++) {
-        if (stitchCancelRef.current) {
-          recorder.stop();
-          setStitchState({ status: 'cancelled', progress: 0, message: 'Cancelled' });
-          return;
-        }
-
-        const clip = loadedClips[clipIdx];
-        
-        setStitchState({
-          status: 'stitching',
-          progress: Math.round((processedTime / totalClipDuration) * 95),
-          message: `Encoding clip ${clipIdx + 1}/${loadedClips.length}...`,
-          phase: 'encoding',
-          currentClip: clipIdx + 1,
-        });
-
-        // Create video element for this clip
-        const video = document.createElement('video');
-        video.src = clip.blobUrl!;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'auto';
-
-        await new Promise<void>((resolve, reject) => {
-          video.oncanplaythrough = () => resolve();
-          video.onerror = () => reject(new Error('Video playback failed'));
-          video.load();
-        });
-
-        // Get actual video dimensions
-        const vw = video.videoWidth || quality.width;
-        const vh = video.videoHeight || quality.height;
-
-        // Calculate scaling to cover canvas
+      // Helper to calculate draw dimensions
+      const getDrawParams = (vw: number, vh: number) => {
         const canvasAspect = quality.width / quality.height;
         const videoAspect = vw / vh;
         let drawW: number, drawH: number, drawX: number, drawY: number;
@@ -724,27 +691,108 @@ export function SmartStitcherPlayer({
           drawX = 0;
           drawY = (quality.height - drawH) / 2;
         }
+        return { drawX, drawY, drawW, drawH };
+      };
+
+      // Preload all videos for crossfade access
+      const preloadedVideos: HTMLVideoElement[] = [];
+      for (const clip of loadedClips) {
+        const video = document.createElement('video');
+        video.src = clip.blobUrl!;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        await new Promise<void>((resolve, reject) => {
+          video.oncanplaythrough = () => resolve();
+          video.onerror = () => reject(new Error('Video preload failed'));
+          video.load();
+        });
+        preloadedVideos.push(video);
+      }
+
+      // Process each clip with crossfade transitions
+      for (let clipIdx = 0; clipIdx < loadedClips.length; clipIdx++) {
+        if (stitchCancelRef.current) {
+          recorder.stop();
+          setStitchState({ status: 'cancelled', progress: 0, message: 'Cancelled' });
+          return;
+        }
+
+        const clip = loadedClips[clipIdx];
+        const video = preloadedVideos[clipIdx];
+        const nextVideo = clipIdx < loadedClips.length - 1 ? preloadedVideos[clipIdx + 1] : null;
+        
+        setStitchState({
+          status: 'stitching',
+          progress: Math.round((processedTime / totalClipDuration) * 95),
+          message: `Encoding clip ${clipIdx + 1}/${loadedClips.length}...`,
+          phase: 'encoding',
+          currentClip: clipIdx + 1,
+        });
+
+        const vw = video.videoWidth || quality.width;
+        const vh = video.videoHeight || quality.height;
+        const { drawX, drawY, drawW, drawH } = getDrawParams(vw, vh);
+
+        // Get next video draw params for crossfade
+        let nextDrawParams: { drawX: number; drawY: number; drawW: number; drawH: number } | null = null;
+        if (nextVideo) {
+          const nvw = nextVideo.videoWidth || quality.width;
+          const nvh = nextVideo.videoHeight || quality.height;
+          nextDrawParams = getDrawParams(nvw, nvh);
+        }
 
         // Play video and capture frames
         video.currentTime = 0;
         await video.play();
 
-        // Frame-by-frame capture using RAF timing
         const clipDuration = video.duration;
+        const crossfadeStart = Math.max(0, clipDuration - crossfadeDurationSec);
         let lastFrameTime = performance.now();
 
-        while (video.currentTime < clipDuration - 0.05) {
+        // Prepare next video for crossfade
+        if (nextVideo) {
+          nextVideo.currentTime = 0;
+        }
+
+        while (video.currentTime < clipDuration - 0.02) {
           if (stitchCancelRef.current) break;
 
-          // Draw frame
+          const currentVideoTime = video.currentTime;
+          const isInCrossfade = nextVideo && currentVideoTime >= crossfadeStart;
+
+          // Clear canvas
           ctx.fillStyle = '#000';
           ctx.fillRect(0, 0, quality.width, quality.height);
-          ctx.drawImage(video, drawX, drawY, drawW, drawH);
+
+          if (isInCrossfade && nextVideo && nextDrawParams) {
+            // Calculate crossfade progress (0 to 1)
+            const fadeProgress = Math.min(1, (currentVideoTime - crossfadeStart) / crossfadeDurationSec);
+            const eased = 1 - Math.pow(1 - fadeProgress, 2); // Ease-out
+
+            // Draw current clip with decreasing opacity
+            ctx.globalAlpha = 1 - eased;
+            ctx.drawImage(video, drawX, drawY, drawW, drawH);
+
+            // Draw next clip with increasing opacity
+            ctx.globalAlpha = eased;
+            ctx.drawImage(nextVideo, nextDrawParams.drawX, nextDrawParams.drawY, nextDrawParams.drawW, nextDrawParams.drawH);
+
+            // Reset alpha
+            ctx.globalAlpha = 1;
+
+            // Advance next video during crossfade
+            if (nextVideo.paused) {
+              nextVideo.play().catch(() => {});
+            }
+          } else {
+            // Normal frame - draw current video
+            ctx.drawImage(video, drawX, drawY, drawW, drawH);
+          }
 
           // Wait for next frame with precise timing
           const elapsed = performance.now() - lastFrameTime;
           const waitTime = Math.max(0, frameTime - elapsed);
-          
           await new Promise((r) => setTimeout(r, waitTime));
           lastFrameTime = performance.now();
 
@@ -765,9 +813,17 @@ export function SmartStitcherPlayer({
         }
 
         video.pause();
-        video.src = '';
         processedTime += clipDuration;
+
+        // If we did crossfade, the next video is already playing - pause it at crossfade end point
+        if (nextVideo && !nextVideo.paused) {
+          nextVideo.pause();
+          // The next iteration will resume from where crossfade ended
+        }
       }
+
+      // Cleanup preloaded videos
+      preloadedVideos.forEach(v => { v.pause(); v.src = ''; });
 
       // Finalize
       setStitchState({

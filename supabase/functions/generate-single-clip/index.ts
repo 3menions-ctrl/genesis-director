@@ -3808,20 +3808,91 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // THE LAW v2.0: STRICT INGREDIENT VALIDATION FOR ALL CLIPS
-    // NO CLIP BEGINS GENERATION WITHOUT ALL REQUIRED INGREDIENTS
-    // 
-    // CLIP 1 REQUIRES:
-    //   - Reference image (establishes visual world)
-    //   - Identity bible with character identity
-    //   - Prompt/script
-    //
-    // CLIP 2+ REQUIRES (ALL OF THE ABOVE PLUS):
-    //   - Previous clip's last frame (startImageUrl)
-    //   - Accumulated anchors OR continuity manifest (scene DNA)
-    //   - Consistency anchors (from clip 1's scene extraction)
-    //
-    // NO EXCEPTIONS. NO FALLBACKS. FAILURE IS FATAL.
+    // PRE-VALIDATION RECOVERY: Recover missing data from DB BEFORE validation
+    // This ensures clips 2+ have the necessary anchors and identity data
+    // =====================================================
+    console.log(`[SingleClip] Pre-validation state:`, {
+      clipIndex: request.clipIndex,
+      hasStartImageUrl: !!request.startImageUrl,
+      hasAccumulatedAnchors: !!(request.accumulatedAnchors?.length),
+      hasIdentityBible: !!request.identityBible,
+      hasConsistencyAnchors: !!(request.identityBible?.consistencyAnchors?.length),
+      hasReferenceImageUrl: !!request.referenceImageUrl,
+      hasPreviousContinuityManifest: !!request.previousContinuityManifest,
+    });
+    
+    // RECOVERY: For clips 2+, attempt to recover missing data from DB
+    if (request.clipIndex > 0) {
+      try {
+        const { data: projectData } = await supabase
+          .from('movie_projects')
+          .select('pro_features_data, reference_image_url')
+          .eq('id', request.projectId)
+          .single();
+        
+        const proData = projectData?.pro_features_data;
+        
+        // Recover identityBible if missing
+        if (!request.identityBible?.consistencyPrompt && !request.identityBible?.characterIdentity) {
+          if (proData?.identityBible) {
+            request.identityBible = proData.identityBible;
+            console.log(`[SingleClip] ✓ RECOVERED identityBible from pro_features_data`);
+          } else if (proData?.extractedCharacters?.length > 0) {
+            const char = proData.extractedCharacters[0];
+            request.identityBible = {
+              characterIdentity: { description: `${char.name}: ${char.appearance}` },
+              consistencyPrompt: `${char.name}, ${char.appearance}`,
+              consistencyAnchors: [char.name, ...(char.appearance?.split(' ').slice(0, 5) || [])].filter(Boolean),
+            };
+            console.log(`[SingleClip] ✓ BUILT identityBible from extractedCharacters`);
+          }
+        }
+        
+        // Recover consistencyAnchors if identityBible exists but anchors are missing
+        if (request.identityBible && !request.identityBible.consistencyAnchors?.length) {
+          if (proData?.identityBible?.consistencyAnchors?.length) {
+            request.identityBible.consistencyAnchors = proData.identityBible.consistencyAnchors;
+            console.log(`[SingleClip] ✓ RECOVERED consistencyAnchors from pro_features_data`);
+          } else if (request.identityBible.consistencyPrompt) {
+            // Build minimal anchors from consistency prompt
+            request.identityBible.consistencyAnchors = request.identityBible.consistencyPrompt
+              .split(/[,\s]+/)
+              .filter((w: string) => w.length > 3)
+              .slice(0, 8);
+            console.log(`[SingleClip] ✓ BUILT consistencyAnchors from consistencyPrompt`);
+          }
+        }
+        
+        // Recover accumulatedAnchors from masterSceneAnchor if available
+        if (!request.accumulatedAnchors?.length && proData?.masterSceneAnchor) {
+          request.accumulatedAnchors = [{
+            lighting: { promptFragment: proData.masterSceneAnchor.lighting?.promptFragment },
+            colorPalette: { promptFragment: proData.masterSceneAnchor.colorPalette?.promptFragment },
+            keyObjects: { promptFragment: proData.masterSceneAnchor.keyObjects?.promptFragment },
+            masterConsistencyPrompt: proData.masterSceneAnchor.masterConsistencyPrompt,
+          }];
+          console.log(`[SingleClip] ✓ RECOVERED accumulatedAnchors from masterSceneAnchor`);
+        }
+        
+        // Recover referenceImageUrl if missing
+        if (!request.referenceImageUrl) {
+          if (projectData?.reference_image_url) {
+            request.referenceImageUrl = projectData.reference_image_url;
+            console.log(`[SingleClip] ✓ RECOVERED referenceImageUrl from project`);
+          } else if (proData?.identityBible?.originalReferenceUrl) {
+            request.referenceImageUrl = proData.identityBible.originalReferenceUrl;
+            console.log(`[SingleClip] ✓ RECOVERED referenceImageUrl from identityBible`);
+          }
+        }
+        
+      } catch (recoveryErr) {
+        console.warn(`[SingleClip] Pre-validation recovery failed (non-fatal):`, recoveryErr);
+      }
+    }
+
+    // =====================================================
+    // THE LAW v2.1: INGREDIENT VALIDATION WITH RECOVERY FALLBACKS
+    // Validates after recovery attempt to maximize success rate
     // =====================================================
     const violations: string[] = [];
     const warnings: string[] = [];
@@ -3863,29 +3934,55 @@ serve(async (req) => {
     
     // === CLIP 2+ SPECIFIC REQUIREMENTS ===
     if (request.clipIndex > 0) {
-      // Validation C2-1: startImageUrl (previous clip's last frame) is REQUIRED
+      // Validation C2-1: startImageUrl (previous clip's last frame) is REQUIRED - HARD VIOLATION
       if (!request.startImageUrl) {
         violations.push('FRAME_CHAIN: Missing startImageUrl (previous clip\'s last frame)');
       }
       
-      // Validation C2-2: Accumulated anchors OR continuity manifest REQUIRED
+      // Validation C2-2: Accumulated anchors OR continuity manifest - now a WARNING with fallback
       const hasSceneAnchors = (request.accumulatedAnchors && request.accumulatedAnchors.length > 0) ||
                                request.previousContinuityManifest;
       if (!hasSceneAnchors) {
-        violations.push('SCENE_DNA: Missing accumulatedAnchors and previousContinuityManifest');
+        warnings.push('SCENE_DNA: Missing accumulatedAnchors and previousContinuityManifest - using minimal fallback');
+        // Build minimal accumulated anchor from identityBible if available
+        if (request.identityBible?.consistencyPrompt) {
+          request.accumulatedAnchors = [{
+            masterConsistencyPrompt: request.identityBible.consistencyPrompt,
+          }];
+          console.log(`[SingleClip] ✓ FALLBACK: Built minimal accumulatedAnchors from consistencyPrompt`);
+        }
       }
       
-      // Validation C2-3: Reference image REQUIRED (passed through from pipeline)
+      // Validation C2-3: Reference image - now a WARNING (can use startImageUrl as fallback)
       if (!request.referenceImageUrl) {
-        violations.push('REFERENCE: Missing referenceImageUrl (character/style reference from clip 1)');
+        if (request.startImageUrl) {
+          request.referenceImageUrl = request.startImageUrl;
+          warnings.push('REFERENCE: Using startImageUrl as referenceImageUrl fallback');
+        } else {
+          violations.push('REFERENCE: Missing referenceImageUrl and no startImageUrl fallback');
+        }
       }
       
-      // Validation C2-4: Consistency anchors REQUIRED (extracted from clip 1's scene)
-      // THIS IS NOW A HARD VIOLATION - NO CHARACTER DRIFT ALLOWED
+      // Validation C2-4: Consistency anchors - now a WARNING with last-chance fallback
       const hasConsistencyAnchors = request.identityBible?.consistencyAnchors && 
                                      request.identityBible.consistencyAnchors.length > 0;
       if (!hasConsistencyAnchors) {
-        violations.push('CONSISTENCY_ANCHORS: Missing identityBible.consistencyAnchors (extracted from clip 1) - character drift would occur');
+        // Last-chance fallback: build from prompt keywords
+        if (request.prompt) {
+          const keywords = request.prompt
+            .split(/[,.\s]+/)
+            .filter((w: string) => w.length > 4 && !['with', 'from', 'into', 'their', 'where'].includes(w.toLowerCase()))
+            .slice(0, 6);
+          if (keywords.length > 0) {
+            request.identityBible = request.identityBible || {};
+            request.identityBible.consistencyAnchors = keywords;
+            warnings.push(`CONSISTENCY_ANCHORS: Built ${keywords.length} anchors from prompt keywords`);
+          } else {
+            warnings.push('CONSISTENCY_ANCHORS: Missing and could not build from prompt - character consistency may be reduced');
+          }
+        } else {
+          warnings.push('CONSISTENCY_ANCHORS: Missing - character consistency may be reduced');
+        }
       }
       
       // Validation C2-5: Golden frame data RECOMMENDED for character re-anchoring

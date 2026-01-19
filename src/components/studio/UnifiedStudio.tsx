@@ -689,12 +689,19 @@ export function UnifiedStudio() {
       if (funcError) throw new Error(funcError.message);
       if (!data?.success) throw new Error(data?.error || 'Failed to generate story');
 
-      setGeneratedStory(data.story);
-      setStoryTitle(data.title || concept.substring(0, 50));
+      const generatedStoryText = data.story;
+      const generatedTitle = data.title || concept.substring(0, 50);
+      setGeneratedStory(generatedStoryText);
+      setStoryTitle(generatedTitle);
       setStoryEstimatedScenes(data.estimatedScenes || clipCount);
-      setStoryFlowStage('story');
       addPipelineLog('Story generated successfully!', 'success');
-      toast.success('Story generated! Review and approve to continue.');
+      
+      // AUTO-APPROVE: Skip story approval panel and run pipeline directly
+      toast.success('Story generated! Starting production...');
+      // Use a small timeout to ensure state is set before runPipeline reads it
+      setTimeout(() => {
+        runPipeline(generatedTitle);
+      }, 100);
     } catch (err) {
       console.error('Story generation error:', err);
       const message = err instanceof Error ? err.message : 'Failed to generate story';
@@ -777,8 +784,9 @@ export function UnifiedStudio() {
         toast.error(`Please fill in all ${clipCount} scene prompts`);
         return;
       }
-      // Manual mode: skip story generation, go straight to cost dialog
-      setShowCostDialog(true);
+      // Manual mode: skip story generation, go straight to pipeline
+      const projectName = concept.substring(0, 50) || 'Manual Video';
+      runPipeline(projectName);
       return;
     }
 
@@ -853,6 +861,9 @@ export function UnifiedStudio() {
         requestBody.referenceImageUrl = referenceImageAnalysis.imageUrl;
         requestBody.referenceImageAnalysis = referenceImageAnalysis;
       }
+
+      // AUTO-APPROVE: Skip script approval in backend pipeline
+      requestBody.skipApproval = true;
 
       // Pass rich template data if available
       if (templateShotSequence && templateShotSequence.length > 0) {

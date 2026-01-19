@@ -1646,15 +1646,39 @@ export default function Projects() {
                     </div>
                   ))}
                   {needsStitching.slice(0, 5).map(project => (
-                    <button
-                      key={project.id}
-                      onClick={() => handleGoogleStitch(project.id)}
-                      disabled={retryingProjectId === project.id}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                    >
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
-                    </button>
+                    <DropdownMenu key={project.id}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          disabled={retryingProjectId === project.id || browserStitchingProjectId === project.id}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                        >
+                          {retryingProjectId === project.id ? (
+                            <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                          ) : (
+                            <Zap className="w-3 h-3 text-amber-400" />
+                          )}
+                          <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
+                          <ChevronDown className="w-3 h-3 text-white/40" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-zinc-900 border-zinc-700 min-w-[160px]">
+                        <DropdownMenuItem
+                          onClick={() => handleGoogleStitch(project.id)}
+                          disabled={retryingProjectId === project.id}
+                          className="gap-2 text-xs"
+                        >
+                          <RefreshCw className={cn("w-3 h-3", retryingProjectId === project.id && "animate-spin")} />
+                          Server Stitch
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleBrowserStitch(project.id)}
+                          className="gap-2 text-xs text-purple-400"
+                        >
+                          <MonitorPlay className="w-3 h-3" />
+                          Browser Stitch
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   ))}
                   {needsStitching.length > 5 && (
                     <span className="px-3 py-1.5 text-xs text-white/40">+{needsStitching.length - 5} more</span>

@@ -319,11 +319,24 @@ export async function generateTrailer(
       if (e.data.size > 0) chunks.push(e.data);
     };
 
-    recorder.start(500); // Larger chunk interval for stability
+    recorder.start(500);
 
-    // Phase 3: Process clips ONE AT A TIME to save memory
+    // Phase 3: Process clips with look-ahead loading for seamless transitions
     const frameInterval = 1000 / fps;
     let processedClips = 0;
+    let nextVideoPromise: Promise<HTMLVideoElement> | null = null;
+    let currentVideo: HTMLVideoElement | null = null;
+    let nextVideo: HTMLVideoElement | null = null;
+
+    // Pre-load first video
+    if (clips.length > 0) {
+      currentVideo = await loadVideo(clips[0].url);
+    }
+
+    // Pre-load second video if exists
+    if (clips.length > 1) {
+      nextVideoPromise = loadVideo(clips[1].url);
+    }
 
     for (let clipIndex = 0; clipIndex < clips.length; clipIndex++) {
       const clip = clips[clipIndex];
@@ -336,12 +349,19 @@ export async function generateTrailer(
         message: `Processing clip ${clipIndex + 1} of ${clips.length}...`,
       });
 
-      let video: HTMLVideoElement | null = null;
-      
       try {
-        // Load single video
-        console.log(`[Trailer] Loading clip ${clipIndex + 1}...`);
-        video = await loadVideo(clip.url);
+        // Use pre-loaded video
+        const video = currentVideo;
+        if (!video) {
+          console.warn(`[Trailer] No video for clip ${clipIndex + 1}`);
+          continue;
+        }
+
+        // Start loading next video in background while we process current
+        if (clipIndex + 2 < clips.length) {
+          // Don't await - let it load in background
+          nextVideoPromise = loadVideo(clips[clipIndex + 2].url);
+        }
 
         // Seek to start position
         const startTime = Math.min(clip.startSec, Math.max(0, video.duration - clip.durationSec));
@@ -349,25 +369,22 @@ export async function generateTrailer(
         
         // Wait for seek
         await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => resolve(), 2000);
+          const timeout = setTimeout(() => resolve(), 1000);
           const onSeeked = () => {
             clearTimeout(timeout);
-            video?.removeEventListener('seeked', onSeeked);
+            video.removeEventListener('seeked', onSeeked);
             resolve();
           };
-          video?.addEventListener('seeked', onSeeked);
+          video.addEventListener('seeked', onSeeked);
         });
 
-        await new Promise(r => setTimeout(r, 100));
         await video.play();
 
-        // Record frames
+        // Record frames - no black frames between clips
         const totalFrames = Math.floor(clip.durationSec * fps);
         const startTimestamp = performance.now();
         
         for (let frame = 0; frame < totalFrames; frame++) {
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
           drawFrame(ctx, video, canvas.width, canvas.height, 1);
           
           const targetTime = startTimestamp + (frame + 1) * frameInterval;
@@ -379,21 +396,41 @@ export async function generateTrailer(
           }
         }
 
+        video.pause();
         processedClips++;
         console.log(`[Trailer] Clip ${clipIndex + 1} complete`);
+
+        // Clean up current video
+        video.removeAttribute('src');
+        
+        // Move next video to current (already loaded in background)
+        if (clipIndex + 1 < clips.length && nextVideoPromise) {
+          try {
+            nextVideo = await nextVideoPromise;
+            currentVideo = nextVideo;
+          } catch (e) {
+            console.warn(`[Trailer] Failed to pre-load next video:`, e);
+            // Fall back to loading synchronously
+            if (clipIndex + 1 < clips.length) {
+              currentVideo = await loadVideo(clips[clipIndex + 1].url);
+            }
+          }
+        }
       } catch (error) {
         console.warn(`[Trailer] Error processing clip ${clipIndex + 1}:`, error);
-      } finally {
-        // IMPORTANT: Clean up video immediately after use
-        if (video) {
-          video.pause();
-          video.removeAttribute('src');
-          video.load(); // Force release
+        // Try to continue with next clip
+        if (clipIndex + 1 < clips.length) {
+          try {
+            currentVideo = await loadVideo(clips[clipIndex + 1].url);
+          } catch {}
         }
       }
-      
-      // Small delay between clips to allow GC
-      await new Promise(r => setTimeout(r, 50));
+    }
+
+    // Clean up last video
+    if (currentVideo) {
+      currentVideo.pause();
+      currentVideo.removeAttribute('src');
     }
 
     // Phase 4: Finalize

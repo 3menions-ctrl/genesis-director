@@ -319,30 +319,42 @@ export async function generateTrailer(
       if (e.data.size > 0) chunks.push(e.data);
     };
 
-    recorder.start(500);
+    recorder.start(100); // More frequent chunks for smoother output
 
-    // Phase 3: Process clips with crossfade transitions
+    // Phase 3: Process clips with seamless crossfade transitions
     const frameInterval = 1000 / fps;
-    const crossfadeDuration = 0.1; // seconds
-    const crossfadeFrames = Math.floor(crossfadeDuration * fps);
+    const crossfadeDuration = 0.15; // Quick but smooth fade
+    const crossfadeFrames = Math.max(3, Math.floor(crossfadeDuration * fps));
     let processedClips = 0;
 
-    // Pre-load first two videos for crossfade
+    // Pre-load first two videos
     let currentVideo: HTMLVideoElement | null = null;
     let nextVideo: HTMLVideoElement | null = null;
     let nextVideoPromise: Promise<HTMLVideoElement> | null = null;
 
+    // Load and prepare first video
     if (clips.length > 0) {
       currentVideo = await loadVideo(clips[0].url);
+      const startTime = Math.min(clips[0].startSec, Math.max(0, currentVideo.duration - clips[0].durationSec));
+      currentVideo.currentTime = startTime;
+      await new Promise(r => setTimeout(r, 100)); // Let it buffer
     }
+
+    // Pre-load and prepare second video
     if (clips.length > 1) {
       nextVideo = await loadVideo(clips[1].url);
+      const startTime = Math.min(clips[1].startSec, Math.max(0, nextVideo.duration - clips[1].durationSec));
+      nextVideo.currentTime = startTime;
+    }
+
+    // Start loading third video in background
+    if (clips.length > 2) {
+      nextVideoPromise = loadVideo(clips[2].url);
     }
 
     for (let clipIndex = 0; clipIndex < clips.length; clipIndex++) {
       const clip = clips[clipIndex];
       const isLastClip = clipIndex === clips.length - 1;
-      const hasNextClip = nextVideo !== null && !isLastClip;
 
       reportProgress({
         phase: 'extracting',
@@ -353,122 +365,90 @@ export async function generateTrailer(
       });
 
       try {
-        if (!currentVideo) {
-          console.warn(`[Trailer] No video for clip ${clipIndex + 1}`);
-          continue;
-        }
+        if (!currentVideo) continue;
 
-        // Start loading the video after next in background
-        if (clipIndex + 2 < clips.length) {
-          nextVideoPromise = loadVideo(clips[clipIndex + 2].url);
-        }
-
-        // Seek current video to start
-        const startTime = Math.min(clip.startSec, Math.max(0, currentVideo.duration - clip.durationSec));
-        currentVideo.currentTime = startTime;
-        
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => resolve(), 1000);
-          const onSeeked = () => {
-            clearTimeout(timeout);
-            currentVideo?.removeEventListener('seeked', onSeeked);
-            resolve();
-          };
-          currentVideo?.addEventListener('seeked', onSeeked);
-        });
-
+        // Play current video
         await currentVideo.play();
 
-        // Calculate frames: main content + crossfade overlap
-        const mainFrames = hasNextClip 
-          ? Math.floor((clip.durationSec - crossfadeDuration) * fps)
-          : Math.floor(clip.durationSec * fps);
+        // Calculate how many frames for main content (before crossfade)
+        const hasNext = nextVideo !== null && !isLastClip;
+        const mainDuration = hasNext ? clip.durationSec - crossfadeDuration : clip.durationSec;
+        const mainFrames = Math.floor(mainDuration * fps);
         
-        const startTimestamp = performance.now();
-        
-        // Record main frames (before crossfade)
+        // Record main frames continuously
+        const clipStart = performance.now();
         for (let frame = 0; frame < mainFrames; frame++) {
           drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1);
           
-          const targetTime = startTimestamp + (frame + 1) * frameInterval;
+          const targetTime = clipStart + (frame + 1) * frameInterval;
           const delay = Math.max(0, targetTime - performance.now());
           if (delay > 0) await new Promise(r => setTimeout(r, delay));
         }
 
-        // Crossfade to next clip
-        if (hasNextClip && nextVideo) {
-          const nextClip = clips[clipIndex + 1];
-          const nextStartTime = Math.min(nextClip.startSec, Math.max(0, nextVideo.duration - nextClip.durationSec));
-          nextVideo.currentTime = nextStartTime;
-          
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => resolve(), 1000);
-            const onSeeked = () => {
-              clearTimeout(timeout);
-              nextVideo?.removeEventListener('seeked', onSeeked);
-              resolve();
-            };
-            nextVideo?.addEventListener('seeked', onSeeked);
-          });
-
+        // Seamless crossfade - next video should already be seeked and ready
+        if (hasNext && nextVideo) {
+          // Start next video playing (it was already seeked during pre-load)
           await nextVideo.play();
 
-          // Render crossfade frames
-          const crossfadeStart = performance.now();
+          // Crossfade: blend both videos frame by frame
+          const fadeStart = performance.now();
           for (let frame = 0; frame < crossfadeFrames; frame++) {
-            const progress = frame / crossfadeFrames;
-            // Smooth easing
-            const eased = progress < 0.5 
-              ? 2 * progress * progress 
-              : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+            const t = (frame + 1) / crossfadeFrames;
             
-            // Draw both frames with opacity blend
-            ctx.fillStyle = '#000000';
+            // Clear and draw blended frame
+            ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1 - eased);
-            drawFrame(ctx, nextVideo, canvas.width, canvas.height, eased);
+            drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1 - t);
+            drawFrame(ctx, nextVideo, canvas.width, canvas.height, t);
             
-            const targetTime = crossfadeStart + (frame + 1) * frameInterval;
+            const targetTime = fadeStart + (frame + 1) * frameInterval;
             const delay = Math.max(0, targetTime - performance.now());
             if (delay > 0) await new Promise(r => setTimeout(r, delay));
           }
         }
 
+        // Clean up current video
         currentVideo.pause();
         currentVideo.removeAttribute('src');
         processedClips++;
-        console.log(`[Trailer] Clip ${clipIndex + 1} complete`);
 
-        // Rotate videos: next becomes current
+        // Rotate: next becomes current
         currentVideo = nextVideo;
-        
-        // Load the next-next video that was loading in background
-        if (nextVideoPromise && clipIndex + 2 < clips.length) {
+
+        // Get the pre-loaded next-next video and seek it
+        if (nextVideoPromise) {
           try {
             nextVideo = await nextVideoPromise;
-          } catch (e) {
-            console.warn(`[Trailer] Failed to pre-load video:`, e);
+            // Pre-seek for next iteration
+            if (clipIndex + 2 < clips.length) {
+              const nextClip = clips[clipIndex + 2];
+              const seekTime = Math.min(nextClip.startSec, Math.max(0, nextVideo.duration - nextClip.durationSec));
+              nextVideo.currentTime = seekTime;
+            }
+          } catch {
             nextVideo = null;
           }
         } else {
           nextVideo = null;
         }
-        nextVideoPromise = null;
+
+        // Start loading the video after that in background
+        if (clipIndex + 3 < clips.length) {
+          nextVideoPromise = loadVideo(clips[clipIndex + 3].url);
+        } else {
+          nextVideoPromise = null;
+        }
 
       } catch (error) {
-        console.warn(`[Trailer] Error processing clip ${clipIndex + 1}:`, error);
+        console.warn(`[Trailer] Error on clip ${clipIndex + 1}:`, error);
       }
     }
 
-    // Clean up remaining videos
-    if (currentVideo) {
-      currentVideo.pause();
-      currentVideo.removeAttribute('src');
-    }
-    if (nextVideo) {
-      nextVideo.pause();
-      nextVideo.removeAttribute('src');
-    }
+    // Cleanup remaining
+    currentVideo?.pause();
+    currentVideo?.removeAttribute('src');
+    nextVideo?.pause();
+    nextVideo?.removeAttribute('src');
 
     // Phase 4: Finalize
     reportProgress({

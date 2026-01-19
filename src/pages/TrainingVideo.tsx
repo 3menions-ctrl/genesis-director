@@ -437,10 +437,15 @@ export default function TrainingVideo() {
             continue;
           }
           
-          if (statusData?.status === 'completed' && statusData?.videoUrl) {
+          // Check for completion - Kling returns 'SUCCEEDED', normalize to handle both
+          const isCompleted = statusData?.status === 'completed' || 
+                              statusData?.status === 'SUCCEEDED' || 
+                              statusData?.status === 'succeeded';
+          
+          if (isCompleted && statusData?.videoUrl) {
             finalVideoUrl = statusData.videoUrl;
             break;
-          } else if (statusData?.status === 'failed') {
+          } else if (statusData?.status === 'failed' || statusData?.status === 'FAILED') {
             throw new Error(statusData?.error || 'Video generation failed');
           }
           

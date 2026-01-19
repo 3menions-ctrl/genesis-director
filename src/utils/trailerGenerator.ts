@@ -246,25 +246,22 @@ async function generateTrailerMusic(durationSeconds: number): Promise<string | n
 
 /**
  * Generate a trailer from community videos
- * Uses memory-efficient sequential loading to prevent crashes
+ * Memory-efficient: only 2 videos in memory at a time
  */
 export async function generateTrailer(
   options: TrailerOptions = {}
 ): Promise<Blob> {
   const { 
-    snippetDuration = 2, 
-    partsPerVideo = 1, // Reduced from 2 to lower memory usage
-    includeMusic = false, // Disabled by default for stability
+    snippetDuration = 1.5,
+    partsPerVideo = 1,
     onProgress 
   } = options;
 
-  // Clear any previous blob URLs
   cleanupBlobUrls();
-
   const reportProgress = (progress: TrailerProgress) => onProgress?.(progress);
 
   try {
-    // Phase 1: Fetch clip data from edge function
+    // Phase 1: Fetch clip data
     reportProgress({
       phase: 'fetching',
       currentVideo: 0,
@@ -273,208 +270,133 @@ export async function generateTrailer(
       message: 'Fetching community videos...',
     });
 
-    console.log('[Trailer] Calling generate-trailer edge function...');
-
     const { data: response, error } = await supabase.functions.invoke('generate-trailer', {
-      body: { snippetDuration, partsPerVideo, maxVideos: 5 }, // Reduced from 8 to 5
+      body: { snippetDuration, partsPerVideo, maxVideos: 4 },
     });
 
     if (error || !response?.success) {
-      const errorMsg = error?.message || response?.error || 'Failed to fetch video data';
-      console.error('[Trailer] Edge function error:', errorMsg);
-      throw new Error(errorMsg);
+      throw new Error(error?.message || response?.error || 'Failed to fetch');
     }
 
-    const clips: TrailerClip[] = response.clips;
-    console.log(`[Trailer] Got ${clips.length} clips from edge function`);
+    const clips: TrailerClip[] = (response.clips || []).slice(0, 4);
+    if (clips.length === 0) throw new Error('No clips available');
+    console.log(`[Trailer] Processing ${clips.length} clips`);
 
-    if (clips.length === 0) {
-      throw new Error('No clips available for trailer');
-    }
-
-    // Phase 2: PRE-LOAD ALL VIDEOS upfront for flawless playback
-    reportProgress({
-      phase: 'loading',
-      currentVideo: 0,
-      totalVideos: clips.length,
-      percentComplete: 5,
-      message: 'Pre-loading all videos...',
-    });
-
-    interface PreparedClip {
-      video: HTMLVideoElement;
-      startTime: number;
-      duration: number;
-    }
-
-    const preparedClips: PreparedClip[] = [];
-    
-    for (let i = 0; i < clips.length; i++) {
-      reportProgress({
-        phase: 'loading',
-        currentVideo: i + 1,
-        totalVideos: clips.length,
-        percentComplete: 5 + Math.round((i / clips.length) * 30),
-        message: `Loading video ${i + 1} of ${clips.length}...`,
-      });
-
-      try {
-        const clip = clips[i];
-        const video = await loadVideo(clip.url);
-        const startTime = Math.min(clip.startSec, Math.max(0, video.duration - clip.durationSec));
-        
-        // Pre-seek and wait for it to be ready
-        video.currentTime = startTime;
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            video.removeEventListener('seeked', onSeeked);
-            resolve();
-          };
-          video.addEventListener('seeked', onSeeked);
-          setTimeout(resolve, 500); // Fallback
-        });
-        
-        // Pre-buffer by playing briefly then pausing
-        video.muted = true;
-        await video.play();
-        await new Promise(r => setTimeout(r, 50));
-        video.pause();
-        video.currentTime = startTime; // Reset to start
-        
-        preparedClips.push({ video, startTime, duration: clip.durationSec });
-        console.log(`[Trailer] Video ${i + 1} ready at ${startTime}s`);
-      } catch (e) {
-        console.warn(`[Trailer] Failed to prepare clip ${i + 1}:`, e);
-      }
-    }
-
-    if (preparedClips.length === 0) {
-      throw new Error('Could not load any videos');
-    }
-
-    // Phase 3: Setup canvas and recorder
-    const resolution = { width: 854, height: 480 };
-    const fps = 30; // Higher FPS for smoother output
-    
+    // Phase 2: Setup recorder with low memory settings
+    const width = 640, height = 360, fps = 24;
     const canvas = document.createElement('canvas');
-    canvas.width = resolution.width;
-    canvas.height = resolution.height;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d', { alpha: false })!;
-
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
 
     const mimeType = getSupportedMimeType();
-    const canvasStream = canvas.captureStream(fps);
-    const recorder = new MediaRecorder(canvasStream, {
-      mimeType,
-      videoBitsPerSecond: 3000000,
-    });
-
+    const stream = canvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1500000 });
     const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-    recorder.start(50); // Very frequent chunks
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.start(200);
 
-    // Phase 4: Record with smooth transitions
-    const frameInterval = 1000 / fps;
-    const crossfadeFrames = 4; // ~133ms crossfade at 30fps
+    const frameMs = 1000 / fps;
+    const fadeFrames = 3;
 
-    // Helper to wait for next frame with precise timing
-    const waitFrame = (targetTime: number): Promise<void> => {
-      return new Promise(resolve => {
-        const remaining = targetTime - performance.now();
-        if (remaining <= 0) {
-          resolve();
-        } else if (remaining < 4) {
-          // Very short wait - use requestAnimationFrame
-          requestAnimationFrame(() => resolve());
-        } else {
-          // Longer wait - use setTimeout then RAF
-          setTimeout(() => requestAnimationFrame(() => resolve()), remaining - 4);
-        }
-      });
-    };
+    // Phase 3: Process clips sequentially - max 2 videos in memory
+    let currentVideo: HTMLVideoElement | null = null;
 
-    for (let clipIndex = 0; clipIndex < preparedClips.length; clipIndex++) {
-      const { video: currentVideo, startTime: clipStartTime, duration } = preparedClips[clipIndex];
-      const nextClip = preparedClips[clipIndex + 1];
-      const hasNext = !!nextClip;
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      const isLast = i === clips.length - 1;
 
       reportProgress({
         phase: 'extracting',
-        currentVideo: clipIndex + 1,
-        totalVideos: preparedClips.length,
-        percentComplete: 35 + Math.round((clipIndex / preparedClips.length) * 55),
-        message: `Recording clip ${clipIndex + 1} of ${preparedClips.length}...`,
+        currentVideo: i + 1,
+        totalVideos: clips.length,
+        percentComplete: 10 + Math.round((i / clips.length) * 80),
+        message: `Clip ${i + 1}/${clips.length}...`,
       });
 
-      // Ensure video is at correct position and playing
-      currentVideo.currentTime = clipStartTime;
-      await new Promise(r => setTimeout(r, 50)); // Brief buffer
+      // Load current video
+      if (!currentVideo) {
+        currentVideo = await loadVideo(clip.url);
+      }
+
+      // Seek and play
+      const start = Math.min(clip.startSec, Math.max(0, currentVideo.duration - clip.durationSec));
+      currentVideo.currentTime = start;
+      await new Promise(r => setTimeout(r, 80));
       await currentVideo.play();
 
-      // Calculate frames
-      const mainDuration = hasNext ? duration - (crossfadeFrames / fps) : duration;
-      const mainFrames = Math.floor(mainDuration * fps);
+      // Start loading next in background
+      const nextPromise = !isLast ? loadVideo(clips[i + 1].url) : null;
 
-      // Record main content frames
-      const recordStart = performance.now();
-      for (let frame = 0; frame < mainFrames; frame++) {
-        drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1);
-        await waitFrame(recordStart + (frame + 1) * frameInterval);
+      // Record main frames
+      const mainFrames = isLast 
+        ? Math.floor(clip.durationSec * fps) 
+        : Math.floor((clip.durationSec - fadeFrames / fps) * fps);
+      
+      const t0 = performance.now();
+      for (let f = 0; f < mainFrames; f++) {
+        drawFrame(ctx, currentVideo, width, height, 1);
+        const wait = t0 + (f + 1) * frameMs - performance.now();
+        if (wait > 0) await new Promise(r => setTimeout(r, wait));
       }
 
-      // Crossfade to next clip
-      if (hasNext && nextClip) {
-        // Start next video
-        nextClip.video.currentTime = nextClip.startTime;
-        await nextClip.video.play();
+      // Crossfade if next exists
+      if (nextPromise) {
+        let nextVideo: HTMLVideoElement | null = null;
+        try {
+          nextVideo = await nextPromise;
+          const nextStart = Math.min(clips[i + 1].startSec, Math.max(0, nextVideo.duration - clips[i + 1].durationSec));
+          nextVideo.currentTime = nextStart;
+          await new Promise(r => setTimeout(r, 50));
+          await nextVideo.play();
 
-        const fadeStart = performance.now();
-        for (let frame = 0; frame < crossfadeFrames; frame++) {
-          const t = (frame + 1) / crossfadeFrames;
-          
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1 - t);
-          drawFrame(ctx, nextClip.video, canvas.width, canvas.height, t);
-          
-          await waitFrame(fadeStart + (frame + 1) * frameInterval);
+          const ft0 = performance.now();
+          for (let f = 0; f < fadeFrames; f++) {
+            const t = (f + 1) / fadeFrames;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            drawFrame(ctx, currentVideo, width, height, 1 - t);
+            drawFrame(ctx, nextVideo, width, height, t);
+            const wait = ft0 + (f + 1) * frameMs - performance.now();
+            if (wait > 0) await new Promise(r => setTimeout(r, wait));
+          }
+
+          // Cleanup current, swap
+          currentVideo.pause();
+          currentVideo.src = '';
+          currentVideo = nextVideo;
+        } catch (e) {
+          console.warn('[Trailer] Next load failed:', e);
+          currentVideo.pause();
+          currentVideo.src = '';
+          currentVideo = null;
         }
-        
-        // Keep next video playing - it becomes current in next iteration
+      } else {
+        currentVideo.pause();
+        currentVideo.src = '';
+        currentVideo = null;
       }
 
-      currentVideo.pause();
+      // GC opportunity
+      await new Promise(r => setTimeout(r, 5));
     }
 
-    // Cleanup all videos
-    preparedClips.forEach(({ video }) => {
-      video.pause();
-      video.removeAttribute('src');
-    });
-
-    // Phase 4: Finalize
+    // Finalize
     reportProgress({
       phase: 'finalizing',
       currentVideo: clips.length,
       totalVideos: clips.length,
       percentComplete: 95,
-      message: 'Finalizing trailer...',
+      message: 'Finalizing...',
     });
 
     return new Promise((resolve, reject) => {
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
-        console.log(`[Trailer] Created blob: ${blob.size} bytes`);
-        
-        // Clean up blob URLs after a delay
-        setTimeout(() => {
-          cleanupBlobUrls();
-        }, 1000);
-
+        console.log(`[Trailer] Done: ${blob.size} bytes`);
+        setTimeout(cleanupBlobUrls, 500);
         reportProgress({
           phase: 'complete',
           currentVideo: clips.length,
@@ -482,20 +404,14 @@ export async function generateTrailer(
           percentComplete: 100,
           message: 'Trailer ready!',
         });
-
         resolve(blob);
       };
-
-      recorder.onerror = (e) => {
-        cleanupBlobUrls();
-        reject(new Error('Recording error: ' + e));
-      };
+      recorder.onerror = e => { cleanupBlobUrls(); reject(new Error('Record error')); };
       recorder.stop();
     });
-  } catch (error) {
-    // Cleanup on error
+  } catch (err) {
     cleanupBlobUrls();
-    throw error;
+    throw err;
   }
 }
 

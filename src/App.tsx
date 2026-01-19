@@ -8,6 +8,7 @@ import { StudioProvider } from "@/contexts/StudioContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -52,14 +53,15 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <StudioProvider>
-            <Suspense fallback={<AppLoader message="Starting Apex Studio..." />}>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <StudioProvider>
+              <Suspense fallback={<AppLoader message="Starting Apex Studio..." />}>
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
@@ -191,12 +193,13 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </Suspense>
-          </StudioProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              </Suspense>
+            </StudioProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

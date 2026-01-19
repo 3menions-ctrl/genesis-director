@@ -50,6 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClipsPageSkeleton } from '@/components/ui/page-skeleton';
 
 interface VideoClip {
   id: string;
@@ -479,6 +480,11 @@ export default function Clips() {
   const failedCount = clips.filter(c => c.status === 'failed').length;
   const totalDuration = clips.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
   const successRate = clips.length > 0 ? Math.round((completedCount / clips.length) * 100) : 0;
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <ClipsPageSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">

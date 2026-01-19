@@ -2940,7 +2940,9 @@ async function generateClipWithKling(
         
         // Must be 200 OK, have image content type, and have actual content
         if (imageCheckResponse.ok && contentType.startsWith('image/') && contentLength > 1000) {
-          requestBody.image_url = useStartImageUrl;
+          // CRITICAL: Kling native API uses 'image' field for the primary image URL, NOT 'image_url'
+          // 'image_url' is used by some aggregators but Kling's direct API expects 'image'
+          requestBody.image = useStartImageUrl;
           console.log(`[SingleClip] ✓ Start image validated: ${contentType}, ${contentLength} bytes`);
         } else {
           console.warn(`[SingleClip] ⚠️ Start image URL invalid: status=${imageCheckResponse.status}, type=${contentType}, size=${contentLength} - not using it`);
@@ -2964,12 +2966,12 @@ async function generateClipWithKling(
     console.log(`[SingleClip] Using ${referenceImages.length} identity reference images from Identity Bible`);
   }
   
-  // CRITICAL FIX: For image2video endpoint, image or image_url is REQUIRED
+  // CRITICAL FIX: For image2video endpoint, 'image' field is REQUIRED by Kling native API
   // If we only have reference images but no start image, use the first reference as primary
-  if (isImageToVideo && !requestBody.image && !requestBody.image_url) {
+  if (isImageToVideo && !requestBody.image) {
     if (referenceImages.length > 0) {
-      requestBody.image_url = referenceImages[0];
-      console.log(`[SingleClip] ⚠️ FAILSAFE: Using first reference image as primary image_url for image2video endpoint`);
+      requestBody.image = referenceImages[0];
+      console.log(`[SingleClip] ⚠️ FAILSAFE: Using first reference image as primary 'image' for image2video endpoint`);
     } else {
       // CRITICAL: No primary image and no reference images - switch to text2video mode
       console.warn(`[SingleClip] ⚠️ FAILSAFE: No image available for image2video - switching to text2video mode`);

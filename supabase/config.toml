@@ -227,3 +227,9 @@ verify_jwt = false
 
 [functions.generate-project-thumbnail]
 verify_jwt = false
+
+[functions.wan2-bridge-clip]
+verify_jwt = false
+
+[functions.wan2-stitch]
+verify_jwt = false

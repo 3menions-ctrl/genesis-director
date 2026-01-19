@@ -2902,8 +2902,8 @@ async function generateClipWithKling(
     }
   }
 
-  const isImageToVideo = !!useStartImageUrl || referenceImages.length > 0;
-  const endpoint = isImageToVideo 
+  let isImageToVideo = !!useStartImageUrl || referenceImages.length > 0;
+  let endpoint = isImageToVideo 
     ? `${KLING_API_BASE}/videos/image2video`
     : `${KLING_API_BASE}/videos/text2video`;
 
@@ -2948,9 +2948,18 @@ async function generateClipWithKling(
   
   // CRITICAL FIX: For image2video endpoint, image or image_url is REQUIRED
   // If we only have reference images but no start image, use the first reference as primary
-  if (isImageToVideo && !requestBody.image && !requestBody.image_url && referenceImages.length > 0) {
-    requestBody.image_url = referenceImages[0];
-    console.log(`[SingleClip] ⚠️ FAILSAFE: Using first reference image as primary image_url for image2video endpoint`);
+  if (isImageToVideo && !requestBody.image && !requestBody.image_url) {
+    if (referenceImages.length > 0) {
+      requestBody.image_url = referenceImages[0];
+      console.log(`[SingleClip] ⚠️ FAILSAFE: Using first reference image as primary image_url for image2video endpoint`);
+    } else {
+      // CRITICAL: No primary image and no reference images - switch to text2video mode
+      console.warn(`[SingleClip] ⚠️ FAILSAFE: No image available for image2video - switching to text2video mode`);
+      isImageToVideo = false;
+      endpoint = `${KLING_API_BASE}/videos/text2video`;
+      delete requestBody.image_urls;
+      console.log(`[SingleClip] Switched to text2video endpoint`);
+    }
   }
 
   console.log("[SingleClip] Starting Kling 2.6 generation:", {

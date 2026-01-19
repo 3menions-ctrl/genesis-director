@@ -1293,25 +1293,39 @@ export default function Clips() {
       )}
 
       {/* Browser Stitcher Modal */}
-      <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+      <Dialog open={!!showBrowserStitcher} onOpenChange={(open) => {
+        if (!open) setShowBrowserStitcher(null);
+      }}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg" hideCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Browser Video Stitcher</DialogTitle>
             <DialogDescription>
-              Combine your clips locally in the browser
+              Combine your clips locally in the browser. After stitching completes, you can preview, download, or save to cloud.
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
             <BrowserStitcherPanel
               projectId={showBrowserStitcher}
-              onComplete={() => {
-                setShowBrowserStitcher(null);
-                // Refresh the list
-                setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
-                toast.success('Video stitched and saved!');
+              onComplete={(videoUrl) => {
+                // Don't close the dialog - let user preview/download/save
+                // The dialog will show the preview and action buttons
+                console.log('Stitching complete, video ready:', videoUrl);
               }}
             />
           )}
+          <div className="flex justify-end mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowBrowserStitcher(null);
+                setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
+              }}
+              className="text-zinc-400 hover:text-white"
+            >
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,14 +1,13 @@
 /**
- * SmartStitcherPlayer v2 - High-Performance Player + Stitcher
+ * SmartStitcherPlayer v3 - True Gapless Playback
  * 
  * Features:
- * - RequestAnimationFrame-based encoding for accurate frame timing
- * - Parallel clip preloading with retry mechanism
- * - Seamless gapless playback between clips
- * - Higher quality encoding (1080p @ 8Mbps VP9)
- * - Crossfade transitions option
+ * - Dual video element switching for ZERO gap transitions
+ * - Preloads next clip while current plays
+ * - Seamless crossfade between clips
+ * - High-quality RAF-based stitching export
  * - Quality selector (720p/1080p/1440p)
- * - Better than Cloud Run: No timeout issues, works offline
+ * - Works offline, no Cloud Run timeouts
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -25,12 +24,10 @@ import {
   Download,
   Upload,
   Loader2,
-  Film,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
   Settings,
-  Wand2,
   Zap,
   Monitor,
 } from 'lucide-react';
@@ -163,6 +160,9 @@ export function SmartStitcherPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  
+  // Dual video element state for gapless playback
+  const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
 
   // Stitch state
   const [stitchState, setStitchState] = useState<StitchState>({
@@ -173,14 +173,25 @@ export function SmartStitcherPlayer({
   const [useStitchedVideo, setUseStitchedVideo] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState<QualityKey>('1080p');
 
-  // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const nextVideoRef = useRef<HTMLVideoElement>(null);
+  // Refs - Dual video elements for gapless switching
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
   const stitchedVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const stitchCancelRef = useRef(false);
   const preloadedBlobs = useRef<Map<number, string>>(new Map());
+  const isTransitioningRef = useRef(false);
+  const pendingPlayRef = useRef(false);
+
+  // Get active and standby video refs
+  const getActiveVideo = useCallback(() => {
+    return activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
+  }, [activeVideoIndex]);
+
+  const getStandbyVideo = useCallback(() => {
+    return activeVideoIndex === 0 ? videoBRef.current : videoARef.current;
+  }, [activeVideoIndex]);
 
   // Calculate total duration
   const totalDuration = useMemo(
@@ -205,16 +216,28 @@ export function SmartStitcherPlayer({
         if (providedClipUrls && providedClipUrls.length > 0) {
           urls = providedClipUrls;
         } else {
-          const { data, error } = await supabase
-            .from('video_clips')
-            .select('video_url, shot_index')
-            .eq('project_id', projectId)
-            .eq('status', 'completed')
-            .not('video_url', 'is', null)
-            .order('shot_index', { ascending: true });
+          // First try video_clips column from movie_projects
+          const { data: projectData } = await supabase
+            .from('movie_projects')
+            .select('video_clips, video_url')
+            .eq('id', projectId)
+            .single();
 
-          if (error) throw error;
-          urls = data?.map((clip) => clip.video_url).filter(Boolean) as string[];
+          if (projectData?.video_clips?.length) {
+            urls = projectData.video_clips;
+          } else {
+            // Fallback to video_clips table
+            const { data, error } = await supabase
+              .from('video_clips')
+              .select('video_url, shot_index')
+              .eq('project_id', projectId)
+              .eq('status', 'completed')
+              .not('video_url', 'is', null)
+              .order('shot_index', { ascending: true });
+
+            if (error) throw error;
+            urls = data?.map((clip) => clip.video_url).filter(Boolean) as string[];
+          }
         }
 
         if (urls.length === 0) {
@@ -289,12 +312,9 @@ export function SmartStitcherPlayer({
         await Promise.all(loadPromises);
         setIsLoadingClips(false);
 
-        // Auto-play if enabled
+        // Auto-play if enabled - start with first clip
         if (autoPlay) {
-          setTimeout(() => {
-            videoRef.current?.play().catch(() => {});
-            setIsPlaying(true);
-          }, 100);
+          pendingPlayRef.current = true;
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -312,47 +332,154 @@ export function SmartStitcherPlayer({
     };
   }, [projectId, providedClipUrls, autoPlay]);
 
-  // Handle video time update
-  const handleTimeUpdate = useCallback(() => {
-    if (!videoRef.current || !currentClip) return;
-    const clipTime = videoRef.current.currentTime;
-    const elapsedBefore = clips.slice(0, currentClipIndex).reduce((sum, c) => sum + c.duration, 0);
-    setCurrentTime(elapsedBefore + clipTime);
-  }, [currentClipIndex, clips, currentClip]);
-
-  // Preload next clip for gapless playback
+  // Setup first clip and preload second when clips are loaded
   useEffect(() => {
-    if (currentClipIndex < clips.length - 1 && nextVideoRef.current) {
-      const nextClip = clips[currentClipIndex + 1];
-      if (nextClip?.blobUrl && nextVideoRef.current.src !== nextClip.blobUrl) {
-        nextVideoRef.current.src = nextClip.blobUrl;
-        nextVideoRef.current.load();
+    if (clips.length === 0 || isLoadingClips) return;
+
+    const activeVideo = getActiveVideo();
+    const standbyVideo = getStandbyVideo();
+    
+    // Load first clip into active video
+    if (activeVideo && clips[0]?.blobUrl && !activeVideo.src) {
+      activeVideo.src = clips[0].blobUrl;
+      activeVideo.load();
+    }
+
+    // Preload second clip into standby video
+    if (standbyVideo && clips[1]?.blobUrl && !standbyVideo.src) {
+      standbyVideo.src = clips[1].blobUrl;
+      standbyVideo.load();
+    }
+
+    // Handle auto-play
+    if (pendingPlayRef.current && activeVideo) {
+      pendingPlayRef.current = false;
+      setTimeout(() => {
+        activeVideo.play().then(() => {
+          setIsPlaying(true);
+        }).catch(() => {});
+      }, 100);
+    }
+  }, [clips, isLoadingClips, getActiveVideo, getStandbyVideo]);
+
+  // Preload next clip into standby video when clip changes
+  useEffect(() => {
+    if (useStitchedVideo || isTransitioningRef.current) return;
+    
+    const standbyVideo = getStandbyVideo();
+    const nextClipIndex = currentClipIndex + 1;
+    
+    if (standbyVideo && nextClipIndex < clips.length && clips[nextClipIndex]?.blobUrl) {
+      // Only update if different
+      if (standbyVideo.src !== clips[nextClipIndex].blobUrl) {
+        standbyVideo.src = clips[nextClipIndex].blobUrl;
+        standbyVideo.load();
       }
     }
-  }, [currentClipIndex, clips]);
+  }, [currentClipIndex, clips, useStitchedVideo, getStandbyVideo]);
 
-  // Handle clip ended - seamless transition
+  // Handle video time update
+  const handleTimeUpdate = useCallback(() => {
+    const activeVideo = getActiveVideo();
+    if (!activeVideo || !currentClip) return;
+    
+    const clipTime = activeVideo.currentTime;
+    const elapsedBefore = clips.slice(0, currentClipIndex).reduce((sum, c) => sum + c.duration, 0);
+    setCurrentTime(elapsedBefore + clipTime);
+    
+    // Check if we're near the end - prepare for seamless transition
+    const timeRemaining = activeVideo.duration - activeVideo.currentTime;
+    if (timeRemaining < 0.3 && timeRemaining > 0 && currentClipIndex < clips.length - 1) {
+      const standbyVideo = getStandbyVideo();
+      if (standbyVideo && standbyVideo.readyState >= 3) {
+        // Standby is ready, prepare for instant switch
+        standbyVideo.currentTime = 0;
+      }
+    }
+  }, [currentClipIndex, clips, currentClip, getActiveVideo, getStandbyVideo]);
+
+  // Handle clip ended - SEAMLESS transition with zero gap
   const handleClipEnded = useCallback(() => {
+    if (isTransitioningRef.current) return;
+    
     if (currentClipIndex < clips.length - 1) {
-      const nextIndex = currentClipIndex + 1;
-      setCurrentClipIndex(nextIndex);
+      isTransitioningRef.current = true;
       
-      if (isPlaying && videoRef.current) {
-        // Use requestAnimationFrame for smooth transition
-        requestAnimationFrame(() => {
-          videoRef.current?.play().catch(() => {});
-        });
+      const wasPlaying = isPlaying;
+      const nextIndex = currentClipIndex + 1;
+      const activeVideo = getActiveVideo();
+      const standbyVideo = getStandbyVideo();
+      
+      // Immediately switch to standby video (which has next clip preloaded)
+      if (standbyVideo && standbyVideo.readyState >= 2) {
+        standbyVideo.currentTime = 0;
+        
+        // Start playing standby immediately
+        if (wasPlaying) {
+          standbyVideo.play().catch(() => {});
+        }
+        
+        // Swap active/standby
+        setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+        setCurrentClipIndex(nextIndex);
+        
+        // Pause the old active
+        if (activeVideo) {
+          activeVideo.pause();
+        }
+        
+        // Preload the NEXT clip into the old active (now standby) after a short delay
+        setTimeout(() => {
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+            activeVideo.src = clips[futureClipIndex].blobUrl;
+            activeVideo.load();
+          }
+          isTransitioningRef.current = false;
+        }, 50);
+      } else {
+        // Fallback if standby not ready
+        setCurrentClipIndex(nextIndex);
+        isTransitioningRef.current = false;
+        
+        if (activeVideo && clips[nextIndex]?.blobUrl) {
+          activeVideo.src = clips[nextIndex].blobUrl;
+          activeVideo.load();
+          if (wasPlaying) {
+            activeVideo.play().catch(() => {});
+          }
+        }
       }
     } else {
+      // End of playlist
       setIsPlaying(false);
       setCurrentClipIndex(0);
       setCurrentTime(0);
+      
+      // Reset to first clip
+      const activeVideo = getActiveVideo();
+      if (activeVideo && clips[0]?.blobUrl) {
+        activeVideo.src = clips[0].blobUrl;
+        activeVideo.load();
+      }
     }
-  }, [currentClipIndex, clips.length, isPlaying]);
+  }, [currentClipIndex, clips, isPlaying, getActiveVideo, getStandbyVideo]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
-    const video = useStitchedVideo ? stitchedVideoRef.current : videoRef.current;
+    if (useStitchedVideo) {
+      const video = stitchedVideoRef.current;
+      if (!video) return;
+      if (isPlaying) {
+        video.pause();
+      } else {
+        video.play().catch(() => {});
+      }
+      setIsPlaying(!isPlaying);
+      return;
+    }
+
+    const video = getActiveVideo();
     if (!video) return;
 
     if (isPlaying) {
@@ -361,7 +488,7 @@ export function SmartStitcherPlayer({
       video.play().catch(() => {});
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying, useStitchedVideo]);
+  }, [isPlaying, useStitchedVideo, getActiveVideo]);
 
   // Skip to next/previous clip
   const skipNext = useCallback(() => {
@@ -370,40 +497,73 @@ export function SmartStitcherPlayer({
       return;
     }
     if (currentClipIndex < clips.length - 1) {
-      setCurrentClipIndex((prev) => prev + 1);
-      if (isPlaying) {
-        requestAnimationFrame(() => videoRef.current?.play().catch(() => {}));
+      const nextIndex = currentClipIndex + 1;
+      const activeVideo = getActiveVideo();
+      const standbyVideo = getStandbyVideo();
+      
+      if (standbyVideo && clips[nextIndex]?.blobUrl) {
+        standbyVideo.currentTime = 0;
+        if (isPlaying) {
+          standbyVideo.play().catch(() => {});
+        }
+        setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+        setCurrentClipIndex(nextIndex);
+        
+        if (activeVideo) {
+          activeVideo.pause();
+        }
       }
     }
-  }, [currentClipIndex, clips.length, isPlaying, useStitchedVideo]);
+  }, [currentClipIndex, clips.length, isPlaying, useStitchedVideo, getActiveVideo, getStandbyVideo, clips]);
 
   const skipPrev = useCallback(() => {
     if (useStitchedVideo && stitchedVideoRef.current) {
       stitchedVideoRef.current.currentTime = Math.max(0, stitchedVideoRef.current.currentTime - 5);
       return;
     }
+    
+    const activeVideo = getActiveVideo();
+    
     if (currentClipIndex > 0) {
-      setCurrentClipIndex((prev) => prev - 1);
-      if (isPlaying) {
-        requestAnimationFrame(() => videoRef.current?.play().catch(() => {}));
+      const prevIndex = currentClipIndex - 1;
+      
+      if (activeVideo && clips[prevIndex]?.blobUrl) {
+        activeVideo.src = clips[prevIndex].blobUrl;
+        activeVideo.load();
+        activeVideo.oncanplay = () => {
+          activeVideo.oncanplay = null;
+          if (isPlaying) {
+            activeVideo.play().catch(() => {});
+          }
+        };
+        setCurrentClipIndex(prevIndex);
       }
-    } else if (videoRef.current) {
-      videoRef.current.currentTime = 0;
+    } else if (activeVideo) {
+      activeVideo.currentTime = 0;
     }
-  }, [currentClipIndex, isPlaying, useStitchedVideo]);
+  }, [currentClipIndex, isPlaying, useStitchedVideo, getActiveVideo, clips]);
 
   // Jump to specific clip
   const jumpToClip = useCallback(
     (index: number) => {
       if (useStitchedVideo) return;
       if (index >= 0 && index < clips.length && clips[index].loaded) {
-        setCurrentClipIndex(index);
-        if (isPlaying) {
-          requestAnimationFrame(() => videoRef.current?.play().catch(() => {}));
+        const activeVideo = getActiveVideo();
+        
+        if (activeVideo && clips[index]?.blobUrl) {
+          activeVideo.src = clips[index].blobUrl;
+          activeVideo.load();
+          activeVideo.oncanplay = () => {
+            activeVideo.oncanplay = null;
+            if (isPlaying) {
+              activeVideo.play().catch(() => {});
+            }
+          };
+          setCurrentClipIndex(index);
         }
       }
     },
-    [clips, isPlaying, useStitchedVideo]
+    [clips, isPlaying, useStitchedVideo, getActiveVideo]
   );
 
   // Fullscreen toggle
@@ -469,7 +629,7 @@ export function SmartStitcherPlayer({
         if (e.data.size > 0) chunks.push(e.data);
       };
 
-      recorder.start(100); // Collect chunks every 100ms
+      recorder.start(100);
 
       const totalClipDuration = loadedClips.reduce((s, c) => s + c.duration, 0);
       let processedTime = 0;
@@ -712,25 +872,42 @@ export function SmartStitcherPlayer({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* Main Video Player */}
-      {!useStitchedVideo && currentClip?.blobUrl && (
-        <video
-          ref={videoRef}
-          key={currentClipIndex}
-          src={currentClip.blobUrl}
-          className="w-full h-full object-contain"
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleClipEnded}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          muted={isMuted}
-          playsInline
-          preload="auto"
-        />
+      {/* Dual Video Players for Gapless Playback */}
+      {!useStitchedVideo && (
+        <>
+          {/* Video A */}
+          <video
+            ref={videoARef}
+            className={cn(
+              'absolute inset-0 w-full h-full object-contain transition-opacity duration-100',
+              activeVideoIndex === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            )}
+            onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
+            onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
+            onPlay={() => activeVideoIndex === 0 && setIsPlaying(true)}
+            onPause={() => activeVideoIndex === 0 && setIsPlaying(false)}
+            muted={isMuted}
+            playsInline
+            preload="auto"
+          />
+          
+          {/* Video B */}
+          <video
+            ref={videoBRef}
+            className={cn(
+              'absolute inset-0 w-full h-full object-contain transition-opacity duration-100',
+              activeVideoIndex === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            )}
+            onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
+            onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
+            onPlay={() => activeVideoIndex === 1 && setIsPlaying(true)}
+            onPause={() => activeVideoIndex === 1 && setIsPlaying(false)}
+            muted={isMuted}
+            playsInline
+            preload="auto"
+          />
+        </>
       )}
-
-      {/* Hidden preload for next clip */}
-      <video ref={nextVideoRef} className="hidden" muted playsInline preload="auto" />
 
       {/* Stitched Video Player */}
       {useStitchedVideo && stitchState.url && (
@@ -755,7 +932,7 @@ export function SmartStitcherPlayer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40"
+            className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 z-20"
           >
             {/* Top bar */}
             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between">
@@ -931,35 +1108,38 @@ export function SmartStitcherPlayer({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-24 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-4"
+            className="absolute inset-x-4 bottom-24 bg-black/80 backdrop-blur-sm rounded-lg p-4 z-30"
           >
             <div className="flex items-center gap-3 mb-2">
-              <Film className="w-4 h-4 text-primary animate-pulse" />
-              <span className="text-sm text-white flex-1">{stitchState.message}</span>
-              <span className="text-xs text-white/60">{stitchState.progress}%</span>
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">{stitchState.message}</p>
+                <p className="text-xs text-white/60">
+                  {stitchState.phase === 'encoding' && stitchState.currentClip
+                    ? `Processing clip ${stitchState.currentClip} of ${clips.filter((c) => c.loaded).length}`
+                    : stitchState.phase}
+                </p>
+              </div>
+              {stitchState.estimatedTimeRemaining && (
+                <span className="text-xs text-white/50">~{stitchState.estimatedTimeRemaining}s left</span>
+              )}
             </div>
             <Progress value={stitchState.progress} className="h-2" />
-            {stitchState.currentClip && (
-              <p className="text-xs text-white/50 mt-2">
-                Processing clip {stitchState.currentClip} of {loadedCount}
-                {stitchState.estimatedTimeRemaining && ` • ~${stitchState.estimatedTimeRemaining}s remaining`}
-              </p>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Success badge */}
+      {/* Success Badge */}
       <AnimatePresence>
-        {stitchState.status === 'complete' && !showControls && (
+        {stitchState.status === 'complete' && !useStitchedVideo && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute top-3 right-3 bg-emerald-500/90 text-white text-xs px-2 py-1 rounded flex items-center gap-1.5"
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute top-4 right-4 flex items-center gap-2 bg-emerald-500/90 backdrop-blur-sm rounded-lg px-3 py-1.5 z-30"
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Export Ready
+            <CheckCircle2 className="w-4 h-4 text-white" />
+            <span className="text-xs font-medium text-white">{stitchState.message}</span>
           </motion.div>
         )}
       </AnimatePresence>

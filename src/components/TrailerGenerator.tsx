@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Film, Download, Loader2, Play, X, Sparkles } from 'lucide-react';
+import { Film, Download, Loader2, Play, X, Sparkles, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,7 +79,11 @@ export function TrailerGenerator() {
           {isGenerating && progress ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-white/70">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                {progress.phase === 'music' ? (
+                  <Music className="w-4 h-4 animate-pulse text-primary" />
+                ) : (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
                 <span>{progress.message}</span>
               </div>
               <Progress value={progress.percentComplete} className="h-2" />

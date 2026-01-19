@@ -238,7 +238,7 @@ export default function Clips() {
         .from('movie_projects')
         .select('id, title')
         .eq('user_id', session.user.id)
-        .in('status', ['stitching_failed', 'generating', 'pending_stitch'])
+        .in('status', ['stitching_failed', 'stitching', 'generating', 'pending_stitch'])
         .is('video_url', null)
         .order('updated_at', { ascending: false })
         .limit(20);

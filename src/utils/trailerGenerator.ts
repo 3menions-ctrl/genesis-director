@@ -377,12 +377,28 @@ export async function generateTrailer(
     };
     recorder.start(50); // Very frequent chunks
 
-    // Phase 4: FLAWLESS recording - all videos pre-loaded, no async during playback
+    // Phase 4: Record with smooth transitions
     const frameInterval = 1000 / fps;
     const crossfadeFrames = 4; // ~133ms crossfade at 30fps
 
+    // Helper to wait for next frame with precise timing
+    const waitFrame = (targetTime: number): Promise<void> => {
+      return new Promise(resolve => {
+        const remaining = targetTime - performance.now();
+        if (remaining <= 0) {
+          resolve();
+        } else if (remaining < 4) {
+          // Very short wait - use requestAnimationFrame
+          requestAnimationFrame(() => resolve());
+        } else {
+          // Longer wait - use setTimeout then RAF
+          setTimeout(() => requestAnimationFrame(() => resolve()), remaining - 4);
+        }
+      });
+    };
+
     for (let clipIndex = 0; clipIndex < preparedClips.length; clipIndex++) {
-      const { video: currentVideo, duration } = preparedClips[clipIndex];
+      const { video: currentVideo, startTime: clipStartTime, duration } = preparedClips[clipIndex];
       const nextClip = preparedClips[clipIndex + 1];
       const hasNext = !!nextClip;
 
@@ -394,36 +410,28 @@ export async function generateTrailer(
         message: `Recording clip ${clipIndex + 1} of ${preparedClips.length}...`,
       });
 
-      // Start playing current video
+      // Ensure video is at correct position and playing
+      currentVideo.currentTime = clipStartTime;
+      await new Promise(r => setTimeout(r, 50)); // Brief buffer
       await currentVideo.play();
-      
-      // If there's a next clip, start it playing NOW so it's ready for crossfade
-      if (hasNext) {
-        nextClip.video.currentTime = nextClip.startTime;
-        await nextClip.video.play();
-        nextClip.video.pause(); // Pause but keep buffered
-      }
 
       // Calculate frames
       const mainDuration = hasNext ? duration - (crossfadeFrames / fps) : duration;
       const mainFrames = Math.floor(mainDuration * fps);
 
-      // Record main content - pure sync drawing, no gaps
-      const startTime = performance.now();
+      // Record main content frames
+      const recordStart = performance.now();
       for (let frame = 0; frame < mainFrames; frame++) {
         drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1);
-        
-        // Precise timing
-        const target = startTime + (frame + 1) * frameInterval;
-        while (performance.now() < target) {
-          // Busy wait for precise timing (very short)
-        }
+        await waitFrame(recordStart + (frame + 1) * frameInterval);
       }
 
-      // Seamless crossfade
-      if (hasNext) {
-        await nextClip.video.play(); // Resume next video
-        
+      // Crossfade to next clip
+      if (hasNext && nextClip) {
+        // Start next video
+        nextClip.video.currentTime = nextClip.startTime;
+        await nextClip.video.play();
+
         const fadeStart = performance.now();
         for (let frame = 0; frame < crossfadeFrames; frame++) {
           const t = (frame + 1) / crossfadeFrames;
@@ -433,9 +441,10 @@ export async function generateTrailer(
           drawFrame(ctx, currentVideo, canvas.width, canvas.height, 1 - t);
           drawFrame(ctx, nextClip.video, canvas.width, canvas.height, t);
           
-          const target = fadeStart + (frame + 1) * frameInterval;
-          while (performance.now() < target) {}
+          await waitFrame(fadeStart + (frame + 1) * frameInterval);
         }
+        
+        // Keep next video playing - it becomes current in next iteration
       }
 
       currentVideo.pause();

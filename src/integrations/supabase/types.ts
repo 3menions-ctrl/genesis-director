@@ -2448,14 +2448,14 @@ export type Database = {
           {
             foreignKeyName: "stitch_jobs_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "movie_projects"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stitch_jobs_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "movie_projects_public"
             referencedColumns: ["id"]
           },

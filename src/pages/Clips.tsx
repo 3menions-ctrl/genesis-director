@@ -1134,6 +1134,22 @@ export default function Clips() {
                         )}
                       </div>
 
+                      {/* Browser Stitch Button - show when there are completed clips */}
+                      {group.completedCount >= 2 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowBrowserStitcher(group.id);
+                          }}
+                          className="gap-2 text-purple-400 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/50"
+                        >
+                          <MonitorPlay className="w-4 h-4" />
+                          Stitch
+                        </Button>
+                      )}
+
                       <Button
                         variant="ghost"
                         size="icon"

@@ -723,7 +723,7 @@ function ProjectCard({
                   </DropdownMenuItem>
                 </>
               )}
-              {onBrowserStitch && project.video_clips?.length && (
+              {onBrowserStitch && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onBrowserStitch(); }}
                   disabled={isBrowserStitching}
@@ -2095,7 +2095,6 @@ export default function Projects() {
           {showBrowserStitcher && (
             <BrowserStitcherPanel
               projectId={showBrowserStitcher}
-              clipUrls={projects.find(p => p.id === showBrowserStitcher)?.video_clips || []}
               onComplete={() => {
                 setShowBrowserStitcher(null);
                 refreshProjects();

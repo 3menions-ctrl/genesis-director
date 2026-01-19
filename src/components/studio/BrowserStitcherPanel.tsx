@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Film, 
@@ -10,17 +10,19 @@ import {
   AlertCircle,
   MonitorPlay,
   Cpu,
-  HardDrive
+  HardDrive,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useBrowserStitcher } from '@/hooks/useBrowserStitcher';
 import { StitchProgress } from '@/utils/browserVideoStitcher';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BrowserStitcherPanelProps {
   projectId: string;
-  clipUrls: string[];
+  clipUrls?: string[]; // Optional - will fetch from DB if not provided
   audioUrl?: string;
   onComplete?: (videoUrl: string) => void;
   className?: string;
@@ -46,12 +48,15 @@ const phaseColors: Record<StitchProgress['phase'], string> = {
 
 export function BrowserStitcherPanel({
   projectId,
-  clipUrls,
+  clipUrls: providedClipUrls,
   audioUrl,
   onComplete,
   className = '',
 }: BrowserStitcherPanelProps) {
   const [showPreview, setShowPreview] = useState(false);
+  const [clipUrls, setClipUrls] = useState<string[]>(providedClipUrls || []);
+  const [isLoadingClips, setIsLoadingClips] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   const {
     isStitching,
@@ -67,8 +72,80 @@ export function BrowserStitcherPanel({
     onComplete,
   });
 
+  // Fetch clips from database if not provided
+  useEffect(() => {
+    if (providedClipUrls && providedClipUrls.length > 0) {
+      setClipUrls(providedClipUrls);
+      return;
+    }
+
+    const fetchClips = async () => {
+      setIsLoadingClips(true);
+      setLoadError(null);
+      
+      try {
+        const { data, error } = await supabase
+          .from('video_clips')
+          .select('video_url, shot_index')
+          .eq('project_id', projectId)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .order('shot_index', { ascending: true });
+
+        if (error) throw error;
+
+        const urls = data?.map(clip => clip.video_url).filter(Boolean) as string[] || [];
+        setClipUrls(urls);
+        
+        if (urls.length === 0) {
+          setLoadError('No completed clips found for this project');
+        }
+      } catch (err) {
+        console.error('Failed to fetch clips:', err);
+        setLoadError(err instanceof Error ? err.message : 'Failed to load clips');
+      } finally {
+        setIsLoadingClips(false);
+      }
+    };
+
+    fetchClips();
+  }, [projectId, providedClipUrls]);
+
   const handleStartStitch = () => {
+    if (clipUrls.length === 0) return;
     startStitching(clipUrls, { audioUrl });
+  };
+
+  const handleRetryLoad = () => {
+    setClipUrls([]);
+    setLoadError(null);
+    // Re-trigger fetch
+    const fetchClips = async () => {
+      setIsLoadingClips(true);
+      try {
+        const { data, error } = await supabase
+          .from('video_clips')
+          .select('video_url, shot_index')
+          .eq('project_id', projectId)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .order('shot_index', { ascending: true });
+
+        if (error) throw error;
+
+        const urls = data?.map(clip => clip.video_url).filter(Boolean) as string[] || [];
+        setClipUrls(urls);
+        
+        if (urls.length === 0) {
+          setLoadError('No completed clips found');
+        }
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load clips');
+      } finally {
+        setIsLoadingClips(false);
+      }
+    };
+    fetchClips();
   };
 
   const formatTime = (seconds?: number) => {
@@ -109,11 +186,38 @@ export function BrowserStitcherPanel({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Clip count */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-400">Clips to stitch:</span>
-          <span className="font-medium text-zinc-200">{clipUrls.length} clips</span>
-        </div>
+        {/* Loading state */}
+        {isLoadingClips && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-400 mr-2" />
+            <span className="text-sm text-zinc-400">Loading clips...</span>
+          </div>
+        )}
+
+        {/* Error state */}
+        {loadError && !isLoadingClips && (
+          <div className="text-center py-6 space-y-3">
+            <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
+            <p className="text-sm text-red-400">{loadError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetryLoad}
+              className="gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {/* Clip count - only show when loaded */}
+        {!isLoadingClips && !loadError && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">Clips to stitch:</span>
+            <span className="font-medium text-zinc-200">{clipUrls.length} clips</span>
+          </div>
+        )}
 
         {/* Progress Section */}
         <AnimatePresence mode="wait">
@@ -187,57 +291,59 @@ export function BrowserStitcherPanel({
           </motion.div>
         )}
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          {!stitchedUrl ? (
-            <Button
-              onClick={handleStartStitch}
-              disabled={isStitching || clipUrls.length === 0}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
-            >
-              {isStitching ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Stitching...
-                </>
-              ) : (
-                <>
-                  <Film className="w-4 h-4 mr-2" />
-                  Start Browser Stitch
-                </>
-              )}
-            </Button>
-          ) : (
-            <>
+        {/* Actions - only show when clips are loaded */}
+        {!isLoadingClips && !loadError && (
+          <div className="flex gap-2">
+            {!stitchedUrl ? (
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-                className="flex-1"
+                onClick={handleStartStitch}
+                disabled={isStitching || clipUrls.length === 0}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
               >
-                <Play className="w-4 h-4 mr-2" />
-                {showPreview ? 'Hide' : 'Preview'}
+                {isStitching ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Stitching...
+                  </>
+                ) : (
+                  <>
+                    <Film className="w-4 h-4 mr-2" />
+                    Start Browser Stitch
+                  </>
+                )}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadVideo}
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
-              <Button
-                size="sm"
-                onClick={uploadVideo}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Save
-              </Button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex-1"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {showPreview ? 'Hide' : 'Preview'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadVideo}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={uploadVideo}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Reset button */}
         {stitchedUrl && (
@@ -252,7 +358,7 @@ export function BrowserStitcherPanel({
         )}
 
         {/* Info text */}
-        {!isStitching && !stitchedUrl && (
+        {!isStitching && !stitchedUrl && !isLoadingClips && !loadError && (
           <p className="text-xs text-zinc-500 text-center">
             Stitches video locally using your browser. No server required.
             <br />

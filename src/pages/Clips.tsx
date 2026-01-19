@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Grid3X3, List, Search,
   Filter, RefreshCw, Sparkles, Eye, Video, LayoutGrid,
   Calendar, Timer, FolderOpen, MoreHorizontal, ExternalLink,
-  Zap, TrendingUp, Layers, Clapperboard
+  Zap, TrendingUp, Layers, Clapperboard, MonitorPlay
 } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -30,6 +37,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
+import { BrowserStitcherPanel } from '@/components/studio/BrowserStitcherPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
@@ -133,6 +141,8 @@ export default function Clips() {
   const [projectStatus, setProjectStatus] = useState<string | null>(null);
   const [proFeatures, setProFeatures] = useState<ProjectProFeatures | null>(null);
   const [hoveredClip, setHoveredClip] = useState<string | null>(null);
+  const [showBrowserStitcher, setShowBrowserStitcher] = useState<string | null>(null);
+  const [projectsNeedingStitch, setProjectsNeedingStitch] = useState<Array<{id: string, title: string, clipCount: number}>>([]);
 
   const { retryStitch, isRetrying: isRetryingStitch } = useRetryStitch({
     projectId: projectIdFilter,
@@ -214,6 +224,54 @@ export default function Clips() {
 
     loadClips();
   }, [user, projectIdFilter]);
+
+  // Fetch projects that need stitching (have completed clips but no final video)
+  useEffect(() => {
+    const loadProjectsNeedingStitch = async () => {
+      if (!user) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Get projects with status indicating they need stitching
+      const { data: projects, error } = await supabase
+        .from('movie_projects')
+        .select('id, title')
+        .eq('user_id', session.user.id)
+        .in('status', ['stitching_failed', 'generating', 'pending_stitch'])
+        .is('video_url', null)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error loading projects needing stitch:', error);
+        return;
+      }
+
+      // For each project, count completed clips
+      const projectsWithCounts = await Promise.all(
+        (projects || []).map(async (project) => {
+          const { count } = await supabase
+            .from('video_clips')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', project.id)
+            .eq('status', 'completed')
+            .not('video_url', 'is', null);
+
+          return {
+            id: project.id,
+            title: project.title,
+            clipCount: count || 0,
+          };
+        })
+      );
+
+      // Only show projects with at least 1 completed clip
+      setProjectsNeedingStitch(projectsWithCounts.filter(p => p.clipCount > 0));
+    };
+
+    loadProjectsNeedingStitch();
+  }, [user]);
 
   const filteredClips = useMemo(() => {
     let result = [...clips];
@@ -641,6 +699,67 @@ export default function Clips() {
               isProTier={proFeatures?.qualityTier === 'professional'}
             />
           </motion.div>
+        )}
+
+        {/* Ready to Stitch Section */}
+        {projectsNeedingStitch.length > 0 && (
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-purple-500/5 border border-amber-500/20"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Layers className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-white">Ready to Stitch</h2>
+                  <p className="text-xs text-white/40">Projects with completed clips awaiting final assembly</p>
+                </div>
+                <Badge variant="outline" className="ml-2 text-amber-400 border-amber-500/30 text-[10px] px-2 py-0.5">
+                  {projectsNeedingStitch.length}
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {projectsNeedingStitch.map(project => (
+                <DropdownMenu key={project.id}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400 group-hover:animate-pulse" />
+                      <span className="text-sm text-white/80 truncate max-w-[150px]">{project.title}</span>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/10 text-white/60">
+                        {project.clipCount} clips
+                      </Badge>
+                      <ChevronDown className="w-3 h-3 text-white/40" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-zinc-900/95 backdrop-blur-xl border-white/10 min-w-[180px] rounded-xl">
+                    <DropdownMenuItem
+                      onClick={() => setShowBrowserStitcher(project.id)}
+                      className="gap-2 text-sm text-purple-400 hover:text-purple-300 focus:text-purple-300 focus:bg-purple-500/10 rounded-lg"
+                    >
+                      <MonitorPlay className="w-4 h-4" />
+                      Browser Stitch
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/clips?projectId=${project.id}`)}
+                      className="gap-2 text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Clips
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </div>
+          </motion.section>
         )}
 
         {/* Toolbar */}
@@ -1172,6 +1291,29 @@ export default function Clips() {
           title={`Shot ${selectedClip.shot_index + 1}`}
         />
       )}
+
+      {/* Browser Stitcher Modal */}
+      <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+          <DialogHeader>
+            <DialogTitle>Browser Video Stitcher</DialogTitle>
+            <DialogDescription>
+              Combine your clips locally in the browser
+            </DialogDescription>
+          </DialogHeader>
+          {showBrowserStitcher && (
+            <BrowserStitcherPanel
+              projectId={showBrowserStitcher}
+              onComplete={() => {
+                setShowBrowserStitcher(null);
+                // Refresh the list
+                setProjectsNeedingStitch(prev => prev.filter(p => p.id !== showBrowserStitcher));
+                toast.success('Video stitched and saved!');
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

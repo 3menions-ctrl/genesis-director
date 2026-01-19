@@ -838,6 +838,34 @@ async function runPreProduction(
   }
   
   // =====================================================
+  // CHECKPOINT: Save script immediately after generation
+  // This ensures the script survives edge function timeouts
+  // =====================================================
+  if (state.script?.shots && state.script.shots.length > 0) {
+    console.log(`[Hollywood] CHECKPOINT: Saving script with ${state.script.shots.length} shots to DB...`);
+    try {
+      await supabase
+        .from('movie_projects')
+        .update({
+          generated_script: JSON.stringify(state.script),
+          pending_video_tasks: {
+            stage: 'preproduction',
+            progress: 15,
+            script: state.script,
+            clipCount: state.clipCount,
+            clipDuration: state.clipDuration,
+            scriptCheckpointAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', state.projectId);
+      console.log(`[Hollywood] ✓ Script checkpoint saved: ${state.script.shots.length} shots`);
+    } catch (checkpointErr) {
+      console.warn(`[Hollywood] Script checkpoint failed (non-fatal):`, checkpointErr);
+    }
+  }
+  
+  // =====================================================
   // MULTI-CAMERA ORCHESTRATOR: Add professional coverage
   // =====================================================
   if (state.script?.shots && state.script.shots.length > 0) {

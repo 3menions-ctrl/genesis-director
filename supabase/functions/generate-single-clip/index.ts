@@ -2931,13 +2931,19 @@ async function generateClipWithKling(
   // Primary image (start frame for continuity)
   if (useStartImageUrl) {
     if (useStartImageUrl.startsWith("http")) {
-      // CRITICAL: Validate the URL is actually accessible before using it
+      // CRITICAL: Validate the URL is actually accessible AND is a real image
+      // HEAD requests can return 200 for bucket paths even when file doesn't exist
       try {
-        const imageCheckResponse = await fetch(useStartImageUrl, { method: 'HEAD' });
-        if (imageCheckResponse.ok) {
+        const imageCheckResponse = await fetch(useStartImageUrl, { method: 'GET' });
+        const contentType = imageCheckResponse.headers.get('content-type') || '';
+        const contentLength = parseInt(imageCheckResponse.headers.get('content-length') || '0', 10);
+        
+        // Must be 200 OK, have image content type, and have actual content
+        if (imageCheckResponse.ok && contentType.startsWith('image/') && contentLength > 1000) {
           requestBody.image_url = useStartImageUrl;
+          console.log(`[SingleClip] ✓ Start image validated: ${contentType}, ${contentLength} bytes`);
         } else {
-          console.warn(`[SingleClip] ⚠️ Start image URL returned ${imageCheckResponse.status}, not using it`);
+          console.warn(`[SingleClip] ⚠️ Start image URL invalid: status=${imageCheckResponse.status}, type=${contentType}, size=${contentLength} - not using it`);
           useStartImageUrl = null;
         }
       } catch (urlError) {

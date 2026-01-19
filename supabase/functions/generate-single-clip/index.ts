@@ -2931,7 +2931,19 @@ async function generateClipWithKling(
   // Primary image (start frame for continuity)
   if (useStartImageUrl) {
     if (useStartImageUrl.startsWith("http")) {
-      requestBody.image_url = useStartImageUrl;
+      // CRITICAL: Validate the URL is actually accessible before using it
+      try {
+        const imageCheckResponse = await fetch(useStartImageUrl, { method: 'HEAD' });
+        if (imageCheckResponse.ok) {
+          requestBody.image_url = useStartImageUrl;
+        } else {
+          console.warn(`[SingleClip] ⚠️ Start image URL returned ${imageCheckResponse.status}, not using it`);
+          useStartImageUrl = null;
+        }
+      } catch (urlError) {
+        console.warn(`[SingleClip] ⚠️ Failed to validate start image URL: ${urlError}, not using it`);
+        useStartImageUrl = null;
+      }
     } else if (useStartImageUrl.startsWith("data:")) {
       const matches = useStartImageUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (matches) {

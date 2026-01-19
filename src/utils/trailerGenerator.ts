@@ -323,7 +323,7 @@ export async function generateTrailer(
 
     // Phase 3: Process clips with crossfade transitions
     const frameInterval = 1000 / fps;
-    const crossfadeDuration = 0.4; // seconds
+    const crossfadeDuration = 0.1; // seconds
     const crossfadeFrames = Math.floor(crossfadeDuration * fps);
     let processedClips = 0;
 

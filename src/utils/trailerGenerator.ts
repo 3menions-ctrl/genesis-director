@@ -500,6 +500,58 @@ export async function generateTrailer(
 }
 
 /**
+ * Convert WebM blob to MP4 using ffmpeg.wasm
+ */
+export async function convertToMp4(
+  webmBlob: Blob,
+  onProgress?: (percent: number) => void
+): Promise<Blob> {
+  const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+  const { fetchFile } = await import('@ffmpeg/util');
+  
+  const ffmpeg = new FFmpeg();
+  
+  ffmpeg.on('progress', ({ progress }) => {
+    onProgress?.(Math.round(progress * 100));
+  });
+
+  // Load ffmpeg
+  await ffmpeg.load({
+    coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+    wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+  });
+
+  // Write input file
+  const inputData = await fetchFile(webmBlob);
+  await ffmpeg.writeFile('input.webm', inputData);
+
+  // Convert to MP4
+  await ffmpeg.exec([
+    '-i', 'input.webm',
+    '-c:v', 'libx264',
+    '-preset', 'fast',
+    '-crf', '23',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-movflags', '+faststart',
+    'output.mp4'
+  ]);
+
+  // Read output - copy to regular ArrayBuffer to avoid SharedArrayBuffer issues
+  const outputData = await ffmpeg.readFile('output.mp4') as Uint8Array;
+  const buffer = new ArrayBuffer(outputData.byteLength);
+  new Uint8Array(buffer).set(outputData);
+  const mp4Blob = new Blob([buffer], { type: 'video/mp4' });
+
+  // Cleanup
+  await ffmpeg.deleteFile('input.webm');
+  await ffmpeg.deleteFile('output.mp4');
+  ffmpeg.terminate();
+
+  return mp4Blob;
+}
+
+/**
  * Download a blob as a file
  */
 export function downloadTrailer(blob: Blob, filename = 'community-trailer.webm'): void {
@@ -511,4 +563,16 @@ export function downloadTrailer(blob: Blob, filename = 'community-trailer.webm')
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Download trailer as MP4
+ */
+export async function downloadTrailerAsMp4(
+  webmBlob: Blob,
+  filename = 'community-trailer.mp4',
+  onProgress?: (percent: number) => void
+): Promise<void> {
+  const mp4Blob = await convertToMp4(webmBlob, onProgress);
+  downloadTrailer(mp4Blob, filename);
 }

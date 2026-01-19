@@ -46,6 +46,7 @@ import { Project } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
+import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
@@ -1900,26 +1901,44 @@ export default function Projects() {
         )}
       </main>
 
-      {/* Video Player Modal */}
+      {/* Video Player Modal - handles both manifest and direct video URLs */}
       {videoModalOpen && selectedProject && !isLoadingClips && resolvedClips.length > 0 && (
-        <FullscreenVideoPlayer
-          clips={resolvedClips}
-          title={selectedProject.name}
-          onClose={() => {
-            setVideoModalOpen(false);
-            setResolvedClips([]);
-          }}
-          onDownload={() => handleDownloadAll(selectedProject)}
-          onOpenExternal={() => {
-            if (resolvedClips[0]) window.open(resolvedClips[0], '_blank');
-          }}
-          onEdit={() => {
-            setVideoModalOpen(false);
-            setResolvedClips([]);
-            setActiveProjectId(selectedProject.id);
-            navigate('/create');
-          }}
-        />
+        isManifestUrl(resolvedClips[0]) ? (
+          <div className="fixed inset-0 z-50 bg-black">
+            <button 
+              onClick={() => {
+                setVideoModalOpen(false);
+                setResolvedClips([]);
+              }}
+              className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <ManifestVideoPlayer 
+              manifestUrl={resolvedClips[0]} 
+              className="w-full h-full" 
+            />
+          </div>
+        ) : (
+          <FullscreenVideoPlayer
+            clips={resolvedClips}
+            title={selectedProject.name}
+            onClose={() => {
+              setVideoModalOpen(false);
+              setResolvedClips([]);
+            }}
+            onDownload={() => handleDownloadAll(selectedProject)}
+            onOpenExternal={() => {
+              if (resolvedClips[0]) window.open(resolvedClips[0], '_blank');
+            }}
+            onEdit={() => {
+              setVideoModalOpen(false);
+              setResolvedClips([]);
+              setActiveProjectId(selectedProject.id);
+              navigate('/create');
+            }}
+          />
+        )
       )}
 
       {/* Training Video Player Modal */}

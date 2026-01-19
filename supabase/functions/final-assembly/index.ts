@@ -73,11 +73,11 @@ serve(async (req) => {
       projectId, 
       userId,
       forceReassemble = false,
-      strictness = 'strict', // CHANGED: Default to strict for guaranteed results
-      maxBridgeClips = 10,   // INCREASED: Allow more bridge clips for better continuity
+      strictness = 'lenient', // COST OPTIMIZATION: Use lenient to skip analysis
+      maxBridgeClips = 0,     // DISABLED: No bridge clips to reduce Kling costs
       outputQuality = '1080p',
-      // NEW: Force bridge generation for all transitions below this score
-      bridgeThreshold = 75   // Any transition scoring below 75% gets a bridge clip
+      // DISABLED: Bridge generation disabled - no threshold triggers bridges
+      bridgeThreshold = 0     // Set to 0 so no transition ever triggers a bridge
     } = request;
 
     if (!projectId) {
@@ -250,22 +250,31 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // MANDATORY BRIDGE CLIP GENERATION
-    // Force bridges for ALL transitions below threshold score
-    // This guarantees smooth visual continuity
+    // BRIDGE CLIP GENERATION - DISABLED FOR COST SAVINGS
+    // Bridge clips are disabled by default (maxBridgeClips = 0)
+    // Set bridgeThreshold = 0 so no transition triggers bridge generation
     // =====================================================
     
-    // Step 4a: Force bridge clips for low-score transitions
-    const threshold = bridgeThreshold ?? 75;
-    for (const transition of transitions) {
-      if (transition.score < threshold) {
-        transition.bridgeClipNeeded = true;
-        if (!transition.bridgeClipPrompt) {
-          const fromClip = clips[transition.fromIndex];
-          const toClip = clips[transition.toIndex];
-          transition.bridgeClipPrompt = `Smooth cinematic transition from ${fromClip.prompt?.substring(0, 50)} to ${toClip.prompt?.substring(0, 50)}. Maintain visual continuity.`;
+    // Skip bridge clip generation entirely when disabled
+    const threshold = bridgeThreshold ?? 0;
+    if (threshold > 0 && maxBridgeClips > 0) {
+      for (const transition of transitions) {
+        if (transition.score < threshold) {
+          transition.bridgeClipNeeded = true;
+          if (!transition.bridgeClipPrompt) {
+            const fromClip = clips[transition.fromIndex];
+            const toClip = clips[transition.toIndex];
+            transition.bridgeClipPrompt = `Smooth cinematic transition from ${fromClip.prompt?.substring(0, 50)} to ${toClip.prompt?.substring(0, 50)}. Maintain visual continuity.`;
+          }
+          console.log(`[FinalAssembly] Transition ${transition.fromIndex}→${transition.toIndex} score ${transition.score} < ${threshold} - FORCING bridge clip`);
         }
-        console.log(`[FinalAssembly] Transition ${transition.fromIndex}→${transition.toIndex} score ${transition.score} < ${threshold} - FORCING bridge clip`);
+      }
+    } else {
+      console.log(`[FinalAssembly] Bridge generation DISABLED (threshold=${threshold}, maxBridges=${maxBridgeClips})`);
+      // Mark all transitions as not needing bridges
+      for (const transition of transitions) {
+        transition.bridgeClipNeeded = false;
+        transition.recommendedTransition = 'dissolve';
       }
     }
     

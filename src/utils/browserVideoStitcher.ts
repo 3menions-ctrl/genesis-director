@@ -42,31 +42,64 @@ const DEFAULT_OPTIONS: Required<Omit<StitchOptions, 'audioUrl' | 'onProgress'>> 
 
 /**
  * Load a video element and wait for it to be ready
+ * Includes retry logic for network issues
  */
-async function loadVideo(url: string): Promise<HTMLVideoElement> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.muted = true; // Required for autoplay
-    video.playsInline = true;
-    
-    const timeout = setTimeout(() => {
-      reject(new Error(`Video load timeout: ${url.substring(0, 50)}...`));
-    }, 30000);
-    
-    video.onloadedmetadata = () => {
-      clearTimeout(timeout);
-      resolve(video);
-    };
-    
-    video.onerror = () => {
-      clearTimeout(timeout);
-      reject(new Error(`Failed to load video: ${url.substring(0, 50)}...`));
-    };
-    
-    video.src = url;
-    video.load();
-  });
+async function loadVideo(url: string, retries = 3): Promise<HTMLVideoElement> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
+        const videoEl = document.createElement('video');
+        videoEl.crossOrigin = 'anonymous';
+        videoEl.muted = true; // Required for autoplay
+        videoEl.playsInline = true;
+        videoEl.preload = 'auto';
+        
+        // Longer timeout for large video files (60 seconds)
+        const timeout = setTimeout(() => {
+          videoEl.src = ''; // Cancel loading
+          reject(new Error(`Video load timeout after 60s`));
+        }, 60000);
+        
+        videoEl.onloadedmetadata = () => {
+          clearTimeout(timeout);
+          // Wait for enough data to play
+          if (videoEl.readyState >= 2) {
+            resolve(videoEl);
+          } else {
+            videoEl.oncanplay = () => {
+              clearTimeout(timeout);
+              resolve(videoEl);
+            };
+          }
+        };
+        
+        videoEl.onerror = (e) => {
+          clearTimeout(timeout);
+          const error = videoEl.error;
+          reject(new Error(`Video load error: ${error?.message || 'Unknown error'}`));
+        };
+        
+        // Add cache-busting for retries to avoid stale responses
+        const separator = url.includes('?') ? '&' : '?';
+        videoEl.src = attempt > 1 ? `${url}${separator}_retry=${attempt}` : url;
+        videoEl.load();
+      });
+      
+      return video;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`Video load attempt ${attempt}/${retries} failed:`, lastError.message);
+      
+      if (attempt < retries) {
+        // Wait before retrying (exponential backoff)
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  
+  throw new Error(`Failed to load video after ${retries} attempts: ${lastError?.message || 'Unknown error'} (URL: ${url.substring(0, 80)}...)`);
 }
 
 /**

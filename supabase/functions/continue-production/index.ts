@@ -399,8 +399,8 @@ serve(async (req: Request) => {
   }
 });
 
-// Helper to call edge functions
-async function callEdgeFunction(name: string, body: any, retries = 2): Promise<any> {
+// Helper to call edge functions with ENHANCED rate limit handling
+async function callEdgeFunction(name: string, body: any, retries = 3): Promise<any> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   
@@ -409,8 +409,18 @@ async function callEdgeFunction(name: string, body: any, retries = 2): Promise<a
   for (let i = 0; i <= retries; i++) {
     try {
       if (i > 0) {
-        console.log(`[ContinueProduction] Retry ${i}/${retries} for ${name}, waiting ${1000 * i}ms...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * i));
+        // CRITICAL FIX: Use much longer backoff for rate limit errors
+        // Kling API needs 15-30+ seconds to clear parallel task queue
+        const isRateLimitError = lastError?.message?.includes('429') || 
+                                  lastError?.message?.includes('rate') ||
+                                  lastError?.message?.includes('parallel task');
+        
+        // Rate limit: 15s base, exponential. Other errors: 2s base, exponential
+        const baseWaitMs = isRateLimitError ? 15000 : 2000;
+        const waitMs = baseWaitMs * Math.pow(1.5, i - 1) + (Math.random() * 2000); // Add jitter
+        
+        console.log(`[ContinueProduction] Retry ${i}/${retries} for ${name}, waiting ${Math.round(waitMs)}ms (${isRateLimitError ? 'RATE_LIMIT' : 'error'})...`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
       }
       
       const response = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
@@ -424,6 +434,12 @@ async function callEdgeFunction(name: string, body: any, retries = 2): Promise<a
       
       if (!response.ok) {
         const errorText = await response.text();
+        
+        // CRITICAL: Parse rate limit errors specially
+        if (response.status === 429 || errorText.includes('1303') || errorText.includes('parallel task')) {
+          throw new Error(`RATE_LIMITED: ${name} - ${errorText}`);
+        }
+        
         throw new Error(`${name} failed: ${response.status} ${errorText}`);
       }
       
@@ -431,6 +447,15 @@ async function callEdgeFunction(name: string, body: any, retries = 2): Promise<a
     } catch (err) {
       lastError = err instanceof Error ? err : new Error('Unknown error');
       console.warn(`[ContinueProduction] ${name} error (attempt ${i + 1}):`, lastError.message);
+      
+      // If it's a rate limit error and we have retries left, continue
+      const isRateLimitError = lastError.message.includes('429') || 
+                                lastError.message.includes('RATE_LIMITED') ||
+                                lastError.message.includes('parallel task');
+      if (isRateLimitError && i < retries) {
+        console.log(`[ContinueProduction] Rate limit detected - will retry with longer backoff`);
+        continue;
+      }
     }
   }
   

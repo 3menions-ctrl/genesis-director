@@ -2551,6 +2551,33 @@ async function runProduction(
     
     console.log(`[Hollywood] Generating clip ${i + 1}/${clips.length} (callback chaining enabled)...`);
     
+    // =====================================================
+    // CRITICAL FIX: Pre-create clip record in DB BEFORE generation starts
+    // This ensures failed clips are tracked for recovery
+    // =====================================================
+    try {
+      await supabase.rpc('upsert_video_clip', {
+        p_project_id: state.projectId,
+        p_user_id: request.userId,
+        p_shot_index: i,
+        p_prompt: clip.prompt || 'Generating...',
+        p_status: 'pending',
+      });
+      console.log(`[Hollywood] Pre-created clip ${i + 1} record in DB`);
+    } catch (preCreateErr) {
+      console.warn(`[Hollywood] Could not pre-create clip record:`, preCreateErr);
+    }
+    
+    // =====================================================
+    // RATE LIMIT PREVENTION: Add inter-clip delay for clips 2+
+    // Kling has a parallel task limit; spacing out requests prevents 429s
+    // =====================================================
+    if (i > 0) {
+      const interClipDelay = 3000; // 3 seconds between clips
+      console.log(`[Hollywood] Waiting ${interClipDelay}ms before clip ${i + 1} to prevent rate limits...`);
+      await new Promise(resolve => setTimeout(resolve, interClipDelay));
+    }
+    
     await updateProjectProgress(supabase, state.projectId, 'production', progressPercent, {
       clipsCompleted: i,
       clipCount: clips.length,
@@ -2685,9 +2712,25 @@ async function runProduction(
             maxRetries: maxAttempts,
           });
           
-          // Exponential backoff: 2s, 4s, 8s, etc.
-          const backoffMs = Math.min(2000 * Math.pow(2, attempt - 1), 16000);
-          console.log(`[Hollywood] Waiting ${backoffMs}ms before retry...`);
+          // CRITICAL FIX: Use rate-limit-aware backoff
+          // Check if previous error was a rate limit
+          const wasRateLimit = lastError?.message?.includes('429') || 
+                               lastError?.message?.includes('rate') ||
+                               lastError?.message?.includes('1303') ||
+                               lastError?.message?.includes('parallel task');
+          
+          // Rate limits need 20-45s, other errors use exponential 2-16s
+          let backoffMs: number;
+          if (wasRateLimit) {
+            // Rate limit: 20s base, 1.75x exponential with jitter
+            backoffMs = 20000 * Math.pow(1.75, attempt - 1) + (Math.random() * 5000);
+            console.log(`[Hollywood] RATE LIMIT detected - waiting ${Math.round(backoffMs / 1000)}s before retry...`);
+          } else {
+            // Standard exponential backoff: 2s, 4s, 8s, etc.
+            backoffMs = Math.min(2000 * Math.pow(2, attempt - 1), 16000);
+            console.log(`[Hollywood] Waiting ${Math.round(backoffMs / 1000)}s before retry...`);
+          }
+          
           await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
         
@@ -2853,8 +2896,8 @@ async function runProduction(
         // Categorize error for smarter retries
         if (errorMsg.includes('timeout') || errorMsg.includes('deadline')) {
           lastErrorCategory = 'timeout';
-        } else if (errorMsg.includes('quota') || errorMsg.includes('rate limit') || errorMsg.includes('429')) {
-          lastErrorCategory = 'quota';
+        } else if (errorMsg.includes('quota') || errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('1303') || errorMsg.includes('parallel task')) {
+          lastErrorCategory = 'rate_limit';  // More specific than 'quota'
         } else if (errorMsg.includes('invalid') || errorMsg.includes('validation')) {
           lastErrorCategory = 'validation';
         } else if (errorMsg.includes('api') || errorMsg.includes('500') || errorMsg.includes('503')) {

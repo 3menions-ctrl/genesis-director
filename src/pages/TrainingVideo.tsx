@@ -407,7 +407,55 @@ export default function TrainingVideo() {
       });
 
       if (videoError) throw videoError;
-      if (!videoData?.videoUrl) throw new Error('No video URL received');
+      
+      // Handle async video generation (Kling returns taskId, need to poll)
+      let finalVideoUrl: string;
+      
+      if (videoData?.videoUrl) {
+        // Direct video URL returned
+        finalVideoUrl = videoData.videoUrl;
+      } else if (videoData?.taskId) {
+        // Async generation - poll for completion
+        toast.info('Video processing... This may take 1-3 minutes');
+        const taskId = videoData.taskId;
+        const provider = videoData.provider || 'kling';
+        
+        // Poll for video completion (max 5 minutes)
+        const maxAttempts = 60;
+        const pollInterval = 5000; // 5 seconds
+        
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          setProgress(30 + Math.min(25, attempt)); // Progress from 30% to 55%
+          
+          const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
+            body: { taskId, provider }
+          });
+          
+          if (statusError) {
+            console.warn('Status check error:', statusError);
+            continue;
+          }
+          
+          if (statusData?.status === 'completed' && statusData?.videoUrl) {
+            finalVideoUrl = statusData.videoUrl;
+            break;
+          } else if (statusData?.status === 'failed') {
+            throw new Error(statusData?.error || 'Video generation failed');
+          }
+          
+          // Update progress message
+          if (attempt % 6 === 0 && attempt > 0) {
+            toast.info(`Still processing... ${Math.ceil((maxAttempts - attempt) * pollInterval / 60000)} min remaining`);
+          }
+        }
+        
+        if (!finalVideoUrl!) {
+          throw new Error('Video generation timed out after 5 minutes');
+        }
+      } else {
+        throw new Error('No video URL or task ID received');
+      }
       
       setProgress(60);
 
@@ -419,7 +467,7 @@ export default function TrainingVideo() {
         const { data: lipSyncData, error: lipSyncError } = await supabase.functions.invoke('lip-sync-service', {
           body: {
             projectId: `training_${user.id}_${Date.now()}`,
-            videoUrl: videoData.videoUrl,
+            videoUrl: finalVideoUrl,
             audioUrl: audioStorageUrl || audioUrl,
             userId: user.id,
             quality: 'balanced',
@@ -432,14 +480,14 @@ export default function TrainingVideo() {
           toast.success('Lip sync applied successfully!');
         } else {
           console.warn('Lip sync not available:', lipSyncData?.error || 'Service unavailable');
-          setGeneratedVideoUrl(videoData.videoUrl);
+          setGeneratedVideoUrl(finalVideoUrl);
           if (lipSyncData?.error?.includes('not configured')) {
             toast.info('Video generated without lip sync (service not configured)');
           }
         }
       } catch (lipSyncErr) {
         console.warn('Lip sync service not available:', lipSyncErr);
-        setGeneratedVideoUrl(videoData.videoUrl);
+        setGeneratedVideoUrl(finalVideoUrl);
         toast.info('Video generated without lip sync');
       }
 

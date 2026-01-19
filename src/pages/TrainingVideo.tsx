@@ -468,6 +468,8 @@ export default function TrainingVideo() {
       setGenerationStep('applying_lipsync');
       toast.info('Applying lip synchronization...');
 
+      let videoToSave = finalVideoUrl;
+      
       try {
         const { data: lipSyncData, error: lipSyncError } = await supabase.functions.invoke('lip-sync-service', {
           body: {
@@ -481,6 +483,7 @@ export default function TrainingVideo() {
         });
 
         if (!lipSyncError && lipSyncData?.success && lipSyncData?.outputVideoUrl) {
+          videoToSave = lipSyncData.outputVideoUrl;
           setGeneratedVideoUrl(lipSyncData.outputVideoUrl);
           toast.success('Lip sync applied successfully!');
         } else {
@@ -499,21 +502,22 @@ export default function TrainingVideo() {
       setProgress(100);
       setGenerationStep('complete');
       
-      // Save training video to database
-      const finalUrl = generatedVideoUrl || finalVideoUrl;
-      if (finalUrl && user) {
+      // Save training video to database with the correct URL
+      if (videoToSave && user) {
         try {
           const { error: saveError } = await supabase.from('training_videos').insert({
             user_id: user.id,
             title: `Training Video - ${new Date().toLocaleDateString()}`,
             description: scriptText.slice(0, 200),
-            video_url: finalUrl,
+            video_url: videoToSave,
             voice_id: selectedVoice,
             environment: selectedBackground,
           });
           
           if (saveError) {
             console.error('Failed to save training video:', saveError);
+          } else {
+            console.log('Training video saved successfully');
           }
         } catch (saveErr) {
           console.error('Error saving training video:', saveErr);

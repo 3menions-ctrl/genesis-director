@@ -41,65 +41,89 @@ const DEFAULT_OPTIONS: Required<Omit<StitchOptions, 'audioUrl' | 'onProgress'>> 
 };
 
 /**
+ * Fetch video as blob and create object URL for better browser compatibility
+ */
+async function fetchVideoAsBlob(url: string): Promise<string> {
+  const response = await fetch(url, {
+    mode: 'cors',
+    credentials: 'omit',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch video: ${response.status} ${response.statusText}`);
+  }
+  
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+/**
  * Load a video element and wait for it to be ready
- * Includes retry logic for network issues
+ * Uses blob fetching for better cross-origin support
  */
 async function loadVideo(url: string, retries = 3): Promise<HTMLVideoElement> {
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      // First, fetch the video as a blob to avoid CORS issues
+      console.log(`[BrowserStitcher] Loading clip ${attempt}/${retries}: ${url.substring(0, 60)}...`);
+      
+      let videoSrc = url;
+      
+      // Try fetching as blob for cross-origin videos
+      if (url.includes('supabase.co') || url.includes('storage')) {
+        try {
+          videoSrc = await fetchVideoAsBlob(url);
+          console.log(`[BrowserStitcher] Fetched as blob successfully`);
+        } catch (fetchError) {
+          console.warn(`[BrowserStitcher] Blob fetch failed, trying direct load:`, fetchError);
+          // Fall back to direct URL
+        }
+      }
+      
       const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
         const videoEl = document.createElement('video');
         videoEl.crossOrigin = 'anonymous';
-        videoEl.muted = true; // Required for autoplay
+        videoEl.muted = true;
         videoEl.playsInline = true;
         videoEl.preload = 'auto';
         
-        // Longer timeout for large video files (60 seconds)
         const timeout = setTimeout(() => {
-          videoEl.src = ''; // Cancel loading
-          reject(new Error(`Video load timeout after 60s`));
-        }, 60000);
+          videoEl.src = '';
+          reject(new Error(`Video load timeout after 90s`));
+        }, 90000);
         
-        videoEl.onloadedmetadata = () => {
+        videoEl.onloadeddata = () => {
           clearTimeout(timeout);
-          // Wait for enough data to play
-          if (videoEl.readyState >= 2) {
-            resolve(videoEl);
-          } else {
-            videoEl.oncanplay = () => {
-              clearTimeout(timeout);
-              resolve(videoEl);
-            };
-          }
+          console.log(`[BrowserStitcher] Video loaded: ${videoEl.videoWidth}x${videoEl.videoHeight}, duration: ${videoEl.duration}s`);
+          resolve(videoEl);
         };
         
         videoEl.onerror = (e) => {
           clearTimeout(timeout);
           const error = videoEl.error;
-          reject(new Error(`Video load error: ${error?.message || 'Unknown error'}`));
+          reject(new Error(`Video load error: ${error?.message || 'Unknown error'} (code: ${error?.code})`));
         };
         
-        // Add cache-busting for retries to avoid stale responses
-        const separator = url.includes('?') ? '&' : '?';
-        videoEl.src = attempt > 1 ? `${url}${separator}_retry=${attempt}` : url;
+        videoEl.src = videoSrc;
         videoEl.load();
       });
       
       return video;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`Video load attempt ${attempt}/${retries} failed:`, lastError.message);
+      console.warn(`[BrowserStitcher] Attempt ${attempt}/${retries} failed:`, lastError.message);
       
       if (attempt < retries) {
-        // Wait before retrying (exponential backoff)
-        await new Promise(r => setTimeout(r, 1000 * attempt));
+        const delay = 2000 * attempt;
+        console.log(`[BrowserStitcher] Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   }
   
-  throw new Error(`Failed to load video after ${retries} attempts: ${lastError?.message || 'Unknown error'} (URL: ${url.substring(0, 80)}...)`);
+  throw new Error(`Failed to load video after ${retries} attempts: ${lastError?.message}`);
 }
 
 /**

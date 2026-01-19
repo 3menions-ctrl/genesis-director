@@ -186,6 +186,7 @@ serve(async (req) => {
       accumulatedAnchors,
       referenceImageUrl,
       qualityTier: project.quality_tier || 'standard',
+      aspectRatio: project.aspect_ratio || '16:9',
       isRetry: true,
     });
     

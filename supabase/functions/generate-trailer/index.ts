@@ -23,8 +23,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { 
-      snippetDuration = 2, 
-      partsPerVideo = 2, 
+      snippetDuration = 3, // 3 seconds per clip
+      partsPerVideo = 1, // 1 snippet per video for cleaner transitions
       maxVideos = 10 
     }: TrailerRequest = await req.json().catch(() => ({}));
 
@@ -88,8 +88,8 @@ serve(async (req) => {
       [clips[i], clips[j]] = [clips[j], clips[i]];
     }
 
-    // Limit total trailer length to ~30 seconds
-    const maxClips = Math.floor(30 / snippetDuration);
+    // Limit total trailer length to ~45 seconds for 3-sec clips
+    const maxClips = Math.floor(45 / snippetDuration);
     const selectedClips = clips.slice(0, maxClips);
 
     console.log(`[generate-trailer] Prepared ${selectedClips.length} clips for trailer`);

@@ -139,6 +139,9 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
+// Crossfade duration in milliseconds
+const CROSSFADE_DURATION = 500;
+
 export function SmartStitcherPlayer({
   projectId,
   clipUrls: providedClipUrls,
@@ -161,8 +164,11 @@ export function SmartStitcherPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   
-  // Dual video element state for gapless playback
+  // Dual video element state for gapless playback with crossfade
   const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
+  const [isCrossfading, setIsCrossfading] = useState(false);
+  const [videoAOpacity, setVideoAOpacity] = useState(1);
+  const [videoBOpacity, setVideoBOpacity] = useState(0);
 
   // Stitch state
   const [stitchState, setStitchState] = useState<StitchState>({
@@ -398,12 +404,13 @@ export function SmartStitcherPlayer({
     }
   }, [currentClipIndex, clips, currentClip, getActiveVideo, getStandbyVideo]);
 
-  // Handle clip ended - SEAMLESS transition with zero gap
+  // Handle clip ended - SEAMLESS crossfade transition
   const handleClipEnded = useCallback(() => {
-    if (isTransitioningRef.current) return;
+    if (isTransitioningRef.current || isCrossfading) return;
     
     if (currentClipIndex < clips.length - 1) {
       isTransitioningRef.current = true;
+      setIsCrossfading(true);
       
       const wasPlaying = isPlaying;
       const nextIndex = currentClipIndex + 1;
@@ -419,27 +426,53 @@ export function SmartStitcherPlayer({
           standbyVideo.play().catch(() => {});
         }
         
+        // Animate crossfade
+        const startTime = performance.now();
+        const animateCrossfade = () => {
+          const elapsed = performance.now() - startTime;
+          const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
+          
+          // Smooth easing
+          const eased = 1 - Math.pow(1 - progress, 3);
+          
+          if (activeVideoIndex === 0) {
+            setVideoAOpacity(1 - eased);
+            setVideoBOpacity(eased);
+          } else {
+            setVideoAOpacity(eased);
+            setVideoBOpacity(1 - eased);
+          }
+          
+          if (progress < 1) {
+            requestAnimationFrame(animateCrossfade);
+          } else {
+            // Crossfade complete
+            setIsCrossfading(false);
+            
+            // Pause the old active
+            if (activeVideo) {
+              activeVideo.pause();
+            }
+            
+            // Preload the NEXT clip into the old active (now standby) after crossfade
+            const futureClipIndex = nextIndex + 1;
+            if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+              activeVideo.src = clips[futureClipIndex].blobUrl;
+              activeVideo.load();
+            }
+            isTransitioningRef.current = false;
+          }
+        };
+        
         // Swap active/standby
         setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
         setCurrentClipIndex(nextIndex);
         
-        // Pause the old active
-        if (activeVideo) {
-          activeVideo.pause();
-        }
-        
-        // Preload the NEXT clip into the old active (now standby) after a short delay
-        setTimeout(() => {
-          const futureClipIndex = nextIndex + 1;
-          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
-            activeVideo.src = clips[futureClipIndex].blobUrl;
-            activeVideo.load();
-          }
-          isTransitioningRef.current = false;
-        }, 50);
+        requestAnimationFrame(animateCrossfade);
       } else {
-        // Fallback if standby not ready
+        // Fallback if standby not ready - no crossfade
         setCurrentClipIndex(nextIndex);
+        setIsCrossfading(false);
         isTransitioningRef.current = false;
         
         if (activeVideo && clips[nextIndex]?.blobUrl) {
@@ -456,14 +489,19 @@ export function SmartStitcherPlayer({
       setCurrentClipIndex(0);
       setCurrentTime(0);
       
+      // Reset opacities
+      setVideoAOpacity(1);
+      setVideoBOpacity(0);
+      setActiveVideoIndex(0);
+      
       // Reset to first clip
-      const activeVideo = getActiveVideo();
+      const activeVideo = videoARef.current;
       if (activeVideo && clips[0]?.blobUrl) {
         activeVideo.src = clips[0].blobUrl;
         activeVideo.load();
       }
     }
-  }, [currentClipIndex, clips, isPlaying, getActiveVideo, getStandbyVideo]);
+  }, [currentClipIndex, clips, isPlaying, isCrossfading, activeVideoIndex, getActiveVideo, getStandbyVideo]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
@@ -872,16 +910,18 @@ export function SmartStitcherPlayer({
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* Dual Video Players for Gapless Playback */}
+      {/* Dual Video Players for Gapless Playback with Crossfade */}
       {!useStitchedVideo && (
         <>
           {/* Video A */}
           <video
             ref={videoARef}
-            className={cn(
-              'absolute inset-0 w-full h-full object-contain transition-opacity duration-100',
-              activeVideoIndex === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'
-            )}
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ 
+              opacity: videoAOpacity,
+              zIndex: activeVideoIndex === 0 ? 10 : 5,
+              transition: isCrossfading ? 'none' : 'opacity 0.1s ease-out'
+            }}
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 0 && setIsPlaying(true)}
@@ -894,10 +934,12 @@ export function SmartStitcherPlayer({
           {/* Video B */}
           <video
             ref={videoBRef}
-            className={cn(
-              'absolute inset-0 w-full h-full object-contain transition-opacity duration-100',
-              activeVideoIndex === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'
-            )}
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ 
+              opacity: videoBOpacity,
+              zIndex: activeVideoIndex === 1 ? 10 : 5,
+              transition: isCrossfading ? 'none' : 'opacity 0.1s ease-out'
+            }}
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 1 && setIsPlaying(true)}

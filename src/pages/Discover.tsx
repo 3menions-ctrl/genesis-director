@@ -31,7 +31,7 @@ interface PublicVideo {
 type SortOption = 'recent' | 'popular';
 
 export default function Discover() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
@@ -182,10 +182,12 @@ export default function Discover() {
         </div>
       </div>
 
-      {/* Trailer Generator */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <TrailerGenerator />
-      </div>
+      {/* Trailer Generator - Admin Only */}
+      {isAdmin && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <TrailerGenerator />
+        </div>
+      )}
 
       {/* Video Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">

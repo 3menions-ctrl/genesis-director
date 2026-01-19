@@ -151,8 +151,8 @@ serve(async (req) => {
       clips, 
       voiceAudioUrl, 
       musicAudioUrl,
-      autoGenerateBridges = true,
-      strictnessLevel = 'normal',
+      autoGenerateBridges = false, // DISABLED: Bridge clips disabled to reduce Kling costs
+      strictnessLevel = 'lenient', // Use lenient to skip more analysis
       maxBridgeClips = 3,
       bridgeClipDuration = 3, // FIX: Configurable bridge duration
       targetFormat = '1080p',

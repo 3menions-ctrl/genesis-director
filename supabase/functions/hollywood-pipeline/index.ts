@@ -196,16 +196,18 @@ const MAX_CLIP_DURATION = 10;
 // Primary source of truth is the tier_limits table in DB, accessed via get_user_tier_limits RPC
 // Duration targets: Free=32sec (5 clips), Pro=1min (10 clips), Growth=2min (20 clips), Agency=3min (30 clips)
 // IRON-CLAD: All tiers get 4 retries for quality (matches DB tier_limits)
+// COST OPTIMIZATION: Quality retries disabled to reduce Kling API costs
+// Each clip is generated once and accepted regardless of quality score
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 5, maxDuration: 32, maxRetries: 1, chunkedStitching: false },
-  'pro': { maxClips: 10, maxDuration: 60, maxRetries: 2, chunkedStitching: true },
-  'growth': { maxClips: 20, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
-  'agency': { maxClips: 30, maxDuration: 180, maxRetries: 4, chunkedStitching: true },
+  'free': { maxClips: 5, maxDuration: 32, maxRetries: 0, chunkedStitching: false },
+  'pro': { maxClips: 10, maxDuration: 60, maxRetries: 0, chunkedStitching: true },
+  'growth': { maxClips: 20, maxDuration: 120, maxRetries: 0, chunkedStitching: true },
+  'agency': { maxClips: 30, maxDuration: 180, maxRetries: 0, chunkedStitching: true },
 };
 
-// IRON-CLAD: Minimum quality score threshold - clips MUST meet this to pass
-// Clips below this threshold are marked as failed even after max retries
-const MINIMUM_QUALITY_THRESHOLD = 65;
+// DISABLED: Quality threshold checking - all clips pass regardless of score
+// const MINIMUM_QUALITY_THRESHOLD = 65;
+const MINIMUM_QUALITY_THRESHOLD = 0; // Accept all clips
 
 const MIN_CLIPS_PER_PROJECT = 2;
 

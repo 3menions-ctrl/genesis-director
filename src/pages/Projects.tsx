@@ -51,8 +51,7 @@ import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
-import { BrowserStitcherPanel } from '@/components/studio/BrowserStitcherPanel';
-import { useBrowserStitcher } from '@/hooks/useBrowserStitcher';
+import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 
 // ============= HELPERS =============
 
@@ -1097,24 +1096,9 @@ export default function Projects() {
   };
 
   const handlePlayVideo = async (project: Project) => {
+    // Use SmartStitcherPlayer for seamless playback
     if (project.video_clips?.length || project.video_url) {
-      setSelectedProject(project);
-      setIsLoadingClips(true);
-      
-      let clips: string[] = [];
-      if (project.video_clips?.length) {
-        clips = project.video_clips;
-      } else if (project.video_url) {
-        if (isManifestUrl(project.video_url)) {
-          clips = await fetchClipsFromManifest(project.video_url);
-        } else {
-          clips = [project.video_url];
-        }
-      }
-      
-      setResolvedClips(clips);
-      setIsLoadingClips(false);
-      setVideoModalOpen(true);
+      setShowBrowserStitcher(project.id);
     }
   };
 
@@ -2107,23 +2091,31 @@ export default function Projects() {
         </DialogContent>
       </Dialog>
 
-      {/* Browser Stitcher Modal */}
+      {/* Smart Stitcher Player Modal */}
       <Dialog open={!!showBrowserStitcher} onOpenChange={() => setShowBrowserStitcher(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
-          <DialogHeader>
-            <DialogTitle>Browser Video Stitcher</DialogTitle>
-            <DialogDescription>
-              Combine your clips locally in the browser
+        <DialogContent className="bg-zinc-950 border-zinc-800 max-w-5xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <MonitorPlay className="w-5 h-5 text-primary" />
+              Smart Video Player
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Play all clips seamlessly • Export to single video
             </DialogDescription>
           </DialogHeader>
           {showBrowserStitcher && (
-            <BrowserStitcherPanel
-              projectId={showBrowserStitcher}
-              onComplete={() => {
-                setShowBrowserStitcher(null);
-                refreshProjects();
-              }}
-            />
+            <div className="p-4 pt-2">
+              <SmartStitcherPlayer
+                projectId={showBrowserStitcher}
+                className="aspect-video rounded-xl"
+                autoPlay={true}
+                onExportComplete={(url) => {
+                  setShowBrowserStitcher(null);
+                  refreshProjects();
+                  toast.success('Video exported and saved!');
+                }}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>

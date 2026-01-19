@@ -33,12 +33,17 @@ export interface TrailerOptions {
 /**
  * Fetch video as blob for cross-origin support
  */
+// Store blob URLs for cleanup
+const blobUrls: string[] = [];
+
 async function fetchVideoAsBlob(url: string): Promise<string> {
   console.log('[Trailer] Fetching video as blob:', url.substring(0, 60));
   const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
   const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  const blobUrl = URL.createObjectURL(blob);
+  blobUrls.push(blobUrl);
+  return blobUrl;
 }
 
 /**
@@ -49,7 +54,19 @@ async function fetchAudioAsBlob(url: string): Promise<string> {
   const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
   if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
   const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  const blobUrl = URL.createObjectURL(blob);
+  blobUrls.push(blobUrl);
+  return blobUrl;
+}
+
+/**
+ * Clean up blob URLs
+ */
+function cleanupBlobUrls(): void {
+  blobUrls.forEach(url => {
+    try { URL.revokeObjectURL(url); } catch {}
+  });
+  blobUrls.length = 0;
 }
 
 /**
@@ -73,13 +90,12 @@ async function loadVideo(url: string): Promise<HTMLVideoElement> {
     
     const timeout = setTimeout(() => {
       console.error('[Trailer] Video load timeout for:', url.substring(0, 60));
-      video.src = '';
       reject(new Error('Video load timeout'));
-    }, 60000); // Increased timeout to 60s
+    }, 60000);
     
-    video.onloadeddata = () => {
+    video.oncanplaythrough = () => {
       clearTimeout(timeout);
-      console.log(`[Trailer] Video loaded: ${video.videoWidth}x${video.videoHeight}, ${video.duration}s`);
+      console.log(`[Trailer] Video ready: ${video.videoWidth}x${video.videoHeight}, ${video.duration}s`);
       resolve(video);
     };
     
@@ -386,9 +402,8 @@ export async function generateTrailer(
     musicAudio.play().catch(e => console.warn('[Trailer] Music play failed:', e));
   }
 
-  // Phase 4: Record each clip with crossfade transitions
+  // Phase 4: Record each clip with simple cuts (no crossfade for stability)
   const frameInterval = 1000 / fps;
-  const crossfadeFrames = Math.floor(crossfadeDuration * fps);
   let processedClips = 0;
 
   // Get valid clips (ones we have videos for)
@@ -397,8 +412,6 @@ export async function generateTrailer(
   for (let clipIndex = 0; clipIndex < validClips.length; clipIndex++) {
     const clip = validClips[clipIndex];
     const video = videoCache.get(clip.url)!;
-    const nextClip = validClips[clipIndex + 1];
-    const nextVideo = nextClip ? videoCache.get(nextClip.url) : null;
 
     reportProgress({
       phase: 'extracting',
@@ -413,88 +426,47 @@ export async function generateTrailer(
       const startTime = Math.min(clip.startSec, Math.max(0, video.duration - clip.durationSec));
       video.currentTime = startTime;
       
-      // Wait for seek to complete properly
-      await new Promise<void>((resolve) => {
+      // Wait for seek to complete
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => resolve(), 2000);
         const onSeeked = () => {
+          clearTimeout(timeout);
           video.removeEventListener('seeked', onSeeked);
           resolve();
         };
         video.addEventListener('seeked', onSeeked);
-        setTimeout(resolve, 300);
       });
 
-      // Small delay to ensure frame is ready
-      await new Promise(r => setTimeout(r, 50));
+      // Wait for video to be ready
+      await new Promise(r => setTimeout(r, 100));
+      
+      // Play video
       await video.play();
 
-      // Calculate frames for main content and crossfade
-      const mainDuration = clip.durationSec - (nextVideo ? crossfadeDuration : 0);
-      const totalMainFrames = Math.floor(mainDuration * fps);
-      
-      // Use requestAnimationFrame-aligned timing for smoother playback
+      // Record frames for clip duration
+      const totalFrames = Math.floor(clip.durationSec * fps);
       const startTimestamp = performance.now();
-      let lastFrameTime = startTimestamp;
       
-      // Record main frames with proper timing
-      for (let frame = 0; frame < totalMainFrames; frame++) {
+      for (let frame = 0; frame < totalFrames; frame++) {
         // Draw current frame
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawFrame(ctx, video, canvas.width, canvas.height, 1);
         
-        // Calculate proper delay to maintain consistent framerate
+        // Maintain consistent framerate
         const targetTime = startTimestamp + (frame + 1) * frameInterval;
         const now = performance.now();
-        const delay = Math.max(1, targetTime - now);
+        const delay = Math.max(0, targetTime - now);
         
-        await new Promise(r => setTimeout(r, delay));
-        lastFrameTime = performance.now();
-      }
-
-      // Crossfade to next clip if there is one
-      if (nextVideo) {
-        // Prepare next video while current is still playing
-        const nextStartTime = Math.min(nextClip.startSec, Math.max(0, nextVideo.duration - nextClip.durationSec));
-        nextVideo.currentTime = nextStartTime;
-        
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            nextVideo.removeEventListener('seeked', onSeeked);
-            resolve();
-          };
-          nextVideo.addEventListener('seeked', onSeeked);
-          setTimeout(resolve, 300);
-        });
-
-        await new Promise(r => setTimeout(r, 50));
-        await nextVideo.play();
-
-        // Record smooth crossfade frames with easing
-        const crossfadeStart = performance.now();
-        for (let frame = 0; frame < crossfadeFrames; frame++) {
-          // Use easeInOutCubic for smoother transition
-          const t = frame / crossfadeFrames;
-          const easedProgress = t < 0.5 
-            ? 4 * t * t * t 
-            : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          
-          drawCrossfade(ctx, video, nextVideo, canvas.width, canvas.height, easedProgress);
-          
-          // Maintain consistent timing
-          const targetTime = crossfadeStart + (frame + 1) * frameInterval;
-          const now = performance.now();
-          const delay = Math.max(1, targetTime - now);
-          
+        if (delay > 0) {
           await new Promise(r => setTimeout(r, delay));
         }
-
-        nextVideo.pause();
       }
 
       video.pause();
       processedClips++;
     } catch (error) {
-      console.warn(`[Trailer] Error processing clip:`, error);
+      console.warn(`[Trailer] Error processing clip ${clipIndex + 1}:`, error);
     }
   }
 
@@ -517,11 +489,17 @@ export async function generateTrailer(
       const blob = new Blob(chunks, { type: mimeType });
       console.log(`[Trailer] Created blob: ${blob.size} bytes`);
       
-      // Cleanup
+      // Cleanup videos without triggering errors
       videoCache.forEach(v => {
-        v.src = '';
-        v.load();
+        v.pause();
+        v.removeAttribute('src');
       });
+      videoCache.clear();
+      
+      // Clean up blob URLs after a delay to avoid errors
+      setTimeout(() => {
+        cleanupBlobUrls();
+      }, 1000);
 
       reportProgress({
         phase: 'complete',
@@ -534,7 +512,10 @@ export async function generateTrailer(
       resolve(blob);
     };
 
-    recorder.onerror = (e) => reject(new Error('Recording error: ' + e));
+    recorder.onerror = (e) => {
+      cleanupBlobUrls();
+      reject(new Error('Recording error: ' + e));
+    };
     recorder.stop();
   });
 }

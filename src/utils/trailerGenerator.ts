@@ -411,32 +411,47 @@ export async function generateTrailer(
       const startTime = Math.min(clip.startSec, Math.max(0, video.duration - clip.durationSec));
       video.currentTime = startTime;
       
+      // Wait for seek to complete properly
       await new Promise<void>((resolve) => {
         const onSeeked = () => {
           video.removeEventListener('seeked', onSeeked);
           resolve();
         };
         video.addEventListener('seeked', onSeeked);
-        setTimeout(resolve, 500);
+        setTimeout(resolve, 300);
       });
 
+      // Small delay to ensure frame is ready
+      await new Promise(r => setTimeout(r, 50));
       await video.play();
 
       // Calculate frames for main content and crossfade
       const mainDuration = clip.durationSec - (nextVideo ? crossfadeDuration : 0);
-      const mainFrames = Math.floor(mainDuration * fps);
+      const totalMainFrames = Math.floor(mainDuration * fps);
       
-      // Record main frames
-      for (let frame = 0; frame < mainFrames; frame++) {
+      // Use requestAnimationFrame-aligned timing for smoother playback
+      const startTimestamp = performance.now();
+      let lastFrameTime = startTimestamp;
+      
+      // Record main frames with proper timing
+      for (let frame = 0; frame < totalMainFrames; frame++) {
+        // Draw current frame
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawFrame(ctx, video, canvas.width, canvas.height, 1);
-        await new Promise(r => setTimeout(r, frameInterval));
+        
+        // Calculate proper delay to maintain consistent framerate
+        const targetTime = startTimestamp + (frame + 1) * frameInterval;
+        const now = performance.now();
+        const delay = Math.max(1, targetTime - now);
+        
+        await new Promise(r => setTimeout(r, delay));
+        lastFrameTime = performance.now();
       }
 
       // Crossfade to next clip if there is one
       if (nextVideo) {
-        // Prepare next video
+        // Prepare next video while current is still playing
         const nextStartTime = Math.min(nextClip.startSec, Math.max(0, nextVideo.duration - nextClip.durationSec));
         nextVideo.currentTime = nextStartTime;
         
@@ -446,16 +461,29 @@ export async function generateTrailer(
             resolve();
           };
           nextVideo.addEventListener('seeked', onSeeked);
-          setTimeout(resolve, 500);
+          setTimeout(resolve, 300);
         });
 
+        await new Promise(r => setTimeout(r, 50));
         await nextVideo.play();
 
-        // Record crossfade frames
+        // Record smooth crossfade frames with easing
+        const crossfadeStart = performance.now();
         for (let frame = 0; frame < crossfadeFrames; frame++) {
-          const progress = frame / crossfadeFrames;
-          drawCrossfade(ctx, video, nextVideo, canvas.width, canvas.height, progress);
-          await new Promise(r => setTimeout(r, frameInterval));
+          // Use easeInOutCubic for smoother transition
+          const t = frame / crossfadeFrames;
+          const easedProgress = t < 0.5 
+            ? 4 * t * t * t 
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          
+          drawCrossfade(ctx, video, nextVideo, canvas.width, canvas.height, easedProgress);
+          
+          // Maintain consistent timing
+          const targetTime = crossfadeStart + (frame + 1) * frameInterval;
+          const now = performance.now();
+          const delay = Math.max(1, targetTime - now);
+          
+          await new Promise(r => setTimeout(r, delay));
         }
 
         nextVideo.pause();

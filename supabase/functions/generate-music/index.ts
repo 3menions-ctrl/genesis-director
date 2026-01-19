@@ -69,11 +69,10 @@ async function generateWithReplicate(prompt: string, duration: number): Promise<
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "671ac645ce5e552cc63a54a2bbff63fcf798043055f2a3c4abd12e6deb15e12e", // MusicGen
+        version: "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38", // MusicGen Stereo Large
         input: {
           prompt: prompt,
           duration: Math.min(duration, 30), // MusicGen max is 30s
-          model_version: "melody", // Best quality
           output_format: "mp3",
           normalization_strategy: "loudness",
         },

@@ -2,7 +2,7 @@
  * Trailer Generator
  * 
  * Creates a promotional trailer from snippets of community videos.
- * Takes 2-second clips from each video and combines them into one trailer.
+ * Uses an edge function to get clip data, then stitches in browser.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -15,51 +15,24 @@ export interface TrailerProgress {
   message: string;
 }
 
+export interface TrailerClip {
+  url: string;
+  title: string;
+  startSec: number;
+  durationSec: number;
+}
+
 export interface TrailerOptions {
-  snippetDuration?: number; // seconds per snippet (default 2)
-  partsPerVideo?: number; // number of parts per video (default 2)
-  resolution?: { width: number; height: number };
-  fps?: number;
+  snippetDuration?: number;
+  partsPerVideo?: number;
   onProgress?: (progress: TrailerProgress) => void;
-}
-
-interface VideoSnippet {
-  videoUrl: string;
-  startTime: number;
-  duration: number;
-}
-
-const DEFAULT_OPTIONS: Required<Omit<TrailerOptions, 'onProgress'>> = {
-  snippetDuration: 2,
-  partsPerVideo: 2,
-  resolution: { width: 1280, height: 720 },
-  fps: 30,
-};
-
-/**
- * Fetch public videos from the community feed
- */
-async function fetchPublicVideos(limit = 10): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('movie_projects')
-    .select('video_url')
-    .eq('is_public', true)
-    .not('video_url', 'is', null)
-    .order('likes_count', { ascending: false })
-    .limit(limit);
-
-  if (error) throw new Error(`Failed to fetch videos: ${error.message}`);
-  
-  // Filter out manifest files (JSON) and return only direct video URLs
-  return (data || [])
-    .map(v => v.video_url)
-    .filter((url): url is string => url !== null && !url.endsWith('.json'));
 }
 
 /**
  * Fetch video as blob for cross-origin support
  */
 async function fetchVideoAsBlob(url: string): Promise<string> {
+  console.log('[Trailer] Fetching video as blob:', url.substring(0, 60));
   const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
   const blob = await response.blob();
@@ -72,13 +45,10 @@ async function fetchVideoAsBlob(url: string): Promise<string> {
 async function loadVideo(url: string): Promise<HTMLVideoElement> {
   let videoSrc = url;
   
-  // Try blob fetch for cross-origin
-  if (url.includes('supabase.co') || url.includes('storage')) {
-    try {
-      videoSrc = await fetchVideoAsBlob(url);
-    } catch (e) {
-      console.warn('Blob fetch failed, using direct URL');
-    }
+  try {
+    videoSrc = await fetchVideoAsBlob(url);
+  } catch (e) {
+    console.warn('[Trailer] Blob fetch failed, using direct URL:', e);
   }
   
   return new Promise((resolve, reject) => {
@@ -91,10 +61,11 @@ async function loadVideo(url: string): Promise<HTMLVideoElement> {
     const timeout = setTimeout(() => {
       video.src = '';
       reject(new Error('Video load timeout'));
-    }, 60000);
+    }, 30000);
     
     video.onloadedmetadata = () => {
       clearTimeout(timeout);
+      console.log(`[Trailer] Video loaded: ${video.videoWidth}x${video.videoHeight}, ${video.duration}s`);
       resolve(video);
     };
     
@@ -109,7 +80,7 @@ async function loadVideo(url: string): Promise<HTMLVideoElement> {
 }
 
 /**
- * Draw video frame to canvas with cover scaling
+ * Draw video frame to canvas
  */
 function drawFrame(
   ctx: CanvasRenderingContext2D,
@@ -147,43 +118,8 @@ function getSupportedMimeType(): string {
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
     'video/webm',
-    'video/mp4',
   ];
   return types.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-}
-
-/**
- * Extract a snippet from a video
- */
-async function extractSnippet(
-  video: HTMLVideoElement,
-  startTime: number,
-  duration: number,
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  fps: number
-): Promise<void> {
-  video.currentTime = startTime;
-  
-  await new Promise<void>((resolve) => {
-    const onSeeked = () => {
-      video.removeEventListener('seeked', onSeeked);
-      resolve();
-    };
-    video.addEventListener('seeked', onSeeked);
-  });
-  
-  await video.play();
-  
-  const frameInterval = 1000 / fps;
-  const endTime = startTime + duration;
-  
-  while (video.currentTime < endTime && video.currentTime < video.duration) {
-    drawFrame(ctx, video, canvas.width, canvas.height);
-    await new Promise(r => setTimeout(r, frameInterval));
-  }
-  
-  video.pause();
 }
 
 /**
@@ -192,12 +128,11 @@ async function extractSnippet(
 export async function generateTrailer(
   options: TrailerOptions = {}
 ): Promise<Blob> {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  const { snippetDuration, partsPerVideo, resolution, fps, onProgress } = opts;
+  const { snippetDuration = 2, partsPerVideo = 2, onProgress } = options;
 
   const reportProgress = (progress: TrailerProgress) => onProgress?.(progress);
 
-  // Phase 1: Fetch videos
+  // Phase 1: Fetch clip data from edge function
   reportProgress({
     phase: 'fetching',
     currentVideo: 0,
@@ -206,81 +141,70 @@ export async function generateTrailer(
     message: 'Fetching community videos...',
   });
 
-  const videoUrls = await fetchPublicVideos(12);
-  
-  if (videoUrls.length === 0) {
-    throw new Error('No public videos available for trailer');
+  console.log('[Trailer] Calling generate-trailer edge function...');
+
+  const { data: response, error } = await supabase.functions.invoke('generate-trailer', {
+    body: { snippetDuration, partsPerVideo, maxVideos: 8 },
+  });
+
+  if (error || !response?.success) {
+    const errorMsg = error?.message || response?.error || 'Failed to fetch video data';
+    console.error('[Trailer] Edge function error:', errorMsg);
+    throw new Error(errorMsg);
   }
 
-  const totalVideos = videoUrls.length;
-  const snippets: VideoSnippet[] = [];
+  const clips: TrailerClip[] = response.clips;
+  console.log(`[Trailer] Got ${clips.length} clips from edge function`);
 
-  // Phase 2: Load videos and plan snippets
+  if (clips.length === 0) {
+    throw new Error('No clips available for trailer');
+  }
+
+  // Phase 2: Load unique videos
   reportProgress({
     phase: 'loading',
     currentVideo: 0,
-    totalVideos,
+    totalVideos: clips.length,
     percentComplete: 5,
     message: 'Loading videos...',
   });
 
-  const loadedVideos: HTMLVideoElement[] = [];
+  const uniqueUrls = [...new Set(clips.map(c => c.url))];
+  const videoCache = new Map<string, HTMLVideoElement>();
   
-  for (let i = 0; i < videoUrls.length; i++) {
+  for (let i = 0; i < uniqueUrls.length; i++) {
     reportProgress({
       phase: 'loading',
       currentVideo: i + 1,
-      totalVideos,
-      percentComplete: 5 + Math.round((i / totalVideos) * 20),
-      message: `Loading video ${i + 1} of ${totalVideos}...`,
+      totalVideos: uniqueUrls.length,
+      percentComplete: 5 + Math.round((i / uniqueUrls.length) * 25),
+      message: `Loading video ${i + 1} of ${uniqueUrls.length}...`,
     });
 
     try {
-      const video = await loadVideo(videoUrls[i]);
-      loadedVideos.push(video);
-      
-      // Calculate snippet positions - spread evenly through the video
-      const videoDuration = video.duration;
-      if (videoDuration >= snippetDuration * partsPerVideo) {
-        for (let p = 0; p < partsPerVideo; p++) {
-          const segmentLength = videoDuration / partsPerVideo;
-          const startTime = p * segmentLength + (segmentLength - snippetDuration) / 2;
-          snippets.push({
-            videoUrl: videoUrls[i],
-            startTime: Math.max(0, startTime),
-            duration: snippetDuration,
-          });
-        }
-      } else if (videoDuration >= snippetDuration) {
-        // Video too short for multiple parts, take one from middle
-        snippets.push({
-          videoUrl: videoUrls[i],
-          startTime: (videoDuration - snippetDuration) / 2,
-          duration: snippetDuration,
-        });
-      }
+      const video = await loadVideo(uniqueUrls[i]);
+      videoCache.set(uniqueUrls[i], video);
     } catch (error) {
-      console.warn(`Failed to load video ${i + 1}:`, error);
+      console.warn(`[Trailer] Failed to load video ${i + 1}:`, error);
     }
   }
 
-  if (snippets.length === 0) {
-    throw new Error('Could not extract any snippets from videos');
-  }
-
-  // Shuffle snippets for variety
-  for (let i = snippets.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [snippets[i], snippets[j]] = [snippets[j], snippets[i]];
+  if (videoCache.size === 0) {
+    throw new Error('Could not load any videos');
   }
 
   // Phase 3: Setup canvas and recorder
+  const resolution = { width: 1280, height: 720 };
+  const fps = 30;
+  
   const canvas = document.createElement('canvas');
   canvas.width = resolution.width;
   canvas.height = resolution.height;
   const ctx = canvas.getContext('2d', { alpha: false })!;
 
   const mimeType = getSupportedMimeType();
+  console.log(`[Trailer] Using MIME type: ${mimeType}`);
+  
   const canvasStream = canvas.captureStream(fps);
   const recorder = new MediaRecorder(canvasStream, {
     mimeType,
@@ -294,41 +218,66 @@ export async function generateTrailer(
 
   recorder.start(100);
 
-  // Phase 4: Extract and encode snippets
-  for (let i = 0; i < snippets.length; i++) {
-    const snippet = snippets[i];
-    
+  // Phase 4: Record each clip
+  const frameInterval = 1000 / fps;
+  let processedClips = 0;
+
+  for (const clip of clips) {
+    const video = videoCache.get(clip.url);
+    if (!video) {
+      console.warn(`[Trailer] Skipping clip - video not loaded: ${clip.url}`);
+      continue;
+    }
+
     reportProgress({
       phase: 'extracting',
-      currentVideo: i + 1,
-      totalVideos: snippets.length,
-      percentComplete: 25 + Math.round((i / snippets.length) * 65),
-      message: `Encoding snippet ${i + 1} of ${snippets.length}...`,
+      currentVideo: processedClips + 1,
+      totalVideos: clips.length,
+      percentComplete: 30 + Math.round((processedClips / clips.length) * 60),
+      message: `Recording clip ${processedClips + 1} of ${clips.length}...`,
     });
 
-    // Find the loaded video for this snippet
-    const videoIndex = videoUrls.indexOf(snippet.videoUrl);
-    if (videoIndex >= 0 && loadedVideos[videoIndex]) {
-      try {
-        await extractSnippet(
-          loadedVideos[videoIndex],
-          snippet.startTime,
-          snippet.duration,
-          canvas,
-          ctx,
-          fps
-        );
-      } catch (error) {
-        console.warn(`Failed to extract snippet ${i + 1}:`, error);
+    try {
+      // Seek to start position
+      const startTime = Math.min(clip.startSec, Math.max(0, video.duration - clip.durationSec));
+      video.currentTime = startTime;
+      
+      await new Promise<void>((resolve) => {
+        const onSeeked = () => {
+          video.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        video.addEventListener('seeked', onSeeked);
+        // Fallback if seeked doesn't fire
+        setTimeout(resolve, 500);
+      });
+
+      await video.play();
+
+      // Record frames for the duration
+      const endTime = startTime + clip.durationSec;
+      const recordStart = Date.now();
+      
+      while (video.currentTime < endTime && video.currentTime < video.duration) {
+        drawFrame(ctx, video, canvas.width, canvas.height);
+        await new Promise(r => setTimeout(r, frameInterval));
+        
+        // Safety timeout - max 5 seconds per clip
+        if (Date.now() - recordStart > 5000) break;
       }
+
+      video.pause();
+      processedClips++;
+    } catch (error) {
+      console.warn(`[Trailer] Error processing clip:`, error);
     }
   }
 
   // Phase 5: Finalize
   reportProgress({
     phase: 'finalizing',
-    currentVideo: snippets.length,
-    totalVideos: snippets.length,
+    currentVideo: clips.length,
+    totalVideos: clips.length,
     percentComplete: 95,
     message: 'Finalizing trailer...',
   });
@@ -336,17 +285,18 @@ export async function generateTrailer(
   return new Promise((resolve, reject) => {
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: mimeType });
+      console.log(`[Trailer] Created blob: ${blob.size} bytes`);
       
       // Cleanup
-      loadedVideos.forEach(v => {
+      videoCache.forEach(v => {
         v.src = '';
         v.load();
       });
 
       reportProgress({
         phase: 'complete',
-        currentVideo: snippets.length,
-        totalVideos: snippets.length,
+        currentVideo: clips.length,
+        totalVideos: clips.length,
         percentComplete: 100,
         message: 'Trailer ready!',
       });

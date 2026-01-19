@@ -2,13 +2,13 @@
  * Trailer Generator
  * 
  * Creates a promotional trailer from snippets of community videos.
- * Uses an edge function to get clip data, then stitches in browser.
+ * Features smooth crossfade transitions and epic background music.
  */
 
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TrailerProgress {
-  phase: 'fetching' | 'loading' | 'extracting' | 'encoding' | 'finalizing' | 'complete' | 'error';
+  phase: 'fetching' | 'music' | 'loading' | 'extracting' | 'encoding' | 'finalizing' | 'complete' | 'error';
   currentVideo: number;
   totalVideos: number;
   percentComplete: number;
@@ -25,6 +25,8 @@ export interface TrailerClip {
 export interface TrailerOptions {
   snippetDuration?: number;
   partsPerVideo?: number;
+  crossfadeDuration?: number;
+  includeMusic?: boolean;
   onProgress?: (progress: TrailerProgress) => void;
 }
 
@@ -35,6 +37,17 @@ async function fetchVideoAsBlob(url: string): Promise<string> {
   console.log('[Trailer] Fetching video as blob:', url.substring(0, 60));
   const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
   if (!response.ok) throw new Error(`Failed to fetch: ${response.status}`);
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Fetch audio as blob
+ */
+async function fetchAudioAsBlob(url: string): Promise<string> {
+  console.log('[Trailer] Fetching audio as blob:', url.substring(0, 60));
+  const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
   const blob = await response.blob();
   return URL.createObjectURL(blob);
 }
@@ -80,13 +93,51 @@ async function loadVideo(url: string): Promise<HTMLVideoElement> {
 }
 
 /**
- * Draw video frame to canvas
+ * Load an audio element
+ */
+async function loadAudio(url: string): Promise<HTMLAudioElement> {
+  let audioSrc = url;
+  
+  try {
+    audioSrc = await fetchAudioAsBlob(url);
+  } catch (e) {
+    console.warn('[Trailer] Audio blob fetch failed, using direct URL:', e);
+  }
+  
+  return new Promise((resolve, reject) => {
+    const audio = document.createElement('audio');
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'auto';
+    
+    const timeout = setTimeout(() => {
+      reject(new Error('Audio load timeout'));
+    }, 30000);
+    
+    audio.onloadedmetadata = () => {
+      clearTimeout(timeout);
+      console.log(`[Trailer] Audio loaded: ${audio.duration}s`);
+      resolve(audio);
+    };
+    
+    audio.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load audio'));
+    };
+    
+    audio.src = audioSrc;
+    audio.load();
+  });
+}
+
+/**
+ * Draw video frame to canvas with optional opacity for crossfade
  */
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   video: HTMLVideoElement,
   width: number,
-  height: number
+  height: number,
+  opacity: number = 1
 ): void {
   const videoAspect = video.videoWidth / video.videoHeight;
   const canvasAspect = width / height;
@@ -105,9 +156,31 @@ function drawFrame(
     offsetY = (height - drawHeight) / 2;
   }
   
+  ctx.globalAlpha = opacity;
+  ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Draw a crossfade between two frames
+ */
+function drawCrossfade(
+  ctx: CanvasRenderingContext2D,
+  videoOut: HTMLVideoElement,
+  videoIn: HTMLVideoElement,
+  width: number,
+  height: number,
+  progress: number // 0 to 1
+): void {
+  // Clear with black
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, width, height);
-  ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+  
+  // Draw outgoing video (fading out)
+  drawFrame(ctx, videoOut, width, height, 1 - progress);
+  
+  // Draw incoming video (fading in)
+  drawFrame(ctx, videoIn, width, height, progress);
 }
 
 /**
@@ -115,6 +188,8 @@ function drawFrame(
  */
 function getSupportedMimeType(): string {
   const types = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
     'video/webm',
@@ -123,12 +198,47 @@ function getSupportedMimeType(): string {
 }
 
 /**
+ * Generate epic trailer music
+ */
+async function generateTrailerMusic(durationSeconds: number): Promise<string | null> {
+  try {
+    console.log(`[Trailer] Generating ${durationSeconds}s of trailer music...`);
+    
+    const { data, error } = await supabase.functions.invoke('generate-music', {
+      body: {
+        projectId: 'trailer-' + Date.now(),
+        mood: 'epic',
+        duration: Math.min(durationSeconds, 30), // MusicGen max is 30s
+        prompt: 'Epic cinematic trailer music with powerful drums, dramatic brass fanfares, building tension, and triumphant crescendo. Hollywood blockbuster style.',
+      },
+    });
+
+    if (error || !data?.musicUrl) {
+      console.warn('[Trailer] Music generation failed:', error || 'No URL returned');
+      return null;
+    }
+
+    console.log('[Trailer] Music generated:', data.musicUrl);
+    return data.musicUrl;
+  } catch (e) {
+    console.warn('[Trailer] Music generation error:', e);
+    return null;
+  }
+}
+
+/**
  * Generate a trailer from community videos
  */
 export async function generateTrailer(
   options: TrailerOptions = {}
 ): Promise<Blob> {
-  const { snippetDuration = 2, partsPerVideo = 2, onProgress } = options;
+  const { 
+    snippetDuration = 2, 
+    partsPerVideo = 2, 
+    crossfadeDuration = 0.5,
+    includeMusic = true,
+    onProgress 
+  } = options;
 
   const reportProgress = (progress: TrailerProgress) => onProgress?.(progress);
 
@@ -160,6 +270,33 @@ export async function generateTrailer(
     throw new Error('No clips available for trailer');
   }
 
+  // Calculate total trailer duration for music
+  const totalDuration = clips.reduce((sum, clip) => sum + clip.durationSec, 0);
+
+  // Phase 1.5: Generate trailer music
+  let musicAudio: HTMLAudioElement | null = null;
+  
+  if (includeMusic) {
+    reportProgress({
+      phase: 'music',
+      currentVideo: 0,
+      totalVideos: clips.length,
+      percentComplete: 3,
+      message: 'Generating epic trailer music...',
+    });
+
+    const musicUrl = await generateTrailerMusic(totalDuration);
+    
+    if (musicUrl) {
+      try {
+        musicAudio = await loadAudio(musicUrl);
+        console.log('[Trailer] Music loaded successfully');
+      } catch (e) {
+        console.warn('[Trailer] Failed to load music:', e);
+      }
+    }
+  }
+
   // Phase 2: Load unique videos
   reportProgress({
     phase: 'loading',
@@ -177,7 +314,7 @@ export async function generateTrailer(
       phase: 'loading',
       currentVideo: i + 1,
       totalVideos: uniqueUrls.length,
-      percentComplete: 5 + Math.round((i / uniqueUrls.length) * 25),
+      percentComplete: 5 + Math.round((i / uniqueUrls.length) * 20),
       message: `Loading video ${i + 1} of ${uniqueUrls.length}...`,
     });
 
@@ -193,7 +330,7 @@ export async function generateTrailer(
     throw new Error('Could not load any videos');
   }
 
-  // Phase 3: Setup canvas and recorder
+  // Phase 3: Setup canvas and recorder with audio
   const resolution = { width: 1280, height: 720 };
   const fps = 30;
   
@@ -205,10 +342,32 @@ export async function generateTrailer(
   const mimeType = getSupportedMimeType();
   console.log(`[Trailer] Using MIME type: ${mimeType}`);
   
+  // Create combined stream with video and optional audio
   const canvasStream = canvas.captureStream(fps);
+  
+  // Add audio track if music is available
+  if (musicAudio) {
+    try {
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaElementSource(musicAudio);
+      const destination = audioContext.createMediaStreamDestination();
+      source.connect(destination);
+      source.connect(audioContext.destination); // Also play through speakers
+      
+      const audioTrack = destination.stream.getAudioTracks()[0];
+      if (audioTrack) {
+        canvasStream.addTrack(audioTrack);
+        console.log('[Trailer] Audio track added to stream');
+      }
+    } catch (e) {
+      console.warn('[Trailer] Failed to add audio track:', e);
+    }
+  }
+
   const recorder = new MediaRecorder(canvasStream, {
     mimeType,
     videoBitsPerSecond: 5000000,
+    audioBitsPerSecond: 128000,
   });
 
   const chunks: Blob[] = [];
@@ -218,23 +377,33 @@ export async function generateTrailer(
 
   recorder.start(100);
 
-  // Phase 4: Record each clip
+  // Start music playback
+  if (musicAudio) {
+    musicAudio.currentTime = 0;
+    musicAudio.volume = 0.7;
+    musicAudio.play().catch(e => console.warn('[Trailer] Music play failed:', e));
+  }
+
+  // Phase 4: Record each clip with crossfade transitions
   const frameInterval = 1000 / fps;
+  const crossfadeFrames = Math.floor(crossfadeDuration * fps);
   let processedClips = 0;
 
-  for (const clip of clips) {
-    const video = videoCache.get(clip.url);
-    if (!video) {
-      console.warn(`[Trailer] Skipping clip - video not loaded: ${clip.url}`);
-      continue;
-    }
+  // Get valid clips (ones we have videos for)
+  const validClips = clips.filter(clip => videoCache.has(clip.url));
+
+  for (let clipIndex = 0; clipIndex < validClips.length; clipIndex++) {
+    const clip = validClips[clipIndex];
+    const video = videoCache.get(clip.url)!;
+    const nextClip = validClips[clipIndex + 1];
+    const nextVideo = nextClip ? videoCache.get(nextClip.url) : null;
 
     reportProgress({
       phase: 'extracting',
-      currentVideo: processedClips + 1,
-      totalVideos: clips.length,
-      percentComplete: 30 + Math.round((processedClips / clips.length) * 60),
-      message: `Recording clip ${processedClips + 1} of ${clips.length}...`,
+      currentVideo: clipIndex + 1,
+      totalVideos: validClips.length,
+      percentComplete: 25 + Math.round((clipIndex / validClips.length) * 65),
+      message: `Recording clip ${clipIndex + 1} of ${validClips.length}...`,
     });
 
     try {
@@ -248,22 +417,48 @@ export async function generateTrailer(
           resolve();
         };
         video.addEventListener('seeked', onSeeked);
-        // Fallback if seeked doesn't fire
         setTimeout(resolve, 500);
       });
 
       await video.play();
 
-      // Record frames for the duration
-      const endTime = startTime + clip.durationSec;
-      const recordStart = Date.now();
+      // Calculate frames for main content and crossfade
+      const mainDuration = clip.durationSec - (nextVideo ? crossfadeDuration : 0);
+      const mainFrames = Math.floor(mainDuration * fps);
       
-      while (video.currentTime < endTime && video.currentTime < video.duration) {
-        drawFrame(ctx, video, canvas.width, canvas.height);
+      // Record main frames
+      for (let frame = 0; frame < mainFrames; frame++) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawFrame(ctx, video, canvas.width, canvas.height, 1);
         await new Promise(r => setTimeout(r, frameInterval));
+      }
+
+      // Crossfade to next clip if there is one
+      if (nextVideo) {
+        // Prepare next video
+        const nextStartTime = Math.min(nextClip.startSec, Math.max(0, nextVideo.duration - nextClip.durationSec));
+        nextVideo.currentTime = nextStartTime;
         
-        // Safety timeout - max 5 seconds per clip
-        if (Date.now() - recordStart > 5000) break;
+        await new Promise<void>((resolve) => {
+          const onSeeked = () => {
+            nextVideo.removeEventListener('seeked', onSeeked);
+            resolve();
+          };
+          nextVideo.addEventListener('seeked', onSeeked);
+          setTimeout(resolve, 500);
+        });
+
+        await nextVideo.play();
+
+        // Record crossfade frames
+        for (let frame = 0; frame < crossfadeFrames; frame++) {
+          const progress = frame / crossfadeFrames;
+          drawCrossfade(ctx, video, nextVideo, canvas.width, canvas.height, progress);
+          await new Promise(r => setTimeout(r, frameInterval));
+        }
+
+        nextVideo.pause();
       }
 
       video.pause();
@@ -273,11 +468,16 @@ export async function generateTrailer(
     }
   }
 
+  // Stop music
+  if (musicAudio) {
+    musicAudio.pause();
+  }
+
   // Phase 5: Finalize
   reportProgress({
     phase: 'finalizing',
-    currentVideo: clips.length,
-    totalVideos: clips.length,
+    currentVideo: validClips.length,
+    totalVideos: validClips.length,
     percentComplete: 95,
     message: 'Finalizing trailer...',
   });
@@ -295,8 +495,8 @@ export async function generateTrailer(
 
       reportProgress({
         phase: 'complete',
-        currentVideo: clips.length,
-        totalVideos: clips.length,
+        currentVideo: validClips.length,
+        totalVideos: validClips.length,
         percentComplete: 100,
         message: 'Trailer ready!',
       });

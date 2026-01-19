@@ -299,7 +299,8 @@ export async function generateTrailer(
     recorder.start(200);
 
     const frameMs = 1000 / fps;
-    const fadeFrames = 3;
+    const crossfadeDurationSec = 0.5; // Smooth half-second crossfade
+    const fadeFrames = Math.round(crossfadeDurationSec * fps); // ~12 frames at 24fps
 
     // Phase 3: Process clips sequentially - max 2 videos in memory
     let currentVideo: HTMLVideoElement | null = null;
@@ -330,10 +331,10 @@ export async function generateTrailer(
       // Start loading next in background
       const nextPromise = !isLast ? loadVideo(clips[i + 1].url) : null;
 
-      // Record main frames
+      // Record main frames (account for crossfade overlap)
       const mainFrames = isLast 
         ? Math.floor(clip.durationSec * fps) 
-        : Math.floor((clip.durationSec - fadeFrames / fps) * fps);
+        : Math.max(1, Math.floor((clip.durationSec - crossfadeDurationSec) * fps));
       
       const t0 = performance.now();
       for (let f = 0; f < mainFrames; f++) {
@@ -354,7 +355,11 @@ export async function generateTrailer(
 
           const ft0 = performance.now();
           for (let f = 0; f < fadeFrames; f++) {
-            const t = (f + 1) / fadeFrames;
+            // Use easeInOut for smoother transition
+            const linear = (f + 1) / fadeFrames;
+            const t = linear < 0.5 
+              ? 2 * linear * linear 
+              : 1 - Math.pow(-2 * linear + 2, 2) / 2; // easeInOutQuad
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, width, height);
             drawFrame(ctx, currentVideo, width, height, 1 - t);

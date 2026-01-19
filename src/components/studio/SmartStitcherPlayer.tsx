@@ -384,7 +384,7 @@ export function SmartStitcherPlayer({
     }
   }, [currentClipIndex, clips, useStitchedVideo, getStandbyVideo]);
 
-  // Handle video time update
+  // Handle video time update - trigger transition BEFORE clip ends
   const handleTimeUpdate = useCallback(() => {
     const activeVideo = getActiveVideo();
     if (!activeVideo || !currentClip) return;
@@ -393,98 +393,91 @@ export function SmartStitcherPlayer({
     const elapsedBefore = clips.slice(0, currentClipIndex).reduce((sum, c) => sum + c.duration, 0);
     setCurrentTime(elapsedBefore + clipTime);
     
-    // Check if we're near the end - prepare for seamless transition
+    // Trigger seamless transition 0.15s before clip ends (crossfade duration)
     const timeRemaining = activeVideo.duration - activeVideo.currentTime;
-    if (timeRemaining < 0.3 && timeRemaining > 0 && currentClipIndex < clips.length - 1) {
-      const standbyVideo = getStandbyVideo();
-      if (standbyVideo && standbyVideo.readyState >= 3) {
-        // Standby is ready, prepare for instant switch
-        standbyVideo.currentTime = 0;
+    const crossfadeThreshold = CROSSFADE_DURATION / 1000; // 0.15s
+    
+    if (timeRemaining <= crossfadeThreshold && timeRemaining > 0 && !isTransitioningRef.current && !isCrossfading) {
+      if (currentClipIndex < clips.length - 1) {
+        // Trigger crossfade transition NOW, before clip ends
+        triggerCrossfadeTransition();
       }
     }
-  }, [currentClipIndex, clips, currentClip, getActiveVideo, getStandbyVideo]);
+  }, [currentClipIndex, clips, currentClip, isCrossfading, getActiveVideo]);
 
-  // Handle clip ended - SEAMLESS crossfade transition
-  const handleClipEnded = useCallback(() => {
+  // Crossfade transition logic - extracted for reuse
+  const triggerCrossfadeTransition = useCallback(() => {
     if (isTransitioningRef.current || isCrossfading) return;
+    if (currentClipIndex >= clips.length - 1) return;
     
-    if (currentClipIndex < clips.length - 1) {
-      isTransitioningRef.current = true;
-      setIsCrossfading(true);
+    isTransitioningRef.current = true;
+    setIsCrossfading(true);
+    
+    const nextIndex = currentClipIndex + 1;
+    const activeVideo = getActiveVideo();
+    const standbyVideo = getStandbyVideo();
+    
+    if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
+      standbyVideo.currentTime = 0;
       
-      const wasPlaying = isPlaying;
-      const nextIndex = currentClipIndex + 1;
-      const activeVideo = getActiveVideo();
-      const standbyVideo = getStandbyVideo();
+      // Start playing standby immediately
+      standbyVideo.play().catch(() => {});
       
-      // Immediately switch to standby video (which has next clip preloaded)
-      if (standbyVideo && standbyVideo.readyState >= 2) {
-        standbyVideo.currentTime = 0;
+      // Animate crossfade
+      const startTime = performance.now();
+      const animateCrossfade = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
         
-        // Start playing standby immediately
-        if (wasPlaying) {
-          standbyVideo.play().catch(() => {});
+        // Smooth easing
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        if (activeVideoIndex === 0) {
+          setVideoAOpacity(1 - eased);
+          setVideoBOpacity(eased);
+        } else {
+          setVideoAOpacity(eased);
+          setVideoBOpacity(1 - eased);
         }
         
-        // Animate crossfade
-        const startTime = performance.now();
-        const animateCrossfade = () => {
-          const elapsed = performance.now() - startTime;
-          const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
+        if (progress < 1) {
+          requestAnimationFrame(animateCrossfade);
+        } else {
+          // Crossfade complete
+          setIsCrossfading(false);
           
-          // Smooth easing
-          const eased = 1 - Math.pow(1 - progress, 3);
-          
-          if (activeVideoIndex === 0) {
-            setVideoAOpacity(1 - eased);
-            setVideoBOpacity(eased);
-          } else {
-            setVideoAOpacity(eased);
-            setVideoBOpacity(1 - eased);
+          // Pause the old active
+          if (activeVideo) {
+            activeVideo.pause();
           }
           
-          if (progress < 1) {
-            requestAnimationFrame(animateCrossfade);
-          } else {
-            // Crossfade complete
-            setIsCrossfading(false);
-            
-            // Pause the old active
-            if (activeVideo) {
-              activeVideo.pause();
-            }
-            
-            // Preload the NEXT clip into the old active (now standby) after crossfade
-            const futureClipIndex = nextIndex + 1;
-            if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
-              activeVideo.src = clips[futureClipIndex].blobUrl;
-              activeVideo.load();
-            }
-            isTransitioningRef.current = false;
+          // Preload the NEXT clip into the old active (now standby)
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+            activeVideo.src = clips[futureClipIndex].blobUrl;
+            activeVideo.load();
           }
-        };
-        
-        // Swap active/standby
-        setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
-        setCurrentClipIndex(nextIndex);
-        
-        requestAnimationFrame(animateCrossfade);
-      } else {
-        // Fallback if standby not ready - no crossfade
-        setCurrentClipIndex(nextIndex);
-        setIsCrossfading(false);
-        isTransitioningRef.current = false;
-        
-        if (activeVideo && clips[nextIndex]?.blobUrl) {
-          activeVideo.src = clips[nextIndex].blobUrl;
-          activeVideo.load();
-          if (wasPlaying) {
-            activeVideo.play().catch(() => {});
-          }
+          isTransitioningRef.current = false;
         }
-      }
+      };
+      
+      // Swap active/standby
+      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+      setCurrentClipIndex(nextIndex);
+      setIsPlaying(true); // Ensure playing state
+      
+      requestAnimationFrame(animateCrossfade);
     } else {
-      // End of playlist
+      // Fallback if standby not ready
+      isTransitioningRef.current = false;
+      setIsCrossfading(false);
+    }
+  }, [currentClipIndex, clips, isCrossfading, activeVideoIndex, getActiveVideo, getStandbyVideo]);
+
+  // Handle clip ended - fallback for end of playlist (transitions handled by timeupdate)
+  const handleClipEnded = useCallback(() => {
+    // If we're at the last clip and it ends, reset playlist
+    if (currentClipIndex >= clips.length - 1) {
       setIsPlaying(false);
       setCurrentClipIndex(0);
       setCurrentTime(0);
@@ -500,8 +493,11 @@ export function SmartStitcherPlayer({
         activeVideo.src = clips[0].blobUrl;
         activeVideo.load();
       }
+    } else if (!isTransitioningRef.current && !isCrossfading) {
+      // Fallback: if clip ended but transition wasn't triggered, do it now
+      triggerCrossfadeTransition();
     }
-  }, [currentClipIndex, clips, isPlaying, isCrossfading, activeVideoIndex, getActiveVideo, getStandbyVideo]);
+  }, [currentClipIndex, clips, isCrossfading, triggerCrossfadeTransition]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {

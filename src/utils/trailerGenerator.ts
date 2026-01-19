@@ -252,7 +252,7 @@ export async function generateTrailer(
   options: TrailerOptions = {}
 ): Promise<Blob> {
   const { 
-    snippetDuration = 1.5,
+    snippetDuration = 3, // Extended to 3 seconds per clip
     partsPerVideo = 1,
     onProgress 
   } = options;

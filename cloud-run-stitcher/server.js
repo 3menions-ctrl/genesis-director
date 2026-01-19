@@ -358,6 +358,39 @@ async function validateVideo(filePath) {
   });
 }
 
+// Check if video has audio stream
+async function checkVideoHasAudio(filePath) {
+  return new Promise((resolve) => {
+    const ffprobe = spawn('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'a',
+      '-show_entries', 'stream=codec_type',
+      '-of', 'json',
+      filePath
+    ]);
+    
+    let output = '';
+    ffprobe.stdout.on('data', (data) => output += data);
+    
+    ffprobe.on('close', (code) => {
+      if (code !== 0) {
+        resolve(false);
+        return;
+      }
+      
+      try {
+        const data = JSON.parse(output);
+        const hasAudio = data.streams && data.streams.length > 0;
+        resolve(hasAudio);
+      } catch {
+        resolve(false);
+      }
+    });
+    
+    ffprobe.on('error', () => resolve(false));
+  });
+}
+
 // Run FFmpeg command
 async function runFFmpeg(args, description) {
   return new Promise((resolve, reject) => {
@@ -673,20 +706,33 @@ async function stitchVideos(request) {
       const clip = validClips[i];
       const normalizedPath = path.join(workDir, `normalized_${i.toString().padStart(3, '0')}.mp4`);
       
+      // FIX: Check if source video has audio stream before trying to encode audio
+      const hasAudio = await checkVideoHasAudio(clip.localPath);
+      
       // IRON-CLAD QUALITY: Use CRF 15 for near-lossless encoding
       // CRF 15 = visually perfect quality (lower = better, 0 = lossless)
-      await runFFmpeg([
+      const ffmpegArgs = [
         '-i', clip.localPath,
         '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,fps=30',
         '-c:v', 'libx264',
         '-preset', 'slow', // UPGRADED: slow preset for better compression quality
-        '-crf', '15',      // UPGRADED: CRF 15 for near-lossless quality (was 18)
-        '-c:a', 'aac',
-        '-ar', '48000',
-        '-ac', '2',
-        '-y',
-        normalizedPath
-      ], `Normalizing clip ${i + 1}/${validClips.length}`);
+        '-crf', '15',      // UPGRADED: CRF 15 for near-lossless quality
+      ];
+      
+      if (hasAudio) {
+        // Source has audio - encode it
+        ffmpegArgs.push('-c:a', 'aac', '-ar', '48000', '-ac', '2');
+      } else {
+        // Source has NO audio - generate silent audio track
+        // This prevents FFmpeg from failing on acrossfade/amix operations
+        console.log(`[Stitch] Clip ${i + 1} has no audio - adding silent track`);
+        ffmpegArgs.splice(1, 0, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo');
+        ffmpegArgs.push('-map', '0:v', '-map', '1:a', '-shortest', '-c:a', 'aac', '-ar', '48000', '-ac', '2');
+      }
+      
+      ffmpegArgs.push('-y', normalizedPath);
+      
+      await runFFmpeg(ffmpegArgs, `Normalizing clip ${i + 1}/${validClips.length}`);
       
       // Update progress per clip
       const normProgress = 20 + Math.round((i + 1) / validClips.length * 15);

@@ -5301,42 +5301,107 @@ serve(async (req) => {
       
       console.log(`[SingleClip] Updated context: ${updatedPipelineContext.accumulatedAnchors.length} anchors, ref: ${updatedPipelineContext.referenceImageUrl ? 'YES' : 'NO'}`);
       
-      // CRITICAL FIX: Use EdgeRuntime.waitUntil to keep function alive for callback
-      // setTimeout alone fails because function shuts down immediately after response
-      const callContinueProduction = async () => {
-        try {
-          const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-            body: JSON.stringify({
-              projectId: request.projectId,
-              userId: request.userId,
-              completedClipIndex: request.clipIndex,
-              completedClipResult: clipResult,
-              totalClips: request.totalClips,
-              pipelineContext: updatedPipelineContext,
-            }),
-          });
-          
-          if (response.ok) {
-            console.log(`[SingleClip] ✓ continue-production triggered successfully`);
-          } else {
-            console.error(`[SingleClip] ⚠️ continue-production failed: ${response.status}`);
+      // =====================================================
+      // GUARDRAIL: Retry logic for continue-production callback
+      // Prevents pipeline stalls when callback fails (504, network issues)
+      // =====================================================
+      const MAX_CALLBACK_RETRIES = 3;
+      const CALLBACK_RETRY_DELAYS = [1000, 3000, 8000]; // Exponential backoff
+      
+      const callContinueProductionWithRetry = async () => {
+        const callbackPayload = {
+          projectId: request.projectId,
+          userId: request.userId,
+          completedClipIndex: request.clipIndex,
+          completedClipResult: clipResult,
+          totalClips: request.totalClips,
+          pipelineContext: updatedPipelineContext,
+        };
+        
+        for (let attempt = 1; attempt <= MAX_CALLBACK_RETRIES; attempt++) {
+          try {
+            console.log(`[SingleClip] 🔗 continue-production attempt ${attempt}/${MAX_CALLBACK_RETRIES}...`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+            
+            const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify(callbackPayload),
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log(`[SingleClip] ✓ continue-production triggered successfully on attempt ${attempt}`);
+              return; // Success - exit retry loop
+            }
+            
+            console.warn(`[SingleClip] ⚠️ continue-production returned ${response.status} on attempt ${attempt}`);
+            
+            // For 5xx errors, retry. For 4xx, don't retry.
+            if (response.status < 500 && response.status >= 400) {
+              console.error(`[SingleClip] ❌ Client error - not retrying`);
+              break;
+            }
+            
+          } catch (err) {
+            const isAbort = err instanceof Error && err.name === 'AbortError';
+            console.error(`[SingleClip] ⚠️ continue-production attempt ${attempt} failed:`, 
+              isAbort ? 'TIMEOUT' : err);
           }
-        } catch (err) {
-          console.error(`[SingleClip] ⚠️ Failed to trigger continue-production:`, err);
+          
+          // Wait before retry (except on last attempt)
+          if (attempt < MAX_CALLBACK_RETRIES) {
+            const delay = CALLBACK_RETRY_DELAYS[attempt - 1] || 5000;
+            console.log(`[SingleClip] Waiting ${delay}ms before retry...`);
+            await new Promise(r => setTimeout(r, delay));
+          }
+        }
+        
+        // All retries failed - mark in DB so watchdog can recover
+        console.error(`[SingleClip] ❌ All ${MAX_CALLBACK_RETRIES} callback attempts failed! Marking for watchdog recovery.`);
+        
+        try {
+          // Update pending_video_tasks with stall marker for watchdog
+          const { data: currentProject } = await supabase
+            .from('movie_projects')
+            .select('pending_video_tasks')
+            .eq('id', request.projectId)
+            .single();
+          
+          const currentTasks = (currentProject?.pending_video_tasks || {}) as Record<string, any>;
+          
+          await supabase
+            .from('movie_projects')
+            .update({
+              pending_video_tasks: {
+                ...currentTasks,
+                callbackStallAt: new Date().toISOString(),
+                lastCompletedClip: request.clipIndex,
+                needsWatchdogResume: true,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', request.projectId);
+          
+          console.log(`[SingleClip] Marked project for watchdog recovery`);
+        } catch (markErr) {
+          console.error(`[SingleClip] Failed to mark for recovery:`, markErr);
         }
       };
       
-      // Use waitUntil to keep function alive for the callback
+      // Use waitUntil to keep function alive for the callback with retries
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-        EdgeRuntime.waitUntil(callContinueProduction());
+        EdgeRuntime.waitUntil(callContinueProductionWithRetry());
       } else {
         // Fallback for local dev - just call it
-        callContinueProduction();
+        callContinueProductionWithRetry();
       }
     }
 

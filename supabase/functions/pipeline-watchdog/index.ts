@@ -165,6 +165,66 @@ serve(async (req) => {
       }
     }
 
+    // ==================== PHASE 2.5: CALLBACK STALL RECOVERY ====================
+    // Detect projects where generate-single-clip failed to trigger continue-production
+    // These have needsWatchdogResume=true set by the callback retry failure handler
+    const { data: callbackStallProjects } = await supabase
+      .from('movie_projects')
+      .select('id, title, status, updated_at, pending_video_tasks, user_id, generated_script')
+      .eq('status', 'generating')
+      .limit(50);
+    
+    for (const project of (callbackStallProjects || [])) {
+      const tasks = (project.pending_video_tasks || {}) as Record<string, any>;
+      
+      if (tasks.needsWatchdogResume) {
+        const lastCompletedClip = tasks.lastCompletedClip ?? -1;
+        console.log(`[Watchdog] 🔧 CALLBACK STALL detected for ${project.id} - last completed: ${lastCompletedClip + 1}`);
+        
+        try {
+          // Clear the flag and resume
+          await supabase
+            .from('movie_projects')
+            .update({
+              pending_video_tasks: {
+                ...tasks,
+                needsWatchdogResume: false,
+                watchdogResumedAt: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+          
+          // Trigger continue-production to resume from where it stalled
+          const response = await fetch(`${supabaseUrl}/functions/v1/continue-production`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              projectId: project.id,
+              userId: project.user_id,
+              completedClipIndex: lastCompletedClip,
+              totalClips: tasks.clipCount || 5,
+            }),
+          });
+          
+          if (response.ok) {
+            result.productionResumed++;
+            result.details.push({
+              projectId: project.id,
+              action: 'callback_stall_recovered',
+              result: `Resumed from clip ${lastCompletedClip + 2}`,
+            });
+            console.log(`[Watchdog] ✓ Callback stall recovered for ${project.id}`);
+          }
+        } catch (error) {
+          console.error(`[Watchdog] Callback stall recovery error:`, error);
+        }
+      }
+    }
+
     // ==================== PHASE 3: STALLED PROJECTS ====================
     const cutoffTime = new Date(Date.now() - STALE_TIMEOUT_MS).toISOString();
     

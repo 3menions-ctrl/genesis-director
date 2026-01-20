@@ -6,7 +6,6 @@ import {
   ArrowRight, 
   Video, Image,
   Brain,
-  Play,
   Sparkles,
   Zap,
   Lock,
@@ -21,6 +20,7 @@ import { motion } from 'framer-motion';
 const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
 const HeroVideoBackground = lazy(() => import('@/components/landing/HeroVideoBackground'));
 const CreatorShowcase = lazy(() => import('@/components/landing/CreatorShowcase'));
+const CreationTeaser = lazy(() => import('@/components/landing/CreationTeaser'));
 
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
@@ -167,23 +167,12 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* CTA buttons - Centered, prominent */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
-          >
-            <Button
-              onClick={() => navigate('/auth')}
-              size="lg"
-              className="group h-14 px-8 text-base font-semibold rounded-full shadow-obsidian hover:shadow-obsidian-lg transition-all hover:-translate-y-0.5"
-            >
-              <Play className="w-5 h-5 mr-2 fill-current" />
-              Start Creating Free
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </motion.div>
+          {/* Creation Teaser Form - Try before signup */}
+          <Suspense fallback={
+            <div className="w-full max-w-2xl mx-auto h-[400px] rounded-3xl bg-muted/30 animate-pulse" />
+          }>
+            <CreationTeaser className="mb-16" />
+          </Suspense>
 
           {/* Examples Gallery Modal - Lazy loaded */}
           <Suspense fallback={null}>

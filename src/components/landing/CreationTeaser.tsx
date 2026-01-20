@@ -12,21 +12,23 @@ import {
   Image as ImageIcon,
   MonitorPlay,
   Smartphone,
-  Square
+  Square,
+  Wand2,
+  Stars
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ASPECT_RATIOS = [
-  { value: '16:9', label: '16:9', icon: MonitorPlay, description: 'Landscape' },
-  { value: '9:16', label: '9:16', icon: Smartphone, description: 'Portrait' },
-  { value: '1:1', label: '1:1', icon: Square, description: 'Square' },
+  { value: '16:9', label: '16:9', icon: MonitorPlay, description: 'YouTube / TV' },
+  { value: '9:16', label: '9:16', icon: Smartphone, description: 'TikTok / Reels' },
+  { value: '1:1', label: '1:1', icon: Square, description: 'Instagram' },
 ] as const;
 
 const VIDEO_TYPES = [
-  { value: 'cinematic', label: 'Cinematic', emoji: '🎬' },
-  { value: 'documentary', label: 'Documentary', emoji: '📹' },
-  { value: 'ad', label: 'Commercial', emoji: '📺' },
-  { value: 'storytelling', label: 'Narrative', emoji: '📖' },
+  { value: 'cinematic', label: 'Cinematic', emoji: '🎬', gradient: 'from-amber-500 to-orange-600' },
+  { value: 'documentary', label: 'Documentary', emoji: '📹', gradient: 'from-blue-500 to-cyan-600' },
+  { value: 'ad', label: 'Commercial', emoji: '📺', gradient: 'from-pink-500 to-rose-600' },
+  { value: 'storytelling', label: 'Narrative', emoji: '📖', gradient: 'from-violet-500 to-purple-600' },
 ] as const;
 
 interface CreationTeaserProps {
@@ -43,7 +45,7 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [referenceFileName, setReferenceFileName] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -84,7 +86,6 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
   }, []);
 
   const handleCreate = () => {
-    // Store creation data in sessionStorage for retrieval after signup
     const creationData = {
       concept,
       aspectRatio,
@@ -94,214 +95,345 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
       timestamp: Date.now(),
     };
     sessionStorage.setItem('pendingCreation', JSON.stringify(creationData));
-    
-    // Navigate to auth with signup mode
     navigate('/auth?mode=signup&from=create');
   };
 
   const isReady = concept.trim().length > 10;
+  const selectedType = VIDEO_TYPES.find(t => t.value === videoType);
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: 0.2 }}
-      className={cn("w-full max-w-2xl mx-auto", className)}
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      className={cn("w-full max-w-3xl mx-auto", className)}
     >
-      <div 
-        className="relative rounded-3xl overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Glass morphism container */}
-        <div className="absolute inset-0 bg-white/70 dark:bg-black/50 backdrop-blur-xl" />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent dark:from-white/10" />
-        
-        {/* Animated border glow on hover */}
+      {/* Outer glow container */}
+      <div className="relative">
+        {/* Animated background glow */}
         <motion.div 
-          className="absolute inset-0 rounded-3xl"
+          className="absolute -inset-4 rounded-[2.5rem] opacity-60 blur-2xl"
           animate={{
-            boxShadow: isHovered 
-              ? '0 0 40px 2px hsl(var(--primary) / 0.3), inset 0 0 0 1px hsl(var(--primary) / 0.3)'
-              : '0 0 0 0 transparent, inset 0 0 0 1px hsl(var(--foreground) / 0.1)'
+            background: isFocused 
+              ? [
+                  'radial-gradient(ellipse at 30% 20%, hsl(var(--primary) / 0.4) 0%, transparent 50%)',
+                  'radial-gradient(ellipse at 70% 80%, hsl(var(--primary) / 0.4) 0%, transparent 50%)',
+                  'radial-gradient(ellipse at 30% 20%, hsl(var(--primary) / 0.4) 0%, transparent 50%)',
+                ]
+              : 'radial-gradient(ellipse at 50% 50%, hsl(var(--primary) / 0.15) 0%, transparent 70%)'
           }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
-        
-        <div className="relative p-6 sm:p-8 space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Start Creating</h3>
-              <p className="text-sm text-muted-foreground">Describe your vision</p>
-            </div>
+
+        {/* Main card */}
+        <div className="relative rounded-[2rem] overflow-hidden shadow-2xl">
+          {/* Multi-layer background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-background" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-accent/[0.05]" />
+          <div className="absolute inset-0 backdrop-blur-xl" />
+          
+          {/* Animated mesh gradient overlay */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           </div>
 
-          {/* Concept Input */}
-          <div className="space-y-2">
-            <Textarea
-              value={concept}
-              onChange={(e) => setConcept(e.target.value)}
-              placeholder="Describe your video... e.g., 'A lone astronaut discovers ancient ruins on Mars, walking through towering stone pillars as dust swirls in the crimson sky'"
-              className="min-h-[100px] resize-none bg-white/50 dark:bg-white/10 border-foreground/10 focus:border-primary/50 rounded-xl text-base placeholder:text-muted-foreground/60"
-            />
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>{concept.length} characters</span>
-              <span className={cn(
-                "transition-colors",
-                concept.length > 10 ? "text-emerald-500" : "text-muted-foreground"
-              )}>
-                {concept.length > 10 ? "✓ Ready" : "Min 10 characters"}
-              </span>
+          {/* Premium border */}
+          <div className="absolute inset-0 rounded-[2rem] border border-foreground/10" />
+          <motion.div 
+            className="absolute inset-0 rounded-[2rem]"
+            animate={{
+              boxShadow: isFocused 
+                ? 'inset 0 0 0 2px hsl(var(--primary) / 0.5), 0 0 60px 0 hsl(var(--primary) / 0.2)'
+                : 'inset 0 0 0 1px hsl(var(--foreground) / 0.1)'
+            }}
+            transition={{ duration: 0.4 }}
+          />
+          
+          <div className="relative p-8 sm:p-10 lg:p-12">
+            {/* Floating sparkles */}
+            <div className="absolute top-6 right-8 opacity-40">
+              <Stars className="w-5 h-5 text-primary animate-pulse" />
             </div>
-          </div>
+            <div className="absolute bottom-20 left-6 opacity-30">
+              <Sparkles className="w-4 h-4 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
+            </div>
 
-          {/* Options Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Aspect Ratio Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Aspect Ratio</label>
-              <div className="flex gap-2">
-                {ASPECT_RATIOS.map((ratio) => {
-                  const Icon = ratio.icon;
-                  return (
-                    <button
-                      key={ratio.value}
-                      onClick={() => setAspectRatio(ratio.value)}
+            {/* Header */}
+            <div className="text-center mb-8">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25 mb-5"
+              >
+                <Wand2 className="w-8 h-8 text-primary-foreground" />
+              </motion.div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+                Bring Your Vision to Life
+              </h3>
+              <p className="text-muted-foreground text-base sm:text-lg max-w-md mx-auto">
+                Describe your story and watch AI transform it into stunning video
+              </p>
+            </div>
+
+            {/* Concept Input - Hero element */}
+            <div className="mb-8">
+              <div className="relative group">
+                {/* Glow effect on focus */}
+                <motion.div 
+                  className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 opacity-0 blur-lg transition-opacity duration-500"
+                  animate={{ opacity: isFocused ? 0.5 : 0 }}
+                />
+                
+                <div className="relative">
+                  <Textarea
+                    value={concept}
+                    onChange={(e) => setConcept(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="Describe your video... e.g., 'A lone astronaut discovers ancient ruins on Mars, walking through towering stone pillars as dust swirls in the crimson sky'"
+                    className={cn(
+                      "min-h-[140px] resize-none text-base sm:text-lg leading-relaxed",
+                      "bg-muted/50 border-2 border-foreground/10 rounded-2xl",
+                      "focus:border-primary/50 focus:bg-muted/70 transition-all duration-300",
+                      "placeholder:text-muted-foreground/50 placeholder:leading-relaxed",
+                      "p-5"
+                    )}
+                  />
+                  
+                  {/* Character counter */}
+                  <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: concept.length > 10 ? 1 : 0 }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-600">Ready</span>
+                    </motion.div>
+                    <span className={cn(
+                      "text-xs font-medium transition-colors",
+                      concept.length > 10 ? "text-muted-foreground" : "text-muted-foreground/50"
+                    )}>
+                      {concept.length}/500
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Options Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Aspect Ratio Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <MonitorPlay className="w-4 h-4 text-muted-foreground" />
+                  Aspect Ratio
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ASPECT_RATIOS.map((ratio) => {
+                    const Icon = ratio.icon;
+                    const isSelected = aspectRatio === ratio.value;
+                    return (
+                      <motion.button
+                        key={ratio.value}
+                        onClick={() => setAspectRatio(ratio.value)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          "relative flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-300",
+                          isSelected
+                            ? "bg-foreground text-background shadow-lg"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-foreground/5"
+                        )}
+                      >
+                        {isSelected && (
+                          <motion.div
+                            layoutId="aspectRatio"
+                            className="absolute inset-0 bg-foreground rounded-xl"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                        <div className="relative z-10 flex flex-col items-center gap-1.5">
+                          <Icon className="w-5 h-5" />
+                          <span className="text-sm font-semibold">{ratio.label}</span>
+                          <span className={cn(
+                            "text-[10px]",
+                            isSelected ? "text-background/70" : "text-muted-foreground/70"
+                          )}>{ratio.description}</span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Video Type Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Film className="w-4 h-4 text-muted-foreground" />
+                  Style
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {VIDEO_TYPES.map((type) => {
+                    const isSelected = videoType === type.value;
+                    return (
+                      <motion.button
+                        key={type.value}
+                        onClick={() => setVideoType(type.value)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+                          isSelected
+                            ? "bg-foreground text-background shadow-lg"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-foreground/5"
+                        )}
+                      >
+                        {isSelected && (
+                          <motion.div
+                            layoutId="videoType"
+                            className="absolute inset-0 bg-foreground rounded-xl"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                        <span className="relative z-10 text-lg">{type.emoji}</span>
+                        <span className="relative z-10 font-medium text-sm">{type.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Reference Image Upload */}
+            <div className="mb-8">
+              <label className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                Reference Image
+                <span className="text-xs font-normal text-muted-foreground ml-1">(optional)</span>
+              </label>
+              
+              <AnimatePresence mode="wait">
+                {referenceImage ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="relative group"
+                  >
+                    <div className="relative h-40 rounded-2xl overflow-hidden bg-muted border-2 border-foreground/10">
+                      <img 
+                        src={referenceImage} 
+                        alt="Reference" 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={clearImage}
+                        className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background flex items-center justify-center text-foreground shadow-lg transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </motion.button>
+                      <div className="absolute bottom-3 left-3 right-14 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-sm text-foreground font-medium truncate">{referenceFileName}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                      className="hidden"
+                    />
+                    <motion.button
+                      onClick={() => fileInputRef.current?.click()}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      whileHover={{ scale: 1.01 }}
                       className={cn(
-                        "flex-1 flex flex-col items-center gap-1 p-3 rounded-xl transition-all",
-                        aspectRatio === ratio.value
-                          ? "bg-foreground text-background shadow-lg scale-105"
-                          : "bg-white/50 dark:bg-white/10 text-muted-foreground hover:bg-white/80 dark:hover:bg-white/20"
+                        "w-full h-28 rounded-2xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center gap-2",
+                        isDragging
+                          ? "border-primary bg-primary/10 scale-[1.02]"
+                          : "border-foreground/20 hover:border-foreground/40 bg-muted/30 hover:bg-muted/50"
                       )}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="text-xs font-medium">{ratio.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                        isDragging ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className={cn(
+                        "text-sm font-medium transition-colors",
+                        isDragging ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {isDragging ? "Drop your image here" : "Drop image or click to upload"}
+                      </span>
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Video Type Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {VIDEO_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setVideoType(type.value)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all",
-                      videoType === type.value
-                        ? "bg-foreground text-background shadow-lg"
-                        : "bg-white/50 dark:bg-white/10 text-muted-foreground hover:bg-white/80 dark:hover:bg-white/20"
-                    )}
-                  >
-                    <span>{type.emoji}</span>
-                    <span className="font-medium">{type.label}</span>
-                  </button>
-                ))}
+            {/* Create Button */}
+            <motion.div
+              whileHover={{ scale: isReady ? 1.02 : 1 }}
+              whileTap={{ scale: isReady ? 0.98 : 1 }}
+            >
+              <Button
+                onClick={handleCreate}
+                disabled={!isReady}
+                size="lg"
+                className={cn(
+                  "w-full h-16 text-lg font-bold rounded-2xl transition-all duration-500",
+                  isReady 
+                    ? "bg-gradient-to-r from-foreground via-foreground to-foreground hover:shadow-2xl hover:shadow-primary/20" 
+                    : "opacity-40 cursor-not-allowed"
+                )}
+              >
+                <motion.div 
+                  className="flex items-center gap-3"
+                  animate={{ x: isReady ? 0 : 0 }}
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Create Your Video</span>
+                  <ArrowRight className={cn(
+                    "w-5 h-5 transition-transform duration-300",
+                    isReady ? "group-hover:translate-x-1" : ""
+                  )} />
+                </motion.div>
+              </Button>
+            </motion.div>
+
+            {/* Bottom info */}
+            <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-foreground/5">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                </div>
+                <span>Free to start</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">60</span>
+                <span>credits included</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                <span>No credit card</span>
               </div>
             </div>
           </div>
-
-          {/* Reference Image Upload */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Reference Image
-              <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-            </label>
-            
-            <AnimatePresence mode="wait">
-              {referenceImage ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative group"
-                >
-                  <div className="relative h-32 rounded-xl overflow-hidden bg-muted">
-                    <img 
-                      src={referenceImage} 
-                      alt="Reference" 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <button
-                      onClick={clearImage}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    <div className="absolute bottom-2 left-2 right-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-xs text-white truncate">{referenceFileName}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    className={cn(
-                      "w-full h-24 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2",
-                      isDragging
-                        ? "border-primary bg-primary/10"
-                        : "border-foreground/20 hover:border-foreground/40 bg-white/30 dark:bg-white/5"
-                    )}
-                  >
-                    <Upload className={cn(
-                      "w-5 h-5 transition-colors",
-                      isDragging ? "text-primary" : "text-muted-foreground"
-                    )} />
-                    <span className="text-sm text-muted-foreground">
-                      {isDragging ? "Drop image here" : "Drop or click to upload"}
-                    </span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Create Button */}
-          <Button
-            onClick={handleCreate}
-            disabled={!isReady}
-            size="lg"
-            className={cn(
-              "w-full h-14 text-base font-semibold rounded-xl transition-all",
-              isReady 
-                ? "shadow-obsidian hover:shadow-obsidian-lg hover:-translate-y-0.5" 
-                : "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <Film className="w-5 h-5 mr-2" />
-            Create Video
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-
-          {/* Subtle hint */}
-          <p className="text-center text-xs text-muted-foreground">
-            Free account required • No credit card needed • 60 free credits
-          </p>
         </div>
       </div>
     </motion.div>

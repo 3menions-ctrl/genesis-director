@@ -219,12 +219,13 @@ export function UnifiedStudio() {
   }, []);
 
   const totalDuration = clipCount * CLIP_DURATION;
-  // Use proper per-shot credit calculation (25 standard, 50 professional)
-  const creditsPerShot = qualityTier === 'professional' ? 50 : 25;
+  // Credit costs: 10 credits per clip ($1 = 10 credits)
+  const creditsPerShot = 10;
   const estimatedCredits = clipCount * creditsPerShot;
   
   // Get user credits from auth context profile
   const userCredits = profile?.credits_balance ?? 0;
+  const hasInsufficientCredits = userCredits < estimatedCredits;
   
   // Sync with StudioContext's activeProjectId when a new project is created
   useEffect(() => {
@@ -1915,10 +1916,12 @@ export function UnifiedStudio() {
         totalDuration={totalDuration}
         clipCount={clipCount}
         estimatedCredits={estimatedCredits}
+        userCredits={userCredits}
         elapsedTime={elapsedTime}
         completedClips={completedClips}
         onGenerate={handleGenerateClick}
         onCancel={handleCancel}
+        onBuyCredits={() => setShowCostDialog(true)}
         disabled={!canGenerate}
         currentStage={currentStage}
         pipelineLogs={pipelineLogs}

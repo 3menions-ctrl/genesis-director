@@ -127,16 +127,32 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
 
         {/* Main card */}
         <div className="relative rounded-[2rem] overflow-hidden shadow-2xl">
-          {/* Multi-layer background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-background" />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.08] via-transparent to-accent/[0.05]" />
-          <div className="absolute inset-0 backdrop-blur-xl" />
+          {/* Heavenly white and violet spotted gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white via-violet-50 to-white" />
+          <div className="absolute inset-0 bg-gradient-to-tl from-violet-100/80 via-white/60 to-violet-50/40" />
           
-          {/* Animated mesh gradient overlay */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          {/* Spotted violet orbs - heavenly effect */}
+          <div className="absolute inset-0">
+            {/* Large primary orbs */}
+            <div className="absolute top-0 left-0 w-80 h-80 bg-violet-400/30 rounded-full blur-3xl" />
+            <div className="absolute top-1/4 right-0 w-96 h-96 bg-violet-500/25 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-violet-300/35 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl" />
+            
+            {/* Medium accent orbs */}
+            <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-purple-400/40 rounded-full blur-2xl animate-pulse" />
+            <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-violet-500/35 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute bottom-1/3 left-1/2 w-36 h-36 bg-purple-300/45 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
+            
+            {/* Small sparkle orbs */}
+            <div className="absolute top-20 right-1/4 w-24 h-24 bg-violet-400/50 rounded-full blur-xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <div className="absolute bottom-20 left-20 w-20 h-20 bg-purple-500/40 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1.5s' }} />
+            <div className="absolute top-1/2 left-10 w-16 h-16 bg-violet-300/55 rounded-full blur-lg animate-pulse" style={{ animationDelay: '2.5s' }} />
+            <div className="absolute bottom-1/2 right-10 w-28 h-28 bg-purple-400/35 rounded-full blur-xl animate-pulse" style={{ animationDelay: '0.8s' }} />
           </div>
+          
+          {/* White overlay for ethereal effect */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/30" />
 
           {/* Premium border */}
           <div className="absolute inset-0 rounded-[2rem] border border-foreground/10" />
@@ -165,14 +181,14 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25 mb-5"
+                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 shadow-lg shadow-violet-500/30 mb-5"
               >
-                <Wand2 className="w-8 h-8 text-primary-foreground" />
+                <Wand2 className="w-8 h-8 text-white" />
               </motion.div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+              <h3 className="text-2xl sm:text-3xl font-bold text-violet-900 mb-2">
                 Bring Your Vision to Life
               </h3>
-              <p className="text-muted-foreground text-base sm:text-lg max-w-md mx-auto">
+              <p className="text-violet-700/80 text-base sm:text-lg max-w-md mx-auto">
                 Describe your story and watch AI transform it into stunning video
               </p>
             </div>

@@ -50,9 +50,10 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; terms?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string; terms?: string }>({});
   const [hasRedirected, setHasRedirected] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
@@ -122,6 +123,13 @@ export default function Auth() {
     e.preventDefault();
     
     if (!validateForm()) {
+      return;
+    }
+
+    // Check password confirmation for signup
+    if (!isLogin && password !== confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -399,6 +407,47 @@ export default function Auth() {
                 </div>
               )}
             </div>
+
+            {/* Confirm Password - Only for Signup */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-foreground text-sm font-medium">
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                    }}
+                    className={`h-12 pl-12 bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                    maxLength={72}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-destructive text-xs mt-1">{errors.confirmPassword}</p>
+                  )}
+                  {/* Password match indicator */}
+                  {confirmPassword && password && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      {password === confirmPassword ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-destructive" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Terms Agreement Checkbox - Only for Signup */}
             {!isLogin && (

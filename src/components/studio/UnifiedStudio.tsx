@@ -238,6 +238,31 @@ export function UnifiedStudio() {
     }
   }, [contextActiveProjectId, contextActiveProject, activeProjectId, currentStage]);
 
+  // Check for pending creation from landing page teaser
+  useEffect(() => {
+    const pendingData = sessionStorage.getItem('pendingCreation');
+    if (pendingData && currentStage === 'idle' && !concept) {
+      try {
+        const data = JSON.parse(pendingData);
+        // Only use if less than 1 hour old
+        if (Date.now() - data.timestamp < 60 * 60 * 1000) {
+          if (data.concept) setConcept(data.concept);
+          if (data.aspectRatio) setAspectRatio(data.aspectRatio);
+          if (data.videoType) setGenre(data.videoType);
+          // Note: Reference image from landing page will be handled separately
+          // as it requires proper analysis through the pipeline
+          console.log('[UnifiedStudio] Applied pending creation from landing page');
+          // Clear the pending data after applying
+          sessionStorage.removeItem('pendingCreation');
+        } else {
+          sessionStorage.removeItem('pendingCreation');
+        }
+      } catch {
+        sessionStorage.removeItem('pendingCreation');
+      }
+    }
+  }, [currentStage, concept]);
+
   // Check for projects awaiting approval OR in-progress on mount
   useEffect(() => {
     const checkForActiveProjects = async () => {

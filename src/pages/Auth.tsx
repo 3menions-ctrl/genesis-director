@@ -39,7 +39,15 @@ const signupFormSchema = z.object({
 });
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const navigate = useNavigate();
+  const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth();
+  
+  // Check URL params for mode (from creation teaser)
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const fromCreate = searchParams.get('from') === 'create';
+  const modeParam = searchParams.get('mode');
+  
+  const [isLogin, setIsLogin] = useState(modeParam !== 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -47,8 +55,25 @@ export default function Auth() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; terms?: string }>({});
   const [hasRedirected, setHasRedirected] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { user, profile, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth();
-  const navigate = useNavigate();
+  const [hasPendingCreation, setHasPendingCreation] = useState(false);
+
+  // Check for pending creation on mount
+  useEffect(() => {
+    const pendingData = sessionStorage.getItem('pendingCreation');
+    if (pendingData) {
+      try {
+        const data = JSON.parse(pendingData);
+        // Only consider valid if less than 1 hour old
+        if (Date.now() - data.timestamp < 60 * 60 * 1000) {
+          setHasPendingCreation(true);
+        } else {
+          sessionStorage.removeItem('pendingCreation');
+        }
+      } catch {
+        sessionStorage.removeItem('pendingCreation');
+      }
+    }
+  }, []);
 
   // Redirect authenticated users - only once to prevent blinking
   useEffect(() => {
@@ -275,17 +300,38 @@ export default function Auth() {
             {/* Glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 via-transparent to-accent/10 rounded-3xl blur-xl opacity-50 -z-10" />
             
+            {/* Pending Creation Banner */}
+            {hasPendingCreation && !isLogin && (
+              <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Film className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Your video is ready to create!</p>
+                    <p className="text-xs text-muted-foreground">Sign up to bring your vision to life</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Header */}
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
                 <User className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">{isLogin ? 'Welcome back' : 'Get started'}</span>
+                <span className="text-xs font-medium text-primary">
+                  {hasPendingCreation && !isLogin ? 'Almost there!' : isLogin ? 'Welcome back' : 'Get started'}
+                </span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
                 {isLogin ? 'Sign in' : 'Create account'}
               </h2>
               <p className="text-muted-foreground">
-                {isLogin ? 'Continue to your creative studio' : 'Start your filmmaking journey today'}
+                {hasPendingCreation && !isLogin 
+                  ? 'Create your account to generate your video'
+                  : isLogin 
+                    ? 'Continue to your creative studio' 
+                    : 'Start your filmmaking journey today'}
               </p>
             </div>
 

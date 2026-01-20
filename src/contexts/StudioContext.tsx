@@ -202,7 +202,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (profile) {
       setCredits({
-        total: profile.total_credits_purchased + 50, // Include welcome bonus
+        total: profile.total_credits_purchased + 60, // Include welcome bonus (60 credits = 6 clips)
         used: profile.total_credits_used,
         remaining: profile.credits_balance,
       });

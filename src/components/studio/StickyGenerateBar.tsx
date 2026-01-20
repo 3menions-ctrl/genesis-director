@@ -14,7 +14,9 @@ import {
   ChevronUp,
   ChevronDown,
   Terminal,
-  Zap
+  Zap,
+  AlertCircle,
+  CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,14 +35,16 @@ interface StickyGenerateBarProps {
   totalDuration: number;
   clipCount: number;
   estimatedCredits: number;
+  userCredits: number;
   elapsedTime: number;
   completedClips: number;
   onGenerate: () => void;
   onCancel: () => void;
+  onBuyCredits?: () => void;
   disabled?: boolean;
   currentStage?: string;
   pipelineLogs?: PipelineLog[];
-  isInitializing?: boolean; // Show loading state when starting
+  isInitializing?: boolean;
 }
 
 const STAGE_MESSAGES: Record<string, { label: string; icon: string }> = {
@@ -63,10 +67,12 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
     totalDuration,
     clipCount,
     estimatedCredits,
+    userCredits,
     elapsedTime,
     completedClips,
     onGenerate,
     onCancel,
+    onBuyCredits,
     disabled,
     currentStage = 'idle',
     pipelineLogs = [],
@@ -74,6 +80,9 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
   }, ref) {
   const [showLogs, setShowLogs] = useState(false);
   const [statusText, setStatusText] = useState('Initializing...');
+  
+  const hasInsufficientCredits = userCredits < estimatedCredits;
+  const creditShortfall = Math.max(0, estimatedCredits - userCredits);
   
   // Animate status text based on progress
   useEffect(() => {
@@ -282,31 +291,65 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
               )}
               
               {!isRunning && (
-                <Button
-                  onClick={onGenerate}
-                  disabled={disabled || isInitializing}
-                  className={cn(
-                    "gap-2 h-11 px-8 font-semibold transition-all",
-                    "bg-foreground hover:bg-foreground/90 text-background",
-                    "shadow-lg hover:shadow-xl hover:scale-[1.02]",
-                    "relative overflow-hidden group",
-                    isInitializing && "cursor-wait"
+                <div className="flex items-center gap-3">
+                  {/* Insufficient credits warning */}
+                  {hasInsufficientCredits && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 border border-destructive/20"
+                    >
+                      <AlertCircle className="w-4 h-4 text-destructive" />
+                      <span className="text-sm text-destructive font-medium">
+                        Need {creditShortfall} more credits
+                      </span>
+                    </motion.div>
                   )}
-                >
-                  {isInitializing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Preparing...</span>
-                    </>
-                  ) : (
-                    <>
-                      {/* Shimmer effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                      <Sparkles className="w-5 h-5" />
-                      <span>Generate Video</span>
-                    </>
+                  
+                  {/* Buy Credits button when insufficient */}
+                  {hasInsufficientCredits && onBuyCredits && (
+                    <Button
+                      variant="outline"
+                      onClick={onBuyCredits}
+                      className="gap-2 h-11 px-6 border-primary text-primary hover:bg-primary/10"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Buy Credits</span>
+                    </Button>
                   )}
-                </Button>
+                  
+                  <Button
+                    onClick={onGenerate}
+                    disabled={disabled || isInitializing || hasInsufficientCredits}
+                    className={cn(
+                      "gap-2 h-11 px-8 font-semibold transition-all",
+                      "bg-foreground hover:bg-foreground/90 text-background",
+                      "shadow-lg hover:shadow-xl hover:scale-[1.02]",
+                      "relative overflow-hidden group",
+                      isInitializing && "cursor-wait",
+                      hasInsufficientCredits && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {isInitializing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Preparing...</span>
+                      </>
+                    ) : hasInsufficientCredits ? (
+                      <>
+                        <AlertCircle className="w-5 h-5" />
+                        <span>Insufficient Credits</span>
+                      </>
+                    ) : (
+                      <>
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <Sparkles className="w-5 h-5" />
+                        <span>Generate Video</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           </div>

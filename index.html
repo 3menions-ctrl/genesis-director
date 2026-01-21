@@ -60,21 +60,147 @@
 
     <meta name="robots" content="index, follow" />
 
-    <!-- Structured Data -->
+    <!-- Structured Data - Organization -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
+      "@type": "Organization",
       "name": "Apex Studio",
-      "description": "AI Virtual Production Platform for creating 4K videos with AI presenters and living backgrounds",
-      "url": "https://apexstudio.app",
+      "alternateName": ["Apex Studio AI", "ApexStudio"],
+      "url": "https://apex-studio.ai",
+      "logo": "https://apex-studio.ai/favicon.png",
+      "description": "AI-powered video generation platform that transforms text and images into professional cinematic content",
+      "foundingDate": "2024",
+      "sameAs": []
+    }
+    </script>
+    
+    <!-- Structured Data - SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Apex Studio",
+      "description": "AI Video Generation Platform - Create professional videos from text descriptions or images using artificial intelligence",
+      "url": "https://apex-studio.ai",
       "applicationCategory": "MultimediaApplication",
+      "applicationSubCategory": "Video Production Software",
       "operatingSystem": "Web Browser",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "softwareVersion": "1.0",
+      "releaseNotes": "Text-to-video generation, image animation, AI script writing, voice synthesis",
+      "featureList": [
+        "Text-to-Video Generation",
+        "Image-to-Video Animation", 
+        "AI Script Writing",
+        "Voice Synthesis",
+        "Character Consistency Lock",
+        "4K Video Output",
+        "HDR Support"
+      ],
+      "screenshot": "https://apex-studio.ai/og-image.png",
       "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
+        "@type": "AggregateOffer",
+        "lowPrice": "0",
+        "highPrice": "199",
+        "priceCurrency": "USD",
+        "offerCount": "4",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free Tier",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "50 free credits to start creating videos"
+          },
+          {
+            "@type": "Offer", 
+            "name": "Starter",
+            "price": "29",
+            "priceCurrency": "USD",
+            "billingIncrement": "P1M",
+            "description": "500 credits per month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Growth", 
+            "price": "79",
+            "priceCurrency": "USD",
+            "billingIncrement": "P1M",
+            "description": "1500 credits per month with 4K HDR"
+          },
+          {
+            "@type": "Offer",
+            "name": "Agency",
+            "price": "199", 
+            "priceCurrency": "USD",
+            "billingIncrement": "P1M",
+            "description": "5000 credits per month with API access"
+          }
+        ]
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "Apex Studio",
+        "url": "https://apex-studio.ai"
       }
+    }
+    </script>
+    
+    <!-- Structured Data - FAQ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Apex Studio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Apex Studio is an AI-powered video creation platform that transforms text descriptions or images into cinematic video content. Our AI handles script writing, scene generation, voice synthesis, and video production—all from a simple prompt."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do credits work in Apex Studio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Credits are the usage currency. Each 5-second video clip costs 10 credits. Free users start with 50 credits. Paid plans range from 500 credits ($29/month) to 5,000 credits ($199/month). Voice narration and automatic retries are included at no extra cost."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use Apex Studio videos commercially?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, all videos generated on Apex Studio are yours to use commercially. This includes marketing content, YouTube videos, client work, and any other commercial purpose with no additional licensing required."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Character Lock in Apex Studio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Character Lock is proprietary technology that maintains visual consistency for characters across multiple scenes and videos. Once you create a character, they look the same in every clip—essential for storytelling and brand mascots."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What video quality can I expect from Apex Studio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Apex Studio generates high-quality video at up to 4K resolution with HDR support on Growth and Agency plans. Output quality rivals professional video production with consistent characters, smooth camera movements, and cinematic lighting."
+          }
+        }
+      ]
     }
     </script>
     

@@ -1,7 +1,33 @@
+# Apex Studio - AI Video Generation Platform
+# https://apex-studio.ai
+
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
 Allow: /
 
 User-agent: Twitterbot
@@ -12,3 +38,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Sitemap
+Sitemap: https://apex-studio.ai/sitemap.xml
+
+# LLM-readable summary
+# See /llms.txt for AI-friendly platform documentation

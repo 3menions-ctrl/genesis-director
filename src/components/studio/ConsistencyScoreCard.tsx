@@ -20,13 +20,28 @@ interface ConsistencyScoreCardProps {
   className?: string;
 }
 
+// Demo metrics to show when no real data is available
+const DEMO_METRICS: Partial<ConsistencyMetrics> = {
+  color: 0.87,
+  motion: 0.82,
+  character: 0.91,
+  scene: 0.85,
+};
+
+const DEMO_SCORE = 0.86;
+
 export function ConsistencyScoreCard({ 
-  score = 0, 
+  score, 
   metrics,
   trend = 'stable',
   previousScore,
   className 
 }: ConsistencyScoreCardProps) {
+  // Use demo data if no real data is available
+  const activeScore = score !== undefined && score > 0 ? score : DEMO_SCORE;
+  const activeMetrics = metrics && Object.keys(metrics).length > 0 ? metrics : DEMO_METRICS;
+  const isDemo = (score === undefined || score === 0) && (!metrics || Object.keys(metrics).length === 0);
+
   const getScoreColor = (value: number) => {
     if (value >= 0.85) return 'text-emerald-400';
     if (value >= 0.7) return 'text-amber-400';
@@ -48,11 +63,11 @@ export function ConsistencyScoreCard({
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
   const trendColor = trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-red-400' : 'text-white/40';
 
-  const metricItems = metrics ? [
-    { label: 'Color', value: metrics.color },
-    { label: 'Motion', value: metrics.motion },
-    { label: 'Character', value: metrics.character },
-    { label: 'Scene', value: metrics.scene },
+  const metricItems = activeMetrics ? [
+    { label: 'Color', value: activeMetrics.color },
+    { label: 'Motion', value: activeMetrics.motion },
+    { label: 'Character', value: activeMetrics.character },
+    { label: 'Scene', value: activeMetrics.scene },
   ].filter(m => m.value !== undefined) : [];
 
   return (
@@ -61,7 +76,7 @@ export function ConsistencyScoreCard({
       animate={{ opacity: 1, scale: 1 }}
       className={cn(
         "p-4 rounded-xl border border-white/10 overflow-hidden relative",
-        `bg-gradient-to-br ${getScoreBg(score)}`,
+        `bg-gradient-to-br ${getScoreBg(activeScore)}`,
         className
       )}
     >
@@ -74,7 +89,10 @@ export function ConsistencyScoreCard({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-white/60" />
-            <span className="text-sm font-medium text-white/80">Consistency Score</span>
+            <span className="text-sm font-medium text-white/80">
+              Consistency Score
+              {isDemo && <span className="ml-1 text-xs text-amber-400">(Demo)</span>}
+            </span>
           </div>
           
           <TooltipProvider>
@@ -85,7 +103,7 @@ export function ConsistencyScoreCard({
                   {previousScore !== undefined && (
                     <span className={cn("text-xs", trendColor)}>
                       {trend === 'up' ? '+' : trend === 'down' ? '-' : ''}
-                      {Math.abs((score - previousScore) * 100).toFixed(0)}%
+                      {Math.abs((activeScore - previousScore) * 100).toFixed(0)}%
                     </span>
                   )}
                 </div>
@@ -101,8 +119,8 @@ export function ConsistencyScoreCard({
 
         {/* Main Score */}
         <div className="flex items-baseline gap-1 mb-4">
-          <span className={cn("text-4xl font-bold", getScoreColor(score))}>
-            {(score * 100).toFixed(0)}
+          <span className={cn("text-4xl font-bold", getScoreColor(activeScore))}>
+            {(activeScore * 100).toFixed(0)}
           </span>
           <span className="text-lg text-white/40">%</span>
         </div>

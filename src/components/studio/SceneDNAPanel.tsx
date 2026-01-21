@@ -18,32 +18,44 @@ interface SceneDNAPanelProps {
   className?: string;
 }
 
+// Demo data to show when no real data is available
+const DEMO_ANCHOR: SceneAnchor = {
+  dominantColors: ['#1a365d', '#2d3748', '#4a5568', '#718096'],
+  lighting: 'Golden hour, soft directional',
+  environment: 'Urban exterior, dusk',
+  cameraStyle: 'Cinematic wide angle',
+  objectAnchors: ['Street lamps', 'Concrete walls', 'Distant skyline'],
+  styleSignature: 'Neo-noir aesthetic'
+};
+
 export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }: SceneDNAPanelProps) {
-  const isEmpty = !masterAnchor;
+  // Use demo data if no real data is available
+  const activeAnchor = masterAnchor || DEMO_ANCHOR;
+  const isDemo = !masterAnchor;
 
   const dnaElements = [
     { 
       icon: Palette, 
       label: 'Palette', 
-      value: masterAnchor?.dominantColors?.slice(0, 4) || [],
+      value: activeAnchor.dominantColors?.slice(0, 4) || [],
       type: 'colors' as const
     },
     { 
       icon: Eye, 
       label: 'Lighting', 
-      value: masterAnchor?.lighting || 'Not analyzed',
+      value: activeAnchor.lighting || 'Natural ambient',
       type: 'text' as const
     },
     { 
       icon: Focus, 
       label: 'Camera', 
-      value: masterAnchor?.cameraStyle || 'Not analyzed',
+      value: activeAnchor.cameraStyle || 'Standard framing',
       type: 'text' as const
     },
     { 
       icon: Layers, 
       label: 'Environment', 
-      value: masterAnchor?.environment || 'Not analyzed',
+      value: activeAnchor.environment || 'Interior scene',
       type: 'text' as const
     },
   ];
@@ -69,23 +81,20 @@ export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }
           <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
             Locked
           </span>
-        ) : isEmpty && (
-          <span className="ml-auto px-2 py-0.5 rounded-full bg-white/10 text-white/40 text-xs">
-            Pending
+        ) : isDemo ? (
+          <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">
+            Demo
+          </span>
+        ) : (
+          <span className="ml-auto px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 text-xs">
+            Active
           </span>
         )}
       </div>
 
-      {isEmpty ? (
-        <div className="text-center py-6 text-white/40">
-          <Sparkles className="w-6 h-6 mx-auto mb-2 opacity-50" />
-          <p className="text-xs">Scene DNA will be extracted from Clip 1</p>
-          <p className="text-xs text-white/30 mt-1">during video generation</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {dnaElements.map((element) => (
-            <TooltipProvider key={element.label}>
+      <div className="grid grid-cols-2 gap-3">
+        {dnaElements.map((element) => (
+          <TooltipProvider key={element.label}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors cursor-default">
@@ -122,16 +131,15 @@ export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }
                   </p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          ))}
-        </div>
-      )}
+          </TooltipProvider>
+        ))}
+      </div>
 
-      {masterAnchor?.objectAnchors && masterAnchor.objectAnchors.length > 0 && (
+      {activeAnchor.objectAnchors && activeAnchor.objectAnchors.length > 0 && (
         <div className="mt-3 pt-3 border-t border-white/5">
           <p className="text-xs text-white/40 mb-2">Scene Anchors</p>
           <div className="flex flex-wrap gap-1.5">
-            {masterAnchor.objectAnchors.slice(0, 5).map((anchor, i) => (
+            {activeAnchor.objectAnchors.slice(0, 5).map((anchor, i) => (
               <span
                 key={i}
                 className="px-2 py-0.5 rounded-md bg-white/5 text-xs text-white/60"
@@ -139,9 +147,9 @@ export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }
                 {anchor}
               </span>
             ))}
-            {masterAnchor.objectAnchors.length > 5 && (
+            {activeAnchor.objectAnchors.length > 5 && (
               <span className="px-2 py-0.5 text-xs text-white/40">
-                +{masterAnchor.objectAnchors.length - 5} more
+                +{activeAnchor.objectAnchors.length - 5} more
               </span>
             )}
           </div>

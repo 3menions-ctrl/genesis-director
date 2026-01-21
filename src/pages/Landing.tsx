@@ -21,6 +21,10 @@ const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'
 const HeroVideoBackground = lazy(() => import('@/components/landing/HeroVideoBackground'));
 const CreatorShowcase = lazy(() => import('@/components/landing/CreatorShowcase'));
 const CreationTeaser = lazy(() => import('@/components/landing/CreationTeaser'));
+const SocialProofBar = lazy(() => import('@/components/landing/SocialProofBar'));
+const TestimonialsCarousel = lazy(() => import('@/components/landing/TestimonialsCarousel'));
+const TrustBadges = lazy(() => import('@/components/landing/TrustBadges'));
+const ExitIntentPopup = lazy(() => import('@/components/landing/ExitIntentPopup'));
 
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
@@ -147,11 +151,11 @@ export default function Landing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium text-emerald-600">Automatic Retry System Active</span>
+              <span className="text-sm font-medium text-emerald-600">60 Free Credits • No Card Required</span>
             </div>
           </motion.div>
 
-          {/* Main headline - Larger, bolder */}
+          {/* Main headline - Outcome-focused */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -159,11 +163,12 @@ export default function Landing() {
             className="text-center max-w-5xl mx-auto mb-10"
           >
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.9] mb-6">
-              <span className="block hero-text">AI Video</span>
-              <span className="block hero-text bg-clip-text">Generation.</span>
+              <span className="block hero-text">Turn Ideas Into</span>
+              <span className="block hero-text bg-clip-text">Pro Videos in Minutes</span>
             </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Create stunning videos from text or images in minutes.
+            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Type a description, upload an image, or let AI write your script. 
+              <span className="text-foreground font-medium"> Get your first video free.</span>
             </p>
           </motion.div>
 
@@ -171,7 +176,17 @@ export default function Landing() {
           <Suspense fallback={
             <div className="w-full max-w-2xl mx-auto h-[400px] rounded-3xl bg-muted/30 animate-pulse" />
           }>
-            <CreationTeaser className="mb-16" />
+            <CreationTeaser className="mb-12" />
+          </Suspense>
+
+          {/* Social Proof Stats */}
+          <Suspense fallback={null}>
+            <SocialProofBar className="mb-8" />
+          </Suspense>
+
+          {/* Trust Badges */}
+          <Suspense fallback={null}>
+            <TrustBadges className="mb-16" />
           </Suspense>
 
           {/* Examples Gallery Modal - Lazy loaded */}
@@ -314,10 +329,14 @@ export default function Landing() {
         <HowItWorksSection />
       </Suspense>
 
+      {/* Testimonials Section */}
+      <Suspense fallback={<SectionLoader />}>
+        <TestimonialsCarousel />
+      </Suspense>
+
       <Suspense fallback={<SectionLoader />}>
         <CreatorShowcase />
       </Suspense>
-
 
       <Suspense fallback={<SectionLoader />}>
         <UseCasesSection />
@@ -328,7 +347,7 @@ export default function Landing() {
       </Suspense>
 
 
-      {/* CTA Section - Refined */}
+      {/* CTA Section - With Urgency */}
       <section className="relative z-10 py-20 sm:py-28 px-4 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="relative rounded-[2rem] overflow-hidden">
@@ -344,26 +363,31 @@ export default function Landing() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 mb-6">
-                  <Sparkles className="w-4 h-4 text-white/70" />
-                  <span className="text-sm font-medium text-white/70">Start for free</span>
+                {/* Urgency badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 mb-6">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-sm font-medium text-amber-300">Limited: Free credits for new users</span>
                 </div>
                 
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-                  Ready to create?
+                  Start Creating Today
                 </h2>
-                <p className="text-lg text-white/50 mb-8 max-w-xl mx-auto">
-                  Get 60 free credits — enough for your first video clip
+                <p className="text-lg text-white/60 mb-8 max-w-xl mx-auto">
+                  60 free credits waiting for you. Create your first professional AI video in under 5 minutes.
                 </p>
-                <Button
-                  onClick={() => navigate('/auth')}
-                  size="lg"
-                  variant="secondary"
-                  className="h-14 px-10 text-base font-semibold rounded-full"
-                >
-                  Start for free
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Button
+                    onClick={() => navigate('/auth?mode=signup')}
+                    size="lg"
+                    variant="secondary"
+                    className="h-14 px-10 text-base font-semibold rounded-full"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Claim Free Credits
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  <p className="text-sm text-white/40">No credit card required</p>
+                </div>
               </motion.div>
             </div>
           </div>
@@ -372,6 +396,11 @@ export default function Landing() {
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />
+      </Suspense>
+
+      {/* Exit Intent Popup */}
+      <Suspense fallback={null}>
+        <ExitIntentPopup />
       </Suspense>
     </div>
   );

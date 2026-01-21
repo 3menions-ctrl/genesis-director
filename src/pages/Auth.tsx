@@ -21,12 +21,10 @@ const passwordSchema = z.string()
   .min(6, 'Password must be at least 6 characters')
   .max(72, 'Password must be less than 72 characters');
 
+// Simplified signup password - just min length, no complex requirements
 const signupPasswordSchema = z.string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(72, 'Password must be less than 72 characters')
-  .regex(/[a-z]/, 'Password must contain a lowercase letter')
-  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-  .regex(/[0-9]/, 'Password must contain a number');
+  .min(6, 'Password must be at least 6 characters')
+  .max(72, 'Password must be less than 72 characters');
 
 const authFormSchema = z.object({
   email: emailSchema,
@@ -133,12 +131,8 @@ export default function Auth() {
       return;
     }
 
-    // Check terms agreement for signup
-    if (!isLogin && !agreedToTerms) {
-      setErrors(prev => ({ ...prev, terms: 'You must agree to the Terms of Service and Privacy Policy' }));
-      toast.error('Please agree to the Terms of Service and Privacy Policy');
-      return;
-    }
+    // Terms agreement is now implicit (shown in footer text)
+    // No longer blocking signup
 
     setLoading(true);
 
@@ -449,42 +443,23 @@ export default function Auth() {
               </div>
             )}
 
-            {/* Terms Agreement Checkbox - Only for Signup */}
+            {/* Terms Agreement - Simplified, not blocking */}
             {!isLogin && (
-              <div className="space-y-2">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="terms"
-                    checked={agreedToTerms}
-                    onCheckedChange={(checked) => {
-                      setAgreedToTerms(checked === true);
-                      if (errors.terms) setErrors(prev => ({ ...prev, terms: undefined }));
-                    }}
-                    className={`mt-0.5 ${errors.terms ? 'border-destructive' : ''}`}
-                  />
-                  <Label 
-                    htmlFor="terms" 
-                    className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
-                  >
-                    I agree to the{' '}
-                    <Link to="/terms" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
-                      Terms of Service
-                    </Link>
-                    {' '}and{' '}
-                    <Link to="/privacy" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
-                      Privacy Policy
-                    </Link>
-                  </Label>
-                </div>
-                {errors.terms && (
-                  <p className="text-destructive text-xs ml-7">{errors.terms}</p>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                By creating an account, you agree to our{' '}
+                <Link to="/terms" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
+                  Terms of Service
+                </Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-foreground hover:text-foreground/80 underline underline-offset-2">
+                  Privacy Policy
+                </Link>
+              </p>
             )}
 
             <Button
               type="submit"
-              disabled={loading || (!isLogin && !agreedToTerms)}
+              disabled={loading}
               className="w-full h-12 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-xl shadow-lg shadow-foreground/10 transition-all hover:shadow-xl hover:shadow-foreground/15 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

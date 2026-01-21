@@ -32,6 +32,92 @@ interface ContinuityManifestPanelProps {
   className?: string;
 }
 
+// Demo manifest data to show when no real data is available
+const DEMO_MANIFEST: ShotContinuityManifest = {
+  shotIndex: 0,
+  projectId: 'demo',
+  extractedAt: Date.now(),
+  spatial: {
+    primaryCharacter: {
+      screenPosition: 'center',
+      depth: 'midground',
+      verticalPosition: 'middle',
+      facingDirection: 'camera',
+      bodyAngle: 15
+    },
+    cameraDistance: 'medium',
+    eyeLineDirection: 'toward camera'
+  },
+  lighting: {
+    primarySource: {
+      type: 'natural',
+      direction: 'front',
+      quality: 'soft',
+      intensity: 'medium'
+    },
+    colorTemperature: 'warm',
+    colorTint: 'golden hour amber',
+    shadowDirection: 'bottom-right',
+    ambientLevel: 'normal',
+    specialLighting: ['rim light', 'subtle fill']
+  },
+  props: {
+    characterProps: [{
+      characterName: 'Main Character',
+      props: [
+        { propId: 'watch-1', name: 'Watch', state: 'on wrist' },
+        { propId: 'bag-1', name: 'Bag', state: 'over shoulder' }
+      ]
+    }],
+    environmentProps: [
+      { name: 'Coffee cup', position: 'table left', state: 'half-full' },
+      { name: 'Laptop', position: 'table center', state: 'open' }
+    ]
+  },
+  emotional: {
+    primaryEmotion: 'contemplative',
+    intensity: 'moderate',
+    facialExpression: 'slight frown, eyes focused',
+    bodyLanguage: 'leaning forward, attentive posture',
+    physicalIndicators: ['furrowed brow', 'clasped hands']
+  },
+  action: {
+    movementType: 'still',
+    movementDirection: 'stationary',
+    poseAtCut: 'seated, engaged',
+    gestureInProgress: 'hand reaching for cup',
+    expectedContinuation: 'lifting cup to drink'
+  },
+  microDetails: {
+    hair: {
+      style: 'swept back',
+      condition: 'neat',
+      windEffect: undefined
+    },
+    clothing: {
+      dustLevel: 'clean',
+      stains: [],
+      tears: []
+    },
+    skin: {
+      scars: [],
+      wounds: [],
+      dirt: [],
+      sweat: false
+    },
+    persistentMarkers: ['silver ring on right hand', 'small tattoo on wrist']
+  },
+  environment: {
+    weatherVisible: 'clear sky visible through window',
+    timeOfDay: 'late afternoon',
+    atmospherics: ['warm dust particles in light'],
+    backgroundElements: ['bookshelf', 'window with city view']
+  },
+  criticalAnchors: ['Watch position', 'Hair style', 'Warm lighting', 'Seated posture'],
+  negativePrompt: 'character morphing, identity change, lighting reversal',
+  injectionPrompt: 'Continue with character seated, warm lighting from front, contemplative expression, hand motion toward coffee cup.'
+};
+
 export function ContinuityManifestPanel({ 
   manifest, 
   shotIndex, 
@@ -39,6 +125,11 @@ export function ContinuityManifestPanel({
   className 
 }: ContinuityManifestPanelProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['spatial', 'micro']));
+
+  // Use demo data if no real data is available
+  const activeManifest = manifest || DEMO_MANIFEST;
+  const isDemo = !manifest;
+  const displayIndex = manifest ? shotIndex : 0;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -72,24 +163,6 @@ export function ContinuityManifestPanel({
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!manifest) {
-    return (
-      <Card className={`bg-background/50 backdrop-blur border-border/50 ${className}`}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
-            <Eye className="w-4 h-4" />
-            No Continuity Data for Shot {shotIndex + 1}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">
-            Generate a clip to extract continuity tracking data.
-          </p>
         </CardContent>
       </Card>
     );

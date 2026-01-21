@@ -1,0 +1,55 @@
+# Apex Studio - AI Video Generation Platform
+
+> Apex Studio is an AI-powered video creation platform that transforms text descriptions and images into professional cinematic video content.
+
+## Overview
+
+Apex Studio enables users to create high-quality videos using artificial intelligence. The platform handles script writing, scene generation, voice synthesis, and video production—all from simple text prompts or reference images.
+
+## Core Capabilities
+
+- **Text-to-Video Generation**: Transform written descriptions into video clips
+- **Image-to-Video**: Animate static images into dynamic video content
+- **AI Script Writing**: Automatically generate scene-by-scene scripts from concepts
+- **Voice Synthesis**: Generate natural voiceovers for video narration
+- **Character Consistency**: Maintain visual consistency for characters across scenes
+- **4K Video Output**: Professional quality up to 4K resolution with HDR support
+
+## Pricing
+
+Apex Studio uses a credit-based system:
+- **Free Tier**: 50 credits to start (5 video clips)
+- **Starter**: $29/month for 500 credits
+- **Growth**: $79/month for 1,500 credits  
+- **Agency**: $199/month for 5,000 credits
+
+Each 5-second video clip costs 10 credits. Voice narration is included at no extra cost.
+
+## Use Cases
+
+1. **Marketing Teams**: Create product demos, social media ads, and promotional content
+2. **Content Creators**: Produce YouTube videos, TikTok content, and educational material
+3. **E-commerce**: Generate product showcase videos and customer testimonials
+4. **Enterprise**: Training videos, internal communications, and corporate presentations
+
+## Technical Details
+
+- Video formats: MP4 (H.264, H.265), WebM, MOV
+- Image inputs: PNG, JPG, WebP
+- Audio exports: MP3, WAV
+- Maximum resolution: 4K (3840x2160)
+- Clip duration: 5-10 seconds per generation
+
+## Links
+
+- Website: https://apex-studio.ai
+- Documentation: https://apex-studio.ai/help
+- Pricing: https://apex-studio.ai/#pricing
+- Contact: https://apex-studio.ai/contact
+
+## Company
+
+Apex Studio is a video technology company focused on democratizing professional video production through AI. The platform serves marketing teams, content creators, and enterprises worldwide.
+
+---
+*Last updated: January 2026*

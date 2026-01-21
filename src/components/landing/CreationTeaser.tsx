@@ -403,35 +403,78 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
               </AnimatePresence>
             </div>
 
-            {/* Create Button */}
-            <motion.div
-              whileHover={{ scale: isReady ? 1.02 : 1 }}
-              whileTap={{ scale: isReady ? 0.98 : 1 }}
-            >
-              <Button
-                onClick={handleCreate}
-                disabled={!isReady}
-                size="lg"
-                className={cn(
-                  "w-full h-16 text-lg font-bold rounded-2xl transition-all duration-500",
-                  isReady 
-                    ? "bg-gradient-to-r from-foreground via-foreground to-foreground hover:shadow-2xl hover:shadow-primary/20" 
-                    : "opacity-40 cursor-not-allowed"
-                )}
+            {/* Progress Indicator + Create Button */}
+            <div className="space-y-4">
+              {/* Step indicator */}
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all",
+                  concept.length >= 20 
+                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30" 
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  <span className="font-medium">1</span>
+                  <span>Describe</span>
+                  {concept.length >= 20 && <span>✓</span>}
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/50" />
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                  "bg-muted/50 text-muted-foreground/70"
+                )}>
+                  <span className="font-medium">2</span>
+                  <span>Sign up (10 sec)</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/50" />
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                  "bg-muted/50 text-muted-foreground/70"
+                )}>
+                  <span className="font-medium">3</span>
+                  <span>Create!</span>
+                </div>
+              </div>
+
+              <motion.div
+                whileHover={{ scale: isReady ? 1.02 : 1 }}
+                whileTap={{ scale: isReady ? 0.98 : 1 }}
               >
-                <motion.div 
-                  className="flex items-center gap-3"
-                  animate={{ x: isReady ? 0 : 0 }}
+                <Button
+                  onClick={handleCreate}
+                  disabled={!isReady}
+                  size="lg"
+                  className={cn(
+                    "w-full h-16 text-lg font-bold rounded-2xl transition-all duration-500",
+                    isReady 
+                      ? "bg-gradient-to-r from-foreground via-foreground to-foreground hover:shadow-2xl hover:shadow-primary/20" 
+                      : "opacity-40 cursor-not-allowed"
+                  )}
                 >
-                  <Sparkles className="w-5 h-5" />
-                  <span>Create Your Video</span>
-                  <ArrowRight className={cn(
-                    "w-5 h-5 transition-transform duration-300",
-                    isReady ? "group-hover:translate-x-1" : ""
-                  )} />
-                </motion.div>
-              </Button>
-            </motion.div>
+                  <motion.div 
+                    className="flex items-center gap-3"
+                    animate={{ x: isReady ? 0 : 0 }}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    <span>Start Creating Free</span>
+                    <ArrowRight className={cn(
+                      "w-5 h-5 transition-transform duration-300",
+                      isReady ? "group-hover:translate-x-1" : ""
+                    )} />
+                  </motion.div>
+                </Button>
+              </motion.div>
+
+              {/* Urgency message */}
+              {isReady && (
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center text-sm text-muted-foreground"
+                >
+                  🎉 Your video concept is saved. Complete signup to generate it!
+                </motion.p>
+              )}
+            </div>
 
             {/* Bottom info */}
             <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-foreground/5">

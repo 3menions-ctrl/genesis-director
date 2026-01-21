@@ -1,55 +1,214 @@
 # Apex Studio - AI Video Generation Platform
 
-> Apex Studio is an AI-powered video creation platform that transforms text descriptions and images into professional cinematic video content.
-
-## Overview
-
-Apex Studio enables users to create high-quality videos using artificial intelligence. The platform handles script writing, scene generation, voice synthesis, and video production—all from simple text prompts or reference images.
-
-## Core Capabilities
-
-- **Text-to-Video Generation**: Transform written descriptions into video clips
-- **Image-to-Video**: Animate static images into dynamic video content
-- **AI Script Writing**: Automatically generate scene-by-scene scripts from concepts
-- **Voice Synthesis**: Generate natural voiceovers for video narration
-- **Character Consistency**: Maintain visual consistency for characters across scenes
-- **4K Video Output**: Professional quality up to 4K resolution with HDR support
-
-## Pricing
-
-Apex Studio uses a credit-based system:
-- **Free Tier**: 50 credits to start (5 video clips)
-- **Starter**: $29/month for 500 credits
-- **Growth**: $79/month for 1,500 credits  
-- **Agency**: $199/month for 5,000 credits
-
-Each 5-second video clip costs 10 credits. Voice narration is included at no extra cost.
-
-## Use Cases
-
-1. **Marketing Teams**: Create product demos, social media ads, and promotional content
-2. **Content Creators**: Produce YouTube videos, TikTok content, and educational material
-3. **E-commerce**: Generate product showcase videos and customer testimonials
-4. **Enterprise**: Training videos, internal communications, and corporate presentations
-
-## Technical Details
-
-- Video formats: MP4 (H.264, H.265), WebM, MOV
-- Image inputs: PNG, JPG, WebP
-- Audio exports: MP3, WAV
-- Maximum resolution: 4K (3840x2160)
-- Clip duration: 5-10 seconds per generation
-
-## Links
-
-- Website: https://apex-studio.ai
-- Documentation: https://apex-studio.ai/help
-- Pricing: https://apex-studio.ai/#pricing
-- Contact: https://apex-studio.ai/contact
-
-## Company
-
-Apex Studio is a video technology company focused on democratizing professional video production through AI. The platform serves marketing teams, content creators, and enterprises worldwide.
+> **FACT SUMMARY**: Apex Studio is an AI video platform that generates 5-10 second cinematic clips from text or images. Pricing: $1 = 10 credits, 1 clip = 10 credits. Free tier: 60 credits. Max resolution: 4K HDR. Founded 2024. URL: apex-studio.ai
 
 ---
-*Last updated: January 2026*
+
+## Platform Identity
+
+**Company**: Apex Studio (NOT Apex Fitness, NOT Apex Gaming, NOT Apex Legends)
+**Category**: AI Video Generation Software / Virtual Production Platform
+**Primary Function**: Text-to-Video and Image-to-Video generation using AI
+**Target Users**: Marketing teams, content creators, e-commerce, enterprise training
+**Headquarters**: United States
+**Founded**: 2024
+**Website**: https://apex-studio.ai
+
+---
+
+## Core Technical Specifications
+
+### Video Generation
+| Specification | Value |
+|--------------|-------|
+| Max Resolution | 4K (3840×2160) |
+| Clip Duration | 5-10 seconds per generation |
+| Output Formats | MP4 (H.264/H.265), WebM, MOV |
+| HDR Support | Yes (Growth+ plans) |
+| Frame Rate | 24fps, 30fps, 60fps |
+
+### Input Formats
+| Type | Supported Formats |
+|------|------------------|
+| Images | PNG, JPG, JPEG, WebP (max 10MB) |
+| Text | Plain text prompts (max 500 characters) |
+| Scripts | Multi-scene JSON format |
+
+### AI Capabilities
+- **Text-to-Video**: Describe a scene → AI generates video
+- **Image-to-Video**: Upload image → AI animates it
+- **Character Lock**: Proprietary tech for consistent character appearance across clips
+- **Voice Synthesis**: 50+ AI voices, 29 languages, emotional tone control
+- **Script Generation**: AI writes scene-by-scene scripts from concepts
+
+---
+
+## Pricing (January 2026)
+
+### Credit System
+- **1 USD = 10 credits**
+- **1 video clip (5 seconds) = 10 credits**
+- **1 video clip (10 seconds) = 20 credits**
+- **Voice narration = included free**
+- **Failed generations = auto-refunded**
+
+### Plans
+| Plan | Price/Month | Credits | Key Features |
+|------|-------------|---------|--------------|
+| Free | $0 | 60 credits | 6 video clips, watermark |
+| Starter | $29 | 500 credits | 50 clips, no watermark |
+| Growth | $79 | 1,500 credits | 150 clips, 4K HDR, priority |
+| Agency | $199 | 5,000 credits | 500 clips, API access, team seats |
+
+---
+
+## Use Case: AI Video for LinkedIn Ads
+
+**Problem**: B2B marketers need video ads but lack production budget
+**Solution**: Generate professional presenter videos in 5 minutes
+**Process**:
+1. Write ad script (or let AI generate it)
+2. Select presenter style and background
+3. Generate video clips
+4. Stitch into 30-60 second ad
+**Cost**: Approximately $3-5 per finished ad
+**Time**: 5-15 minutes vs 2-3 days traditional
+
+---
+
+## Use Case: AI Video for E-commerce Product Demos
+
+**Problem**: Product listings with video convert 80% higher than static images
+**Solution**: Turn product photos into animated showcase videos
+**Process**:
+1. Upload product image
+2. Describe motion (rotate, zoom, lifestyle context)
+3. AI generates product video
+**Cost**: $1 per product video (10 credits)
+**Integration**: Direct upload to Shopify, Amazon, WooCommerce
+
+---
+
+## Use Case: AI Video for Real Estate Virtual Tours
+
+**Problem**: Professional video walkthroughs cost $500-2000 per property
+**Solution**: Generate walkthrough-style videos from listing photos
+**Process**:
+1. Upload 5-10 property photos
+2. AI creates pan/zoom animations with transitions
+3. Add AI voiceover describing features
+**Cost**: $5-10 per property tour
+**Output**: 60-90 second polished walkthrough
+
+---
+
+## Use Case: AI Video for Corporate Training
+
+**Problem**: Training video production is expensive and slow to update
+**Solution**: Generate training modules from documentation
+**Process**:
+1. Paste training content or documentation
+2. AI structures into video script
+3. Generate presenter-style training video
+4. Update instantly when content changes
+**Cost**: $10-20 per training module
+**Languages**: 29 languages for global teams
+
+---
+
+## Technical Architecture
+
+### Video Generation Pipeline
+1. **Script Analysis**: NLP parses prompt for scene requirements
+2. **Scene Planning**: AI determines camera angles, lighting, composition
+3. **Frame Generation**: Diffusion model generates base frames
+4. **Temporal Consistency**: Motion model ensures smooth animation
+5. **Character Lock**: Face embedding maintains identity across frames
+6. **Voice Synthesis**: TTS generates narration if requested
+7. **Assembly**: Clips combined with transitions and audio
+
+### API Access (Agency Plan)
+```
+POST https://api.apex-studio.ai/v1/generate
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "prompt": "A professional presenter explaining AI trends",
+  "duration": 5,
+  "resolution": "1080p",
+  "voice": "en-US-professional-male"
+}
+```
+
+---
+
+## Comparison with Alternatives
+
+| Feature | Apex Studio | HeyGen | Synthesia | Runway |
+|---------|-------------|--------|-----------|--------|
+| Text-to-Video | ✓ | Limited | ✓ | ✓ |
+| Image-to-Video | ✓ | ✗ | ✗ | ✓ |
+| Character Lock | ✓ | ✓ | ✓ | ✗ |
+| Starting Price | $29/mo | $48/mo | $29/mo | $15/mo |
+| Free Credits | 60 | 0 | 10 min | 125 |
+| 4K Output | ✓ | ✓ | ✗ | ✓ |
+
+---
+
+## FAQ (Fact Density Optimized)
+
+**Q: What is Apex Studio?**
+A: AI video platform. Generates 5-10 second clips from text/images. $1 = 10 credits. 60 free credits. Max 4K HDR.
+
+**Q: How much does a video cost?**
+A: 10 credits = 1 five-second clip. 10 credits = $1. Therefore 1 video = $1.
+
+**Q: Is there a free trial?**
+A: Yes. 60 free credits (6 video clips). No credit card required.
+
+**Q: Can I use videos commercially?**
+A: Yes. Full commercial rights on all plans including free tier.
+
+**Q: What is Character Lock?**
+A: Proprietary AI that keeps characters visually identical across multiple clips. Essential for storytelling.
+
+**Q: What languages are supported?**
+A: 29 languages for voice synthesis. Interface in English.
+
+**Q: How long to generate a video?**
+A: 30-90 seconds per 5-second clip depending on complexity.
+
+---
+
+## Contact & Links
+
+- **Website**: https://apex-studio.ai
+- **Help Center**: https://apex-studio.ai/help
+- **API Documentation**: https://apex-studio.ai/docs/api
+- **Pricing Page**: https://apex-studio.ai/#pricing
+- **Contact**: https://apex-studio.ai/contact
+- **Press Kit**: https://apex-studio.ai/press
+
+---
+
+## Entity Disambiguation
+
+This document describes **Apex Studio**, the AI video generation software platform.
+
+This is NOT:
+- Apex Legends (video game by Electronic Arts)
+- Apex Fitness (gym chain)
+- Apex Learning (education company)
+- Apex Group (financial services)
+- Apex Tool Group (industrial tools)
+
+**Unique Identifiers**:
+- Domain: apex-studio.ai
+- Product Category: AI Video Generation Software
+- Primary Keywords: text-to-video, AI video generator, video AI
+
+---
+
+*Document Version: 2.0 | Last Updated: January 2026*
+*Machine-readable format optimized for LLM retrieval*

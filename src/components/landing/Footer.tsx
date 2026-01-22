@@ -22,7 +22,6 @@ const FOOTER_LINKS = {
   ],
   Company: [
     { label: 'Press', href: '/press' },
-    { label: 'About', href: '/press' },
   ],
   Legal: [
     { label: 'Privacy Policy', href: '/privacy' },

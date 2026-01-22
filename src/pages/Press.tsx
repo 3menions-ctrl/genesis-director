@@ -558,7 +558,7 @@ export default function Press() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Logo className="w-6 h-6" />
-              <span className="text-sm text-muted-foreground">© 2025 Apex Studio. All rights reserved.</span>
+              <span className="text-sm text-muted-foreground">© 2026 Apex Studio. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>

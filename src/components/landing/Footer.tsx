@@ -11,31 +11,22 @@ import {
 
 const FOOTER_LINKS = {
   Product: [
-    { label: 'Features', href: '#features' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'Examples', href: '#examples' },
-    { label: 'API', href: '/contact' },
-    { label: 'Changelog', href: '#' },
+    { label: 'Features', href: '#how-it-works' },
+    { label: 'Examples', href: '#showcase' },
+    { label: 'Templates', href: '/templates' },
   ],
   Resources: [
-    { label: 'Documentation', href: '#' },
-    { label: 'Tutorials', href: '#' },
     { label: 'Blog', href: '/blog' },
-    { label: 'Community', href: '#' },
-    { label: 'Templates', href: '#' },
+    { label: 'Help Center', href: '/help' },
+    { label: 'Contact', href: '/contact' },
   ],
   Company: [
-    { label: 'About', href: '#' },
-    { label: 'Careers', href: '#' },
     { label: 'Press', href: '/press' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Partners', href: '#' },
+    { label: 'About', href: '/press' },
   ],
   Legal: [
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
-    { label: 'Cookie Policy', href: '/privacy' },
-    { label: 'GDPR', href: '/privacy' },
   ],
 };
 

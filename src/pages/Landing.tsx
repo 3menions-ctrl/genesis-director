@@ -325,26 +325,34 @@ export default function Landing() {
       </section>
 
       {/* Lazy loaded sections */}
-      <Suspense fallback={<SectionLoader />}>
-        <HowItWorksSection />
-      </Suspense>
+      <div id="how-it-works">
+        <Suspense fallback={<SectionLoader />}>
+          <HowItWorksSection />
+        </Suspense>
+      </div>
 
       {/* Testimonials Section */}
       <Suspense fallback={<SectionLoader />}>
         <TestimonialsCarousel />
       </Suspense>
 
-      <Suspense fallback={<SectionLoader />}>
-        <CreatorShowcase />
-      </Suspense>
+      <div id="showcase">
+        <Suspense fallback={<SectionLoader />}>
+          <CreatorShowcase />
+        </Suspense>
+      </div>
 
-      <Suspense fallback={<SectionLoader />}>
-        <UseCasesSection />
-      </Suspense>
+      <div id="use-cases">
+        <Suspense fallback={<SectionLoader />}>
+          <UseCasesSection />
+        </Suspense>
+      </div>
 
-      <Suspense fallback={<SectionLoader />}>
-        <ContactSection />
-      </Suspense>
+      <div id="contact">
+        <Suspense fallback={<SectionLoader />}>
+          <ContactSection />
+        </Suspense>
+      </div>
 
 
       {/* CTA Section - With Urgency */}

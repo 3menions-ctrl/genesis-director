@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
+import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 
 // Lazy load heavy components
 const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
@@ -327,41 +328,53 @@ export default function Landing() {
       </section>
 
       {/* Video Showcase - Immediate proof of quality */}
-      <Suspense fallback={<SectionLoader />}>
-        <VideoShowcasePreview 
-          className="relative z-10" 
-          onViewAllClick={() => setShowExamples(true)} 
-        />
-      </Suspense>
+      <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+        <Suspense fallback={<SectionLoader />}>
+          <VideoShowcasePreview 
+            className="relative z-10" 
+            onViewAllClick={() => setShowExamples(true)} 
+          />
+        </Suspense>
+      </ErrorBoundaryWrapper>
 
       {/* Lazy loaded sections */}
       <div id="how-it-works">
-        <Suspense fallback={<SectionLoader />}>
-          <HowItWorksSection />
-        </Suspense>
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <HowItWorksSection />
+          </Suspense>
+        </ErrorBoundaryWrapper>
       </div>
 
       {/* Testimonials Section */}
-      <Suspense fallback={<SectionLoader />}>
-        <TestimonialsCarousel />
-      </Suspense>
+      <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+        <Suspense fallback={<SectionLoader />}>
+          <TestimonialsCarousel />
+        </Suspense>
+      </ErrorBoundaryWrapper>
 
       <div id="showcase">
-        <Suspense fallback={<SectionLoader />}>
-          <CreatorShowcase />
-        </Suspense>
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <CreatorShowcase />
+          </Suspense>
+        </ErrorBoundaryWrapper>
       </div>
 
       <div id="use-cases">
-        <Suspense fallback={<SectionLoader />}>
-          <UseCasesSection />
-        </Suspense>
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <UseCasesSection />
+          </Suspense>
+        </ErrorBoundaryWrapper>
       </div>
 
       <div id="contact">
-        <Suspense fallback={<SectionLoader />}>
-          <ContactSection />
-        </Suspense>
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <ContactSection />
+          </Suspense>
+        </ErrorBoundaryWrapper>
       </div>
 
 

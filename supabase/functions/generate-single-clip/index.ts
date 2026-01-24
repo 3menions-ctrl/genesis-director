@@ -2922,7 +2922,7 @@ async function generateClipWithKling(
     negative_prompt: negativePrompt.slice(0, 1000),
     aspect_ratio: klingAspectRatio,
     duration: klingDuration,
-    mode: "std", // Standard quality mode
+    mode: "pro", // HD quality mode - all Apex videos are professional grade
     cfg_scale: 0.5,
     // Kling 2.6: Native audio generation
     generate_audio: enableAudio,

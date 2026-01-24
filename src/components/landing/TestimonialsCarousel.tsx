@@ -15,8 +15,8 @@ const HIGHLIGHTS = [
     icon: Sparkles,
   },
   {
-    title: "50 Free Credits to Start",
-    description: "Create your first 5 video clips completely free. No credit card required. See the quality before you commit to any plan.",
+    title: "60 Free Credits to Start",
+    description: "Create your first 6 video clips completely free. No credit card required. See the quality before you commit to any plan.",
     icon: Zap,
   },
 ];

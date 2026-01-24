@@ -192,7 +192,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">~30 sec video</span>
-                      <span className="font-semibold text-foreground">50 credits</span>
+                      <span className="font-semibold text-foreground">60 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">~1 min video</span>

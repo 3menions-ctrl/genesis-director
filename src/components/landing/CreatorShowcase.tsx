@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef } from 'react';
 import { Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX, Expand, Film, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -124,8 +124,7 @@ interface VideoCardProps {
   onClick: () => void;
   index: number;
 }
-
-const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
+const VideoCard = forwardRef<HTMLDivElement, VideoCardProps>(({ video, height, onClick, index }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -241,7 +240,9 @@ const VideoCard = ({ video, height, onClick, index }: VideoCardProps) => {
       </motion.div>
     </motion.div>
   );
-}
+});
+
+VideoCard.displayName = 'VideoCard';
 
 export default function CreatorShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);

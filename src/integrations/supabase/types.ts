@@ -1814,6 +1814,7 @@ export type Database = {
       }
       movie_projects: {
         Row: {
+          aspect_ratio: string | null
           created_at: string
           generated_script: string | null
           generation_checkpoint: Json | null
@@ -1852,6 +1853,7 @@ export type Database = {
           voice_audio_url: string | null
         }
         Insert: {
+          aspect_ratio?: string | null
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
@@ -1890,6 +1892,7 @@ export type Database = {
           voice_audio_url?: string | null
         }
         Update: {
+          aspect_ratio?: string | null
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null

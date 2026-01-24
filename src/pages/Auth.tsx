@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
+import authBackground from '@/assets/auth-background.jpg';
 
 // Validation schemas
 const emailSchema = z.string()
@@ -187,28 +188,17 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left Side - Stunning Visual Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent">
-        {/* Animated gradient orbs */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-white/10 blur-3xl animate-pulse" />
-          <div className="absolute top-1/3 -left-24 w-96 h-96 rounded-full bg-white/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute -bottom-32 right-1/4 w-[400px] h-[400px] rounded-full bg-accent/30 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-          
-          {/* Grid pattern overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-              backgroundSize: '32px 32px',
-            }}
-          />
-          
-          {/* Floating shapes */}
-          <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/20 rounded-2xl rotate-12 animate-float" />
-          <div className="absolute bottom-32 left-16 w-12 h-12 border-2 border-white/20 rounded-full animate-float" style={{ animationDelay: '0.5s' }} />
-          <div className="absolute top-1/2 right-32 w-8 h-8 bg-white/10 rounded-lg rotate-45 animate-float" style={{ animationDelay: '1s' }} />
-        </div>
+      {/* Left Side - Stunning Visual Branding with Cloud Background */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Beautiful sky background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${authBackground})` }}
+        />
+        
+        {/* Subtle overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-accent/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">

@@ -6,14 +6,13 @@
 
 @layer base {
   :root {
-    /* PREMIUM MODERN - Warm accents for conversion */
+    /* VIBRANT PREMIUM - Colors that convert */
     --background: 0 0% 98%;
     --foreground: 0 0% 8%;
 
-    /* Crystal white cards */
+    /* Glass effect base */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 8%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 8%;
 
@@ -21,31 +20,34 @@
     --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    /* Warm secondary */
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 25%;
+    /* Warm coral secondary */
+    --secondary: 12 76% 61%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Silver muted */
+    /* Platinum muted */
     --muted: 0 0% 92%;
     --muted-foreground: 0 0% 50%;
 
-    /* Accent - warm amber for energy */
-    --accent: 32 95% 55%;
+    /* Electric cyan accent */
+    --accent: 180 100% 45%;
     --accent-foreground: 0 0% 100%;
 
-    /* Semantic colors - Refined feedback colors */
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --destructive-muted: 0 50% 95%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --warning-muted: 38 70% 95%;
-    --success: 145 65% 42%;
+    /* Semantic colors - Vibrant feedback */
+    --success: 152 69% 45%;
     --success-foreground: 0 0% 100%;
-    --success-muted: 145 50% 95%;
-    --info: 210 60% 50%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 8%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
-    --info-muted: 210 50% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Chart colors - Vibrant spectrum */
+    --chart-1: 262 83% 58%;
+    --chart-2: 12 76% 61%;
+    --chart-3: 180 100% 45%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 330 80% 60%;
 
     /* Refined borders */
     --border: 0 0% 88%;
@@ -54,16 +56,17 @@
 
     --radius: 1rem;
 
-    /* Premium shadows with color */
+    /* Premium shadows with vibrant colors */
     --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.02);
     --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.03), 0 1px 2px hsl(0 0% 0% / 0.02);
     --shadow-md: 0 4px 8px hsl(0 0% 0% / 0.04), 0 2px 4px hsl(0 0% 0% / 0.02);
-    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.06), 0 4px 8px hsl(0 0% 0% / 0.03);
+    --shadow-lg: 0 8px 16px hsl(0 0% 0% / 0.06), 0 4px 8px hsl(0 0% 0% / 0.03);
     --shadow-xl: 0 16px 48px hsl(0 0% 0% / 0.08), 0 8px 16px hsl(0 0% 0% / 0.04);
     --shadow-2xl: 0 24px 64px hsl(0 0% 0% / 0.1), 0 12px 24px hsl(0 0% 0% / 0.05);
     --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.04), inset 0 0 0 1px hsl(0 0% 100% / 0.1);
-    --shadow-glow: 0 0 60px hsl(262 83% 58% / 0.15);
-    --shadow-glow-accent: 0 0 40px hsl(32 95% 55% / 0.2);
+    --shadow-glow: 0 0 60px hsl(262 83% 58% / 0.2);
+    --shadow-glow-accent: 0 0 40px hsl(180 100% 45% / 0.25);
+    --shadow-glow-secondary: 0 0 40px hsl(12 76% 61% / 0.2);
 
     /* Glossy sidebar */
     --sidebar-background: 0 0% 3%;
@@ -77,17 +80,17 @@
   }
 
   .dark {
-    --background: 0 0% 3%;
+    --background: 0 0% 4%;
     --foreground: 0 0% 92%;
     --card: 0 0% 6%;
     --card-foreground: 0 0% 92%;
     --primary: 262 83% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 12 76% 55%;
+    --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 12%;
     --muted-foreground: 0 0% 55%;
-    --accent: 32 95% 55%;
+    --accent: 180 100% 50%;
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 15%;
     --input: 0 0% 12%;

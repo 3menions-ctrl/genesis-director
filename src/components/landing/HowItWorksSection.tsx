@@ -35,12 +35,12 @@ const STEPS = [
 ];
 
 const CAPABILITIES = [
-  { icon: Video, label: 'Kling 2.6', description: 'Cinema-grade AI' },
-  { icon: Image, label: 'Image-to-Video', description: 'Animate images' },
-  { icon: Layers, label: 'Cloud Stitch', description: 'Seamless merging' },
-  { icon: Brain, label: 'Auto Retry', description: 'Quality assured' },
-  { icon: Mic, label: 'Voice Synthesis', description: 'AI narration' },
-  { icon: Eye, label: 'Quality Checks', description: 'Smart analysis' },
+  { icon: Video, label: 'Kling AI', description: 'Cinema-grade video', featured: true },
+  { icon: Image, label: 'Image-to-Video', description: 'Animate images', featured: false },
+  { icon: Layers, label: 'Cloud Stitch', description: 'Seamless merging', featured: false },
+  { icon: Brain, label: 'Auto Retry', description: 'Quality assured', featured: false },
+  { icon: Mic, label: 'Voice Synthesis', description: 'AI narration', featured: false },
+  { icon: Eye, label: 'Quality Checks', description: 'Smart analysis', featured: false },
 ];
 
 export default function HowItWorksSection() {
@@ -188,12 +188,17 @@ export default function HowItWorksSection() {
             className="relative"
           >
             <div className="text-center mb-8">
-              <h3 className="text-xl font-semibold text-foreground">Powered by Advanced AI</h3>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 border border-primary/30 mb-4">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">Powered by Kling AI</span>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground">Advanced AI Technology Stack</h3>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {CAPABILITIES.map((cap, i) => {
                 const Icon = cap.icon;
+                const isFeatured = cap.featured;
                 return (
                   <motion.div
                     key={cap.label}
@@ -201,18 +206,37 @@ export default function HowItWorksSection() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: i * 0.05 }}
-                    className="group p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/30 hover:bg-background/70 hover:border-primary/20 transition-all duration-300"
+                    className={cn(
+                      "group p-4 rounded-2xl backdrop-blur-sm transition-all duration-300",
+                      isFeatured 
+                        ? "bg-gradient-to-br from-primary/20 via-secondary/10 to-accent/10 border-2 border-primary/40 hover:border-primary/60 shadow-lg shadow-primary/10" 
+                        : "bg-background/50 border border-border/30 hover:bg-background/70 hover:border-primary/20"
+                    )}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center mb-3 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform",
+                      isFeatured 
+                        ? "bg-gradient-to-br from-primary to-secondary text-white shadow-lg shadow-primary/30" 
+                        : "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    )}>
                       <Icon className="w-5 h-5" />
                     </div>
                     
-                    <h4 className="text-sm font-semibold text-foreground mb-0.5">
+                    <h4 className={cn(
+                      "text-sm font-semibold mb-0.5",
+                      isFeatured ? "bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent" : "text-foreground"
+                    )}>
                       {cap.label}
                     </h4>
                     <p className="text-xs text-muted-foreground">
                       {cap.description}
                     </p>
+                    {isFeatured && (
+                      <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-medium text-primary">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        Core Engine
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

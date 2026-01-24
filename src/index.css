@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility: Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Font imports moved to index.html for better loading performance */
 
 @layer base {

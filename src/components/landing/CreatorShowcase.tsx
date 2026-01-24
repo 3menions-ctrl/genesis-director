@@ -149,6 +149,7 @@ const VideoCard = forwardRef<HTMLDivElement, VideoCardProps>(({ video, height, o
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -244,7 +245,7 @@ const VideoCard = forwardRef<HTMLDivElement, VideoCardProps>(({ video, height, o
 
 VideoCard.displayName = 'VideoCard';
 
-export default function CreatorShowcase() {
+const CreatorShowcase = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -344,7 +345,7 @@ export default function CreatorShowcase() {
 
   return (
     <>
-      <section className="relative z-10 py-24 px-4 lg:px-8 overflow-hidden">
+      <section ref={ref} {...props} className={cn("relative z-10 py-24 px-4 lg:px-8 overflow-hidden", props.className)}>
         {/* Background ambient glow */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
@@ -596,4 +597,8 @@ export default function CreatorShowcase() {
       </AnimatePresence>
     </>
   );
-}
+});
+
+CreatorShowcase.displayName = 'CreatorShowcase';
+
+export default CreatorShowcase;

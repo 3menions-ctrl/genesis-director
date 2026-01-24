@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip (~5 seconds) costs 10 credits. Video lengths vary by tier: Free users get ~25 second videos (5 clips = 50 credits), Pro gets ~50 second videos (10 clips = 100 credits), Growth gets ~100 second videos (20 clips = 200 credits), and Agency gets ~150 second videos (30 clips = 300 credits). Voice narration and automatic retries are included at no extra cost."
+    answer: "Credits are our usage currency. Each video clip (~5 seconds) costs 10 credits. Video lengths vary by tier: Free users get ~30 second videos (6 clips = 60 credits), Pro gets ~50 second videos (10 clips = 100 credits), Growth gets ~100 second videos (20 clips = 200 credits), and Agency gets ~150 second videos (30 clips = 300 credits). Voice narration and automatic retries are included at no extra cost."
   },
   {
     question: "What video quality can I expect?",
@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes! Every new account starts with 50 free credits — enough for 5 video clips or a complete 30-second video. No credit card required to start. This lets you try the platform before committing to a paid plan."
+    answer: "Yes! Every new account starts with 60 free credits — enough for 6 video clips or a complete 30-second video. No credit card required to start. This lets you try the platform before committing to a paid plan."
   },
   {
     question: "What file formats are supported?",

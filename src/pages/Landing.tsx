@@ -63,7 +63,7 @@ export default function Landing() {
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveCapability((prev) => (prev + 1) % CAPABILITIES.length);
-    }, 2500);
+    }, 4000); // Slowed from 2.5s to 4s for better readability
     return () => clearInterval(interval);
   }, []);
 
@@ -196,6 +196,7 @@ export default function Landing() {
 
           {/* BENTO GRID - Modern Feature Cards */}
           <motion.div 
+            id="features"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}

@@ -76,7 +76,7 @@ Credits are the currency of Apex. Here's everything you need to know.
 - 5-second clip at 4K quality: ~2 credits
 
 ### Earning Credits
-- **Free tier**: 50 credits monthly
+- **Free tier**: 60 credits (one-time welcome bonus)
 - **Pro plan**: 500 credits monthly
 - **Enterprise**: Unlimited or custom
 
@@ -267,7 +267,7 @@ If characters drift between clips:
 ## Subscription Plans
 
 ### Free Plan
-- 50 credits/month
+- 60 credits (one-time welcome bonus)
 - Standard quality
 - Community support
 - Watermarked exports

@@ -6,7 +6,7 @@ import { QualityTier } from '@/types/quality-tiers';
 
 // Pricing: 10 credits per clip
 // Video durations by tier:
-// - Free: 5 clips (~30 sec) = 50 credits
+// - Free: 6 clips (~30 sec) = 60 credits (welcome bonus)
 // - Pro: 10 clips (~1 min) = 100 credits  
 // - Growth: 20 clips (~2 min) = 200 credits
 // - Agency: 30 clips (~3 min) = 300 credits

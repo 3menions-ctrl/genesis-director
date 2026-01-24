@@ -103,16 +103,16 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      initial={{ opacity: 0, y: 30, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className={cn("w-full max-w-3xl mx-auto", className)}
+      transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+      className={cn("w-full max-w-2xl mx-auto px-2 sm:px-0", className)}
     >
       {/* Outer glow container */}
       <div className="relative">
-        {/* Animated background glow */}
+        {/* Animated background glow - subtle on mobile */}
         <motion.div 
-          className="absolute -inset-4 rounded-[2.5rem] opacity-60 blur-2xl"
+          className="absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-[2.5rem] opacity-40 sm:opacity-60 blur-xl sm:blur-2xl"
           animate={{
             background: isFocused 
               ? [
@@ -125,81 +125,70 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Main card */}
-        <div className="relative rounded-[2rem] overflow-hidden shadow-2xl">
-          {/* Heavenly white and violet spotted gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white via-violet-50 to-white" />
-          <div className="absolute inset-0 bg-gradient-to-tl from-violet-100/80 via-white/60 to-violet-50/40" />
+        {/* Main card - tighter padding on mobile */}
+        <div className="relative rounded-2xl sm:rounded-[2rem] overflow-hidden shadow-xl sm:shadow-2xl">
+          {/* Warm gradient background matching new theme */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white via-orange-50/30 to-white" />
+          <div className="absolute inset-0 bg-gradient-to-tl from-primary/10 via-white/60 to-accent/10" />
           
-          {/* Spotted violet orbs - heavenly effect */}
-          <div className="absolute inset-0">
-            {/* Large primary orbs */}
-            <div className="absolute top-0 left-0 w-80 h-80 bg-violet-400/30 rounded-full blur-3xl" />
-            <div className="absolute top-1/4 right-0 w-96 h-96 bg-violet-500/25 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-violet-300/35 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl" />
-            
-            {/* Medium accent orbs */}
-            <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-purple-400/40 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-violet-500/35 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-            <div className="absolute bottom-1/3 left-1/2 w-36 h-36 bg-purple-300/45 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
-            
-            {/* Small sparkle orbs */}
-            <div className="absolute top-20 right-1/4 w-24 h-24 bg-violet-400/50 rounded-full blur-xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-            <div className="absolute bottom-20 left-20 w-20 h-20 bg-purple-500/40 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1.5s' }} />
-            <div className="absolute top-1/2 left-10 w-16 h-16 bg-violet-300/55 rounded-full blur-lg animate-pulse" style={{ animationDelay: '2.5s' }} />
-            <div className="absolute bottom-1/2 right-10 w-28 h-28 bg-purple-400/35 rounded-full blur-xl animate-pulse" style={{ animationDelay: '0.8s' }} />
+          {/* Simplified orbs - fewer on mobile for performance */}
+          <div className="absolute inset-0 hidden sm:block">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-80 h-80 bg-accent/15 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/10 rounded-full blur-2xl" />
+          </div>
+          
+          {/* Mobile: simpler background */}
+          <div className="absolute inset-0 sm:hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5" />
           </div>
           
           {/* White overlay for ethereal effect */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-transparent to-white/40" />
 
           {/* Premium border */}
-          <div className="absolute inset-0 rounded-[2rem] border border-foreground/10" />
+          <div className="absolute inset-0 rounded-2xl sm:rounded-[2rem] border border-foreground/10" />
           <motion.div 
-            className="absolute inset-0 rounded-[2rem]"
+            className="absolute inset-0 rounded-2xl sm:rounded-[2rem]"
             animate={{
               boxShadow: isFocused 
-                ? 'inset 0 0 0 2px hsl(var(--primary) / 0.5), 0 0 60px 0 hsl(var(--primary) / 0.2)'
+                ? 'inset 0 0 0 2px hsl(var(--primary) / 0.5), 0 0 40px 0 hsl(var(--primary) / 0.15)'
                 : 'inset 0 0 0 1px hsl(var(--foreground) / 0.1)'
             }}
             transition={{ duration: 0.4 }}
           />
           
-          <div className="relative p-8 sm:p-10 lg:p-12">
-            {/* Floating sparkles */}
-            <div className="absolute top-6 right-8 opacity-40">
+          <div className="relative p-5 sm:p-8 lg:p-10">
+            {/* Floating sparkles - hidden on mobile */}
+            <div className="absolute top-4 right-6 opacity-40 hidden sm:block">
               <Stars className="w-5 h-5 text-primary animate-pulse" />
             </div>
-            <div className="absolute bottom-20 left-6 opacity-30">
-              <Sparkles className="w-4 h-4 text-accent animate-pulse" style={{ animationDelay: '0.5s' }} />
-            </div>
 
-            {/* Header */}
-            <div className="text-center mb-8">
+            {/* Compact Header - mobile first */}
+            <div className="text-center mb-5 sm:mb-8">
               <motion.div 
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 shadow-lg shadow-violet-500/30 mb-5"
+                transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20 mb-3 sm:mb-4"
               >
-                <Wand2 className="w-8 h-8 text-white" />
+                <Wand2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </motion.div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-violet-900 mb-2">
-                Bring Your Vision to Life
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-1.5 sm:mb-2">
+                What's your video about?
               </h3>
-              <p className="text-violet-700/80 text-base sm:text-lg max-w-md mx-auto">
-                Describe your story and watch AI transform it into stunning video
+              <p className="text-muted-foreground text-sm sm:text-base max-w-sm mx-auto">
+                Describe your idea in a few sentences
               </p>
             </div>
 
-            {/* Concept Input - Hero element */}
-            <div className="mb-8">
+            {/* Concept Input - Hero element - Smaller on mobile */}
+            <div className="mb-5 sm:mb-8">
               <div className="relative group">
-                {/* Glow effect on focus */}
+                {/* Glow effect on focus - subtle */}
                 <motion.div 
-                  className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 opacity-0 blur-lg transition-opacity duration-500"
-                  animate={{ opacity: isFocused ? 0.5 : 0 }}
+                  className="absolute -inset-0.5 sm:-inset-1 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary/40 via-accent/40 to-primary/40 opacity-0 blur-md sm:blur-lg transition-opacity duration-500"
+                  animate={{ opacity: isFocused ? 0.4 : 0 }}
                 />
                 
                 <div className="relative">
@@ -208,30 +197,27 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
                     onChange={(e) => setConcept(e.target.value)}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    placeholder="Describe your video... e.g., 'A lone astronaut discovers ancient ruins on Mars, walking through towering stone pillars as dust swirls in the crimson sky'"
+                    placeholder="e.g., 'An astronaut discovers ancient ruins on Mars as dust swirls in the crimson sky'"
                     className={cn(
-                      "min-h-[140px] resize-none text-base sm:text-lg leading-relaxed",
-                      "bg-muted/50 border-2 border-foreground/10 rounded-2xl",
-                      "focus:border-primary/50 focus:bg-muted/70 transition-all duration-300",
+                      "min-h-[100px] sm:min-h-[120px] resize-none text-sm sm:text-base leading-relaxed",
+                      "bg-white/80 border-2 border-foreground/10 rounded-xl sm:rounded-2xl",
+                      "focus:border-primary/50 focus:bg-white transition-all duration-300",
                       "placeholder:text-muted-foreground/50 placeholder:leading-relaxed",
-                      "p-5"
+                      "p-4 sm:p-5"
                     )}
                   />
                   
-                  {/* Character counter */}
-                  <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                  {/* Character counter - compact */}
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: concept.length > 10 ? 1 : 0 }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30"
                     >
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-600">Ready</span>
+                      <span className="text-[10px] sm:text-xs font-medium text-emerald-600">Ready</span>
                     </motion.div>
-                    <span className={cn(
-                      "text-xs font-medium transition-colors",
-                      concept.length > 10 ? "text-muted-foreground" : "text-muted-foreground/50"
-                    )}>
+                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground/60">
                       {concept.length}/500
                     </span>
                   </div>
@@ -239,15 +225,15 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
               </div>
             </div>
 
-            {/* Options Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Aspect Ratio Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <MonitorPlay className="w-4 h-4 text-muted-foreground" />
-                  Aspect Ratio
+            {/* Options Grid - Horizontal scroll on mobile */}
+            <div className="mb-5 sm:mb-8 space-y-4 sm:space-y-5">
+              {/* Aspect Ratio - Compact horizontal */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <MonitorPlay className="w-3.5 h-3.5 text-muted-foreground" />
+                  Format
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex gap-2">
                   {ASPECT_RATIOS.map((ratio) => {
                     const Icon = ratio.icon;
                     const isSelected = aspectRatio === ratio.value;
@@ -255,67 +241,45 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
                       <motion.button
                         key={ratio.value}
                         onClick={() => setAspectRatio(ratio.value)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileTap={{ scale: 0.95 }}
                         className={cn(
-                          "relative flex flex-col items-center gap-2 p-4 rounded-xl transition-all duration-300",
+                          "relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200",
                           isSelected
-                            ? "bg-foreground text-background shadow-lg"
-                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-foreground/5"
+                            ? "bg-foreground text-background shadow-md"
+                            : "bg-white/60 text-muted-foreground hover:bg-white border border-foreground/5"
                         )}
                       >
-                        {isSelected && (
-                          <motion.div
-                            layoutId="aspectRatio"
-                            className="absolute inset-0 bg-foreground rounded-xl"
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                          />
-                        )}
-                        <div className="relative z-10 flex flex-col items-center gap-1.5">
-                          <Icon className="w-5 h-5" />
-                          <span className="text-sm font-semibold">{ratio.label}</span>
-                          <span className={cn(
-                            "text-[10px]",
-                            isSelected ? "text-background/70" : "text-muted-foreground/70"
-                          )}>{ratio.description}</span>
-                        </div>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm font-medium">{ratio.label}</span>
                       </motion.button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Video Type Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Film className="w-4 h-4 text-muted-foreground" />
+              {/* Video Type - Horizontal scroll on mobile */}
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Film className="w-3.5 h-3.5 text-muted-foreground" />
                   Style
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
                   {VIDEO_TYPES.map((type) => {
                     const isSelected = videoType === type.value;
                     return (
                       <motion.button
                         key={type.value}
                         onClick={() => setVideoType(type.value)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileTap={{ scale: 0.95 }}
                         className={cn(
-                          "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
+                          "flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap shrink-0",
                           isSelected
-                            ? "bg-foreground text-background shadow-lg"
-                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-foreground/5"
+                            ? "bg-foreground text-background shadow-md"
+                            : "bg-white/60 text-muted-foreground hover:bg-white border border-foreground/5"
                         )}
                       >
-                        {isSelected && (
-                          <motion.div
-                            layoutId="videoType"
-                            className="absolute inset-0 bg-foreground rounded-xl"
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                          />
-                        )}
-                        <span className="relative z-10 text-lg">{type.emoji}</span>
-                        <span className="relative z-10 font-medium text-sm">{type.label}</span>
+                        <span className="text-sm sm:text-base">{type.emoji}</span>
+                        <span className="text-xs sm:text-sm font-medium">{type.label}</span>
                       </motion.button>
                     );
                   })}
@@ -323,173 +287,127 @@ export function CreationTeaser({ className }: CreationTeaserProps) {
               </div>
             </div>
 
-            {/* Reference Image Upload */}
-            <div className="mb-8">
-              <label className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-                <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                Reference Image
-                <span className="text-xs font-normal text-muted-foreground ml-1">(optional)</span>
-              </label>
+            {/* Reference Image Upload - Collapsible on mobile */}
+            <details className="mb-5 sm:mb-6 group">
+              <summary className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center gap-1.5 cursor-pointer list-none">
+                <ImageIcon className="w-3.5 h-3.5" />
+                Add reference image
+                <span className="text-xs font-normal ml-1">(optional)</span>
+                <ArrowRight className="w-3 h-3 ml-auto transition-transform group-open:rotate-90" />
+              </summary>
               
-              <AnimatePresence mode="wait">
-                {referenceImage ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="relative group"
-                  >
-                    <div className="relative h-40 rounded-2xl overflow-hidden bg-muted border-2 border-foreground/10">
-                      <img 
-                        src={referenceImage} 
-                        alt="Reference" 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={clearImage}
-                        className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background flex items-center justify-center text-foreground shadow-lg transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </motion.button>
-                      <div className="absolute bottom-3 left-3 right-14 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-sm text-foreground font-medium truncate">{referenceFileName}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                      className="hidden"
-                    />
-                    <motion.button
-                      onClick={() => fileInputRef.current?.click()}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      whileHover={{ scale: 1.01 }}
-                      className={cn(
-                        "w-full h-28 rounded-2xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center gap-2",
-                        isDragging
-                          ? "border-primary bg-primary/10 scale-[1.02]"
-                          : "border-foreground/20 hover:border-foreground/40 bg-muted/30 hover:bg-muted/50"
-                      )}
+              <div className="mt-3">
+                <AnimatePresence mode="wait">
+                  {referenceImage ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="relative group/img"
                     >
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                        isDragging ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-                      )}>
-                        <Upload className="w-5 h-5" />
+                      <div className="relative h-28 sm:h-36 rounded-xl overflow-hidden bg-muted border border-foreground/10">
+                        <img 
+                          src={referenceImage} 
+                          alt="Reference" 
+                          className="w-full h-full object-cover"
+                        />
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={clearImage}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground shadow-md"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </motion.button>
                       </div>
-                      <span className={cn(
-                        "text-sm font-medium transition-colors",
-                        isDragging ? "text-primary" : "text-muted-foreground"
-                      )}>
-                        {isDragging ? "Drop your image here" : "Drop image or click to upload"}
-                      </span>
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Progress Indicator + Create Button */}
-            <div className="space-y-4">
-              {/* Step indicator */}
-              <div className="flex items-center justify-center gap-2 text-sm">
-                <div className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all",
-                  concept.length >= 20 
-                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30" 
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  <span className="font-medium">1</span>
-                  <span>Describe</span>
-                  {concept.length >= 20 && <span>✓</span>}
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/50" />
-                <div className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-                  "bg-muted/50 text-muted-foreground/70"
-                )}>
-                  <span className="font-medium">2</span>
-                  <span>Sign up (10 sec)</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/50" />
-                <div className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-                  "bg-muted/50 text-muted-foreground/70"
-                )}>
-                  <span className="font-medium">3</span>
-                  <span>Create!</span>
-                </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                        className="hidden"
+                      />
+                      <motion.button
+                        onClick={() => fileInputRef.current?.click()}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          "w-full h-20 sm:h-24 rounded-xl border-2 border-dashed transition-all duration-200 flex items-center justify-center gap-2",
+                          isDragging
+                            ? "border-primary bg-primary/10"
+                            : "border-foreground/15 bg-white/50"
+                        )}
+                      >
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs sm:text-sm text-muted-foreground">
+                          {isDragging ? "Drop here" : "Upload image"}
+                        </span>
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+            </details>
 
+            {/* CTA Button - Prominent, mobile-optimized */}
+            <div className="space-y-3">
               <motion.div
-                whileHover={{ scale: isReady ? 1.02 : 1 }}
-                whileTap={{ scale: isReady ? 0.98 : 1 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <Button
                   onClick={handleCreate}
                   disabled={!isReady}
                   size="lg"
                   className={cn(
-                    "w-full h-16 text-lg font-bold rounded-2xl transition-all duration-500",
+                    "w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl sm:rounded-2xl transition-all duration-300",
                     isReady 
-                      ? "bg-gradient-to-r from-foreground via-foreground to-foreground hover:shadow-2xl hover:shadow-primary/20" 
+                      ? "bg-foreground hover:bg-foreground/90 shadow-lg" 
                       : "opacity-40 cursor-not-allowed"
                   )}
                 >
-                  <motion.div 
-                    className="flex items-center gap-3"
-                    animate={{ x: isReady ? 0 : 0 }}
-                  >
-                    <Sparkles className="w-5 h-5" />
-                    <span>Start Creating Free</span>
-                    <ArrowRight className={cn(
-                      "w-5 h-5 transition-transform duration-300",
-                      isReady ? "group-hover:translate-x-1" : ""
-                    )} />
-                  </motion.div>
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <span>Create My Video Free</span>
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                 </Button>
               </motion.div>
 
-              {/* Urgency message */}
-              {isReady && (
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center text-sm text-muted-foreground"
-                >
-                  🎉 Your video concept is saved. Complete signup to generate it!
-                </motion.p>
-              )}
+              {/* Compact step indicator */}
+              <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full",
+                  concept.length >= 10 ? "bg-emerald-500/10 text-emerald-600" : "bg-muted"
+                )}>
+                  1. Describe {concept.length >= 10 && "✓"}
+                </span>
+                <ArrowRight className="w-3 h-3" />
+                <span className="px-2 py-0.5 rounded-full bg-muted">2. Quick signup</span>
+                <ArrowRight className="w-3 h-3" />
+                <span className="px-2 py-0.5 rounded-full bg-muted">3. Generate!</span>
+              </div>
             </div>
 
-            {/* Bottom info */}
-            <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-foreground/5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            {/* Bottom info - Compact */}
+            <div className="flex items-center justify-center gap-3 sm:gap-5 mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-foreground/5">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+                <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 </div>
-                <span>Free to start</span>
+                <span>Free</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">60</span>
-                <span>credits included</span>
+                <span>credits</span>
               </div>
-              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                <span>No credit card</span>
+              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                <span>No card</span>
               </div>
             </div>
           </div>

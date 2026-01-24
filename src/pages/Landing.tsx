@@ -141,36 +141,36 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section - Reimagined */}
-      <section className="relative z-10 px-4 lg:px-8 pt-32 sm:pt-40 lg:pt-48 pb-16 sm:pb-24">
+      {/* Hero Section - Mobile-First Optimized */}
+      <section className="relative z-10 px-4 lg:px-8 pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-20 safe-area-inset-bottom">
         <div className="max-w-7xl mx-auto">
-          {/* Floating badge */}
+          {/* Floating badge - more compact on mobile */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex justify-center mb-8"
+            className="flex justify-center mb-6 sm:mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium text-emerald-600">60 Free Credits • No Card Required</span>
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm">
+              <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs sm:text-sm font-medium text-emerald-600">60 Free Credits • No Card</span>
             </div>
           </motion.div>
 
-          {/* Main headline - Outcome-focused */}
+          {/* Main headline - More compact, clearer value prop */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-center max-w-5xl mx-auto mb-10"
+            className="text-center max-w-4xl mx-auto mb-6 sm:mb-10"
           >
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.9] mb-6">
-              <span className="block hero-text">Turn Ideas Into</span>
-              <span className="block hero-text bg-clip-text">Pro Videos in Minutes</span>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[0.95] mb-4 sm:mb-6">
+              <span className="block hero-text">Create Pro Videos</span>
+              <span className="block hero-text bg-clip-text">in 5 Minutes</span>
             </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Type a description, upload an image, or let AI write your script. 
-              <span className="text-foreground font-medium"> Get your first video free.</span>
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed px-2">
+              Describe your idea → AI creates your video.
+              <span className="block sm:inline text-foreground font-medium mt-1 sm:mt-0 sm:ml-1">Start free, no card needed.</span>
             </p>
           </motion.div>
 
@@ -196,15 +196,15 @@ export default function Landing() {
             <ExamplesGallery open={showExamples} onOpenChange={setShowExamples} />
           </Suspense>
 
-          {/* BENTO GRID - Modern Feature Cards */}
+          {/* BENTO GRID - Modern Feature Cards - Hidden on mobile for cleaner UX */}
           <motion.div 
             id="features"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="max-w-6xl mx-auto"
+            className="max-w-6xl mx-auto hidden md:block"
           >
-            <div className="grid grid-cols-12 gap-4 auto-rows-[140px] sm:auto-rows-[160px]">
+            <div className="grid grid-cols-12 gap-4 auto-rows-[160px]">
               
               {/* Hero Card - Text to Video (Large) */}
               <div className="col-span-12 md:col-span-8 row-span-2 group relative rounded-3xl bg-glossy-black p-6 sm:p-8 overflow-hidden border border-white/10 shadow-obsidian-xl hover:shadow-2xl transition-all hover:-translate-y-1">
@@ -298,31 +298,58 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Animated Capabilities Pills */}
+          {/* Mobile Feature Pills - Compact horizontal scroll */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-12"
+            className="mt-8 md:mt-12"
           >
-            {CAPABILITIES.map((cap, i) => {
-              const Icon = cap.icon;
-              return (
-                <div
-                  key={cap.label}
-                  className={cn(
-                    "relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
-                    activeCapability === i 
-                      ? "bg-foreground text-background shadow-obsidian scale-105" 
-                      : "bg-white/50 backdrop-blur-sm text-muted-foreground hover:text-foreground border border-white/60 hover:scale-105"
-                  )}
-                  onClick={() => setActiveCapability(i)}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{cap.label}</span>
-                </div>
-              );
-            })}
+            {/* Mobile: horizontal scroll */}
+            <div className="md:hidden overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
+              <div className="flex gap-2 w-max">
+                {CAPABILITIES.map((cap, i) => {
+                  const Icon = cap.icon;
+                  return (
+                    <div
+                      key={cap.label}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                        activeCapability === i 
+                          ? "bg-foreground text-background shadow-md" 
+                          : "bg-white/60 backdrop-blur-sm text-muted-foreground border border-white/50"
+                      )}
+                      onClick={() => setActiveCapability(i)}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{cap.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Desktop: centered wrap */}
+            <div className="hidden md:flex flex-wrap items-center justify-center gap-3">
+              {CAPABILITIES.map((cap, i) => {
+                const Icon = cap.icon;
+                return (
+                  <div
+                    key={cap.label}
+                    className={cn(
+                      "relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-500 cursor-pointer",
+                      activeCapability === i 
+                        ? "bg-foreground text-background shadow-obsidian scale-105" 
+                        : "bg-white/50 backdrop-blur-sm text-muted-foreground hover:text-foreground border border-white/60 hover:scale-105"
+                    )}
+                    onClick={() => setActiveCapability(i)}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{cap.label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         </div>
       </section>

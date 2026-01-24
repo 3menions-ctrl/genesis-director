@@ -28,6 +28,7 @@ const ExitIntentPopup = lazy(() => import('@/components/landing/ExitIntentPopup'
 
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'));
+const VideoShowcasePreview = lazy(() => import('@/components/landing/VideoShowcasePreview'));
 
 const ContactSection = lazy(() => import('@/components/landing/ContactSection'));
 
@@ -324,6 +325,14 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      {/* Video Showcase - Immediate proof of quality */}
+      <Suspense fallback={<SectionLoader />}>
+        <VideoShowcasePreview 
+          className="relative z-10" 
+          onViewAllClick={() => setShowExamples(true)} 
+        />
+      </Suspense>
 
       {/* Lazy loaded sections */}
       <div id="how-it-works">

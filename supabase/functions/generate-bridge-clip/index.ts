@@ -145,7 +145,7 @@ serve(async (req) => {
       negative_prompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut, character morphing, face changing",
       aspect_ratio: "16:9",
       duration: klingDuration,
-      mode: "std",
+      mode: "pro", // HD quality mode - all Apex videos are professional grade
       cfg_scale: 0.5,
       generate_audio: KLING_ENABLE_AUDIO,
     };

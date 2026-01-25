@@ -138,12 +138,28 @@ export function CollaborativeMovieHub() {
   
   if (!screenplay) {
     return (
-      <div className="text-center py-16">
-        <Film className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2">No Active Production</h2>
-        <p className="text-muted-foreground">
-          Check back soon for the next collaborative movie project!
-        </p>
+      <div className="relative flex flex-col items-center justify-center py-20 px-4">
+        {/* Ambient glow */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] rounded-full bg-gradient-radial from-primary/5 to-transparent blur-3xl" />
+        </div>
+        
+        <div className="relative">
+          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-border/50 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <Film className="h-12 w-12 text-primary/60" />
+          </div>
+          <h2 className="text-2xl font-bold mb-3 text-center">No Active Production</h2>
+          <p className="text-muted-foreground text-center max-w-md mb-6">
+            The collaborative movie experience is coming soon. 
+            Stay tuned for opportunities to contribute scenes to community films!
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Badge variant="outline" className="gap-1.5">
+              <Clock className="w-3 h-3" />
+              Coming Soon
+            </Badge>
+          </div>
+        </div>
       </div>
     );
   }

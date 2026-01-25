@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Clock, Heart, Film, Search, TrendingUp } from 'lucide-react';
+import { Play, Clock, Heart, Film, Search, TrendingUp, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -31,6 +32,7 @@ interface PublicVideo {
 type SortOption = 'recent' | 'popular';
 
 export default function Discover() {
+  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
@@ -233,11 +235,20 @@ export default function Discover() {
               <Film className="w-10 h-10 text-white/30" />
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">No public videos yet</h3>
-            <p className="text-white/50 max-w-md mx-auto">
+            <p className="text-white/50 max-w-md mx-auto mb-6">
               {searchQuery 
                 ? "No videos match your search. Try different keywords."
                 : "Be the first to share your creation with the community!"}
             </p>
+            {!searchQuery && (
+              <Button
+                onClick={() => navigate('/create')}
+                className="bg-white text-black hover:bg-white/90 rounded-full px-6"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Create Your First Video
+              </Button>
+            )}
           </motion.div>
         )}
       </div>
@@ -386,8 +397,21 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
         <div className="aspect-video bg-black">
           {video.video_url ? (
             video.video_url.endsWith('.json') ? (
-              <div className="w-full h-full flex items-center justify-center text-white/50">
-                <p>Manifest videos require the full player</p>
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
+                {video.thumbnail_url && (
+                  <img 
+                    src={video.thumbnail_url} 
+                    alt={video.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-30"
+                  />
+                )}
+                <div className="relative z-10 text-center">
+                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+                    <Film className="w-8 h-8 text-white/50" />
+                  </div>
+                  <p className="text-white/70 font-medium mb-1">Multi-Clip Production</p>
+                  <p className="text-white/40 text-sm">Open in full studio to view this cinematic project</p>
+                </div>
               </div>
             ) : (
               <video

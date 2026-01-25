@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
-  Menu, X, Globe, Shield, Users, Trophy
+  Menu, X, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,8 +72,8 @@ export function AppHeader({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex items-center justify-between">
             {/* Logo - AS Monogram */}
-            <button 
-              onClick={() => navigate('/projects')}
+            <Link 
+              to="/projects"
               className="flex items-center gap-3 group"
             >
               <div className="relative">
@@ -83,14 +83,14 @@ export function AppHeader({
                 </div>
               </div>
               <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex Studio</span>
-            </button>
+            </Link>
 
             {/* Center Navigation - Desktop */}
             <div className="hidden md:flex items-center gap-1 bg-white/[0.03] rounded-full p-1 border border-white/[0.05]">
               {NAV_ITEMS.map((item) => (
-                <button
+                <Link
                   key={item.path}
-                  onClick={() => navigate(item.path)}
+                  to={item.path}
                   className={cn(
                     "px-5 py-2 text-sm font-medium rounded-full transition-all duration-300",
                     isActive(item.path)
@@ -99,7 +99,7 @@ export function AppHeader({
                   )}
                 >
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
 
@@ -208,21 +208,19 @@ export function AppHeader({
         <div className="md:hidden bg-black/95 backdrop-blur-2xl border-b border-white/[0.05]">
           <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
             {NAV_ITEMS.map((item) => (
-              <button
+              <Link
                 key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
+                to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  "block w-full px-4 py-3 rounded-xl text-sm font-medium transition-all",
                   isActive(item.path)
                     ? "text-white bg-white/[0.1]" 
                     : "text-white/60 hover:text-white hover:bg-white/[0.05]"
                 )}
               >
                 {item.label}
-              </button>
+              </Link>
             ))}
             
             {/* Create & Credits Row */}
@@ -259,47 +257,39 @@ export function AppHeader({
 
             {/* User Menu Items */}
             <div className="pt-2 border-t border-white/[0.06] space-y-1">
-              <button
-                onClick={() => {
-                  navigate('/profile');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
               >
                 <User className="w-4 h-4" />
                 Profile
-              </button>
-              <button
-                onClick={() => {
-                  navigate('/settings');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              </Link>
+              <Link
+                to="/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
               >
                 <Settings className="w-4 h-4" />
                 Settings
-              </button>
-              <button
-                onClick={() => {
-                  navigate('/help');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
+              </Link>
+              <Link
+                to="/help"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.05] transition-all"
               >
                 <HelpCircle className="w-4 h-4" />
                 Help Center
-              </button>
+              </Link>
               {isAdmin && (
-                <button
-                  onClick={() => {
-                    navigate('/admin');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all"
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all"
                 >
                   <Shield className="w-4 h-4" />
                   Admin Panel
-                </button>
+                </Link>
               )}
               <SignOutDialog>
                 <button

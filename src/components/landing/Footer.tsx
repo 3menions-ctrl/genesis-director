@@ -1,9 +1,5 @@
 import { Link } from 'react-router-dom';
 import { 
-  Twitter, 
-  Youtube, 
-  Instagram, 
-  Linkedin,
   Mail,
   MapPin
 } from 'lucide-react';
@@ -29,13 +25,6 @@ const FOOTER_LINKS = {
   ],
 };
 
-const SOCIAL_LINKS = [
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Youtube, href: '#', label: 'YouTube' },
-  { icon: Instagram, href: '#', label: 'Instagram' },
-  { icon: Linkedin, href: '#', label: 'LinkedIn' },
-];
-
 export default function Footer() {
   return (
     <footer className="relative z-10">
@@ -43,30 +32,11 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
             {/* Brand Column */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-6 lg:gap-8">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">AS</span>
-                </div>
-                <span className="text-lg font-bold text-white">Apex Studio</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <span className="text-sm font-bold text-white">AS</span>
               </div>
-              
-              {/* Social Links */}
-              <div className="flex items-center gap-2">
-                {SOCIAL_LINKS.map((social) => {
-                  const Icon = social.icon;
-                  return (
-                    <a
-                      key={social.label}
-                      href={social.href}
-                      aria-label={social.label}
-                      className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
-                    >
-                      <Icon className="w-4 h-4" />
-                    </a>
-                  );
-                })}
-              </div>
+              <span className="text-lg font-bold text-white">Apex Studio</span>
             </div>
 
             {/* Link Columns - Horizontal on larger screens */}

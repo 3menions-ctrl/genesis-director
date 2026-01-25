@@ -1,5 +1,6 @@
 // Account Tier System Types
-// Defines limits for Free, Pro, Growth, and Agency tiers
+// Defines clip RECOMMENDATIONS (not limits) for Free, Pro, Growth, and Agency tiers
+// IMPORTANT: 10 credits = 1 clip = $1 (no hard limit on clips per video)
 // SINGLE SOURCE OF TRUTH - used by both frontend and edge functions
 
 export type AccountTier = 'free' | 'pro' | 'growth' | 'agency';
@@ -38,7 +39,8 @@ export type ErrorCategory = 'timeout' | 'api_error' | 'validation' | 'quota' | '
 // Default limits for each tier - SINGLE SOURCE OF TRUTH
 // Edge functions should use get_user_tier_limits RPC which reads from tier_limits table
 // These are fallback defaults if DB is unavailable
-// Duration targets: Free=32sec, Pro=1min, Growth=2min, Agency=3min
+// Note: max_clips_per_video are RECOMMENDATIONS based on included credits, not hard limits
+// Users can create videos with any number of clips as long as they have credits
 export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
@@ -78,10 +80,12 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   },
 };
 
-// Tier clip limits for edge functions (matches DEFAULT_TIER_LIMITS)
-// Use this in edge functions instead of duplicating the values
+// Tier clip RECOMMENDATIONS for edge functions (matches DEFAULT_TIER_LIMITS)
+// These are suggested values based on typical package sizes, NOT hard limits
+// Users can create videos with any number of clips - they just need enough credits
+// 10 credits = 1 clip = $1
 export const TIER_CLIP_LIMITS: Record<AccountTier, { 
-  maxClips: number; 
+  maxClips: number;  // Recommended max (not enforced)
   maxDuration: number; 
   maxRetries: number; 
   chunkedStitching: boolean;

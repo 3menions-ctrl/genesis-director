@@ -167,24 +167,6 @@ const Contact = () => {
               
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-primary/10 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Community</h3>
-                  <p className="text-muted-foreground text-sm mb-2">
-                    Join our community for tips and discussions
-                  </p>
-                  <a 
-                    href="#" 
-                    className="text-primary hover:underline"
-                  >
-                    Join Discord
-                  </a>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
                   <Clock className="w-5 h-5 text-primary" />
                 </div>
                 <div>

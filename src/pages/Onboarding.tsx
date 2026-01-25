@@ -204,10 +204,29 @@ export default function Onboarding() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-glossy-black flex items-center justify-center shadow-obsidian">
-            <span className="text-xl font-bold text-white">AS</span>
-          </div>
-          <p className="text-muted-foreground text-sm">Loading...</p>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg"
+          >
+            <Film className="w-8 h-8 text-white" />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center"
+          >
+            <p className="text-foreground font-medium">Setting up your studio...</p>
+            <p className="text-muted-foreground text-xs mt-1">This only takes a moment</p>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"
+          />
         </div>
       </div>
     );

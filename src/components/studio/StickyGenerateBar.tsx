@@ -254,6 +254,13 @@ export const StickyGenerateBar = forwardRef<HTMLDivElement, StickyGenerateBarPro
                     <Layers className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">{clipCount} clips</span>
                   </div>
+
+                  {/* Render time estimate */}
+                  <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span className="font-medium text-amber-600">~{Math.ceil(clipCount * 3)} min</span>
+                    <span className="text-xs text-muted-foreground">(2-4 min/clip)</span>
+                  </div>
                   
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm">
                     <Coins className="w-4 h-4" />

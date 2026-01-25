@@ -123,16 +123,8 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
 
   // Removed handleDirectCheckout - now using direct redirect in handlePurchase
 
-  const formatPrice = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(cents / 100);
-  };
-
-  const getPricePerCredit = (pkg: CreditPackage) => {
-    return (pkg.price_cents / 100 / pkg.credits).toFixed(2);
+  const formatCredits = (credits: number) => {
+    return `${credits.toLocaleString()} credits`;
   };
 
   const getSavingsPercent = (pkg: CreditPackage, packages: CreditPackage[]) => {
@@ -188,19 +180,19 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">Per clip (any length)</span>
-                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits = $1</span>
+                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">5 clips</span>
-                      <span className="font-semibold text-foreground">50 credits = $5</span>
+                      <span className="font-semibold text-foreground">50 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">10 clips</span>
-                      <span className="font-semibold text-primary">100 credits = $10</span>
+                      <span className="font-semibold text-primary">100 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
                       <span className="text-muted-foreground">30 clips</span>
-                      <span className="font-semibold text-amber-500">300 credits = $30</span>
+                      <span className="font-semibold text-amber-500">300 credits</span>
                     </div>
                   </div>
                 </div>
@@ -255,14 +247,10 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                                 </span>
                                 <span className="text-muted-foreground text-sm">credits</span>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                ${getPricePerCredit(pkg)} per credit
-                              </p>
                             </div>
                           </div>
 
                           <div className="text-right flex flex-col items-end gap-1">
-                            <span className="text-xs text-muted-foreground">One-time</span>
                             <Button
                               onClick={() => handlePurchase(pkg)}
                               disabled={purchasing === pkg.id}
@@ -277,7 +265,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                               {purchasing === pkg.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                formatPrice(pkg.price_cents)
+                                `Get ${pkg.credits.toLocaleString()}`
                               )}
                             </Button>
                           </div>

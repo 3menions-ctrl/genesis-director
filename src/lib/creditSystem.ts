@@ -3,16 +3,12 @@
 
 /**
  * Credit Pricing (SINGLE SOURCE OF TRUTH):
- * - 10 credits = 1 clip = $1 (regardless of clip length)
- * - 1 dollar = 10 credits
+ * - 10 credits = 1 clip (regardless of clip length)
  * - New users get 60 free credits (6 clips)
  * - No limit on clips per video
  */
 
 export const CREDIT_SYSTEM = {
-  // Pricing conversion
-  CREDITS_PER_DOLLAR: 10,
-  DOLLARS_PER_CREDIT: 0.1,
   
   // Cost per clip breakdown
   COST_PER_CLIP: {
@@ -48,18 +44,8 @@ export function calculateAffordableClips(credits: number): number {
 }
 
 /**
- * Convert credits to dollar amount
+ * Check if user can afford the generation
  */
-export function creditsToDollars(credits: number): number {
-  return credits * CREDIT_SYSTEM.DOLLARS_PER_CREDIT;
-}
-
-/**
- * Convert dollar amount to credits
- */
-export function dollarsToCredits(dollars: number): number {
-  return dollars * CREDIT_SYSTEM.CREDITS_PER_DOLLAR;
-}
 
 /**
  * Check if user can afford the generation

@@ -428,7 +428,7 @@ View and terminate active sessions:
 - Projects: Until you delete them
 
 ### GDPR Compliance
-We're fully GDPR compliant. Contact privacy@apex.video for requests.
+We're fully GDPR compliant. Contact cole@apex-studio.com for requests.
         `
       }
     ]

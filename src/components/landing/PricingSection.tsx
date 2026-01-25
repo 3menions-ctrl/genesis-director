@@ -45,14 +45,14 @@ const PRICING_TIERS = [
   },
   {
     name: 'Agency',
-    price: 290,
+    price: 249,
     period: 'one-time',
-    credits: 3000,
+    credits: 2500,
     icon: Crown,
     description: 'For teams and agencies',
     features: [
-      '3,000 credits',
-      '~10 three-minute videos',
+      '2,500 credits',
+      '~8 three-minute videos',
       'Up to 30 clips per video',
       'Priority processing',
     ],
@@ -111,7 +111,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. 10 credits per clip. Videos from 30 seconds to 3 minutes.
+            Pay for what you use. 10 credits per clip. Each clip renders in 2-4 minutes.
           </p>
         </div>
 

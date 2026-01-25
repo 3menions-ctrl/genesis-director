@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     question: "How long does video generation take?",
-    answer: "A 5-second video clip typically generates in about 30 seconds. Full video projects with multiple clips, voice, and music usually complete in 3-5 minutes depending on length and complexity."
+    answer: "Each 5-second video clip typically renders in 2-4 minutes. Full video projects with multiple clips, voice, and music usually complete in 10-20 minutes depending on length and complexity. You can track progress in real-time from your dashboard."
   },
   {
     question: "What is Character Lock?",

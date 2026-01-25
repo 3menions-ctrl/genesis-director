@@ -157,10 +157,10 @@ const Contact = () => {
                     For partnerships and enterprise solutions
                   </p>
                   <a 
-                    href="mailto:admincole@apex-studio.ai" 
+                    href="mailto:cole@apex-studio.com" 
                     className="text-primary hover:underline"
                   >
-                    admincole@apex-studio.ai
+                    cole@apex-studio.com
                   </a>
                 </div>
               </div>

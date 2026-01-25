@@ -32,6 +32,8 @@ const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection'
 const VideoShowcasePreview = lazy(() => import('@/components/landing/VideoShowcasePreview'));
 
 const ContactSection = lazy(() => import('@/components/landing/ContactSection'));
+const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
+const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 
 const Footer = lazy(() => import('@/components/landing/Footer'));
 
@@ -98,9 +100,10 @@ export default function Landing() {
               </div>
 
               <div className="hidden lg:flex items-center">
-                {[
+              {[
                   { label: 'Product', target: 'how-it-works' },
                   { label: 'Features', target: 'features' },
+                  { label: 'Pricing', target: 'pricing' },
                   { label: 'Contact', target: 'contact' },
                 ].map((item) => (
                   <button 
@@ -400,6 +403,20 @@ export default function Landing() {
         <ErrorBoundaryWrapper fallback={<SectionLoader />}>
           <Suspense fallback={<SectionLoader />}>
             <ContactSection />
+          </Suspense>
+        </ErrorBoundaryWrapper>
+
+        {/* Pricing Section */}
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <PricingSection />
+          </Suspense>
+        </ErrorBoundaryWrapper>
+
+        {/* FAQ Section */}
+        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+          <Suspense fallback={<SectionLoader />}>
+            <FAQSection />
           </Suspense>
         </ErrorBoundaryWrapper>
       </div>

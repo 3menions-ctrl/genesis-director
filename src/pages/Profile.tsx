@@ -80,11 +80,11 @@ const DAILY_CHALLENGES = [
 
 type TabType = 'overview' | 'achievements' | 'activity';
 
-// Premium card styles - matching landing page aesthetic
-const glassCard = "relative backdrop-blur-xl bg-white/40 border border-white/60 shadow-lg";
-const glassCardHover = "hover:bg-white/50 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
-const darkCard = "relative bg-glossy-black border border-white/10 shadow-obsidian";
-const darkCardHover = "hover:shadow-obsidian-lg hover:-translate-y-0.5 transition-all duration-300";
+// Premium card styles - using design system tokens
+const glassCard = "relative backdrop-blur-xl bg-card/80 border border-border shadow-lg";
+const glassCardHover = "hover:bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
+const darkCard = "relative bg-muted border border-border shadow-lg";
+const darkCardHover = "hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
 
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -396,10 +396,10 @@ export default function Profile() {
                   className="absolute inset-0 w-full h-full object-cover scale-110" 
                   loop muted playsInline autoPlay 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-glossy-black via-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
                 <button 
                   onClick={() => setCoverVideo(null)} 
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-foreground/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-foreground/20 transition-all"
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-foreground/10 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/20 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -407,12 +407,12 @@ export default function Profile() {
             ) : (
               <>
                 <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.08] via-transparent to-transparent" />
-                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-foreground/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 <button
                   onClick={() => { fetchUserVideoClips(); setShowVideoPicker(true); }}
-                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm"
+                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-background/20 backdrop-blur-sm"
                 >
-                  <div className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-xl bg-white/10 border border-white/20 text-white/80 text-sm font-medium hover:bg-white/20 transition-all">
+                  <div className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-xl bg-foreground/10 border border-border text-muted-foreground text-sm font-medium hover:bg-foreground/20 transition-all">
                     <Camera className="w-4 h-4" /> Add cover video
                   </div>
                 </button>
@@ -420,7 +420,7 @@ export default function Profile() {
             )}
             
             {/* Top accent line */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
 
           {/* Profile Content */}
@@ -429,7 +429,7 @@ export default function Profile() {
               {/* Avatar with Premium Styling */}
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-foreground/30 to-foreground/10 blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-32 h-32 rounded-2xl bg-glossy-black border-4 border-glossy-black shadow-obsidian-lg flex items-center justify-center overflow-hidden">
+                <div className="relative w-32 h-32 rounded-2xl bg-muted border-4 border-muted shadow-lg flex items-center justify-center overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -439,7 +439,7 @@ export default function Profile() {
                   )}
                 </div>
                 {/* Level Badge */}
-                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs font-bold shadow-obsidian">
+                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs font-bold shadow-lg">
                   Lv.{level}
                 </div>
               </div>
@@ -447,17 +447,17 @@ export default function Profile() {
               {/* Info */}
               <div className="flex-1 pt-4 sm:pt-6">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                     {profile?.display_name || profile?.full_name || 'Creator'}
                   </h1>
                   {streak > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white/80 text-sm font-medium">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-foreground/10 border border-border text-muted-foreground text-sm font-medium">
                       <Flame className="w-3.5 h-3.5 text-orange-400" /> {streak} day streak
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-4 mt-2 text-sm text-white/50">
+                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" /> Joined {memberSince}
                   </span>
@@ -469,10 +469,10 @@ export default function Profile() {
                 {/* XP Progress Bar */}
                 <div className="mt-5 max-w-md">
                   <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-white/60 font-medium">Progress to Level {level + 1}</span>
-                    <span className="text-white/40">{xpProgress?.current || 0} / {xpProgress?.needed || 100} XP</span>
+                    <span className="text-muted-foreground font-medium">Progress to Level {level + 1}</span>
+                    <span className="text-muted-foreground/60">{xpProgress?.current || 0} / {xpProgress?.needed || 100} XP</span>
                   </div>
-                  <div className="relative h-2.5 rounded-full overflow-hidden bg-white/[0.08] border border-white/[0.08]">
+                  <div className="relative h-2.5 rounded-full overflow-hidden bg-muted border border-border">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${xpProgress?.percentage || 0}%` }}
@@ -487,7 +487,7 @@ export default function Profile() {
               <div className="flex gap-3 sm:pt-6">
                 <Button 
                   onClick={() => setShowBuyModal(true)} 
-                  className="h-12 px-6 rounded-full bg-foreground text-background font-semibold shadow-obsidian hover:shadow-obsidian-lg hover:scale-105 transition-all border-0"
+                  className="h-12 px-6 rounded-full bg-foreground text-background font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all border-0"
                 >
                   <Coins className="w-4 h-4 mr-2" />
                   {profile?.credits_balance?.toLocaleString() || 0}
@@ -495,7 +495,7 @@ export default function Profile() {
                 <Button 
                   onClick={() => navigate('/settings')} 
                   variant="ghost" 
-                  className="h-12 w-12 rounded-full bg-white/10 border border-white/20 text-white/70 hover:text-white hover:bg-white/20 transition-all"
+                  className="h-12 w-12 rounded-full bg-foreground/10 border border-border text-muted-foreground hover:text-foreground hover:bg-foreground/20 transition-all"
                 >
                   <Settings className="w-5 h-5" />
                 </Button>

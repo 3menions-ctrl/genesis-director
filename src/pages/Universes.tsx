@@ -2,10 +2,15 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollaborativeMovieHub } from '@/components/genesis/CollaborativeMovieHub';
+import { UniverseEmptyState } from '@/components/universes/UniverseEmptyState';
+import { useUniverses } from '@/hooks/useUniverses';
 import universeBackground from '@/assets/universe-background.jpg';
 
 export default function Universes() {
   const navigate = useNavigate();
+  const { universes, isLoading } = useUniverses();
+  
+  const hasUniverses = !isLoading && universes && universes.length > 0;
 
   return (
     <div className="min-h-screen relative">
@@ -34,9 +39,13 @@ export default function Universes() {
           </div>
         </div>
 
-        {/* Main Content - Collaborative Movie Hub */}
+        {/* Main Content */}
         <div className="container mx-auto px-4 py-8">
-          <CollaborativeMovieHub />
+          {!isLoading && !hasUniverses ? (
+            <UniverseEmptyState onCreated={(id) => navigate(`/universes/${id}`)} />
+          ) : (
+            <CollaborativeMovieHub />
+          )}
         </div>
       </div>
     </div>

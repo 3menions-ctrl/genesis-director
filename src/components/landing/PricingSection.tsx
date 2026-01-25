@@ -79,14 +79,13 @@ const PRICING_TIERS = [
   },
 ];
 
-// Credit cost breakdown - 10 credits per clip
-// Video lengths: Free ~30s (5 clips), Pro ~1min (10 clips), Growth ~2min (20 clips), Agency ~3min (30 clips)
+// Credit cost breakdown - 10 credits = 1 clip = $1 (no clip limit per video)
 const CREDIT_COSTS = [
-  { action: 'Single video clip (~6 sec)', credits: 10, breakdown: '10 credits per clip' },
-  { action: '30-second video (Free)', credits: 50, breakdown: '5 clips × 10 credits' },
-  { action: '1-minute video (Pro)', credits: 100, breakdown: '10 clips × 10 credits' },
-  { action: '2-minute video (Growth)', credits: 200, breakdown: '20 clips × 10 credits' },
-  { action: '3-minute video (Agency)', credits: 300, breakdown: '30 clips × 10 credits' },
+  { action: 'Single video clip (any length)', credits: 10, breakdown: '10 credits = $1' },
+  { action: '5-clip video', credits: 50, breakdown: '5 clips × 10 credits = $5' },
+  { action: '10-clip video', credits: 100, breakdown: '10 clips × 10 credits = $10' },
+  { action: '20-clip video', credits: 200, breakdown: '20 clips × 10 credits = $20' },
+  { action: '30-clip video', credits: 300, breakdown: '30 clips × 10 credits = $30' },
   { action: 'Voice narration', credits: 'Included', breakdown: 'With each clip' },
 ];
 
@@ -111,7 +110,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pay for what you use. 10 credits per clip. Each clip renders in 2-4 minutes.
+            10 credits = 1 clip = $1. No limit on clips per video. Each clip renders in 2-4 minutes.
           </p>
         </div>
 

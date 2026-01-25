@@ -187,20 +187,20 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Per clip (~6 sec)</span>
-                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
+                      <span className="text-muted-foreground">Per clip (any length)</span>
+                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits = $1</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">~30 sec video</span>
-                      <span className="font-semibold text-foreground">60 credits</span>
+                      <span className="text-muted-foreground">5 clips</span>
+                      <span className="font-semibold text-foreground">50 credits = $5</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">~1 min video</span>
-                      <span className="font-semibold text-primary">100 credits</span>
+                      <span className="text-muted-foreground">10 clips</span>
+                      <span className="font-semibold text-primary">100 credits = $10</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">~3 min video</span>
-                      <span className="font-semibold text-amber-500">300 credits</span>
+                      <span className="text-muted-foreground">30 clips</span>
+                      <span className="font-semibold text-amber-500">300 credits = $30</span>
                     </div>
                   </div>
                 </div>

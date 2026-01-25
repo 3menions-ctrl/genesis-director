@@ -70,11 +70,11 @@ export const PromotionalBanner = ({ onDismiss, variant = 'default' }: Promotiona
               "text-sm",
               variant === 'dark' ? "text-white/60" : "hero-text-secondary"
             )}>
-              Only <span className={cn("font-medium", variant === 'dark' ? "text-white" : "hero-text")}>10 credits</span> per clip
+              <span className={cn("font-medium", variant === 'dark' ? "text-white" : "hero-text")}>10 credits = 1 clip = $1</span>
               <span className={cn(
                 "hidden sm:inline ml-1",
                 variant === 'dark' ? "text-white/40" : "text-muted-foreground"
-              )}>• Up to 30 clips per video</span>
+              )}>• No limit on clips per video</span>
             </div>
           </div>
         </div>

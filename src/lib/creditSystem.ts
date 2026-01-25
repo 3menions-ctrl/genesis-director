@@ -2,10 +2,11 @@
 // Consistent across frontend and backend
 
 /**
- * Credit Pricing:
+ * Credit Pricing (SINGLE SOURCE OF TRUTH):
+ * - 10 credits = 1 clip = $1 (regardless of clip length)
  * - 1 dollar = 10 credits
- * - 1 clip = 10 credits
  * - New users get 60 free credits (6 clips)
+ * - No limit on clips per video
  */
 
 export const CREDIT_SYSTEM = {

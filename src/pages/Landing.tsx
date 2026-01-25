@@ -79,9 +79,12 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background overflow-hidden relative">
+      {/* Vibrant color mesh overlay */}
+      <div className="fixed inset-0 z-[1] pointer-events-none bg-vibrant-mesh opacity-70" />
+      
       {/* Premium Video Background - Lazy loaded */}
       <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
-        <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.92} />
+        <HeroVideoBackground className="fixed inset-0 z-0" overlayOpacity={0.88} />
       </Suspense>
 
       {/* Navigation */}

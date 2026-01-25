@@ -151,10 +151,11 @@ export default {
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        shimmer: "linear-gradient(90deg, transparent, hsl(30 30% 100% / 0.3), transparent)",
-        aurora: "linear-gradient(135deg, hsl(30 25% 95%), hsl(24 30% 88%), hsl(38 35% 90%))",
-        "warm-gradient": "linear-gradient(135deg, hsl(24 95% 53%), hsl(38 92% 50%), hsl(12 76% 52%))",
-        "sunset-gradient": "linear-gradient(180deg, hsl(24 95% 53% / 0.1), hsl(38 92% 50% / 0.05), transparent)",
+        shimmer: "linear-gradient(90deg, transparent, hsl(45 60% 100% / 0.4), transparent)",
+        aurora: "linear-gradient(135deg, hsl(45 60% 97%), hsl(340 60% 95%), hsl(195 60% 95%), hsl(45 60% 97%))",
+        "warm-gradient": "linear-gradient(135deg, hsl(16 100% 58%), hsl(45 100% 55%), hsl(340 85% 58%))",
+        "sunset-gradient": "linear-gradient(180deg, hsl(16 100% 58% / 0.12), hsl(45 100% 55% / 0.08), hsl(340 85% 58% / 0.05), transparent)",
+        "vibrant-mesh": "radial-gradient(at 40% 20%, hsl(16 100% 58% / 0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, hsl(340 85% 58% / 0.12) 0px, transparent 50%), radial-gradient(at 0% 50%, hsl(45 100% 55% / 0.1) 0px, transparent 50%), radial-gradient(at 80% 100%, hsl(195 100% 50% / 0.1) 0px, transparent 50%)",
       },
       boxShadow: {
         'glass': '0 8px 32px hsl(20 30% 20% / 0.05), inset 0 0 0 1px hsl(30 30% 100% / 0.15)',

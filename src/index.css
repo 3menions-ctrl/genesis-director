@@ -15,95 +15,99 @@
 
 @layer base {
   :root {
-    /* WARM SUNSET PREMIUM - Inviting colors that convert */
-    --background: 30 25% 97%;
-    --foreground: 20 15% 12%;
+    /* VIBRANT SUNRISE - Bright, energetic colors */
+    --background: 45 60% 98%;
+    --foreground: 20 20% 10%;
 
-    /* Warm glass effect base */
-    --card: 30 20% 99%;
-    --card-foreground: 20 15% 12%;
-    --popover: 30 20% 99%;
-    --popover-foreground: 20 15% 12%;
+    /* Bright warm glass effect */
+    --card: 40 50% 99%;
+    --card-foreground: 20 20% 10%;
+    --popover: 40 50% 99%;
+    --popover-foreground: 20 20% 10%;
 
-    /* Warm coral/orange primary - energizing CTAs */
-    --primary: 24 95% 53%;
+    /* Vibrant coral primary - eye-catching CTAs */
+    --primary: 16 100% 58%;
     --primary-foreground: 0 0% 100%;
 
-    /* Rich terracotta secondary */
-    --secondary: 12 76% 52%;
+    /* Rich magenta-rose secondary */
+    --secondary: 340 85% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Warm sand muted */
-    --muted: 30 15% 90%;
-    --muted-foreground: 20 10% 45%;
+    /* Warm cream muted */
+    --muted: 42 40% 92%;
+    --muted-foreground: 25 15% 40%;
 
-    /* Golden amber accent */
-    --accent: 38 92% 50%;
-    --accent-foreground: 20 15% 10%;
+    /* Bright golden accent */
+    --accent: 45 100% 55%;
+    --accent-foreground: 20 20% 8%;
 
-    /* Semantic colors - Warm feedback */
-    --success: 152 69% 40%;
+    /* Semantic colors - Vibrant feedback */
+    --success: 160 84% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 100% 51%;
-    --warning-foreground: 20 15% 10%;
-    --info: 200 80% 50%;
+    --success-muted: 160 60% 90%;
+    --warning: 42 100% 55%;
+    --warning-foreground: 25 100% 15%;
+    --warning-muted: 42 80% 90%;
+    --info: 195 100% 50%;
     --info-foreground: 0 0% 100%;
-    --destructive: 0 84% 55%;
+    --info-muted: 195 80% 92%;
+    --destructive: 0 90% 60%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-muted: 0 70% 92%;
 
-    /* Chart colors - Warm sunset spectrum */
-    --chart-1: 24 95% 53%;
-    --chart-2: 12 76% 52%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 350 80% 55%;
-    --chart-5: 280 65% 55%;
+    /* Chart colors - Vibrant rainbow spectrum */
+    --chart-1: 16 100% 58%;
+    --chart-2: 340 85% 58%;
+    --chart-3: 45 100% 55%;
+    --chart-4: 195 100% 50%;
+    --chart-5: 280 75% 60%;
 
-    /* Warm borders */
-    --border: 30 15% 85%;
-    --input: 30 15% 92%;
-    --ring: 24 95% 53%;
+    /* Warm golden borders */
+    --border: 42 30% 88%;
+    --input: 42 30% 94%;
+    --ring: 16 100% 58%;
 
     --radius: 1rem;
 
-    /* Premium shadows with warm tints */
-    --shadow-xs: 0 1px 2px hsl(20 30% 20% / 0.03);
-    --shadow-sm: 0 2px 4px hsl(20 30% 20% / 0.04), 0 1px 2px hsl(20 30% 20% / 0.03);
-    --shadow-md: 0 4px 8px hsl(20 30% 20% / 0.05), 0 2px 4px hsl(20 30% 20% / 0.03);
-    --shadow-lg: 0 8px 16px hsl(20 30% 20% / 0.07), 0 4px 8px hsl(20 30% 20% / 0.04);
-    --shadow-xl: 0 16px 48px hsl(20 30% 20% / 0.1), 0 8px 16px hsl(20 30% 20% / 0.05);
-    --shadow-2xl: 0 24px 64px hsl(20 30% 20% / 0.12), 0 12px 24px hsl(20 30% 20% / 0.06);
-    --shadow-glass: 0 8px 32px hsl(20 30% 20% / 0.05), inset 0 0 0 1px hsl(30 30% 100% / 0.15);
-    --shadow-glow: 0 0 60px hsl(24 95% 53% / 0.25);
-    --shadow-glow-accent: 0 0 40px hsl(38 92% 50% / 0.3);
-    --shadow-glow-secondary: 0 0 40px hsl(12 76% 52% / 0.25);
+    /* Premium shadows with warm golden tints */
+    --shadow-xs: 0 1px 2px hsl(30 40% 30% / 0.04);
+    --shadow-sm: 0 2px 4px hsl(30 40% 30% / 0.05), 0 1px 2px hsl(30 40% 30% / 0.04);
+    --shadow-md: 0 4px 8px hsl(30 40% 30% / 0.06), 0 2px 4px hsl(30 40% 30% / 0.04);
+    --shadow-lg: 0 8px 16px hsl(30 40% 30% / 0.08), 0 4px 8px hsl(30 40% 30% / 0.05);
+    --shadow-xl: 0 16px 48px hsl(30 40% 30% / 0.12), 0 8px 16px hsl(30 40% 30% / 0.06);
+    --shadow-2xl: 0 24px 64px hsl(30 40% 30% / 0.15), 0 12px 24px hsl(30 40% 30% / 0.08);
+    --shadow-glass: 0 8px 32px hsl(30 40% 30% / 0.06), inset 0 0 0 1px hsl(45 60% 100% / 0.2);
+    --shadow-glow: 0 0 60px hsl(16 100% 58% / 0.3);
+    --shadow-glow-accent: 0 0 40px hsl(45 100% 55% / 0.35);
+    --shadow-glow-secondary: 0 0 40px hsl(340 85% 58% / 0.3);
 
     /* Warm sidebar */
-    --sidebar-background: 20 20% 6%;
-    --sidebar-foreground: 30 20% 92%;
-    --sidebar-primary: 24 95% 58%;
+    --sidebar-background: 25 25% 8%;
+    --sidebar-foreground: 45 40% 95%;
+    --sidebar-primary: 16 100% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 15% 12%;
-    --sidebar-accent-foreground: 30 20% 92%;
-    --sidebar-border: 20 15% 15%;
-    --sidebar-ring: 24 95% 53%;
+    --sidebar-accent: 25 20% 14%;
+    --sidebar-accent-foreground: 45 40% 95%;
+    --sidebar-border: 25 20% 18%;
+    --sidebar-ring: 16 100% 58%;
   }
 
   .dark {
-    --background: 20 15% 6%;
-    --foreground: 30 20% 92%;
-    --card: 20 15% 8%;
-    --card-foreground: 30 20% 92%;
-    --primary: 24 95% 58%;
+    --background: 25 20% 6%;
+    --foreground: 45 40% 95%;
+    --card: 25 20% 9%;
+    --card-foreground: 45 40% 95%;
+    --primary: 16 100% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 12 76% 50%;
+    --secondary: 340 85% 60%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 20 15% 14%;
-    --muted-foreground: 30 15% 55%;
-    --accent: 38 92% 55%;
-    --accent-foreground: 20 15% 10%;
-    --border: 20 15% 18%;
-    --input: 20 15% 14%;
-    --ring: 24 95% 58%;
+    --muted: 25 20% 15%;
+    --muted-foreground: 40 20% 60%;
+    --accent: 45 100% 58%;
+    --accent-foreground: 25 100% 8%;
+    --border: 25 20% 20%;
+    --input: 25 20% 15%;
+    --ring: 16 100% 62%;
   }
 }
 
@@ -285,7 +289,7 @@
   body {
     @apply text-foreground antialiased;
     font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
-    background: hsl(30 25% 96%);
+    background: linear-gradient(145deg, hsl(45 60% 98%) 0%, hsl(40 50% 96%) 50%, hsl(35 45% 95%) 100%);
     min-height: 100vh;
     font-feature-settings: "cv11", "ss01";
     font-variation-settings: "opsz" 32;

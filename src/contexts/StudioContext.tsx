@@ -5,10 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { TIER_CREDIT_COSTS } from '@/hooks/useCreditBilling';
 import type { QualityTier } from '@/types/quality-tiers';
+// Default credits match the standardized 60-credit welcome bonus
 const DEFAULT_CREDITS: UserCredits = {
-  total: 50,
+  total: 60,
   used: 0,
-  remaining: 50,
+  remaining: 60,
 };
 
 const MOCK_LAYERS: AssetLayer[] = [

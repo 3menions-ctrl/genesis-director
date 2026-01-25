@@ -10,7 +10,7 @@ const FAQS = [
   },
   {
     question: "How do credits work?",
-    answer: "Credits are our usage currency. Each video clip costs 10 credits regardless of length — that's $1 per clip. There's no limit to how many clips your video can have. New users get 60 free credits (6 clips) to start. Voice narration and automatic retries are included at no extra cost. Simply put: 10 credits = 1 clip = $1."
+    answer: "Credits are our usage currency. Each video clip costs 10 credits regardless of length. There's no limit to how many clips your video can have. New users get 60 free credits (6 clips) to start. Voice narration and automatic retries are included at no extra cost. Simply put: 10 credits = 1 clip."
   },
   {
     question: "What video quality can I expect?",
@@ -34,7 +34,7 @@ const FAQS = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes! Every new account starts with 60 free credits — enough for 6 video clips or a complete 30-second video. No credit card required to start. This lets you try the platform before committing to a paid plan."
+    answer: "Yes! Every new account starts with 60 free credits — enough for 6 video clips or a complete 30-second video. No credit card required to start. This lets you explore the platform before purchasing more credits."
   },
   {
     question: "What file formats are supported?",

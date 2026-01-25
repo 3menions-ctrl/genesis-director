@@ -79,13 +79,13 @@ const PRICING_TIERS = [
   },
 ];
 
-// Credit cost breakdown - 10 credits = 1 clip = $1 (no clip limit per video)
+// Credit cost breakdown - 10 credits = 1 clip (no clip limit per video)
 const CREDIT_COSTS = [
-  { action: 'Single video clip (any length)', credits: 10, breakdown: '10 credits = $1' },
-  { action: '5-clip video', credits: 50, breakdown: '5 clips × 10 credits = $5' },
-  { action: '10-clip video', credits: 100, breakdown: '10 clips × 10 credits = $10' },
-  { action: '20-clip video', credits: 200, breakdown: '20 clips × 10 credits = $20' },
-  { action: '30-clip video', credits: 300, breakdown: '30 clips × 10 credits = $30' },
+  { action: 'Single video clip (any length)', credits: 10, breakdown: '10 credits per clip' },
+  { action: '5-clip video', credits: 50, breakdown: '5 clips × 10 credits' },
+  { action: '10-clip video', credits: 100, breakdown: '10 clips × 10 credits' },
+  { action: '20-clip video', credits: 200, breakdown: '20 clips × 10 credits' },
+  { action: '30-clip video', credits: 300, breakdown: '30 clips × 10 credits' },
   { action: 'Voice narration', credits: 'Included', breakdown: 'With each clip' },
 ];
 
@@ -110,7 +110,7 @@ export default function PricingSection() {
             Credits-based pricing
           </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            10 credits = 1 clip = $1. No limit on clips per video. Each clip renders in 2-4 minutes.
+            10 credits = 1 clip. No limit on clips per video. Each clip renders in 2-4 minutes.
           </p>
         </div>
 
@@ -156,12 +156,12 @@ export default function PricingSection() {
                 {/* Name & Price */}
                 <h3 className="text-xl font-bold text-foreground mb-1">{tier.name}</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  {tier.price !== null ? (
+                  {tier.credits !== null ? (
                     <>
                       <span className="text-4xl font-bold text-foreground">
-                        ${tier.price}
+                        {tier.credits.toLocaleString()}
                       </span>
-                      <span className="text-muted-foreground">{tier.period}</span>
+                      <span className="text-muted-foreground">credits</span>
                     </>
                   ) : (
                     <span className="text-2xl font-bold text-foreground">Custom</span>

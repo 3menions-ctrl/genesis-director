@@ -7,7 +7,6 @@ import * as THREE from 'three';
 function BlackHole() {
   const groupRef = useRef<THREE.Group>(null);
   const diskRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame((_, delta) => {
     if (groupRef.current) {
@@ -26,56 +25,14 @@ function BlackHole() {
         <meshBasicMaterial color="#000000" />
       </mesh>
 
-      {/* Inner glow ring */}
-      <mesh ref={glowRef} rotation={[Math.PI / 2.5, 0, 0]}>
-        <torusGeometry args={[4, 0.3, 32, 100]} />
-        <meshBasicMaterial 
-          color="#ff6b35" 
-          transparent 
-          opacity={0.8}
-        />
-      </mesh>
-
-      {/* Accretion disk - outer */}
+      {/* Single accretion disk */}
       <mesh ref={diskRef} rotation={[Math.PI / 2.5, 0, 0]}>
-        <ringGeometry args={[3.5, 12, 128]} />
+        <ringGeometry args={[3.5, 14, 128]} />
         <meshBasicMaterial 
           color="#ff4500" 
           transparent 
-          opacity={0.4}
+          opacity={0.5}
           side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Secondary accretion ring */}
-      <mesh rotation={[Math.PI / 2.3, 0.1, 0]}>
-        <ringGeometry args={[4, 8, 128]} />
-        <meshBasicMaterial 
-          color="#ff8c00" 
-          transparent 
-          opacity={0.25}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Outer glow */}
-      <mesh rotation={[Math.PI / 2.5, 0, 0]}>
-        <ringGeometry args={[3.2, 18, 128]} />
-        <meshBasicMaterial 
-          color="#8B5CF6" 
-          transparent 
-          opacity={0.15}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Gravitational lensing effect - distortion ring */}
-      <mesh>
-        <torusGeometry args={[5, 0.1, 16, 100]} />
-        <meshBasicMaterial 
-          color="#ffffff" 
-          transparent 
-          opacity={0.1}
         />
       </mesh>
     </group>

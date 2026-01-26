@@ -1,185 +1,130 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { CatmullRomCurve3, Vector3, TubeGeometry } from 'three';
 import { cn } from '@/lib/utils';
 import universeBackground from '@/assets/universe-background.jpg';
+import * as THREE from 'three';
 
-interface FlowingLineProps {
-  points: Vector3[];
-  color: string;
-  speed: number;
-  radius: number;
-  delay: number;
-}
-
-function FlowingLine({ points, color, speed, radius, delay }: FlowingLineProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
-  const timeRef = useRef(delay);
-
-  const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
-  
-  const geometry = useMemo(() => {
-    return new TubeGeometry(curve, 120, radius, 24, false);
-  }, [curve, radius]);
+function BlackHole() {
+  const groupRef = useRef<THREE.Group>(null);
+  const diskRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame((_, delta) => {
-    timeRef.current += delta * speed;
-    
-    if (materialRef.current) {
-      const pulse = Math.sin(timeRef.current) * 0.2 + 0.8;
-      materialRef.current.opacity = pulse;
-      materialRef.current.emissiveIntensity = pulse * 2;
+    if (groupRef.current) {
+      groupRef.current.rotation.z += delta * 0.05;
     }
-
-    if (meshRef.current) {
-      meshRef.current.position.y = Math.sin(timeRef.current * 0.4) * 0.5;
-      meshRef.current.position.z = Math.cos(timeRef.current * 0.25) * 1;
+    if (diskRef.current) {
+      diskRef.current.rotation.z -= delta * 0.15;
     }
   });
 
   return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <meshStandardMaterial
-        ref={materialRef}
-        color={color}
-        emissive={color}
-        emissiveIntensity={1.5}
-        transparent
-        opacity={0.9}
-        roughness={0.2}
-        metalness={0.8}
+    <group ref={groupRef} position={[0, 0, -50]}>
+      {/* Event horizon - the black center */}
+      <mesh>
+        <sphereGeometry args={[3, 64, 64]} />
+        <meshBasicMaterial color="#000000" />
+      </mesh>
+
+      {/* Inner glow ring */}
+      <mesh ref={glowRef} rotation={[Math.PI / 2.5, 0, 0]}>
+        <torusGeometry args={[4, 0.3, 32, 100]} />
+        <meshBasicMaterial 
+          color="#ff6b35" 
+          transparent 
+          opacity={0.8}
+        />
+      </mesh>
+
+      {/* Accretion disk - outer */}
+      <mesh ref={diskRef} rotation={[Math.PI / 2.5, 0, 0]}>
+        <ringGeometry args={[3.5, 12, 128]} />
+        <meshBasicMaterial 
+          color="#ff4500" 
+          transparent 
+          opacity={0.4}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Secondary accretion ring */}
+      <mesh rotation={[Math.PI / 2.3, 0.1, 0]}>
+        <ringGeometry args={[4, 8, 128]} />
+        <meshBasicMaterial 
+          color="#ff8c00" 
+          transparent 
+          opacity={0.25}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Outer glow */}
+      <mesh rotation={[Math.PI / 2.5, 0, 0]}>
+        <ringGeometry args={[3.2, 18, 128]} />
+        <meshBasicMaterial 
+          color="#8B5CF6" 
+          transparent 
+          opacity={0.15}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Gravitational lensing effect - distortion ring */}
+      <mesh>
+        <torusGeometry args={[5, 0.1, 16, 100]} />
+        <meshBasicMaterial 
+          color="#ffffff" 
+          transparent 
+          opacity={0.1}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function StarField() {
+  const starsRef = useRef<THREE.Points>(null);
+  
+  const starPositions = new Float32Array(3000);
+  for (let i = 0; i < 3000; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 200;
+    starPositions[i + 1] = (Math.random() - 0.5) * 200;
+    starPositions[i + 2] = (Math.random() - 0.5) * 100 - 30;
+  }
+
+  useFrame((_, delta) => {
+    if (starsRef.current) {
+      starsRef.current.rotation.z += delta * 0.002;
+    }
+  });
+
+  return (
+    <points ref={starsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={1000}
+          array={starPositions}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial 
+        size={0.15} 
+        color="#ffffff" 
+        transparent 
+        opacity={0.6}
+        sizeAttenuation
       />
-    </mesh>
+    </points>
   );
-}
-
-function GlowLine({ points, color, radius }: { points: Vector3[]; color: string; radius: number }) {
-  const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
-  const geometry = useMemo(() => new TubeGeometry(curve, 120, radius * 4, 16, false), [curve, radius]);
-
-  return (
-    <mesh geometry={geometry}>
-      <meshBasicMaterial color={color} transparent opacity={0.08} />
-    </mesh>
-  );
-}
-
-function CameraRig() {
-  useFrame(({ camera, clock }) => {
-    const t = clock.getElapsedTime() * 0.1;
-    camera.position.x = Math.sin(t) * 2;
-    camera.position.y = Math.cos(t * 0.5) * 1;
-    camera.lookAt(0, 0, -10);
-  });
-  return null;
 }
 
 function Scene() {
-  const lines = useMemo(() => [
-    // Far background lines (z: -30 to -20)
-    {
-      points: [
-        new Vector3(-25, 8, -30),
-        new Vector3(-15, -5, -25),
-        new Vector3(-5, 10, -28),
-        new Vector3(8, -3, -22),
-        new Vector3(18, 6, -26),
-        new Vector3(28, -4, -24),
-      ],
-      color: '#6366F1',
-      speed: 0.25,
-      radius: 0.15,
-      delay: 0,
-    },
-    {
-      points: [
-        new Vector3(-28, -6, -28),
-        new Vector3(-12, 8, -24),
-        new Vector3(2, -8, -30),
-        new Vector3(14, 5, -22),
-        new Vector3(24, -6, -26),
-      ],
-      color: '#8B5CF6',
-      speed: 0.2,
-      radius: 0.12,
-      delay: 1,
-    },
-    
-    // Mid-ground lines
-    {
-      points: [
-        new Vector3(-22, 4, -15),
-        new Vector3(-10, -6, -10),
-        new Vector3(0, 8, -14),
-        new Vector3(12, -4, -8),
-        new Vector3(22, 5, -12),
-      ],
-      color: '#EC4899',
-      speed: 0.35,
-      radius: 0.1,
-      delay: 2,
-    },
-    {
-      points: [
-        new Vector3(-20, -5, -12),
-        new Vector3(-8, 7, -9),
-        new Vector3(5, -6, -14),
-        new Vector3(15, 4, -10),
-        new Vector3(25, -3, -11),
-      ],
-      color: '#F43F5E',
-      speed: 0.3,
-      radius: 0.08,
-      delay: 3,
-    },
-    
-    // Foreground lines
-    {
-      points: [
-        new Vector3(-18, 2, -5),
-        new Vector3(-6, -4, 0),
-        new Vector3(4, 5, -3),
-        new Vector3(14, -2, 2),
-        new Vector3(22, 3, -1),
-      ],
-      color: '#3B82F6',
-      speed: 0.45,
-      radius: 0.06,
-      delay: 4,
-    },
-    {
-      points: [
-        new Vector3(-16, -3, -2),
-        new Vector3(-4, 5, 1),
-        new Vector3(8, -4, -4),
-        new Vector3(18, 2, 0),
-      ],
-      color: '#22D3EE',
-      speed: 0.5,
-      radius: 0.05,
-      delay: 5,
-    },
-  ], []);
-
   return (
     <>
-      <CameraRig />
-      
-      <fog attach="fog" args={['#000000', 5, 40]} />
-      
-      <ambientLight intensity={0.3} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="#8B5CF6" />
-      <pointLight position={[-10, -10, -10]} intensity={0.8} color="#EC4899" />
-      <pointLight position={[0, 0, 5]} intensity={0.5} color="#3B82F6" />
-      
-      {lines.map((line, i) => (
-        <GlowLine key={`glow-${i}`} points={line.points} color={line.color} radius={line.radius} />
-      ))}
-      
-      {lines.map((line, i) => (
-        <FlowingLine key={`line-${i}`} {...line} />
-      ))}
+      <ambientLight intensity={0.1} />
+      <StarField />
+      <BlackHole />
     </>
   );
 }
@@ -193,16 +138,16 @@ export default function AbstractBackground({ className }: AbstractBackgroundProp
     <div className={cn("absolute inset-0", className)}>
       {/* Deep space background image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20"
+        className="absolute inset-0 bg-cover bg-center opacity-15"
         style={{ backgroundImage: `url(${universeBackground})` }}
       />
       
       {/* Dark overlay for depth */}
-      <div className="absolute inset-0 bg-black/70" />
+      <div className="absolute inset-0 bg-black/80" />
       
       {/* 3D Canvas */}
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 75, near: 0.1, far: 100 }}
+        camera={{ position: [0, 0, 20], fov: 60, near: 0.1, far: 200 }}
         style={{ position: 'absolute', inset: 0 }}
         dpr={[1, 2]}
       >
@@ -213,7 +158,7 @@ export default function AbstractBackground({ className }: AbstractBackgroundProp
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)',
         }}
       />
     </div>

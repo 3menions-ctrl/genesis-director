@@ -1,84 +1,42 @@
 import { Link } from 'react-router-dom';
-import { Mail, MapPin } from 'lucide-react';
-
-const FOOTER_LINKS = {
-  Product: [
-    { label: 'Features', href: '#features' },
-    { label: 'Pricing', href: '#pricing' },
-    { label: 'FAQ', href: '#faq' },
-  ],
-  Resources: [
-    { label: 'Blog', href: '/blog' },
-    { label: 'Help Center', href: '/help' },
-    { label: 'Contact', href: '/contact' },
-  ],
-  Company: [
-    { label: 'Press', href: '/press' },
-  ],
-  Legal: [
-    { label: 'Privacy', href: '/privacy' },
-    { label: 'Terms', href: '/terms' },
-  ],
-};
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.06] bg-[#030303]">
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+    <footer className="relative z-10 border-t border-white/[0.05] py-16 px-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-12">
           {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center">
-              <span className="text-base font-bold text-black">AS</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
+              <span className="text-xs font-bold text-black">A</span>
             </div>
-            <span className="text-lg font-bold text-white">Apex Studio</span>
+            <span className="text-sm font-medium text-white">Apex Studio</span>
           </div>
 
           {/* Links */}
-          <div className="flex flex-wrap gap-x-12 gap-y-4">
-            {Object.entries(FOOTER_LINKS).map(([category, links]) => (
-              <div key={category} className="flex items-center gap-2">
-                <span className="text-xs font-medium text-white/30 uppercase tracking-wider">{category}:</span>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  {links.map((link, idx) => (
-                    <span key={link.label} className="flex items-center gap-3">
-                      {link.href.startsWith('/') ? (
-                        <Link
-                          to={link.href}
-                          className="text-sm text-white/50 hover:text-white transition-colors"
-                        >
-                          {link.label}
-                        </Link>
-                      ) : (
-                        <a
-                          href={link.href}
-                          className="text-sm text-white/50 hover:text-white transition-colors"
-                        >
-                          {link.label}
-                        </a>
-                      )}
-                      {idx < links.length - 1 && <span className="text-white/20">·</span>}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-12 text-sm">
+            <div className="space-y-3">
+              <div className="text-white/30 text-xs uppercase tracking-wider">Product</div>
+              <a href="#pricing" className="block text-white/50 hover:text-white transition-colors">Pricing</a>
+              <a href="#faq" className="block text-white/50 hover:text-white transition-colors">FAQ</a>
+            </div>
+            <div className="space-y-3">
+              <div className="text-white/30 text-xs uppercase tracking-wider">Company</div>
+              <Link to="/contact" className="block text-white/50 hover:text-white transition-colors">Contact</Link>
+              <Link to="/blog" className="block text-white/50 hover:text-white transition-colors">Blog</Link>
+            </div>
+            <div className="space-y-3">
+              <div className="text-white/30 text-xs uppercase tracking-wider">Legal</div>
+              <Link to="/privacy" className="block text-white/50 hover:text-white transition-colors">Privacy</Link>
+              <Link to="/terms" className="block text-white/50 hover:text-white transition-colors">Terms</Link>
+            </div>
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-8 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/30">
-          <p>© {new Date().getFullYear()} Apex Studio. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="mailto:cole@apex-studio.com" className="hover:text-white/60 transition-colors flex items-center gap-1.5">
-              <Mail className="w-3 h-3" />
-              cole@apex-studio.com
-            </a>
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" />
-              San Francisco, CA
-            </span>
-          </div>
+        <div className="mt-16 pt-8 border-t border-white/[0.05] text-center">
+          <p className="text-xs text-white/20">
+            © {new Date().getFullYear()} Apex Studio. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Kling 2.6 via Replicate configuration
-const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.6";
 
 // Log API calls for cost tracking
@@ -66,7 +66,7 @@ serve(async (req) => {
           throw new Error("REPLICATE_API_KEY is not configured");
         }
 
-        const statusUrl = `${REPLICATE_API_URL}/${taskId}`;
+        const statusUrl = `${REPLICATE_PREDICTIONS_URL}/${taskId}`;
         
         console.log("Polling Replicate prediction:", statusUrl);
         

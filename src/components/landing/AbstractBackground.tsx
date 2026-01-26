@@ -4,40 +4,6 @@ import { cn } from '@/lib/utils';
 import universeBackground from '@/assets/universe-background.jpg';
 import * as THREE from 'three';
 
-function BlackHole() {
-  const groupRef = useRef<THREE.Group>(null);
-  const diskRef = useRef<THREE.Mesh>(null);
-
-  useFrame((_, delta) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.z += delta * 0.05;
-    }
-    if (diskRef.current) {
-      diskRef.current.rotation.z -= delta * 0.15;
-    }
-  });
-
-  return (
-    <group ref={groupRef} position={[0, 0, -50]}>
-      {/* Event horizon - the black center */}
-      <mesh>
-        <sphereGeometry args={[3, 64, 64]} />
-        <meshBasicMaterial color="#000000" />
-      </mesh>
-
-      {/* Single accretion disk */}
-      <mesh ref={diskRef} rotation={[Math.PI / 2.5, 0, 0]}>
-        <ringGeometry args={[3.5, 14, 128]} />
-        <meshBasicMaterial 
-          color="#ff4500" 
-          transparent 
-          opacity={0.5}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    </group>
-  );
-}
 
 function StarField() {
   const starsRef = useRef<THREE.Points>(null);
@@ -81,7 +47,6 @@ function Scene() {
     <>
       <ambientLight intensity={0.1} />
       <StarField />
-      <BlackHole />
     </>
   );
 }

@@ -7,50 +7,11 @@ const corsHeaders = {
 };
 
 // ============================================================================
-// Kling 2.0 Configuration - Latest available on direct API
-// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
+// Kling 2.6 via Replicate - Latest Model
 // ============================================================================
-const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-master";
+const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+const KLING_MODEL = "kwaivgi/kling-v2.6";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
-
-// Generate Kling JWT token
-async function generateKlingJWT(): Promise<string> {
-  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
-  const secretKey = Deno.env.get("KLING_SECRET_KEY");
-  
-  if (!accessKey || !secretKey) {
-    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
-  }
-
-  // Kling uses HMAC-SHA256 JWT
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: accessKey,
-    exp: now + 1800, // 30 minutes
-    nbf: now - 5,
-  };
-
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const message = `${headerB64}.${payloadB64}`;
-  
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secretKey),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  
-  return `${message}.${signatureB64}`;
-}
 
 // ============================================================================
 // APEX MANDATORY QUALITY SUFFIX - Always appended to ALL prompts
@@ -59,7 +20,7 @@ async function generateKlingJWT(): Promise<string> {
 const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
 
 /**
- * Generate Bridge Clip - Transition Filler using Kling 2.6
+ * Generate Bridge Clip - Transition Filler using Kling 2.6 via Replicate
  * 
  * Creates a short transition clip that bridges two incompatible scenes.
  * Uses the last frame of clip A as a starting point and generates a
@@ -79,6 +40,13 @@ interface BridgeClipRequest {
     environment?: string;
     mood?: string;
   };
+}
+
+interface ReplicatePrediction {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output?: string | string[];
+  error?: string;
 }
 
 serve(async (req) => {
@@ -104,12 +72,14 @@ serve(async (req) => {
       throw new Error("fromClipLastFrame and bridgePrompt are required");
     }
 
-    console.log(`[BridgeClip] Generating ${durationSeconds}s bridge clip for project ${projectId}`);
-    console.log(`[BridgeClip] Using Kling 2.6 (${KLING_MODEL})`);
-    console.log(`[BridgeClip] Prompt: ${bridgePrompt.substring(0, 100)}...`);
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      throw new Error("REPLICATE_API_KEY is not configured");
+    }
 
-    // Generate Kling JWT
-    const jwtToken = await generateKlingJWT();
+    console.log(`[BridgeClip] Generating ${durationSeconds}s bridge clip for project ${projectId}`);
+    console.log(`[BridgeClip] Using Kling v2.6 via Replicate`);
+    console.log(`[BridgeClip] Prompt: ${bridgePrompt.substring(0, 100)}...`);
 
     // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -135,76 +105,68 @@ serve(async (req) => {
     console.log(`[BridgeClip] 🎬 APEX Quality Suffix appended`);
     console.log(`[BridgeClip] Enhanced prompt: ${enhancedPrompt.substring(0, 150)}...`);
 
-    // Kling 2.6 duration: "5" or "10" seconds
-    const klingDuration = durationSeconds <= 6 ? "5" : "10";
+    // Kling duration: 5 or 10 seconds
+    const klingDuration = durationSeconds <= 6 ? 5 : 10;
 
-    // Build Kling request body for image-to-video
-    const requestBody: Record<string, any> = {
-      model_name: KLING_MODEL,
+    // Build Replicate input for Kling v2.6
+    const replicateInput: Record<string, any> = {
       prompt: enhancedPrompt.slice(0, 2500),
       negative_prompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut, character morphing, face changing",
       aspect_ratio: "16:9",
       duration: klingDuration,
-      mode: "pro", // HD quality mode - all Apex videos are professional grade
       cfg_scale: 0.5,
-      generate_audio: KLING_ENABLE_AUDIO,
     };
 
-    // Add starting frame as image URL
+    // Add starting frame as image (for image-to-video)
     if (fromClipLastFrame.startsWith("http")) {
-      requestBody.image_url = fromClipLastFrame;
+      replicateInput.start_image = fromClipLastFrame;
+      console.log(`[BridgeClip] Using start frame for image-to-video`);
     }
 
-    // If we have a destination frame, use it as second reference for smooth transition
-    if (toClipFirstFrame && toClipFirstFrame.startsWith("http")) {
-      requestBody.image_urls = [fromClipLastFrame, toClipFirstFrame];
-      console.log(`[BridgeClip] Using 2-point reference for smooth transition`);
-    }
-
-    // Generate video using Kling 2.6 image-to-video
-    const endpoint = `${KLING_API_BASE}/videos/image2video`;
+    // Create Replicate prediction
+    console.log(`[BridgeClip] Creating Replicate prediction for Kling v2.6`);
     
-    console.log(`[BridgeClip] Calling Kling API: ${endpoint}`);
-    
-    const klingResponse = await fetch(endpoint, {
+    const createResponse = await fetch(REPLICATE_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${jwtToken}`,
+        'Authorization': `Bearer ${REPLICATE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        model: KLING_MODEL,
+        input: replicateInput,
+      })
     });
 
-    if (!klingResponse.ok) {
-      const errorText = await klingResponse.text();
-      console.error('[BridgeClip] Kling API error:', errorText);
-      throw new Error(`Kling API failed: ${klingResponse.status}`);
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error('[BridgeClip] Replicate API error:', errorText);
+      throw new Error(`Replicate API failed: ${createResponse.status}`);
     }
 
-    const klingData = await klingResponse.json();
-    const taskId = klingData.data?.task_id;
+    const prediction: ReplicatePrediction = await createResponse.json();
+    const predictionId = prediction.id;
     
-    if (!taskId) {
-      console.error('[BridgeClip] Kling response:', JSON.stringify(klingData));
-      throw new Error('No task_id returned from Kling');
+    if (!predictionId) {
+      console.error('[BridgeClip] Replicate response:', JSON.stringify(prediction));
+      throw new Error('No prediction ID returned from Replicate');
     }
 
-    console.log(`[BridgeClip] Kling task started: ${taskId}`);
+    console.log(`[BridgeClip] Replicate prediction started: ${predictionId}`);
 
-    // Poll for completion (max 5 minutes)
-    const maxPollTime = 5 * 60 * 1000;
-    const pollInterval = 5000; // Kling is faster, poll every 5s
+    // Poll for completion (max 6 minutes)
+    const maxPollTime = 6 * 60 * 1000;
+    const pollInterval = 4000; // 4 second intervals
     const pollStartTime = Date.now();
     
     let videoUrl: string | null = null;
 
     while (Date.now() - pollStartTime < maxPollTime) {
       const pollResponse = await fetch(
-        `${KLING_API_BASE}/videos/tasks/${taskId}`,
+        `${REPLICATE_API_URL}/${predictionId}`,
         {
           headers: {
-            'Authorization': `Bearer ${jwtToken}`,
-            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${REPLICATE_API_KEY}`,
           }
         }
       );
@@ -215,20 +177,26 @@ serve(async (req) => {
         continue;
       }
 
-      const pollData = await pollResponse.json();
-      const taskData = pollData.data || pollData;
-      const status = taskData.task_status;
+      const pollData: ReplicatePrediction = await pollResponse.json();
+      const status = pollData.status;
 
-      if (status === 'succeed') {
-        // Extract video URL from Kling response
-        const videos = taskData.task_result?.videos || [];
-        if (videos.length > 0 && videos[0].url) {
-          videoUrl = videos[0].url;
+      if (status === 'succeeded') {
+        // Extract video URL from output
+        const output = pollData.output;
+        if (typeof output === "string") {
+          videoUrl = output;
+        } else if (Array.isArray(output) && output.length > 0) {
+          videoUrl = output[0];
+        }
+        
+        if (videoUrl) {
           console.log(`[BridgeClip] Bridge clip ready: ${videoUrl}`);
         }
         break;
       } else if (status === 'failed') {
-        throw new Error(`Kling generation failed: ${taskData.task_status_msg || 'Unknown error'}`);
+        throw new Error(`Replicate generation failed: ${pollData.error || 'Unknown error'}`);
+      } else if (status === 'canceled') {
+        throw new Error('Replicate generation was canceled');
       }
 
       console.log(`[BridgeClip] Status: ${status} (${Math.round((Date.now() - pollStartTime) / 1000)}s)`);
@@ -248,15 +216,16 @@ serve(async (req) => {
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId,
           p_shot_id: 'bridge_clip',
-          p_service: 'kling',
+          p_service: 'replicate-kling',
           p_operation: 'bridge_clip_generation',
           p_credits_charged: 8, // Bridge clips cost 8 credits
-          p_real_cost_cents: 4, // Kling is more cost-effective
-          p_duration_seconds: parseInt(klingDuration),
+          p_real_cost_cents: 4, // Replicate Kling pricing
+          p_duration_seconds: klingDuration,
           p_status: 'completed',
           p_metadata: JSON.stringify({ 
             bridgePrompt: bridgePrompt.substring(0, 200),
             model: KLING_MODEL,
+            predictionId,
             audioEnabled: KLING_ENABLE_AUDIO
           }),
         });
@@ -269,9 +238,9 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         videoUrl,
-        durationSeconds: parseInt(klingDuration),
+        durationSeconds: klingDuration,
         processingTimeMs,
-        provider: 'kling',
+        provider: 'replicate',
         model: KLING_MODEL,
         audioIncluded: KLING_ENABLE_AUDIO,
       }),

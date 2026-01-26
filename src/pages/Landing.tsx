@@ -86,40 +86,104 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Epic single word headline */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 className="text-[clamp(4rem,18vw,14rem)] font-bold leading-[0.85] tracking-[-0.04em] text-white">
-              APEX
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Epic animated title */}
+          <div className="relative mb-8">
+            {/* Glow effect behind text */}
+            <motion.div
+              className="absolute inset-0 blur-[100px] opacity-30"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.3) 0%, transparent 70%)',
+              }}
+            />
+            
+            <h1 className="relative text-[clamp(3rem,15vw,12rem)] font-bold leading-[0.9] tracking-[-0.03em]">
+              {/* Apex */}
+              <span className="inline-block overflow-hidden">
+                {'APEX'.split('').map((letter, i) => (
+                  <motion.span
+                    key={i}
+                    className="inline-block text-white"
+                    initial={{ y: 120, opacity: 0, rotateX: -80 }}
+                    animate={{ y: 0, opacity: 1, rotateX: 0 }}
+                    transition={{
+                      duration: 1,
+                      delay: i * 0.08,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    style={{ transformOrigin: 'bottom' }}
+                  >
+                    {letter}
+                  </motion.span>
+                ))}
+              </span>
+              
+              {/* Hyphen with special animation */}
+              <motion.span
+                className="inline-block mx-2 md:mx-4 text-white/30"
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              >
+                –
+              </motion.span>
+              
+              {/* Studio */}
+              <span className="inline-block overflow-hidden">
+                {'STUDIO'.split('').map((letter, i) => (
+                  <motion.span
+                    key={i}
+                    className="inline-block text-white/40"
+                    initial={{ y: 120, opacity: 0, rotateX: -80 }}
+                    animate={{ y: 0, opacity: 1, rotateX: 0 }}
+                    transition={{
+                      duration: 1,
+                      delay: 0.6 + i * 0.08,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    style={{ transformOrigin: 'bottom' }}
+                  >
+                    {letter}
+                  </motion.span>
+                ))}
+              </span>
             </h1>
-          </motion.div>
 
+            {/* Animated underline */}
+            <motion.div
+              className="absolute -bottom-4 left-1/2 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent"
+              initial={{ width: 0, x: '-50%' }}
+              animate={{ width: '60%' }}
+              transition={{ duration: 1.2, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+
+          {/* Tagline */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-lg md:text-2xl text-white/40 tracking-[0.2em] uppercase mt-4 mb-12"
+            transition={{ duration: 0.8, delay: 1.4 }}
+            className="text-base md:text-lg text-white/30 tracking-[0.3em] uppercase mb-16"
           >
-            AI Video Studio
+            The Future of Video Creation
           </motion.p>
 
           {/* CTA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 1.6 }}
           >
             <Button
               onClick={() => navigate('/auth?mode=signup')}
               size="lg"
-              className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.15)]"
+              className="group h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.15)] transition-all duration-300 hover:shadow-[0_0_80px_rgba(255,255,255,0.25)]"
             >
               Enter Studio
-              <ArrowRight className="w-5 h-5 ml-3" />
+              <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover:translate-x-1" />
             </Button>
           </motion.div>
         </div>
@@ -128,7 +192,7 @@ export default function Landing() {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
+          transition={{ delay: 2 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2"
         >
           <motion.div 

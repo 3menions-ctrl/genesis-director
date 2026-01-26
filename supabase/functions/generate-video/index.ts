@@ -1,76 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { getAccessToken } from "../_shared/gcp-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Provider selection - Kling 2.6 ONLY (all-in)
-type VideoProvider = "kling";
+// Provider selection - Kling 2.6 via Replicate
+type VideoProvider = "replicate";
 
-// Kling API configuration - v2.0 Master (Latest available on direct API)
-// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
-const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-master";
+// Kling 2.6 via Replicate configuration
+const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+const KLING_MODEL = "kwaivgi/kling-v2.6";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
-
-// Generate Kling JWT token
-async function generateKlingJWT(): Promise<string> {
-  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
-  const secretKey = Deno.env.get("KLING_SECRET_KEY");
-  
-  if (!accessKey || !secretKey) {
-    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: accessKey,
-    exp: now + 1800, // 30 minutes
-    nbf: now - 5,    // 5 seconds buffer
-  };
-
-  // Create JWT header
-  const header = { alg: "HS256", typ: "JWT" };
-  
-  // Base64URL encode
-  const base64UrlEncode = (obj: object): string => {
-    const json = JSON.stringify(obj);
-    const base64 = btoa(json);
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  };
-
-  const headerEncoded = base64UrlEncode(header);
-  const payloadEncoded = base64UrlEncode(payload);
-  const message = `${headerEncoded}.${payloadEncoded}`;
-
-  // Sign with HMAC-SHA256
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secretKey);
-  const messageData = encoder.encode(message);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  
-  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-  const signatureArray = new Uint8Array(signature);
-  
-  // Convert to base64url
-  let binary = '';
-  for (let i = 0; i < signatureArray.length; i++) {
-    binary += String.fromCharCode(signatureArray[i]);
-  }
-  const signatureBase64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  return `${message}.${signatureBase64}`;
-}
 
 // Scene context for consistency
 interface SceneContext {
@@ -849,8 +791,8 @@ async function ensureImageUrl(input: string | undefined): Promise<string | null>
   return null;
 }
 
-// Generate video with Kling 2.6 via Direct API
-// Supports: native audio, 4-image reference array, frame chaining
+// Generate video with Kling 2.6 via Replicate API
+// Supports: native audio, image-to-video, frame chaining
 async function generateWithKling(
   prompt: string,
   enhancedPrompt: string,
@@ -860,114 +802,78 @@ async function generateWithKling(
   startImageUrl: string | null,
   referenceImages: string[] = [],
   enableAudio: boolean = true
-): Promise<{ success: true; taskId: string; provider: "kling"; model: string } | { success: false; error: string }> {
+): Promise<{ success: true; taskId: string; provider: "replicate"; model: string } | { success: false; error: string }> {
   try {
-    const jwtToken = await generateKlingJWT();
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+    if (!REPLICATE_API_KEY) {
+      throw new Error("REPLICATE_API_KEY is not configured");
+    }
 
-    // Kling 2.6 parameters
-    // Duration: "5" or "10" seconds for Kling
-    const klingDuration = duration <= 6 ? "5" : "10";
-    
-    // Aspect ratio mapping for Kling
+    // Kling 2.6 parameters via Replicate
+    const klingDuration = duration <= 6 ? 5 : 10;
     const klingAspectRatio = aspectRatio === "9:16" ? "9:16" : 
                               aspectRatio === "1:1" ? "1:1" : "16:9";
 
-    // Determine endpoint based on mode
-    const isImageToVideo = !!startImageUrl || referenceImages.length > 0;
-    const endpoint = isImageToVideo 
-      ? `${KLING_API_BASE}/videos/image2video`
-      : `${KLING_API_BASE}/videos/text2video`;
-
-    // Build prompt with reference markers if using multiple references
-    let finalPrompt = enhancedPrompt;
-    if (referenceImages.length > 1) {
-      // Kling 2.6 supports @Image1, @Image2, etc. references
-      const referenceMarkers = referenceImages.map((_, i) => `@Image${i + 1}`).join(", ");
-      finalPrompt = `[CHARACTER REFERENCES: ${referenceMarkers}] ${enhancedPrompt}`;
-    }
-
-    const requestBody: Record<string, any> = {
-      model_name: KLING_MODEL,
-      prompt: finalPrompt.slice(0, 2500),
+    // Build Replicate input for Kling v2.6
+    const replicateInput: Record<string, any> = {
+      prompt: enhancedPrompt.slice(0, 2500),
       negative_prompt: negativePrompt.slice(0, 1000),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,
-      mode: "pro", // HD quality mode - all Apex videos are professional grade
       cfg_scale: 0.5,
-      // Kling 2.6: Native audio generation
-      generate_audio: enableAudio,
     };
 
-    // Primary image (start frame for continuity)
+    // Add start image for image-to-video mode
     if (startImageUrl) {
-      if (startImageUrl.startsWith("http")) {
-        requestBody.image_url = startImageUrl;
-      } else if (startImageUrl.startsWith("data:")) {
-        const matches = startImageUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches) {
-          requestBody.image = matches[2];
-        }
-      }
+      replicateInput.start_image = startImageUrl;
     }
 
-    // Reference images for character consistency (Kling 2.6 feature)
-    if (referenceImages.length > 0) {
-      // Kling 2.6 accepts image_urls array for multi-reference
-      requestBody.image_urls = referenceImages;
-      console.log(`[generate-video] Using ${referenceImages.length} identity reference images`);
-    }
-
-    console.log("[generate-video] Starting Kling 2.6 generation:", {
-      mode: isImageToVideo ? "image-to-video" : "text-to-video",
+    console.log("[generate-video] Starting Kling 2.6 via Replicate:", {
+      mode: startImageUrl ? "image-to-video" : "text-to-video",
       duration: klingDuration,
       aspectRatio: klingAspectRatio,
-      audioEnabled: enableAudio,
-      referenceCount: referenceImages.length,
-      promptLength: finalPrompt.length,
-      endpoint,
+      promptLength: enhancedPrompt.length,
     });
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(REPLICATE_API_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${jwtToken}`,
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: KLING_MODEL,
+        input: replicateInput,
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[generate-video] Kling API error:", response.status, errorText);
-      return { success: false, error: `Kling API error: ${response.status} - ${errorText}` };
+      console.error("[generate-video] Replicate API error:", response.status, errorText);
+      return { success: false, error: `Replicate API error: ${response.status} - ${errorText}` };
     }
 
-    const result = await response.json();
-    
-    // Kling returns task_id in the response
-    const taskId = result.data?.task_id || result.task_id;
+    const prediction = await response.json();
+    const taskId = prediction.id;
     
     if (!taskId) {
-      console.error("[generate-video] No task_id in Kling response:", result);
-      return { success: false, error: "No task_id in Kling response" };
+      console.error("[generate-video] No prediction ID in Replicate response:", prediction);
+      return { success: false, error: "No prediction ID in Replicate response" };
     }
 
-    console.log("[generate-video] Kling 2.6 task created:", taskId, {
-      audioEnabled: enableAudio,
-      referenceImages: referenceImages.length,
-    });
+    console.log("[generate-video] Replicate prediction created:", taskId);
 
     return {
       success: true,
       taskId: taskId,
-      provider: "kling",
+      provider: "replicate",
       model: KLING_MODEL,
     };
   } catch (error) {
-    console.error("[generate-video] Kling error:", error);
+    console.error("[generate-video] Replicate error:", error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : "Kling generation failed" 
+      error: error instanceof Error ? error.message : "Replicate generation failed" 
     };
   }
 }

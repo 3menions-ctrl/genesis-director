@@ -6,66 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Kling API configuration - Kling 2.0 Master (Latest available on direct API)
-// Valid models: kling-v1, kling-v1-5, kling-v1-6, kling-v2-master
-const KLING_API_BASE = "https://api.klingai.com/v1";
-const KLING_MODEL = "kling-v2-master";
-
-// Generate Kling JWT token
-async function generateKlingJWT(): Promise<string> {
-  const accessKey = Deno.env.get("KLING_ACCESS_KEY");
-  const secretKey = Deno.env.get("KLING_SECRET_KEY");
-  
-  if (!accessKey || !secretKey) {
-    throw new Error("KLING_ACCESS_KEY or KLING_SECRET_KEY is not configured");
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: accessKey,
-    exp: now + 1800, // 30 minutes
-    nbf: now - 5,    // 5 seconds buffer
-  };
-
-  // Create JWT header
-  const header = { alg: "HS256", typ: "JWT" };
-  
-  // Base64URL encode
-  const base64UrlEncode = (obj: object): string => {
-    const json = JSON.stringify(obj);
-    const base64 = btoa(json);
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  };
-
-  const headerEncoded = base64UrlEncode(header);
-  const payloadEncoded = base64UrlEncode(payload);
-  const message = `${headerEncoded}.${payloadEncoded}`;
-
-  // Sign with HMAC-SHA256
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secretKey);
-  const messageData = encoder.encode(message);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  
-  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-  const signatureArray = new Uint8Array(signature);
-  
-  // Convert to base64url
-  let binary = '';
-  for (let i = 0; i < signatureArray.length; i++) {
-    binary += String.fromCharCode(signatureArray[i]);
-  }
-  const signatureBase64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-  return `${message}.${signatureBase64}`;
-}
+// Kling 2.6 via Replicate configuration
+const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+const KLING_MODEL = "kwaivgi/kling-v2.6";
 
 // Log API calls for cost tracking
 async function logApiCall(
@@ -74,7 +17,7 @@ async function logApiCall(
   service: string,
   status: string,
   projectId?: string,
-  shotId?: string,
+  taskId?: string,
   userId?: string
 ) {
   try {
@@ -87,7 +30,7 @@ async function logApiCall(
       p_credits_charged: 0,
       p_status: status,
       p_project_id: projectId || null,
-      p_shot_id: shotId || 'status-poll',
+      p_shot_id: taskId || 'status-poll',
       p_user_id: userId || null,
       p_metadata: { timestamp: new Date().toISOString() }
     });
@@ -107,56 +50,54 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { taskId, provider = "kling", projectId: reqProjectId, userId } = await req.json();
+    const { taskId, provider = "replicate", projectId: reqProjectId, userId } = await req.json();
 
     if (!taskId) {
-      throw new Error("Task ID is required");
+      throw new Error("Task ID (prediction ID) is required");
     }
 
-    console.log("Checking video status for task:", taskId, "provider:", provider);
+    console.log("Checking video status for prediction:", taskId, "provider:", provider);
 
-    // Handle Kling Direct API - PRIMARY PROVIDER
-    if (provider === "kling") {
+    // Handle Replicate API (Kling via Replicate)
+    if (provider === "replicate" || provider === "kling") {
       try {
-        const jwtToken = await generateKlingJWT();
+        const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+        if (!REPLICATE_API_KEY) {
+          throw new Error("REPLICATE_API_KEY is not configured");
+        }
+
+        const statusUrl = `${REPLICATE_API_URL}/${taskId}`;
         
-        // Query Kling task status - use text2video endpoint for polling
-        // The correct endpoint mirrors the creation path: /videos/text2video/{taskId}
-        const statusUrl = `${KLING_API_BASE}/videos/text2video/${taskId}`;
-        
-        console.log("Polling Kling task:", statusUrl);
+        console.log("Polling Replicate prediction:", statusUrl);
         
         const response = await fetch(statusUrl, {
-          method: "GET",
           headers: {
-            "Authorization": `Bearer ${jwtToken}`,
-            "Content-Type": "application/json",
+            "Authorization": `Bearer ${REPLICATE_API_KEY}`,
           },
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Kling API error:", response.status, errorText);
-          throw new Error(`Kling API error: ${response.status}`);
+          console.error("Replicate API error:", response.status, errorText);
+          throw new Error(`Replicate API error: ${response.status}`);
         }
 
-        const result = await response.json();
-        const taskData = result.data || result;
+        const prediction = await response.json();
         
-        console.log("Kling task status:", {
-          task_id: taskData.task_id,
-          task_status: taskData.task_status,
+        console.log("Replicate prediction status:", {
+          id: prediction.id,
+          status: prediction.status,
         });
 
-        // Map Kling status to our standard status
-        // Kling statuses: submitted, processing, succeed, failed
+        // Map Replicate status to our standard status
+        // Replicate statuses: starting, processing, succeeded, failed, canceled
         let status = "RUNNING";
         let progress = 0;
         let videoUrl = null;
         let error = null;
 
-        switch (taskData.task_status) {
-          case "submitted":
+        switch (prediction.status) {
+          case "starting":
             status = "STARTING";
             progress = 10;
             break;
@@ -164,25 +105,33 @@ serve(async (req) => {
             status = "RUNNING";
             progress = 50;
             break;
-          case "succeed":
+          case "succeeded":
             status = "SUCCEEDED";
             progress = 100;
-            // Extract video URL from works array
-            if (taskData.task_result?.videos && taskData.task_result.videos.length > 0) {
-              videoUrl = taskData.task_result.videos[0].url;
+            // Extract video URL from output
+            const output = prediction.output;
+            if (typeof output === "string") {
+              videoUrl = output;
+            } else if (Array.isArray(output) && output.length > 0) {
+              videoUrl = output[0];
             }
             break;
           case "failed":
             status = "FAILED";
             progress = 0;
-            error = taskData.task_status_msg || "Kling generation failed";
+            error = prediction.error || "Replicate generation failed";
+            break;
+          case "canceled":
+            status = "FAILED";
+            progress = 0;
+            error = "Generation was canceled";
             break;
           default:
             status = "RUNNING";
             progress = 25;
         }
 
-        await logApiCall(supabase, "status-poll", "kling", status, reqProjectId, taskId, userId);
+        await logApiCall(supabase, "status-poll", "replicate-kling", status, reqProjectId, taskId, userId);
 
         return new Response(
           JSON.stringify({
@@ -192,21 +141,21 @@ serve(async (req) => {
             videoUrl: videoUrl,
             audioIncluded: true, // Kling 2.6 includes native audio
             error: error,
-            provider: "kling",
+            provider: "replicate",
             model: KLING_MODEL,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-      } catch (klingError) {
-        console.error("Kling status check error:", klingError);
+      } catch (replicateError) {
+        console.error("Replicate status check error:", replicateError);
         return new Response(
           JSON.stringify({
             success: false,
             status: "FAILED",
             progress: 0,
             videoUrl: null,
-            error: klingError instanceof Error ? klingError.message : "Kling status check failed",
-            provider: "kling",
+            error: replicateError instanceof Error ? replicateError.message : "Replicate status check failed",
+            provider: "replicate",
             model: KLING_MODEL,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -214,15 +163,15 @@ serve(async (req) => {
       }
     }
 
-    // Kling is the only provider - return error for unknown
-    console.log("Unknown task format:", taskId, provider);
+    // Unknown provider - return error
+    console.log("Unknown provider:", provider);
     return new Response(
       JSON.stringify({
         success: false,
         status: "FAILED",
         progress: 0,
         videoUrl: null,
-        error: `Unsupported task. This system uses Kling 2.6 only.`,
+        error: `Unsupported provider. This system uses Kling v2.6 via Replicate.`,
         provider: provider,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

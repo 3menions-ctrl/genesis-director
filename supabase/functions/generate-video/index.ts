@@ -10,9 +10,9 @@ const corsHeaders = {
 type VideoProvider = "replicate";
 
 // Kling 2.6 via Replicate configuration
-// Use the models endpoint which auto-routes to latest version
-const REPLICATE_API_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions";
+const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.6";
+const KLING_VERSION = "33446549-3665-4f30-819a-9e2363717a66"; // Required version ID for Kling v2.6
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 // Scene context for consistency
@@ -836,15 +836,15 @@ async function generateWithKling(
       promptLength: enhancedPrompt.length,
     });
 
-    // Use the models endpoint which auto-routes to latest version
+    // Call Replicate API with version ID
     const response = await fetch(REPLICATE_API_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
-        "Prefer": "wait",
       },
       body: JSON.stringify({
+        version: KLING_VERSION,
         input: replicateInput,
       }),
     });

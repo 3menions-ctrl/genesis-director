@@ -85,93 +85,58 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 pt-20">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
+      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          {/* Epic single word headline */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Now in public beta
-            </span>
+            <h1 className="text-[clamp(4rem,18vw,14rem)] font-bold leading-[0.85] tracking-[-0.04em] text-white">
+              APEX
+            </h1>
           </motion.div>
 
-          {/* Headline */}
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[clamp(2.5rem,8vw,6rem)] font-semibold leading-[0.95] tracking-[-0.02em] text-white mb-6"
-          >
-            Create videos
-            <br />
-            <span className="text-white/30">with AI</span>
-          </motion.h1>
-
-          {/* Subheadline */}
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg md:text-xl text-white/40 max-w-lg mx-auto mb-10 leading-relaxed"
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-lg md:text-2xl text-white/40 tracking-[0.2em] uppercase mt-4 mb-12"
           >
-            Transform text into cinematic videos. 
-            No editing skills required.
+            AI Video Studio
           </motion.p>
 
-          {/* CTAs */}
-          <motion.div 
+          {/* CTA */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             <Button
               onClick={() => navigate('/auth?mode=signup')}
               size="lg"
-              className="h-12 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+              className="h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.15)]"
             >
-              Start Creating Free
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setShowExamples(true)}
-              className="h-12 px-6 text-base text-white/50 hover:text-white hover:bg-white/5 rounded-full"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Watch Examples
+              Enter Studio
+              <ArrowRight className="w-5 h-5 ml-3" />
             </Button>
           </motion.div>
-
-          {/* Trust */}
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-8 text-sm text-white/30"
-          >
-            60 free credits • No credit card required
-          </motion.p>
         </div>
 
         {/* Scroll indicator */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2"
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
         >
           <motion.div 
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center p-1.5"
+            className="w-5 h-9 rounded-full border border-white/20 flex items-start justify-center p-1.5"
           >
-            <div className="w-1 h-2 bg-white/40 rounded-full" />
+            <div className="w-1 h-2 bg-white/50 rounded-full" />
           </motion.div>
         </motion.div>
       </section>

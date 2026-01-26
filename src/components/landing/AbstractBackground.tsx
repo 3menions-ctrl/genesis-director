@@ -8,123 +8,88 @@ interface AbstractBackgroundProps {
 export default function AbstractBackground({ className }: AbstractBackgroundProps) {
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)}>
-      {/* Base gradient - deep black */}
-      <div className="absolute inset-0 bg-[#030303]" />
+      {/* Pure black base */}
+      <div className="absolute inset-0 bg-black" />
       
-      {/* Animated gradient orbs */}
+      {/* Subtle gradient sphere - top right */}
       <motion.div
-        className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full opacity-30"
+        className="absolute -top-[40%] -right-[20%] w-[80%] h-[80%] rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 50%)',
         }}
         animate={{
-          x: [0, 100, 0],
-          y: [0, 50, 0],
-          scale: [1, 1.2, 1],
+          scale: [1, 1.1, 1],
+          opacity: [0.5, 0.8, 0.5],
+        }}
+        transition={{
+          duration: 15,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      
+      {/* Subtle gradient sphere - bottom left */}
+      <motion.div
+        className="absolute -bottom-[30%] -left-[30%] w-[70%] h-[70%] rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 50%)',
+        }}
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.3, 0.6, 0.3],
         }}
         transition={{
           duration: 20,
           repeat: Infinity,
           ease: "easeInOut",
+          delay: 2,
         }}
       />
-      
+
+      {/* Floating line - horizontal */}
       <motion.div
-        className="absolute bottom-[-30%] right-[-20%] w-[80%] h-[80%] rounded-full opacity-20"
-        style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%)',
-        }}
+        className="absolute top-[30%] left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
         animate={{
-          x: [0, -80, 0],
-          y: [0, -60, 0],
-          scale: [1, 1.3, 1],
+          opacity: [0, 0.5, 0],
+          scaleX: [0.5, 1, 0.5],
         }}
         transition={{
-          duration: 25,
+          duration: 8,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
-      
+
+      {/* Floating line - diagonal */}
       <motion.div
-        className="absolute top-[40%] right-[10%] w-[40%] h-[40%] rounded-full opacity-15"
-        style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%)',
-        }}
+        className="absolute top-0 bottom-0 left-[60%] w-px bg-gradient-to-b from-transparent via-white/[0.03] to-transparent"
+        style={{ transform: 'rotate(15deg)' }}
         animate={{
-          x: [0, -40, 0],
-          y: [0, 80, 0],
-          scale: [1, 0.9, 1],
+          opacity: [0, 0.4, 0],
         }}
         transition={{
-          duration: 18,
+          duration: 10,
           repeat: Infinity,
           ease: "easeInOut",
+          delay: 3,
         }}
       />
-      
-      {/* Floating geometric shapes */}
-      <motion.div
-        className="absolute top-[15%] left-[20%] w-32 h-32 border border-white/[0.08] rounded-full"
-        animate={{
-          rotate: [0, 360],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          rotate: { duration: 30, repeat: Infinity, ease: "linear" },
-          scale: { duration: 8, repeat: Infinity, ease: "easeInOut" },
-        }}
-      />
-      
-      <motion.div
-        className="absolute bottom-[25%] left-[15%] w-20 h-20 border border-white/[0.06]"
-        style={{ borderRadius: '30%' }}
-        animate={{
-          rotate: [0, -360],
-          y: [0, -20, 0],
-        }}
-        transition={{
-          rotate: { duration: 25, repeat: Infinity, ease: "linear" },
-          y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-        }}
-      />
-      
-      <motion.div
-        className="absolute top-[60%] right-[25%] w-16 h-16 border border-white/[0.05] rounded-full"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.5, 1, 0.5],
-        }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-      
-      {/* Subtle grid pattern */}
+
+      {/* Subtle grain overlay */}
       <div 
-        className="absolute inset-0 opacity-[0.02]"
+        className="absolute inset-0 opacity-[0.015] pointer-events-none"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: '100px 100px',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
-      
-      {/* Noise texture */}
+
+      {/* Vignette effect */}
       <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%)',
         }}
       />
-      
-      {/* Top gradient fade */}
-      <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-[#030303] to-transparent" />
-      
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-60 bg-gradient-to-t from-[#030303] to-transparent" />
     </div>
   );
 }

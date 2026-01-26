@@ -10,7 +10,8 @@ const corsHeaders = {
 type VideoProvider = "replicate";
 
 // Kling 2.6 via Replicate configuration
-const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+// Use the models endpoint which auto-routes to latest version
+const REPLICATE_API_URL = "https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.6";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
@@ -835,14 +836,15 @@ async function generateWithKling(
       promptLength: enhancedPrompt.length,
     });
 
+    // Use the models endpoint which auto-routes to latest version
     const response = await fetch(REPLICATE_API_URL, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
+        "Prefer": "wait",
       },
       body: JSON.stringify({
-        model: KLING_MODEL,
         input: replicateInput,
       }),
     });

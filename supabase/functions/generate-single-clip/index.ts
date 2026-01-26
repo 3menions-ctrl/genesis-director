@@ -168,7 +168,7 @@ async function createReplicatePrediction(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: KLING_VERSION,
+      model: KLING_MODEL,
       input,
     }),
   });

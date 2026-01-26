@@ -7,6 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 // ============================================================================
 const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.6";
+const KLING_VERSION = "33446549-3665-4f30-819a-9e2363717a66"; // Required version ID
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 const corsHeaders = {
@@ -167,7 +168,7 @@ async function createReplicatePrediction(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: KLING_MODEL,
+      version: KLING_VERSION,
       input,
     }),
   });

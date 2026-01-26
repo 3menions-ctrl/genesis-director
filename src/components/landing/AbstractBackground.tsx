@@ -1,5 +1,151 @@
-import { motion } from 'framer-motion';
+import { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { CatmullRomCurve3, Vector3, TubeGeometry, MeshBasicMaterial } from 'three';
 import { cn } from '@/lib/utils';
+
+interface FlowingLineProps {
+  points: Vector3[];
+  color: string;
+  speed: number;
+  radius: number;
+  delay: number;
+}
+
+function FlowingLine({ points, color, speed, radius, delay }: FlowingLineProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const timeRef = useRef(delay);
+
+  const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
+  
+  const geometry = useMemo(() => {
+    return new TubeGeometry(curve, 100, radius, 16, false);
+  }, [curve, radius]);
+
+  useFrame((_, delta) => {
+    timeRef.current += delta * speed;
+    
+    if (materialRef.current) {
+      // Pulsing opacity effect
+      const pulse = Math.sin(timeRef.current) * 0.3 + 0.7;
+      materialRef.current.opacity = pulse;
+    }
+
+    if (meshRef.current) {
+      // Subtle floating motion
+      meshRef.current.position.y = Math.sin(timeRef.current * 0.5) * 0.3;
+      meshRef.current.position.z = Math.cos(timeRef.current * 0.3) * 0.2;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} geometry={geometry}>
+      <meshBasicMaterial
+        ref={materialRef}
+        color={color}
+        transparent
+        opacity={0.8}
+      />
+    </mesh>
+  );
+}
+
+function GlowLine({ points, color, speed, radius, delay }: FlowingLineProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const timeRef = useRef(delay);
+
+  const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
+  
+  const geometry = useMemo(() => {
+    return new TubeGeometry(curve, 100, radius * 2.5, 16, false);
+  }, [curve, radius]);
+
+  useFrame((_, delta) => {
+    timeRef.current += delta * speed;
+    
+    if (meshRef.current) {
+      meshRef.current.position.y = Math.sin(timeRef.current * 0.5) * 0.3;
+      meshRef.current.position.z = Math.cos(timeRef.current * 0.3) * 0.2;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} geometry={geometry}>
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={0.15}
+      />
+    </mesh>
+  );
+}
+
+function Scene() {
+  // Define 3D curved paths - roller coaster style with depth
+  const lines = useMemo(() => [
+    {
+      points: [
+        new Vector3(-15, 3, -5),
+        new Vector3(-8, -2, 2),
+        new Vector3(-2, 4, -3),
+        new Vector3(5, -1, 4),
+        new Vector3(10, 3, -2),
+        new Vector3(15, -2, 1),
+      ],
+      color: '#8B5CF6', // Purple
+      speed: 0.4,
+      radius: 0.08,
+      delay: 0,
+    },
+    {
+      points: [
+        new Vector3(-15, -1, 3),
+        new Vector3(-7, 3, -4),
+        new Vector3(0, -3, 5),
+        new Vector3(7, 2, -2),
+        new Vector3(12, -2, 3),
+        new Vector3(18, 1, -1),
+      ],
+      color: '#EC4899', // Pink
+      speed: 0.35,
+      radius: 0.06,
+      delay: 2,
+    },
+    {
+      points: [
+        new Vector3(-18, 0, -2),
+        new Vector3(-10, -3, 4),
+        new Vector3(-3, 2, -5),
+        new Vector3(4, -2, 3),
+        new Vector3(11, 1, -4),
+        new Vector3(16, -1, 2),
+      ],
+      color: '#3B82F6', // Blue
+      speed: 0.45,
+      radius: 0.07,
+      delay: 4,
+    },
+  ], []);
+
+  return (
+    <>
+      {/* Ambient lighting */}
+      <ambientLight intensity={0.5} />
+      
+      {/* Camera positioned for depth perspective */}
+      
+      {/* Render glow layers first (behind) */}
+      {lines.map((line, i) => (
+        <GlowLine key={`glow-${i}`} {...line} />
+      ))}
+      
+      {/* Render main lines */}
+      {lines.map((line, i) => (
+        <FlowingLine key={`line-${i}`} {...line} />
+      ))}
+    </>
+  );
+}
 
 interface AbstractBackgroundProps {
   className?: string;
@@ -7,143 +153,24 @@ interface AbstractBackgroundProps {
 
 export default function AbstractBackground({ className }: AbstractBackgroundProps) {
   return (
-    <div className={cn("absolute inset-0 overflow-hidden", className)}>
+    <div className={cn("absolute inset-0", className)}>
       {/* Deep black base */}
       <div className="absolute inset-0 bg-black" />
-
-      {/* SVG container for flowing paths */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 0 1920 1080"
-        preserveAspectRatio="xMidYMid slice"
+      
+      {/* 3D Canvas */}
+      <Canvas
+        camera={{ position: [0, 0, 10], fov: 60 }}
+        style={{ position: 'absolute', inset: 0 }}
+        dpr={[1, 2]}
       >
-        <defs>
-          {/* Gradient definitions */}
-          <linearGradient id="purpleBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="30%" stopColor="rgba(139, 92, 246, 0.8)" />
-            <stop offset="70%" stopColor="rgba(59, 130, 246, 0.8)" />
-            <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
-          </linearGradient>
-          
-          <linearGradient id="pinkOrange" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-            <stop offset="30%" stopColor="rgba(236, 72, 153, 0.7)" />
-            <stop offset="70%" stopColor="rgba(251, 146, 60, 0.7)" />
-            <stop offset="100%" stopColor="rgba(251, 146, 60, 0)" />
-          </linearGradient>
-          
-          <linearGradient id="cyanGreen" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(34, 211, 238, 0)" />
-            <stop offset="30%" stopColor="rgba(34, 211, 238, 0.6)" />
-            <stop offset="70%" stopColor="rgba(74, 222, 128, 0.6)" />
-            <stop offset="100%" stopColor="rgba(74, 222, 128, 0)" />
-          </linearGradient>
-          
-          {/* Strong glow filter */}
-          <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="8" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+        <Scene />
+      </Canvas>
 
-        {/* Line 1 - Top area, purple to blue */}
-        <motion.path
-          d="M-200,200 C200,450 500,50 800,350 S1200,100 1500,400 S1800,150 2200,350"
-          fill="none"
-          stroke="url(#purpleBlue)"
-          strokeWidth={6}
-          strokeLinecap="round"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ 
-            pathLength: [0, 1],
-            opacity: [0, 1, 1, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        {/* Line 2 - Middle area, pink to orange */}
-        <motion.path
-          d="M-200,550 C150,250 450,700 800,400 S1150,700 1500,350 S1850,650 2200,400"
-          fill="none"
-          stroke="url(#pinkOrange)"
-          strokeWidth={5}
-          strokeLinecap="round"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ 
-            pathLength: [0, 1],
-            opacity: [0, 1, 1, 0],
-          }}
-          transition={{
-            duration: 10,
-            delay: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        {/* Line 3 - Bottom area, cyan to green */}
-        <motion.path
-          d="M-200,850 C250,550 550,900 900,600 S1300,900 1600,550 S1900,800 2200,600"
-          fill="none"
-          stroke="url(#cyanGreen)"
-          strokeWidth={4}
-          strokeLinecap="round"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ 
-            pathLength: [0, 1],
-            opacity: [0, 1, 1, 0],
-          }}
-          transition={{
-            duration: 9,
-            delay: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      </svg>
-
-      {/* Ambient glow spots */}
-      <motion.div
-        className="absolute top-[15%] left-[20%] w-[500px] h-[500px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 60%)',
-        }}
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{ duration: 8, repeat: Infinity }}
-      />
-
-      <motion.div
-        className="absolute bottom-[20%] right-[15%] w-[450px] h-[450px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, transparent 60%)',
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.4, 0.2],
-        }}
-        transition={{ duration: 10, repeat: Infinity, delay: 3 }}
-      />
-
-      {/* Vignette */}
+      {/* Vignette overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%)',
         }}
       />
     </div>

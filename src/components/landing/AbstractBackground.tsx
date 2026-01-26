@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { CatmullRomCurve3, Vector3, TubeGeometry, MeshBasicMaterial } from 'three';
+import { CatmullRomCurve3, Vector3, TubeGeometry } from 'three';
 import { cn } from '@/lib/utils';
 
 interface FlowingLineProps {
@@ -13,133 +13,173 @@ interface FlowingLineProps {
 
 function FlowingLine({ points, color, speed, radius, delay }: FlowingLineProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   const timeRef = useRef(delay);
 
   const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
   
   const geometry = useMemo(() => {
-    return new TubeGeometry(curve, 100, radius, 16, false);
+    return new TubeGeometry(curve, 120, radius, 24, false);
   }, [curve, radius]);
 
   useFrame((_, delta) => {
     timeRef.current += delta * speed;
     
     if (materialRef.current) {
-      // Pulsing opacity effect
-      const pulse = Math.sin(timeRef.current) * 0.3 + 0.7;
+      const pulse = Math.sin(timeRef.current) * 0.2 + 0.8;
       materialRef.current.opacity = pulse;
+      materialRef.current.emissiveIntensity = pulse * 2;
     }
 
     if (meshRef.current) {
-      // Subtle floating motion
-      meshRef.current.position.y = Math.sin(timeRef.current * 0.5) * 0.3;
-      meshRef.current.position.z = Math.cos(timeRef.current * 0.3) * 0.2;
+      meshRef.current.position.y = Math.sin(timeRef.current * 0.4) * 0.5;
+      meshRef.current.position.z = Math.cos(timeRef.current * 0.25) * 1;
     }
   });
 
   return (
     <mesh ref={meshRef} geometry={geometry}>
-      <meshBasicMaterial
+      <meshStandardMaterial
         ref={materialRef}
         color={color}
+        emissive={color}
+        emissiveIntensity={1.5}
         transparent
-        opacity={0.8}
+        opacity={0.9}
+        roughness={0.2}
+        metalness={0.8}
       />
     </mesh>
   );
 }
 
-function GlowLine({ points, color, speed, radius, delay }: FlowingLineProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const timeRef = useRef(delay);
-
+function GlowLine({ points, color, radius }: { points: Vector3[]; color: string; radius: number }) {
   const curve = useMemo(() => new CatmullRomCurve3(points), [points]);
-  
-  const geometry = useMemo(() => {
-    return new TubeGeometry(curve, 100, radius * 2.5, 16, false);
-  }, [curve, radius]);
-
-  useFrame((_, delta) => {
-    timeRef.current += delta * speed;
-    
-    if (meshRef.current) {
-      meshRef.current.position.y = Math.sin(timeRef.current * 0.5) * 0.3;
-      meshRef.current.position.z = Math.cos(timeRef.current * 0.3) * 0.2;
-    }
-  });
+  const geometry = useMemo(() => new TubeGeometry(curve, 120, radius * 4, 16, false), [curve, radius]);
 
   return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={0.15}
-      />
+    <mesh geometry={geometry}>
+      <meshBasicMaterial color={color} transparent opacity={0.08} />
     </mesh>
   );
+}
+
+function CameraRig() {
+  useFrame(({ camera, clock }) => {
+    const t = clock.getElapsedTime() * 0.1;
+    camera.position.x = Math.sin(t) * 2;
+    camera.position.y = Math.cos(t * 0.5) * 1;
+    camera.lookAt(0, 0, -10);
+  });
+  return null;
 }
 
 function Scene() {
-  // Define 3D curved paths - roller coaster style with depth
   const lines = useMemo(() => [
+    // Far background lines (z: -30 to -20)
     {
       points: [
-        new Vector3(-15, 3, -5),
-        new Vector3(-8, -2, 2),
-        new Vector3(-2, 4, -3),
-        new Vector3(5, -1, 4),
-        new Vector3(10, 3, -2),
-        new Vector3(15, -2, 1),
+        new Vector3(-25, 8, -30),
+        new Vector3(-15, -5, -25),
+        new Vector3(-5, 10, -28),
+        new Vector3(8, -3, -22),
+        new Vector3(18, 6, -26),
+        new Vector3(28, -4, -24),
       ],
-      color: '#8B5CF6', // Purple
-      speed: 0.4,
-      radius: 0.08,
+      color: '#6366F1', // Indigo
+      speed: 0.25,
+      radius: 0.15,
       delay: 0,
     },
     {
       points: [
-        new Vector3(-15, -1, 3),
-        new Vector3(-7, 3, -4),
-        new Vector3(0, -3, 5),
-        new Vector3(7, 2, -2),
-        new Vector3(12, -2, 3),
-        new Vector3(18, 1, -1),
+        new Vector3(-28, -6, -28),
+        new Vector3(-12, 8, -24),
+        new Vector3(2, -8, -30),
+        new Vector3(14, 5, -22),
+        new Vector3(24, -6, -26),
+      ],
+      color: '#8B5CF6', // Purple
+      speed: 0.2,
+      radius: 0.12,
+      delay: 1,
+    },
+    
+    // Mid-ground lines (z: -15 to -8)
+    {
+      points: [
+        new Vector3(-22, 4, -15),
+        new Vector3(-10, -6, -10),
+        new Vector3(0, 8, -14),
+        new Vector3(12, -4, -8),
+        new Vector3(22, 5, -12),
       ],
       color: '#EC4899', // Pink
       speed: 0.35,
-      radius: 0.06,
+      radius: 0.1,
       delay: 2,
     },
     {
       points: [
-        new Vector3(-18, 0, -2),
-        new Vector3(-10, -3, 4),
-        new Vector3(-3, 2, -5),
-        new Vector3(4, -2, 3),
-        new Vector3(11, 1, -4),
-        new Vector3(16, -1, 2),
+        new Vector3(-20, -5, -12),
+        new Vector3(-8, 7, -9),
+        new Vector3(5, -6, -14),
+        new Vector3(15, 4, -10),
+        new Vector3(25, -3, -11),
+      ],
+      color: '#F43F5E', // Rose
+      speed: 0.3,
+      radius: 0.08,
+      delay: 3,
+    },
+    
+    // Foreground lines (z: -5 to 2)
+    {
+      points: [
+        new Vector3(-18, 2, -5),
+        new Vector3(-6, -4, 0),
+        new Vector3(4, 5, -3),
+        new Vector3(14, -2, 2),
+        new Vector3(22, 3, -1),
       ],
       color: '#3B82F6', // Blue
       speed: 0.45,
-      radius: 0.07,
+      radius: 0.06,
       delay: 4,
+    },
+    {
+      points: [
+        new Vector3(-16, -3, -2),
+        new Vector3(-4, 5, 1),
+        new Vector3(8, -4, -4),
+        new Vector3(18, 2, 0),
+      ],
+      color: '#22D3EE', // Cyan
+      speed: 0.5,
+      radius: 0.05,
+      delay: 5,
     },
   ], []);
 
   return (
     <>
-      {/* Ambient lighting */}
-      <ambientLight intensity={0.5} />
+      <CameraRig />
       
-      {/* Camera positioned for depth perspective */}
+      {/* Fog for depth */}
+      <fog attach="fog" args={['#000000', 5, 40]} />
       
-      {/* Render glow layers first (behind) */}
+      {/* Lighting */}
+      <ambientLight intensity={0.3} />
+      <pointLight position={[10, 10, 10]} intensity={1} color="#8B5CF6" />
+      <pointLight position={[-10, -10, -10]} intensity={0.8} color="#EC4899" />
+      <pointLight position={[0, 0, 5]} intensity={0.5} color="#3B82F6" />
+      
+      {/* Glow layers */}
       {lines.map((line, i) => (
-        <GlowLine key={`glow-${i}`} {...line} />
+        <GlowLine key={`glow-${i}`} points={line.points} color={line.color} radius={line.radius} />
       ))}
       
-      {/* Render main lines */}
+      {/* Main lines */}
       {lines.map((line, i) => (
         <FlowingLine key={`line-${i}`} {...line} />
       ))}
@@ -154,23 +194,21 @@ interface AbstractBackgroundProps {
 export default function AbstractBackground({ className }: AbstractBackgroundProps) {
   return (
     <div className={cn("absolute inset-0", className)}>
-      {/* Deep black base */}
       <div className="absolute inset-0 bg-black" />
       
-      {/* 3D Canvas */}
       <Canvas
-        camera={{ position: [0, 0, 10], fov: 60 }}
+        camera={{ position: [0, 0, 8], fov: 75, near: 0.1, far: 100 }}
         style={{ position: 'absolute', inset: 0 }}
         dpr={[1, 2]}
       >
         <Scene />
       </Canvas>
 
-      {/* Vignette overlay */}
+      {/* Vignette */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.5) 100%)',
         }}
       />
     </div>

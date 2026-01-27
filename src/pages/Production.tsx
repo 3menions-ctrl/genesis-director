@@ -33,6 +33,7 @@ import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
 import { ContinuityManifestPanel } from '@/components/studio/ContinuityManifestPanel';
 import { CloudRunProgressPanel } from '@/components/studio/CloudRunProgressPanel';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
+import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
 import { useContinuityOrchestrator } from '@/hooks/useContinuityOrchestrator';
 import { useContinuityManifest } from '@/hooks/useContinuityManifest';
 
@@ -152,6 +153,8 @@ export default function Production() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
   const [selectedManifestIndex, setSelectedManifestIndex] = useState<number>(0);
+  const [projectMode, setProjectMode] = useState<string>('text-to-video');
+  const [pipelineState, setPipelineState] = useState<any>(null);
 
   // Continuity orchestrator for transition analysis
   const {
@@ -325,6 +328,16 @@ export default function Production() {
 
       setProjectTitle(project.title);
       setProjectStatus(project.status);
+      setProjectMode(project.mode || 'text-to-video');
+      
+      // Load pipeline state for specialized modes
+      if (project.pipeline_state) {
+        const state = typeof project.pipeline_state === 'string' 
+          ? JSON.parse(project.pipeline_state) 
+          : project.pipeline_state;
+        setPipelineState(state);
+      }
+      
       if (project.video_url) setFinalVideoUrl(project.video_url);
       
       // Load pro features data
@@ -949,8 +962,26 @@ export default function Production() {
                     </Card>
                   )}
                   
-                  {/* Final Video */}
-                  {finalVideoUrl && (
+                  {/* Specialized Mode Progress - Avatar, Motion Transfer, Style Transfer */}
+                  {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && pipelineState && (
+                    <SpecializedModeProgress
+                      projectId={projectId!}
+                      mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
+                      pipelineState={pipelineState}
+                      videoUrl={finalVideoUrl}
+                      onComplete={() => {
+                        setProjectStatus('completed');
+                        setProgress(100);
+                        toast.success('Video generation complete!');
+                      }}
+                      onRetry={() => {
+                        toast.info('Retry feature coming soon');
+                      }}
+                    />
+                  )}
+                  
+                  {/* Final Video (for cinematic pipeline) */}
+                  {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
                     <ProductionFinalVideo videoUrl={finalVideoUrl} />
                   )}
 

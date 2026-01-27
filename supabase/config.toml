@@ -233,3 +233,12 @@ verify_jwt = false
 
 [functions.wan2-stitch]
 verify_jwt = false
+
+[functions.generate-avatar]
+verify_jwt = false
+
+[functions.stylize-video]
+verify_jwt = false
+
+[functions.motion-transfer]
+verify_jwt = false

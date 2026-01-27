@@ -139,13 +139,14 @@ async function createReplicatePrediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Build Replicate input for Kling
+  // Build Replicate input for Kling - ALWAYS use "pro" mode for HD quality
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
     negative_prompt: negativePrompt.slice(0, 1000),
     aspect_ratio: aspectRatio,
     duration: durationSeconds <= 5 ? 5 : 10,
     cfg_scale: 0.5,
+    mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
   };
 
   // Add start image if provided (for image-to-video)

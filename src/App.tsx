@@ -38,6 +38,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
+const Create = lazy(() => import("./pages/Create"));
 
 const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
 
@@ -104,8 +105,15 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                {/* Video Generator Route */}
+                {/* New Premium Creation Hub */}
                 <Route path="/create" element={
+                  <ProtectedRoute>
+                    <Create />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Legacy Video Generator with StudioLayout */}
+                <Route path="/studio" element={
                   <ProtectedRoute>
                     <Suspense fallback={<AppLoader message="Loading studio..." />}>
                       <StudioLayout><LongVideo /></StudioLayout>
@@ -127,8 +135,7 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                {/* Legacy studio route redirects to production */}
-                <Route path="/studio" element={<Navigate to="/production" replace />} />
+                {/* Keep production route for active productions */}
                 
                 {/* Clips Gallery */}
                 <Route path="/clips" element={

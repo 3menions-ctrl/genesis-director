@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Clock, Heart, Film, Search, TrendingUp, Sparkles } from 'lucide-react';
+import { 
+  Play, Clock, Heart, Film, Search, TrendingUp, Sparkles, 
+  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2,
+  ArrowRight, Maximize2
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -14,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { TrailerGenerator } from '@/components/TrailerGenerator';
+import type { VideoGenerationMode } from '@/types/video-modes';
 
 interface PublicVideo {
   id: string;
@@ -27,9 +32,44 @@ interface PublicVideo {
   target_duration_minutes: number;
   user_id: string;
   likes_count: number;
+  mode?: VideoGenerationMode;
 }
 
 type SortOption = 'recent' | 'popular';
+
+// Mode icon mapping
+const getModeIcon = (mode?: VideoGenerationMode) => {
+  switch (mode) {
+    case 'video-to-video': return Palette;
+    case 'avatar': return User;
+    case 'image-to-video': return Image;
+    case 'motion-transfer': return Sparkles;
+    case 'b-roll': return Film;
+    default: return Wand2;
+  }
+};
+
+const getModeLabel = (mode?: VideoGenerationMode) => {
+  switch (mode) {
+    case 'video-to-video': return 'Style Transfer';
+    case 'avatar': return 'AI Avatar';
+    case 'image-to-video': return 'Animated';
+    case 'motion-transfer': return 'Motion';
+    case 'b-roll': return 'B-Roll';
+    default: return 'Cinematic';
+  }
+};
+
+const getModeColor = (mode?: VideoGenerationMode) => {
+  switch (mode) {
+    case 'video-to-video': return 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300';
+    case 'avatar': return 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-300';
+    case 'image-to-video': return 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300';
+    case 'motion-transfer': return 'from-pink-500/20 to-pink-600/10 border-pink-500/30 text-pink-300';
+    case 'b-roll': return 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300';
+    default: return 'from-white/10 to-white/5 border-white/20 text-white/80';
+  }
+};
 
 export default function Discover() {
   const navigate = useNavigate();
@@ -38,13 +78,14 @@ export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [selectedVideo, setSelectedVideo] = useState<PublicVideo | null>(null);
+  const [modeFilter, setModeFilter] = useState<VideoGenerationMode | 'all'>('all');
 
   const { data: videos, isLoading } = useQuery({
     queryKey: ['public-videos', sortBy],
     queryFn: async () => {
       const query = supabase
         .from('movie_projects')
-        .select('id, title, synopsis, thumbnail_url, video_url, genre, mood, created_at, target_duration_minutes, user_id, likes_count')
+        .select('id, title, synopsis, thumbnail_url, video_url, genre, mood, created_at, target_duration_minutes, user_id, likes_count, mode')
         .eq('is_public', true)
         .not('video_url', 'is', null)
         .order(sortBy === 'popular' ? 'likes_count' : 'created_at', { ascending: false });
@@ -55,7 +96,6 @@ export default function Discover() {
     },
   });
 
-  // Fetch user's likes
   const { data: userLikes } = useQuery({
     queryKey: ['user-likes', user?.id],
     queryFn: async () => {
@@ -106,51 +146,72 @@ export default function Discover() {
     likeMutation.mutate({ projectId, isLiked });
   };
 
-  const filteredVideos = videos?.filter(video =>
-    video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.synopsis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    video.genre.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredVideos = videos?.filter(video => {
+    const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      video.synopsis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      video.genre.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesMode = modeFilter === 'all' || video.mode === modeFilter;
+    
+    return matchesSearch && matchesMode;
+  });
 
   const formatGenre = (genre: string) => {
     return genre.charAt(0).toUpperCase() + genre.slice(1).replace(/_/g, ' ');
   };
 
+  // Count videos by mode for filter badges
+  const modeCounts = videos?.reduce((acc, video) => {
+    const mode = video.mode || 'text-to-video';
+    acc[mode] = (acc[mode] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>) || {};
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#030303]">
       <AppHeader />
       
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-violet-600/[0.06] via-purple-500/[0.03] to-transparent blur-[120px]" />
+        <div className="absolute bottom-[-15%] right-[-5%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-tl from-cyan-500/[0.05] via-blue-500/[0.02] to-transparent blur-[100px]" />
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }} />
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Community <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Showcase</span>
+            <Badge className="mb-4 bg-white/10 border-white/20 text-white/80 backdrop-blur-sm">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Community Gallery
+            </Badge>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
+              Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/50">Creations</span>
             </h1>
-            <p className="text-lg text-white/60 mb-8">
-              Discover amazing AI-generated videos created by our community
+            <p className="text-lg text-white/50 mb-8 max-w-xl mx-auto">
+              Explore AI-generated videos from creators worldwide — from cinematic films to style transfers and AI avatars.
             </p>
 
             {/* Search Bar */}
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto mb-6">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search videos by title, genre, or description..."
-                className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-white/20 focus:ring-white/10"
+                placeholder="Search by title, genre, or description..."
+                className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-white/20 focus:ring-white/10 backdrop-blur-sm"
               />
             </div>
 
-            {/* Sort Options */}
-            <div className="flex items-center justify-center gap-2 mt-6">
+            {/* Sort & Filter Options */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -158,7 +219,7 @@ export default function Discover() {
                 className={cn(
                   "rounded-full gap-2",
                   sortBy === 'recent' 
-                    ? "bg-white/10 text-white" 
+                    ? "bg-white/10 text-white border border-white/20" 
                     : "text-white/50 hover:text-white hover:bg-white/5"
                 )}
               >
@@ -172,13 +233,47 @@ export default function Discover() {
                 className={cn(
                   "rounded-full gap-2",
                   sortBy === 'popular' 
-                    ? "bg-white/10 text-white" 
+                    ? "bg-white/10 text-white border border-white/20" 
                     : "text-white/50 hover:text-white hover:bg-white/5"
                 )}
               >
                 <TrendingUp className="w-4 h-4" />
                 Popular
               </Button>
+              
+              <div className="h-4 w-px bg-white/20 mx-2 hidden sm:block" />
+              
+              {/* Mode Filters */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setModeFilter('all')}
+                className={cn(
+                  "rounded-full gap-1.5",
+                  modeFilter === 'all' 
+                    ? "bg-white/10 text-white border border-white/20" 
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                )}
+              >
+                All
+              </Button>
+              {Object.entries(modeCounts).map(([mode, count]) => (
+                <Button
+                  key={mode}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setModeFilter(mode as VideoGenerationMode)}
+                  className={cn(
+                    "rounded-full gap-1.5 text-xs",
+                    modeFilter === mode 
+                      ? "bg-white/10 text-white border border-white/20" 
+                      : "text-white/50 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {getModeLabel(mode as VideoGenerationMode)}
+                  <span className="text-white/40">({count})</span>
+                </Button>
+              ))}
             </div>
           </motion.div>
         </div>
@@ -192,7 +287,7 @@ export default function Discover() {
       )}
 
       {/* Video Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -209,9 +304,7 @@ export default function Discover() {
             initial="hidden"
             animate="visible"
             variants={{
-              visible: {
-                transition: { staggerChildren: 0.05 }
-              }
+              visible: { transition: { staggerChildren: 0.05 } }
             }}
           >
             {filteredVideos.map((video) => (
@@ -231,24 +324,22 @@ export default function Discover() {
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6 border border-white/10">
               <Film className="w-10 h-10 text-white/30" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No public videos yet</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">No videos found</h3>
             <p className="text-white/50 max-w-md mx-auto mb-6">
-              {searchQuery 
-                ? "No videos match your search. Try different keywords."
+              {searchQuery || modeFilter !== 'all'
+                ? "Try adjusting your filters or search query."
                 : "Be the first to share your creation with the community!"}
             </p>
-            {!searchQuery && (
-              <Button
-                onClick={() => navigate('/create')}
-                className="bg-white text-black hover:bg-white/90 rounded-full px-6"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Create Your First Video
-              </Button>
-            )}
+            <Button
+              onClick={() => navigate('/create')}
+              className="bg-white text-black hover:bg-white/90 rounded-full px-6"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Create Your First Video
+            </Button>
           </motion.div>
         )}
       </div>
@@ -279,6 +370,33 @@ interface VideoCardProps {
 
 function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const ModeIcon = getModeIcon(video.mode);
+
+  // Handle hover preview playback
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isHovered && !isPlaying) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        video.currentTime = 0;
+        video.play().then(() => setIsPlaying(true)).catch(() => {});
+      }, 300);
+    } else if (!isHovered && isPlaying) {
+      video.pause();
+      setIsPlaying(false);
+    }
+
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, [isHovered, isPlaying]);
+
+  const isPlayableVideo = video.video_url && !video.video_url.endsWith('.json');
 
   return (
     <motion.div
@@ -291,55 +409,87 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
       onMouseLeave={() => setIsHovered(false)}
       onClick={onPlay}
     >
-      {/* Thumbnail */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-white/5 mb-3">
-        {video.thumbnail_url ? (
+      {/* Thumbnail / Video Preview */}
+      <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-900 mb-3 border border-white/[0.08] transition-all duration-300 group-hover:border-white/20 group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        {/* Thumbnail Image */}
+        {video.thumbnail_url && (
           <img
             src={video.thumbnail_url}
             alt={video.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+              isPlaying && "opacity-0"
+            )}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/10 to-white/5">
+        )}
+        
+        {/* Video Preview (loads on hover) */}
+        {isPlayableVideo && (
+          <video
+            ref={videoRef}
+            src={video.video_url!}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
+              isPlaying ? "opacity-100" : "opacity-0"
+            )}
+          />
+        )}
+
+        {/* Fallback for no thumbnail */}
+        {!video.thumbnail_url && !isPlayableVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
             <Film className="w-12 h-12 text-white/20" />
           </div>
         )}
         
-        {/* Overlay */}
+        {/* Hover Overlay */}
         <div className={cn(
-          "absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300",
+          "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300",
+          isHovered ? "opacity-100" : "opacity-50"
+        )} />
+
+        {/* Play Button */}
+        <div className={cn(
+          "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
           isHovered ? "opacity-100" : "opacity-0"
         )}>
           <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: isHovered ? 1 : 0.8 }}
-            className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+            className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30"
           >
             <Play className="w-6 h-6 text-white fill-white ml-1" />
           </motion.div>
         </div>
 
-        {/* Duration Badge */}
-        <div className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/70 text-xs text-white font-medium">
+        {/* Mode Badge */}
+        <Badge 
+          className={cn(
+            "absolute top-2 left-2 text-[10px] font-medium backdrop-blur-sm border bg-gradient-to-r",
+            getModeColor(video.mode)
+          )}
+        >
+          <ModeIcon className="w-3 h-3 mr-1" />
+          {getModeLabel(video.mode)}
+        </Badge>
+
+        {/* Duration */}
+        <div className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs text-white font-medium">
           {video.target_duration_minutes} min
         </div>
-
-        {/* Genre Badge */}
-        <Badge 
-          variant="secondary" 
-          className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm text-white/90 border-none text-xs"
-        >
-          {formatGenre(video.genre)}
-        </Badge>
 
         {/* Like Button */}
         <button
           onClick={onLike}
           className={cn(
-            "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all",
+            "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all backdrop-blur-sm",
             isLiked 
               ? "bg-red-500/90 text-white" 
-              : "bg-black/50 backdrop-blur-sm text-white/70 hover:text-white hover:bg-black/70"
+              : "bg-black/50 text-white/70 hover:text-white hover:bg-black/70"
           )}
         >
           <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
@@ -347,7 +497,7 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
       </div>
 
       {/* Info */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <h3 className="font-semibold text-white truncate group-hover:text-white/90 transition-colors">
           {video.title}
         </h3>
@@ -378,77 +528,158 @@ interface VideoModalProps {
 }
 
 function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModalProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  const ModeIcon = getModeIcon(video.mode);
+  const isPlayableVideo = video.video_url && !video.video_url.endsWith('.json');
+
+  // Attempt autoplay on mount
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !isPlayableVideo) return;
+
+    const attemptPlay = async () => {
+      try {
+        await videoEl.play();
+        setIsVideoPlaying(true);
+      } catch {
+        // Autoplay blocked - keep muted and try again
+        videoEl.muted = true;
+        setIsMuted(true);
+        try {
+          await videoEl.play();
+          setIsVideoPlaying(true);
+        } catch {
+          // Still failed - user needs to click
+        }
+      }
+    };
+
+    attemptPlay();
+  }, [isPlayableVideo]);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const togglePlayback = () => {
+    if (videoRef.current) {
+      if (isVideoPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsVideoPlaying(!isVideoPlaying);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-5xl bg-zinc-900/90 rounded-2xl overflow-hidden border border-white/10"
+        className="relative w-full max-w-5xl bg-zinc-900/90 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Video Player */}
-        <div className="aspect-video bg-black">
-          {video.video_url ? (
-            video.video_url.endsWith('.json') ? (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
-                {video.thumbnail_url && (
-                  <img 
-                    src={video.thumbnail_url} 
-                    alt={video.title}
-                    className="absolute inset-0 w-full h-full object-cover opacity-30"
-                  />
-                )}
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
-                    <Film className="w-8 h-8 text-white/50" />
+        <div className="relative aspect-video bg-black">
+          {isPlayableVideo ? (
+            <>
+              <video
+                ref={videoRef}
+                src={video.video_url!}
+                className="w-full h-full object-contain"
+                muted={isMuted}
+                loop
+                playsInline
+                onClick={togglePlayback}
+              />
+              
+              {/* Video Controls Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={togglePlayback}
+                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                    >
+                      {isVideoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={toggleMute}
+                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                    >
+                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </Button>
                   </div>
-                  <p className="text-white/70 font-medium mb-1">Multi-Clip Production</p>
-                  <p className="text-white/40 text-sm">Open in full studio to view this cinematic project</p>
+                  
+                  <Badge className={cn(
+                    "text-xs backdrop-blur-sm border bg-gradient-to-r",
+                    getModeColor(video.mode)
+                  )}>
+                    <ModeIcon className="w-3 h-3 mr-1" />
+                    {getModeLabel(video.mode)}
+                  </Badge>
                 </div>
               </div>
-            ) : (
-              <video
-                src={video.video_url}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-              />
-            )
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-white/50">
-              Video not available
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
+              {video.thumbnail_url && (
+                <img 
+                  src={video.thumbnail_url} 
+                  alt={video.title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-30"
+                />
+              )}
+              <div className="relative z-10 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 border border-white/20">
+                  <Film className="w-8 h-8 text-white/50" />
+                </div>
+                <p className="text-white/70 font-medium mb-1">Multi-Clip Production</p>
+                <p className="text-white/40 text-sm">Open in full studio to view this cinematic project</p>
+              </div>
             </div>
           )}
         </div>
 
         {/* Video Info */}
-        <div className="p-6">
+        <div className="p-6 bg-gradient-to-b from-zinc-900/50 to-zinc-900">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold text-white mb-2">{video.title}</h2>
-              <div className="flex items-center gap-3 text-sm text-white/50 mb-4">
-                <Badge variant="outline" className="text-white/70 border-white/20">
+              <h2 className="text-2xl font-bold text-white mb-3">{video.title}</h2>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Badge variant="outline" className="text-white/70 border-white/20 bg-white/5">
                   {formatGenre(video.genre)}
                 </Badge>
                 {video.mood && (
-                  <Badge variant="outline" className="text-white/70 border-white/20">
+                  <Badge variant="outline" className="text-white/70 border-white/20 bg-white/5">
                     {video.mood}
                   </Badge>
                 )}
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 text-sm text-white/50">
                   <Clock className="w-3.5 h-3.5" />
                   {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
                 </span>
               </div>
               {video.synopsis && (
-                <p className="text-white/60">{video.synopsis}</p>
+                <p className="text-white/60 leading-relaxed">{video.synopsis}</p>
               )}
             </div>
             
@@ -465,7 +696,7 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
               )}
             >
               <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
-              {video.likes_count || 0} {video.likes_count === 1 ? 'Like' : 'Likes'}
+              {video.likes_count || 0}
             </Button>
           </div>
         </div>
@@ -473,9 +704,9 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all"
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10"
         >
-          ✕
+          <X className="w-5 h-5" />
         </button>
       </motion.div>
     </motion.div>

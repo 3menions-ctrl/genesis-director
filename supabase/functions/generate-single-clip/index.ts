@@ -264,35 +264,6 @@ async function pollReplicatePrediction(
 // Uses chunked decoding to prevent OOM crashes
 // =====================================================
 
-// Chunked base64 decode - processes in 1MB chunks to avoid memory spikes
-function decodeBase64Chunked(base64Data: string): Uint8Array {
-  const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for decoding
-  const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
-  const decodedChunks: Uint8Array[] = [];
-  let totalLength = 0;
-  
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min((i + 1) * CHUNK_SIZE, base64Data.length);
-    const chunk = base64Data.slice(start, end);
-    
-    // Decode this chunk
-    const decoded = Uint8Array.from(atob(chunk), c => c.charCodeAt(0));
-    decodedChunks.push(decoded);
-    totalLength += decoded.length;
-  }
-  
-  // Combine all chunks
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of decodedChunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-  
-  return result;
-}
-
 // Store video from URL directly to Supabase storage
 async function storeVideoFromUrl(
   supabase: any,
@@ -334,6 +305,120 @@ async function storeVideoFromUrl(
 }
 
 // =====================================================
+// DATABASE PERSISTENCE HELPERS
+// CRITICAL: Register clips BEFORE generation to prevent data loss
+// =====================================================
+
+/**
+ * Insert or update a clip record in video_clips table
+ * Called BEFORE generation starts with status='pending' and prediction_id
+ * Updated to 'completed' when video is ready
+ */
+async function upsertClipRecord(
+  supabase: any,
+  options: {
+    projectId: string;
+    userId: string;
+    shotIndex: number;
+    prompt: string;
+    status: 'pending' | 'generating' | 'completed' | 'failed';
+    predictionId?: string;
+    videoUrl?: string;
+    lastFrameUrl?: string;
+    durationSeconds?: number;
+    motionVectors?: any;
+    errorMessage?: string;
+  }
+): Promise<string> {
+  const {
+    projectId,
+    userId,
+    shotIndex,
+    prompt,
+    status,
+    predictionId,
+    videoUrl,
+    lastFrameUrl,
+    durationSeconds,
+    motionVectors,
+    errorMessage,
+  } = options;
+
+  // Check if clip record already exists
+  const { data: existingClip } = await supabase
+    .from('video_clips')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('shot_index', shotIndex)
+    .maybeSingle();
+
+  const clipData: Record<string, any> = {
+    project_id: projectId,
+    user_id: userId,
+    shot_index: shotIndex,
+    prompt: prompt.substring(0, 5000), // Limit prompt length
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Add optional fields if provided
+  if (predictionId) {
+    clipData.veo_operation_name = predictionId; // Reuse this column for prediction tracking
+  }
+  if (videoUrl) {
+    clipData.video_url = videoUrl;
+    clipData.completed_at = new Date().toISOString();
+  }
+  if (lastFrameUrl) {
+    clipData.last_frame_url = lastFrameUrl;
+  }
+  if (durationSeconds) {
+    clipData.duration_seconds = durationSeconds;
+  }
+  if (motionVectors) {
+    clipData.motion_vectors = motionVectors;
+  }
+  if (errorMessage) {
+    clipData.error_message = errorMessage;
+  }
+
+  let clipId: string;
+
+  if (existingClip?.id) {
+    // Update existing clip
+    const { error: updateError } = await supabase
+      .from('video_clips')
+      .update(clipData)
+      .eq('id', existingClip.id);
+
+    if (updateError) {
+      console.error(`[SingleClip] Failed to update clip record:`, updateError);
+      throw new Error(`Failed to update clip record: ${updateError.message}`);
+    }
+
+    clipId = existingClip.id;
+    console.log(`[SingleClip] ✓ Updated clip record ${clipId} with status=${status}`);
+  } else {
+    // Insert new clip
+    const { data: newClip, error: insertError } = await supabase
+      .from('video_clips')
+      .insert(clipData)
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error(`[SingleClip] Failed to insert clip record:`, insertError);
+      throw new Error(`Failed to insert clip record: ${insertError.message}`);
+    }
+
+    clipId = newClip.id;
+    console.log(`[SingleClip] ✓ Created clip record ${clipId} with status=${status}, predictionId=${predictionId}`);
+  }
+
+  return clipId;
+}
+
+// =====================================================
 // SINGLE CLIP GENERATION RESPONSE
 // =====================================================
 
@@ -344,6 +429,8 @@ interface SingleClipResult {
   lastFrameUrl?: string;
   durationSeconds?: number;
   error?: string;
+  clipId?: string;
+  predictionId?: string;
   motionVectors?: {
     endVelocity?: string;
     endDirection?: string;
@@ -362,12 +449,23 @@ serve(async (req) => {
 
   const startTime = Date.now();
 
+  // Initialize Supabase early for error handling
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  let projectId: string | undefined;
+  let userId: string | undefined;
+  let shotIndex = 0;
+  let clipId: string | undefined;
+
   try {
     const body = await req.json();
+    projectId = body.projectId;
+    userId = body.userId;
+    shotIndex = body.shotIndex || body.clipIndex || 0;
+    
     const {
-      projectId,
-      userId,
-      shotIndex = 0,
       prompt,
       negativePrompt = "",
       startImageUrl,
@@ -377,6 +475,9 @@ serve(async (req) => {
       characterReferences = [],
       identityBible,
       skipPolling = false, // If true, return prediction ID immediately
+      triggerNextClip = false, // If true, call continue-production after completion
+      totalClips,
+      pipelineContext,
     } = body;
 
     if (!projectId || !prompt) {
@@ -385,11 +486,6 @@ serve(async (req) => {
 
     console.log(`[SingleClip] Starting generation for project ${projectId}, shot ${shotIndex}`);
     console.log(`[SingleClip] Using Kling v2.6 via Replicate`);
-
-    // Initialize Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build enhanced prompt
     let enhancedPrompt = prompt;
@@ -443,11 +539,29 @@ serve(async (req) => {
       durationSeconds
     );
 
+    // =========================================================
+    // CRITICAL FIX: Register clip in database BEFORE polling
+    // This ensures clip is tracked even if function times out
+    // =========================================================
+    if (userId) {
+      clipId = await upsertClipRecord(supabase, {
+        projectId,
+        userId,
+        shotIndex,
+        prompt: enhancedPrompt,
+        status: 'generating',
+        predictionId,
+        durationSeconds,
+      });
+      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} registered with predictionId=${predictionId}`);
+    }
+
     // If skipPolling, return the prediction ID for external polling
     if (skipPolling) {
       return new Response(
         JSON.stringify({
           success: true,
+          clipId,
           predictionId,
           provider: "replicate",
           model: KLING_MODEL,
@@ -461,6 +575,23 @@ serve(async (req) => {
 
     // Store video in Supabase storage
     const storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, projectId, shotIndex);
+
+    // =========================================================
+    // Update clip record with completed video URL
+    // =========================================================
+    if (userId && clipId) {
+      await upsertClipRecord(supabase, {
+        projectId,
+        userId,
+        shotIndex,
+        prompt: enhancedPrompt,
+        status: 'completed',
+        predictionId,
+        videoUrl: storedVideoUrl,
+        durationSeconds,
+      });
+      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked completed with videoUrl`);
+    }
 
     // Log API cost
     try {
@@ -488,9 +619,48 @@ serve(async (req) => {
 
     const result: SingleClipResult = {
       success: true,
+      clipId,
+      predictionId,
       videoUrl: storedVideoUrl,
       durationSeconds,
     };
+
+    // =========================================================
+    // Trigger next clip generation via continue-production
+    // This enables callback-based chaining to avoid timeouts
+    // =========================================================
+    if (triggerNextClip && totalClips) {
+      console.log(`[SingleClip] Triggering continue-production for clip ${shotIndex + 2}/${totalClips}...`);
+      
+      try {
+        // Fire and forget - don't wait for response
+        const continueUrl = `${supabaseUrl}/functions/v1/continue-production`;
+        fetch(continueUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            projectId,
+            userId,
+            completedClipIndex: shotIndex,
+            completedClipResult: {
+              videoUrl: storedVideoUrl,
+              lastFrameUrl: storedVideoUrl, // Could extract last frame later
+              motionVectors: null,
+              continuityManifest: null,
+            },
+            totalClips,
+            pipelineContext,
+          }),
+        }).catch(err => {
+          console.warn(`[SingleClip] Failed to trigger continue-production:`, err);
+        });
+      } catch (continueErr) {
+        console.warn(`[SingleClip] Error triggering continue-production:`, continueErr);
+      }
+    }
 
     return new Response(
       JSON.stringify(result),
@@ -499,8 +669,30 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[SingleClip] Error:", error);
+    
+    // =========================================================
+    // CRITICAL: Update clip record with failure status
+    // This ensures failed clips are tracked for recovery
+    // =========================================================
+    if (userId && projectId) {
+      try {
+        await upsertClipRecord(supabase, {
+          projectId,
+          userId,
+          shotIndex,
+          prompt: 'Generation failed',
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        });
+        console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked as failed`);
+      } catch (dbError) {
+        console.error(`[SingleClip] Failed to update clip status:`, dbError);
+      }
+    }
+    
     const result: SingleClipResult = {
       success: false,
+      clipId,
       error: error instanceof Error ? error.message : "Unknown error",
     };
     return new Response(

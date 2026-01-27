@@ -401,13 +401,80 @@ serve(async (req) => {
         
         const { data: clips } = await supabase
           .from('video_clips')
-          .select('id, shot_index, status, video_url')
+          .select('id, shot_index, status, video_url, veo_operation_name, updated_at')
           .eq('project_id', project.id)
           .order('shot_index');
         
         const completedClips = (clips || []).filter((c: { status: string; video_url: string }) => 
           c.status === 'completed' && c.video_url
         );
+        
+        // ==================== RECOVER STUCK CLIPS ====================
+        // Find clips with prediction IDs that are stuck in "generating" status
+        // These are clips where generate-single-clip timed out but Replicate may have completed
+        const stuckClips = (clips || []).filter((c: { status: string; veo_operation_name: string | null; updated_at: string }) => 
+          (c.status === 'generating' || c.status === 'pending') && 
+          c.veo_operation_name &&
+          (Date.now() - new Date(c.updated_at).getTime() > 60000) // Stuck for 1+ minute
+        );
+        
+        if (stuckClips.length > 0) {
+          console.log(`[Watchdog] Found ${stuckClips.length} stuck clips with prediction IDs - attempting recovery`);
+          
+          for (const clip of stuckClips) {
+            try {
+              console.log(`[Watchdog] Recovering clip ${clip.shot_index + 1} with prediction ${clip.veo_operation_name}...`);
+              
+              // Call check-video-status with autoComplete=true to recover the clip
+              const response = await fetch(`${supabaseUrl}/functions/v1/check-video-status`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  taskId: clip.veo_operation_name,
+                  provider: 'replicate',
+                  projectId: project.id,
+                  userId: project.user_id,
+                  shotIndex: clip.shot_index,
+                  autoComplete: true, // This will store the video and update the clip record
+                }),
+              });
+              
+              if (response.ok) {
+                const statusResult = await response.json();
+                if (statusResult.status === 'SUCCEEDED' && statusResult.autoCompleted) {
+                  console.log(`[Watchdog] ✓ Recovered clip ${clip.shot_index + 1}`);
+                  result.details.push({
+                    projectId: project.id,
+                    action: 'clip_recovered',
+                    result: `Clip ${clip.shot_index + 1} auto-completed from prediction ${clip.veo_operation_name}`,
+                  });
+                } else if (statusResult.status === 'FAILED') {
+                  console.log(`[Watchdog] Clip ${clip.shot_index + 1} prediction failed: ${statusResult.error}`);
+                } else if (statusResult.status === 'RUNNING' || statusResult.status === 'STARTING') {
+                  console.log(`[Watchdog] Clip ${clip.shot_index + 1} still processing`);
+                }
+              }
+            } catch (recoverError) {
+              console.error(`[Watchdog] Clip recovery error:`, recoverError);
+            }
+          }
+          
+          // Re-fetch clips after recovery attempt
+          const { data: updatedClips } = await supabase
+            .from('video_clips')
+            .select('id, shot_index, status, video_url')
+            .eq('project_id', project.id)
+            .order('shot_index');
+          
+          const newCompletedCount = (updatedClips || []).filter((c: { status: string; video_url: string }) => 
+            c.status === 'completed' && c.video_url
+          ).length;
+          
+          console.log(`[Watchdog] After recovery: ${newCompletedCount}/${expectedClipCount} clips`);
+        }
         
         console.log(`[Watchdog] Clips: ${completedClips.length}/${expectedClipCount}`);
         

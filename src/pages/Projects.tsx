@@ -8,7 +8,7 @@ import {
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
   BarChart3, Activity, Settings2, ChevronDown, X, Check,
   Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock,
-  GraduationCap, Video, MonitorPlay
+  GraduationCap, Video, MonitorPlay, Palette, Wand2, Image
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1435,6 +1435,74 @@ export default function Projects() {
           <>
             {/* Cinematic Hero Header with Stats */}
             <HeroHeader stats={stats} />
+
+            {/* Quick Actions - Creation Modes */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => navigate('/create')}
+                  className="group relative h-10 px-4 rounded-xl bg-white text-black hover:bg-white/90 font-semibold text-sm shadow-lg overflow-hidden"
+                >
+                  <span className="relative flex items-center gap-2">
+                    <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
+                    New Video
+                  </span>
+                </Button>
+                
+                {/* Style Transfer - Dedicated Entry Point */}
+                <Button
+                  onClick={() => {
+                    sessionStorage.setItem('pendingCreation', JSON.stringify({
+                      mode: 'video-to-video',
+                      timestamp: Date.now(),
+                    }));
+                    navigate('/create');
+                  }}
+                  variant="outline"
+                  className="group h-10 px-4 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/50 font-medium text-sm gap-2"
+                >
+                  <Palette className="w-4 h-4" />
+                  Style Transfer
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200">NEW</span>
+                </Button>
+
+                {/* Other quick modes */}
+                <Button
+                  onClick={() => {
+                    sessionStorage.setItem('pendingCreation', JSON.stringify({
+                      mode: 'image-to-video',
+                      timestamp: Date.now(),
+                    }));
+                    navigate('/create');
+                  }}
+                  variant="ghost"
+                  className="h-10 px-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 font-medium text-sm gap-2"
+                >
+                  <Image className="w-4 h-4" />
+                  <span className="hidden sm:inline">Animate Image</span>
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    sessionStorage.setItem('pendingCreation', JSON.stringify({
+                      mode: 'avatar',
+                      timestamp: Date.now(),
+                    }));
+                    navigate('/create');
+                  }}
+                  variant="ghost"
+                  className="h-10 px-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 font-medium text-sm gap-2"
+                >
+                  <Video className="w-4 h-4" />
+                  <span className="hidden sm:inline">AI Avatar</span>
+                </Button>
+              </div>
+            </motion.div>
 
             {/* Premium Search & Filter Toolbar */}
             <motion.div

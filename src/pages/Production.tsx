@@ -882,12 +882,47 @@ export default function Production() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* Premium Ambient Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-950" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-white/[0.02] to-transparent blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-white/[0.01] to-transparent blur-[100px]" />
+    <div className="min-h-screen bg-[#030303] flex flex-col">
+      {/* Premium Cinematic Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-[#030303] to-zinc-950" />
+        
+        {/* Animated ambient orbs */}
+        <motion.div
+          className="absolute top-[-20%] left-[20%] w-[800px] h-[800px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
+          }}
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-[-10%] right-[10%] w-[600px] h-[600px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%)',
+          }}
+          animate={{
+            x: [0, -30, 0],
+            y: [0, -40, 0],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px',
+          }}
+        />
+        
+        {/* Top gradient fade */}
+        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#030303] to-transparent" />
       </div>
       
       {/* App Header */}

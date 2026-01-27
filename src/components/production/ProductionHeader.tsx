@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  Film, Loader2, CheckCircle2, XCircle, Clock, X, RotateCcw, FolderOpen
+  Film, Loader2, CheckCircle2, XCircle, Clock, X, RotateCcw, FolderOpen, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,10 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function MiniPipeline({ stages }: { stages: StageStatus[] }) {
+function PremiumPipeline({ stages }: { stages: StageStatus[] }) {
+  const activeIndex = stages.findIndex(s => s.status === 'active');
+  const completedCount = stages.filter(s => s.status === 'complete').length;
+  
   return (
     <div className="flex items-center gap-1">
       {stages.map((stage, i) => {
@@ -45,35 +48,60 @@ function MiniPipeline({ stages }: { stages: StageStatus[] }) {
         const isError = stage.status === 'error';
         
         return (
-          <div key={i} className="relative group">
-            <div className={cn(
-              "w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center transition-all",
-              isComplete && "bg-emerald-500/20 text-emerald-400",
-              isActive && "bg-sky-500/20 text-sky-400",
-              !isComplete && !isActive && !isError && "bg-zinc-800 text-zinc-500",
-              isError && "bg-rose-500/20 text-rose-400"
-            )}>
-              {isActive ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : isComplete ? (
-                <CheckCircle2 className="w-3 h-3" />
-              ) : isError ? (
-                <XCircle className="w-3 h-3" />
-              ) : (
-                <stage.icon className="w-3 h-3" />
+          <div key={i} className="relative group flex items-center">
+            {/* Stage Node */}
+            <motion.div 
+              initial={false}
+              animate={{
+                scale: isActive ? 1.1 : 1,
+              }}
+              className={cn(
+                "relative w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300",
+                "border backdrop-blur-sm",
+                isComplete && "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]",
+                isActive && "bg-primary/15 border-primary/30 text-primary shadow-[0_0_25px_rgba(255,255,255,0.15)]",
+                !isComplete && !isActive && !isError && "bg-white/[0.03] border-white/[0.06] text-zinc-500",
+                isError && "bg-rose-500/15 border-rose-500/30 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
               )}
-            </div>
+            >
+              {isActive && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl bg-primary/10"
+                  animate={{ opacity: [0.5, 0.2, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              )}
+              {isActive ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : isComplete ? (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              ) : isError ? (
+                <XCircle className="w-3.5 h-3.5" />
+              ) : (
+                <stage.icon className="w-3.5 h-3.5" />
+              )}
+            </motion.div>
             
+            {/* Connector Line */}
             {i < stages.length - 1 && (
-              <div className={cn(
-                "absolute top-1/2 -right-1 w-1.5 h-px -translate-y-1/2",
-                isComplete ? "bg-emerald-500/50" : "bg-zinc-700"
-              )} />
+              <div className="relative w-4 h-px mx-0.5">
+                <div className="absolute inset-0 bg-white/[0.06]" />
+                <motion.div
+                  className={cn(
+                    "absolute inset-y-0 left-0",
+                    isComplete ? "bg-emerald-500/60" : "bg-white/10"
+                  )}
+                  initial={{ width: 0 }}
+                  animate={{ width: isComplete ? '100%' : '0%' }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
             )}
             
-            {/* Tooltip - hidden on mobile */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-zinc-800 text-zinc-200 text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-zinc-700 shadow-lg z-10 hidden sm:block">
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/95 backdrop-blur-sm text-zinc-200 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none border border-white/[0.08] shadow-xl z-20 hidden sm:block">
               {stage.shortName}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900/95" />
             </div>
           </div>
         );
@@ -97,51 +125,78 @@ export function ProductionHeader({
   onCancel,
   onResume,
 }: ProductionHeaderProps) {
-  // Show resume button for failed projects (with or without clips) or stalled projects
   const showResumeButton = !isComplete && !isRunning && (isError || hasClips);
   const showCancelButton = isRunning;
 
   return (
-    <div className="border-b border-zinc-800/50 bg-zinc-900 shrink-0">
+    <div className="relative shrink-0 border-b border-white/[0.06]">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-r from-zinc-900/80 via-zinc-900/60 to-zinc-900/80 backdrop-blur-xl" />
+      
+      {/* Top highlight line */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      
       {/* Desktop: single row */}
-      <div className="hidden sm:flex h-12 px-4 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "w-8 h-8 rounded-lg flex items-center justify-center",
-            isComplete ? "bg-emerald-500/15 text-emerald-400" : 
-            isError ? "bg-rose-500/15 text-rose-400" : 
-            isRunning ? "bg-sky-500/15 text-sky-400" :
-            "bg-zinc-800 text-zinc-500"
-          )}>
-            {isRunning && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isComplete && <CheckCircle2 className="w-4 h-4" />}
-            {isError && <XCircle className="w-4 h-4" />}
-            {!isRunning && !isComplete && !isError && <Film className="w-4 h-4" />}
-          </div>
+      <div className="relative hidden sm:flex h-16 px-6 items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Status Icon */}
+          <motion.div 
+            initial={false}
+            animate={{ scale: isRunning ? [1, 1.05, 1] : 1 }}
+            transition={{ duration: 2, repeat: isRunning ? Infinity : 0 }}
+            className={cn(
+              "relative w-11 h-11 rounded-2xl flex items-center justify-center",
+              "border backdrop-blur-sm",
+              isComplete && "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.25)]",
+              isError && "bg-rose-500/15 border-rose-500/30 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.25)]",
+              isRunning && "bg-primary/15 border-primary/30 text-primary shadow-[0_0_30px_rgba(255,255,255,0.1)]",
+              !isRunning && !isComplete && !isError && "bg-white/[0.04] border-white/[0.08] text-zinc-400"
+            )}
+          >
+            {isRunning && (
+              <motion.div
+                className="absolute inset-0 rounded-2xl bg-primary/10"
+                animate={{ opacity: [0.6, 0.2, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            )}
+            {isRunning && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isComplete && <CheckCircle2 className="w-5 h-5" />}
+            {isError && <XCircle className="w-5 h-5" />}
+            {!isRunning && !isComplete && !isError && <Film className="w-5 h-5" />}
+          </motion.div>
+          
           <div>
-            <h1 className="text-sm font-medium text-zinc-100 leading-none truncate max-w-[200px]">
+            <h1 className="text-base font-semibold text-white leading-none tracking-tight truncate max-w-[240px]">
               {projectTitle}
             </h1>
-            <p className="text-[11px] text-zinc-500 mt-0.5 capitalize">
+            <p className="text-xs text-zinc-500 mt-1 capitalize flex items-center gap-1.5">
+              <span className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                isComplete && "bg-emerald-400",
+                isError && "bg-rose-400",
+                isRunning && "bg-primary animate-pulse",
+                !isComplete && !isError && !isRunning && "bg-zinc-500"
+              )} />
               {projectStatus.replace(/_/g, ' ')}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <MiniPipeline stages={stages} />
+        <div className="flex items-center gap-4">
+          <PremiumPipeline stages={stages} />
           
-          <div className="h-5 w-px bg-zinc-800" />
+          <div className="h-8 w-px bg-white/[0.06]" />
           
           {showCancelButton && (
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-[11px] text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+              className="h-8 px-3 text-xs text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-lg border border-transparent hover:border-rose-500/20"
               onClick={onCancel}
               disabled={isCancelling}
             >
-              {isCancelling ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <X className="w-3 h-3 mr-1" />}
+              {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <X className="w-3.5 h-3.5 mr-1.5" />}
               Cancel
             </Button>
           )}
@@ -149,71 +204,102 @@ export function ProductionHeader({
           {showResumeButton && (
             <Button
               size="sm"
-              variant="ghost"
-              className="h-7 text-[11px] text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+              className="h-8 px-3 text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 rounded-lg border border-amber-500/20"
               onClick={onResume}
               disabled={isResuming}
             >
-              {isResuming ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+              {isResuming ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />}
               Resume
             </Button>
           )}
           
           {isRunning && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-sm">
               <motion.div 
-                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-                animate={{ opacity: [1, 0.4, 1] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-emerald-400"
+                animate={{ opacity: [1, 0.3, 1], scale: [1, 0.9, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               />
-              <span className="text-[10px] font-medium text-emerald-400 uppercase tracking-wide">Live</span>
+              <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Live</span>
             </div>
           )}
           
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-800">
-            <Clock className="w-3 h-3 text-zinc-500" />
-            <span className="text-[11px] font-mono text-zinc-300">{formatTime(elapsedTime)}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+            <span className="text-xs font-mono text-zinc-300 tracking-tight">{formatTime(elapsedTime)}</span>
           </div>
 
-          <span className={cn(
-            "text-lg font-semibold tabular-nums",
-            isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-zinc-100"
-          )}>
-            {Math.round(progress)}%
-          </span>
+          {/* Progress Circle */}
+          <div className="relative w-12 h-12">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="2"
+              />
+              <motion.circle
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                stroke={isComplete ? '#10b981' : isError ? '#f43f5e' : 'rgba(255,255,255,0.8)'}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 15}`}
+                initial={{ strokeDashoffset: 2 * Math.PI * 15 }}
+                animate={{ strokeDashoffset: 2 * Math.PI * 15 * (1 - progress / 100) }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={cn(
+                "text-sm font-bold tabular-nums",
+                isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-white"
+              )}>
+                {Math.round(progress)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Mobile: stacked layout */}
-      <div className="sm:hidden">
+      <div className="relative sm:hidden">
         {/* Top row: Title + Status + Progress */}
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {/* Projects link */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <Link 
               to="/projects" 
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors"
             >
-              <FolderOpen className="w-3.5 h-3.5" />
+              <FolderOpen className="w-4 h-4" />
             </Link>
             
-            <div className={cn(
-              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-              isComplete ? "bg-emerald-500/15 text-emerald-400" : 
-              isError ? "bg-rose-500/15 text-rose-400" : 
-              isRunning ? "bg-sky-500/15 text-sky-400" :
-              "bg-zinc-800 text-zinc-500"
-            )}>
-              {isRunning && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isComplete && <CheckCircle2 className="w-3.5 h-3.5" />}
-              {isError && <XCircle className="w-3.5 h-3.5" />}
-              {!isRunning && !isComplete && !isError && <Film className="w-3.5 h-3.5" />}
-            </div>
+            <motion.div 
+              animate={{ scale: isRunning ? [1, 1.05, 1] : 1 }}
+              transition={{ duration: 2, repeat: isRunning ? Infinity : 0 }}
+              className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
+                isComplete && "bg-emerald-500/15 border-emerald-500/30 text-emerald-400",
+                isError && "bg-rose-500/15 border-rose-500/30 text-rose-400",
+                isRunning && "bg-primary/15 border-primary/30 text-primary",
+                !isRunning && !isComplete && !isError && "bg-white/[0.04] border-white/[0.08] text-zinc-500"
+              )}
+            >
+              {isRunning && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isComplete && <CheckCircle2 className="w-4 h-4" />}
+              {isError && <XCircle className="w-4 h-4" />}
+              {!isRunning && !isComplete && !isError && <Film className="w-4 h-4" />}
+            </motion.div>
+            
             <div className="min-w-0 flex-1">
-              <h1 className="text-xs font-medium text-zinc-100 leading-none truncate">
+              <h1 className="text-sm font-semibold text-white leading-none truncate">
                 {projectTitle}
               </h1>
-              <p className="text-[10px] text-zinc-500 mt-0.5 capitalize">
+              <p className="text-[11px] text-zinc-500 mt-1 capitalize">
                 {projectStatus.replace(/_/g, ' ')}
               </p>
             </div>
@@ -221,18 +307,18 @@ export function ProductionHeader({
 
           <div className="flex items-center gap-2 shrink-0">
             {isRunning && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <motion.div 
                   className="w-1.5 h-1.5 rounded-full bg-emerald-400"
                   animate={{ opacity: [1, 0.4, 1] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
                 />
-                <span className="text-[9px] font-medium text-emerald-400 uppercase">Live</span>
+                <span className="text-[10px] font-semibold text-emerald-400 uppercase">Live</span>
               </div>
             )}
             <span className={cn(
-              "text-base font-semibold tabular-nums",
-              isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-zinc-100"
+              "text-lg font-bold tabular-nums",
+              isComplete ? "text-emerald-400" : isError ? "text-rose-400" : "text-white"
             )}>
               {Math.round(progress)}%
             </span>
@@ -240,26 +326,26 @@ export function ProductionHeader({
         </div>
 
         {/* Pipeline + Timer row */}
-        <div className="flex items-center justify-between px-3 pb-2">
-          <MiniPipeline stages={stages} />
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800">
-            <Clock className="w-2.5 h-2.5 text-zinc-500" />
-            <span className="text-[10px] font-mono text-zinc-300">{formatTime(elapsedTime)}</span>
+        <div className="flex items-center justify-between px-4 pb-3">
+          <PremiumPipeline stages={stages} />
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+            <Clock className="w-3 h-3 text-zinc-500" />
+            <span className="text-[11px] font-mono text-zinc-300">{formatTime(elapsedTime)}</span>
           </div>
         </div>
 
-        {/* Action buttons row - Always visible when needed */}
+        {/* Action buttons row */}
         {(showCancelButton || showResumeButton) && (
-          <div className="flex items-center gap-2 px-3 pb-3">
+          <div className="flex items-center gap-2 px-4 pb-4">
             {showCancelButton && (
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 h-9 text-xs text-rose-400 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300"
+                className="flex-1 h-10 text-xs text-rose-400 border-rose-500/30 hover:bg-rose-500/10 rounded-xl"
                 onClick={onCancel}
                 disabled={isCancelling}
               >
-                {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <X className="w-3.5 h-3.5 mr-1.5" />}
+                {isCancelling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <X className="w-4 h-4 mr-2" />}
                 Cancel Pipeline
               </Button>
             )}
@@ -267,11 +353,11 @@ export function ProductionHeader({
             {showResumeButton && (
               <Button
                 size="sm"
-                className="flex-1 h-9 text-xs bg-amber-500 hover:bg-amber-600 text-black font-medium"
+                className="flex-1 h-10 text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-semibold rounded-xl shadow-lg shadow-amber-500/20"
                 onClick={onResume}
                 disabled={isResuming}
               >
-                {isResuming ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RotateCcw className="w-3.5 h-3.5 mr-1.5" />}
+                {isResuming ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                 Resume Pipeline
               </Button>
             )}

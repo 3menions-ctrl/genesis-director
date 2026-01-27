@@ -6,6 +6,10 @@
  * - 10 credits = 1 clip (regardless of clip length)
  * - New users get 60 free credits (6 clips)
  * - No limit on clips per video
+ * 
+ * CLIP DURATION: User-selectable (5s or 10s via Kling 2.6)
+ * CLIP COUNT: User-selectable (1-20 clips)
+ * These values are ENFORCED throughout the pipeline
  */
 
 export const CREDIT_SYSTEM = {
@@ -21,8 +25,14 @@ export const CREDIT_SYSTEM = {
   // Welcome bonus
   WELCOME_CREDITS: 60,    // 6 free clips for new users
   
-  // Clip duration
-  CLIP_DURATION_SECONDS: 6,
+  // Clip duration options (Kling 2.6)
+  CLIP_DURATIONS: [5, 10] as const,
+  DEFAULT_CLIP_DURATION: 5,
+  
+  // Clip count limits
+  MIN_CLIPS: 1,
+  MAX_CLIPS: 20,
+  DEFAULT_CLIP_COUNT: 6,
   
   // Max clips by tier (for display purposes)
   MAX_CLIPS_FREE: 6,      // 60 credits
@@ -44,8 +54,23 @@ export function calculateAffordableClips(credits: number): number {
 }
 
 /**
- * Check if user can afford the generation
+ * Calculate total video duration in seconds
  */
+export function calculateTotalDuration(clipCount: number, clipDuration: number): number {
+  return clipCount * clipDuration;
+}
+
+/**
+ * Format duration for display (e.g., "30s" or "1m 30s")
+ */
+export function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+  return `${seconds}s`;
+}
 
 /**
  * Check if user can afford the generation

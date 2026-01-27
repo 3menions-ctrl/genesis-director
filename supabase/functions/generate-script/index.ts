@@ -44,6 +44,10 @@ interface StoryRequest {
   userDialogue?: string[];
   userScript?: string;
   preserveUserContent?: boolean;
+  
+  // CLIP COUNT ENFORCEMENT - user-selected clip count takes priority
+  clipCount?: number;
+  clipDuration?: number;
 }
 
 serve(async (req) => {
@@ -141,13 +145,16 @@ serve(async (req) => {
     
     const mustPreserveContent = requestData.preserveUserContent || hasUserNarration || hasUserDialogue;
     
-    // Calculate recommended clip count based on content
-    const recommendedClips = detectedContent.recommendedClipCount;
-    console.log(`[generate-script] Recommended clips based on content: ${recommendedClips}`);
+    // STRICT CLIP COUNT ENFORCEMENT
+    // Priority: 1) Explicit clipCount from user, 2) Content-based detection
+    const userRequestedClips = requestData.clipCount && requestData.clipCount > 0 ? requestData.clipCount : null;
+    const clipCount = userRequestedClips || detectedContent.recommendedClipCount;
+    
+    console.log(`[generate-script] Clip count: ${clipCount} (user requested: ${userRequestedClips}, detected: ${detectedContent.recommendedClipCount})`);
     
     if (isFullMovieMode) {
       // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)
-      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${recommendedClips} shots, each 5 seconds.
+      systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 5 seconds.
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:
@@ -190,7 +197,7 @@ MOTION REQUIREMENTS:
 - Describe body mechanics: weight shifts, reach, tension, release
 
 RULES:
-- Generate EXACTLY ${recommendedClips} shots to fit the content
+- Generate EXACTLY ${clipCount} shots to fit the content
 - Each shot is EXACTLY 5 seconds (Kling 2.6)
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
@@ -204,7 +211,7 @@ ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not mo
           ).join(', ')
         : '';
 
-      userPrompt = `Write EXACTLY ${recommendedClips} shots for: "${requestData.title}"
+      userPrompt = `Write EXACTLY ${clipCount} shots for: "${requestData.title}"
 Genre: ${requestData.genre || 'Drama'}
 ${requestData.synopsis ? `Concept: ${requestData.synopsis.substring(0, 200)}` : ''}
 ${characterDescriptions ? `Characters: ${characterDescriptions}` : ''}
@@ -213,7 +220,7 @@ USER'S NARRATION (USE EXACTLY - DO NOT CHANGE):
 """
 ${requestData.userNarration}
 """
-Distribute this narration across the ${recommendedClips} shots. Use the EXACT words provided.
+Distribute this narration across the ${clipCount} shots. Use the EXACT words provided.
 ` : ''}
 ${hasUserDialogue && requestData.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT CHANGE):
@@ -222,13 +229,13 @@ Include these dialogue lines in the appropriate shots. Use the EXACT words provi
 ` : ''}
 
 CRITICAL: 
-- Generate EXACTLY ${recommendedClips} shots (based on content length)
-- Total duration: ${recommendedClips * 6} seconds
+- Generate EXACTLY ${clipCount} shots (based on content length)
+- Total duration: ${clipCount * 5} seconds
 - Each shot must transition SMOOTHLY into the next
 - Use BUFFER SHOTS (establishing, detail, reaction beats) between major scene changes
 - This will be stitched by AI, so ensure visual continuity
 ${mustPreserveContent ? '- The user\'s narration/dialogue MUST appear exactly as written - only add visual descriptions' : ''}
-Write ${recommendedClips} shots. Rich visual descriptions. Go:`;
+Write ${clipCount} shots. Rich visual descriptions. Go:`;
 
     } else {
       // Legacy simple mode - for topic-based requests
@@ -283,7 +290,7 @@ Write the script now:`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(recommendedClips, 120),
+          max_tokens: calculateMaxTokens(clipCount, 120),
         }),
       },
       { maxRetries: 3, baseDelayMs: 1000 }
@@ -314,7 +321,7 @@ Write the script now:`;
     
     // Count actual shots in generated script
     const shotMatches = script?.match(/\[SHOT \d+\]/g) || [];
-    const actualShotCount = shotMatches.length || recommendedClips;
+    const actualShotCount = shotMatches.length || clipCount;
     
     const generationTimeMs = Date.now() - startTime;
     console.log(`[generate-script] Success in ${generationTimeMs}ms, length: ${script?.length}, shots: ${actualShotCount}`);
@@ -326,7 +333,7 @@ Write the script now:`;
       characters: requestData.characters?.map(c => c.name),
       wordCount: script?.split(/\s+/).length || 0,
       estimatedDuration: actualShotCount * 6,
-      recommendedClipCount: recommendedClips,
+      requestedClipCount: clipCount,
       actualClipCount: actualShotCount,
       detectedContent: {
         hasDialogue: detectedContent.hasDialogue,

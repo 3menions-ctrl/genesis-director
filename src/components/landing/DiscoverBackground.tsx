@@ -7,9 +7,9 @@ interface DiscoverBackgroundProps {
 
 /**
  * Premium background for the Discover/Library page
- * Uses the same base image as the landing page but with different color accents
+ * Uses the same base image as the landing page with the same black & white aesthetic
  * - Rotated/mirrored for visual distinction
- * - Purple/cyan tinted ambient glows instead of the landing's blue/silver
+ * - Maintains silver/white/navy color scheme
  */
 export default function DiscoverBackground({ className }: DiscoverBackgroundProps) {
   return (
@@ -19,42 +19,34 @@ export default function DiscoverBackground({ className }: DiscoverBackgroundProp
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
           backgroundImage: `url(${landingAbstractBg})`,
-          transform: 'rotate(180deg) scaleX(-1)', // Flip for different line direction
+          transform: 'rotate(180deg) scaleX(-1)',
         }}
       />
       
-      {/* Color tint overlay - purple/magenta shift instead of blue */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, transparent 50%, rgba(6, 182, 212, 0.06) 100%)',
-        }}
-      />
+      {/* Subtle overlay to blend with page - maintains black & white theme */}
+      <div className="absolute inset-0 bg-black/30" />
       
-      {/* Very subtle overlay to blend with page */}
-      <div className="absolute inset-0 bg-black/25" />
-      
-      {/* Ambient glow - top left purple */}
+      {/* Ambient glow - top left silver/white */}
       <div 
-        className="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full opacity-[0.12] blur-[100px] pointer-events-none"
+        className="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] rounded-full opacity-[0.08] blur-[100px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, hsl(270 80% 60%) 0%, transparent 70%)' 
+          background: 'radial-gradient(circle, hsl(220 10% 90%) 0%, transparent 70%)' 
         }}
       />
       
-      {/* Ambient glow - bottom right cyan */}
+      {/* Ambient glow - bottom right deep navy */}
       <div 
-        className="absolute bottom-[-5%] right-[-10%] w-[45vw] h-[45vw] rounded-full opacity-[0.10] blur-[90px] pointer-events-none"
+        className="absolute bottom-[-5%] right-[-10%] w-[45vw] h-[45vw] rounded-full opacity-[0.06] blur-[90px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, hsl(180 70% 50%) 0%, transparent 70%)' 
+          background: 'radial-gradient(circle, hsl(220 40% 25%) 0%, transparent 70%)' 
         }}
       />
       
-      {/* Accent glow - center magenta */}
+      {/* Accent glow - center silver */}
       <div 
-        className="absolute top-[30%] right-[20%] w-[30vw] h-[30vw] rounded-full opacity-[0.06] blur-[80px] pointer-events-none"
+        className="absolute top-[30%] right-[20%] w-[30vw] h-[30vw] rounded-full opacity-[0.04] blur-[80px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, hsl(320 70% 55%) 0%, transparent 70%)' 
+          background: 'radial-gradient(circle, hsl(0 0% 85%) 0%, transparent 70%)' 
         }}
       />
       

@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
   Sparkles, Upload, Mic, ChevronRight, Play,
-  Video, Layers, ArrowRight
+  Video, Layers, ArrowRight, RectangleHorizontal,
+  Square, RectangleVertical, Clock, Hash, Music,
+  Volume2, Settings2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +14,8 @@ import { CreationModeCard } from './CreationModeCard';
 import { VideoGenerationMode, VIDEO_MODES, STYLE_PRESETS, VideoStylePreset, AVATAR_VOICES } from '@/types/video-modes';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -66,6 +70,17 @@ const CREATION_MODES = [
   },
 ];
 
+const ASPECT_RATIOS = [
+  { id: '16:9', name: 'Landscape', icon: RectangleHorizontal, description: 'YouTube, TV' },
+  { id: '9:16', name: 'Portrait', icon: RectangleVertical, description: 'TikTok, Reels' },
+  { id: '1:1', name: 'Square', icon: Square, description: 'Instagram' },
+];
+
+const CLIP_DURATIONS = [
+  { id: 5, name: '5 sec', description: 'Quick & punchy' },
+  { id: 10, name: '10 sec', description: 'Standard length' },
+];
+
 interface CreationHubProps {
   onStartCreation: (config: {
     mode: VideoGenerationMode;
@@ -74,6 +89,11 @@ interface CreationHubProps {
     voiceId?: string;
     imageUrl?: string;
     videoUrl?: string;
+    aspectRatio: string;
+    clipCount: number;
+    clipDuration: number;
+    enableNarration: boolean;
+    enableMusic: boolean;
   }) => void;
   className?: string;
 }
@@ -85,9 +105,23 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [selectedVoice, setSelectedVoice] = useState('onwK4e9ZLuTAKqWW03F9');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  
+  // Production controls
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [clipCount, setClipCount] = useState(6);
+  const [clipDuration, setClipDuration] = useState(5);
+  const [enableNarration, setEnableNarration] = useState(true);
+  const [enableMusic, setEnableMusic] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
   const modeConfig = VIDEO_MODES.find(m => m.id === selectedMode);
+  
+  // Calculate estimated duration
+  const estimatedDuration = clipCount * clipDuration;
+  const estimatedMinutes = Math.floor(estimatedDuration / 60);
+  const estimatedSeconds = estimatedDuration % 60;
+  const estimatedCredits = clipCount * 10;
 
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
@@ -99,6 +133,11 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
       voiceId: selectedMode === 'avatar' ? selectedVoice : undefined,
       imageUrl: uploadedImage || undefined,
       videoUrl: uploadedVideo || undefined,
+      aspectRatio,
+      clipCount,
+      clipDuration,
+      enableNarration,
+      enableMusic,
     });
   };
 
@@ -182,13 +221,142 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
               className="relative space-y-8"
             >
               {/* Mode header */}
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center">
-                  {currentMode && <currentMode.icon className="w-8 h-8 text-white" />}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center">
+                    {currentMode && <currentMode.icon className="w-8 h-8 text-white" />}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">{currentMode?.name}</h2>
+                    <p className="text-sm text-white/40">{currentMode?.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-white">{currentMode?.name}</h2>
-                  <p className="text-sm text-white/40">{currentMode?.description}</p>
+                
+                {/* Quick stats */}
+                <div className="hidden md:flex items-center gap-6 text-sm">
+                  <div className="text-center">
+                    <p className="text-white/30 text-xs mb-1">Duration</p>
+                    <p className="text-white font-medium">
+                      {estimatedMinutes > 0 ? `${estimatedMinutes}m ${estimatedSeconds}s` : `${estimatedSeconds}s`}
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-white/10" />
+                  <div className="text-center">
+                    <p className="text-white/30 text-xs mb-1">Credits</p>
+                    <p className="text-white font-medium">{estimatedCredits}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Production Controls Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Aspect Ratio */}
+                <div className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
+                    <RectangleHorizontal className="w-3.5 h-3.5" />
+                    Aspect Ratio
+                  </Label>
+                  <div className="flex gap-2">
+                    {ASPECT_RATIOS.map((ratio) => (
+                      <button
+                        key={ratio.id}
+                        onClick={() => setAspectRatio(ratio.id)}
+                        className={cn(
+                          "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all",
+                          aspectRatio === ratio.id
+                            ? "bg-white/[0.1] border-white/30"
+                            : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                        )}
+                      >
+                        <ratio.icon className={cn(
+                          "w-5 h-5",
+                          aspectRatio === ratio.id ? "text-white" : "text-white/40"
+                        )} />
+                        <span className={cn(
+                          "text-xs font-medium",
+                          aspectRatio === ratio.id ? "text-white" : "text-white/50"
+                        )}>{ratio.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Number of Clips */}
+                <div className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
+                      <Hash className="w-3.5 h-3.5" />
+                      Clips
+                    </Label>
+                    <span className="text-lg font-semibold text-white">{clipCount}</span>
+                  </div>
+                  <Slider
+                    value={[clipCount]}
+                    onValueChange={([value]) => setClipCount(value)}
+                    min={1}
+                    max={20}
+                    step={1}
+                    className="py-2"
+                  />
+                  <p className="text-xs text-white/30">1-20 clips per video</p>
+                </div>
+
+                {/* Clip Duration */}
+                <div className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    Clip Duration
+                  </Label>
+                  <div className="flex gap-2">
+                    {CLIP_DURATIONS.map((duration) => (
+                      <button
+                        key={duration.id}
+                        onClick={() => setClipDuration(duration.id)}
+                        className={cn(
+                          "flex-1 flex flex-col items-center gap-1 p-3 rounded-xl border transition-all",
+                          clipDuration === duration.id
+                            ? "bg-white/[0.1] border-white/30"
+                            : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                        )}
+                      >
+                        <span className={cn(
+                          "text-sm font-semibold",
+                          clipDuration === duration.id ? "text-white" : "text-white/50"
+                        )}>{duration.name}</span>
+                        <span className="text-xs text-white/30">{duration.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Audio Options */}
+                <div className="space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                  <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
+                    <Volume2 className="w-3.5 h-3.5" />
+                    Audio
+                  </Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Mic className="w-4 h-4 text-white/40" />
+                        <span className="text-sm text-white/70">Narration</span>
+                      </div>
+                      <Switch
+                        checked={enableNarration}
+                        onCheckedChange={setEnableNarration}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-4 h-4 text-white/40" />
+                        <span className="text-sm text-white/70">Music</span>
+                      </div>
+                      <Switch
+                        checked={enableMusic}
+                        onCheckedChange={setEnableMusic}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -299,8 +467,37 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 )}
               </div>
 
-              {/* Action Button - Premium white */}
-              <div className="pt-4">
+              {/* Summary & Action */}
+              <div className="pt-4 space-y-4">
+                {/* Summary bar */}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                    <RectangleHorizontal className="w-3.5 h-3.5 text-white/50" />
+                    <span className="text-white/70">{aspectRatio}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                    <Hash className="w-3.5 h-3.5 text-white/50" />
+                    <span className="text-white/70">{clipCount} clips</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                    <Clock className="w-3.5 h-3.5 text-white/50" />
+                    <span className="text-white/70">{clipDuration}s each</span>
+                  </div>
+                  {enableNarration && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                      <Mic className="w-3.5 h-3.5 text-white/50" />
+                      <span className="text-white/70">Narration</span>
+                    </div>
+                  )}
+                  {enableMusic && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                      <Music className="w-3.5 h-3.5 text-white/50" />
+                      <span className="text-white/70">Music</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Create Button */}
                 <Button
                   size="xl"
                   onClick={handleCreate}
@@ -315,7 +512,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 >
                   <span className="flex items-center gap-3">
                     <Sparkles className="w-5 h-5" />
-                    Create {currentMode?.name}
+                    Create {currentMode?.name} • {estimatedCredits} credits
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </Button>

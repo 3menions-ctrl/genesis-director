@@ -165,11 +165,36 @@ export const MIN_SHOT_DURATION_SECONDS = 5;
 export const DEFAULT_SHOT_DURATION_SECONDS = 5; // 5 seconds for Kling 2.6
 
 // Maximum clips per project (extended for longer productions)
-export const MAX_CLIPS_PER_PROJECT = 24;
-export const MIN_CLIPS_PER_PROJECT = 2;
+export const MAX_CLIPS_PER_PROJECT = 20;
+export const MIN_CLIPS_PER_PROJECT = 1;
+export const DEFAULT_CLIPS_PER_PROJECT = 6;
 
 // Professional tier: Max auto-retries before user sees failure
 export const MAX_PROFESSIONAL_RETRIES = 4;
+
+// CLIP COUNT VALIDATION: Ensures user's selection is respected
+export interface ClipConfiguration {
+  clipCount: number;      // User-selected clip count (1-20)
+  clipDuration: number;   // User-selected duration (5 or 10 seconds)
+  totalDuration: number;  // Calculated: clipCount * clipDuration
+  creditsRequired: number; // Calculated: clipCount * 10
+}
+
+// Validate and normalize clip configuration
+export function validateClipConfiguration(
+  clipCount: number,
+  clipDuration: number
+): ClipConfiguration {
+  const normalizedCount = Math.max(MIN_CLIPS_PER_PROJECT, Math.min(MAX_CLIPS_PER_PROJECT, clipCount));
+  const normalizedDuration = clipDuration === 10 ? 10 : 5; // Only 5 or 10 allowed
+  
+  return {
+    clipCount: normalizedCount,
+    clipDuration: normalizedDuration,
+    totalDuration: normalizedCount * normalizedDuration,
+    creditsRequired: normalizedCount * 10,
+  };
+}
 
 // Shot represents a single unit in the script with associated metadata
 export interface Shot {

@@ -133,14 +133,19 @@ serve(async (req) => {
     const detectedContent = detectUserContent(inputText);
     console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
 
-    // Use passed targetDurationSeconds to determine exact clip count
+    // STRICT CLIP COUNT ENFORCEMENT
+    // The user explicitly selects clip count in CreationHub - we MUST respect it
     // Kling 2.6: 5-second clips for optimal quality
     const CLIP_DURATION = 5;
     const requestedClips = Math.round(request.targetDurationSeconds / CLIP_DURATION);
-    // Only use detected content recommendation if no explicit duration was passed
-    const recommendedClips = requestedClips > 0 ? requestedClips : detectedContent.recommendedClipCount;
-    const targetSeconds = recommendedClips * CLIP_DURATION;
-    console.log(`[SmartScript] Using ${recommendedClips} clips @ ${CLIP_DURATION}s each (Kling 2.6)`);
+    
+    // IRON-CLAD: User's clip count is NON-NEGOTIABLE
+    // Only fall back to detection if no explicit count was provided (legacy flows)
+    const clipCount = requestedClips > 0 ? requestedClips : detectedContent.recommendedClipCount;
+    const targetSeconds = clipCount * CLIP_DURATION;
+    
+    console.log(`[SmartScript] ENFORCED clip count: ${clipCount} clips @ ${CLIP_DURATION}s each = ${targetSeconds}s total`);
+    console.log(`[SmartScript] User requested: ${requestedClips} clips | Detected recommendation: ${detectedContent.recommendedClipCount} | Using: ${clipCount}`);
     
     // VOICE CONTROL: If includeVoice is explicitly false, NEVER include dialogue or narration
     const voiceDisabled = request.includeVoice === false;
@@ -172,16 +177,16 @@ serve(async (req) => {
     
     const mustPreserveContent = !voiceDisabled && (request.preserveUserContent || hasUserNarration || hasUserDialogue);
     
-    console.log(`[SmartScript] Generating ${recommendedClips} clips for continuous scene, preserveContent: ${mustPreserveContent}, voiceDisabled: ${voiceDisabled}`);
+    console.log(`[SmartScript] Generating EXACTLY ${clipCount} clips for continuous scene, preserveContent: ${mustPreserveContent}, voiceDisabled: ${voiceDisabled}`);
 
     // Build the system prompt for CONTINUOUS SCENE breakdown
-    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${recommendedClips} clips that flow seamlessly together.
+    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${clipCount} clips that flow seamlessly together.
 
 CRITICAL CLIP COUNT REQUIREMENT:
-- You MUST output EXACTLY ${recommendedClips} clips - no more, no less
-- The clips array MUST have exactly ${recommendedClips} items
-- Do NOT output 6 clips if ${recommendedClips} clips are requested
-- This is non-negotiable: output = ${recommendedClips} clips
+- You MUST output EXACTLY ${clipCount} clips - no more, no less
+- The clips array MUST have exactly ${clipCount} items
+- Do NOT output 6 clips if ${clipCount} clips are requested
+- This is non-negotiable: output = ${clipCount} clips
 
 ${voiceDisabled ? `
 CRITICAL - NO DIALOGUE OR NARRATION:
@@ -199,12 +204,12 @@ CRITICAL - USER CONTENT PRESERVATION:
 The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
 DO NOT paraphrase, summarize, or rewrite the user's text.
 Your job is to create VISUAL descriptions that accompany the user's exact words.
-Distribute the user's narration/dialogue across the ${recommendedClips} clips appropriately.
+Distribute the user's narration/dialogue across the ${clipCount} clips appropriately.
 Include the user's exact text in the "dialogue" field of each clip.
 ` : ''}
 
 CRITICAL: CONTINUOUS SCENE BREAKDOWN
-Each scene = ${recommendedClips} clips showing PROGRESSIVE ACTION in the SAME location.
+Each scene = ${clipCount} clips showing PROGRESSIVE ACTION in the SAME location.
 The clips are NOT separate shots - they are SEQUENTIAL MOMENTS of ONE continuous action.
 
 OUTPUT FORMAT (STRICT JSON):
@@ -233,24 +238,24 @@ OUTPUT FORMAT (STRICT JSON):
   ]
 }
 
-ACTION PHASE REQUIREMENTS (distribute across ${recommendedClips} clips):
+ACTION PHASE REQUIREMENTS (distribute across ${clipCount} clips):
 - ESTABLISH (Clip 0): Wide shot. Character in environment. Initial state before action.
 - INITIATE (Clip 1): Action begins. First movement or change from initial state.
-- DEVELOP (Clips 2-${Math.floor(recommendedClips/2)}): Action continues and builds.
-- ESCALATE (Clips ${Math.floor(recommendedClips/2)+1}-${recommendedClips-2}): Intensity increases. Action gains momentum.
-- PEAK (Clip ${recommendedClips-2}): Highest point. Most dramatic moment of the scene.
-- SETTLE (Clip ${recommendedClips-1}): Resolution. Action concludes. Sets up next scene.
+- DEVELOP (Clips 2-${Math.floor(clipCount/2)}): Action continues and builds.
+- ESCALATE (Clips ${Math.floor(clipCount/2)+1}-${clipCount-2}): Intensity increases. Action gains momentum.
+- PEAK (Clip ${clipCount-2}): Highest point. Most dramatic moment of the scene.
+- SETTLE (Clip ${clipCount-1}): Resolution. Action concludes. Sets up next scene.
 
 CONTINUITY REQUIREMENTS (CRITICAL):
-1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${recommendedClips} clips
+1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${clipCount} clips
    - Same clothes, hair, face, body in every clip
    - No outfit changes, no appearance drift
    
-2. LOCATION LOCK: Copy the EXACT same location description to ALL ${recommendedClips} clips
+2. LOCATION LOCK: Copy the EXACT same location description to ALL ${clipCount} clips
    - Same room, street, forest - never changes
    - Same background elements visible
    
-3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${recommendedClips} clips
+3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${clipCount} clips
    - Same sun position, same shadows
    - Same color temperature
    
@@ -281,7 +286,7 @@ Describe how each clip's END connects to the next clip's START:
     
     if (request.approvedScene) {
       // Scene has been written - break it into clips
-      userPrompt = `Break this APPROVED SCENE into exactly ${recommendedClips} continuous clips:
+      userPrompt = `Break this APPROVED SCENE into exactly ${clipCount} continuous clips:
 
 SCENE:
 """
@@ -295,14 +300,14 @@ CRITICAL: Every clip MUST take place in this exact environment with this exact l
 ` : ''}
 
 ${request.characterLock ? `
-CHARACTER (use EXACTLY in all ${recommendedClips} clips):
+CHARACTER (use EXACTLY in all ${clipCount} clips):
 ${request.characterLock.description}
 Wearing: ${request.characterLock.clothing}
 Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
 ` : ''}
 
 ${request.environmentLock ? `
-LOCATION (use EXACTLY in all ${recommendedClips} clips):
+LOCATION (use EXACTLY in all ${clipCount} clips):
 ${request.environmentLock.location}
 Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
@@ -322,17 +327,17 @@ Include in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
 REQUIREMENTS:
-- Extract the ${recommendedClips} sequential moments from this scene
+- Extract the ${clipCount} sequential moments from this scene
 - Each clip = 5 seconds of the continuous action (Kling 2.6)
 - Maintain EXACT character/location/lighting consistency
 - Connect each clip's end to the next clip's start
 ${request.environmentPrompt ? '- MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription' : ''}
 ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dialogue" field' : '- Keep dialogue/narration in the appropriate clips'}
 
-Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
+Output ONLY valid JSON with exactly ${clipCount} clips.`;
     } else {
       // Generate from topic - create a continuous scene
-      userPrompt = `Create a continuous scene broken into ${recommendedClips} clips for:
+      userPrompt = `Create a continuous scene broken into ${clipCount} clips for:
 
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
@@ -348,14 +353,14 @@ CRITICAL: Every clip MUST take place in this exact environment with this exact l
 ` : ''}
 
 ${request.characterLock ? `
-CHARACTER (use EXACTLY in all ${recommendedClips} clips):
+CHARACTER (use EXACTLY in all ${clipCount} clips):
 ${request.characterLock.description}
 Wearing: ${request.characterLock.clothing}
 Distinctive: ${request.characterLock.distinctiveFeatures.join(', ')}
 ` : ''}
 
 ${request.environmentLock ? `
-LOCATION (use EXACTLY in all ${recommendedClips} clips):
+LOCATION (use EXACTLY in all ${clipCount} clips):
 ${request.environmentLock.location}
 Lighting: ${request.environmentLock.lighting}
 Key objects: ${request.environmentLock.keyObjects.join(', ')}
@@ -366,7 +371,7 @@ USER'S NARRATION (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
 """
 ${request.userNarration}
 """
-Distribute this narration across the ${recommendedClips} clips in the "dialogue" field. Use the EXACT words provided.
+Distribute this narration across the ${clipCount} clips in the "dialogue" field. Use the EXACT words provided.
 ` : ''}
 ${hasUserDialogue && request.userDialogue ? `
 USER'S DIALOGUE (USE EXACTLY - DO NOT MODIFY OR PARAPHRASE):
@@ -374,14 +379,14 @@ ${request.userDialogue.map((d, i) => `Line ${i + 1}: "${d}"`).join('\n')}
 Include these dialogue lines in appropriate clips' "dialogue" field. Use EXACT words.
 ` : ''}
 
-Create ONE continuous scene with ${recommendedClips} progressive clips. Each clip = 5 seconds (Kling 2.6).
+Create ONE continuous scene with ${clipCount} progressive clips. Each clip = 5 seconds (Kling 2.6).
 Total duration: ${targetSeconds} seconds.
 All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
 ${request.environmentPrompt ? 'MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription.' : ''}
 ${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
 
-Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
+Output ONLY valid JSON with exactly ${clipCount} clips.`;
     }
 
     console.log("[SmartScript] Calling OpenAI API for scene breakdown...");
@@ -401,7 +406,7 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: calculateMaxTokens(recommendedClips, 400, 2500, 4096), // JSON needs more tokens per clip
+          max_tokens: calculateMaxTokens(clipCount, 400, 2500, 4096), // JSON needs more tokens per clip
           temperature: 0.6,
         }),
       },
@@ -442,7 +447,7 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
       : (parseResult.data as { clips?: any[] }).clips || [];
 
     // FIX: Use recommendedClips instead of hardcoded 6
-    const expectedClipCount = recommendedClips;
+    const expectedClipCount = clipCount;
     
     if (!Array.isArray(parsedClips) || parsedClips.length !== expectedClipCount) {
       console.warn(`[SmartScript] Expected ${expectedClipCount} clips, got ${parsedClips?.length}. Adjusting...`);
@@ -512,7 +517,7 @@ Output ONLY valid JSON with exactly ${recommendedClips} clips.`;
       clips: normalizedClips,
       totalDurationSeconds: totalDuration,
       clipCount: normalizedClips.length,
-      expectedClipCount: recommendedClips,
+      expectedClipCount: clipCount,
       sceneMode: 'continuous',
       continuityScore,
       consistency: {

@@ -39,6 +39,46 @@ async function logApiCall(
   }
 }
 
+// Store video from URL directly to Supabase storage
+async function storeVideoFromUrl(
+  supabase: any,
+  videoUrl: string,
+  projectId: string,
+  clipIndex: number
+): Promise<string> {
+  console.log(`[CheckStatus] Downloading video from URL for storage...`);
+  
+  const response = await fetch(videoUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download video: ${response.status}`);
+  }
+  
+  const videoData = await response.arrayBuffer();
+  const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
+  const storagePath = `${projectId}/${fileName}`;
+  
+  console.log(`[CheckStatus] Uploading ${videoData.byteLength} bytes to storage...`);
+  
+  const { error: uploadError } = await supabase.storage
+    .from('video-clips')
+    .upload(storagePath, new Uint8Array(videoData), {
+      contentType: 'video/mp4',
+      upsert: true,
+    });
+  
+  if (uploadError) {
+    console.error(`[CheckStatus] Storage upload failed:`, uploadError);
+    throw new Error(`Failed to upload video: ${uploadError.message}`);
+  }
+  
+  const { data: { publicUrl } } = supabase.storage
+    .from('video-clips')
+    .getPublicUrl(storagePath);
+  
+  console.log(`[CheckStatus] Video stored successfully: ${publicUrl}`);
+  return publicUrl;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +90,16 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { taskId, provider = "replicate", projectId: reqProjectId, userId } = await req.json();
+    const { 
+      taskId, 
+      provider = "replicate", 
+      projectId: reqProjectId, 
+      userId,
+      // NEW: Optional clip recovery parameters
+      clipId,
+      shotIndex,
+      autoComplete = false, // If true, automatically store and update clip on success
+    } = await req.json();
 
     if (!taskId) {
       throw new Error("Task ID (prediction ID) is required");
@@ -94,6 +143,7 @@ serve(async (req) => {
         let status = "RUNNING";
         let progress = 0;
         let videoUrl = null;
+        let storedVideoUrl = null;
         let error = null;
 
         switch (prediction.status) {
@@ -115,11 +165,89 @@ serve(async (req) => {
             } else if (Array.isArray(output) && output.length > 0) {
               videoUrl = output[0];
             }
+            
+            // =========================================================
+            // AUTO-COMPLETE: Store video and update clip record
+            // This recovers clips where generate-single-clip timed out
+            // =========================================================
+            if (autoComplete && videoUrl && reqProjectId && shotIndex !== undefined) {
+              try {
+                console.log(`[CheckStatus] Auto-completing clip ${shotIndex + 1}...`);
+                
+                // Store video in Supabase storage
+                storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, reqProjectId, shotIndex);
+                
+                // Update clip record
+                if (userId) {
+                  const clipData = {
+                    project_id: reqProjectId,
+                    user_id: userId,
+                    shot_index: shotIndex,
+                    status: 'completed',
+                    video_url: storedVideoUrl,
+                    veo_operation_name: taskId,
+                    completed_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  };
+                  
+                  // Check if clip exists
+                  const { data: existingClip } = await supabase
+                    .from('video_clips')
+                    .select('id')
+                    .eq('project_id', reqProjectId)
+                    .eq('shot_index', shotIndex)
+                    .maybeSingle();
+                  
+                  if (existingClip?.id) {
+                    await supabase
+                      .from('video_clips')
+                      .update(clipData)
+                      .eq('id', existingClip.id);
+                    console.log(`[CheckStatus] ✓ Updated clip ${existingClip.id} to completed`);
+                  } else {
+                    // Insert new clip record
+                    const { data: newClip } = await supabase
+                      .from('video_clips')
+                      .insert({
+                        ...clipData,
+                        prompt: `Recovered clip ${shotIndex + 1}`,
+                        duration_seconds: 5,
+                      })
+                      .select('id')
+                      .single();
+                    console.log(`[CheckStatus] ✓ Created clip record ${newClip?.id}`);
+                  }
+                }
+                
+                console.log(`[CheckStatus] ✓ Clip ${shotIndex + 1} auto-completed`);
+              } catch (storeError) {
+                console.error(`[CheckStatus] Auto-complete failed:`, storeError);
+                // Don't fail the whole request, just report the error
+              }
+            }
             break;
           case "failed":
             status = "FAILED";
             progress = 0;
             error = prediction.error || "Replicate generation failed";
+            
+            // Update clip record to failed if autoComplete
+            if (autoComplete && reqProjectId && shotIndex !== undefined && userId) {
+              try {
+                await supabase
+                  .from('video_clips')
+                  .update({
+                    status: 'failed',
+                    error_message: error,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('project_id', reqProjectId)
+                  .eq('shot_index', shotIndex);
+                console.log(`[CheckStatus] Updated clip ${shotIndex + 1} to failed`);
+              } catch (updateError) {
+                console.warn(`[CheckStatus] Failed to update clip status:`, updateError);
+              }
+            }
             break;
           case "canceled":
             status = "FAILED";
@@ -138,11 +266,13 @@ serve(async (req) => {
             success: true,
             status: status,
             progress: progress,
-            videoUrl: videoUrl,
+            videoUrl: storedVideoUrl || videoUrl, // Return stored URL if available
+            rawVideoUrl: videoUrl,
             audioIncluded: true, // Kling 2.6 includes native audio
             error: error,
             provider: "replicate",
             model: KLING_MODEL,
+            autoCompleted: !!storedVideoUrl,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

@@ -126,7 +126,7 @@ const ASPECT_RATIO_OPTIONS = [
   { value: '1:1', label: '1:1', description: 'Square (Instagram)' },
 ];
 
-const CLIP_DURATION = 6;
+const DEFAULT_CLIP_DURATION = 5; // Default 5 seconds for Kling 2.5
 
 export function UnifiedStudio() {
   const { user, profile } = useAuth();
@@ -142,6 +142,7 @@ export function UnifiedStudio() {
   // Pipeline mode and configuration
   const [mode, setMode] = useState<PipelineMode>('ai');
   const [clipCount, setClipCount] = useState(6);
+  const [clipDuration, setClipDuration] = useState(DEFAULT_CLIP_DURATION);
   
   // AI Mode inputs
   const [concept, setConcept] = useState('');
@@ -218,7 +219,7 @@ export function UnifiedStudio() {
     setPipelineLogs(prev => [...prev, { time, message, type }].slice(-50)); // Keep last 50 logs
   }, []);
 
-  const totalDuration = clipCount * CLIP_DURATION;
+  const totalDuration = clipCount * clipDuration;
   // Credit costs: 10 credits per clip ($1 = 10 credits)
   const creditsPerShot = 10;
   const estimatedCredits = clipCount * creditsPerShot;
@@ -239,7 +240,7 @@ export function UnifiedStudio() {
     }
   }, [contextActiveProjectId, contextActiveProject, activeProjectId, currentStage]);
 
-  // Check for pending creation from landing page teaser
+  // Check for pending creation from Create page or landing page teaser
   useEffect(() => {
     const pendingData = sessionStorage.getItem('pendingCreation');
     if (pendingData && currentStage === 'idle' && !concept) {
@@ -247,12 +248,40 @@ export function UnifiedStudio() {
         const data = JSON.parse(pendingData);
         // Only use if less than 1 hour old
         if (Date.now() - data.timestamp < 60 * 60 * 1000) {
+          // Core content
           if (data.concept) setConcept(data.concept);
+          if (data.mode) {
+            // Map creation modes to pipeline modes
+            // 'text-to-video' and 'b-roll' use AI mode, others may use manual or special handling
+            setMode(data.mode === 'text-to-video' || data.mode === 'b-roll' ? 'ai' : 'ai');
+          }
+          
+          // Video format settings
           if (data.aspectRatio) setAspectRatio(data.aspectRatio);
+          if (data.clipCount) setClipCount(data.clipCount);
+          if (data.clipDuration) setClipDuration(data.clipDuration);
+          
+          // Audio settings
+          if (typeof data.includeVoice === 'boolean') setIncludeVoice(data.includeVoice);
+          if (typeof data.includeMusic === 'boolean') setIncludeMusic(data.includeMusic);
+          
+          // Genre/mood from mode if applicable
           if (data.videoType) setGenre(data.videoType);
-          // Note: Reference image from landing page will be handled separately
-          // as it requires proper analysis through the pipeline
-          console.log('[UnifiedStudio] Applied pending creation from landing page');
+          
+          // Style preset for video-to-video mode
+          if (data.style) {
+            setColorGrading(data.style === 'noir' ? 'noir' : 'cinematic');
+          }
+          
+          console.log('[UnifiedStudio] Applied pending creation config:', {
+            concept: data.concept?.substring(0, 30),
+            aspectRatio: data.aspectRatio,
+            clipCount: data.clipCount,
+            clipDuration: data.clipDuration,
+            includeVoice: data.includeVoice,
+            includeMusic: data.includeMusic,
+          });
+          
           // Clear the pending data after applying
           sessionStorage.removeItem('pendingCreation');
         } else {
@@ -711,7 +740,7 @@ export function UnifiedStudio() {
           prompt: concept.trim(),
           genre,
           mood,
-          targetDurationSeconds: clipCount * CLIP_DURATION,
+          targetDurationSeconds: clipCount * clipDuration,
           referenceAnalysis: referenceImageAnalysis,
           environmentPrompt: environmentPrompt || undefined,
           // CRITICAL: Pass includeVoice to prevent dialogue/narration when disabled
@@ -842,7 +871,7 @@ export function UnifiedStudio() {
     // Add initial log entries
     addPipelineLog(`Starting ${mode === 'ai' ? 'AI Hollywood' : 'Manual'} Pipeline`, 'info');
     addPipelineLog(`Project: ${projectName}`, 'info');
-    addPipelineLog(`Configuration: ${clipCount} clips × ${CLIP_DURATION}s = ${clipCount * CLIP_DURATION}s`, 'info');
+    addPipelineLog(`Configuration: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s`, 'info');
     if (referenceImageAnalysis) {
       addPipelineLog('Reference image loaded', 'info');
     }
@@ -872,7 +901,8 @@ export function UnifiedStudio() {
         musicMood: mood,
         qualityTier,
         clipCount,
-        totalDuration: clipCount * CLIP_DURATION,
+        totalDuration: clipCount * clipDuration,
+        clipDuration,
       };
 
       if (mode === 'ai') {
@@ -1449,7 +1479,7 @@ export function UnifiedStudio() {
                       <SelectContent className="bg-[#0a0a12] border-white/[0.15] backdrop-blur-2xl rounded-xl">
                         {[2, 3, 4, 5, 6].map(n => (
                           <SelectItem key={n} value={n.toString()} className="text-white/80 focus:bg-white/10 focus:text-white rounded-lg font-medium">
-                            {n} clips ({n * CLIP_DURATION}s)
+                            {n} clips ({n * clipDuration}s)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1574,7 +1604,7 @@ export function UnifiedStudio() {
                     Scene Prompts
                   </Label>
                   <p className="text-xs text-white/50 mt-1">
-                    {CLIP_DURATION}s per scene • {hasEmptyPrompts && (
+                    {clipDuration}s per scene • {hasEmptyPrompts && (
                       <span className="text-red-400 font-medium">Fill all scenes to continue</span>
                     )}
                   </p>

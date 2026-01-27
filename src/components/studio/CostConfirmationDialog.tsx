@@ -42,6 +42,7 @@ interface CostConfirmationDialogProps {
   onConfirm: (projectName: string) => void;
   mode: 'ai' | 'manual';
   clipCount: number;
+  clipDuration: number;
   totalDuration: number;
   includeVoice: boolean;
   includeMusic: boolean;
@@ -50,21 +51,48 @@ interface CostConfirmationDialogProps {
   defaultProjectName?: string;
 }
 
-// Use proper tier-based credit calculation (matches backend: useCreditBilling.ts)
-// 10 credits per clip = 2 pre-production + 6 production + 2 quality assurance
+// Use proper tier-based credit calculation
+// Base: 10 credits per clip (up to 6s)
+// Extended: +5 credits per additional second beyond 6s
+import { 
+  CREDIT_SYSTEM, 
+  calculateCreditsPerClip, 
+  getCreditBreakdown 
+} from '@/lib/creditSystem';
+
+interface ExtendedCostBreakdown extends CostBreakdown {
+  extraSecondsPerClip: number;
+  extraCreditsPerClip: number;
+}
+
 function calculateCosts(
   clipCount: number,
+  clipDuration: number,
   qualityTier: 'standard' | 'professional'
-): CostBreakdown {
-  // Both tiers use 10 credits per shot (all clips get premium quality)
-  const preProduction = clipCount * 2;
-  const production = clipCount * 6;
-  const qualityInsurance = clipCount * 2;
+): ExtendedCostBreakdown {
+  const breakdown = getCreditBreakdown(clipCount, clipDuration);
+  const creditsPerClip = breakdown.creditsPerClip;
   
-  const creditsPerShot = 10;
-  const total = clipCount * creditsPerShot;
+  // Proportional breakdown based on base ratios
+  const baseRatio = {
+    preProduction: 2 / 10,
+    production: 6 / 10,
+    qualityInsurance: 2 / 10,
+  };
   
-  return { preProduction, production, qualityInsurance, total, creditsPerShot };
+  const preProduction = Math.round(breakdown.totalCredits * baseRatio.preProduction);
+  const production = Math.round(breakdown.totalCredits * baseRatio.production);
+  const qualityInsurance = breakdown.totalCredits - preProduction - production;
+  
+  return { 
+    preProduction, 
+    production, 
+    qualityInsurance, 
+    total: breakdown.totalCredits, 
+    creditsPerShot: creditsPerClip,
+    extraSecondsPerClip: breakdown.extraSecondsPerClip,
+    extraCreditsPerClip: breakdown.extraSecondsPerClip * CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND,
+  };
 }
 
 export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmationDialogProps>(
@@ -74,6 +102,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
     onConfirm,
     mode,
     clipCount,
+    clipDuration,
     totalDuration,
     includeVoice,
     includeMusic,
@@ -83,7 +112,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
   }, ref) {
     const [projectName, setProjectName] = useState(defaultProjectName);
     const [showBuyCredits, setShowBuyCredits] = useState(false);
-    const costs = calculateCosts(clipCount, qualityTier);
+    const costs = calculateCosts(clipCount, clipDuration, qualityTier);
     const hasEnoughCredits = userCredits >= costs.total;
     const hasValidName = projectName.trim().length > 0;
 
@@ -162,32 +191,34 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
         {/* Cost Breakdown */}
         <div className="space-y-3">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Cost Breakdown ({costs.creditsPerShot} credits/shot)
+            Cost Breakdown ({costs.creditsPerShot} credits/clip)
           </p>
           
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Zap className="w-4 h-4" />
-                Pre-Production ({clipCount} clips × 2)
+                Base Rate ({clipCount} clips × {CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP})
               </span>
-              <span className="font-medium">{costs.preProduction}</span>
+              <span className="font-medium">{clipCount * CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP}</span>
             </div>
             
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Film className="w-4 h-4" />
-                Production ({clipCount} clips × 6)
-              </span>
-              <span className="font-medium">{costs.production}</span>
-            </div>
+            {costs.extraSecondsPerClip > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 text-warning" />
+                  Extended Duration (+{costs.extraSecondsPerClip}s × {CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND}/s × {clipCount})
+                </span>
+                <span className="font-medium text-warning">+{costs.extraCreditsPerClip * clipCount}</span>
+              </div>
+            )}
             
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Shield className="w-4 h-4 text-success" />
-                Quality Assurance ({clipCount} clips × 2)
+                Quality Assurance
               </span>
-              <span className="font-medium text-success">{costs.qualityInsurance}</span>
+              <span className="font-medium text-success">Included</span>
             </div>
 
             {/* Included features */}

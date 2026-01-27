@@ -3,18 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { QualityTier } from '@/types/quality-tiers';
+import { 
+  CREDIT_SYSTEM, 
+  calculateCreditsPerClip, 
+  calculateCreditsRequired 
+} from '@/lib/creditSystem';
 
-// Pricing: 10 credits per clip
-// Video durations by tier:
-// - Free: 6 clips (~30 sec) = 60 credits (welcome bonus)
-// - Pro: 10 clips (~1 min) = 100 credits  
-// - Growth: 20 clips (~2 min) = 200 credits
-// - Agency: 30 clips (~3 min) = 300 credits
+// Re-export credit constants for backward compatibility
 export const CREDIT_COSTS = {
-  PRE_PRODUCTION: 2,    // Script analysis, scene optimization per clip
-  PRODUCTION: 6,        // Video generation, voice synthesis per clip
-  QUALITY_ASSURANCE: 2, // Director audit, visual debugger, retries per clip
-  TOTAL_PER_SHOT: 10,   // 10 credits per clip
+  PRE_PRODUCTION: CREDIT_SYSTEM.COST_PER_CLIP.PRE_PRODUCTION,
+  PRODUCTION: CREDIT_SYSTEM.COST_PER_CLIP.PRODUCTION,
+  QUALITY_ASSURANCE: CREDIT_SYSTEM.COST_PER_CLIP.QUALITY_ASSURANCE,
+  TOTAL_PER_SHOT: CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP,
+  BASE_DURATION_THRESHOLD: CREDIT_SYSTEM.BASE_DURATION_THRESHOLD,
+  CREDITS_PER_EXTRA_SECOND: CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND,
 } as const;
 
 // Quality Tier Credits - Premium-only model
@@ -24,13 +26,13 @@ export const TIER_CREDIT_COSTS = {
     PRE_PRODUCTION: 2,
     PRODUCTION: 6,
     QUALITY_INSURANCE: 2,
-    TOTAL_PER_SHOT: 10,    // 10 credits per clip
+    TOTAL_PER_SHOT: 10,    // Base 10 credits per clip (up to 6s)
   },
   professional: {
     PRE_PRODUCTION: 2,
     PRODUCTION: 6,
     QUALITY_INSURANCE: 2,
-    TOTAL_PER_SHOT: 10,    // Same - all clips are premium
+    TOTAL_PER_SHOT: 10,    // Same base - all clips are premium
   },
 } as const;
 
@@ -208,18 +210,26 @@ export function useCreditBilling() {
   }, [user]);
 
   // Check if user can afford a full production cycle
-  const canAffordShots = useCallback(async (shotCount: number): Promise<{
+  const canAffordShots = useCallback(async (
+    shotCount: number,
+    clipDuration: number = 5
+  ): Promise<{
     canAfford: boolean;
     requiredCredits: number;
     availableCredits: number;
     shortfall: number;
+    creditsPerClip: number;
   }> => {
+    const creditsPerClip = calculateCreditsPerClip(clipDuration);
+    const requiredCredits = calculateCreditsRequired(shotCount, clipDuration);
+    
     if (!user) {
       return { 
         canAfford: false, 
-        requiredCredits: shotCount * CREDIT_COSTS.TOTAL_PER_SHOT,
+        requiredCredits,
         availableCredits: 0,
-        shortfall: shotCount * CREDIT_COSTS.TOTAL_PER_SHOT,
+        shortfall: requiredCredits,
+        creditsPerClip,
       };
     }
 
@@ -232,7 +242,6 @@ export function useCreditBilling() {
 
       if (error) throw error;
 
-      const requiredCredits = shotCount * CREDIT_COSTS.TOTAL_PER_SHOT;
       const availableCredits = data?.credits_balance || 0;
       const shortfall = Math.max(0, requiredCredits - availableCredits);
 
@@ -241,14 +250,16 @@ export function useCreditBilling() {
         requiredCredits,
         availableCredits,
         shortfall,
+        creditsPerClip,
       };
     } catch (err) {
       console.error('Balance check failed:', err);
       return { 
         canAfford: false, 
-        requiredCredits: shotCount * CREDIT_COSTS.TOTAL_PER_SHOT,
+        requiredCredits,
         availableCredits: 0,
-        shortfall: shotCount * CREDIT_COSTS.TOTAL_PER_SHOT,
+        shortfall: requiredCredits,
+        creditsPerClip,
       };
     }
   }, [user]);

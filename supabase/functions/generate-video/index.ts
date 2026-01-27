@@ -815,13 +815,14 @@ async function generateWithKling(
     const klingAspectRatio = aspectRatio === "9:16" ? "9:16" : 
                               aspectRatio === "1:1" ? "1:1" : "16:9";
 
-    // Build Replicate input for Kling v2.6
+    // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
     const replicateInput: Record<string, any> = {
       prompt: enhancedPrompt.slice(0, 2500),
       negative_prompt: negativePrompt.slice(0, 1000),
       aspect_ratio: klingAspectRatio,
       duration: klingDuration,
       cfg_scale: 0.5,
+      mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
     };
 
     // Add start image for image-to-video mode

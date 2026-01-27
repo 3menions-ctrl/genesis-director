@@ -108,13 +108,14 @@ serve(async (req) => {
     // Kling duration: 5 or 10 seconds
     const klingDuration = durationSeconds <= 6 ? 5 : 10;
 
-    // Build Replicate input for Kling v2.6
+    // Build Replicate input for Kling v2.6 - ALWAYS use "pro" mode for HD quality
     const replicateInput: Record<string, any> = {
       prompt: enhancedPrompt.slice(0, 2500),
       negative_prompt: "jarring transition, sudden movement, flickering, glitch, artifact, low quality, blur, inconsistent lighting, jump cut, character morphing, face changing",
       aspect_ratio: "16:9",
       duration: klingDuration,
       cfg_scale: 0.5,
+      mode: "pro", // CRITICAL: "pro" mode = HD quality, "standard" = lower quality
     };
 
     // Add starting frame as image (for image-to-video)

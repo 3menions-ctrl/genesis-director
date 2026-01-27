@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * MOTION TRANSFER - Direct Pose-to-Character Pipeline
+ * 
+ * CRITICAL: No script generation needed - this is a visual transformation.
+ * Extract motion/pose from source video, apply to target image/video.
+ * 
+ * Two modes:
+ * 1. Image mode: Animate a static image with motion from a video (e.g., make a photo dance)
+ * 2. Video mode: Re-pose a person in a video to match another video's motion
+ * 
+ * Uses MagicAnimate/AnimateAnyone for high-quality pose transfer.
+ */
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +43,7 @@ serve(async (req) => {
 
     console.log("[motion-transfer] Starting motion transfer");
     console.log("[motion-transfer] Mode:", mode);
-    console.log("[motion-transfer] Source video:", sourceVideoUrl);
+    console.log("[motion-transfer] Source video (motion source):", sourceVideoUrl);
 
     let prediction;
 
@@ -40,9 +53,9 @@ serve(async (req) => {
         throw new Error("targetImageUrl is required for image mode");
       }
 
-      console.log("[motion-transfer] Target image:", targetImageUrl);
+      console.log("[motion-transfer] Target image (to be animated):", targetImageUrl);
 
-      // Use MagicAnimate or similar for motion transfer to image
+      // Try AnimateAnyone first - best for human motion transfer
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -50,24 +63,22 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "16c28b00ad558c52a24fdc0c2be0a79a5c56c53e1eb3a2dae01d7c7b56e14e99", // MagicAnimate
+          version: "cd2b59f8b5b0688c8c532cec2d3ec8a97c7ba52acf3d29a3c77a4cd22e9c8064", // AnimateAnyone
           input: {
-            source_image: targetImageUrl,
-            motion_sequence: sourceVideoUrl,
-            num_inference_steps: 25,
-            guidance_scale: 7.5,
-            seed: -1, // Random
+            ref_image: targetImageUrl,
+            pose_video: sourceVideoUrl,
+            steps: 25,
+            guidance_scale: 3.5,
           },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[motion-transfer] MagicAnimate failed:", errorText);
+        console.warn("[motion-transfer] AnimateAnyone failed:", errorText);
         
-        // Try DWPose + AnimateDiff as fallback
-        console.log("[motion-transfer] Trying fallback approach with pose extraction...");
-        
+        // Fallback to MagicAnimate
+        console.log("[motion-transfer] Trying MagicAnimate fallback...");
         const fallbackResponse = await fetch("https://api.replicate.com/v1/predictions", {
           method: "POST",
           headers: {
@@ -75,18 +86,21 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            version: "cd2b59f8b5b0688c8c532cec2d3ec8a97c7ba52acf3d29a3c77a4cd22e9c8064", // Animate Anyone
+            version: "16c28b00ad558c52a24fdc0c2be0a79a5c56c53e1eb3a2dae01d7c7b56e14e99", // MagicAnimate
             input: {
-              ref_image: targetImageUrl,
-              pose_video: sourceVideoUrl,
-              steps: 25,
-              guidance_scale: 3.5,
+              source_image: targetImageUrl,
+              motion_sequence: sourceVideoUrl,
+              num_inference_steps: 25,
+              guidance_scale: 7.5,
+              seed: -1,
             },
           }),
         });
 
         if (!fallbackResponse.ok) {
-          throw new Error(`Motion transfer failed: ${response.status}`);
+          const fallbackError = await fallbackResponse.text();
+          console.error("[motion-transfer] MagicAnimate also failed:", fallbackError);
+          throw new Error(`Motion transfer failed: Both AnimateAnyone and MagicAnimate unavailable`);
         }
 
         prediction = await fallbackResponse.json();
@@ -100,9 +114,9 @@ serve(async (req) => {
         throw new Error("targetVideoUrl is required for video mode");
       }
 
-      console.log("[motion-transfer] Target video:", targetVideoUrl);
+      console.log("[motion-transfer] Target video (person to re-pose):", targetVideoUrl);
 
-      // Use video-to-video pose transfer
+      // Video-to-video pose transfer
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -110,12 +124,12 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "8d4e3b8e06e8a8b5f9a5e5f8a7e6d5c4b3a2f1e0", // Pose transfer model
+          version: "cd2b59f8b5b0688c8c532cec2d3ec8a97c7ba52acf3d29a3c77a4cd22e9c8064", // AnimateAnyone
           input: {
-            source_video: sourceVideoUrl,
-            target_video: targetVideoUrl,
-            preserve_face: true,
-            smooth_motion: true,
+            ref_image: targetVideoUrl, // First frame will be extracted
+            pose_video: sourceVideoUrl,
+            steps: 25,
+            guidance_scale: 3.5,
           },
         }),
       });
@@ -139,7 +153,9 @@ serve(async (req) => {
         predictionId: prediction.id,
         status: "processing",
         mode,
-        message: "Motion transfer is being processed. Poll for status.",
+        message: mode === "image" 
+          ? "Your character will perform the exact movements from the source video."
+          : "Re-posing the target video with the source motion sequence.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

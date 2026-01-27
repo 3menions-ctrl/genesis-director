@@ -36,6 +36,8 @@ import {
 import { useGamification } from '@/hooks/useGamification';
 import { useSocial } from '@/hooks/useSocial';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useRealAnalytics } from '@/hooks/useRealAnalytics';
+import { RealAnalyticsCards } from '@/components/analytics/RealAnalyticsCards';
 
 interface Transaction {
   id: string;
@@ -90,6 +92,7 @@ export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading, unlockedAchievements } = useGamification();
   const { followersCount, followingCount } = useSocial();
+  const { analytics, loading: analyticsLoading } = useRealAnalytics();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
@@ -589,58 +592,15 @@ export default function Profile() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+              className="space-y-6"
             >
+              {/* Real Analytics Cards - Full Width */}
+              <RealAnalyticsCards analytics={analytics} loading={analyticsLoading} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
                 
-                {/* Activity Chart - Dark Card */}
-                <div className={cn("rounded-3xl overflow-hidden", darkCard)}>
-                  <div className="p-5 border-b border-white/[0.08]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                          <Activity className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-white">Activity Overview</h3>
-                          <p className="text-xs text-white/50">Last 14 days</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-5">
-                    {loadingMetrics ? (
-                      <Skeleton className="h-32 bg-white/5 rounded-xl" />
-                    ) : (
-                      <ResponsiveContainer width="100%" height={140}>
-                        <AreaChart data={dailyUsage}>
-                          <defs>
-                            <linearGradient id="chartGradientProfile" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" stopOpacity={0.3} />
-                              <stop offset="100%" stopColor="rgba(255,255,255,0.3)" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} interval={2} />
-                          <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} width={30} />
-                          <Tooltip
-                            contentStyle={{ 
-                              backgroundColor: 'rgba(0,0,0,0.9)', 
-                              backdropFilter: 'blur(12px)',
-                              border: '1px solid rgba(255,255,255,0.1)', 
-                              borderRadius: '12px', 
-                              fontSize: '12px',
-                            }}
-                            labelStyle={{ color: '#fff' }}
-                          />
-                          <Area type="monotone" dataKey="credits" stroke="rgba(255,255,255,0.6)" strokeWidth={2} fill="url(#chartGradientProfile)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </div>
-
                 {/* Quick Actions - Premium Dark Cards */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
@@ -853,6 +813,7 @@ export default function Profile() {
                     ))}
                   </div>
                 </div>
+              </div>
               </div>
             </motion.section>
           )}

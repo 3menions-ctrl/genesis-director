@@ -1815,6 +1815,7 @@ export type Database = {
       movie_projects: {
         Row: {
           aspect_ratio: string | null
+          avatar_voice_id: string | null
           created_at: string
           generated_script: string | null
           generation_checkpoint: Json | null
@@ -1826,17 +1827,21 @@ export type Database = {
           last_checkpoint_at: string | null
           last_error: string | null
           likes_count: number | null
+          mode: string | null
           mood: string | null
           movie_intro_style: string | null
           music_url: string | null
           parent_project_id: string | null
           pending_video_tasks: Json | null
           pipeline_stage: string | null
+          pipeline_state: Json | null
           pro_features_data: Json | null
           quality_tier: string | null
           scene_images: Json | null
           script_content: string | null
           setting: string | null
+          source_image_url: string | null
+          source_video_url: string | null
           status: string
           stitch_attempts: number | null
           story_structure: Database["public"]["Enums"]["story_structure"]
@@ -1854,6 +1859,7 @@ export type Database = {
         }
         Insert: {
           aspect_ratio?: string | null
+          avatar_voice_id?: string | null
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
@@ -1865,17 +1871,21 @@ export type Database = {
           last_checkpoint_at?: string | null
           last_error?: string | null
           likes_count?: number | null
+          mode?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
           pipeline_stage?: string | null
+          pipeline_state?: Json | null
           pro_features_data?: Json | null
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
+          source_image_url?: string | null
+          source_video_url?: string | null
           status?: string
           stitch_attempts?: number | null
           story_structure?: Database["public"]["Enums"]["story_structure"]
@@ -1893,6 +1903,7 @@ export type Database = {
         }
         Update: {
           aspect_ratio?: string | null
+          avatar_voice_id?: string | null
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
@@ -1904,17 +1915,21 @@ export type Database = {
           last_checkpoint_at?: string | null
           last_error?: string | null
           likes_count?: number | null
+          mode?: string | null
           mood?: string | null
           movie_intro_style?: string | null
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
           pipeline_stage?: string | null
+          pipeline_state?: Json | null
           pro_features_data?: Json | null
           quality_tier?: string | null
           scene_images?: Json | null
           script_content?: string | null
           setting?: string | null
+          source_image_url?: string | null
+          source_video_url?: string | null
           status?: string
           stitch_attempts?: number | null
           story_structure?: Database["public"]["Enums"]["story_structure"]

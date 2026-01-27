@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 // Kling 2.5 Turbo Pro via Replicate - Using models endpoint for latest version
 // Using Replicate API for better availability and billing
 // ============================================================================
-const REPLICATE_API_URL = "https://api.replicate.com/v1/models";
+const REPLICATE_MODELS_URL = "https://api.replicate.com/v1/models";
+const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_MODEL = "kwaivgi/kling-v2.5-turbo-pro"; // More widely available model
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
@@ -162,14 +163,13 @@ async function createReplicatePrediction(
   });
 
   // Use models endpoint which automatically uses latest version
-  const modelsUrl = `${REPLICATE_API_URL}/${KLING_MODEL}/predictions`;
+  const modelsUrl = `${REPLICATE_MODELS_URL}/${KLING_MODEL}/predictions`;
   
   const response = await fetch(modelsUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
       "Content-Type": "application/json",
-      "Prefer": "wait",
     },
     body: JSON.stringify({ input }),
   });
@@ -202,7 +202,7 @@ async function pollReplicatePrediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  const statusUrl = `${REPLICATE_API_URL}/${predictionId}`;
+  const statusUrl = `${REPLICATE_PREDICTIONS_URL}/${predictionId}`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise(resolve => setTimeout(resolve, pollInterval));

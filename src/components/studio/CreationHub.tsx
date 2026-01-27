@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
   Sparkles, Upload, Mic, ChevronRight, Play,
-  Video, Shirt, Layers, ArrowRight
+  Video, Layers, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,7 +27,6 @@ const CREATION_MODES = [
     name: 'Cinematic',
     description: 'Create stunning clips from text prompts',
     icon: Wand2,
-    gradient: 'from-violet-500/30 to-fuchsia-500/30',
     popular: true,
   },
   {
@@ -35,7 +34,6 @@ const CREATION_MODES = [
     name: 'Animate Image',
     description: 'Bring any photo or artwork to life',
     icon: Image,
-    gradient: 'from-cyan-500/30 to-blue-500/30',
     popular: true,
   },
   {
@@ -43,7 +41,6 @@ const CREATION_MODES = [
     name: 'AI Avatar',
     description: 'Talking heads with perfect lip sync',
     icon: User,
-    gradient: 'from-emerald-500/30 to-teal-500/30',
     popular: true,
     isNew: true,
   },
@@ -52,7 +49,6 @@ const CREATION_MODES = [
     name: 'Style Transfer',
     description: 'Transform videos into any style',
     icon: Palette,
-    gradient: 'from-orange-500/30 to-rose-500/30',
     isNew: true,
   },
   {
@@ -60,7 +56,6 @@ const CREATION_MODES = [
     name: 'Motion Transfer',
     description: 'Apply dance moves to any character',
     icon: Dices,
-    gradient: 'from-pink-500/30 to-purple-500/30',
     isNew: true,
   },
   {
@@ -68,7 +63,6 @@ const CREATION_MODES = [
     name: 'B-Roll',
     description: 'Quick background footage from prompts',
     icon: Film,
-    gradient: 'from-amber-500/30 to-yellow-500/30',
   },
 ];
 
@@ -118,44 +112,66 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   return (
     <div className={cn("min-h-screen pt-8 pb-24", className)}>
       <div className="max-w-6xl mx-auto px-6">
-        {/* Header */}
+        {/* Header - Premium minimal */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-16"
         >
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] mb-6"
+          >
+            <Sparkles className="w-4 h-4 text-white/60" />
+            <span className="text-sm text-white/60 font-medium">AI Video Creation</span>
+          </motion.div>
+          
+          <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-5 tracking-tight">
             What will you create?
           </h1>
-          <p className="text-lg text-white/60 max-w-2xl mx-auto">
-            Choose your creation mode and bring your vision to life with AI
+          <p className="text-lg text-white/40 max-w-xl mx-auto">
+            Choose your creation mode and bring your vision to life
           </p>
         </motion.div>
 
-        {/* Mode Selection Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
-          {CREATION_MODES.map((mode, index) => (
-            <CreationModeCard
-              key={mode.id}
-              id={mode.id}
-              name={mode.name}
-              description={mode.description}
-              icon={mode.icon}
-              isSelected={selectedMode === mode.id}
-              isPopular={mode.popular}
-              isNew={mode.isNew}
-              onClick={() => setSelectedMode(mode.id)}
-              gradient={mode.gradient}
-              delay={index}
-            />
-          ))}
-        </div>
-
-        {/* Configuration Panel */}
-        <motion.div
-          layout
-          className="glass-card-dark p-6 md:p-8 rounded-3xl border border-white/10"
+        {/* Mode Selection Grid - Clean minimal cards */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-12"
         >
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {CREATION_MODES.map((mode, index) => (
+              <CreationModeCard
+                key={mode.id}
+                id={mode.id}
+                name={mode.name}
+                description={mode.description}
+                icon={mode.icon}
+                isSelected={selectedMode === mode.id}
+                isPopular={mode.popular}
+                isNew={mode.isNew}
+                onClick={() => setSelectedMode(mode.id)}
+                delay={index}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Configuration Panel - Premium glass */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          layout
+          className="relative p-8 md:p-10 rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] overflow-hidden"
+        >
+          {/* Subtle inner glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedMode}
@@ -163,40 +179,37 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="space-y-6"
+              className="relative space-y-8"
             >
-              {/* Mode-specific header */}
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br",
-                  currentMode?.gradient
-                )}>
-                  {currentMode && <currentMode.icon className="w-7 h-7 text-white" />}
+              {/* Mode header */}
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center">
+                  {currentMode && <currentMode.icon className="w-8 h-8 text-white" />}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">{currentMode?.name}</h2>
-                  <p className="text-sm text-white/50">{currentMode?.description}</p>
+                  <h2 className="text-2xl font-semibold text-white">{currentMode?.name}</h2>
+                  <p className="text-sm text-white/40">{currentMode?.description}</p>
                 </div>
               </div>
 
               {/* Input Section based on mode */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Image/Video Upload for modes that require it */}
                 {(modeConfig?.requiresImage || modeConfig?.requiresVideo) && (
-                  <div className="space-y-2">
-                    <Label className="text-white/70">
+                  <div className="space-y-3">
+                    <Label className="text-sm text-white/60 font-medium">
                       {modeConfig.requiresVideo ? 'Upload Video' : 'Upload Image'}
                     </Label>
-                    <div className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center hover:border-white/30 transition-colors cursor-pointer">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                          <Upload className="w-6 h-6 text-white/60" />
+                    <div className="border-2 border-dashed border-white/[0.1] rounded-2xl p-10 text-center hover:border-white/20 hover:bg-white/[0.02] transition-all cursor-pointer group">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
+                          <Upload className="w-6 h-6 text-white/50 group-hover:text-white/70 transition-colors" />
                         </div>
                         <div>
-                          <p className="text-sm text-white/80">
+                          <p className="text-sm text-white/70 font-medium">
                             Drag & drop or click to upload
                           </p>
-                          <p className="text-xs text-white/40 mt-1">
+                          <p className="text-xs text-white/30 mt-1">
                             {modeConfig.requiresVideo ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB'}
                           </p>
                         </div>
@@ -207,8 +220,8 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
 
                 {/* Text prompt */}
                 {modeConfig?.requiresText && (
-                  <div className="space-y-2">
-                    <Label className="text-white/70">
+                  <div className="space-y-3">
+                    <Label className="text-sm text-white/60 font-medium">
                       {selectedMode === 'avatar' ? 'What should the avatar say?' : 'Describe your vision'}
                     </Label>
                     <Textarea
@@ -223,9 +236,9 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                           ? "The character slowly turns to face the camera, wind blowing through their hair..."
                           : "Describe the motion or style you want..."
                       }
-                      className="min-h-[120px] bg-white/5 border-white/10 text-white placeholder:text-white/30 resize-none rounded-xl"
+                      className="min-h-[140px] bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/25 resize-none rounded-xl focus:border-white/20 focus:ring-white/10 text-base"
                     />
-                    <p className="text-xs text-white/40 text-right">
+                    <p className="text-xs text-white/30 text-right">
                       {prompt.length} characters
                     </p>
                   </div>
@@ -234,7 +247,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 {/* Style Presets for video-to-video */}
                 {selectedMode === 'video-to-video' && (
                   <div className="space-y-3">
-                    <Label className="text-white/70">Style Preset</Label>
+                    <Label className="text-sm text-white/60 font-medium">Style Preset</Label>
                     <ScrollArea className="w-full">
                       <div className="flex gap-3 pb-2">
                         {STYLE_PRESETS.map((style) => (
@@ -242,17 +255,18 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                             key={style.id}
                             onClick={() => setSelectedStyle(style.id)}
                             className={cn(
-                              "flex-shrink-0 p-3 rounded-xl border transition-all text-left min-w-[120px]",
+                              "flex-shrink-0 p-4 rounded-xl border transition-all text-left min-w-[140px]",
                               selectedStyle === style.id
-                                ? "bg-white/15 border-white/30"
-                                : "bg-white/5 border-white/10 hover:bg-white/10"
+                                ? "bg-white/[0.08] border-white/30"
+                                : "bg-white/[0.02] border-white/[0.08] hover:bg-white/[0.05]"
                             )}
                           >
                             <div className={cn(
-                              "w-full aspect-video rounded-lg mb-2",
+                              "w-full aspect-video rounded-lg mb-3",
                               getStyleGradient(style.id)
                             )} />
-                            <p className="text-xs font-medium text-white">{style.name}</p>
+                            <p className="text-sm font-medium text-white">{style.name}</p>
+                            <p className="text-xs text-white/40 mt-0.5">{style.description}</p>
                           </button>
                         ))}
                       </div>
@@ -263,19 +277,19 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
 
                 {/* Voice Selection for avatar */}
                 {selectedMode === 'avatar' && (
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Voice</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm text-white/60 font-medium">Voice</Label>
                     <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-white h-12 rounded-xl">
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-zinc-900 border-white/10">
                         {AVATAR_VOICES.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.id}>
-                            <div className="flex items-center gap-2">
-                              <Mic className="w-3 h-3" />
-                              <span>{voice.name}</span>
-                              <span className="text-muted-foreground text-xs">• {voice.style}</span>
+                          <SelectItem key={voice.id} value={voice.id} className="text-white focus:bg-white/10 focus:text-white">
+                            <div className="flex items-center gap-3">
+                              <Mic className="w-4 h-4 text-white/50" />
+                              <span className="font-medium">{voice.name}</span>
+                              <span className="text-white/40 text-sm">• {voice.style}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -285,37 +299,39 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 )}
               </div>
 
-              {/* Action Button */}
+              {/* Action Button - Premium white */}
               <div className="pt-4">
                 <Button
                   size="xl"
-                  variant="premium"
                   onClick={handleCreate}
                   disabled={!isReadyToCreate()}
-                  className="w-full group relative overflow-hidden"
+                  className={cn(
+                    "w-full h-14 text-base font-semibold rounded-2xl transition-all duration-300 group",
+                    "bg-white text-black hover:bg-white/90",
+                    "shadow-[0_0_40px_rgba(255,255,255,0.1)]",
+                    "hover:shadow-[0_0_60px_rgba(255,255,255,0.15)]",
+                    "disabled:opacity-40 disabled:shadow-none"
+                  )}
                 >
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="flex items-center gap-3">
                     <Sparkles className="w-5 h-5" />
                     Create {currentMode?.name}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  
-                  {/* Animated gradient background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-shift opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </div>
             </motion.div>
           </AnimatePresence>
         </motion.div>
 
-        {/* Quick examples / inspiration */}
+        {/* Inspiration prompts - Subtle */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-8"
+          className="mt-10"
         >
-          <h3 className="text-sm font-medium text-white/50 mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-medium text-white/30 mb-4 flex items-center gap-2">
             <Layers className="w-4 h-4" />
             Need inspiration? Try these prompts
           </h3>
@@ -324,7 +340,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
               <button
                 key={i}
                 onClick={() => setPrompt(example)}
-                className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                className="px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs text-white/50 hover:bg-white/[0.06] hover:text-white/70 hover:border-white/15 transition-all"
               >
                 {example.slice(0, 50)}...
               </button>
@@ -344,12 +360,12 @@ function getStyleGradient(style: VideoStylePreset): string {
     'oil-painting': 'bg-gradient-to-br from-amber-600 via-orange-500 to-yellow-400',
     'watercolor': 'bg-gradient-to-br from-blue-300 via-teal-300 to-green-300',
     'claymation': 'bg-gradient-to-br from-amber-400 via-orange-300 to-rose-300',
-    'noir': 'bg-gradient-to-br from-gray-900 via-gray-700 to-gray-500',
+    'noir': 'bg-gradient-to-br from-zinc-900 via-zinc-700 to-zinc-500',
     'vintage-film': 'bg-gradient-to-br from-amber-200 via-orange-200 to-yellow-100',
     'comic-book': 'bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500',
     'fantasy': 'bg-gradient-to-br from-violet-400 via-purple-500 to-fuchsia-400',
   };
-  return gradients[style] || 'bg-gradient-to-br from-gray-400 to-gray-600';
+  return gradients[style] || 'bg-gradient-to-br from-zinc-400 to-zinc-600';
 }
 
 function getExamplePrompts(mode: VideoGenerationMode): string[] {

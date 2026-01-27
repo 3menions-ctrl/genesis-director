@@ -11,7 +11,6 @@ interface CreationModeCardProps {
   isPopular?: boolean;
   isNew?: boolean;
   onClick: () => void;
-  gradient?: string;
   delay?: number;
 }
 
@@ -24,7 +23,6 @@ export function CreationModeCard({
   isPopular,
   isNew,
   onClick,
-  gradient = 'from-primary/20 to-secondary/20',
   delay = 0,
 }: CreationModeCardProps) {
   return (
@@ -35,10 +33,10 @@ export function CreationModeCard({
       onClick={onClick}
       className={cn(
         "group relative flex flex-col items-start p-5 rounded-2xl border text-left transition-all duration-300",
-        "bg-white/5 backdrop-blur-xl hover:bg-white/10",
+        "backdrop-blur-xl",
         isSelected 
-          ? "border-white/30 shadow-[0_0_40px_rgba(255,255,255,0.1)]" 
-          : "border-white/10 hover:border-white/20"
+          ? "bg-white/[0.08] border-white/30 shadow-[0_0_40px_rgba(255,255,255,0.08)]" 
+          : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/15"
       )}
     >
       {/* Selection indicator */}
@@ -52,31 +50,26 @@ export function CreationModeCard({
       )}
 
       {/* Badge */}
-      {(isPopular || isNew) && (
+      {(isPopular || isNew) && !isSelected && (
         <div className={cn(
           "absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1",
           isNew 
-            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30" 
-            : "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+            ? "bg-white/10 text-white/80 border border-white/20" 
+            : "bg-white/10 text-white/80 border border-white/20"
         )}>
           {isNew ? <Sparkles className="w-2.5 h-2.5" /> : <TrendingUp className="w-2.5 h-2.5" />}
           {isNew ? 'New' : 'Popular'}
         </div>
       )}
 
-      {/* Icon with gradient background */}
+      {/* Icon */}
       <div className={cn(
         "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
-        "bg-gradient-to-br",
-        gradient,
         isSelected 
-          ? "shadow-lg" 
-          : "group-hover:scale-105"
+          ? "bg-white text-black" 
+          : "bg-white/[0.08] text-white/70 group-hover:bg-white/[0.12] group-hover:text-white"
       )}>
-        <Icon className={cn(
-          "w-6 h-6 transition-colors",
-          isSelected ? "text-white" : "text-white/80"
-        )} />
+        <Icon className="w-6 h-6" />
       </div>
 
       {/* Text */}
@@ -86,16 +79,15 @@ export function CreationModeCard({
       )}>
         {name}
       </h3>
-      <p className="text-sm text-white/50 line-clamp-2">
+      <p className="text-sm text-white/40 line-clamp-2">
         {description}
       </p>
 
-      {/* Hover glow effect */}
+      {/* Subtle hover glow */}
       <div className={cn(
         "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none",
-        "bg-gradient-to-br",
-        gradient,
-        "group-hover:opacity-10"
+        "bg-gradient-to-br from-white/[0.02] to-transparent",
+        "group-hover:opacity-100"
       )} />
     </motion.button>
   );

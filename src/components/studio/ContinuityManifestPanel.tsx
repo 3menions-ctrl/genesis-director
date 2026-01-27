@@ -174,25 +174,25 @@ export function ContinuityManifestPanel({
       title: 'Spatial Position',
       icon: MapPin,
       color: 'text-blue-400',
-      content: manifest.spatial && (
+      content: activeManifest.spatial && (
         <div className="space-y-2 text-xs">
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline" className="text-[10px]">
-              {manifest.spatial.primaryCharacter?.screenPosition || 'center'}
+              {activeManifest.spatial.primaryCharacter?.screenPosition || 'center'}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
-              {manifest.spatial.primaryCharacter?.depth || 'midground'}
+              {activeManifest.spatial.primaryCharacter?.depth || 'midground'}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
-              facing {manifest.spatial.primaryCharacter?.facingDirection || 'camera'}
+              facing {activeManifest.spatial.primaryCharacter?.facingDirection || 'camera'}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
-              {manifest.spatial.cameraDistance || 'medium'}
+              {activeManifest.spatial.cameraDistance || 'medium'}
             </Badge>
           </div>
-          {manifest.spatial.eyeLineDirection && (
+          {activeManifest.spatial.eyeLineDirection && (
             <p className="text-muted-foreground">
-              Eye line: {manifest.spatial.eyeLineDirection}
+              Eye line: {activeManifest.spatial.eyeLineDirection}
             </p>
           )}
         </div>
@@ -203,27 +203,27 @@ export function ContinuityManifestPanel({
       title: 'Lighting State',
       icon: Lightbulb,
       color: 'text-yellow-400',
-      content: manifest.lighting && (
+      content: activeManifest.lighting && (
         <div className="space-y-2 text-xs">
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline" className="text-[10px]">
-              {manifest.lighting.primarySource?.type || 'natural'}
+              {activeManifest.lighting.primarySource?.type || 'natural'}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
-              {manifest.lighting.primarySource?.direction || 'front'} light
+              {activeManifest.lighting.primarySource?.direction || 'front'} light
             </Badge>
             <Badge variant="outline" className="text-[10px]">
-              {manifest.lighting.colorTemperature || 'neutral'}
+              {activeManifest.lighting.colorTemperature || 'neutral'}
             </Badge>
           </div>
-          {manifest.lighting.shadowDirection && (
+          {activeManifest.lighting.shadowDirection && (
             <p className="text-muted-foreground">
-              Shadows: {manifest.lighting.shadowDirection}
+              Shadows: {activeManifest.lighting.shadowDirection}
             </p>
           )}
-          {manifest.lighting.specialLighting?.length > 0 && (
+          {activeManifest.lighting.specialLighting?.length > 0 && (
             <p className="text-muted-foreground">
-              Special: {manifest.lighting.specialLighting.join(', ')}
+              Special: {activeManifest.lighting.specialLighting.join(', ')}
             </p>
           )}
         </div>
@@ -234,9 +234,9 @@ export function ContinuityManifestPanel({
       title: 'Props & Objects',
       icon: Package,
       color: 'text-green-400',
-      content: manifest.props && (
+      content: activeManifest.props && (
         <div className="space-y-2 text-xs">
-          {manifest.props.characterProps?.map((cp, i) => (
+          {activeManifest.props.characterProps?.map((cp, i) => (
             <div key={i}>
               <span className="font-medium">{cp.characterName}:</span>
               <div className="flex flex-wrap gap-1 mt-1">
@@ -248,11 +248,11 @@ export function ContinuityManifestPanel({
               </div>
             </div>
           ))}
-          {manifest.props.environmentProps?.length > 0 && (
+          {activeManifest.props.environmentProps?.length > 0 && (
             <div>
               <span className="font-medium text-muted-foreground">Environment:</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {manifest.props.environmentProps.slice(0, 5).map((p, i) => (
+                {activeManifest.props.environmentProps.slice(0, 5).map((p, i) => (
                   <Badge key={i} variant="secondary" className="text-[10px]">
                     {p.name}
                   </Badge>
@@ -268,29 +268,29 @@ export function ContinuityManifestPanel({
       title: 'Emotional State',
       icon: Heart,
       color: 'text-pink-400',
-      content: manifest.emotional && (
+      content: activeManifest.emotional && (
         <div className="space-y-2 text-xs">
           <div className="flex items-center gap-2">
             <Badge 
               variant="outline" 
               className={`text-[10px] ${
-                manifest.emotional.intensity === 'intense' || manifest.emotional.intensity === 'extreme'
+                activeManifest.emotional.intensity === 'intense' || activeManifest.emotional.intensity === 'extreme'
                   ? 'border-red-500/50 text-red-400'
                   : ''
               }`}
             >
-              {manifest.emotional.intensity} {manifest.emotional.primaryEmotion}
+              {activeManifest.emotional.intensity} {activeManifest.emotional.primaryEmotion}
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            {manifest.emotional.facialExpression}
+            {activeManifest.emotional.facialExpression}
           </p>
           <p className="text-muted-foreground">
-            {manifest.emotional.bodyLanguage}
+            {activeManifest.emotional.bodyLanguage}
           </p>
-          {manifest.emotional.physicalIndicators?.length > 0 && (
+          {activeManifest.emotional.physicalIndicators?.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {manifest.emotional.physicalIndicators.map((ind, i) => (
+              {activeManifest.emotional.physicalIndicators.map((ind, i) => (
                 <Badge key={i} variant="secondary" className="text-[10px]">
                   {ind}
                 </Badge>
@@ -305,31 +305,31 @@ export function ContinuityManifestPanel({
       title: 'Action & Movement',
       icon: Zap,
       color: 'text-orange-400',
-      content: manifest.action && (
+      content: activeManifest.action && (
         <div className="space-y-2 text-xs">
           <div className="flex flex-wrap gap-1">
             <Badge variant="outline" className="text-[10px]">
-              {manifest.action.movementType || 'still'}
+              {activeManifest.action.movementType || 'still'}
             </Badge>
-            {manifest.action.movementDirection !== 'stationary' && (
+            {activeManifest.action.movementDirection !== 'stationary' && (
               <Badge variant="outline" className="text-[10px]">
-                → {manifest.action.movementDirection}
+                → {activeManifest.action.movementDirection}
               </Badge>
             )}
           </div>
-          {manifest.action.poseAtCut && (
+          {activeManifest.action.poseAtCut && (
             <p className="text-muted-foreground">
-              Pose: {manifest.action.poseAtCut}
+              Pose: {activeManifest.action.poseAtCut}
             </p>
           )}
-          {manifest.action.gestureInProgress && (
+          {activeManifest.action.gestureInProgress && (
             <p className="text-muted-foreground">
-              Gesture: {manifest.action.gestureInProgress}
+              Gesture: {activeManifest.action.gestureInProgress}
             </p>
           )}
-          {manifest.action.expectedContinuation && (
+          {activeManifest.action.expectedContinuation && (
             <p className="text-primary/80 italic">
-              Next: {manifest.action.expectedContinuation}
+              Next: {activeManifest.action.expectedContinuation}
             </p>
           )}
         </div>
@@ -340,34 +340,34 @@ export function ContinuityManifestPanel({
       title: 'Micro-Details',
       icon: Sparkles,
       color: 'text-purple-400',
-      content: manifest.microDetails && (
+      content: activeManifest.microDetails && (
         <div className="space-y-3 text-xs">
           {/* Skin Details */}
-          {(manifest.microDetails.skin?.scars?.length > 0 || 
-            manifest.microDetails.skin?.wounds?.length > 0 ||
-            manifest.microDetails.skin?.dirt?.length > 0) && (
+          {(activeManifest.microDetails.skin?.scars?.length > 0 || 
+            activeManifest.microDetails.skin?.wounds?.length > 0 ||
+            activeManifest.microDetails.skin?.dirt?.length > 0) && (
             <div>
               <div className="flex items-center gap-1 text-muted-foreground mb-1">
                 <Scissors className="w-3 h-3" />
                 <span>Skin</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {manifest.microDetails.skin.scars?.map((s, i) => (
+                {activeManifest.microDetails.skin.scars?.map((s, i) => (
                   <Badge key={`scar-${i}`} variant="destructive" className="text-[10px]">
                     scar: {s.location}
                   </Badge>
                 ))}
-                {manifest.microDetails.skin.wounds?.map((w, i) => (
+                {activeManifest.microDetails.skin.wounds?.map((w, i) => (
                   <Badge key={`wound-${i}`} variant="destructive" className="text-[10px]">
                     {w.freshness} wound: {w.location}
                   </Badge>
                 ))}
-                {manifest.microDetails.skin.dirt?.map((d, i) => (
+                {activeManifest.microDetails.skin.dirt?.map((d, i) => (
                   <Badge key={`dirt-${i}`} variant="secondary" className="text-[10px]">
                     {d.intensity} dirt: {d.areas?.join(', ')}
                   </Badge>
                 ))}
-                {manifest.microDetails.skin.sweat && (
+                {activeManifest.microDetails.skin.sweat && (
                   <Badge variant="secondary" className="text-[10px]">
                     <Droplets className="w-2 h-2 mr-1" /> sweating
                   </Badge>
@@ -377,28 +377,28 @@ export function ContinuityManifestPanel({
           )}
 
           {/* Clothing Wear */}
-          {(manifest.microDetails.clothing?.stains?.length > 0 ||
-            manifest.microDetails.clothing?.tears?.length > 0 ||
-            manifest.microDetails.clothing?.dustLevel !== 'clean') && (
+          {(activeManifest.microDetails.clothing?.stains?.length > 0 ||
+            activeManifest.microDetails.clothing?.tears?.length > 0 ||
+            activeManifest.microDetails.clothing?.dustLevel !== 'clean') && (
             <div>
               <div className="flex items-center gap-1 text-muted-foreground mb-1">
                 <Shirt className="w-3 h-3" />
                 <span>Clothing</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {manifest.microDetails.clothing.stains?.map((s, i) => (
+                {activeManifest.microDetails.clothing.stains?.map((s, i) => (
                   <Badge key={`stain-${i}`} variant="outline" className="text-[10px]">
                     {s.type} stain: {s.location}
                   </Badge>
                 ))}
-                {manifest.microDetails.clothing.tears?.map((t, i) => (
+                {activeManifest.microDetails.clothing.tears?.map((t, i) => (
                   <Badge key={`tear-${i}`} variant="outline" className="text-[10px]">
                     {t.size} tear: {t.location}
                   </Badge>
                 ))}
-                {manifest.microDetails.clothing.dustLevel !== 'clean' && (
+                {activeManifest.microDetails.clothing.dustLevel !== 'clean' && (
                   <Badge variant="secondary" className="text-[10px]">
-                    {manifest.microDetails.clothing.dustLevel}
+                    {activeManifest.microDetails.clothing.dustLevel}
                   </Badge>
                 )}
               </div>
@@ -406,7 +406,7 @@ export function ContinuityManifestPanel({
           )}
 
           {/* Hair State */}
-          {manifest.microDetails.hair && (
+          {activeManifest.microDetails.hair && (
             <div>
               <div className="flex items-center gap-1 text-muted-foreground mb-1">
                 <Wind className="w-3 h-3" />
@@ -414,14 +414,14 @@ export function ContinuityManifestPanel({
               </div>
               <div className="flex flex-wrap gap-1">
                 <Badge variant="outline" className="text-[10px]">
-                  {manifest.microDetails.hair.style}
+                  {activeManifest.microDetails.hair.style}
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">
-                  {manifest.microDetails.hair.condition}
+                  {activeManifest.microDetails.hair.condition}
                 </Badge>
-                {manifest.microDetails.hair.windEffect && (
+                {activeManifest.microDetails.hair.windEffect && (
                   <Badge variant="secondary" className="text-[10px]">
-                    wind: {manifest.microDetails.hair.windEffect}
+                    wind: {activeManifest.microDetails.hair.windEffect}
                   </Badge>
                 )}
               </div>
@@ -429,14 +429,14 @@ export function ContinuityManifestPanel({
           )}
 
           {/* Persistent Markers */}
-          {manifest.microDetails.persistentMarkers?.length > 0 && (
+          {activeManifest.microDetails.persistentMarkers?.length > 0 && (
             <div>
               <div className="flex items-center gap-1 text-primary/80 mb-1">
                 <AlertTriangle className="w-3 h-3" />
                 <span className="font-medium">Must Maintain</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {manifest.microDetails.persistentMarkers.map((m, i) => (
+                {activeManifest.microDetails.persistentMarkers.map((m, i) => (
                   <Badge key={i} className="text-[10px] bg-primary/20 text-primary border-primary/30">
                     {m}
                   </Badge>
@@ -455,11 +455,11 @@ export function ContinuityManifestPanel({
         <CardTitle className="text-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-primary" />
-            Shot {shotIndex + 1} Continuity
+            Shot {displayIndex + 1} Continuity
           </div>
-          {manifest.criticalAnchors && (
+          {activeManifest.criticalAnchors && (
             <Badge variant="outline" className="text-[10px]">
-              {manifest.criticalAnchors.length} anchors
+              {activeManifest.criticalAnchors.length} anchors
             </Badge>
           )}
         </CardTitle>
@@ -467,6 +467,9 @@ export function ContinuityManifestPanel({
       <CardContent className="pt-0">
         <ScrollArea className="h-[400px] pr-2">
           <div className="space-y-2">
+            {isDemo && (
+              <Badge variant="secondary" className="mb-2 text-[10px]">(Demo)</Badge>
+            )}
             {sections.map(section => (
               <Collapsible
                 key={section.id}
@@ -493,18 +496,18 @@ export function ContinuityManifestPanel({
             ))}
 
             {/* Critical Anchors Summary */}
-            {manifest.criticalAnchors?.length > 0 && (
+            {activeManifest.criticalAnchors?.length > 0 && (
               <div className="mt-4 pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <Check className="w-3 h-3 text-green-400" />
+                  <Check className="w-3 h-3 text-emerald-400" />
                   <span className="text-xs font-medium">Critical Anchors</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {manifest.criticalAnchors.map((anchor, i) => (
+                  {activeManifest.criticalAnchors.map((anchor, i) => (
                     <Badge 
                       key={i} 
                       variant="outline" 
-                      className="text-[10px] bg-green-500/10 border-green-500/30 text-green-400"
+                      className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                     >
                       {anchor}
                     </Badge>
@@ -514,11 +517,11 @@ export function ContinuityManifestPanel({
             )}
 
             {/* Injection Prompt Preview */}
-            {manifest.injectionPrompt && (
+            {activeManifest.injectionPrompt && (
               <div className="mt-4 pt-3 border-t border-border/50">
                 <p className="text-xs font-medium mb-1 text-muted-foreground">Injection Prompt</p>
                 <p className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded">
-                  {manifest.injectionPrompt}
+                  {activeManifest.injectionPrompt}
                 </p>
               </div>
             )}

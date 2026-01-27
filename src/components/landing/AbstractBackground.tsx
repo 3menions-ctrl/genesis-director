@@ -1,55 +1,5 @@
-import { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
 import { cn } from '@/lib/utils';
-import universeBackground from '@/assets/universe-background.jpg';
-import * as THREE from 'three';
-
-
-function StarField() {
-  const starsRef = useRef<THREE.Points>(null);
-  
-  const starPositions = new Float32Array(3000);
-  for (let i = 0; i < 3000; i += 3) {
-    starPositions[i] = (Math.random() - 0.5) * 200;
-    starPositions[i + 1] = (Math.random() - 0.5) * 200;
-    starPositions[i + 2] = (Math.random() - 0.5) * 100 - 30;
-  }
-
-  useFrame((_, delta) => {
-    if (starsRef.current) {
-      starsRef.current.rotation.z += delta * 0.002;
-    }
-  });
-
-  return (
-    <points ref={starsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={1000}
-          array={starPositions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial 
-        size={0.15} 
-        color="#ffffff" 
-        transparent 
-        opacity={0.6}
-        sizeAttenuation
-      />
-    </points>
-  );
-}
-
-function Scene() {
-  return (
-    <>
-      <ambientLight intensity={0.1} />
-      <StarField />
-    </>
-  );
-}
+import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 
 interface AbstractBackgroundProps {
   className?: string;
@@ -58,29 +8,36 @@ interface AbstractBackgroundProps {
 export default function AbstractBackground({ className }: AbstractBackgroundProps) {
   return (
     <div className={cn("absolute inset-0", className)}>
-      {/* Deep space background image */}
+      {/* Premium abstract background image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-15"
-        style={{ backgroundImage: `url(${universeBackground})` }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${landingAbstractBg})` }}
       />
       
-      {/* Dark overlay for depth */}
-      <div className="absolute inset-0 bg-black/80" />
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0 bg-background/60" />
       
-      {/* 3D Canvas */}
-      <Canvas
-        camera={{ position: [0, 0, 20], fov: 60, near: 0.1, far: 200 }}
-        style={{ position: 'absolute', inset: 0 }}
-        dpr={[1, 2]}
-      >
-        <Scene />
-      </Canvas>
+      {/* Subtle gradient overlay for depth */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 30% 20%, transparent 0%, hsl(var(--background) / 0.4) 50%, hsl(var(--background) / 0.8) 100%)',
+        }}
+      />
 
-      {/* Vignette */}
+      {/* Vignette effect */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
+      
+      {/* Subtle noise texture for premium feel */}
+      <div 
+        className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
     </div>

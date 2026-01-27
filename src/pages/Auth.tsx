@@ -181,25 +181,25 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex bg-black">
-      {/* Left Side - Premium Glossy Black Background */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        {/* Premium abstract background - glossy black with lines */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${landingAbstractBg})` }}
-        />
-        
-        {/* Subtle vignette for depth */}
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
-          }}
-        />
+    <div className="min-h-screen flex relative">
+      {/* Full-page glossy black background */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${landingAbstractBg})` }}
+      />
+      
+      {/* Subtle vignette overlay */}
+      <div 
+        className="fixed inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
 
+      {/* Left Side - Branding Content */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10">
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+        <div className="relative flex flex-col justify-between p-12 xl:p-16 w-full">
           {/* Logo */}
           <div>
             <div className="flex items-center gap-3 mb-16">
@@ -266,40 +266,33 @@ export default function Auth() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative bg-background">
-        {/* Subtle background decoration */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -right-32 w-64 h-64 rounded-full bg-primary/5 blur-3xl" />
-          <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-accent/5 blur-3xl" />
-        </div>
-
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 relative z-10">
         {/* Transparent container */}
-        <div className="w-full max-w-md relative z-10">
+        <div className="w-full max-w-md relative">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 mb-4 shadow-lg">
-              <span className="text-2xl font-display font-bold text-foreground">AS</span>
+              <span className="text-2xl font-display font-bold text-white">AS</span>
             </div>
-            <h1 className="text-2xl font-display font-bold text-foreground">
+            <h1 className="text-2xl font-display font-bold text-white">
               Apex Studio
             </h1>
           </div>
 
           {/* Glass container for form */}
-          <div className="relative p-8 sm:p-10 rounded-3xl bg-card/50 backdrop-blur-xl border border-border/50 shadow-xl">
+          <div className="relative p-8 sm:p-10 rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl">
             {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-br from-primary/10 via-transparent to-accent/5 rounded-3xl blur-xl opacity-50 -z-10" />
             
             {/* Pending Creation Banner */}
             {hasPendingCreation && !isLogin && (
-              <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Film className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Film className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Your video is ready to create!</p>
-                    <p className="text-xs text-muted-foreground">Sign up to bring your vision to life</p>
+                    <p className="text-sm font-medium text-white">Your video is ready to create!</p>
+                    <p className="text-xs text-white/60">Sign up to bring your vision to life</p>
                   </div>
                 </div>
               </div>
@@ -307,16 +300,16 @@ export default function Auth() {
             
             {/* Header */}
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                <User className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-4">
+                <User className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs font-medium text-white">
                   {hasPendingCreation && !isLogin ? 'Almost there!' : isLogin ? 'Welcome back' : 'Get started'}
                 </span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground mb-2">
+              <h2 className="text-3xl sm:text-4xl font-display font-bold text-white mb-2">
                 {isLogin ? 'Sign in' : 'Create account'}
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-white/60">
                 {hasPendingCreation && !isLogin 
                   ? 'Create your account to generate your video'
                   : isLogin 
@@ -328,11 +321,11 @@ export default function Auth() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground text-sm font-medium">
+                <Label htmlFor="email" className="text-white text-sm font-medium">
                   Email address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                   <Input
                     id="email"
                     type="email"
@@ -342,31 +335,31 @@ export default function Auth() {
                       setEmail(e.target.value);
                       if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
                     }}
-                    className={`h-12 pl-12 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.email ? 'border-destructive' : ''}`}
+                    className={`h-12 pl-12 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 focus:ring-white/10 rounded-xl ${errors.email ? 'border-destructive' : ''}`}
                     maxLength={255}
                   />
                   {errors.email && (
-                    <p className="text-destructive text-xs mt-1">{errors.email}</p>
+                    <p className="text-red-400 text-xs mt-1">{errors.email}</p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-foreground text-sm font-medium">
+                  <Label htmlFor="password" className="text-white text-sm font-medium">
                     Password
                   </Label>
                   {isLogin && (
                     <Link 
                       to="/forgot-password" 
-                      className="text-sm text-muted-foreground hover:text-foreground font-medium transition-colors"
+                      className="text-sm text-white/60 hover:text-white font-medium transition-colors"
                     >
                       Forgot password?
                     </Link>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                   <Input
                     id="password"
                     type="password"
@@ -376,15 +369,15 @@ export default function Auth() {
                       setPassword(e.target.value);
                       if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
                     }}
-                    className={`h-12 pl-12 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.password ? 'border-destructive' : ''}`}
+                    className={`h-12 pl-12 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 focus:ring-white/10 rounded-xl ${errors.password ? 'border-destructive' : ''}`}
                     maxLength={72}
                   />
                   {errors.password && (
-                    <p className="text-destructive text-xs mt-1">{errors.password}</p>
+                    <p className="text-red-400 text-xs mt-1">{errors.password}</p>
                   )}
                 </div>
                 {!isLogin && password && (
-                  <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
+                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
                     <PasswordStrength password={password} />
                   </div>
                 )}
@@ -393,11 +386,11 @@ export default function Auth() {
               {/* Confirm Password - Only for Signup */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-foreground text-sm font-medium">
+                  <Label htmlFor="confirmPassword" className="text-white text-sm font-medium">
                     Confirm Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -407,22 +400,22 @@ export default function Auth() {
                         setConfirmPassword(e.target.value);
                         if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
                       }}
-                      className={`h-12 pl-12 bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus:border-foreground focus:ring-foreground/20 rounded-xl ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                      className={`h-12 pl-12 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 focus:ring-white/10 rounded-xl ${errors.confirmPassword ? 'border-destructive' : ''}`}
                       maxLength={72}
                     />
                     {errors.confirmPassword && (
-                      <p className="text-destructive text-xs mt-1">{errors.confirmPassword}</p>
+                      <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>
                     )}
                     {/* Password match indicator */}
                     {confirmPassword && password && (
                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         {password === confirmPassword ? (
-                          <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-success" />
+                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
                           </div>
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-destructive/20 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-destructive" />
+                          <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
                           </div>
                         )}
                       </div>
@@ -435,7 +428,7 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-12 bg-foreground text-background hover:bg-foreground/90 rounded-xl font-semibold text-base shadow-lg"
+                className="w-full h-12 bg-white text-black hover:bg-white/90 rounded-xl font-semibold text-base shadow-lg"
               >
                 {loading ? (
                   <>
@@ -454,10 +447,10 @@ export default function Auth() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-3 text-muted-foreground">or continue with</span>
+                <span className="bg-black/40 px-3 text-white/60">or continue with</span>
               </div>
             </div>
 
@@ -467,7 +460,7 @@ export default function Auth() {
               variant="outline"
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              className="w-full h-12 rounded-xl border-border hover:bg-muted/50 font-medium"
+              className="w-full h-12 rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 font-medium"
             >
               {googleLoading ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -495,7 +488,7 @@ export default function Auth() {
             </Button>
 
             {/* Toggle Mode */}
-            <p className="text-center text-sm text-muted-foreground mt-6">
+            <p className="text-center text-sm text-white/60 mt-6">
               {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
               <button
                 type="button"
@@ -505,7 +498,7 @@ export default function Auth() {
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="text-foreground hover:underline font-semibold transition-colors"
+                className="text-white hover:underline font-semibold transition-colors"
               >
                 {isLogin ? 'Sign up' : 'Sign in'}
               </button>
@@ -513,11 +506,11 @@ export default function Auth() {
 
             {/* Terms */}
             {!isLogin && (
-              <p className="text-center text-xs text-muted-foreground mt-4">
+              <p className="text-center text-xs text-white/50 mt-4">
                 By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-foreground hover:underline">Terms</Link>
+                <Link to="/terms" className="text-white/70 hover:underline">Terms</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-foreground hover:underline">Privacy Policy</Link>
+                <Link to="/privacy" className="text-white/70 hover:underline">Privacy Policy</Link>
               </p>
             )}
           </div>

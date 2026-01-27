@@ -2,12 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 // ============================================================================
-// Kling 2.6 via Replicate - Latest Model
+// Kling 2.5 Turbo Pro via Replicate - Using models endpoint for latest version
 // Using Replicate API for better availability and billing
 // ============================================================================
-const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v2.6";
-const KLING_VERSION = "33446549-3665-4f30-819a-9e2363717a66"; // Required version ID
+const REPLICATE_API_URL = "https://api.replicate.com/v1/models";
+const KLING_MODEL = "kwaivgi/kling-v2.5-turbo-pro"; // More widely available model
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 const corsHeaders = {
@@ -126,7 +125,7 @@ interface ReplicatePrediction {
   };
 }
 
-// Create a prediction on Replicate for Kling v2.6
+// Create a prediction on Replicate using the models endpoint (auto-latest version)
 async function createReplicatePrediction(
   prompt: string,
   negativePrompt: string,
@@ -139,7 +138,7 @@ async function createReplicatePrediction(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
 
-  // Build Replicate input for Kling v2.6
+  // Build Replicate input for Kling
   const input: Record<string, any> = {
     prompt: prompt.slice(0, 2500),
     negative_prompt: negativePrompt.slice(0, 1000),
@@ -154,23 +153,25 @@ async function createReplicatePrediction(
     console.log(`[SingleClip] Using start image for frame-chaining`);
   }
 
-  console.log("[SingleClip] Creating Replicate prediction for Kling v2.6:", {
+  console.log("[SingleClip] Creating Replicate prediction for Kling:", {
+    model: KLING_MODEL,
     hasStartImage: !!input.start_image,
     duration: input.duration,
     aspectRatio: input.aspect_ratio,
     promptLength: prompt.length,
   });
 
-  const response = await fetch(REPLICATE_API_URL, {
+  // Use models endpoint which automatically uses latest version
+  const modelsUrl = `${REPLICATE_API_URL}/${KLING_MODEL}/predictions`;
+  
+  const response = await fetch(modelsUrl, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
       "Content-Type": "application/json",
+      "Prefer": "wait",
     },
-    body: JSON.stringify({
-      version: KLING_VERSION,
-      input,
-    }),
+    body: JSON.stringify({ input }),
   });
 
   if (!response.ok) {

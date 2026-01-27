@@ -20,8 +20,8 @@ import { ProductionSidebar } from '@/components/production/ProductionSidebar';
 import { ProductionHeader } from '@/components/production/ProductionHeader';
 import { ProductionStatsRealtime } from '@/components/production/ProductionStatsRealtime';
 import { ProductionClipsGrid } from '@/components/production/ProductionClipsGrid';
-import { ProductionActivityLog } from '@/components/production/ProductionActivityLog';
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
+import { ProductionInsightsPanel } from '@/components/production/ProductionInsightsPanel';
 
 // Existing components - Keep for specialized functionality
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -30,7 +30,6 @@ import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewP
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
 import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
 import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
-import { ContinuityManifestPanel } from '@/components/studio/ContinuityManifestPanel';
 import { CloudRunProgressPanel } from '@/components/studio/CloudRunProgressPanel';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
@@ -940,10 +939,9 @@ export default function Production() {
                 isError={isError}
               />
 
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-12 gap-4 lg:gap-6">
-                {/* Main Column */}
-                <div className="col-span-12 lg:col-span-8 space-y-4 lg:space-y-6">
+              {/* Main Content - Full Width */}
+              <div className="space-y-5 lg:space-y-6">
+                {/* Main Column - Now Full Width */}
                   
                   {/* Script Review Panel */}
                   {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
@@ -1178,77 +1176,47 @@ export default function Production() {
                       }}
                     />
                   )}
-                </div>
 
-                {/* Right Column */}
-                <div className="col-span-12 lg:col-span-4 space-y-4 lg:space-y-6">
-                  
-                  {/* Activity Log */}
-                  <ProductionActivityLog logs={pipelineLogs} isLive={isRunning} />
+                {/* Production Insights Panel - Unified Continuity & Logs */}
+                {(clipResults.length > 0 || pipelineLogs.length > 0) && (
+                  <ProductionInsightsPanel
+                    logs={pipelineLogs}
+                    isLive={isRunning}
+                    manifest={getManifestForShot(selectedManifestIndex) || null}
+                    shotIndex={selectedManifestIndex}
+                    isExtractingManifest={isExtractingManifest}
+                    onShotChange={async (idx) => {
+                      setSelectedManifestIndex(idx);
+                      const clip = clipResults.find(c => c.index === idx);
+                      if (!getManifestForShot(idx) && clip?.videoUrl) {
+                        const clipData = await supabase
+                          .from('video_clips')
+                          .select('last_frame_url')
+                          .eq('project_id', projectId)
+                          .eq('shot_index', idx)
+                          .single();
+                        
+                        if (clipData.data?.last_frame_url) {
+                          extractManifest(
+                            clipData.data.last_frame_url,
+                            idx,
+                            { 
+                              shotDescription: scriptShots?.[idx]?.description,
+                              previousManifest: getManifestForShot(idx - 1),
+                            }
+                          );
+                        }
+                      }
+                    }}
+                    availableShots={clipResults.filter(c => c.status === 'completed').map(c => c.index)}
+                    consistencyScore={
+                      proFeatures?.consistencyScore ?? 
+                      (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined)
+                    }
+                    bridgeClipsNeeded={bridgeClipsNeeded || proFeatures?.continuityAnalysis?.bridgeClipsNeeded}
+                  />
+                )}
 
-                  {/* Continuity Manifest Panel */}
-                  {clipResults.length > 0 && (
-                    <Card className="glass-card">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-primary" />
-                            <CardTitle className="text-sm">Continuity</CardTitle>
-                            {isExtractingManifest && (
-                              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {clipResults.filter(c => c.status === 'completed').slice(0, 8).map((clip) => (
-                              <Button
-                                key={clip.index}
-                                variant={selectedManifestIndex === clip.index ? "default" : "ghost"}
-                                size="sm"
-                                className={cn(
-                                  "w-6 h-6 p-0 text-[10px] rounded",
-                                  selectedManifestIndex === clip.index 
-                                    ? "bg-primary text-primary-foreground" 
-                                    : "text-muted-foreground hover:text-foreground"
-                                )}
-                                onClick={async () => {
-                                  setSelectedManifestIndex(clip.index);
-                                  if (!getManifestForShot(clip.index) && clip.videoUrl) {
-                                    const clipData = await supabase
-                                      .from('video_clips')
-                                      .select('last_frame_url')
-                                      .eq('project_id', projectId)
-                                      .eq('shot_index', clip.index)
-                                      .single();
-                                    
-                                    if (clipData.data?.last_frame_url) {
-                                      extractManifest(
-                                        clipData.data.last_frame_url,
-                                        clip.index,
-                                        { 
-                                          shotDescription: scriptShots?.[clip.index]?.description,
-                                          previousManifest: getManifestForShot(clip.index - 1),
-                                        }
-                                      );
-                                    }
-                                  }
-                                }}
-                              >
-                                {clip.index + 1}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <ContinuityManifestPanel
-                          manifest={getManifestForShot(selectedManifestIndex) || null}
-                          shotIndex={selectedManifestIndex}
-                          isLoading={isExtractingManifest}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
               </div>
             </div>
           </div>

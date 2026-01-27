@@ -117,7 +117,7 @@ serve(async (req: Request) => {
         context.accumulatedAnchors = [...context.accumulatedAnchors, newAnchor];
       }
       
-      // If this was clip 1 (index 0), set the reference image for the chain
+      // If this was clip 1 (index 0), set the reference image AND extract style anchor
       if (completedClipIndex === 0 && completedClipResult.lastFrameUrl) {
         context.referenceImageUrl = context.referenceImageUrl || completedClipResult.lastFrameUrl;
         context.goldenFrameData = context.goldenFrameData || {
@@ -125,9 +125,66 @@ serve(async (req: Request) => {
           extractedAt: Date.now(),
           clipIndex: 0,
         };
+        
+        // CRITICAL: Extract style anchor from clip 1's last frame for scene DNA
+        if (!context.masterSceneAnchor) {
+          console.log(`[ContinueProduction] Extracting style anchor from clip 1's last frame...`);
+          try {
+            const styleResponse = await fetch(`${supabaseUrl}/functions/v1/extract-style-anchor`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                frameUrl: completedClipResult.lastFrameUrl,
+                projectId,
+              }),
+            });
+            
+            if (styleResponse.ok) {
+              const styleResult = await styleResponse.json();
+              if (styleResult.success && styleResult.styleAnchor) {
+                context.masterSceneAnchor = {
+                  masterConsistencyPrompt: styleResult.styleAnchor.consistencyPrompt,
+                  colorPalette: styleResult.styleAnchor.colorPalette,
+                  lighting: styleResult.styleAnchor.lighting,
+                  visualStyle: styleResult.styleAnchor.visualStyle,
+                };
+                console.log(`[ContinueProduction] ✓ Style anchor extracted: ${styleResult.styleAnchor.consistencyPrompt?.substring(0, 60)}...`);
+                
+                // Persist to pro_features_data for future resumes
+                // First fetch current data, then merge
+                const { data: currentProject } = await supabase
+                  .from('movie_projects')
+                  .select('pro_features_data')
+                  .eq('id', projectId)
+                  .maybeSingle();
+                
+                const updatedProFeatures = {
+                  ...(currentProject?.pro_features_data || {}),
+                  styleAnchor: styleResult.styleAnchor,
+                  masterSceneAnchor: context.masterSceneAnchor,
+                };
+                
+                await supabase
+                  .from('movie_projects')
+                  .update({
+                    pro_features_data: updatedProFeatures,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', projectId);
+                  
+                console.log(`[ContinueProduction] ✓ Style anchor persisted to pro_features_data`);
+              }
+            }
+          } catch (styleErr) {
+            console.warn(`[ContinueProduction] Style anchor extraction failed:`, styleErr);
+          }
+        }
       }
       
-      console.log(`[ContinueProduction] Merged clip ${completedClipIndex + 1} result: ${context.accumulatedAnchors.length} anchors, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
+      console.log(`[ContinueProduction] Merged clip ${completedClipIndex + 1} result: ${context.accumulatedAnchors.length} anchors, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}, masterAnchor: ${context.masterSceneAnchor ? 'YES' : 'NO'}`);
     }
     
     // If still no context, load from DB as fallback

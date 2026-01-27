@@ -577,7 +577,90 @@ serve(async (req) => {
     const storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, projectId, shotIndex);
 
     // =========================================================
-    // Update clip record with completed video URL
+    // POST-PROCESSING: Extract frame and continuity data
+    // CRITICAL: Must happen BEFORE callback to pass real data
+    // =========================================================
+    let extractedLastFrameUrl: string | null = null;
+    let extractedMotionVectors: any = null;
+    let extractedContinuityManifest: any = null;
+
+    // Step 1: Extract last frame from video
+    console.log(`[SingleClip] Extracting last frame from clip ${shotIndex + 1}...`);
+    try {
+      const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          videoUrl: storedVideoUrl,
+          projectId,
+          shotIndex,
+          shotPrompt: prompt,
+          sceneImageUrl: sceneContext?.environment ? undefined : undefined, // Scene image passed separately
+          position: 'last',
+        }),
+      });
+      
+      if (frameResponse.ok) {
+        const frameResult = await frameResponse.json();
+        if (frameResult.success && frameResult.frameUrl) {
+          extractedLastFrameUrl = frameResult.frameUrl;
+          console.log(`[SingleClip] ✓ Last frame extracted: ${extractedLastFrameUrl?.substring(0, 60)}...`);
+        } else {
+          console.warn(`[SingleClip] Frame extraction returned no URL:`, frameResult.error);
+        }
+      } else {
+        console.warn(`[SingleClip] Frame extraction failed: ${frameResponse.status}`);
+      }
+    } catch (frameErr) {
+      console.warn(`[SingleClip] Frame extraction error:`, frameErr);
+    }
+
+    // Step 2: Extract continuity manifest from the last frame (if we have it)
+    if (extractedLastFrameUrl) {
+      console.log(`[SingleClip] Extracting continuity manifest for clip ${shotIndex + 1}...`);
+      try {
+        const manifestResponse = await fetch(`${supabaseUrl}/functions/v1/extract-continuity-manifest`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            frameUrl: extractedLastFrameUrl,
+            projectId,
+            shotIndex,
+            shotDescription: prompt,
+          }),
+        });
+        
+        if (manifestResponse.ok) {
+          const manifestResult = await manifestResponse.json();
+          if (manifestResult.success && manifestResult.manifest) {
+            extractedContinuityManifest = manifestResult.manifest;
+            console.log(`[SingleClip] ✓ Continuity manifest extracted with ${manifestResult.manifest?.criticalAnchors?.length || 0} anchors`);
+            
+            // Extract motion vectors from manifest action data
+            if (manifestResult.manifest?.action) {
+              extractedMotionVectors = {
+                exitMotion: manifestResult.manifest.action.poseAtCut,
+                dominantDirection: manifestResult.manifest.action.movementDirection,
+                continuityPrompt: manifestResult.manifest.action.expectedContinuation,
+                actionContinuity: manifestResult.manifest.action.gestureInProgress,
+              };
+              console.log(`[SingleClip] ✓ Motion vectors derived from manifest`);
+            }
+          }
+        }
+      } catch (manifestErr) {
+        console.warn(`[SingleClip] Manifest extraction error:`, manifestErr);
+      }
+    }
+
+    // =========================================================
+    // Update clip record with completed video URL AND extracted data
     // =========================================================
     if (userId && clipId) {
       await upsertClipRecord(supabase, {
@@ -588,9 +671,32 @@ serve(async (req) => {
         status: 'completed',
         predictionId,
         videoUrl: storedVideoUrl,
+        lastFrameUrl: extractedLastFrameUrl || undefined,
         durationSeconds,
+        motionVectors: extractedMotionVectors || undefined,
       });
-      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked completed with videoUrl`);
+      console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked completed with videoUrl and frame data`);
+      
+      // Also persist continuity manifest to clip record
+      if (extractedContinuityManifest) {
+        try {
+          await supabase
+            .from('video_clips')
+            .update({
+              continuity_manifest: extractedContinuityManifest,
+              color_profile: {
+                dominantColors: extractedContinuityManifest?.lighting?.colorTint ? [extractedContinuityManifest.lighting.colorTint] : [],
+                brightness: extractedContinuityManifest?.lighting?.ambientLevel === 'bright' ? 0.8 : 0.5,
+                warmth: extractedContinuityManifest?.lighting?.colorTemperature === 'warm' ? 0.7 : 0.4,
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', clipId);
+          console.log(`[SingleClip] ✓ Continuity manifest persisted to DB`);
+        } catch (manifestDbErr) {
+          console.warn(`[SingleClip] Failed to persist manifest:`, manifestDbErr);
+        }
+      }
     }
 
     // Log API cost
@@ -608,6 +714,8 @@ serve(async (req) => {
           model: KLING_MODEL,
           predictionId,
           hasStartImage: !!validatedStartImage,
+          hasLastFrame: !!extractedLastFrameUrl,
+          hasContinuityManifest: !!extractedContinuityManifest,
         }),
       });
     } catch (costError) {
@@ -622,15 +730,18 @@ serve(async (req) => {
       clipId,
       predictionId,
       videoUrl: storedVideoUrl,
+      lastFrameUrl: extractedLastFrameUrl || undefined,
       durationSeconds,
+      motionVectors: extractedMotionVectors || undefined,
     };
 
     // =========================================================
     // Trigger next clip generation via continue-production
-    // This enables callback-based chaining to avoid timeouts
+    // CRITICAL FIX: Now passes REAL extracted data, not nulls!
     // =========================================================
     if (triggerNextClip && totalClips) {
       console.log(`[SingleClip] Triggering continue-production for clip ${shotIndex + 2}/${totalClips}...`);
+      console.log(`[SingleClip] Passing: lastFrameUrl=${extractedLastFrameUrl ? 'YES' : 'NO'}, manifest=${extractedContinuityManifest ? 'YES' : 'NO'}`);
       
       try {
         // Fire and forget - don't wait for response
@@ -647,9 +758,9 @@ serve(async (req) => {
             completedClipIndex: shotIndex,
             completedClipResult: {
               videoUrl: storedVideoUrl,
-              lastFrameUrl: storedVideoUrl, // Could extract last frame later
-              motionVectors: null,
-              continuityManifest: null,
+              lastFrameUrl: extractedLastFrameUrl, // REAL extracted frame, not video URL!
+              motionVectors: extractedMotionVectors,
+              continuityManifest: extractedContinuityManifest,
             },
             totalClips,
             pipelineContext,

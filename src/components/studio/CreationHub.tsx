@@ -561,6 +561,16 @@ function getStyleGradient(style: VideoStylePreset): string {
     'vintage-film': 'bg-gradient-to-br from-amber-200 via-orange-200 to-yellow-100',
     'comic-book': 'bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500',
     'fantasy': 'bg-gradient-to-br from-violet-400 via-purple-500 to-fuchsia-400',
+    'hyperreal': 'bg-gradient-to-br from-slate-600 via-blue-600 to-teal-500',
+    'surrealist': 'bg-gradient-to-br from-amber-300 via-sky-400 to-amber-200',
+    'ukiyo-e': 'bg-gradient-to-br from-blue-800 via-red-700 to-slate-200',
+    'art-deco': 'bg-gradient-to-br from-yellow-500 via-zinc-900 to-teal-600',
+    'gothic': 'bg-gradient-to-br from-zinc-900 via-purple-900 to-red-900',
+    'solarpunk': 'bg-gradient-to-br from-green-400 via-yellow-400 to-sky-400',
+    'baroque': 'bg-gradient-to-br from-red-900 via-amber-600 to-yellow-700',
+    'synthwave': 'bg-gradient-to-br from-pink-500 via-purple-600 to-cyan-500',
+    'impressionist': 'bg-gradient-to-br from-sky-300 via-green-300 to-pink-300',
+    'cel-shaded': 'bg-gradient-to-br from-orange-500 via-cyan-500 to-pink-500',
   };
   return gradients[style] || 'bg-gradient-to-br from-zinc-400 to-zinc-600';
 }

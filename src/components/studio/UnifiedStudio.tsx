@@ -1144,6 +1144,7 @@ export function UnifiedStudio() {
           onConfirm={runPipeline}
           mode={mode}
           clipCount={clipCount}
+          clipDuration={clipDuration}
           totalDuration={totalDuration}
           includeVoice={includeVoice}
           includeMusic={includeMusic}
@@ -1965,6 +1966,7 @@ export function UnifiedStudio() {
         onConfirm={runPipeline}
         mode={mode}
         clipCount={clipCount}
+        clipDuration={clipDuration}
         totalDuration={totalDuration}
         includeVoice={includeVoice}
         includeMusic={includeMusic}

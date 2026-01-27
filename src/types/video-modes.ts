@@ -53,7 +53,8 @@ export const VIDEO_MODES: VideoModeConfig[] = [
     description: 'Transform video into anime, 3D, cyberpunk, etc.',
     icon: 'Palette',
     requiresVideo: true,
-    requiresText: false, // Style presets handle the prompting, text is optional
+    requiresText: false,
+    popular: true, // Featured mode - shows by default
   },
   {
     id: 'motion-transfer',

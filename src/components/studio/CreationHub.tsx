@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
   Sparkles, Upload, Mic, ChevronRight, Play,
   Video, Layers, ArrowRight, RectangleHorizontal,
   Square, RectangleVertical, Clock, Hash, Music,
-  Volume2, Settings2
+  Volume2, Settings2, X, CheckCircle2, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { useFileUpload } from '@/hooks/useFileUpload';
 import {
   Select,
   SelectContent,
@@ -105,6 +106,15 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [selectedVoice, setSelectedVoice] = useState('onwK4e9ZLuTAKqWW03F9');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  
+  // File upload hooks
+  const imageUpload = useFileUpload({ maxSizeMB: 10, allowedTypes: ['image/*'] });
+  const videoUpload = useFileUpload({ maxSizeMB: 100, allowedTypes: ['video/*'] });
+  
+  // File input refs
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   
   // Production controls
   const [aspectRatio, setAspectRatio] = useState('16:9');
@@ -122,6 +132,62 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const estimatedMinutes = Math.floor(estimatedDuration / 60);
   const estimatedSeconds = estimatedDuration % 60;
   const estimatedCredits = clipCount * 10;
+
+  // Handle file selection
+  const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const result = await imageUpload.uploadFile(file);
+    if (result) {
+      setUploadedImage(result.url);
+      setUploadedFileName(file.name);
+    }
+  }, [imageUpload]);
+
+  const handleVideoSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const result = await videoUpload.uploadFile(file);
+    if (result) {
+      setUploadedVideo(result.url);
+      setUploadedFileName(file.name);
+    }
+  }, [videoUpload]);
+
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, type: 'image' | 'video') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    
+    if (type === 'image') {
+      const result = await imageUpload.uploadFile(file);
+      if (result) {
+        setUploadedImage(result.url);
+        setUploadedFileName(file.name);
+      }
+    } else {
+      const result = await videoUpload.uploadFile(file);
+      if (result) {
+        setUploadedVideo(result.url);
+        setUploadedFileName(file.name);
+      }
+    }
+  }, [imageUpload, videoUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const clearUpload = useCallback(() => {
+    setUploadedImage(null);
+    setUploadedVideo(null);
+    setUploadedFileName(null);
+  }, []);
 
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
@@ -368,21 +434,106 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                     <Label className="text-sm text-white/60 font-medium">
                       {modeConfig.requiresVideo ? 'Upload Video' : 'Upload Image'}
                     </Label>
-                    <div className="border-2 border-dashed border-white/[0.1] rounded-2xl p-10 text-center hover:border-white/20 hover:bg-white/[0.02] transition-all cursor-pointer group">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
-                          <Upload className="w-6 h-6 text-white/50 group-hover:text-white/70 transition-colors" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-white/70 font-medium">
-                            Drag & drop or click to upload
-                          </p>
-                          <p className="text-xs text-white/30 mt-1">
-                            {modeConfig.requiresVideo ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB'}
-                          </p>
+                    
+                    {/* Hidden file inputs */}
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoSelect}
+                      className="hidden"
+                    />
+                    
+                    {/* Upload area or preview */}
+                    {(uploadedImage || uploadedVideo) ? (
+                      <div className="relative rounded-2xl overflow-hidden border border-white/[0.1] bg-white/[0.02]">
+                        {uploadedImage && (
+                          <img 
+                            src={uploadedImage} 
+                            alt="Uploaded" 
+                            className="w-full h-48 object-cover"
+                          />
+                        )}
+                        {uploadedVideo && (
+                          <video 
+                            src={uploadedVideo} 
+                            className="w-full h-48 object-cover"
+                            controls
+                          />
+                        )}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" />
+                              <span className="text-sm text-white/80 truncate max-w-[200px]">
+                                {uploadedFileName}
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={clearUpload}
+                              className="text-white/60 hover:text-white hover:bg-white/10"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div 
+                        onClick={() => modeConfig?.requiresVideo ? videoInputRef.current?.click() : imageInputRef.current?.click()}
+                        onDrop={(e) => handleDrop(e, modeConfig?.requiresVideo ? 'video' : 'image')}
+                        onDragOver={handleDragOver}
+                        className={cn(
+                          "border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer group",
+                          (imageUpload.isUploading || videoUpload.isUploading)
+                            ? "border-white/30 bg-white/[0.05]"
+                            : "border-white/[0.1] hover:border-white/20 hover:bg-white/[0.02]"
+                        )}
+                      >
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center group-hover:bg-white/[0.1] transition-colors">
+                            {(imageUpload.isUploading || videoUpload.isUploading) ? (
+                              <Loader2 className="w-6 h-6 text-white/70 animate-spin" />
+                            ) : (
+                              <Upload className="w-6 h-6 text-white/50 group-hover:text-white/70 transition-colors" />
+                            )}
+                          </div>
+                          <div>
+                            {(imageUpload.isUploading || videoUpload.isUploading) ? (
+                              <>
+                                <p className="text-sm text-white/70 font-medium">
+                                  Uploading... {imageUpload.progress || videoUpload.progress}%
+                                </p>
+                                <div className="w-48 h-1.5 bg-white/10 rounded-full mt-3 mx-auto overflow-hidden">
+                                  <div 
+                                    className="h-full bg-white/60 rounded-full transition-all"
+                                    style={{ width: `${imageUpload.progress || videoUpload.progress}%` }}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm text-white/70 font-medium">
+                                  Drag & drop or click to upload
+                                </p>
+                                <p className="text-xs text-white/30 mt-1">
+                                  {modeConfig?.requiresVideo ? 'MP4, MOV up to 100MB' : 'PNG, JPG up to 10MB'}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

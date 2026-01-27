@@ -60,7 +60,7 @@ serve(async (req) => {
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);
 
-    // Create or get project
+    // Create or get project with full mode data
     let projectId = request.projectId;
     if (!projectId) {
       const projectName = `${mode.replace(/-/g, ' ')} - ${new Date().toLocaleDateString()}`;
@@ -71,12 +71,39 @@ serve(async (req) => {
           title: projectName,
           aspect_ratio: aspectRatio,
           status: 'generating',
+          mode: mode,
+          source_image_url: imageUrl || null,
+          source_video_url: videoUrl || null,
+          avatar_voice_id: voiceId || null,
+          pipeline_state: {
+            stage: 'init',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+            message: 'Initializing pipeline...',
+          },
         })
         .select('id')
         .single();
 
       if (projectError || !project) throw new Error(`Failed to create project: ${projectError?.message || 'No project returned'}`);
       projectId = project.id as string;
+    } else {
+      // Update existing project with mode data
+      await supabase
+        .from('movie_projects')
+        .update({
+          mode: mode,
+          source_image_url: imageUrl || null,
+          source_video_url: videoUrl || null,
+          avatar_voice_id: voiceId || null,
+          pipeline_state: {
+            stage: 'init',
+            progress: 0,
+            startedAt: new Date().toISOString(),
+            message: 'Initializing pipeline...',
+          },
+        })
+        .eq('id', projectId);
     }
 
     // Route based on mode

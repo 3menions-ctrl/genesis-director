@@ -18,7 +18,7 @@ import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 // Components - New modular design
 import { ProductionSidebar } from '@/components/production/ProductionSidebar';
 import { ProductionHeader } from '@/components/production/ProductionHeader';
-import { ProductionStats } from '@/components/production/ProductionStats';
+import { ProductionStatsRealtime } from '@/components/production/ProductionStatsRealtime';
 import { ProductionClipsGrid } from '@/components/production/ProductionClipsGrid';
 import { ProductionActivityLog } from '@/components/production/ProductionActivityLog';
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
@@ -870,12 +870,19 @@ export default function Production() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
+      {/* Premium Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-black to-zinc-950" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-white/[0.02] to-transparent blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-white/[0.01] to-transparent blur-[100px]" />
+      </div>
+      
       {/* App Header */}
       <AppHeader showCreate={false} />
 
       {/* Main Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="relative z-10 flex-1 flex overflow-hidden">
         {/* Sidebar - Hidden on mobile */}
         <div className="hidden md:block">
           <ProductionSidebar
@@ -887,7 +894,7 @@ export default function Production() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-zinc-900">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Production Header */}
           <ProductionHeader
             projectTitle={projectTitle}
@@ -907,10 +914,10 @@ export default function Production() {
 
           {/* Content Grid */}
           <div className="flex-1 overflow-auto p-4 lg:p-6">
-            <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+            <div className="max-w-7xl mx-auto space-y-5 lg:space-y-6">
               
-              {/* Stats Row */}
-              <ProductionStats
+              {/* Premium Stats Row */}
+              <ProductionStatsRealtime
                 completedClips={completedClips}
                 totalClips={clipResults.length || expectedClipCount}
                 elapsedTime={elapsedTime}

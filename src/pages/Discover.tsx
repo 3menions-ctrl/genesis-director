@@ -4,8 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Clock, Heart, Film, Search, TrendingUp, Sparkles, 
-  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2,
-  ArrowRight, Maximize2
+  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { TrailerGenerator } from '@/components/TrailerGenerator';
+import DiscoverBackground from '@/components/landing/DiscoverBackground';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
 interface PublicVideo {
@@ -168,17 +168,11 @@ export default function Discover() {
   }, {} as Record<string, number>) || {};
 
   return (
-    <div className="min-h-screen bg-[#030303]">
-      <AppHeader />
+    <div className="min-h-screen bg-black text-white">
+      {/* Premium Cinematic Background */}
+      <DiscoverBackground />
       
-      {/* Cinematic Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-br from-violet-600/[0.06] via-purple-500/[0.03] to-transparent blur-[120px]" />
-        <div className="absolute bottom-[-15%] right-[-5%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-tl from-cyan-500/[0.05] via-blue-500/[0.02] to-transparent blur-[100px]" />
-        <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }} />
-      </div>
+      <AppHeader />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">

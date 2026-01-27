@@ -564,11 +564,20 @@ export default function Production() {
         table: 'video_clips',
         filter: `project_id=eq.${projectId}`,
       }, (payload) => {
+        // Always reload clips on any change (INSERT, UPDATE, DELETE)
+        loadVideoClips();
+        
         if (payload.new) {
           const clip = payload.new as Record<string, unknown>;
-          if (clip.status === 'completed') {
-            loadVideoClips();
-            addLog(`Clip ${(clip.shot_index as number) + 1} done`, 'success');
+          const status = clip.status as string;
+          const shotIndex = (clip.shot_index as number) + 1;
+          
+          if (status === 'completed') {
+            addLog(`Clip ${shotIndex} done`, 'success');
+          } else if (status === 'generating' && payload.eventType === 'INSERT') {
+            addLog(`Clip ${shotIndex} generating...`, 'info');
+          } else if (status === 'failed') {
+            addLog(`Clip ${shotIndex} failed`, 'error');
           }
         }
       })

@@ -259,13 +259,23 @@ const BASE_QUALITY_NEGATIVES = [
 ];
 
 const DEFAULT_ANTI_MORPHING_PROMPTS = [
+  // CRITICAL: New actor/character negatives (highest priority)
+  'new character',
+  'different actor',
+  'new person',
+  'different face',
+  'different person',
+  'actor change',
+  'person swap',
+  'face replacement',
+  'new cast',
+  // Original anti-morphing
   'character morphing',
   'face changing',
   'body transformation',
   'clothing change',
   'age progression',
   'identity shift',
-  'different person',
   'inconsistent appearance',
   'wardrobe malfunction',
   'character replacement',
@@ -275,6 +285,11 @@ const DEFAULT_ANTI_MORPHING_PROMPTS = [
   'body swap',
   'outfit change',
   'hair transformation',
+  // Environment drift negatives
+  'different location',
+  'changed environment',
+  'new setting',
+  'scene change',
 ];
 
 const DEFAULT_OCCLUSION_NEGATIVES = [
@@ -347,6 +362,15 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   const isBackFacingOrOccluded = !poseAnalysis.faceVisible;
   
   // ===========================================================================
+  // 0. HARD IDENTITY LOCK - First line of prompt for maximum model attention
+  // This is the MOST IMPORTANT instruction for character consistency
+  // ===========================================================================
+  if (request.clipIndex > 0) {
+    // For clips 2+, enforce same character from previous frame
+    promptParts.push('[CRITICAL: SAME EXACT PERSON continues from previous frame - identical face, same body, same outfit, same hair]');
+  }
+  
+  // ===========================================================================
   // 1. IDENTITY BIBLE INJECTION (HIGHEST PRIORITY)
   // ===========================================================================
   const ib = request.identityBible;
@@ -356,10 +380,12 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   if (ib) {
     hasIdentityBible = true;
     
-    // Character description (MANDATORY)
+    // Character description (MANDATORY) - STRONGER PHRASING
     const charDesc = ib.characterDescription || ib.consistencyPrompt || ib.characterIdentity?.description;
     if (charDesc) {
-      promptParts.push(`[CHARACTER IDENTITY - MANDATORY: ${charDesc}]`);
+      // For clip 1+, add "SAME PERSON AS BEFORE" emphasis
+      const samePersonPrefix = request.clipIndex > 0 ? 'SAME PERSON AS PREVIOUS CLIP - ' : '';
+      promptParts.push(`[CHARACTER IDENTITY - DO NOT CHANGE: ${samePersonPrefix}${charDesc}]`);
     } else {
       warnings.push('Identity Bible exists but has no characterDescription');
     }

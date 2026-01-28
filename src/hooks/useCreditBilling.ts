@@ -6,7 +6,8 @@ import { QualityTier } from '@/types/quality-tiers';
 import { 
   CREDIT_SYSTEM, 
   calculateCreditsPerClip, 
-  calculateCreditsRequired 
+  calculateCreditsRequired,
+  getCreditBreakdown,
 } from '@/lib/creditSystem';
 
 // Re-export credit constants for backward compatibility
@@ -15,24 +16,28 @@ export const CREDIT_COSTS = {
   PRODUCTION: CREDIT_SYSTEM.COST_PER_CLIP.PRODUCTION,
   QUALITY_ASSURANCE: CREDIT_SYSTEM.COST_PER_CLIP.QUALITY_ASSURANCE,
   TOTAL_PER_SHOT: CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP,
+  TOTAL_PER_SHOT_EXTENDED: CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP,
   BASE_DURATION_THRESHOLD: CREDIT_SYSTEM.BASE_DURATION_THRESHOLD,
-  CREDITS_PER_EXTRA_SECOND: CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND,
+  BASE_CLIP_COUNT_THRESHOLD: CREDIT_SYSTEM.BASE_CLIP_COUNT_THRESHOLD,
 } as const;
 
 // Quality Tier Credits - Premium-only model
-// All clips get Zero-Waste quality with autonomous retries
+// Base: 10 credits per clip (clips 1-6, ≤6 seconds)
+// Extended: 15 credits per clip (clips 7+ OR >6 seconds)
 export const TIER_CREDIT_COSTS = {
   standard: {
     PRE_PRODUCTION: 2,
     PRODUCTION: 6,
     QUALITY_INSURANCE: 2,
-    TOTAL_PER_SHOT: 10,    // Base 10 credits per clip (up to 6s)
+    TOTAL_PER_SHOT: 10,    // Base 10 credits per clip
+    TOTAL_PER_SHOT_EXTENDED: 15, // Extended 15 credits per clip
   },
   professional: {
     PRE_PRODUCTION: 2,
     PRODUCTION: 6,
     QUALITY_INSURANCE: 2,
     TOTAL_PER_SHOT: 10,    // Same base - all clips are premium
+    TOTAL_PER_SHOT_EXTENDED: 15, // Same extended rate
   },
 } as const;
 
@@ -68,7 +73,7 @@ export function useCreditBilling() {
   const { user } = useAuth();
   const [isCharging, setIsCharging] = useState(false);
 
-  // Charge pre-production credits (5 credits) - called when script/image generation starts
+  // Charge pre-production credits (2 credits) - called when script/image generation starts
   const chargePreProduction = useCallback(async (
     projectId: string,
     shotId: string
@@ -109,7 +114,7 @@ export function useCreditBilling() {
     }
   }, [user]);
 
-  // Charge production credits (20 credits) - called when user approves and video generation starts
+  // Charge production credits (6-9 credits depending on clip type) - called when video generation starts
   const chargeProduction = useCallback(async (
     projectId: string,
     shotId: string
@@ -210,6 +215,7 @@ export function useCreditBilling() {
   }, [user]);
 
   // Check if user can afford a full production cycle
+  // Uses per-clip pricing: 10 credits for clips 1-6, 15 for clips 7+ or >6s duration
   const canAffordShots = useCallback(async (
     shotCount: number,
     clipDuration: number = 5
@@ -218,10 +224,10 @@ export function useCreditBilling() {
     requiredCredits: number;
     availableCredits: number;
     shortfall: number;
-    creditsPerClip: number;
+    breakdown: ReturnType<typeof getCreditBreakdown>;
   }> => {
-    const creditsPerClip = calculateCreditsPerClip(clipDuration);
-    const requiredCredits = calculateCreditsRequired(shotCount, clipDuration);
+    const breakdown = getCreditBreakdown(shotCount, clipDuration);
+    const requiredCredits = breakdown.totalCredits;
     
     if (!user) {
       return { 
@@ -229,7 +235,7 @@ export function useCreditBilling() {
         requiredCredits,
         availableCredits: 0,
         shortfall: requiredCredits,
-        creditsPerClip,
+        breakdown,
       };
     }
 
@@ -250,7 +256,7 @@ export function useCreditBilling() {
         requiredCredits,
         availableCredits,
         shortfall,
-        creditsPerClip,
+        breakdown,
       };
     } catch (err) {
       console.error('Balance check failed:', err);
@@ -259,7 +265,7 @@ export function useCreditBilling() {
         requiredCredits,
         availableCredits: 0,
         shortfall: requiredCredits,
-        creditsPerClip,
+        breakdown,
       };
     }
   }, [user]);

@@ -23,17 +23,25 @@ import {
   Zap,
   AlertCircle,
   Pencil,
-  CreditCard
+  CreditCard,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
+import { 
+  CREDIT_SYSTEM, 
+  getCreditBreakdown 
+} from '@/lib/creditSystem';
 
 interface CostBreakdown {
-  preProduction: number;
-  production: number;
-  qualityInsurance: number;
-  total: number;
-  creditsPerShot: number;
+  baseClipCount: number;
+  extendedClipCount: number;
+  baseCredits: number;
+  extendedCredits: number;
+  totalCredits: number;
+  creditsPerClipBase: number;
+  creditsPerClipExtended: number;
+  isExtended: boolean;
 }
 
 interface CostConfirmationDialogProps {
@@ -49,50 +57,6 @@ interface CostConfirmationDialogProps {
   qualityTier: 'standard' | 'professional';
   userCredits?: number;
   defaultProjectName?: string;
-}
-
-// Use proper tier-based credit calculation
-// Base: 10 credits per clip (up to 6s)
-// Extended: +5 credits per additional second beyond 6s
-import { 
-  CREDIT_SYSTEM, 
-  calculateCreditsPerClip, 
-  getCreditBreakdown 
-} from '@/lib/creditSystem';
-
-interface ExtendedCostBreakdown extends CostBreakdown {
-  extraSecondsPerClip: number;
-  extraCreditsPerClip: number;
-}
-
-function calculateCosts(
-  clipCount: number,
-  clipDuration: number,
-  qualityTier: 'standard' | 'professional'
-): ExtendedCostBreakdown {
-  const breakdown = getCreditBreakdown(clipCount, clipDuration);
-  const creditsPerClip = breakdown.creditsPerClip;
-  
-  // Proportional breakdown based on base ratios
-  const baseRatio = {
-    preProduction: 2 / 10,
-    production: 6 / 10,
-    qualityInsurance: 2 / 10,
-  };
-  
-  const preProduction = Math.round(breakdown.totalCredits * baseRatio.preProduction);
-  const production = Math.round(breakdown.totalCredits * baseRatio.production);
-  const qualityInsurance = breakdown.totalCredits - preProduction - production;
-  
-  return { 
-    preProduction, 
-    production, 
-    qualityInsurance, 
-    total: breakdown.totalCredits, 
-    creditsPerShot: creditsPerClip,
-    extraSecondsPerClip: breakdown.extraSecondsPerClip,
-    extraCreditsPerClip: breakdown.extraSecondsPerClip * CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND,
-  };
 }
 
 export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmationDialogProps>(
@@ -112,8 +76,8 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
   }, ref) {
     const [projectName, setProjectName] = useState(defaultProjectName);
     const [showBuyCredits, setShowBuyCredits] = useState(false);
-    const costs = calculateCosts(clipCount, clipDuration, qualityTier);
-    const hasEnoughCredits = userCredits >= costs.total;
+    const costs = getCreditBreakdown(clipCount, clipDuration);
+    const hasEnoughCredits = userCredits >= costs.totalCredits;
     const hasValidName = projectName.trim().length > 0;
 
   // Reset project name when dialog opens
@@ -191,26 +155,37 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
         {/* Cost Breakdown */}
         <div className="space-y-3">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Cost Breakdown ({costs.creditsPerShot} credits/clip)
+            Cost Breakdown
           </p>
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Zap className="w-4 h-4" />
-                Base Rate ({clipCount} clips × {CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP})
-              </span>
-              <span className="font-medium">{clipCount * CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP}</span>
-            </div>
-            
-            {costs.extraSecondsPerClip > 0 && (
+            {/* Base rate clips */}
+            {costs.baseClipCount > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-4 h-4 text-warning" />
-                  Extended Duration (+{costs.extraSecondsPerClip}s × {CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND}/s × {clipCount})
+                  <Zap className="w-4 h-4" />
+                  Base Rate ({costs.baseClipCount} clip{costs.baseClipCount > 1 ? 's' : ''} × {CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP})
                 </span>
-                <span className="font-medium text-warning">+{costs.extraCreditsPerClip * clipCount}</span>
+                <span className="font-medium">{costs.baseCredits}</span>
               </div>
+            )}
+            
+            {/* Extended rate clips */}
+            {costs.extendedClipCount > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <TrendingUp className="w-4 h-4 text-warning" />
+                  Extended Rate ({costs.extendedClipCount} clip{costs.extendedClipCount > 1 ? 's' : ''} × {CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP})
+                </span>
+                <span className="font-medium text-warning">{costs.extendedCredits}</span>
+              </div>
+            )}
+            
+            {/* Extended pricing explanation */}
+            {costs.isExtended && (
+              <p className="text-xs text-muted-foreground/70 pl-6">
+                Extended rate applies to clips 7+ or clips longer than 6 seconds
+              </p>
             )}
             
             <div className="flex items-center justify-between text-sm">
@@ -250,7 +225,7 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             <span className="font-semibold">Total Cost</span>
             <div className="flex items-center gap-2">
               <Coins className="w-4 h-4 text-muted-foreground" />
-              <span className="text-lg font-bold">{costs.total} credits</span>
+              <span className="text-lg font-bold">{costs.totalCredits} credits</span>
             </div>
           </div>
         </div>
@@ -286,12 +261,12 @@ export const CostConfirmationDialog = forwardRef<HTMLDivElement, CostConfirmatio
             <div className="text-right">
               <p className="text-xs text-muted-foreground">After generation</p>
               <p className="text-sm font-medium text-success">
-                {userCredits - costs.total} credits remaining
+                {userCredits - costs.totalCredits} credits remaining
               </p>
             </div>
           ) : (
             <div className="text-right">
-              <p className="text-xs text-destructive/80">Need {costs.total - userCredits} more</p>
+              <p className="text-xs text-destructive/80">Need {costs.totalCredits - userCredits} more</p>
               <Badge variant="destructive" className="mt-1">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 Insufficient

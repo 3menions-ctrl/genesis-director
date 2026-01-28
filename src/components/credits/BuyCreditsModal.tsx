@@ -10,9 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Coins, Sparkles, Check, Star, Loader2, Zap, Film, Mic, Shield, Clock, RefreshCw } from 'lucide-react';
+import { Coins, Sparkles, Check, Star, Loader2, Zap, Film, Mic, Shield, Clock, RefreshCw, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CREDIT_COSTS } from '@/hooks/useCreditBilling';
+import { CREDIT_SYSTEM, calculateCreditsRequired, calculateAffordableClips } from '@/lib/creditSystem';
 
 interface CreditPackage {
   id: string;
@@ -87,7 +87,6 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return 'starter';
   };
 
-  // Removed checkoutUrl state - now using direct redirect
   const handlePurchase = async (pkg: CreditPackage) => {
     if (!user) {
       toast.error('Please sign in to purchase credits');
@@ -121,8 +120,6 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     }
   };
 
-  // Removed handleDirectCheckout - now using direct redirect in handlePurchase
-
   const formatCredits = (credits: number) => {
     return `${credits.toLocaleString()} credits`;
   };
@@ -134,14 +131,15 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
     return Math.round(((basePrice - pkgPrice) / basePrice) * 100);
   };
 
-  // Calculate based on 10 credits per clip (CREDIT_COSTS.TOTAL_PER_SHOT)
-  const getClipsCount = (credits: number) => Math.floor(credits / CREDIT_COSTS.TOTAL_PER_SHOT);
+  // Calculate clips using the new tiered pricing system
+  // Clips 1-6 = 10 credits each, clips 7+ = 15 credits each
+  const getClipsCount = (credits: number) => calculateAffordableClips(credits, 5);
   
   // Calculate videos based on different durations
-  // 1-minute video (Pro tier) = 10 clips = 100 credits
-  const getOneMinuteVideos = (credits: number) => Math.floor(credits / 100);
-  const getTwoMinuteVideos = (credits: number) => Math.floor(credits / 200);
-  const getThreeMinuteVideos = (credits: number) => Math.floor(credits / 300);
+  // 6-clip video (base tier) = 60 credits
+  // 10-clip video = 60 + (4 * 15) = 120 credits (6 base + 4 extended)
+  const getSixClipVideos = (credits: number) => Math.floor(credits / 60);
+  const getTenClipVideos = (credits: number) => Math.floor(credits / 120);
 
   const getTierStyle = (name: string) => {
     return TIER_STYLES[name as keyof typeof TIER_STYLES] || TIER_STYLES.Starter;
@@ -158,7 +156,7 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
             Buy Production Credits
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Power your AI video productions with flexible credit packages
+            Power your AI video productions • 1 credit = $0.10
           </p>
         </DialogHeader>
 
@@ -175,24 +173,27 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                 <div className="p-4 rounded-xl bg-muted/40 border border-border/50">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">Credit Breakdown by Video Length</span>
+                    <span className="text-sm font-semibold text-foreground">Credit Pricing</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">Per clip (any length)</span>
-                      <span className="font-semibold text-foreground">{CREDIT_COSTS.TOTAL_PER_SHOT} credits</span>
+                      <span className="text-muted-foreground">Base rate (clips 1-6)</span>
+                      <span className="font-semibold text-foreground">{CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP} credits/clip</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">5 clips</span>
-                      <span className="font-semibold text-foreground">50 credits</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3 text-warning" />
+                        Extended (clips 7+ or &gt;6s)
+                      </span>
+                      <span className="font-semibold text-warning">{CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP} credits/clip</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">10 clips</span>
-                      <span className="font-semibold text-primary">100 credits</span>
+                      <span className="text-muted-foreground">6-clip video</span>
+                      <span className="font-semibold text-foreground">60 credits</span>
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
-                      <span className="text-muted-foreground">30 clips</span>
-                      <span className="font-semibold text-amber-500">300 credits</span>
+                      <span className="text-muted-foreground">10-clip video</span>
+                      <span className="font-semibold text-primary">120 credits</span>
                     </div>
                   </div>
                 </div>
@@ -202,9 +203,10 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                   {packages.map((pkg) => {
                     const tierStyle = getTierStyle(pkg.name);
                     const savings = getSavingsPercent(pkg, packages);
-                    const oneMinVideos = getOneMinuteVideos(pkg.credits);
+                    const sixClipVideos = getSixClipVideos(pkg.credits);
                     const clips = getClipsCount(pkg.credits);
                     const TierIcon = tierStyle.icon;
+                    const pricePerCredit = (pkg.price_cents / pkg.credits).toFixed(1);
                     
                     return (
                       <div
@@ -246,6 +248,9 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                                   {pkg.credits.toLocaleString()}
                                 </span>
                                 <span className="text-muted-foreground text-sm">credits</span>
+                                <span className="text-muted-foreground text-xs">
+                                  (${(pkg.price_cents / 100).toFixed(0)})
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -277,11 +282,11 @@ export function BuyCreditsModal({ open, onOpenChange, onPurchaseComplete }: BuyC
                           <div className="flex flex-wrap gap-2">
                             <span className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium flex items-center gap-1.5">
                               <Film className="w-3.5 h-3.5" />
-                              {oneMinVideos}+ one-minute videos
+                              {sixClipVideos}+ standard videos
                             </span>
                             <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
                               <Mic className="w-3.5 h-3.5" />
-                              {clips} total clips
+                              Up to {clips} clips
                             </span>
                             <span className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />

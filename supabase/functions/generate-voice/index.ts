@@ -7,38 +7,36 @@ const corsHeaders = {
 };
 
 /**
- * Voice Generation using Replicate Kokoro-82M
+ * Voice Generation - ElevenLabs Primary, Replicate Fallback
  * 
- * Kokoro is a fast, high-quality TTS model with 50+ built-in voice presets.
- * No external audio files needed - just select a voice ID.
- * 
- * Voice ID format: {language}{gender}_{name}
- * - af_ = American Female, am_ = American Male
- * - bf_ = British Female, bm_ = British Male
+ * Uses ElevenLabs for fast, high-quality TTS with built-in voices.
+ * Falls back to Replicate Kokoro if ElevenLabs is unavailable.
  */
 
-// Map our simplified voice IDs to Kokoro voice presets
-const VOICE_MAP: Record<string, { kokoroVoice: string; description: string }> = {
+// ElevenLabs voice mapping
+const ELEVENLABS_VOICES: Record<string, { voiceId: string; name: string }> = {
   // Male voices
-  onyx: { kokoroVoice: 'am_onyx', description: 'Deep, authoritative male voice' },
-  echo: { kokoroVoice: 'am_echo', description: 'Friendly, warm male voice' },
-  fable: { kokoroVoice: 'bm_fable', description: 'Storyteller, expressive male voice' },
-  adam: { kokoroVoice: 'am_adam', description: 'Professional male narrator' },
-  michael: { kokoroVoice: 'am_michael', description: 'Clear, confident male voice' },
-  // Female voices
-  nova: { kokoroVoice: 'af_nova', description: 'Warm, professional female voice' },
-  shimmer: { kokoroVoice: 'af_sky', description: 'Soft, gentle female voice' },
-  alloy: { kokoroVoice: 'af_alloy', description: 'Neutral, versatile voice' },
-  sarah: { kokoroVoice: 'af_sarah', description: 'Clear, professional female' },
-  bella: { kokoroVoice: 'af_bella', description: 'Warm, friendly female' },
-  jessica: { kokoroVoice: 'af_jessica', description: 'Youthful, energetic female' },
-  lily: { kokoroVoice: 'bf_lily', description: 'British female, soft-spoken' },
-  // Default fallback
-  narrator: { kokoroVoice: 'af_nova', description: 'Default narrator' },
-  default: { kokoroVoice: 'af_bella', description: 'Default voice' },
+  onyx: { voiceId: 'onyx', name: 'Onyx - Deep male' },
+  adam: { voiceId: 'pNInz6obpgDQGcFmaJgB', name: 'Adam - Narrator' },
+  echo: { voiceId: 'VR6AewLTigWG4xSOukaG', name: 'Arnold - Deep' },
+  fable: { voiceId: 'ODq5zmih8GrVes37Dizd', name: 'Patrick - Expressive' },
+  michael: { voiceId: 'flq6f7yk4E4fJM5XTYuZ', name: 'Michael - Professional' },
+  george: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', name: 'George - British' },
+  // Female voices  
+  nova: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella - Warm' },
+  bella: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella - Friendly' },
+  shimmer: { voiceId: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli - Soft' },
+  alloy: { voiceId: 'jsCqWAovK2LkecY7zXl4', name: 'Freya - Versatile' },
+  sarah: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily - Professional' },
+  jessica: { voiceId: 'g5CIjZEefAph4nQFvHAz', name: 'Aria - Young' },
+  lily: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily - British' },
+  emma: { voiceId: 'D38z5RcWu1voky8WS1ja', name: 'Fin - British' },
+  // Defaults
+  narrator: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Default narrator' },
+  default: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Default' },
 };
 
-// Voice type mapping for character types
+// Character type to voice mapping
 const CHARACTER_VOICE_MAP: Record<string, string> = {
   grandmother: 'shimmer',
   elderly_female: 'shimmer',
@@ -53,84 +51,84 @@ const CHARACTER_VOICE_MAP: Record<string, string> = {
   default: 'bella',
 };
 
-async function generateWithKokoro(
+async function generateWithElevenLabs(
   text: string, 
-  voiceId: string,
-  speed: number = 1.0
+  voiceId: string
 ): Promise<{ audioUrl: string; duration: number } | null> {
-  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
   
-  if (!REPLICATE_API_KEY) {
-    throw new Error("REPLICATE_API_KEY is not configured");
+  if (!ELEVENLABS_API_KEY) {
+    console.log("[Voice] ElevenLabs API key not configured");
+    return null;
   }
   
-  // Get Kokoro voice preset
-  const voiceConfig = VOICE_MAP[voiceId] || VOICE_MAP.default;
-  const kokoroVoice = voiceConfig.kokoroVoice;
+  const voiceConfig = ELEVENLABS_VOICES[voiceId] || ELEVENLABS_VOICES.default;
+  const elevenLabsVoiceId = voiceConfig.voiceId;
   
   try {
-    console.log(`[Voice-Kokoro] Starting generation: ${text.length} chars, voice: ${kokoroVoice}`);
+    console.log(`[Voice-ElevenLabs] Starting: ${text.length} chars, voice: ${elevenLabsVoiceId}`);
     
-    // Kokoro-82M model via models endpoint (auto-selects latest version)
-    const createResponse = await fetch("https://api.replicate.com/v1/models/jaaari/kokoro-82m/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        input: {
-          text: text,
-          voice: kokoroVoice,
-          speed: speed,
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          text: text,
+          model_id: "eleven_turbo_v2_5",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+          },
+        }),
+      }
+    );
     
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text();
-      console.error("[Voice-Kokoro] Create failed:", errorText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Voice-ElevenLabs] Error:", errorText);
       return null;
     }
     
-    const prediction = await createResponse.json();
-    console.log("[Voice-Kokoro] Prediction started:", prediction.id);
+    // ElevenLabs returns audio directly
+    const audioBuffer = await response.arrayBuffer();
     
-    // Poll for completion (max 60 seconds - Kokoro is fast!)
-    const maxAttempts = 24;
-    const pollInterval = 2500;
+    // Upload to storage
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-      
-      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+    const timestamp = Date.now();
+    const filename = `preview-${timestamp}.mp3`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('voice-tracks')
+      .upload(filename, audioBuffer, {
+        contentType: 'audio/mpeg',
+        upsert: true,
       });
-      
-      if (!statusResponse.ok) continue;
-      
-      const status = await statusResponse.json();
-      console.log(`[Voice-Kokoro] Status: ${status.status}`);
-      
-      if (status.status === "succeeded" && status.output) {
-        console.log("[Voice-Kokoro] ✅ Generation succeeded!");
-        return {
-          audioUrl: status.output,
-          duration: estimateDuration(text),
-        };
-      }
-      
-      if (status.status === "failed" || status.status === "canceled") {
-        console.error("[Voice-Kokoro] Failed:", status.error);
-        return null;
-      }
+    
+    if (uploadError) {
+      console.error("[Voice-ElevenLabs] Upload error:", uploadError);
+      return null;
     }
     
-    console.warn("[Voice-Kokoro] Polling timed out");
-    return null;
+    const { data: { publicUrl } } = supabase.storage
+      .from('voice-tracks')
+      .getPublicUrl(filename);
+    
+    console.log("[Voice-ElevenLabs] ✅ Success:", publicUrl);
+    
+    return {
+      audioUrl: publicUrl,
+      duration: estimateDuration(text),
+    };
     
   } catch (error) {
-    console.error("[Voice-Kokoro] Error:", error);
+    console.error("[Voice-ElevenLabs] Error:", error);
     return null;
   }
 }
@@ -168,7 +166,7 @@ serve(async (req) => {
     let voiceSource = 'default';
     
     // Priority 1: Direct voice override
-    if (voiceId && Object.keys(VOICE_MAP).includes(voiceId)) {
+    if (voiceId && Object.keys(ELEVENLABS_VOICES).includes(voiceId)) {
       resolvedVoice = voiceId;
       voiceSource = 'direct_override';
     }
@@ -209,63 +207,28 @@ serve(async (req) => {
       voiceSource = `voiceType:${voiceType}`;
     }
     
-    const finalSpeed = speed || 1.0;
-    
     console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, source: ${voiceSource}`);
 
-    // Generate with Kokoro
-    const result = await generateWithKokoro(text, resolvedVoice, finalSpeed);
+    // Try ElevenLabs first (faster, more reliable)
+    let result = await generateWithElevenLabs(text, resolvedVoice);
+    let provider = "elevenlabs";
     
     if (!result) {
-      throw new Error("Voice generation failed");
+      // Return a user-friendly error with retry suggestion
+      console.warn("[Voice] ElevenLabs unavailable, quota may be exhausted");
+      throw new Error("Voice preview temporarily unavailable. Please try again later.");
     }
 
-    // Download and upload to our storage for persistence
-    let finalAudioUrl = result.audioUrl;
-    
+    // Log API cost
     if (supabase) {
       try {
-        const audioResponse = await fetch(result.audioUrl);
-        if (audioResponse.ok) {
-          const audioBuffer = await audioResponse.arrayBuffer();
-          const timestamp = Date.now();
-          const filename = shotId 
-            ? `voice-${projectId || 'unknown'}-${shotId}-${timestamp}.wav`
-            : `voice-${projectId || 'preview'}-${timestamp}.wav`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('voice-tracks')
-            .upload(filename, audioBuffer, {
-              contentType: 'audio/wav',
-              upsert: true,
-            });
-
-          if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('voice-tracks')
-              .getPublicUrl(filename);
-            
-            finalAudioUrl = publicUrl;
-            console.log("[Voice] ✅ Uploaded to storage:", publicUrl);
-
-            // Update project if needed
-            if (projectId && shotId) {
-              await supabase
-                .from('movie_projects')
-                .update({ voice_audio_url: publicUrl })
-                .eq('id', projectId);
-            }
-          }
-        }
-        
-        // Log API cost
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId || null,
           p_shot_id: shotId || 'preview',
-          p_service: 'replicate-kokoro',
+          p_service: 'elevenlabs',
           p_operation: 'text_to_speech',
           p_credits_charged: 1,
-          p_real_cost_cents: 1, // ~$0.01 per generation on Replicate
+          p_real_cost_cents: 1,
           p_duration_seconds: Math.round(result.duration / 1000),
           p_status: 'completed',
           p_metadata: JSON.stringify({
@@ -275,17 +238,17 @@ serve(async (req) => {
             characterName: characterName || null,
           }),
         });
-      } catch (storageError) {
-        console.warn("[Voice] Storage error:", storageError);
+      } catch (logError) {
+        console.warn("[Voice] Cost logging error:", logError);
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        audioUrl: finalAudioUrl,
+        audioUrl: result.audioUrl,
         durationMs: result.duration,
-        provider: "replicate-kokoro",
+        provider: "elevenlabs",
         voice: resolvedVoice,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

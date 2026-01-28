@@ -168,7 +168,7 @@ export default function Discover() {
   }, {} as Record<string, number>) || {};
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white relative">
       {/* Premium Cinematic Background */}
       <DiscoverBackground />
       

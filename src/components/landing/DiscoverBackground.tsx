@@ -24,7 +24,7 @@ export default function DiscoverBackground({ className }: DiscoverBackgroundProp
       />
       
       {/* Subtle overlay to blend with page - maintains black & white theme */}
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/50" />
       
       {/* Ambient glow - top left silver/white */}
       <div 

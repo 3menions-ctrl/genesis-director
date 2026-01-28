@@ -1350,21 +1350,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               </div>
             </div>
 
-            {/* Center play button - ONLY show when paused */}
-            <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center">
-              {!isPlaying && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-                >
-                  <Play className="w-8 h-8 text-white ml-1" />
-                </motion.div>
-              )}
-            </button>
+            {/* Invisible click area for play/pause - no center button */}
+            <button onClick={togglePlay} className="absolute inset-0" />
 
             {/* Bottom controls */}
             <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">

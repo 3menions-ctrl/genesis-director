@@ -7,10 +7,10 @@ const corsHeaders = {
 };
 
 /**
- * Generate Project Thumbnail
+ * Generate Project Thumbnail v5.0 - REPLICATE-BASED
  * 
  * Extracts a frame from a project's video and saves it as the project's thumbnail.
- * Uses Cloud Run FFmpeg for reliable frame extraction.
+ * NO CLOUD RUN DEPENDENCY - Uses Replicate API for reliable frame extraction.
  */
 
 interface GenerateThumbnailRequest {
@@ -18,12 +18,8 @@ interface GenerateThumbnailRequest {
   videoUrl: string;
 }
 
-// Exponential backoff with jitter
-function calculateBackoff(attempt: number, baseMs = 2000, maxMs = 20000): number {
-  const exponentialDelay = Math.min(baseMs * Math.pow(2, attempt), maxMs);
-  const jitter = exponentialDelay * (0.1 + Math.random() * 0.2);
-  return Math.floor(exponentialDelay + jitter);
-}
+// Sleep helper
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -47,6 +43,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
 
     // Check if project already has a thumbnail
     const { data: project } = await supabase
@@ -68,104 +65,191 @@ serve(async (req) => {
       );
     }
 
-    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-    
-    if (!cloudRunUrl) {
-      console.error(`[GenerateThumbnail] CLOUD_RUN_STITCHER_URL not configured`);
-      return new Response(
-        JSON.stringify({ success: false, error: "CLOUD_RUN_STITCHER_URL not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const MAX_RETRIES = 5;
     let thumbnailUrl: string | null = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 0) {
-          const backoffMs = calculateBackoff(attempt - 1);
-          console.log(`[GenerateThumbnail] Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
-        }
-
-        const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
-        const extractEndpoint = `${normalizedUrl}/extract-frame`;
-
-        console.log(`[GenerateThumbnail] Calling Cloud Run (attempt ${attempt + 1}/${MAX_RETRIES})`);
-
-        const controller = new AbortController();
-        const timeoutMs = 30000 + (attempt * 5000);
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        const response = await fetch(extractEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clipUrl: videoUrl,
-            clipIndex: 'thumbnail',
-            projectId,
-            position: 'first', // Use first frame for thumbnail
-            returnBase64: true,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const result = await response.json();
-
-          if (result.frameBase64) {
-            console.log(`[GenerateThumbnail] Got base64 frame, uploading to storage...`);
+    // ============================================================
+    // TIER 1: Replicate Frame Extraction
+    // ============================================================
+    if (REPLICATE_API_KEY) {
+      const MAX_RETRIES = 3;
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            const backoffMs = 2000 * attempt;
+            console.log(`[GenerateThumbnail] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
+            await sleep(backoffMs);
+          }
+          
+          console.log(`[GenerateThumbnail] TIER 1: Replicate extraction attempt ${attempt + 1}/${MAX_RETRIES}`);
+          
+          const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              version: "a97a0a2e37ef87f7175ad88ba6ac019e51e6c3fc447c72a47c6a0d364a34d6b0",
+              input: {
+                video: videoUrl,
+                fps: 1,
+                format: "jpg"
+              }
+            }),
+          });
+          
+          if (!predictionResponse.ok) {
+            const errorText = await predictionResponse.text();
+            console.warn(`[GenerateThumbnail] Replicate prediction start failed: ${predictionResponse.status} - ${errorText.substring(0, 100)}`);
             
-            const cleanBase64 = result.frameBase64.replace(/^data:image\/\w+;base64,/, '');
-            const imageBuffer = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+            if (predictionResponse.status === 404 || predictionResponse.status === 422) {
+              console.log(`[GenerateThumbnail] Frame extraction model unavailable, using fallback...`);
+              break;
+            }
+            continue;
+          }
+          
+          const prediction = await predictionResponse.json();
+          console.log(`[GenerateThumbnail] Prediction started: ${prediction.id}`);
+          
+          // Poll for completion (max 60 seconds)
+          const maxPollTime = 60000;
+          const pollInterval = 2000;
+          const startTime = Date.now();
+          
+          while (Date.now() - startTime < maxPollTime) {
+            await sleep(pollInterval);
             
-            const fileName = `thumb_${projectId}.jpg`;
-            const { error: uploadError } = await supabase.storage
-              .from('thumbnails')
-              .upload(fileName, imageBuffer, {
-                contentType: 'image/jpeg',
-                upsert: true,
-              });
-
-            if (uploadError) {
-              console.warn(`[GenerateThumbnail] Upload error:`, uploadError.message);
+            const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+              headers: { 'Authorization': `Bearer ${REPLICATE_API_KEY}` },
+            });
+            
+            if (!statusResponse.ok) {
+              console.warn(`[GenerateThumbnail] Status check failed: ${statusResponse.status}`);
               continue;
             }
+            
+            const status = await statusResponse.json();
+            
+            if (status.status === 'succeeded') {
+              const frames = status.output;
+              
+              if (Array.isArray(frames) && frames.length > 0) {
+                // Get the FIRST frame for thumbnail
+                const firstFrameUrl = frames[0];
+                
+                if (firstFrameUrl) {
+                  // Download and re-upload to thumbnails bucket
+                  try {
+                    const frameResponse = await fetch(firstFrameUrl);
+                    if (frameResponse.ok) {
+                      const imageData = await frameResponse.arrayBuffer();
+                      const fileName = `thumb_${projectId}.jpg`;
+                      
+                      const { error: uploadError } = await supabase.storage
+                        .from('thumbnails')
+                        .upload(fileName, new Uint8Array(imageData), {
+                          contentType: 'image/jpeg',
+                          upsert: true,
+                        });
 
-            const { data: urlData } = supabase.storage
-              .from('thumbnails')
-              .getPublicUrl(fileName);
-
-            thumbnailUrl = urlData.publicUrl;
-            console.log(`[GenerateThumbnail] ✓ Thumbnail uploaded: ${thumbnailUrl}`);
-            break;
+                      if (!uploadError) {
+                        const { data: urlData } = supabase.storage
+                          .from('thumbnails')
+                          .getPublicUrl(fileName);
+                        
+                        thumbnailUrl = urlData.publicUrl;
+                        console.log(`[GenerateThumbnail] ✅ TIER 1 SUCCESS: ${thumbnailUrl}`);
+                        break;
+                      } else {
+                        console.warn(`[GenerateThumbnail] Upload failed:`, uploadError);
+                      }
+                    }
+                  } catch (downloadErr) {
+                    console.warn(`[GenerateThumbnail] Download/upload error:`, downloadErr);
+                  }
+                }
+              }
+              break;
+            } else if (status.status === 'failed') {
+              console.warn(`[GenerateThumbnail] Prediction failed: ${status.error}`);
+              break;
+            }
+            
+            console.log(`[GenerateThumbnail] Polling... status: ${status.status}`);
           }
-
-          // Handle direct URL response
-          if (result.lastFrameUrl || result.frameUrl) {
-            thumbnailUrl = result.lastFrameUrl || result.frameUrl;
-            console.log(`[GenerateThumbnail] Got direct URL: ${thumbnailUrl}`);
-            break;
-          }
-        } else {
-          const errorText = await response.text();
-          console.warn(`[GenerateThumbnail] HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+          
+          if (thumbnailUrl) break;
+        } catch (replicateError) {
+          const errorMsg = replicateError instanceof Error ? replicateError.message : 'Unknown error';
+          console.warn(`[GenerateThumbnail] Attempt ${attempt + 1} error: ${errorMsg}`);
+          continue;
         }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        console.warn(`[GenerateThumbnail] Attempt ${attempt + 1} error: ${errorMsg}`);
+      }
+    } else {
+      console.warn(`[GenerateThumbnail] ⚠️ REPLICATE_API_KEY not configured`);
+    }
+
+    // ============================================================
+    // TIER 2: Fallback to extract-video-frame edge function
+    // ============================================================
+    if (!thumbnailUrl) {
+      console.log(`[GenerateThumbnail] TIER 2: Using extract-video-frame edge function...`);
+      
+      try {
+        const response = await fetch(`${supabaseUrl}/functions/v1/extract-video-frame`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            videoUrl,
+            projectId,
+            shotId: 'thumbnail',
+            position: 'first',
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.frameUrl) {
+            // Download and re-upload to thumbnails bucket
+            const frameResponse = await fetch(data.frameUrl);
+            if (frameResponse.ok) {
+              const imageData = await frameResponse.arrayBuffer();
+              const fileName = `thumb_${projectId}.jpg`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('thumbnails')
+                .upload(fileName, new Uint8Array(imageData), {
+                  contentType: 'image/jpeg',
+                  upsert: true,
+                });
+
+              if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                  .from('thumbnails')
+                  .getPublicUrl(fileName);
+                
+                thumbnailUrl = urlData.publicUrl;
+                console.log(`[GenerateThumbnail] ✅ TIER 2 SUCCESS: ${thumbnailUrl}`);
+              }
+            }
+          }
+        }
+      } catch (edgeFnErr) {
+        console.warn(`[GenerateThumbnail] Edge function fallback failed:`, edgeFnErr);
       }
     }
 
     if (!thumbnailUrl) {
-      console.error(`[GenerateThumbnail] Failed after ${MAX_RETRIES} attempts`);
+      console.error(`[GenerateThumbnail] Failed to extract thumbnail`);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: `Failed to extract thumbnail after ${MAX_RETRIES} attempts` 
+          error: `Failed to extract thumbnail - Replicate and fallbacks exhausted` 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

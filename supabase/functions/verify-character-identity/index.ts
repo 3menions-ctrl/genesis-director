@@ -107,39 +107,77 @@ const THRESHOLDS = {
   MAX_REGENERATIONS: 3,
 };
 
-// Extract frames from video URL (using Cloud Run service or fallback)
+// Sleep helper
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Extract frames from video URL using Replicate (NO CLOUD RUN)
 async function extractFramesFromVideo(
   videoUrl: string,
   frameCount: number = 3
 ): Promise<string[]> {
-  const CLOUD_RUN_URL = Deno.env.get('CLOUD_RUN_STITCHER_URL');
+  const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
   
-  // Try Cloud Run frame extraction
-  if (CLOUD_RUN_URL) {
+  // TIER 1: Use Replicate for frame extraction
+  if (REPLICATE_API_KEY) {
     try {
-      const response = await fetch(`${CLOUD_RUN_URL}/extract-frames`, {
+      console.log(`[VerifyIdentity] Extracting ${frameCount} frames via Replicate...`);
+      
+      const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          videoUrl,
-          frameCount,
-          positions: ['start', 'middle', 'end'],
+          version: "a97a0a2e37ef87f7175ad88ba6ac019e51e6c3fc447c72a47c6a0d364a34d6b0",
+          input: {
+            video: videoUrl,
+            fps: 1,
+            format: "jpg"
+          }
         }),
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.frames && data.frames.length > 0) {
-          console.log(`[VerifyIdentity] Extracted ${data.frames.length} frames via Cloud Run`);
-          return data.frames;
+      if (predictionResponse.ok) {
+        const prediction = await predictionResponse.json();
+        
+        // Poll for completion (max 60 seconds)
+        const maxPollTime = 60000;
+        const pollInterval = 2000;
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxPollTime) {
+          await sleep(pollInterval);
+          
+          const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+            headers: { 'Authorization': `Bearer ${REPLICATE_API_KEY}` },
+          });
+          
+          if (statusResponse.ok) {
+            const status = await statusResponse.json();
+            
+            if (status.status === 'succeeded' && Array.isArray(status.output) && status.output.length > 0) {
+              const frames = status.output;
+              
+              // Return first, middle, and last frames (up to frameCount)
+              const indices = [0, Math.floor(frames.length / 2), frames.length - 1];
+              const selectedFrames = indices.slice(0, frameCount).map(i => frames[Math.min(i, frames.length - 1)]);
+              
+              console.log(`[VerifyIdentity] Extracted ${selectedFrames.length} frames via Replicate`);
+              return selectedFrames;
+            } else if (status.status === 'failed') {
+              console.warn('[VerifyIdentity] Replicate extraction failed:', status.error);
+              break;
+            }
+          }
         }
       }
     } catch (err) {
-      console.warn('[VerifyIdentity] Cloud Run frame extraction failed:', err);
+      console.warn('[VerifyIdentity] Replicate frame extraction failed:', err);
     }
   }
   
-  // Fallback: use edge function for last frame only
+  // TIER 2: Fallback to extract-last-frame edge function (also Replicate-based)
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

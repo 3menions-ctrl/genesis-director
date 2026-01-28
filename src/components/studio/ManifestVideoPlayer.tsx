@@ -37,8 +37,8 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - ultra-fast overlap for seamless blending
-const CROSSFADE_DURATION = 0.030;
+// Crossfade duration in seconds - ultra-fast overlap for seamless blending
+const CROSSFADE_DURATION_SEC = 0.030; // 30ms crossfade
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_THRESHOLD = 0.15;
 
@@ -142,7 +142,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     }
   }, [currentClipIndex, manifest, activeVideoIndex, isCrossfading]);
 
-  // Crossfade transition logic - TRUE OVERLAP: both videos visible simultaneously
+  // Crossfade transition logic - TRUE CROSSFADE: outgoing fades out while incoming fades in
   const triggerCrossfadeTransition = useCallback(() => {
     if (!manifest) return;
     if (isTransitioningRef.current || isCrossfading) return;
@@ -155,55 +155,52 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     const activeVideo = getActiveVideo();
     const standbyVideo = getStandbyVideo();
     
-    // CRITICAL FIX: Capture which video is currently active BEFORE state update
-    // This prevents closure bugs where the RAF callback uses stale activeVideoIndex
+    // Capture which video is currently active BEFORE state update
     const currentActiveIndex = activeVideoIndex;
     
     if (standbyVideo && standbyVideo.readyState >= 2 && manifest.clips[nextIndex]) {
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
       
-      // CRITICAL: Set BOTH videos to full opacity BEFORE playing next
-      // This ensures there's never a frame where neither video is visible
-      setVideoAOpacity(1);
-      setVideoBOpacity(1);
-      
-      // Start playing standby immediately while current is still visible
+      // Start playing standby BEFORE it becomes visible (it's at opacity 0)
       standbyVideo.play().catch(() => {});
       
-      // Swap active/standby state - use direct value, not functional update
+      // CROSSFADE: Fade in incoming, fade out outgoing - SIMULTANEOUSLY
+      // Incoming goes from 0 → 1, outgoing goes from 1 → 0
+      if (currentActiveIndex === 0) {
+        // A is active (opacity 1), B is standby (opacity 0)
+        // Crossfade: A → 0, B → 1
+        setVideoAOpacity(0);
+        setVideoBOpacity(1);
+      } else {
+        // B is active (opacity 1), A is standby (opacity 0)
+        // Crossfade: B → 0, A → 1
+        setVideoBOpacity(0);
+        setVideoAOpacity(1);
+      }
+      
+      // Swap active/standby state
       setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
-      // Use requestAnimationFrame to ensure the next video frame is rendered
-      // BEFORE we hide the old video - this prevents ANY visual gap
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          // Now that next video has rendered at least 1 frame, hide the OLD one
-          // Use captured currentActiveIndex to avoid closure bug
-          if (currentActiveIndex === 0) {
-            setVideoAOpacity(0);
-          } else {
-            setVideoBOpacity(0);
-          }
-          
-          // Pause the old active
-          if (activeVideo) {
-            activeVideo.pause();
-          }
-          
-          setIsCrossfading(false);
-          
-          // Preload the NEXT clip into the old active (now standby)
-          const futureClipIndex = nextIndex + 1;
-          if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
-            activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
-            activeVideo.load();
-          }
-          isTransitioningRef.current = false;
-        });
-      });
+      // After crossfade duration, clean up
+      setTimeout(() => {
+        // Pause the old video
+        if (activeVideo) {
+          activeVideo.pause();
+        }
+        
+        setIsCrossfading(false);
+        
+        // Preload the NEXT clip into the old active (now standby)
+        const futureClipIndex = nextIndex + 1;
+        if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
+          activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
+          activeVideo.load();
+        }
+        isTransitioningRef.current = false;
+      }, CROSSFADE_DURATION_SEC * 1000 + 10); // Add small buffer
     } else {
       // Standby not ready - try immediate switch as fallback
       console.warn('[ManifestPlayer] Standby video not ready, using fallback transition');
@@ -435,7 +432,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         style={{ 
           opacity: videoAOpacity, 
           zIndex: activeVideoIndex === 0 ? 2 : 1,
-          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
         }}
         onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -451,7 +448,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         style={{ 
           opacity: videoBOpacity, 
           zIndex: activeVideoIndex === 1 ? 2 : 1,
-          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
         }}
         onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}

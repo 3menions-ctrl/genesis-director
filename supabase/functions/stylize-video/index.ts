@@ -116,7 +116,7 @@ serve(async (req) => {
     console.log("[stylize-video] Prompt preview:", stylePrompt.substring(0, 60) + "...");
 
     // Use Kling v2.6 with video input for style transfer
-    // This approach: extract first frame, apply style, generate video
+    // Use official model identifier for Replicate API
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -124,12 +124,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "kwaivgi/kling-v2.6",
+        version: "kwaivgi/kling-v2.6", // Official model identifier
         input: {
           mode: "pro",
           prompt: `${stylePrompt}, maintain motion and composition from original video`,
           start_image: videoUrl, // First frame extracted for img2vid
-          duration: "5",
+          duration: 5,
           aspect_ratio: "16:9",
           negative_prompt: negativePrompt,
         },

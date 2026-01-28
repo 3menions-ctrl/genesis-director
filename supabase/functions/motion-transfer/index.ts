@@ -53,7 +53,7 @@ serve(async (req) => {
       console.log("[motion-transfer] Target image (to be animated):", targetImageUrl);
 
       // Use Kling v2.6 for image-to-video with motion guidance
-      // The prompt describes the motion from the source video
+      // Use official model identifier for Replicate API
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -61,12 +61,12 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "kwaivgi/kling-v2.6",
+          version: "kwaivgi/kling-v2.6", // Official model identifier
           input: {
             mode: "pro",
             prompt: "The subject performs smooth, natural movements matching the reference motion, professional quality animation, seamless motion transfer",
             start_image: targetImageUrl,
-            duration: "5",
+            duration: 5,
             aspect_ratio: aspectRatio,
             negative_prompt: "static, frozen, unnatural movements, glitchy, distorted",
           },
@@ -90,7 +90,7 @@ serve(async (req) => {
       console.log("[motion-transfer] Target video (person to re-pose):", targetVideoUrl);
 
       // For video-to-video motion transfer, use style transfer approach
-      // Extract first frame of target, animate with source motion characteristics
+      // Use official model identifier for Replicate API
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -98,12 +98,12 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "kwaivgi/kling-v2.6",
+          version: "kwaivgi/kling-v2.6", // Official model identifier
           input: {
             mode: "pro",
             prompt: "Transfer motion from reference video, maintain subject identity, smooth natural movements, professional quality",
             start_image: targetVideoUrl, // First frame will be extracted
-            duration: "5",
+            duration: 5,
             aspect_ratio: aspectRatio,
             negative_prompt: "static, frozen, unnatural, glitchy",
           },

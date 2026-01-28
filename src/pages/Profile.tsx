@@ -38,6 +38,7 @@ import { useSocial } from '@/hooks/useSocial';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { RealAnalyticsCards } from '@/components/analytics/RealAnalyticsCards';
+import ProfileBackground from '@/components/profile/ProfileBackground';
 
 interface Transaction {
   id: string;
@@ -82,11 +83,11 @@ const DAILY_CHALLENGES = [
 
 type TabType = 'overview' | 'achievements' | 'activity';
 
-// Premium card styles - using design system tokens
-const glassCard = "relative backdrop-blur-xl bg-card/80 border border-border shadow-lg";
-const glassCardHover = "hover:bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
-const darkCard = "relative bg-muted border border-border shadow-lg";
-const darkCardHover = "hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300";
+// Premium transparent card styles - matching Create/Pipeline page
+const glassCard = "relative backdrop-blur-xl bg-white/[0.03] border border-white/[0.08]";
+const glassCardHover = "hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5 transition-all duration-300";
+const darkCard = "relative bg-white/[0.02] border border-white/[0.06] backdrop-blur-xl";
+const darkCardHover = "hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-300";
 
 export default function Profile() {
   const { user, profile, loading, refreshProfile } = useAuth();
@@ -312,44 +313,37 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#030303]">
+        <ProfileBackground />
         <AppHeader showCreate={false} />
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-          <Skeleton className="h-80 rounded-3xl bg-muted" />
-          <Skeleton className="h-32 rounded-2xl bg-muted" />
+          <Skeleton className="h-80 rounded-3xl bg-white/[0.03]" />
+          <Skeleton className="h-32 rounded-2xl bg-white/[0.03]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* === PREMIUM AMBIENT BACKGROUND - Matching Landing === */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Subtle gradient base */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        {/* Soft ambient glow - top */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-foreground/[0.02] to-transparent blur-[100px]" />
-        {/* Mesh gradient for depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(var(--foreground-rgb),0.03)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(var(--foreground-rgb),0.02)_0%,_transparent_50%)]" />
-      </div>
+    <div className="min-h-screen bg-[#030303] text-white overflow-hidden">
+      {/* === PREMIUM BACKGROUND - Matching Create/Pipeline page === */}
+      <ProfileBackground />
 
       {/* Video Picker Modal */}
       <Dialog open={showVideoPicker} onOpenChange={setShowVideoPicker}>
-        <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-border">
+        <DialogContent className="max-w-2xl bg-zinc-900/95 backdrop-blur-xl border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Select Cover Video</DialogTitle>
+            <DialogTitle className="text-white">Select Cover Video</DialogTitle>
           </DialogHeader>
           <div className="mt-4">
             {loadingVideos ? (
               <div className="grid grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-video rounded-xl bg-muted" />)}
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-video rounded-xl bg-white/5" />)}
               </div>
             ) : userVideoClips.length === 0 ? (
               <div className="py-16 text-center">
-                <Video className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="text-muted-foreground">No videos yet</p>
+                <Video className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                <p className="text-white/40">No videos yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
@@ -359,13 +353,13 @@ export default function Profile() {
                     onClick={() => { setCoverVideo(clip); setShowVideoPicker(false); toast.success('Cover updated'); }}
                     className={cn(
                       "relative aspect-video rounded-xl overflow-hidden transition-all",
-                      coverVideo === clip ? 'ring-2 ring-foreground' : 'hover:ring-1 hover:ring-foreground/50'
+                      coverVideo === clip ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-white/30'
                     )}
                   >
                     <video src={clip} className="w-full h-full object-cover" muted preload="metadata" />
                     {coverVideo === clip && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-foreground flex items-center justify-center">
-                        <Check className="w-3 h-3 text-background" />
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-black" />
                       </div>
                     )}
                   </button>
@@ -387,7 +381,7 @@ export default function Profile() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className={cn("relative rounded-3xl overflow-hidden", darkCard)}
+          className="relative rounded-3xl overflow-hidden bg-white/[0.02] border border-white/[0.06] backdrop-blur-xl"
         >
           {/* Cover Background */}
           <div className="relative h-48 sm:h-56 overflow-hidden">
@@ -399,31 +393,31 @@ export default function Profile() {
                   className="absolute inset-0 w-full h-full object-cover scale-110" 
                   loop muted playsInline autoPlay 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/60 to-transparent" />
                 <button 
                   onClick={() => setCoverVideo(null)} 
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-foreground/10 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/20 transition-all"
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-xl bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </>
             ) : (
               <>
-                <div className="absolute inset-0 bg-gradient-to-br from-foreground/[0.08] via-transparent to-transparent" />
-                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-foreground/[0.03] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.08] via-transparent to-transparent" />
+                <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-emerald-500/[0.05] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
                 <button
                   onClick={() => { fetchUserVideoClips(); setShowVideoPicker(true); }}
-                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-background/20 backdrop-blur-sm"
+                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm"
                 >
-                  <div className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-xl bg-foreground/10 border border-border text-muted-foreground text-sm font-medium hover:bg-foreground/20 transition-all">
+                  <div className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-xl bg-white/10 border border-white/10 text-white/60 text-sm font-medium hover:bg-white/20 transition-all">
                     <Camera className="w-4 h-4" /> Add cover video
                   </div>
                 </button>
               </>
             )}
             
-            {/* Top accent line */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            {/* Top accent line - emerald themed */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           </div>
 
           {/* Profile Content */}
@@ -431,18 +425,18 @@ export default function Profile() {
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               {/* Avatar with Premium Styling */}
               <div className="relative group">
-                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-foreground/30 to-foreground/10 blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-32 h-32 rounded-2xl bg-muted border-4 border-muted shadow-lg flex items-center justify-center overflow-hidden">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-emerald-500/40 to-teal-500/20 blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-32 h-32 rounded-2xl bg-zinc-900 border-4 border-zinc-900 shadow-lg flex items-center justify-center overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-foreground flex items-center justify-center">
-                      <User className="w-12 h-12 text-background" />
+                    <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                      <User className="w-12 h-12 text-black" />
                     </div>
                   )}
                 </div>
                 {/* Level Badge */}
-                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-foreground text-background text-xs font-bold shadow-lg">
+                <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black text-xs font-bold shadow-lg">
                   Lv.{level}
                 </div>
               </div>
@@ -450,17 +444,17 @@ export default function Profile() {
               {/* Info */}
               <div className="flex-1 pt-4 sm:pt-6">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                     {profile?.display_name || profile?.full_name || 'Creator'}
                   </h1>
                   {streak > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-foreground/10 border border-border text-muted-foreground text-sm font-medium">
-                      <Flame className="w-3.5 h-3.5 text-orange-400" /> {streak} day streak
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-medium">
+                      <Flame className="w-3.5 h-3.5 text-amber-400" /> {streak} day streak
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mt-2 text-sm text-white/40">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" /> Joined {memberSince}
                   </span>
@@ -472,15 +466,15 @@ export default function Profile() {
                 {/* XP Progress Bar */}
                 <div className="mt-5 max-w-md">
                   <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-muted-foreground font-medium">Progress to Level {level + 1}</span>
-                    <span className="text-muted-foreground/60">{xpProgress?.current || 0} / {xpProgress?.needed || 100} XP</span>
+                    <span className="text-white/50 font-medium">Progress to Level {level + 1}</span>
+                    <span className="text-white/30">{xpProgress?.current || 0} / {xpProgress?.needed || 100} XP</span>
                   </div>
-                  <div className="relative h-2.5 rounded-full overflow-hidden bg-muted border border-border">
+                  <div className="relative h-2.5 rounded-full overflow-hidden bg-white/[0.06] border border-white/[0.08]">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${xpProgress?.percentage || 0}%` }}
                       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-                      className="absolute inset-y-0 left-0 bg-foreground rounded-full"
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
                     />
                   </div>
                 </div>
@@ -490,7 +484,7 @@ export default function Profile() {
               <div className="flex gap-3 sm:pt-6">
                 <Button 
                   onClick={() => setShowBuyModal(true)} 
-                  className="h-12 px-6 rounded-full bg-foreground text-background font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all border-0"
+                  className="h-12 px-6 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-semibold shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:scale-105 transition-all border-0"
                 >
                   <Coins className="w-4 h-4 mr-2" />
                   {profile?.credits_balance?.toLocaleString() || 0}
@@ -498,7 +492,7 @@ export default function Profile() {
                 <Button 
                   onClick={() => navigate('/settings')} 
                   variant="ghost" 
-                  className="h-12 w-12 rounded-full bg-foreground/10 border border-border text-muted-foreground hover:text-foreground hover:bg-foreground/20 transition-all"
+                  className="h-12 w-12 rounded-full bg-white/[0.05] border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.1] transition-all"
                 >
                   <Settings className="w-5 h-5" />
                 </Button>
@@ -517,26 +511,26 @@ export default function Profile() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { label: 'Videos Created', value: metrics.totalVideosGenerated, icon: Video },
-            { label: 'Projects', value: metrics.totalProjects, icon: FolderOpen },
-            { label: 'Total XP', value: xpTotal.toLocaleString(), icon: Sparkles },
-            { label: 'Followers', value: followersCount || 0, icon: Users },
+            { label: 'Videos Created', value: metrics.totalVideosGenerated, icon: Video, gradient: 'from-violet-500 to-purple-500' },
+            { label: 'Projects', value: metrics.totalProjects, icon: FolderOpen, gradient: 'from-emerald-500 to-teal-500' },
+            { label: 'Total XP', value: xpTotal.toLocaleString(), icon: Sparkles, gradient: 'from-amber-500 to-orange-500' },
+            { label: 'Followers', value: followersCount || 0, icon: Users, gradient: 'from-cyan-500 to-sky-500' },
           ].map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.05 }}
-              className={cn("group relative p-5 rounded-2xl transition-all duration-300", glassCard, glassCardHover)}
+              className="group relative p-5 rounded-2xl transition-all duration-300 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/[0.12] hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-foreground text-background shadow-lg">
-                  <stat.icon className="w-5 h-5" />
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg", stat.gradient)}>
+                  <stat.icon className="w-5 h-5 text-black" />
                 </div>
               </div>
               
-              <p className="text-3xl font-bold text-foreground mt-4 tracking-tight">{stat.value}</p>
-              <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+              <p className="text-3xl font-bold text-white mt-4 tracking-tight">{stat.value}</p>
+              <p className="text-sm text-white/40 mt-1">{stat.label}</p>
             </motion.div>
           ))}
         </motion.section>
@@ -550,7 +544,7 @@ export default function Profile() {
           transition={{ delay: 0.2 }}
           className="flex items-center justify-center"
         >
-          <div className={cn("inline-flex p-1.5 rounded-full", glassCard)}>
+          <div className="inline-flex p-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl">
             {[
               { id: 'overview' as TabType, label: 'Overview', icon: BarChart3 },
               { id: 'achievements' as TabType, label: 'Achievements', icon: Trophy, badge: localUnlockedAchievements.length },
@@ -562,8 +556,8 @@ export default function Profile() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all rounded-full",
                   activeTab === tab.id
-                    ? "bg-foreground text-background shadow-obsidian"
-                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black shadow-lg shadow-emerald-500/20"
+                    : "text-white/40 hover:text-white hover:bg-white/[0.05]"
                 )}
               >
                 <tab.icon className="w-4 h-4" />
@@ -571,7 +565,7 @@ export default function Profile() {
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-xs font-semibold",
-                    activeTab === tab.id ? "bg-background/20 text-background" : "bg-foreground/10 text-foreground"
+                    activeTab === tab.id ? "bg-black/20 text-black" : "bg-white/10 text-white"
                   )}>
                     {tab.badge}
                   </span>
@@ -604,23 +598,22 @@ export default function Profile() {
                 {/* Quick Actions - Premium Dark Cards */}
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'New Project', icon: Plus, onClick: () => navigate('/create') },
-                    { label: 'My Videos', icon: Video, onClick: () => navigate('/clips') },
-                    { label: 'Buy Credits', icon: Coins, onClick: () => setShowBuyModal(true) },
+                    { label: 'New Project', icon: Plus, onClick: () => navigate('/create'), gradient: 'from-emerald-500 to-teal-500' },
+                    { label: 'My Videos', icon: Video, onClick: () => navigate('/clips'), gradient: 'from-violet-500 to-purple-500' },
+                    { label: 'Buy Credits', icon: Coins, onClick: () => setShowBuyModal(true), gradient: 'from-amber-500 to-orange-500' },
                   ].map((action, i) => (
                     <motion.button
                       key={i}
                       whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={action.onClick}
-                      className={cn(
-                        "group relative p-5 rounded-2xl transition-all overflow-hidden",
-                        darkCard, darkCardHover
-                      )}
+                      className="group relative p-5 rounded-2xl transition-all overflow-hidden bg-white/[0.02] border border-white/[0.06] backdrop-blur-xl hover:bg-white/[0.04] hover:-translate-y-0.5"
                     >
                       {/* Top accent line */}
-                      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                      <action.icon className="w-7 h-7 mb-3 text-white" />
+                      <div className={cn("absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r opacity-60", action.gradient)} />
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br shadow-lg", action.gradient)}>
+                        <action.icon className="w-5 h-5 text-black" />
+                      </div>
                       <span className="text-sm font-semibold text-white">{action.label}</span>
                     </motion.button>
                   ))}

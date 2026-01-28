@@ -150,6 +150,10 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     const activeVideo = getActiveVideo();
     const standbyVideo = getStandbyVideo();
     
+    // CRITICAL FIX: Capture which video is currently active BEFORE state update
+    // This prevents closure bugs where the RAF callback uses stale activeVideoIndex
+    const currentActiveIndex = activeVideoIndex;
+    
     if (standbyVideo && standbyVideo.readyState >= 2 && manifest.clips[nextIndex]) {
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
@@ -162,8 +166,8 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       // Start playing standby immediately while current is still visible
       standbyVideo.play().catch(() => {});
       
-      // Swap active/standby state
-      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+      // Swap active/standby state - use direct value, not functional update
+      setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
@@ -171,8 +175,9 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       // BEFORE we hide the old video - this prevents ANY visual gap
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          // Now that next video has rendered at least 1 frame, hide the old one
-          if (activeVideoIndex === 0) {
+          // Now that next video has rendered at least 1 frame, hide the OLD one
+          // Use captured currentActiveIndex to avoid closure bug
+          if (currentActiveIndex === 0) {
             setVideoAOpacity(0);
           } else {
             setVideoBOpacity(0);

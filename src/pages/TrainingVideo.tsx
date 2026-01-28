@@ -19,6 +19,7 @@ import {
   ChevronRight, CircleDot, Pause, Film
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
+import TrainingBackground from '@/components/training/TrainingBackground';
 
 // Import learning-themed environment presets
 import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
@@ -570,10 +571,11 @@ export default function TrainingVideo() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+      <TrainingBackground />
       <AppHeader showCreate={false} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Compact Header */}
         <motion.div 
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
@@ -581,20 +583,20 @@ export default function TrainingVideo() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
-              <Film className="w-5 h-5 text-background" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <Film className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Training Video Studio</h1>
-              <p className="text-xs text-muted-foreground">Create AI presenter videos with lip-sync</p>
+              <h1 className="text-xl font-bold tracking-tight text-white">Training Video Studio</h1>
+              <p className="text-xs text-white/50">Create AI presenter videos with lip-sync</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-white/20 text-white/70">
               <Coins className="w-3 h-3 mr-1" />
               {ESTIMATED_CREDITS} credits
             </Badge>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-white/20 text-white/70">
               <Zap className="w-3 h-3 mr-1" />
               ~2 min
             </Badge>

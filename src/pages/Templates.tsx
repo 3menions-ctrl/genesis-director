@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import TemplatesBackground from '@/components/templates/TemplatesBackground';
 
 interface Template {
   id: string;
@@ -503,27 +504,28 @@ export default function Templates() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+      <TemplatesBackground />
       <AppHeader showCreate={false} />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Compact Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Templates</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-bold text-white">Templates</h1>
+            <p className="text-sm text-white/50">
               {sortedTemplates.length} professional templates
             </p>
           </div>
           
           {/* Search */}
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <Input
               placeholder="Search templates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-card border-border rounded-lg text-sm"
+              className="pl-9 h-9 bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/30 rounded-lg text-sm"
             />
           </div>
         </div>
@@ -537,8 +539,8 @@ export default function Templates() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
                 activeCategory === cat.id
-                  ? "bg-foreground text-background"
-                  : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
+                  ? "bg-violet-500 text-white"
+                  : "bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white border border-white/[0.1]"
               )}
             >
               <cat.icon className="w-3.5 h-3.5" />
@@ -566,15 +568,16 @@ export default function Templates() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4">
-              <Search className="w-6 h-6 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center mx-auto mb-4">
+              <Search className="w-6 h-6 text-white/40" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No templates found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <h3 className="text-lg font-semibold text-white mb-2">No templates found</h3>
+            <p className="text-sm text-white/50 mb-4">
               Try adjusting your search or filter
             </p>
             <Button 
               variant="outline" 
+              className="border-white/20 text-white hover:bg-white/10"
               onClick={() => {
                 setSearchQuery('');
                 setActiveCategory('all');

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import StudioBackground from '@/components/studio/StudioBackground';
+import PipelineBackground from '@/components/production/PipelineBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
-
 export default function Create() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -105,12 +105,18 @@ export default function Create() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black">
-      <StudioBackground />
+    <div className="relative min-h-screen bg-background flex flex-col">
+      <PipelineBackground />
       
-      <CreationHub 
-        onStartCreation={handleStartCreation}
-      />
+      {/* Top Menu Bar */}
+      <AppHeader />
+      
+      {/* Main Content */}
+      <div className="relative z-10 flex-1">
+        <CreationHub 
+          onStartCreation={handleStartCreation}
+        />
+      </div>
       
       {/* Loading overlay with status updates */}
       {isCreating && (

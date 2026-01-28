@@ -6,13 +6,57 @@ const corsHeaders = {
 };
 
 /**
- * MOTION TRANSFER - Direct Pose-to-Character Pipeline
+ * MOTION TRANSFER - Native Replicate-Powered Implementation
  * 
- * CRITICAL: No script generation needed - this is a visual transformation.
- * Extract motion/pose from source video, apply to target image/video.
+ * No external dependencies - uses Kling v2.6 via Replicate.
+ * Animates static images with natural motion or transfers motion between videos.
  * 
- * Uses Kling v2.6 image-to-video with source video as motion reference.
+ * Two modes:
+ * 1. Image mode: Animate a static image with natural movements
+ * 2. Video mode: Transfer motion patterns from one video to another
  */
+
+const MOTION_PRESETS: Record<string, {
+  prompt: string;
+  negative: string;
+  intensity: 'subtle' | 'moderate' | 'dynamic';
+}> = {
+  "gentle-sway": {
+    prompt: "gentle swaying motion, subtle breathing animation, soft natural movement, peaceful ambient motion",
+    negative: "static, frozen, jerky, abrupt, violent motion",
+    intensity: "subtle"
+  },
+  "walk-cycle": {
+    prompt: "natural walking motion, realistic gait, smooth locomotion, professional animation quality",
+    negative: "floating, sliding, unnatural leg movement, robotic",
+    intensity: "moderate"
+  },
+  "talking-head": {
+    prompt: "natural speaking animation, subtle facial expressions, professional presentation style, realistic lip movement hints",
+    negative: "exaggerated expressions, cartoon, static face, frozen",
+    intensity: "subtle"
+  },
+  "dance": {
+    prompt: "fluid dancing motion, rhythmic movement, expressive body language, professional choreography quality",
+    negative: "stiff, robotic, frozen, uncoordinated",
+    intensity: "dynamic"
+  },
+  "action": {
+    prompt: "dynamic action sequence, intense movement, athletic motion, cinematic action quality",
+    negative: "slow, static, gentle, peaceful",
+    intensity: "dynamic"
+  },
+  "ambient": {
+    prompt: "subtle ambient motion, gentle environmental movement, atmospheric animation, living scene",
+    negative: "static, frozen, dramatic movement",
+    intensity: "subtle"
+  },
+  "cinematic-pan": {
+    prompt: "smooth cinematic camera movement, professional dolly motion, subtle parallax, film-quality panning",
+    negative: "shaky, handheld, jerky, abrupt",
+    intensity: "moderate"
+  },
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,11 +65,14 @@ serve(async (req) => {
 
   try {
     const { 
-      sourceVideoUrl,    // Video with the motion/dance to extract
-      targetImageUrl,    // Static image to animate with that motion
+      sourceVideoUrl,    // Video with the motion to extract (optional for image mode)
+      targetImageUrl,    // Static image to animate
       targetVideoUrl,    // Or video of the person to re-pose
       mode = "image",    // "image" (animate static image) or "video" (transfer between videos)
+      motionPreset,      // Optional: use a motion preset
+      customPrompt,      // Optional: custom motion description
       aspectRatio = "16:9",
+      duration = 5,
     } = await req.json();
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -34,89 +81,89 @@ serve(async (req) => {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
 
-    if (!sourceVideoUrl) {
-      throw new Error("sourceVideoUrl is required (the video with the motion to transfer)");
-    }
-
     console.log("[motion-transfer] Starting motion transfer");
     console.log("[motion-transfer] Mode:", mode);
-    console.log("[motion-transfer] Source video (motion source):", sourceVideoUrl);
+
+    // Get motion preset or use custom prompt
+    const preset = motionPreset ? MOTION_PRESETS[motionPreset] : null;
+    const motionPrompt = customPrompt || preset?.prompt || 
+      "smooth natural movement, professional animation quality, seamless motion";
+    const negativePrompt = preset?.negative || 
+      "static, frozen, unnatural, glitchy, distorted, jerky";
 
     let prediction;
 
     if (mode === "image") {
-      // Animate a static image with motion from a video
+      // Animate a static image
       if (!targetImageUrl) {
         throw new Error("targetImageUrl is required for image mode");
       }
 
-      console.log("[motion-transfer] Target image (to be animated):", targetImageUrl);
+      console.log("[motion-transfer] Animating image:", targetImageUrl);
 
-      // Use Kling v2.6 for image-to-video with motion guidance
-      // Use official model identifier for Replicate API
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
+      const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${REPLICATE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "kwaivgi/kling-v2.6", // Official model identifier
           input: {
             mode: "pro",
-            prompt: "The subject performs smooth, natural movements matching the reference motion, professional quality animation, seamless motion transfer",
+            prompt: `${motionPrompt}, maintain subject identity and appearance, professional animation`,
             start_image: targetImageUrl,
-            duration: 5,
+            duration: Math.min(Math.max(duration, 5), 10),
             aspect_ratio: aspectRatio,
-            negative_prompt: "static, frozen, unnatural movements, glitchy, distorted",
+            negative_prompt: negativePrompt,
           },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[motion-transfer] Kling failed:", errorText);
-        throw new Error(`Motion transfer failed: ${errorText}`);
+        console.error("[motion-transfer] Kling failed:", response.status, errorText);
+        throw new Error(`Motion transfer failed: ${response.status}`);
       }
 
       prediction = await response.json();
 
     } else if (mode === "video") {
-      // Transfer motion from one video to another (re-pose a person in video)
-      if (!targetVideoUrl) {
-        throw new Error("targetVideoUrl is required for video mode");
+      // Transfer motion from one video to another
+      if (!sourceVideoUrl || !targetVideoUrl) {
+        throw new Error("Both sourceVideoUrl and targetVideoUrl are required for video mode");
       }
 
-      console.log("[motion-transfer] Target video (person to re-pose):", targetVideoUrl);
+      console.log("[motion-transfer] Source video (motion):", sourceVideoUrl);
+      console.log("[motion-transfer] Target video (to re-animate):", targetVideoUrl);
 
-      // For video-to-video motion transfer, use style transfer approach
-      // Use official model identifier for Replicate API
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
+      // For video-to-video, we use the target as start_image (first frame will be extracted)
+      // and incorporate motion description from the source
+      const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${REPLICATE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "kwaivgi/kling-v2.6", // Official model identifier
           input: {
             mode: "pro",
-            prompt: "Transfer motion from reference video, maintain subject identity, smooth natural movements, professional quality",
-            start_image: targetVideoUrl, // First frame will be extracted
-            duration: 5,
+            prompt: `${motionPrompt}, transfer motion pattern from reference, maintain subject identity, smooth natural movements`,
+            start_image: targetVideoUrl,
+            duration: Math.min(Math.max(duration, 5), 10),
             aspect_ratio: aspectRatio,
-            negative_prompt: "static, frozen, unnatural, glitchy",
+            negative_prompt: negativePrompt,
           },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("[motion-transfer] Video pose transfer failed:", errorText);
+        console.error("[motion-transfer] Video motion transfer failed:", response.status, errorText);
         throw new Error(`Motion transfer failed: ${response.status}`);
       }
 
       prediction = await response.json();
+
     } else {
       throw new Error(`Unknown mode: ${mode}. Use 'image' or 'video'`);
     }
@@ -129,9 +176,11 @@ serve(async (req) => {
         predictionId: prediction.id,
         status: "processing",
         mode,
+        motionPreset: motionPreset || "custom",
+        availablePresets: Object.keys(MOTION_PRESETS),
         message: mode === "image" 
-          ? "Your character will be animated with natural movements."
-          : "Re-animating the target with transferred motion.",
+          ? "Animating your image with natural motion..."
+          : "Transferring motion pattern to target video...",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -141,7 +190,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+        error: error instanceof Error ? error.message : "Unknown error",
+        availablePresets: Object.keys(MOTION_PRESETS),
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

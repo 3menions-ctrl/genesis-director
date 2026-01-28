@@ -440,23 +440,58 @@ const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high def
 // =============================================================================
 
 const BLOCK_PATTERNS_TO_STRIP = [
-  /\[CHARACTER IDENTITY[^\]]*\]/gi,
+  // Multi-line identity blocks with content spanning lines
+  /\[CHARACTER IDENTITY[^\]]*\][^[]*(?=\[|$)/gi,
+  /\[CRITICAL: SAME EXACT PERSON[^\]]*\]/gi,
   /\[IDENTITY[^\]]*\]/gi,
+  /\[FACE LOCK[^\]]*\]/gi,
+  /\[EXACT FACE[^\]]*\]/gi,
+  /\[LOCKED FACIAL FEATURES[^\]]*\]/gi,
+  /\[MULTI-VIEW IDENTITY[^\]]*\]/gi,
+  /\[CHARACTER CONSISTENCY[^\]]*\]/gi,
+  /\[VIEW ANCHORS[^\]]*\]/gi,
   /\[CHARACTERS:[^\]]*\]/gi,
   /\[VISUAL ANCHORS:[^\]]*\]/gi,
+  /\[CONSISTENCY LOCK:[^\]]*\]/gi,
+  /\[IDENTITY LOCK[^\]]*\][\s\S]*?\[END IDENTITY LOCK\]/gi,
+  /\[SCENE DNA:[^\]]*\]/gi,
+  /\[MASTER LIGHTING:[^\]]*\]/gi,
+  /\[COLOR PALETTE:[^\]]*\]/gi,
   /\[COLOR DNA:[^\]]*\]/gi,
   /\[PROGRESSIVE COLOR:[^\]]*\]/gi,
+  /\[MATCH LIGHTING:[^\]]*\]/gi,
+  /\[MATCH ENVIRONMENT:[^\]]*\]/gi,
+  /\[CRITICAL ANCHORS:[^\]]*\]/gi,
+  /\[CONTINUE ACTION:[^\]]*\]/gi,
+  /\[MANDATORY CONTINUATION:[^\]]*\]/gi,
+  /\[MATCH MOTION:[^\]]*\]/gi,
   /\[CAMERA:[^\]]*\]/gi,
   /\[LENS:[^\]]*\]/gi,
   /\[PHYSICS:[^\]]*\]/gi,
-  /\[CONSISTENCY LOCK:[^\]]*\]/gi,
+  /\[SCENE:[^\]]*\]/gi,
+  // Multi-line blocks for HAIR, BODY, OUTFIT that appear on separate lines
+  /\nHAIR:[^\n]*(?:\n[^\n\[]*)*?(?=\n\[|\n\n|$)/gi,
+  /\nBODY:[^\n]*(?:\n[^\n\[]*)*?(?=\n\[|\n\n|$)/gi,
+  /\nOUTFIT:[^\n]*(?:\n[^\n\[]*)*?(?=\n\[|\n\n|$)/gi,
+  /\nFACE:[^\n]*(?:\n[^\n\[]*)*?(?=\n\[|\n\n|$)/gi,
 ];
 
 function stripExistingBlocks(prompt: string): string {
   let cleaned = prompt;
+  
+  // Apply each pattern
   for (const pattern of BLOCK_PATTERNS_TO_STRIP) {
     cleaned = cleaned.replace(pattern, '');
   }
+  
+  // Remove orphaned bracket blocks we might have missed
+  cleaned = cleaned.replace(/\[[A-Z][A-Z\s\-_:]*[^\]]*\]/gi, (match) => {
+    // Keep the actual shot description (doesn't start with uppercase block patterns)
+    const blockPatterns = ['CHARACTER', 'IDENTITY', 'FACE', 'SCENE', 'COLOR', 'LIGHTING', 'MATCH', 'CRITICAL', 'VISUAL', 'CONSISTENCY', 'CAMERA', 'LENS', 'PHYSICS', 'CONTINUE', 'MANDATORY', 'MULTI-VIEW', 'VIEW', 'LOCKED', 'EXACT'];
+    const startsWithBlock = blockPatterns.some(p => match.toUpperCase().includes(`[${p}`));
+    return startsWithBlock ? '' : match;
+  });
+  
   // Remove multiple newlines and extra spaces
   return cleaned.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
 }
@@ -875,9 +910,49 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
-  // FINAL ASSEMBLY
+  // FINAL ASSEMBLY WITH LENGTH OPTIMIZATION
+  // Kling models work best with prompts under 1000 chars for video generation
   // ===========================================================================
-  const enhancedPrompt = promptParts.join('\n\n');
+  
+  // Prioritize critical identity and scene data, trim excess
+  let assembledPrompt = promptParts.join('\n\n');
+  
+  // If prompt is too long, compress by removing verbose sections
+  const MAX_PROMPT_LENGTH = 1500; // Allow some headroom
+  if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
+    // Remove lower priority blocks first (in order of priority)
+    const lowPriorityPatterns = [
+      /\[SCENE: [^\]]*\]/gi,           // Scene context (least critical)
+      /\[MATCH MOTION: [^\]]*\]/gi,     // Motion matching
+      /\[MATCH ENVIRONMENT: [^\]]*\]/gi, // Environment matching
+      /\[MATCH LIGHTING: [^\]]*\]/gi,   // Lighting matching
+      /\[CRITICAL ANCHORS: [^\]]*\]/gi, // Critical anchors
+      /\[COLOR PALETTE: [^\]]*\]/gi,    // Color palette
+    ];
+    
+    for (const pattern of lowPriorityPatterns) {
+      if (assembledPrompt.length <= MAX_PROMPT_LENGTH) break;
+      assembledPrompt = assembledPrompt.replace(pattern, '');
+    }
+    
+    // If still too long, truncate the shot description while keeping identity
+    if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
+      // Find the cleaned base prompt (shot description) and quality suffix
+      const qualitySuffixIndex = assembledPrompt.indexOf(', cinematic lighting');
+      if (qualitySuffixIndex > 0) {
+        const beforeQuality = assembledPrompt.substring(0, qualitySuffixIndex);
+        const qualitySuffix = assembledPrompt.substring(qualitySuffixIndex);
+        
+        // Keep as much as we can fit
+        const availableSpace = MAX_PROMPT_LENGTH - qualitySuffix.length - 50;
+        assembledPrompt = beforeQuality.substring(0, availableSpace) + '...' + qualitySuffix;
+      }
+    }
+    
+    warnings.push(`Prompt compressed from ${promptParts.join('\n\n').length} to ${assembledPrompt.length} chars`);
+  }
+  
+  const enhancedPrompt = assembledPrompt.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
   const negativePrompt = [...new Set(negativeParts)].join(', '); // Deduplicate
   
   return {

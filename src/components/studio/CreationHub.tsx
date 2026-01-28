@@ -20,6 +20,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import {
   Select,
@@ -143,6 +144,9 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   
+  // Template/Environment hook - loads settings from URL params
+  const { appliedSettings, isLoading: templateLoading, templateId } = useTemplateEnvironment();
+  
   // File upload hooks
   const imageUpload = useFileUpload({ maxSizeMB: 10, allowedTypes: ['image/*'] });
   const videoUpload = useFileUpload({ maxSizeMB: 100, allowedTypes: ['video/*'] });
@@ -157,6 +161,11 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic, setEnableMusic] = useState(true);
   
+  // Advanced options (for cinematic modes) - must be declared before effects that use them
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [genre, setGenre] = useState('cinematic');
+  const [mood, setMood] = useState('epic');
+  
   // Get tier limits to enforce clip count restrictions
   const { tierLimits, maxClips, isLoading: tierLoading } = useTierLimits();
   
@@ -170,10 +179,31 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
     }
   }, [maxClips, clipCount]);
   
-  // Advanced options (for cinematic modes)
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [genre, setGenre] = useState('cinematic');
-  const [mood, setMood] = useState('epic');
+  // Apply template settings when loaded from URL params (?template=xxx)
+  useEffect(() => {
+    if (appliedSettings) {
+      // Apply prompt/concept from template
+      if (appliedSettings.concept) {
+        setPrompt(appliedSettings.concept);
+      }
+      // Apply clip count (capped by tier limits)
+      if (appliedSettings.clipCount) {
+        setClipCount(Math.min(appliedSettings.clipCount, maxClips));
+      }
+      // Apply mood
+      if (appliedSettings.mood) {
+        setMood(appliedSettings.mood);
+      }
+      // Apply genre
+      if (appliedSettings.genre) {
+        setGenre(appliedSettings.genre);
+      }
+      // If template has a style anchor with color grading, open advanced options
+      if (appliedSettings.colorGrading || appliedSettings.environmentPrompt) {
+        setShowAdvanced(true);
+      }
+    }
+  }, [appliedSettings, maxClips]);
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
   
@@ -331,6 +361,30 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
       <div className="max-w-6xl mx-auto px-6">
         {/* Active Project Banner - Shows when user has an ongoing project */}
         <ActiveProjectBanner className="mb-8" />
+        
+        {/* Template Applied Banner */}
+        {appliedSettings?.templateName && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                <Layers className="w-5 h-5 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-violet-300">
+                  Template: {appliedSettings.templateName}
+                </p>
+                <p className="text-xs text-violet-400/60">
+                  {appliedSettings.clipCount} clips • {appliedSettings.genre} • {appliedSettings.mood} mood
+                </p>
+              </div>
+            </div>
+            <CheckCircle2 className="w-5 h-5 text-violet-400" />
+          </motion.div>
+        )}
 
         {/* Header - Premium minimal */}
         <motion.div 

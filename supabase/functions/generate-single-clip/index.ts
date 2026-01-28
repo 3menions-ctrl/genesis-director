@@ -5,9 +5,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 // Kling 2.6 via Replicate - Latest Model with HD Pro Quality
 // Using Replicate API with predictions endpoint for maximum quality
 // ============================================================================
-const REPLICATE_API_URL = "https://api.replicate.com/v1/predictions";
+// Use model-specific endpoint for creating predictions (not /predictions)
+const KLING_MODEL_OWNER = "kwaivgi";
+const KLING_MODEL_NAME = "kling-v2.6";
+const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_MODEL = "kwaivgi/kling-v2.6"; // Latest Kling version - HD quality
 const KLING_ENABLE_AUDIO = true; // Native audio generation
 
 const corsHeaders = {
@@ -156,7 +158,7 @@ async function createReplicatePrediction(
   }
 
   console.log("[SingleClip] Creating Replicate prediction for Kling v2.6 (HD Pro):", {
-    model: KLING_MODEL,
+    model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
     mode: input.mode,
     hasStartImage: !!input.start_image,
     duration: input.duration,
@@ -164,17 +166,15 @@ async function createReplicatePrediction(
     promptLength: prompt.length,
   });
 
-  // Use predictions endpoint with model name for Kling v2.6
-  const response = await fetch(REPLICATE_API_URL, {
+  // Use model-specific endpoint: /models/{owner}/{model}/predictions
+  // This is the CORRECT way to create predictions for official models
+  const response = await fetch(REPLICATE_MODEL_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${REPLICATE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ 
-      model: KLING_MODEL,
-      input 
-    }),
+    body: JSON.stringify({ input }),
   });
 
   if (!response.ok) {
@@ -567,7 +567,7 @@ serve(async (req) => {
           clipId,
           predictionId,
           provider: "replicate",
-          model: KLING_MODEL,
+          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -714,7 +714,7 @@ serve(async (req) => {
         p_duration_seconds: durationSeconds,
         p_status: 'completed',
         p_metadata: JSON.stringify({ 
-          model: KLING_MODEL,
+          model: `${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}`,
           predictionId,
           hasStartImage: !!validatedStartImage,
           hasLastFrame: !!extractedLastFrameUrl,

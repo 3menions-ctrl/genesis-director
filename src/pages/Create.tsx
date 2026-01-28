@@ -76,33 +76,42 @@ export default function Create() {
     }
 
     // Standard modes (text-to-video, image-to-video, b-roll) 
-    // use the full pipeline via UnifiedStudio
-    sessionStorage.setItem('pendingCreation', JSON.stringify({
-      // Core content
-      concept: config.prompt,
-      mode: config.mode,
-      
-      // Video format
-      aspectRatio: config.aspectRatio,
-      clipCount: config.clipCount,
-      clipDuration: config.clipDuration,
-      
-      // Audio settings
-      includeVoice: config.enableNarration,
-      includeMusic: config.enableMusic,
-      
-      // Mode-specific settings
-      style: config.style,
-      voiceId: config.voiceId,
-      imageUrl: config.imageUrl,
-      videoUrl: config.videoUrl,
-      
-      // Metadata
-      timestamp: Date.now(),
-    }));
+    // Call mode-router to create project and start pipeline directly
+    setIsCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mode-router', {
+        body: {
+          mode: config.mode,
+          userId: user.id,
+          prompt: config.prompt,
+          imageUrl: config.imageUrl,
+          videoUrl: config.videoUrl,
+          stylePreset: config.style,
+          voiceId: config.voiceId,
+          aspectRatio: config.aspectRatio,
+          clipCount: config.clipCount,
+          clipDuration: config.clipDuration,
+          enableNarration: config.enableNarration,
+          enableMusic: config.enableMusic,
+        },
+      });
 
-    toast.success(`Starting ${config.mode.replace(/-/g, ' ')} creation...`);
-    navigate('/studio');
+      if (error) throw error;
+
+      toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
+      
+      // Navigate to production page to monitor progress
+      if (data?.projectId) {
+        navigate(`/production/${data.projectId}`);
+      } else {
+        navigate('/projects');
+      }
+    } catch (error) {
+      console.error('Creation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to start creation');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (

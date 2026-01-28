@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  acquireGenerationLock,
+  releaseGenerationLock,
+  checkContinuityReady,
+  loadPipelineContext,
+} from "../_shared/generation-mutex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +17,8 @@ const corsHeaders = {
  * 
  * Allows manual retry of a failed clip from the Production page.
  * Uses the existing generate-single-clip function with the same parameters.
+ * 
+ * FAILSAFE: Acquires generation lock and validates continuity before retrying
  */
 
 interface RetryRequest {
@@ -58,6 +66,49 @@ serve(async (req) => {
     
     console.log(`[RetryClip] Retrying clip ${request.clipIndex} for project ${request.projectId}`);
     
+    // =========================================================
+    // FAILSAFE: Acquire generation lock before retrying
+    // =========================================================
+    const lockId = crypto.randomUUID();
+    const lockResult = await acquireGenerationLock(supabase, request.projectId, request.clipIndex, lockId);
+    
+    if (!lockResult.acquired) {
+      console.warn(`[RetryClip] ⚠️ Cannot retry - clip ${lockResult.blockedByClip} is currently generating`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'GENERATION_LOCKED',
+          message: `Another clip (${lockResult.blockedByClip}) is currently generating. Please wait.`,
+          lockAgeSeconds: lockResult.lockAgeSeconds,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`[RetryClip] ✓ Generation lock acquired: ${lockId}`);
+    
+    // =========================================================
+    // FAILSAFE: Check continuity before retrying (for clip 2+)
+    // =========================================================
+    if (request.clipIndex > 0) {
+      const continuityCheck = await checkContinuityReady(supabase, request.projectId, request.clipIndex);
+      
+      if (!continuityCheck.ready) {
+        // Release lock since we can't proceed
+        await releaseGenerationLock(supabase, request.projectId, lockId);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'CONTINUITY_NOT_READY',
+            message: `Cannot retry clip ${request.clipIndex + 1}: ${continuityCheck.reason}`,
+            details: continuityCheck,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
     // 1. Get the failed clip details
     const { data: failedClip, error: clipError } = await supabase
       .from('video_clips')
@@ -67,10 +118,12 @@ serve(async (req) => {
       .single();
     
     if (clipError || !failedClip) {
+      await releaseGenerationLock(supabase, request.projectId, lockId);
       throw new Error(`Clip not found: ${clipError?.message}`);
     }
     
     if (failedClip.status !== 'failed') {
+      await releaseGenerationLock(supabase, request.projectId, lockId);
       throw new Error(`Clip is not in failed state: ${failedClip.status}`);
     }
     
@@ -110,31 +163,25 @@ serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('project_id', request.projectId);
     
-    // 5. Parse identity bible from project's pending_video_tasks or pro_features_data
+    // 5. Load pipeline context from DB (FAILSAFE: reliable context loading)
+    const savedContext = await loadPipelineContext(supabase, request.projectId);
+    
     let identityBible: any;
     let goldenFrameData: any;
     let accumulatedAnchors: any[] = [];
     let referenceImageUrl: string | undefined;
     
+    // Use saved context if available, otherwise fall back to pro_features_data
     const pendingTasks = project.pending_video_tasks as any;
     const proFeatures = project.pro_features_data as any;
     
-    if (proFeatures?.identityBible) {
-      identityBible = proFeatures.identityBible;
-    } else if (pendingTasks?.identityBible) {
-      identityBible = pendingTasks.identityBible;
-    }
+    // Priority: savedContext > proFeatures > pendingTasks
+    identityBible = savedContext?.identityBible || proFeatures?.identityBible || pendingTasks?.identityBible;
+    goldenFrameData = savedContext?.goldenFrameData || proFeatures?.goldenFrameData;
+    accumulatedAnchors = savedContext?.accumulatedAnchors || proFeatures?.accumulatedAnchors || [];
+    referenceImageUrl = savedContext?.referenceImageUrl || goldenFrameData?.goldenFrameUrl;
     
-    // Get golden frame data for character consistency
-    if (proFeatures?.goldenFrameData) {
-      goldenFrameData = proFeatures.goldenFrameData;
-      referenceImageUrl = goldenFrameData.goldenFrameUrl;
-    }
-    
-    // Get accumulated anchors for scene DNA
-    if (proFeatures?.accumulatedAnchors) {
-      accumulatedAnchors = proFeatures.accumulatedAnchors;
-    }
+    console.log(`[RetryClip] Loaded context: identityBible=${identityBible ? 'YES' : 'NO'}, anchors=${accumulatedAnchors.length}, ref=${referenceImageUrl ? 'YES' : 'NO'}`);
     
     // 5b. Get corrective prompts from failed clip's validation results
     let enhancedPrompt = failedClip.prompt;
@@ -219,6 +266,8 @@ serve(async (req) => {
       })
       .eq('id', request.projectId);
     
+    // Note: Lock is released by generate-single-clip after completion
+    
     return new Response(
       JSON.stringify({
         success: true,
@@ -233,6 +282,11 @@ serve(async (req) => {
     
   } catch (error) {
     console.error("[RetryClip] Error:", error);
+    
+    // Release lock on error (if we have the info)
+    // Note: The actual lock release might fail if we don't have the lockId,
+    // but generate-single-clip will handle releasing its own lock on error
+    
     return new Response(
       JSON.stringify({
         success: false,

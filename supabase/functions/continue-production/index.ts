@@ -392,16 +392,23 @@ serve(async (req: Request) => {
     }
 
     console.log(`[ContinueProduction] Calling generate-single-clip for clip ${nextClipIndex + 1}...`);
-    console.log(`[ContinueProduction] Start image: ${startImageUrl?.substring(0, 60) || 'none'}...`);
-    console.log(`[ContinueProduction] Identity Bible: ${context?.identityBible ? 'YES' : 'NO'}`);
-    if (context?.identityBible) {
-      console.log(`[ContinueProduction]   - characterDescription: ${context.identityBible.characterDescription?.substring(0, 40) || 'NONE'}...`);
-      console.log(`[ContinueProduction]   - consistencyPrompt: ${context.identityBible.consistencyPrompt?.substring(0, 40) || 'NONE'}...`);
-      console.log(`[ContinueProduction]   - nonFacialAnchors: ${context.identityBible.nonFacialAnchors ? 'YES' : 'NO'}`);
-    }
+    console.log(`[ContinueProduction] ═══════════════════════════════════════════════════`);
+    console.log(`[ContinueProduction] DATA HANDOFF TO CLIP ${nextClipIndex + 1}:`);
+    console.log(`[ContinueProduction]   - startImageUrl: ${startImageUrl ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - identityBible: ${context?.identityBible ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - identityBible.characterDescription: ${context?.identityBible?.characterDescription ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - identityBible.nonFacialAnchors: ${context?.identityBible?.nonFacialAnchors ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - identityBible.antiMorphingPrompts: ${context?.identityBible?.antiMorphingPrompts?.length || 0}`);
+    console.log(`[ContinueProduction]   - identityBible.occlusionNegatives: ${context?.identityBible?.occlusionNegatives?.length || 0}`);
+    console.log(`[ContinueProduction]   - masterSceneAnchor: ${context?.masterSceneAnchor ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - previousMotionVectors: ${previousMotionVectors ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - previousContinuityManifest: ${previousContinuityManifest ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - extractedCharacters: ${context?.extractedCharacters?.length || 0}`);
+    console.log(`[ContinueProduction]   - accumulatedAnchors: ${context?.accumulatedAnchors?.length || 0}`);
+    console.log(`[ContinueProduction] ═══════════════════════════════════════════════════`);
 
-    // Call generate-single-clip with callback enabled
-    // CRITICAL: Pass complete identityBible with all fields for character consistency
+    // Call generate-single-clip with COMPLETE data handoff
+    // CRITICAL: Pass ALL continuity and identity data
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
@@ -409,20 +416,26 @@ serve(async (req: Request) => {
       prompt: nextClipPrompt,
       totalClips,
       startImageUrl,
+      // CONTINUITY DATA FROM PREVIOUS CLIP
       previousMotionVectors,
       previousContinuityManifest,
+      // MASTER ANCHORS
+      masterSceneAnchor: context?.masterSceneAnchor,
       goldenFrameData: context?.goldenFrameData,
-      // CRITICAL: Pass full identityBible with characterDescription
+      // IDENTITY DATA (CRITICAL FOR CHARACTER CONSISTENCY)
       identityBible: context?.identityBible,
-      colorGrading: context?.colorGrading || 'cinematic',
-      qualityTier: context?.qualityTier || 'standard',
-      aspectRatio: context?.aspectRatio || '16:9',
+      extractedCharacters: context?.extractedCharacters,
+      // SCENE REFERENCES
       referenceImageUrl: context?.referenceImageUrl,
       sceneImageUrl: context?.sceneImageLookup?.[nextClipIndex] || context?.sceneImageLookup?.[0],
       accumulatedAnchors: context?.accumulatedAnchors || [],
-      // CRITICAL: Enable callback continuation
+      // QUALITY SETTINGS
+      colorGrading: context?.colorGrading || 'cinematic',
+      qualityTier: context?.qualityTier || 'standard',
+      aspectRatio: context?.aspectRatio || '16:9',
+      // CALLBACK CONTINUATION
       triggerNextClip: true,
-      // CRITICAL: Pass full context including extractedCharacters
+      // FULL CONTEXT FOR PERSISTENCE
       pipelineContext: context,
     });
 

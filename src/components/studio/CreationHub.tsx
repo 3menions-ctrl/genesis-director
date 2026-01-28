@@ -8,6 +8,7 @@ import {
   Volume2, Settings2, X, CheckCircle2, Loader2,
   Clapperboard, ChevronDown, Zap, Crown
 } from 'lucide-react';
+import { ActiveProjectBanner } from './ActiveProjectBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -328,6 +329,9 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   return (
     <div className={cn("min-h-screen pt-8 pb-24", className)}>
       <div className="max-w-6xl mx-auto px-6">
+        {/* Active Project Banner - Shows when user has an ongoing project */}
+        <ActiveProjectBanner className="mb-8" />
+
         {/* Header - Premium minimal */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}

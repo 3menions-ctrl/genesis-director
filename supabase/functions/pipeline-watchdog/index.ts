@@ -11,6 +11,7 @@ import {
   findOrphanedVideo,
   recoverStuckClip,
   releaseStaleCompletedLock,
+  verifyAllStuckPredictions,
 } from "../_shared/pipeline-guard-rails.ts";
 
 const corsHeaders = {

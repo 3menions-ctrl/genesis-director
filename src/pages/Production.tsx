@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks, PendingVideoTasksDegradation } from '@/types/pending-video-tasks';
+import { useClipRecovery } from '@/hooks/useClipRecovery';
 
 // Components - New modular design
 import { ProductionSidebar } from '@/components/production/ProductionSidebar';
@@ -113,6 +114,9 @@ export default function Production() {
   // Support both /production/:projectId and /production?projectId=xxx
   const projectId = params.projectId || searchParams.get('projectId');
   const { user } = useAuth();
+  
+  // Proactive clip recovery - checks for stuck clips on page load
+  const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);
   
   // UI State - Sidebar starts collapsed for cleaner experience
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);

@@ -718,7 +718,7 @@ export async function recoverAllStuckClips(
   
   const { data: stuckClips, error } = await supabase
     .from('video_clips')
-    .select('id, shot_index, status, video_url, updated_at')
+    .select('id, shot_index, status, video_url, updated_at, veo_operation_name')
     .eq('project_id', projectId)
     .eq('status', 'generating')
     .lt('updated_at', twoMinutesAgo)
@@ -754,4 +754,273 @@ export async function recoverAllStuckClips(
   }
   
   return { recoveredCount, details };
+}
+
+// =====================================================
+// PREDICTION VERIFICATION - Check Replicate status for stuck clips
+// =====================================================
+
+export interface PredictionVerificationResult {
+  clipIndex: number;
+  predictionId: string;
+  status: 'succeeded' | 'failed' | 'running' | 'error';
+  recovered: boolean;
+  videoUrl?: string;
+  error?: string;
+}
+
+/**
+ * CRITICAL GUARD RAIL: Verify Replicate prediction status for stuck clips
+ * This catches the case where Replicate completed but we missed the callback
+ */
+export async function verifyPredictionAndRecover(
+  supabase: SupabaseClient,
+  projectId: string,
+  clipId: string,
+  shotIndex: number,
+  predictionId: string,
+  userId: string,
+  referenceImageUrl?: string
+): Promise<PredictionVerificationResult> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  
+  if (!REPLICATE_API_KEY) {
+    return {
+      clipIndex: shotIndex,
+      predictionId,
+      status: 'error',
+      recovered: false,
+      error: 'REPLICATE_API_KEY not configured',
+    };
+  }
+  
+  try {
+    console.log(`[GuardRails] Verifying prediction ${predictionId} for clip ${shotIndex + 1}...`);
+    
+    const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[GuardRails] Replicate API error: ${response.status}`, errorText);
+      return {
+        clipIndex: shotIndex,
+        predictionId,
+        status: 'error',
+        recovered: false,
+        error: `API error: ${response.status}`,
+      };
+    }
+    
+    const prediction = await response.json();
+    console.log(`[GuardRails] Prediction ${predictionId} status: ${prediction.status}`);
+    
+    if (prediction.status === 'succeeded') {
+      // Extract video URL
+      let videoUrl = null;
+      if (typeof prediction.output === 'string') {
+        videoUrl = prediction.output;
+      } else if (Array.isArray(prediction.output) && prediction.output.length > 0) {
+        videoUrl = prediction.output[0];
+      }
+      
+      if (videoUrl) {
+        console.log(`[GuardRails] ✓ Prediction succeeded! Recovering clip ${shotIndex + 1}...`);
+        
+        // Download and store video
+        const storedUrl = await downloadAndStoreVideo(supabase, videoUrl, projectId, shotIndex);
+        
+        if (storedUrl) {
+          // Update clip record
+          const updateData: Record<string, any> = {
+            status: 'completed',
+            video_url: storedUrl,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            error_message: null,
+          };
+          
+          // For Clip 0, use reference image as last_frame
+          if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+            updateData.last_frame_url = referenceImageUrl;
+          }
+          
+          await supabase
+            .from('video_clips')
+            .update(updateData)
+            .eq('id', clipId);
+          
+          // Release mutex if held
+          await supabase
+            .from('movie_projects')
+            .update({
+              generation_lock: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', projectId);
+          
+          console.log(`[GuardRails] ✓ Clip ${shotIndex + 1} fully recovered from prediction!`);
+          
+          return {
+            clipIndex: shotIndex,
+            predictionId,
+            status: 'succeeded',
+            recovered: true,
+            videoUrl: storedUrl,
+          };
+        }
+      }
+      
+      return {
+        clipIndex: shotIndex,
+        predictionId,
+        status: 'succeeded',
+        recovered: false,
+        error: 'Video URL extraction failed',
+      };
+    } else if (prediction.status === 'failed') {
+      // Mark clip as failed
+      await supabase
+        .from('video_clips')
+        .update({
+          status: 'failed',
+          error_message: prediction.error || 'Replicate generation failed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', clipId);
+      
+      // Release mutex
+      await supabase
+        .from('movie_projects')
+        .update({
+          generation_lock: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      return {
+        clipIndex: shotIndex,
+        predictionId,
+        status: 'failed',
+        recovered: false,
+        error: prediction.error || 'Generation failed',
+      };
+    }
+    
+    // Still running
+    return {
+      clipIndex: shotIndex,
+      predictionId,
+      status: 'running',
+      recovered: false,
+    };
+  } catch (err) {
+    console.error(`[GuardRails] Prediction verification error:`, err);
+    return {
+      clipIndex: shotIndex,
+      predictionId,
+      status: 'error',
+      recovered: false,
+      error: `${err}`,
+    };
+  }
+}
+
+/**
+ * Download video from URL and store in Supabase storage
+ */
+async function downloadAndStoreVideo(
+  supabase: SupabaseClient,
+  videoUrl: string,
+  projectId: string,
+  clipIndex: number
+): Promise<string | null> {
+  try {
+    console.log(`[GuardRails] Downloading video from ${videoUrl.substring(0, 50)}...`);
+    
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    
+    const videoData = await response.arrayBuffer();
+    const fileName = `clip_${projectId}_${clipIndex}_${Date.now()}.mp4`;
+    const storagePath = `${projectId}/${fileName}`;
+    
+    console.log(`[GuardRails] Uploading ${videoData.byteLength} bytes to storage...`);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('video-clips')
+      .upload(storagePath, new Uint8Array(videoData), {
+        contentType: 'video/mp4',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('video-clips')
+      .getPublicUrl(storagePath);
+    
+    console.log(`[GuardRails] ✓ Video stored: ${publicUrl}`);
+    return publicUrl;
+  } catch (err) {
+    console.error(`[GuardRails] Download/store error:`, err);
+    return null;
+  }
+}
+
+/**
+ * Verify and recover ALL stuck clips with prediction IDs
+ */
+export async function verifyAllStuckPredictions(
+  supabase: SupabaseClient,
+  projectId: string,
+  userId: string,
+  referenceImageUrl?: string
+): Promise<{ verified: number; recovered: number; results: PredictionVerificationResult[] }> {
+  const results: PredictionVerificationResult[] = [];
+  
+  // Find stuck clips with prediction IDs
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  
+  const { data: stuckClips, error } = await supabase
+    .from('video_clips')
+    .select('id, shot_index, veo_operation_name, user_id')
+    .eq('project_id', projectId)
+    .eq('status', 'generating')
+    .not('veo_operation_name', 'is', null)
+    .lt('updated_at', twoMinutesAgo)
+    .order('shot_index');
+  
+  if (error || !stuckClips || stuckClips.length === 0) {
+    return { verified: 0, recovered: 0, results };
+  }
+  
+  console.log(`[GuardRails] Verifying ${stuckClips.length} stuck predictions...`);
+  
+  for (const clip of stuckClips) {
+    const result = await verifyPredictionAndRecover(
+      supabase,
+      projectId,
+      clip.id,
+      clip.shot_index,
+      clip.veo_operation_name!,
+      clip.user_id || userId,
+      referenceImageUrl
+    );
+    results.push(result);
+  }
+  
+  const recovered = results.filter(r => r.recovered).length;
+  console.log(`[GuardRails] Prediction verification complete: ${recovered}/${results.length} recovered`);
+  
+  return {
+    verified: results.length,
+    recovered,
+    results,
+  };
 }

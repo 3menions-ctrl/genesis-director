@@ -794,33 +794,42 @@ export default function Production() {
   const handleCancelPipeline = async () => {
     if (!projectId || !user || isCancelling) return;
     
-    if (!window.confirm('Are you sure you want to cancel this production?')) return;
+    if (!window.confirm('Are you sure you want to cancel this production? This will stop all background processing and cannot be undone.')) return;
     
     setIsCancelling(true);
     
     try {
-      addLog('Cancelling pipeline...', 'warning');
+      addLog('Cancelling pipeline and all background processes...', 'warning');
       
-      const { error: updateError } = await supabase
-        .from('movie_projects')
-        .update({ status: 'draft' })
-        .eq('id', projectId)
-        .eq('user_id', user.id);
+      // Call the comprehensive cancel-project edge function
+      const { data, error } = await supabase.functions.invoke('cancel-project', {
+        body: {
+          projectId,
+          userId: user.id,
+        },
+      });
       
-      if (updateError) throw updateError;
+      if (error) {
+        throw new Error(error.message || 'Failed to cancel project');
+      }
       
-      await supabase
-        .from('video_clips')
-        .update({ status: 'pending' })
-        .eq('project_id', projectId)
-        .eq('status', 'generating');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Cancellation failed');
+      }
       
-      setProjectStatus('draft');
-      toast.success('Pipeline cancelled');
-      navigate('/projects');
+      // Log what was cancelled
+      const details = data.details || {};
+      addLog(`Cancelled: ${details.predictionsCanelled || 0} predictions, ${details.clipsCancelled || 0} clips`, 'success');
+      
+      setProjectStatus('cancelled');
+      toast.success('Project cancelled successfully. All background processes stopped.');
+      
+      // Navigate after a brief delay to show the success message
+      setTimeout(() => navigate('/projects'), 500);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel');
-      addLog(`Cancel failed: ${err.message}`, 'error');
+      const errorMsg = err.message || 'Failed to cancel';
+      toast.error(errorMsg);
+      addLog(`Cancel failed: ${errorMsg}`, 'error');
     } finally {
       setIsCancelling(false);
     }

@@ -280,19 +280,54 @@ STRICT RULES FOR IMAGE-TO-VIDEO:
       console.log(`[SmartScript] STRICT MODE: Using reference image analysis for script generation`);
     }
 
-    // Build the system prompt for CONTINUOUS SCENE breakdown
-    const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${clipCount} clips that flow seamlessly together.
+    // Build the system prompt for CONTINUOUS SCENE breakdown - OPTIMIZED FOR KLING AI
+    const systemPrompt = `You are an ELITE CINEMATOGRAPHER and STORYTELLING EXPERT for Kling AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${clipCount} clips that are optimized for maximum visual impact and narrative power.
 
 ${referenceImageContext}
 
 CRITICAL CLIP COUNT REQUIREMENT:
 - You MUST output EXACTLY ${clipCount} clips - no more, no less
 - The clips array MUST have exactly ${clipCount} items
-- Do NOT output 6 clips if ${clipCount} clips are requested
 - This is non-negotiable: output = ${clipCount} clips
 
+=======================================================================
+🎬 KLING AI OPTIMIZATION RULES (CRITICAL FOR QUALITY)
+=======================================================================
+
+Kling AI produces the BEST results when descriptions are:
+1. VISUALLY SPECIFIC - Describe exactly what the camera sees, not abstract concepts
+2. MOTION-FOCUSED - Describe movement direction, speed, and how actions unfold
+3. CINEMATICALLY FRAMED - Specify shot type (wide, medium, close-up) and camera movement
+4. PHYSICALLY GROUNDED - Actions must obey physics (no floating, instant teleportation)
+5. CHARACTER-CENTERED - Keep the subject doing visible actions (not just thinking/feeling)
+
+BAD PROMPT: "The character feels contemplative as time passes"
+GOOD PROMPT: "Close-up shot of woman gazing out rain-streaked window, her fingers slowly tracing patterns on the glass, soft afternoon light illuminating her pensive expression"
+
+BAD PROMPT: "An epic battle scene with chaos everywhere"  
+GOOD PROMPT: "Wide tracking shot following warrior as she dodges incoming arrows, dust clouds rising from each footstep, camera circles around her as she raises her sword"
+
+=======================================================================
+📖 STORYTELLING OPTIMIZATION (NARRATIVE POWER)
+=======================================================================
+
+Create a compelling STORY ARC across your ${clipCount} clips:
+
+1. HOOK (Clip 1): Start with visual intrigue - something happening that demands attention
+2. BUILD (Clips 2-${Math.floor(clipCount * 0.4)}): Escalate tension/interest progressively
+3. CLIMAX (Clips ${Math.floor(clipCount * 0.6)}-${Math.floor(clipCount * 0.8)}): Peak emotional/action moment
+4. RESOLUTION (Final clips): Satisfying conclusion with visual payoff
+
+Each clip should:
+- Advance the story (don't repeat or stall)
+- Create visual variety (change angles, distances, focal points)
+- Build emotional momentum toward the climax
+- End with a moment that connects naturally to the next
+
+=======================================================================
+
 ${isImageToVideo ? `
-🎬 IMAGE-TO-VIDEO MODE - STRICT ADHERENCE:
+🎯 IMAGE-TO-VIDEO MODE - STRICT ADHERENCE:
 - The character, environment, and lighting are LOCKED to the reference image
 - Your job is ONLY to describe MOTION and ACTION of the subject
 - DO NOT change the character's appearance, clothing, or location
@@ -304,11 +339,8 @@ ${voiceDisabled ? `
 CRITICAL - NO DIALOGUE OR NARRATION:
 The user has NOT selected voice/narration for this video. This means:
 - DO NOT include ANY dialogue, speech, narration, or voiceover
-- DO NOT have characters speak, talk, say, or utter anything
-- DO NOT include text like "character says", "narrator explains", "voice says"
 - The "dialogue" field MUST be EMPTY ("") for ALL clips
-- Focus ONLY on visual action, movement, and atmosphere
-- This is a SILENT video with VISUAL storytelling only
+- Focus ONLY on visual storytelling - let the images speak
 ` : ''}
 
 ${mustPreserveContent ? `
@@ -320,68 +352,57 @@ Distribute the user's narration/dialogue across the ${clipCount} clips appropria
 Include the user's exact text in the "dialogue" field of each clip.
 ` : ''}
 
-CRITICAL: CONTINUOUS SCENE BREAKDOWN
-Each scene = ${clipCount} clips showing PROGRESSIVE ACTION in the SAME location.
-The clips are NOT separate shots - they are SEQUENTIAL MOMENTS of ONE continuous action.
-
 OUTPUT FORMAT (STRICT JSON):
 {
   "clips": [
     {
       "index": 0,
-      "title": "Clip title",
-      "description": "Detailed visual description for AI video generation${voiceDisabled ? ' - NO dialogue or speech' : ''}",
+      "title": "Evocative clip title (3-5 words)",
+      "description": "Detailed VISUAL description optimized for Kling AI: shot type + subject action + camera movement + environmental details. Be specific about motion direction, speed, and physical actions.${voiceDisabled ? ' NO dialogue or speech.' : ''}",
       "durationSeconds": 5,
       "actionPhase": "establish|initiate|develop|escalate|peak|settle",
       "previousAction": "What happened in previous clip (empty for clip 0)",
-      "currentAction": "What happens in this exact 5-second moment",
+      "currentAction": "Specific physical action in this 5-second moment",
       "nextAction": "What will happen in next clip (empty for last clip)",
       "characterDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT character description - SAME in all clips'}",
       "locationDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT location description - SAME in all clips'}",
       "lightingDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT lighting description - SAME in all clips'}",
-      "cameraScale": "wide|medium|close-up",
-      "cameraAngle": "eye-level|low-angle|high-angle",
-      "movementType": "static|pan|tracking|dolly",
-      "motionDirection": "The direction of action/movement",
-      "transitionHint": "How this moment connects to the next",
-      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY - no voice enabled' : "Any narration or speech - USE USER'S EXACT WORDS if provided"}",
-      "mood": "Emotional tone of this moment"
+      "cameraScale": "extreme-wide|wide|medium|medium-close|close-up|extreme-close-up",
+      "cameraAngle": "eye-level|low-angle|high-angle|dutch-angle|overhead|worms-eye",
+      "movementType": "static|slow-pan|pan|tilt|tracking|dolly-in|dolly-out|orbit|crane|handheld",
+      "motionDirection": "Specific direction: left-to-right, toward-camera, ascending, circular, etc.",
+      "transitionHint": "Visual element connecting to next clip (motion, gaze, gesture)",
+      "dialogue": "${voiceDisabled ? 'MUST BE EMPTY' : "Narration or speech - USE USER'S EXACT WORDS if provided"}",
+      "mood": "Emotional tone: tense, hopeful, melancholic, triumphant, mysterious, etc."
     }
   ]
 }
 
-ACTION PHASE REQUIREMENTS (distribute across ${clipCount} clips):
-- ESTABLISH (Clip 0): Wide shot. Character in environment. Initial state before action.
-- INITIATE (Clip 1): Action begins. First movement or change from initial state.
-- DEVELOP (Clips 2-${Math.floor(clipCount/2)}): Action continues and builds.
-- ESCALATE (Clips ${Math.floor(clipCount/2)+1}-${clipCount-2}): Intensity increases. Action gains momentum.
-- PEAK (Clip ${clipCount-2}): Highest point. Most dramatic moment of the scene.
-- SETTLE (Clip ${clipCount-1}): Resolution. Action concludes. Sets up next scene.
+KLING-OPTIMIZED DESCRIPTION TEMPLATE:
+"[SHOT TYPE] [CAMERA MOVEMENT] [SUBJECT] [ACTION VERB] [MOTION DETAILS] [ENVIRONMENTAL CONTEXT] [ATMOSPHERIC DETAILS]"
+
+Examples:
+- "Medium tracking shot follows woman as she walks purposefully through autumn forest, golden leaves swirling around her feet, dappled sunlight filtering through canopy"
+- "Close-up dolly-in on man's weathered hands as they carefully unwrap an ancient map, candlelight flickering across faded parchment, dust motes floating in the warm glow"
+- "Wide establishing shot reveals sprawling cityscape at sunset, camera slowly panning right as neon signs begin to flicker on, steam rising from street vents"
 
 CONTINUITY REQUIREMENTS (CRITICAL):
 1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${clipCount} clips
-   - Same clothes, hair, face, body in every clip
-   - No outfit changes, no appearance drift
    ${hasReferenceImage ? '- USE THE CHARACTER FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 2. LOCATION LOCK: Copy the EXACT same location description to ALL ${clipCount} clips
-   - Same room, street, forest - never changes
-   - Same background elements visible
    ${hasReferenceImage ? '- USE THE ENVIRONMENT FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${clipCount} clips
-   - Same sun position, same shadows
-   - Same color temperature
    ${hasReferenceImage ? '- USE THE LIGHTING FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 4. ACTION CONTINUITY: Each clip picks up WHERE the previous ended
-   - Clip 1's "previousAction" = Clip 0's "currentAction"
-   - Clip 2's "previousAction" = Clip 1's "currentAction"
-   - Physical positions must connect (if hand is raised at end of clip 2, it's still raised at start of clip 3)
-
+   - Physical positions must connect logically
+   - Motion direction should be consistent across cuts
+   
 5. CAMERA LOGIC: Camera can move, but no impossible jumps
-   - Can go from wide to close-up over 2-3 clips
-   - No jumping from behind character to in front between clips
+   - Gradual changes in scale (wide → medium → close-up over 2-3 clips)
+   - Maintain screen direction (180-degree rule)
 
 ${mustPreserveContent ? `
 6. DIALOGUE/NARRATION PRESERVATION:

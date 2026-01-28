@@ -50,6 +50,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ClipsPageSkeleton } from '@/components/ui/page-skeleton';
+import ClipsBackground from '@/components/clips/ClipsBackground';
+import { ClipsHero } from '@/components/clips/ClipsHero';
 
 interface VideoClip {
   id: string;
@@ -485,208 +487,98 @@ export default function Clips() {
     return <ClipsPageSkeleton />;
   }
 
+  const formatDurationStr = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
+
   return (
     <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
-      {/* Cinematic Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Primary gradient orbs */}
-        <div className="absolute top-[-30%] left-[-15%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-violet-600/[0.08] via-purple-500/[0.04] to-transparent blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-emerald-500/[0.06] via-cyan-500/[0.03] to-transparent blur-[120px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-gradient-to-bl from-amber-500/[0.04] to-transparent blur-[100px]" />
-        
-        {/* Noise texture overlay */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat'
-        }} />
-        
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-          backgroundSize: '64px 64px'
-        }} />
-      </div>
+      {/* Premium Purple Animated Background */}
+      <ClipsBackground />
 
       <AppHeader />
       
       <main className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Hero Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+        {/* Back button for project-specific view */}
+        {projectIdFilter && (
+          <motion.button 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => navigate('/clips')}
+            className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors mb-6 group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to library</span>
+          </motion.button>
+        )}
+
+        {/* Premium Hero Header with Purple Theme */}
+        <ClipsHero 
+          stats={{
+            total: clips.length,
+            completed: completedCount,
+            processing: pendingCount,
+            totalDuration: formatDurationStr(totalDuration)
+          }}
+          title={projectIdFilter && projectTitle ? projectTitle : "Clip Library"}
+          subtitle={projectIdFilter ? "All generated clips for this project" : "Browse, preview, and manage all your AI-generated video clips"}
+        />
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-8"
+          transition={{ delay: 0.2 }}
+          className="flex flex-wrap items-center gap-3 mb-8"
         >
-          {projectIdFilter && (
-            <motion.button 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => navigate('/clips')}
-              className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors mb-6 group"
+          {/* Play All / Smart Player button for project view */}
+          {projectIdFilter && completedCount > 0 && (
+            <Button
+              onClick={() => setShowBrowserStitcher(projectIdFilter)}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/25"
             >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Back to library</span>
-            </motion.button>
+              <Play className="w-4 h-4 mr-2" />
+              Play All ({completedCount})
+            </Button>
           )}
           
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-            {/* Title Section */}
-            <div className="space-y-3">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08] backdrop-blur-sm"
-              >
-                <Clapperboard className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-[11px] font-medium text-white/60 tracking-wide uppercase">
-                  {projectIdFilter ? 'Project Clips' : 'Clip Library'}
-                </span>
-              </motion.div>
-              
-              {projectIdFilter && (
-                <>
-                  <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-                    <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
-                      {projectTitle}
-                    </span>
-                  </h1>
-                  
-                  <p className="text-white/40 text-base max-w-md">
-                    All generated clips for this project
-                  </p>
-                </>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Play All / Smart Player button for project view */}
-              {projectIdFilter && completedCount > 0 && (
-                <Button
-                  onClick={() => setShowBrowserStitcher(projectIdFilter)}
-                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Play All ({completedCount})
-                </Button>
-              )}
-              
-              {failedCount > 0 && (
-                <Button
-                  onClick={handleDeleteAllFailed}
-                  variant="outline"
-                  size="sm"
-                  className="border-red-500/30 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:border-red-500/50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Clear {failedCount} Failed
-                </Button>
-              )}
-              
-              {projectIdFilter && projectStatus === 'stitching_failed' && completedCount > 0 && (
-                <Button
-                  onClick={retryStitch}
-                  disabled={isRetryingStitch}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400"
-                >
-                  {isRetryingStitch ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Retry Stitch
-                </Button>
-              )}
-              
-              <Button 
-                onClick={() => navigate('/production')} 
-                className="bg-white text-black hover:bg-white/90 shadow-lg shadow-white/10"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Create New
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Stats Dashboard */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5 }}
-          className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8"
-        >
-          {/* Total Clips */}
-          <div className="relative group p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-white/[0.12] transition-all overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-white">{clips.length}</p>
-                <p className="text-xs text-white/40 mt-1">Total Clips</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                <Film className="w-6 h-6 text-violet-400" />
-              </div>
-            </div>
-          </div>
+          {failedCount > 0 && (
+            <Button
+              onClick={handleDeleteAllFailed}
+              variant="outline"
+              size="sm"
+              className="border-red-500/30 bg-red-500/5 text-red-400 hover:bg-red-500/15 hover:border-red-500/50"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear {failedCount} Failed
+            </Button>
+          )}
           
-          {/* Completed */}
-          <div className="relative group p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-white/[0.12] transition-all overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-emerald-400">{completedCount}</p>
-                <p className="text-xs text-white/40 mt-1">Completed</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-              </div>
-            </div>
-          </div>
+          {projectIdFilter && projectStatus === 'stitching_failed' && completedCount > 0 && (
+            <Button
+              onClick={retryStitch}
+              disabled={isRetryingStitch}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-400 hover:to-orange-400"
+            >
+              {isRetryingStitch ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Retry Stitch
+            </Button>
+          )}
           
-          {/* Processing */}
-          <div className="relative group p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-white/[0.12] transition-all overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-amber-400">{pendingCount}</p>
-                <p className="text-xs text-white/40 mt-1">Processing</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <Loader2 className={cn("w-6 h-6 text-amber-400", pendingCount > 0 && "animate-spin")} />
-              </div>
-            </div>
-          </div>
-          
-          {/* Total Duration */}
-          <div className="relative group p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-white/[0.12] transition-all overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-cyan-400">{formatDuration(totalDuration)}</p>
-                <p className="text-xs text-white/40 mt-1">Total Duration</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <Timer className="w-6 h-6 text-cyan-400" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Success Rate */}
-          <div className="relative group p-4 rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] hover:border-white/[0.12] transition-all overflow-hidden col-span-2 lg:col-span-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.03] to-emerald-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-white">{successRate}%</p>
-                <p className="text-xs text-white/40 mt-1">Success Rate</p>
-              </div>
-              <div className="relative w-12 h-12 flex items-center justify-center text-emerald-400">
-                <CircularProgress value={successRate} size={48} strokeWidth={3} />
-                <TrendingUp className="w-4 h-4 absolute" />
-              </div>
-            </div>
-          </div>
+          <Button 
+            onClick={() => navigate('/production')} 
+            className="bg-gradient-to-r from-violet-500 to-purple-500 text-white hover:from-violet-400 hover:to-purple-400 shadow-lg shadow-violet-500/20"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Create New
+          </Button>
         </motion.div>
 
         {/* Consistency Dashboard - Shows for project-specific view */}
@@ -778,101 +670,107 @@ export default function Clips() {
           </motion.section>
         )}
 
-        {/* Toolbar */}
+        {/* Premium Toolbar with Purple Accents */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6"
+          className="mb-6"
         >
-          {/* Search */}
-          <div className="relative flex-1 max-w-md group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-white/50 transition-colors" />
-            <Input
-              placeholder="Search by prompt or project..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-11 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/25 focus:border-white/20 focus:bg-white/[0.05] rounded-xl transition-all"
-            />
-          </div>
+          <div className="relative p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
+            {/* Subtle purple glow in corner */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-violet-500/5 blur-3xl pointer-events-none" />
+            
+            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              {/* Search Bar - Premium with purple focus */}
+              <div className="relative flex-1 max-w-md group">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/5 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-violet-400 transition-colors" />
+                <Input
+                  placeholder="Search by prompt or project..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="relative h-11 pl-11 pr-4 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/25 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl transition-all"
+                />
+              </div>
 
-          <div className="flex items-center gap-2">
-            {/* Status Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-11 gap-2 px-4 bg-white/[0.03] border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.12] rounded-xl">
-                  <Filter className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {statusFilter === 'all' ? 'All Status' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-zinc-900/95 backdrop-blur-xl border-white/10 rounded-xl shadow-2xl">
-                <DropdownMenuItem onClick={() => setStatusFilter('all')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
-                  All Status
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem onClick={() => setStatusFilter('completed')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400" /> Completed
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter('pending')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg gap-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-400" /> Processing
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter('failed')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-400" /> Failed
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              {/* Divider */}
+              <div className="hidden sm:block w-px h-10 bg-white/[0.08]" />
 
-            {/* Sort */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-11 gap-2 px-4 bg-white/[0.03] border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.06] hover:border-white/[0.12] rounded-xl">
-                  <Calendar className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {sortBy === 'recent' ? 'Recent' : sortBy === 'oldest' ? 'Oldest' : 'Duration'}
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-zinc-900/95 backdrop-blur-xl border-white/10 rounded-xl shadow-2xl">
-                <DropdownMenuItem onClick={() => setSortBy('recent')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
-                  Most Recent
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('oldest')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
-                  Oldest First
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy('duration')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
-                  Longest Duration
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <div className="flex items-center gap-2">
+                {/* Status Filter - Purple themed */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  {[
+                    { value: 'all', label: 'All', icon: Layers },
+                    { value: 'completed', label: 'Ready', icon: CheckCircle2 },
+                    { value: 'pending', label: 'Active', icon: Loader2 },
+                    { value: 'failed', label: 'Failed', icon: XCircle },
+                  ].map((filter) => (
+                    <button
+                      key={filter.value}
+                      onClick={() => setStatusFilter(filter.value as any)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                        statusFilter === filter.value 
+                          ? "bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-violet-400 border border-violet-500/30" 
+                          : "text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
+                      )}
+                    >
+                      <filter.icon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{filter.label}</span>
+                    </button>
+                  ))}
+                </div>
 
-            {/* View Toggle */}
-            <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  viewMode === 'grid' 
-                    ? "bg-white text-black shadow-lg" 
-                    : "text-white/40 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  viewMode === 'table' 
-                    ? "bg-white text-black shadow-lg" 
-                    : "text-white/40 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <List className="w-4 h-4" />
-              </button>
+                {/* Sort Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-10 px-3 rounded-xl text-white/50 hover:text-white hover:bg-white/10 gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span className="hidden sm:inline text-sm">
+                        {sortBy === 'recent' ? 'Recent' : sortBy === 'oldest' ? 'Oldest' : 'Duration'}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-zinc-900/95 backdrop-blur-xl border-white/10 rounded-xl shadow-2xl">
+                    <DropdownMenuItem onClick={() => setSortBy('recent')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
+                      Most Recent
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('oldest')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
+                      Oldest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('duration')} className="text-white/70 hover:text-white focus:text-white focus:bg-white/10 rounded-lg">
+                      Longest Duration
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* View Toggle - Purple themed */}
+                <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.03] p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "p-2 rounded-lg transition-all duration-200",
+                      viewMode === 'grid' 
+                        ? "bg-violet-500/20 text-violet-400" 
+                        : "text-white/40 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={cn(
+                      "p-2 rounded-lg transition-all duration-200",
+                      viewMode === 'table' 
+                        ? "bg-violet-500/20 text-violet-400" 
+                        : "text-white/40 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>

@@ -116,14 +116,32 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     setCurrentClipIndex(prev => prev - 1);
   };
 
-  // Fullscreen
+  // Fullscreen - Safari/iOS compatible
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
+    const elem = containerRef.current as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element;
+    };
+    
+    const isCurrentlyFullscreen = document.fullscreenElement || doc.webkitFullscreenElement;
+    
+    if (isCurrentlyFullscreen) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+      }
     } else {
-      containerRef.current.requestFullscreen();
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
     }
   };
 

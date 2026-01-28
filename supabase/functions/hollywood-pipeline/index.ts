@@ -549,6 +549,34 @@ async function runPreProduction(
   state.progress = 10;
   await updateProjectProgress(supabase, state.projectId, 'preproduction', 10);
   
+  // =====================================================
+  // CRITICAL: Analyze reference image FIRST if provided
+  // This ensures script generation follows the image
+  // =====================================================
+  if (request.referenceImageUrl && !request.referenceImageAnalysis) {
+    console.log(`[Hollywood] Analyzing reference image BEFORE script generation for strict adherence...`);
+    try {
+      const analysisResult = await callEdgeFunction('analyze-reference-image', {
+        imageUrl: request.referenceImageUrl,
+      });
+      
+      if (analysisResult?.analysis) {
+        request.referenceImageAnalysis = analysisResult.analysis;
+        console.log(`[Hollywood] ✓ Reference image analyzed: ${analysisResult.analysis.characterIdentity?.description?.substring(0, 50) || 'character detected'}`);
+        
+        // Store for later stages
+        state.referenceAnalysis = analysisResult.analysis;
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Reference image analysis failed (non-fatal):`, err);
+      // Continue without analysis - script will use concept only
+    }
+  } else if (request.referenceImageAnalysis) {
+    // Already analyzed, store it
+    state.referenceAnalysis = request.referenceImageAnalysis;
+    console.log(`[Hollywood] Using pre-analyzed reference image data`);
+  }
+  
   // Build characterLock from extractedCharacters or referenceImageAnalysis if available
   const buildCharacterLock = () => {
     // Priority 1: Extracted characters from resume flow
@@ -631,6 +659,10 @@ async function runPreProduction(
   } else if (request.approvedStory) {
     console.log(`[Hollywood] Breaking down approved story into shots...`);
     
+    // Determine if this is image-to-video mode
+    const hasReferenceImage = !!request.referenceImageUrl || !!request.referenceImageAnalysis;
+    const mode = hasReferenceImage ? 'image-to-video' : 'text-to-video';
+    
     try {
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.storyTitle || 'Video',
@@ -643,6 +675,9 @@ async function runPreProduction(
         environmentPrompt: request.environmentPrompt,
         // VOICE CONTROL: Pass includeVoice to prevent dialogue generation when disabled
         includeVoice: request.includeVoice,
+        // STRICT REFERENCE MODE: Pass reference image analysis for image-to-video
+        referenceImageAnalysis: request.referenceImageAnalysis,
+        mode: mode,
       });
       
       if (scriptResult.shots || scriptResult.clips) {
@@ -727,6 +762,12 @@ async function runPreProduction(
   } else if (request.concept && !request.manualPrompts) {
     console.log(`[Hollywood] Generating script from concept (scene-based)...`);
     
+    // Determine if this is image-to-video mode
+    const hasReferenceImage = !!request.referenceImageUrl || !!request.referenceImageAnalysis;
+    const mode = hasReferenceImage ? 'image-to-video' : 'text-to-video';
+    
+    console.log(`[Hollywood] Script generation mode: ${mode}, has reference analysis: ${!!request.referenceImageAnalysis}`);
+    
     try {
       const scriptResult = await callEdgeFunction('smart-script-generator', {
         topic: request.concept,
@@ -739,6 +780,9 @@ async function runPreProduction(
         environmentPrompt: request.environmentPrompt,
         // VOICE CONTROL: Pass includeVoice to prevent dialogue generation when disabled
         includeVoice: request.includeVoice,
+        // STRICT REFERENCE MODE: Pass reference image analysis for image-to-video
+        referenceImageAnalysis: request.referenceImageAnalysis,
+        mode: mode,
       });
       
       if (scriptResult.shots || scriptResult.clips) {

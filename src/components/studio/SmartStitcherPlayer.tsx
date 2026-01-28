@@ -142,8 +142,8 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds - IMPERCEPTIBLE transition (1.5 nanoseconds)
-const CROSSFADE_DURATION = 0.0000015;
+// Crossfade duration in milliseconds - brief overlap for smooth blending
+const CROSSFADE_DURATION = 30;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_TRIGGER_OFFSET = 0.15;
 
@@ -587,39 +587,51 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
       standbyVideo.currentTime = 0;
       
-      // Start playing standby immediately
+      // Start playing standby immediately - both videos now visible for overlap
       standbyVideo.play().catch(() => {});
       
-      // INSTANT swap - no animation loop needed for imperceptible transitions
-      // Set opacities immediately for zero-delay switching
-      if (activeVideoIndex === 0) {
-        setVideoAOpacity(0);
-        setVideoBOpacity(1);
-      } else {
-        setVideoAOpacity(1);
-        setVideoBOpacity(0);
-      }
+      // Brief crossfade animation - last frame of current overlaps with first frame of next
+      const startTime = performance.now();
+      const animateCrossfade = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
+        
+        // Linear blend for smooth overlap
+        if (activeVideoIndex === 0) {
+          setVideoAOpacity(1 - progress);
+          setVideoBOpacity(progress);
+        } else {
+          setVideoAOpacity(progress);
+          setVideoBOpacity(1 - progress);
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateCrossfade);
+        } else {
+          // Crossfade complete
+          setIsCrossfading(false);
+          
+          // Pause the old active
+          if (activeVideo) {
+            activeVideo.pause();
+          }
+          
+          // Preload the NEXT clip into the old active (now standby)
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+            activeVideo.src = clips[futureClipIndex].blobUrl;
+            activeVideo.load();
+          }
+          isTransitioningRef.current = false;
+        }
+      };
       
-      // Swap active/standby
+      // Swap active/standby state
       setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
-      // Immediately complete transition
-      setIsCrossfading(false);
-      
-      // Pause the old active
-      if (activeVideo) {
-        activeVideo.pause();
-      }
-      
-      // Preload the NEXT clip into the old active (now standby)
-      const futureClipIndex = nextIndex + 1;
-      if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
-        activeVideo.src = clips[futureClipIndex].blobUrl;
-        activeVideo.load();
-      }
-      isTransitioningRef.current = false;
+      requestAnimationFrame(animateCrossfade);
     } else {
       // Fallback if standby not ready
       isTransitioningRef.current = false;
@@ -1195,8 +1207,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             className="absolute inset-0 w-full h-full object-contain"
             style={{ 
               opacity: videoAOpacity,
-              zIndex: activeVideoIndex === 0 ? 10 : 5,
-              transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+              zIndex: activeVideoIndex === 0 ? 10 : 5
             }}
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -1204,7 +1215,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             onPause={() => activeVideoIndex === 0 && !isCrossfading && setIsPlaying(false)}
             onError={(e) => {
               console.error('[SmartStitcher] Video A error:', e);
-              // Try to recover by forcing next clip if available
               if (activeVideoIndex === 0 && currentClipIndex < clips.length - 1) {
                 console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
                 triggerTransitionRef.current?.();
@@ -1214,7 +1224,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               console.warn('[SmartStitcher] Video A stalled - attempting recovery');
               const video = videoARef.current;
               if (video && activeVideoIndex === 0 && isPlaying) {
-                // Try to resume
                 video.play().catch(() => {});
               }
             }}
@@ -1231,8 +1240,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             className="absolute inset-0 w-full h-full object-contain"
             style={{ 
               opacity: videoBOpacity,
-              zIndex: activeVideoIndex === 1 ? 10 : 5,
-              transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+              zIndex: activeVideoIndex === 1 ? 10 : 5
             }}
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
@@ -1240,7 +1248,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             onPause={() => activeVideoIndex === 1 && !isCrossfading && setIsPlaying(false)}
             onError={(e) => {
               console.error('[SmartStitcher] Video B error:', e);
-              // Try to recover by forcing next clip if available
               if (activeVideoIndex === 1 && currentClipIndex < clips.length - 1) {
                 console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
                 triggerTransitionRef.current?.();
@@ -1250,7 +1257,6 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               console.warn('[SmartStitcher] Video B stalled - attempting recovery');
               const video = videoBRef.current;
               if (video && activeVideoIndex === 1 && isPlaying) {
-                // Try to resume
                 video.play().catch(() => {});
               }
             }}

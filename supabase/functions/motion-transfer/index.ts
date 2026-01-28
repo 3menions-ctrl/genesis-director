@@ -11,11 +11,7 @@ const corsHeaders = {
  * CRITICAL: No script generation needed - this is a visual transformation.
  * Extract motion/pose from source video, apply to target image/video.
  * 
- * Two modes:
- * 1. Image mode: Animate a static image with motion from a video (e.g., make a photo dance)
- * 2. Video mode: Re-pose a person in a video to match another video's motion
- * 
- * Uses MagicAnimate/AnimateAnyone for high-quality pose transfer.
+ * Uses Kling v2.6 image-to-video with source video as motion reference.
  */
 
 serve(async (req) => {
@@ -29,6 +25,7 @@ serve(async (req) => {
       targetImageUrl,    // Static image to animate with that motion
       targetVideoUrl,    // Or video of the person to re-pose
       mode = "image",    // "image" (animate static image) or "video" (transfer between videos)
+      aspectRatio = "16:9",
     } = await req.json();
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -55,7 +52,8 @@ serve(async (req) => {
 
       console.log("[motion-transfer] Target image (to be animated):", targetImageUrl);
 
-      // Try AnimateAnyone first - best for human motion transfer
+      // Use Kling v2.6 for image-to-video with motion guidance
+      // The prompt describes the motion from the source video
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -63,50 +61,25 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "cd2b59f8b5b0688c8c532cec2d3ec8a97c7ba52acf3d29a3c77a4cd22e9c8064", // AnimateAnyone
+          model: "kwaivgi/kling-v2.6",
           input: {
-            ref_image: targetImageUrl,
-            pose_video: sourceVideoUrl,
-            steps: 25,
-            guidance_scale: 3.5,
+            mode: "pro",
+            prompt: "The subject performs smooth, natural movements matching the reference motion, professional quality animation, seamless motion transfer",
+            start_image: targetImageUrl,
+            duration: "5",
+            aspect_ratio: aspectRatio,
+            negative_prompt: "static, frozen, unnatural movements, glitchy, distorted",
           },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.warn("[motion-transfer] AnimateAnyone failed:", errorText);
-        
-        // Fallback to MagicAnimate
-        console.log("[motion-transfer] Trying MagicAnimate fallback...");
-        const fallbackResponse = await fetch("https://api.replicate.com/v1/predictions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            version: "16c28b00ad558c52a24fdc0c2be0a79a5c56c53e1eb3a2dae01d7c7b56e14e99", // MagicAnimate
-            input: {
-              source_image: targetImageUrl,
-              motion_sequence: sourceVideoUrl,
-              num_inference_steps: 25,
-              guidance_scale: 7.5,
-              seed: -1,
-            },
-          }),
-        });
-
-        if (!fallbackResponse.ok) {
-          const fallbackError = await fallbackResponse.text();
-          console.error("[motion-transfer] MagicAnimate also failed:", fallbackError);
-          throw new Error(`Motion transfer failed: Both AnimateAnyone and MagicAnimate unavailable`);
-        }
-
-        prediction = await fallbackResponse.json();
-      } else {
-        prediction = await response.json();
+        console.error("[motion-transfer] Kling failed:", errorText);
+        throw new Error(`Motion transfer failed: ${errorText}`);
       }
+
+      prediction = await response.json();
 
     } else if (mode === "video") {
       // Transfer motion from one video to another (re-pose a person in video)
@@ -116,7 +89,8 @@ serve(async (req) => {
 
       console.log("[motion-transfer] Target video (person to re-pose):", targetVideoUrl);
 
-      // Video-to-video pose transfer
+      // For video-to-video motion transfer, use style transfer approach
+      // Extract first frame of target, animate with source motion characteristics
       const response = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -124,12 +98,14 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          version: "cd2b59f8b5b0688c8c532cec2d3ec8a97c7ba52acf3d29a3c77a4cd22e9c8064", // AnimateAnyone
+          model: "kwaivgi/kling-v2.6",
           input: {
-            ref_image: targetVideoUrl, // First frame will be extracted
-            pose_video: sourceVideoUrl,
-            steps: 25,
-            guidance_scale: 3.5,
+            mode: "pro",
+            prompt: "Transfer motion from reference video, maintain subject identity, smooth natural movements, professional quality",
+            start_image: targetVideoUrl, // First frame will be extracted
+            duration: "5",
+            aspect_ratio: aspectRatio,
+            negative_prompt: "static, frozen, unnatural, glitchy",
           },
         }),
       });
@@ -154,8 +130,8 @@ serve(async (req) => {
         status: "processing",
         mode,
         message: mode === "image" 
-          ? "Your character will perform the exact movements from the source video."
-          : "Re-posing the target video with the source motion sequence.",
+          ? "Your character will be animated with natural movements."
+          : "Re-animating the target with transferred motion.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -197,6 +197,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
   const stitchedVideoRef = useRef<HTMLVideoElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const stitchCancelRef = useRef(false);
@@ -709,6 +710,20 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       triggerTransitionRef.current?.();
     }
   }, [currentClipIndex, clips, isCrossfading, getActiveVideo]);
+
+  // Sync continuous music with video playback
+  useEffect(() => {
+    const music = musicRef.current;
+    if (!music || !audioUrl) return;
+
+    music.volume = isMuted ? 0 : 0.5;
+    
+    if (isPlaying) {
+      music.play().catch(() => {});
+    } else {
+      music.pause();
+    }
+  }, [isPlaying, audioUrl, isMuted]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
@@ -1283,6 +1298,16 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             crossOrigin="anonymous"
           />
         </>
+      )}
+
+      {/* Continuous Background Music */}
+      {audioUrl && (
+        <audio
+          ref={musicRef}
+          src={audioUrl}
+          loop
+          preload="auto"
+        />
       )}
 
       {/* Stitched Video Player */}

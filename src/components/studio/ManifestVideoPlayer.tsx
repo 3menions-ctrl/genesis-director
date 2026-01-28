@@ -34,6 +34,7 @@ interface VideoManifest {
 
 interface ManifestVideoPlayerProps {
   manifestUrl: string;
+  musicUrl?: string;
   className?: string;
 }
 
@@ -49,7 +50,7 @@ function doubleRAF(callback: () => void) {
   });
 }
 
-export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPlayerProps) {
+export function ManifestVideoPlayer({ manifestUrl, musicUrl, className }: ManifestVideoPlayerProps) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
   // Refs
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isTransitioningRef = useRef(false);
   const triggerTransitionRef = useRef<(() => void) | null>(null);
@@ -297,6 +299,21 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
   }, [currentClipIndex, manifest, isCrossfading, getActiveVideo]);
 
   // Play/Pause toggle
+  // Sync continuous music with video playback
+  useEffect(() => {
+    const music = musicRef.current;
+    if (!music || !musicUrl) return;
+
+    music.volume = isMuted ? 0 : 0.5;
+    
+    if (isPlaying) {
+      music.play().catch(() => {});
+    } else {
+      music.pause();
+    }
+  }, [isPlaying, musicUrl, isMuted]);
+
+  // Play/Pause toggle
   const togglePlay = useCallback(() => {
     const activeVideo = getActiveVideo();
     if (!activeVideo) return;
@@ -310,13 +327,14 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     }
   }, [isPlaying, getActiveVideo]);
 
-  // Toggle mute on both videos
+  // Toggle mute on both videos and music
   const toggleMute = useCallback(() => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     
     if (videoARef.current) videoARef.current.muted = newMuted;
     if (videoBRef.current) videoBRef.current.muted = newMuted;
+    if (musicRef.current) musicRef.current.volume = newMuted ? 0 : 0.5;
   }, [isMuted]);
 
   // Skip to specific clip
@@ -469,6 +487,16 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         playsInline
         preload="auto"
       />
+
+      {/* Continuous Background Music */}
+      {musicUrl && (
+        <audio
+          ref={musicRef}
+          src={musicUrl}
+          loop
+          preload="auto"
+        />
+      )}
 
       {/* Overlay Controls */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">

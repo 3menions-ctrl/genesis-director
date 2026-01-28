@@ -16,7 +16,7 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 0.0000015; // ms - IMPERCEPTIBLE crossfade (1.5 nanoseconds)
+const CROSSFADE_DURATION = 30; // ms - brief overlap for smooth blending
 const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 
@@ -176,25 +176,38 @@ export function FullscreenVideoPlayer({
       nextVideo.load();
     }
 
-    // INSTANT audio swap - no crossfade for imperceptible transitions
-    const instantAudioSwap = () => {
-      if (!isMuted) {
-        currentVideo.volume = 0;
-        nextVideo.volume = volume;
-      }
-      currentVideo.pause();
-      currentVideo.currentTime = 0;
-      currentVideo.volume = volume;
-      setIsTransitioning(false);
-      transitionTriggeredRef.current = false;
-      preloadTriggeredRef.current = false;
-      setPreloadedClipIndex(null);
+    // Brief crossfade with audio blend - last frame overlaps with first frame of next
+    const crossfadeAudioAndVideo = () => {
+      const steps = 3; // Very brief crossfade
+      const stepDuration = CROSSFADE_DURATION / steps;
+      let step = 0;
       
-      // Start preloading the NEXT next clip
-      const upcomingIndex = (nextIndex + 1) % clips.length;
-      if (clips.length > 1) {
-        preloadNextClip(upcomingIndex);
-      }
+      const fadeInterval = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        
+        if (!isMuted) {
+          currentVideo.volume = Math.max(0, volume * (1 - progress));
+          nextVideo.volume = Math.min(volume, volume * progress);
+        }
+        
+        if (step >= steps) {
+          clearInterval(fadeInterval);
+          currentVideo.pause();
+          currentVideo.currentTime = 0;
+          currentVideo.volume = volume;
+          setIsTransitioning(false);
+          transitionTriggeredRef.current = false;
+          preloadTriggeredRef.current = false;
+          setPreloadedClipIndex(null);
+          
+          // Start preloading the NEXT next clip
+          const upcomingIndex = (nextIndex + 1) % clips.length;
+          if (clips.length > 1) {
+            preloadNextClip(upcomingIndex);
+          }
+        }
+      }, stepDuration);
     };
 
     // Start transition immediately when video is ready
@@ -203,7 +216,7 @@ export function FullscreenVideoPlayer({
       nextVideo.play().then(() => {
         setActiveVideo(isNextA ? 'A' : 'B');
         setCurrentClipIndex(nextIndex);
-        instantAudioSwap();
+        crossfadeAudioAndVideo();
       }).catch((err) => {
         console.error('Video play failed:', err);
         setIsTransitioning(false);

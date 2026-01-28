@@ -37,8 +37,8 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - IMPERCEPTIBLE transition (1.5 nanoseconds)
-const CROSSFADE_DURATION = 0.0000015;
+// Crossfade duration in milliseconds - brief overlap for smooth blending
+const CROSSFADE_DURATION = 30;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_THRESHOLD = 0.15;
 
@@ -154,38 +154,51 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
       
-      // Start playing standby immediately for seamless transition
+      // Start playing standby immediately - both videos now visible for overlap
       standbyVideo.play().catch(() => {});
       
-      // INSTANT swap - no animation loop for imperceptible transitions
-      if (activeVideoIndex === 0) {
-        setVideoAOpacity(0);
-        setVideoBOpacity(1);
-      } else {
-        setVideoAOpacity(1);
-        setVideoBOpacity(0);
-      }
+      // Brief crossfade animation - last frame of current overlaps with first frame of next
+      const startTime = performance.now();
+      const animateCrossfade = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
+        
+        // Linear blend for smooth overlap
+        if (activeVideoIndex === 0) {
+          setVideoAOpacity(1 - progress);
+          setVideoBOpacity(progress);
+        } else {
+          setVideoAOpacity(progress);
+          setVideoBOpacity(1 - progress);
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateCrossfade);
+        } else {
+          // Crossfade complete
+          setIsCrossfading(false);
+          
+          // Pause the old active
+          if (activeVideo) {
+            activeVideo.pause();
+          }
+          
+          // Preload the NEXT clip into the old active (now standby)
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
+            activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
+            activeVideo.load();
+          }
+          isTransitioningRef.current = false;
+        }
+      };
       
-      // Swap active/standby
+      // Swap active/standby state
       setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
-      // Immediately complete transition
-      setIsCrossfading(false);
-      
-      // Pause the old active
-      if (activeVideo) {
-        activeVideo.pause();
-      }
-      
-      // Preload the NEXT clip into the old active (now standby)
-      const futureClipIndex = nextIndex + 1;
-      if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
-        activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
-        activeVideo.load();
-      }
-      isTransitioningRef.current = false;
+      requestAnimationFrame(animateCrossfade);
     } else {
       // Standby not ready - try immediate switch as fallback
       console.warn('[ManifestPlayer] Standby video not ready, using fallback transition');
@@ -416,8 +429,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         className="absolute inset-0 w-full h-full object-contain"
         style={{ 
           opacity: videoAOpacity, 
-          zIndex: activeVideoIndex === 0 ? 2 : 1,
-          transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+          zIndex: activeVideoIndex === 0 ? 2 : 1
         }}
         onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -432,8 +444,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         className="absolute inset-0 w-full h-full object-contain"
         style={{ 
           opacity: videoBOpacity, 
-          zIndex: activeVideoIndex === 1 ? 2 : 1,
-          transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+          zIndex: activeVideoIndex === 1 ? 2 : 1
         }}
         onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}

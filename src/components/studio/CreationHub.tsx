@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
@@ -6,7 +6,7 @@ import {
   Video, Layers, ArrowRight, RectangleHorizontal,
   Square, RectangleVertical, Clock, Hash, Music,
   Volume2, Settings2, X, CheckCircle2, Loader2,
-  Clapperboard, ChevronDown, Zap
+  Clapperboard, ChevronDown, Zap, Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTierLimits } from '@/hooks/useTierLimits';
 import {
   Select,
   SelectContent,
@@ -151,10 +152,22 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   
   // Production controls
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [clipCount, setClipCount] = useState(6);
   const [clipDuration, setClipDuration] = useState(5);
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic, setEnableMusic] = useState(true);
+  
+  // Get tier limits to enforce clip count restrictions
+  const { tierLimits, maxClips, isLoading: tierLoading } = useTierLimits();
+  
+  // Initialize clip count based on tier limits (default to max allowed or 5)
+  const [clipCount, setClipCount] = useState(5);
+  
+  // Update clip count when tier limits load
+  useEffect(() => {
+    if (maxClips && clipCount > maxClips) {
+      setClipCount(maxClips);
+    }
+  }, [maxClips, clipCount]);
   
   // Advanced options (for cinematic modes)
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -470,13 +483,27 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                   </div>
                   <Slider
                     value={[clipCount]}
-                    onValueChange={([value]) => setClipCount(value)}
+                    onValueChange={([value]) => setClipCount(Math.min(value, maxClips))}
                     min={1}
-                    max={20}
+                    max={maxClips}
                     step={1}
                     className="py-2"
+                    disabled={tierLoading}
                   />
-                  <p className="text-xs text-white/30">1-20 clips per video</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-white/30">
+                      {tierLoading ? 'Loading limits...' : `1-${maxClips} clips (${tierLimits?.tier || 'free'} tier)`}
+                    </p>
+                    {maxClips < 20 && (
+                      <button 
+                        onClick={() => window.location.href = '/settings?tab=billing'}
+                        className="flex items-center gap-1 text-xs text-amber-400/80 hover:text-amber-400 transition-colors"
+                      >
+                        <Crown className="w-3 h-3" />
+                        <span>Upgrade for more</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Clip Duration */}

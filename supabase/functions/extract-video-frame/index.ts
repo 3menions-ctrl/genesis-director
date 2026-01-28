@@ -7,13 +7,13 @@ const corsHeaders = {
 };
 
 /**
- * Extract Video Frame v4.0 - NO AI GENERATION
+ * Extract Video Frame v5.0 - REPLICATE-BASED
  * 
- * Extracts a specific frame from a video using Cloud Run FFmpeg.
- * AGGRESSIVE RETRY - will retry up to 10 times before failing.
+ * Extracts a specific frame from a video using Replicate's frame extraction.
+ * NO CLOUD RUN DEPENDENCY - Uses Replicate API for reliable frame extraction.
  * 
- * NO AI IMAGE GENERATION - only real frame extraction.
- * If extraction fails, caller must handle retry at pipeline level.
+ * TIER 1: Replicate frame extraction
+ * TIER 2: Fallback to reference images from database
  */
 
 interface ExtractFrameRequest {
@@ -21,14 +21,20 @@ interface ExtractFrameRequest {
   projectId: string;
   shotId: string;
   position: 'first' | 'last' | 'middle' | number;
+  referenceImageUrl?: string;
 }
 
-// Exponential backoff with jitter
-function calculateBackoff(attempt: number, baseMs = 2000, maxMs = 30000): number {
-  const exponentialDelay = Math.min(baseMs * Math.pow(2, attempt), maxMs);
-  const jitter = exponentialDelay * (0.1 + Math.random() * 0.2);
-  return Math.floor(exponentialDelay + jitter);
+interface ExtractFrameResult {
+  success: boolean;
+  frameUrl?: string;
+  position?: string;
+  method: 'replicate-extract' | 'reference-fallback' | 'db-fallback' | 'failed';
+  retryCount?: number;
+  error?: string;
 }
+
+// Sleep helper
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,46 +43,51 @@ serve(async (req) => {
 
   try {
     const request: ExtractFrameRequest = await req.json();
-    const { videoUrl, projectId, shotId, position = 'last' } = request;
+    const { videoUrl, projectId, shotId, position = 'last', referenceImageUrl } = request;
 
     if (!videoUrl) {
       throw new Error("videoUrl is required");
     }
 
     console.log(`[ExtractFrame] Extracting ${position} frame from ${videoUrl.substring(0, 60)}...`);
-    console.log(`[ExtractFrame] NO AI GENERATION - Cloud Run FFmpeg only`);
+    console.log(`[ExtractFrame] Using Replicate-based extraction (no Cloud Run)`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
 
-    // Helper to upload base64 frame to storage
-    const uploadFrame = async (base64Data: string): Promise<string | null> => {
+    // Helper to upload frame to storage
+    const downloadAndStore = async (frameUrl: string): Promise<string | null> => {
       try {
-        const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
-        const imageBuffer = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+        const response = await fetch(frameUrl);
+        if (!response.ok) {
+          console.warn(`[ExtractFrame] Failed to download frame: ${response.status}`);
+          return null;
+        }
         
-        const fileName = `frame_${projectId}_${shotId}_${position}_${Date.now()}.jpg`;
+        const imageData = await response.arrayBuffer();
+        const filename = `${projectId}/frame-${shotId}-${position}-${Date.now()}.jpg`;
+        
         const { error: uploadError } = await supabase.storage
           .from('temp-frames')
-          .upload(fileName, imageBuffer, {
+          .upload(filename, new Uint8Array(imageData), {
             contentType: 'image/jpeg',
-            upsert: true,
+            upsert: true
           });
 
         if (uploadError) {
-          console.warn(`[ExtractFrame] Upload failed:`, uploadError.message);
+          console.warn(`[ExtractFrame] Storage upload failed:`, uploadError);
           return null;
         }
 
         const { data: urlData } = supabase.storage
           .from('temp-frames')
-          .getPublicUrl(fileName);
+          .getPublicUrl(filename);
         
-        console.log(`[ExtractFrame] ✓ Frame uploaded: ${urlData.publicUrl.substring(0, 80)}...`);
         return urlData.publicUrl;
       } catch (err) {
-        console.warn(`[ExtractFrame] Upload error:`, err);
+        console.warn(`[ExtractFrame] Download/upload error:`, err);
         return null;
       }
     };
@@ -86,133 +97,241 @@ serve(async (req) => {
       if (!url) return false;
       const lower = url.toLowerCase();
       if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')) return false;
-      if (lower.includes('/video-clips/') || lower.includes('video/mp4')) return false;
+      if (lower.includes('/video-clips/') && !lower.includes('frame')) return false;
+      if (lower.includes('video/mp4')) return false;
       return true;
     };
 
     // ============================================================
-    // CLOUD RUN FFMPEG - AGGRESSIVE RETRY (10 attempts)
-    // This is the ONLY method. No AI generation fallback.
+    // TIER 1: Replicate Frame Extraction
     // ============================================================
-    const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-    const MAX_RETRIES = 10;
-    
-    if (!cloudRunUrl) {
-      console.error(`[ExtractFrame] ❌ CRITICAL: CLOUD_RUN_STITCHER_URL not configured!`);
+    if (REPLICATE_API_KEY) {
+      const MAX_RETRIES = 3;
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            const backoffMs = 2000 * attempt;
+            console.log(`[ExtractFrame] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
+            await sleep(backoffMs);
+          }
+          
+          console.log(`[ExtractFrame] TIER 1: Replicate extraction attempt ${attempt + 1}/${MAX_RETRIES}`);
+          
+          // Start a prediction to extract frames
+          const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              version: "a97a0a2e37ef87f7175ad88ba6ac019e51e6c3fc447c72a47c6a0d364a34d6b0",
+              input: {
+                video: videoUrl,
+                fps: 1,
+                format: "jpg"
+              }
+            }),
+          });
+          
+          if (!predictionResponse.ok) {
+            const errorText = await predictionResponse.text();
+            console.warn(`[ExtractFrame] Replicate prediction start failed: ${predictionResponse.status} - ${errorText.substring(0, 100)}`);
+            
+            if (predictionResponse.status === 404 || predictionResponse.status === 422) {
+              console.log(`[ExtractFrame] Frame extraction model unavailable, using fallback...`);
+              break;
+            }
+            continue;
+          }
+          
+          const prediction = await predictionResponse.json();
+          console.log(`[ExtractFrame] Prediction started: ${prediction.id}`);
+          
+          // Poll for completion (max 60 seconds)
+          const maxPollTime = 60000;
+          const pollInterval = 2000;
+          const startTime = Date.now();
+          
+          while (Date.now() - startTime < maxPollTime) {
+            await sleep(pollInterval);
+            
+            const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+              headers: {
+                'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+              },
+            });
+            
+            if (!statusResponse.ok) {
+              console.warn(`[ExtractFrame] Status check failed: ${statusResponse.status}`);
+              continue;
+            }
+            
+            const status = await statusResponse.json();
+            
+            if (status.status === 'succeeded') {
+              const frames = status.output;
+              
+              if (Array.isArray(frames) && frames.length > 0) {
+                // Get frame based on position
+                let targetFrameUrl: string;
+                if (position === 'first') {
+                  targetFrameUrl = frames[0];
+                } else if (position === 'last') {
+                  targetFrameUrl = frames[frames.length - 1];
+                } else if (position === 'middle') {
+                  targetFrameUrl = frames[Math.floor(frames.length / 2)];
+                } else if (typeof position === 'number') {
+                  const idx = Math.min(position, frames.length - 1);
+                  targetFrameUrl = frames[idx];
+                } else {
+                  targetFrameUrl = frames[frames.length - 1];
+                }
+                
+                if (targetFrameUrl) {
+                  const storedUrl = await downloadAndStore(targetFrameUrl);
+                  const finalUrl = storedUrl || targetFrameUrl;
+                  
+                  console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS: ${finalUrl.substring(0, 80)}...`);
+                  
+                  return new Response(
+                    JSON.stringify({
+                      success: true,
+                      frameUrl: finalUrl,
+                      position: String(position),
+                      method: 'replicate-extract',
+                      retryCount: attempt,
+                    } as ExtractFrameResult),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                  );
+                }
+              } else if (typeof frames === 'string' && frames) {
+                const storedUrl = await downloadAndStore(frames);
+                const finalUrl = storedUrl || frames;
+                
+                console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS (single): ${finalUrl.substring(0, 80)}...`);
+                
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    frameUrl: finalUrl,
+                    position: String(position),
+                    method: 'replicate-extract',
+                    retryCount: attempt,
+                  } as ExtractFrameResult),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              }
+              
+              console.warn(`[ExtractFrame] Extraction succeeded but no frames returned`);
+              break;
+            } else if (status.status === 'failed') {
+              console.warn(`[ExtractFrame] Prediction failed: ${status.error}`);
+              break;
+            }
+            
+            console.log(`[ExtractFrame] Polling... status: ${status.status}`);
+          }
+        } catch (replicateError) {
+          const errorMsg = replicateError instanceof Error ? replicateError.message : 'Unknown error';
+          console.warn(`[ExtractFrame] Attempt ${attempt + 1} error: ${errorMsg}`);
+          continue;
+        }
+      }
+      
+      console.warn(`[ExtractFrame] ⚠️ TIER 1 exhausted - moving to fallbacks`);
+    } else {
+      console.warn(`[ExtractFrame] ⚠️ REPLICATE_API_KEY not configured - using fallbacks`);
+    }
+
+    // ============================================================
+    // TIER 2: Reference Image Fallback
+    // ============================================================
+    if (referenceImageUrl && isValidFrameUrl(referenceImageUrl)) {
+      console.log(`[ExtractFrame] ✅ TIER 2 SUCCESS (reference): ${referenceImageUrl.substring(0, 80)}...`);
+      
       return new Response(
         JSON.stringify({
-          success: false,
-          error: "CLOUD_RUN_STITCHER_URL not configured. Cannot extract frames.",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          success: true,
+          frameUrl: referenceImageUrl,
+          position: String(position),
+          method: 'reference-fallback',
+        } as ExtractFrameResult),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        // Exponential backoff with jitter on retries
-        if (attempt > 0) {
-          const backoffMs = calculateBackoff(attempt - 1);
-          console.log(`[ExtractFrame] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
+    // ============================================================
+    // TIER 3: Database Recovery
+    // ============================================================
+    console.log(`[ExtractFrame] TIER 3: Database recovery...`);
+    
+    try {
+      // Try to get reference image from project
+      const { data: projectData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data, scene_images')
+        .eq('id', projectId)
+        .single();
+      
+      if (projectData?.pro_features_data) {
+        const proData = projectData.pro_features_data as Record<string, any>;
+        const possibleUrls = [
+          proData.referenceAnalysis?.imageUrl,
+          proData.goldenFrameData?.goldenFrameUrl,
+          proData.identityBible?.originalReferenceUrl,
+        ].filter(url => isValidFrameUrl(url));
+        
+        if (possibleUrls.length > 0) {
+          const frameUrl = possibleUrls[0];
+          console.log(`[ExtractFrame] ✅ TIER 3 SUCCESS (pro_features): ${frameUrl.substring(0, 60)}...`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              frameUrl,
+              position: String(position),
+              method: 'db-fallback',
+            } as ExtractFrameResult),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
-        
-        const normalizedUrl = cloudRunUrl.replace(/\/+$/, '');
-        const extractEndpoint = `${normalizedUrl}/extract-frame`;
-        
-        console.log(`[ExtractFrame] Cloud Run FFmpeg attempt ${attempt + 1}/${MAX_RETRIES}`);
-        
-        const controller = new AbortController();
-        // Increase timeout on later attempts
-        const timeoutMs = 30000 + (attempt * 5000);
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        
-        const response = await fetch(extractEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clipUrl: videoUrl,
-            clipIndex: shotId,
-            projectId,
-            position,
-            returnBase64: true,
-          }),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const result = await response.json();
-          
-          // Handle base64 response (preferred - hybrid architecture)
-          if (result.frameBase64) {
-            console.log(`[ExtractFrame] Got base64 from Cloud Run, uploading to storage...`);
-            const frameUrl = await uploadFrame(result.frameBase64);
-            
-            if (frameUrl && isValidFrameUrl(frameUrl)) {
-              console.log(`[ExtractFrame] ✅ SUCCESS on attempt ${attempt + 1}: ${frameUrl.substring(0, 80)}...`);
-              
-              return new Response(
-                JSON.stringify({
-                  success: true,
-                  frameUrl,
-                  position: String(position),
-                  method: 'cloud-run-ffmpeg',
-                  retryCount: attempt,
-                }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-              );
-            }
-          }
-          
-          // Handle direct URL response (legacy)
-          const frameUrl = result.lastFrameUrl || result.frameUrl;
-          if (frameUrl && isValidFrameUrl(frameUrl)) {
-            console.log(`[ExtractFrame] ✅ SUCCESS (direct URL) on attempt ${attempt + 1}: ${frameUrl.substring(0, 80)}...`);
-            
-            return new Response(
-              JSON.stringify({
-                success: true,
-                frameUrl,
-                position: String(position),
-                method: 'cloud-run-ffmpeg',
-                retryCount: attempt,
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          
-          // Response OK but no valid frame - retry
-          console.warn(`[ExtractFrame] Attempt ${attempt + 1}: OK response but no valid frame, retrying...`);
-          continue;
-        } else {
-          const errorText = await response.text();
-          console.warn(`[ExtractFrame] Attempt ${attempt + 1}: HTTP ${response.status} - ${errorText.substring(0, 150)}`);
-          continue;
-        }
-      } catch (cloudRunError) {
-        const errorMsg = cloudRunError instanceof Error ? cloudRunError.message : 'Unknown error';
-        console.warn(`[ExtractFrame] Attempt ${attempt + 1} error: ${errorMsg}`);
-        continue;
       }
+      
+      // Try scene images
+      if (projectData?.scene_images && Array.isArray(projectData.scene_images)) {
+        const sceneImage = projectData.scene_images[0];
+        if (sceneImage?.imageUrl && isValidFrameUrl(sceneImage.imageUrl)) {
+          console.log(`[ExtractFrame] ✅ TIER 3 SUCCESS (scene_images): ${sceneImage.imageUrl.substring(0, 60)}...`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              frameUrl: sceneImage.imageUrl,
+              position: String(position),
+              method: 'db-fallback',
+            } as ExtractFrameResult),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    } catch (dbError) {
+      console.warn(`[ExtractFrame] Database recovery failed:`, dbError);
     }
 
     // ============================================================
-    // ALL ATTEMPTS FAILED
-    // Return error - caller must handle retry at pipeline level
+    // ALL TIERS FAILED
     // ============================================================
-    console.error(`[ExtractFrame] ❌ FAILED after ${MAX_RETRIES} attempts`);
-    console.error(`[ExtractFrame] Video: ${videoUrl}`);
-    console.error(`[ExtractFrame] Caller should retry entire clip or use reference image as anchor`);
+    console.error(`[ExtractFrame] ❌ ALL TIERS FAILED for ${shotId}`);
     
     return new Response(
       JSON.stringify({
         success: false,
-        error: `Frame extraction failed after ${MAX_RETRIES} Cloud Run attempts. Retry clip generation or ensure reference images are available.`,
-        videoUrl,
-        retryCount: MAX_RETRIES,
-      }),
+        frameUrl: undefined,
+        method: 'failed',
+        error: `Frame extraction failed. No fallback images available.`,
+      } as ExtractFrameResult),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
@@ -221,8 +340,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
+        method: 'failed',
         error: error instanceof Error ? error.message : "Unknown error",
-      }),
+      } as ExtractFrameResult),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

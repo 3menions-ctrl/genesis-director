@@ -16,10 +16,10 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
     if (!projectId || !userId || isRetrying) return;
 
     setIsRetrying(true);
-    toast.info('Retrying video stitching...', { description: 'This may take 1-3 minutes' });
+    toast.info('Creating playback manifest...', { description: 'This should complete in a few seconds' });
 
     try {
-      // First, update project status to stitching
+      // Update project status to stitching
       const { error: updateError } = await supabase
         .from('movie_projects')
         .update({ 
@@ -36,73 +36,20 @@ export function useRetryStitch({ projectId, userId, onSuccess, onStatusChange }:
       
       onStatusChange?.('stitching');
 
-      // =====================================================
-      // IRON-CLAD BEST CLIP SELECTION
-      // Get ALL completed clips with quality_score, then select BEST per shot_index
-      // =====================================================
-      const { data: allClips, error: clipsError } = await supabase
-        .from('video_clips')
-        .select('id, shot_index, video_url, duration_seconds, quality_score, created_at')
-        .eq('project_id', projectId)
-        .eq('status', 'completed')
-        .order('shot_index')
-        .order('quality_score', { ascending: false, nullsFirst: false });
-
-      if (clipsError) throw clipsError;
-      if (!allClips || allClips.length === 0) throw new Error('No completed clips found');
-      
-      // Select BEST clip per shot_index
-      const bestClipsMap = new Map<number, typeof allClips[0]>();
-      
-      for (const clip of allClips) {
-        const existing = bestClipsMap.get(clip.shot_index);
-        
-        if (!existing) {
-          bestClipsMap.set(clip.shot_index, clip);
-        } else {
-          const existingScore = existing.quality_score ?? -1;
-          const newScore = clip.quality_score ?? -1;
-          
-          if (newScore > existingScore || 
-              (newScore === existingScore && clip.created_at > existing.created_at)) {
-            bestClipsMap.set(clip.shot_index, clip);
-          }
-        }
-      }
-      
-      const clips = Array.from(bestClipsMap.values()).sort((a, b) => a.shot_index - b.shot_index);
-      console.log(`[RetryStitch] Selected ${clips.length} BEST clips from ${allClips.length} total versions`);
-
-      // Get project title
-      const { data: project } = await supabase
-        .from('movie_projects')
-        .select('title')
-        .eq('id', projectId)
-        .maybeSingle();
-
-      // Call simple-stitch edge function
+      // Call simple-stitch edge function for manifest creation
       const { data, error: stitchError } = await supabase.functions.invoke('simple-stitch', {
         body: {
           projectId,
           userId,
-          projectTitle: project?.title || 'Untitled',
-          clips: clips.map(c => ({
-            url: c.video_url,
-            duration: c.duration_seconds || 6,
-          })),
         },
       });
 
       if (stitchError) throw stitchError;
 
       if (data?.success && data?.finalVideoUrl) {
-        toast.success('Video stitched successfully!');
+        toast.success('Manifest created successfully!');
         onSuccess?.(data.finalVideoUrl);
         onStatusChange?.('completed');
-      } else if (data?.mode === 'async' || data?.stitchMode === 'cloud-run-async') {
-        toast.info('Stitching in progress', { 
-          description: 'Cloud Run is processing. Will complete in 1-3 minutes.' 
-        });
       } else {
         throw new Error(data?.error || 'Stitch returned no result');
       }

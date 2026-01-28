@@ -444,6 +444,15 @@ export default function Production() {
             }));
             setScriptShots(shots);
             
+            // CRITICAL FIX: Set expectedClipCount from script shots
+            setExpectedClipCount(shots.length);
+            
+            // Also extract clip duration from first shot
+            const firstShotDuration = shots[0]?.durationSeconds;
+            if (firstShotDuration && (firstShotDuration === 5 || firstShotDuration === 10)) {
+              setClipDuration(firstShotDuration);
+            }
+            
             if (project.status === 'awaiting_approval') {
               setPipelineStage('awaiting_approval');
               addLog('Script ready for approval', 'info');

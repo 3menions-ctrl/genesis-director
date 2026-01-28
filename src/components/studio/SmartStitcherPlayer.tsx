@@ -147,6 +147,13 @@ const CROSSFADE_DURATION_SEC = 0.030; // 30ms crossfade
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_TRIGGER_OFFSET = 0.15;
 
+// Double-RAF helper to ensure browser has painted before continuing
+function doubleRAF(callback: () => void) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(callback);
+  });
+}
+
 // ForwardRef wrapper for AnimatePresence compatibility
 export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlayerProps>(
   function SmartStitcherPlayerInner({
@@ -576,7 +583,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     };
   }, [isPlaying, isCrossfading, currentClipIndex, clips.length, getActiveVideo]);
 
-  // Crossfade transition logic - TRUE CROSSFADE: outgoing fades out while incoming fades in
+  // Crossfade transition logic - RENDER-VERIFIED CROSSFADE
+  // Uses double-RAF to ensure browser has painted incoming frame before swapping
   const triggerCrossfadeTransition = useCallback(() => {
     if (isTransitioningRef.current || isCrossfading) return;
     if (currentClipIndex >= clips.length - 1) return;
@@ -595,47 +603,50 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
       
-      // Start playing standby BEFORE it becomes visible (it's at opacity 0)
+      // Start playing standby while still invisible
       standbyVideo.play().catch(() => {});
       
-      // CROSSFADE: Fade in incoming, fade out outgoing - SIMULTANEOUSLY
-      // Incoming goes from 0 → 1, outgoing goes from 1 → 0
+      // STEP 1: Make incoming video visible at FULL OPACITY (overlapping)
+      // Both videos are now at opacity 1 - this is the "overlap" phase
       if (currentActiveIndex === 0) {
-        // A is active (opacity 1), B is standby (opacity 0)
-        // Crossfade: A → 0, B → 1
-        setVideoAOpacity(0);
-        setVideoBOpacity(1);
+        setVideoBOpacity(1); // Incoming now visible
       } else {
-        // B is active (opacity 1), A is standby (opacity 0)
-        // Crossfade: B → 0, A → 1
-        setVideoBOpacity(0);
-        setVideoAOpacity(1);
+        setVideoAOpacity(1); // Incoming now visible
       }
       
-      // Swap active/standby state
-      setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
-      setCurrentClipIndex(nextIndex);
-      setIsPlaying(true);
-      
-      // After crossfade duration, clean up
-      setTimeout(() => {
-        // Pause the old video
-        if (activeVideo) {
-          activeVideo.pause();
+      // STEP 2: Wait for browser to actually PAINT the incoming frame
+      doubleRAF(() => {
+        // Now browser has definitely rendered the incoming video
+        // STEP 3: Fade out the outgoing video (incoming stays at 1)
+        if (currentActiveIndex === 0) {
+          setVideoAOpacity(0); // Outgoing fades out
+        } else {
+          setVideoBOpacity(0); // Outgoing fades out
         }
         
-        setIsCrossfading(false);
+        // Swap active/standby state
+        setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
+        setCurrentClipIndex(nextIndex);
+        setIsPlaying(true);
         
-        // Preload the NEXT clip into the old active (now standby)
-        const futureClipIndex = nextIndex + 1;
-        if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
-          activeVideo.src = clips[futureClipIndex].blobUrl;
-          activeVideo.load();
-        }
-        isTransitioningRef.current = false;
-      }, CROSSFADE_DURATION_SEC * 1000 + 10); // Add small buffer
+        // After crossfade completes, clean up
+        setTimeout(() => {
+          if (activeVideo) {
+            activeVideo.pause();
+          }
+          
+          setIsCrossfading(false);
+          
+          // Preload the NEXT clip into the old active (now standby)
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+            activeVideo.src = clips[futureClipIndex].blobUrl;
+            activeVideo.load();
+          }
+          isTransitioningRef.current = false;
+        }, CROSSFADE_DURATION_SEC * 1000 + 20);
+      });
     } else {
-      // Fallback if standby not ready
       console.warn('[SmartStitcher] Standby video not ready, skipping transition');
       isTransitioningRef.current = false;
       setIsCrossfading(false);

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Clock, Heart, Film, Search, TrendingUp, Sparkles, 
-  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2
+  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2, ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,12 +63,12 @@ const getModeLabel = (mode?: VideoGenerationMode) => {
 
 const getModeColor = (mode?: VideoGenerationMode) => {
   switch (mode) {
-    case 'video-to-video': return 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300';
-    case 'avatar': return 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-300';
-    case 'image-to-video': return 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300';
-    case 'motion-transfer': return 'from-pink-500/20 to-pink-600/10 border-pink-500/30 text-pink-300';
-    case 'b-roll': return 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300';
-    default: return 'from-white/10 to-white/5 border-white/20 text-white/80';
+    case 'video-to-video': return 'from-purple-500/30 to-purple-600/10 border-purple-500/40 text-purple-200';
+    case 'avatar': return 'from-blue-500/30 to-blue-600/10 border-blue-500/40 text-blue-200';
+    case 'image-to-video': return 'from-amber-500/30 to-amber-600/10 border-amber-500/40 text-amber-200';
+    case 'motion-transfer': return 'from-pink-500/30 to-pink-600/10 border-pink-500/40 text-pink-200';
+    case 'b-roll': return 'from-emerald-500/30 to-emerald-600/10 border-emerald-500/40 text-emerald-200';
+    default: return 'from-white/15 to-white/5 border-white/25 text-white/90';
   }
 };
 
@@ -169,137 +169,183 @@ export default function Discover() {
   }, {} as Record<string, number>) || {};
 
   return (
-    <div className="min-h-screen text-white relative">
+    <div className="min-h-screen text-white relative bg-black">
       {/* Premium Cinematic Background */}
       <DiscoverBackground />
       
       <AppHeader />
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      {/* Hero Section - Premium Glass Container */}
+      <div className="relative overflow-hidden pt-24 pb-8">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-3xl mx-auto"
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center"
           >
-            <Badge className="mb-4 bg-white/10 border-white/20 text-white/80 backdrop-blur-sm">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Community Gallery
-            </Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
-              Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/50">Creations</span>
-            </h1>
-            <p className="text-lg text-white/50 mb-8 max-w-xl mx-auto">
-              Explore AI-generated videos from creators worldwide — from cinematic films to style transfers and AI avatars.
-            </p>
+            {/* Floating Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Badge className="mb-6 px-4 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 text-amber-200 backdrop-blur-xl rounded-full text-sm font-medium">
+                <Sparkles className="w-3.5 h-3.5 mr-2" />
+                Community Gallery
+              </Badge>
+            </motion.div>
 
-            {/* Search Bar */}
-            <div className="relative max-w-xl mx-auto mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title, genre, or description..."
-                className="w-full h-12 pl-12 pr-4 bg-white/[0.05] border-white/10 text-white placeholder:text-white/40 rounded-xl focus:border-white/20 focus:ring-white/10 backdrop-blur-sm"
-              />
-            </div>
+            {/* Main Title with 3D Effect */}
+            <motion.h1 
+              className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-4 tracking-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+            >
+              Discover{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-200 to-rose-300">
+                Creations
+              </span>
+            </motion.h1>
 
-            {/* Sort & Filter Options */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSortBy('recent')}
-                className={cn(
-                  "rounded-full gap-2",
-                  sortBy === 'recent' 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <Clock className="w-4 h-4" />
-                Recent
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSortBy('popular')}
-                className={cn(
-                  "rounded-full gap-2",
-                  sortBy === 'popular' 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                )}
-              >
-                <TrendingUp className="w-4 h-4" />
-                Popular
-              </Button>
-              
-              <div className="h-4 w-px bg-white/20 mx-2 hidden sm:block" />
-              
-              {/* Mode Filters */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setModeFilter('all')}
-                className={cn(
-                  "rounded-full gap-1.5",
-                  modeFilter === 'all' 
-                    ? "bg-white/10 text-white border border-white/20" 
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                )}
-              >
-                All
-              </Button>
-              {Object.entries(modeCounts).map(([mode, count]) => (
+            <motion.p 
+              className="text-lg text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Explore AI-generated videos from creators worldwide
+            </motion.p>
+
+            {/* Premium Search Container */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="relative max-w-2xl mx-auto mb-8"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 rounded-2xl blur-xl" />
+                <div className="relative bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-4 w-5 h-5 text-white/40" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by title, genre, or description..."
+                      className="w-full h-12 pl-12 pr-4 bg-transparent border-0 text-white placeholder:text-white/30 focus:ring-0 focus-visible:ring-0 text-base"
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Premium Filter Pills */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex flex-wrap items-center justify-center gap-2"
+            >
+              {/* Sort Options */}
+              <div className="flex items-center gap-1 p-1 bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-full">
                 <Button
-                  key={mode}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setModeFilter(mode as VideoGenerationMode)}
+                  onClick={() => setSortBy('recent')}
                   className={cn(
-                    "rounded-full gap-1.5 text-xs",
-                    modeFilter === mode 
-                      ? "bg-white/10 text-white border border-white/20" 
-                      : "text-white/50 hover:text-white hover:bg-white/5"
+                    "h-8 px-4 rounded-full text-sm font-medium transition-all",
+                    sortBy === 'recent' 
+                      ? "bg-white/10 text-white shadow-lg" 
+                      : "text-white/50 hover:text-white/80 hover:bg-transparent"
                   )}
                 >
-                  {getModeLabel(mode as VideoGenerationMode)}
-                  <span className="text-white/40">({count})</span>
+                  <Clock className="w-3.5 h-3.5 mr-1.5" />
+                  Recent
                 </Button>
-              ))}
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSortBy('popular')}
+                  className={cn(
+                    "h-8 px-4 rounded-full text-sm font-medium transition-all",
+                    sortBy === 'popular' 
+                      ? "bg-white/10 text-white shadow-lg" 
+                      : "text-white/50 hover:text-white/80 hover:bg-transparent"
+                  )}
+                >
+                  <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                  Popular
+                </Button>
+              </div>
+              
+              <div className="h-6 w-px bg-white/10 mx-2 hidden sm:block" />
+              
+              {/* Mode Filters */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setModeFilter('all')}
+                  className={cn(
+                    "h-8 px-3 rounded-full text-sm transition-all",
+                    modeFilter === 'all' 
+                      ? "bg-white/10 text-white border border-white/20" 
+                      : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                  )}
+                >
+                  All
+                </Button>
+                {Object.entries(modeCounts).map(([mode, count]) => (
+                  <Button
+                    key={mode}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setModeFilter(mode as VideoGenerationMode)}
+                    className={cn(
+                      "h-8 px-3 rounded-full text-xs transition-all gap-1",
+                      modeFilter === mode 
+                        ? "bg-white/10 text-white border border-white/20" 
+                        : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                    )}
+                  >
+                    {getModeLabel(mode as VideoGenerationMode)}
+                    <span className="text-white/30 ml-0.5">({count})</span>
+                  </Button>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
 
       {/* Trailer Generator - Admin Only */}
       {isAdmin && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
           <TrailerGenerator />
         </div>
       )}
 
-      {/* Video Grid */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      {/* Video Grid - Premium Cards */}
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="space-y-3">
-                <Skeleton className="aspect-video w-full rounded-xl bg-white/5" />
-                <Skeleton className="h-5 w-3/4 bg-white/5" />
-                <Skeleton className="h-4 w-1/2 bg-white/5" />
+                <Skeleton className="aspect-video w-full rounded-2xl bg-white/[0.03]" />
+                <Skeleton className="h-5 w-3/4 bg-white/[0.03]" />
+                <Skeleton className="h-4 w-1/2 bg-white/[0.03]" />
               </div>
             ))}
           </div>
         ) : filteredVideos && filteredVideos.length > 0 ? (
           <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
             initial="hidden"
             animate="visible"
             variants={{
-              visible: { transition: { staggerChildren: 0.05 } }
+              visible: { transition: { staggerChildren: 0.08 } }
             }}
           >
             {filteredVideos.map((video) => (
@@ -315,25 +361,30 @@ export default function Discover() {
           </motion.div>
         ) : (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-24"
           >
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6 border border-white/10">
-              <Film className="w-10 h-10 text-white/30" />
+            {/* Premium Empty State */}
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full blur-2xl" />
+              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl flex items-center justify-center border border-white/[0.08]">
+                <Film className="w-10 h-10 text-white/30" />
+              </div>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No videos found</h3>
-            <p className="text-white/50 max-w-md mx-auto mb-6">
+            <h3 className="text-2xl font-semibold text-white mb-3">No videos found</h3>
+            <p className="text-white/40 max-w-md mx-auto mb-8">
               {searchQuery || modeFilter !== 'all'
                 ? "Try adjusting your filters or search query."
                 : "Be the first to share your creation with the community!"}
             </p>
             <Button
               onClick={() => navigate('/create')}
-              className="bg-white text-black hover:bg-white/90 rounded-full px-6"
+              className="h-12 px-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-orange-500/20"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Create Your First Video
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </motion.div>
         )}
@@ -397,119 +448,134 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
+        hidden: { opacity: 0, y: 30 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
       }}
       className="group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onPlay}
     >
-      {/* Thumbnail / Video Preview */}
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-900 mb-3 border border-white/[0.08] transition-all duration-300 group-hover:border-white/20 group-hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-        {/* Thumbnail Image */}
-        {video.thumbnail_url && (
-          <img
-            src={video.thumbnail_url}
-            alt={video.title}
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-              isPlaying && "opacity-0"
-            )}
-          />
-        )}
+      {/* Premium Glass Card Container */}
+      <div className="relative">
+        {/* Ambient glow on hover */}
+        <motion.div
+          className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
+          style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.15) 0%, rgba(234,88,12,0.1) 100%)' }}
+        />
         
-        {/* Video Preview (loads on hover) */}
-        {isPlayableVideo && (
-          <video
-            ref={videoRef}
-            src={video.video_url!}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
-              isPlaying ? "opacity-100" : "opacity-0"
+        {/* Card Content */}
+        <div className="relative bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-2xl border border-white/[0.08] rounded-2xl overflow-hidden transition-all duration-500 group-hover:border-white/[0.15] group-hover:shadow-2xl group-hover:shadow-black/50">
+          {/* Thumbnail / Video Preview */}
+          <div className="relative aspect-video overflow-hidden">
+            {/* Thumbnail Image */}
+            {video.thumbnail_url && (
+              <img
+                src={video.thumbnail_url}
+                alt={video.title}
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover transition-all duration-700",
+                  isPlaying && "opacity-0",
+                  isHovered && "scale-105"
+                )}
+              />
             )}
-          />
-        )}
+            
+            {/* Video Preview (loads on hover) */}
+            {isPlayableVideo && (
+              <video
+                ref={videoRef}
+                src={video.video_url!}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+                  isPlaying ? "opacity-100" : "opacity-0"
+                )}
+              />
+            )}
 
-        {/* Fallback for no thumbnail */}
-        {!video.thumbnail_url && !isPlayableVideo && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-            <Film className="w-12 h-12 text-white/20" />
+            {/* Fallback for no thumbnail */}
+            {!video.thumbnail_url && !isPlayableVideo && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800/50 to-zinc-900/50">
+                <Film className="w-12 h-12 text-white/20" />
+              </div>
+            )}
+            
+            {/* Gradient Overlay */}
+            <div className={cn(
+              "absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity duration-500",
+              isHovered ? "opacity-100" : "opacity-70"
+            )} />
+
+            {/* Play Button */}
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={false}
+              animate={{ opacity: isHovered ? 1 : 0 }}
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: isHovered ? 1 : 0.8 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl"
+              >
+                <Play className="w-7 h-7 text-white fill-white ml-1" />
+              </motion.div>
+            </motion.div>
+
+            {/* Mode Badge */}
+            <Badge 
+              className={cn(
+                "absolute top-3 left-3 text-[11px] font-semibold backdrop-blur-xl border bg-gradient-to-r px-2.5 py-1 rounded-full",
+                getModeColor(video.mode)
+              )}
+            >
+              <ModeIcon className="w-3 h-3 mr-1.5" />
+              {getModeLabel(video.mode)}
+            </Badge>
+
+            {/* Duration Badge */}
+            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl text-[11px] text-white font-medium border border-white/10">
+              {video.target_duration_minutes} min
+            </div>
+
+            {/* Like Button */}
+            <button
+              onClick={onLike}
+              className={cn(
+                "absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all backdrop-blur-xl border",
+                isLiked 
+                  ? "bg-red-500/80 text-white border-red-400/50 shadow-lg shadow-red-500/20" 
+                  : "bg-black/40 text-white/70 border-white/10 hover:text-white hover:bg-black/60 hover:border-white/20"
+              )}
+            >
+              <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+            </button>
           </div>
-        )}
-        
-        {/* Hover Overlay */}
-        <div className={cn(
-          "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300",
-          isHovered ? "opacity-100" : "opacity-50"
-        )} />
 
-        {/* Play Button */}
-        <div className={cn(
-          "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
-          isHovered ? "opacity-100" : "opacity-0"
-        )}>
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: isHovered ? 1 : 0.8 }}
-            className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30"
-          >
-            <Play className="w-6 h-6 text-white fill-white ml-1" />
-          </motion.div>
+          {/* Info Section */}
+          <div className="p-4 space-y-2">
+            <h3 className="font-semibold text-white text-base truncate group-hover:text-white/90 transition-colors">
+              {video.title}
+            </h3>
+            <div className="flex items-center gap-3 text-sm text-white/40">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-current text-red-400")} />
+                {video.likes_count || 0}
+              </span>
+            </div>
+            {video.synopsis && (
+              <p className="text-sm text-white/30 line-clamp-2 leading-relaxed">{video.synopsis}</p>
+            )}
+          </div>
         </div>
-
-        {/* Mode Badge */}
-        <Badge 
-          className={cn(
-            "absolute top-2 left-2 text-[10px] font-medium backdrop-blur-sm border bg-gradient-to-r",
-            getModeColor(video.mode)
-          )}
-        >
-          <ModeIcon className="w-3 h-3 mr-1" />
-          {getModeLabel(video.mode)}
-        </Badge>
-
-        {/* Duration */}
-        <div className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-xs text-white font-medium">
-          {video.target_duration_minutes} min
-        </div>
-
-        {/* Like Button */}
-        <button
-          onClick={onLike}
-          className={cn(
-            "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all backdrop-blur-sm",
-            isLiked 
-              ? "bg-red-500/90 text-white" 
-              : "bg-black/50 text-white/70 hover:text-white hover:bg-black/70"
-          )}
-        >
-          <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="space-y-1.5">
-        <h3 className="font-semibold text-white truncate group-hover:text-white/90 transition-colors">
-          {video.title}
-        </h3>
-        <div className="flex items-center gap-3 text-sm text-white/50">
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
-          </span>
-          <span className="flex items-center gap-1">
-            <Heart className={cn("w-3.5 h-3.5", isLiked && "fill-current text-red-400")} />
-            {video.likes_count || 0}
-          </span>
-        </div>
-        {video.synopsis && (
-          <p className="text-sm text-white/40 line-clamp-2">{video.synopsis}</p>
-        )}
       </div>
     </motion.div>
   );
@@ -580,14 +646,15 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-5xl bg-zinc-900/90 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="relative w-full max-w-5xl bg-gradient-to-br from-zinc-900/95 to-zinc-950/95 backdrop-blur-2xl rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Video Player */}
@@ -605,14 +672,14 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
               />
               
               {/* Video Controls Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 to-transparent">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={togglePlayback}
-                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                      className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-xl border border-white/10"
                     >
                       {isVideoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                     </Button>
@@ -620,17 +687,17 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
                       size="sm"
                       variant="ghost"
                       onClick={toggleMute}
-                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                      className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-xl border border-white/10"
                     >
                       {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                     </Button>
                   </div>
                   
                   <Badge className={cn(
-                    "text-xs backdrop-blur-sm border bg-gradient-to-r",
+                    "text-xs backdrop-blur-xl border bg-gradient-to-r px-3 py-1 rounded-full",
                     getModeColor(video.mode)
                   )}>
-                    <ModeIcon className="w-3 h-3 mr-1" />
+                    <ModeIcon className="w-3 h-3 mr-1.5" />
                     {getModeLabel(video.mode)}
                   </Badge>
                 </div>
@@ -650,8 +717,8 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
                 />
               )}
               <div className="relative z-10 text-center">
-                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 border border-white/20">
-                  <Film className="w-8 h-8 text-white/50" />
+                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 backdrop-blur-xl">
+                  <Film className="w-9 h-9 text-white/40" />
                 </div>
                 <p className="text-white/70 font-medium mb-1">Video Unavailable</p>
                 <p className="text-white/40 text-sm">This video could not be loaded</p>
@@ -661,26 +728,26 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
         </div>
 
         {/* Video Info */}
-        <div className="p-6 bg-gradient-to-b from-zinc-900/50 to-zinc-900">
+        <div className="p-6 bg-gradient-to-b from-transparent to-zinc-950/50">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold text-white mb-3">{video.title}</h2>
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <Badge variant="outline" className="text-white/70 border-white/20 bg-white/5">
+                <Badge variant="outline" className="text-white/70 border-white/15 bg-white/5 rounded-full px-3">
                   {formatGenre(video.genre)}
                 </Badge>
                 {video.mood && (
-                  <Badge variant="outline" className="text-white/70 border-white/20 bg-white/5">
+                  <Badge variant="outline" className="text-white/70 border-white/15 bg-white/5 rounded-full px-3">
                     {video.mood}
                   </Badge>
                 )}
-                <span className="flex items-center gap-1 text-sm text-white/50">
+                <span className="flex items-center gap-1.5 text-sm text-white/40">
                   <Clock className="w-3.5 h-3.5" />
                   {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
                 </span>
               </div>
               {video.synopsis && (
-                <p className="text-white/60 leading-relaxed">{video.synopsis}</p>
+                <p className="text-white/50 leading-relaxed">{video.synopsis}</p>
               )}
             </div>
             
@@ -690,10 +757,10 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
               size="sm"
               onClick={onLike}
               className={cn(
-                "gap-2 rounded-full",
+                "gap-2 rounded-full px-5",
                 isLiked 
-                  ? "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 hover:text-red-300" 
-                  : "border-white/20 text-white/70 hover:text-white hover:bg-white/10"
+                  ? "bg-red-500/20 border-red-500/40 text-red-300 hover:bg-red-500/30 hover:text-red-200" 
+                  : "border-white/15 text-white/70 hover:text-white hover:bg-white/10"
               )}
             >
               <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
@@ -705,7 +772,7 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10"
+          className="absolute top-4 right-4 w-11 h-11 rounded-full bg-black/50 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10"
         >
           <X className="w-5 h-5" />
         </button>

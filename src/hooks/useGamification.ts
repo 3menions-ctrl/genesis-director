@@ -67,9 +67,9 @@ export function useGamification() {
         .from('user_gamification')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return data as UserGamification | null;
     },
     enabled: !!user,

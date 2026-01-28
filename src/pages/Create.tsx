@@ -71,6 +71,18 @@ export default function Create() {
         throw error;
       }
 
+      // Check for active project conflict (409 response)
+      if (data?.error === 'active_project_exists') {
+        toast.error(data.message, {
+          duration: 8000,
+          action: {
+            label: 'View Project',
+            onClick: () => navigate(`/production/${data.existingProjectId}`),
+          },
+        });
+        return;
+      }
+
       if (!data?.projectId) {
         throw new Error('Failed to create project - no project ID returned from server');
       }

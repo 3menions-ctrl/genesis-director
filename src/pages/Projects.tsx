@@ -8,7 +8,7 @@ import {
   Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
   BarChart3, Activity, Settings2, ChevronDown, X, Check,
   Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock,
-  GraduationCap, Video, MonitorPlay, Palette, Wand2, Image
+  GraduationCap, Video, MonitorPlay, Palette, Wand2, Image, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1695,44 +1695,71 @@ export default function Projects() {
         )}
       </main>
 
-      {/* Video Player Modal - handles both manifest and direct video URLs */}
-      {videoModalOpen && selectedProject && !isLoadingClips && resolvedClips.length > 0 && (
-        isManifestUrl(resolvedClips[0]) ? (
-          <div className="fixed inset-0 z-50 bg-black">
-            <button 
-              onClick={() => {
-                setVideoModalOpen(false);
-                setResolvedClips([]);
-              }}
-              className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-            >
-              <X className="w-6 h-6 text-white" />
-            </button>
+      {/* Video Player Modal - Use SmartStitcherPlayer for seamless transitions */}
+      {videoModalOpen && selectedProject && !isLoadingClips && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Header controls */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="flex items-center gap-3">
+              <h2 className="text-white font-medium text-lg truncate max-w-md">{selectedProject.name}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleDownloadAll(selectedProject)}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                title="Download"
+              >
+                <Download className="w-5 h-5 text-white" />
+              </button>
+              <button
+                onClick={() => {
+                  if (resolvedClips[0]) window.open(resolvedClips[0], '_blank');
+                }}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                title="Open in new tab"
+              >
+                <ExternalLink className="w-5 h-5 text-white" />
+              </button>
+              <button
+                onClick={() => {
+                  setVideoModalOpen(false);
+                  setResolvedClips([]);
+                  setActiveProjectId(selectedProject.id);
+                  navigate('/create');
+                }}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                title="Edit project"
+              >
+                <Edit2 className="w-5 h-5 text-white" />
+              </button>
+              <button 
+                onClick={() => {
+                  setVideoModalOpen(false);
+                  setResolvedClips([]);
+                }}
+                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                title="Close"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Smart Stitcher Player - seamless transitions */}
+          {isManifestUrl(resolvedClips[0]) ? (
             <ManifestVideoPlayer 
               manifestUrl={resolvedClips[0]} 
               className="w-full h-full" 
             />
-          </div>
-        ) : (
-          <FullscreenVideoPlayer
-            clips={resolvedClips}
-            title={selectedProject.name}
-            onClose={() => {
-              setVideoModalOpen(false);
-              setResolvedClips([]);
-            }}
-            onDownload={() => handleDownloadAll(selectedProject)}
-            onOpenExternal={() => {
-              if (resolvedClips[0]) window.open(resolvedClips[0], '_blank');
-            }}
-            onEdit={() => {
-              setVideoModalOpen(false);
-              setResolvedClips([]);
-              setActiveProjectId(selectedProject.id);
-              navigate('/create');
-            }}
-          />
-        )
+          ) : (
+            <SmartStitcherPlayer
+              projectId={selectedProject.id}
+              clipUrls={resolvedClips}
+              className="w-full h-full"
+              autoPlay={true}
+            />
+          )}
+        </div>
       )}
 
       {/* Training Video Player Modal */}

@@ -26,6 +26,7 @@ import { AppLoader } from '@/components/ui/app-loader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
 import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
+import PipelineBackground from '@/components/production/PipelineBackground';
 
 // ============= TYPES =============
 
@@ -113,8 +114,8 @@ export default function Production() {
   const projectId = params.projectId || searchParams.get('projectId');
   const { user } = useAuth();
   
-  // UI State
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // UI State - Sidebar starts collapsed for cleaner experience
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   
   // Core state
   const [isLoading, setIsLoading] = useState(true);
@@ -941,48 +942,9 @@ export default function Production() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030303] flex flex-col">
-      {/* Premium Cinematic Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-[#030303] to-zinc-950" />
-        
-        {/* Animated ambient orbs */}
-        <motion.div
-          className="absolute top-[-20%] left-[20%] w-[800px] h-[800px] rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
-          }}
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute bottom-[-10%] right-[10%] w-[600px] h-[600px] rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(255,255,255,0.02) 0%, transparent 70%)',
-          }}
-          animate={{
-            x: [0, -30, 0],
-            y: [0, -40, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        
-        {/* Subtle grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '100px 100px',
-          }}
-        />
-        
-        {/* Top gradient fade */}
-        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#030303] to-transparent" />
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Premium Green Pipeline Background */}
+      <PipelineBackground />
       
       {/* App Header */}
       <AppHeader showCreate={false} />

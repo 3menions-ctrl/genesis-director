@@ -18,21 +18,29 @@ import {
   type MasterSceneAnchor,
   type ExtractedCharacter,
 } from "../_shared/prompt-builder.ts";
+import {
+  GUARD_RAIL_CONFIG,
+  getClip0StartImage,
+  getClip0LastFrame,
+  getGuaranteedLastFrame,
+  isValidImageUrl,
+  checkAndRecoverStaleMutex,
+  runPreGenerationChecks,
+} from "../_shared/pipeline-guard-rails.ts";
 
 // ============================================================================
 // Kling 2.6 via Replicate - Latest Model with HD Pro Quality
 // Using Replicate API with predictions endpoint for maximum quality
 // ============================================================================
-// Use model-specific endpoint for creating predictions (not /predictions)
 const KLING_MODEL_OWNER = "kwaivgi";
 const KLING_MODEL_NAME = "kling-v2.6";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
-const KLING_ENABLE_AUDIO = true; // Native audio generation
+const KLING_ENABLE_AUDIO = true;
 
-// Frame extraction retry configuration
-const FRAME_EXTRACTION_MAX_RETRIES = 3;
-const FRAME_EXTRACTION_BACKOFF_MS = 2000;
+// Frame extraction retry configuration - use guard rail config
+const FRAME_EXTRACTION_MAX_RETRIES = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_MAX_RETRIES;
+const FRAME_EXTRACTION_BACKOFF_MS = GUARD_RAIL_CONFIG.FRAME_EXTRACTION_BACKOFF_MS;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -432,39 +440,54 @@ serve(async (req) => {
     console.log(`[SingleClip] Using Kling v2.6 (HD Pro mode) via Replicate`);
 
     // =========================================================
-    // FAILSAFE #1: Strict Sequential Enforcement
-    // Check if previous clip is ready before proceeding
+    // GUARD RAIL #0: Auto-recover stale mutexes before anything
     // =========================================================
-    if (shotIndex > 0) {
-      const continuityCheck = await checkContinuityReady(supabase, projectId, shotIndex);
-      
-      if (!continuityCheck.ready) {
-        console.error(`[SingleClip] ⛔ Continuity check FAILED: ${continuityCheck.reason}`);
-        
-        if (continuityCheck.reason === 'previous_clip_not_completed') {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: 'SEQUENTIAL_VIOLATION',
-              message: `Cannot start clip ${shotIndex + 1}: previous clip is ${continuityCheck.previousStatus}`,
-              waitForClip: shotIndex - 1,
-            }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        
-        if (continuityCheck.reason === 'previous_clip_missing_frame') {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: 'FRAME_CHAIN_BROKEN',
-              message: `Cannot start clip ${shotIndex + 1}: previous clip has no last frame`,
-              frameExtractionStatus: continuityCheck.frameExtractionStatus,
-            }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+    const mutexRecovery = await checkAndRecoverStaleMutex(supabase, projectId);
+    if (mutexRecovery.wasStale) {
+      console.log(`[SingleClip] 🔓 Auto-recovered stale mutex from clip ${mutexRecovery.releasedClip}`);
+    }
+
+    // =========================================================
+    // GUARD RAIL #1: Pre-generation validation with fallback resolution
+    // =========================================================
+    const preCheck = await runPreGenerationChecks(supabase, projectId, shotIndex, {
+      referenceImageUrl,
+      sceneImageUrl,
+      previousClipLastFrame: startImageUrl,
+      identityBibleImageUrl: identityBible?.originalReferenceUrl,
+    });
+    
+    for (const warning of preCheck.warnings) {
+      console.warn(`[SingleClip] ⚠️ ${warning}`);
+    }
+    
+    // For clip 0, ALWAYS use reference image; for others, check blockers
+    if (shotIndex > 0 && !preCheck.canProceed) {
+      console.error(`[SingleClip] ⛔ Pre-generation checks FAILED:`, preCheck.blockers);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'PRE_GENERATION_FAILED',
+          message: preCheck.blockers.join('; '),
+          blockers: preCheck.blockers,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // =========================================================
+    // GUARD RAIL #2: Clip 0 ALWAYS uses reference image as start
+    // =========================================================
+    let resolvedStartImage = startImageUrl;
+    if (shotIndex === 0 && GUARD_RAIL_CONFIG.CLIP_0_ALWAYS_USE_REFERENCE) {
+      const clip0Start = getClip0StartImage(referenceImageUrl, sceneImageUrl, identityBible?.originalReferenceUrl);
+      if (clip0Start.imageUrl) {
+        resolvedStartImage = clip0Start.imageUrl;
+        console.log(`[SingleClip] ✓ Clip 0: Using ${clip0Start.source} as start image (GUARANTEED)`);
       }
+    } else if (preCheck.resolvedFrameUrl) {
+      resolvedStartImage = preCheck.resolvedFrameUrl;
+      console.log(`[SingleClip] ✓ Using resolved frame from ${preCheck.resolvedFrameSource}`);
     }
 
     // =========================================================
@@ -548,22 +571,26 @@ serve(async (req) => {
     const fullNegativePrompt = builtPrompt.negativePrompt;
     
     // =========================================================
-    // VALIDATE AND USE START IMAGE
+    // VALIDATE AND USE START IMAGE (use resolved image from guard rails)
     // =========================================================
     let validatedStartImage: string | null = null;
-    if (startImageUrl) {
-      const lowerUrl = startImageUrl.toLowerCase();
-      if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov')) {
-        console.warn(`[SingleClip] ⚠️ REJECTED: startImageUrl is a VIDEO file, not an image!`);
-      } else if (startImageUrl.startsWith("http")) {
+    const imageToValidate = resolvedStartImage || startImageUrl;
+    
+    if (imageToValidate) {
+      // Use guard rail validation function
+      if (!isValidImageUrl(imageToValidate)) {
+        console.warn(`[SingleClip] ⚠️ REJECTED: startImageUrl failed validation: ${imageToValidate.substring(0, 50)}...`);
+      } else {
         try {
-          const imageCheckResponse = await fetch(startImageUrl, { method: 'HEAD' });
+          const imageCheckResponse = await fetch(imageToValidate, { method: 'HEAD' });
           if (imageCheckResponse.ok) {
-            validatedStartImage = startImageUrl;
-            console.log(`[SingleClip] ✓ Start image validated`);
+            validatedStartImage = imageToValidate;
+            console.log(`[SingleClip] ✓ Start image validated: ${imageToValidate.substring(0, 60)}...`);
           }
         } catch (urlError) {
-          console.warn(`[SingleClip] ⚠️ Failed to validate start image URL`);
+          console.warn(`[SingleClip] ⚠️ Failed to HEAD check start image, using anyway`);
+          // Still use the image even if HEAD check fails (some CDNs don't support HEAD)
+          validatedStartImage = imageToValidate;
         }
       }
     }
@@ -674,23 +701,33 @@ serve(async (req) => {
       }
     }
     
-    // FAILSAFE #4: Fallback to scene image if frame extraction completely failed
+    // GUARD RAIL #4: Use guaranteed fallback chain for last frame
     if (!extractedLastFrameUrl) {
       console.error(`[SingleClip] ⚠️ All ${FRAME_EXTRACTION_MAX_RETRIES} frame extraction attempts failed!`);
       
-      // Try to use scene image as fallback
-      const sceneImageUrl = pipelineContext?.sceneImageLookup?.[shotIndex] || 
-                            pipelineContext?.sceneImageLookup?.[0] ||
-                            pipelineContext?.referenceImageUrl;
+      // Use guard rail guaranteed fallback function
+      const fallbackResult = getGuaranteedLastFrame(shotIndex, {
+        extractedFrame: undefined, // We already know extraction failed
+        referenceImageUrl: pipelineContext?.referenceImageUrl || referenceImageUrl,
+        sceneImageUrl: pipelineContext?.sceneImageLookup?.[shotIndex] || sceneImageUrl,
+        identityBibleImageUrl: identityBible?.originalReferenceUrl,
+      });
       
-      if (sceneImageUrl) {
-        console.log(`[SingleClip] Using fallback scene image: ${sceneImageUrl.substring(0, 60)}...`);
-        extractedLastFrameUrl = sceneImageUrl;
+      if (fallbackResult.frameUrl) {
+        console.log(`[SingleClip] ✓ Using fallback ${fallbackResult.source} (confidence: ${fallbackResult.confidence})`);
+        extractedLastFrameUrl = fallbackResult.frameUrl;
         frameExtractionStatus = 'fallback_used';
       } else {
         frameExtractionStatus = 'failed';
-        console.error(`[SingleClip] ❌ CRITICAL: No fallback image available - frame chain will be broken!`);
+        console.error(`[SingleClip] ❌ CRITICAL: All fallbacks exhausted - frame chain will be broken!`);
       }
+    }
+    
+    // GUARD RAIL #5: Clip 0 ALWAYS uses reference image as last frame for Clip 1
+    if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+      console.log(`[SingleClip] ✓ Clip 0: Overriding last frame with reference image for continuity anchor`);
+      extractedLastFrameUrl = referenceImageUrl;
+      frameExtractionStatus = 'success'; // Reference is always reliable
     }
     
     // Update frame extraction status in DB

@@ -612,25 +612,25 @@ export default function TrainingVideo() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="p-4 rounded-xl border bg-card"
+              className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    scriptText.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    scriptText.trim() ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
                   )}>
                     {scriptText.trim() ? <Check className="w-3.5 h-3.5" /> : "1"}
                   </div>
-                  <h3 className="font-semibold text-sm">Script</h3>
+                  <h3 className="font-semibold text-sm text-white">Script</h3>
                 </div>
-                <Badge variant="outline" className="text-[10px]">{scriptText.length}/500</Badge>
+                <Badge variant="outline" className="text-[10px] border-white/20 text-white/60">{scriptText.length}/500</Badge>
               </div>
               <Textarea
                 placeholder="Enter what your character will say..."
                 value={scriptText}
                 onChange={(e) => setScriptText(e.target.value.slice(0, 500))}
-                className="min-h-[80px] resize-none text-sm"
+                className="min-h-[80px] resize-none text-sm bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 focus:border-emerald-500/50"
               />
             </motion.div>
 
@@ -639,16 +639,16 @@ export default function TrainingVideo() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="p-4 rounded-xl border bg-card"
+              className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                  selectedVoice ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  selectedVoice ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
                 )}>
                   {selectedVoice ? <Check className="w-3.5 h-3.5" /> : "2"}
                 </div>
-                <h3 className="font-semibold text-sm">Voice</h3>
+                <h3 className="font-semibold text-sm text-white">Voice</h3>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                 {VOICE_OPTIONS.map((voice) => {
@@ -661,21 +661,23 @@ export default function TrainingVideo() {
                       onClick={() => setSelectedVoice(voice.id)}
                       className={cn(
                         "relative p-2 rounded-lg border text-center transition-all group",
-                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        isSelected 
+                          ? "border-emerald-500/50 bg-emerald-500/10" 
+                          : "border-white/[0.08] bg-white/[0.02] hover:border-emerald-500/30"
                       )}
                     >
-                      <div className="text-xs font-medium truncate">{voice.name}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{voice.gender}</div>
+                      <div className="text-xs font-medium truncate text-white">{voice.name}</div>
+                      <div className="text-[10px] text-white/50 truncate">{voice.gender}</div>
                       {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-white" />
                         </div>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleVoicePreview(voice.id); }}
                         className={cn(
                           "absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all",
-                          isPlaying ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"
+                          isPlaying ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50 opacity-0 group-hover:opacity-100"
                         )}
                       >
                         {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
@@ -693,21 +695,21 @@ export default function TrainingVideo() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="p-4 rounded-xl border bg-card"
+                className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    characterImage ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    characterImage ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
                   )}>
                     {characterImage ? <Check className="w-3.5 h-3.5" /> : "3"}
                   </div>
-                  <h3 className="font-semibold text-sm">Character</h3>
+                  <h3 className="font-semibold text-sm text-white">Character</h3>
                 </div>
                 <div 
                   className={cn(
                     "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all overflow-hidden",
-                    characterImage ? "border-primary/50" : "border-muted-foreground/30 hover:border-primary/50"
+                    characterImage ? "border-emerald-500/50" : "border-white/20 hover:border-emerald-500/50"
                   )}
                   onClick={() => characterInputRef.current?.click()}
                 >
@@ -720,8 +722,8 @@ export default function TrainingVideo() {
                     </div>
                   ) : (
                     <div className="text-center p-4">
-                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Upload image</p>
+                      <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
+                      <p className="text-xs text-white/40">Upload image</p>
                     </div>
                   )}
                 </div>
@@ -733,16 +735,16 @@ export default function TrainingVideo() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="p-4 rounded-xl border bg-card"
+                className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    (selectedBackground || customBackground) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    (selectedBackground || customBackground) ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"
                   )}>
                     {(selectedBackground || customBackground) ? <Check className="w-3.5 h-3.5" /> : "4"}
                   </div>
-                  <h3 className="font-semibold text-sm">Scene</h3>
+                  <h3 className="font-semibold text-sm text-white">Scene</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {/* Custom upload */}
@@ -750,13 +752,13 @@ export default function TrainingVideo() {
                     onClick={() => backgroundInputRef.current?.click()}
                     className={cn(
                       "aspect-video rounded-md border-2 border-dashed flex items-center justify-center transition-all overflow-hidden",
-                      customBackground ? "border-primary" : "border-muted-foreground/30 hover:border-primary/50"
+                      customBackground ? "border-emerald-500" : "border-white/20 hover:border-emerald-500/50"
                     )}
                   >
                     {customBackground ? (
                       <img src={customBackground} alt="Custom" className="w-full h-full object-cover" />
                     ) : (
-                      <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Upload className="w-3.5 h-3.5 text-white/40" />
                     )}
                   </button>
                   {BACKGROUND_PRESETS.slice(0, 8).map((bg) => (
@@ -765,13 +767,13 @@ export default function TrainingVideo() {
                       onClick={() => { setSelectedBackground(bg.id); setCustomBackground(null); }}
                       className={cn(
                         "aspect-video rounded-md overflow-hidden border-2 transition-all relative",
-                        selectedBackground === bg.id && !customBackground ? "border-primary" : "border-transparent hover:border-primary/50"
+                        selectedBackground === bg.id && !customBackground ? "border-emerald-500" : "border-transparent hover:border-emerald-500/50"
                       )}
                     >
                       <img src={bg.image} alt={bg.name} className="w-full h-full object-cover" />
                       {selectedBackground === bg.id && !customBackground && (
-                        <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-2 h-2 text-primary-foreground" />
+                        <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center">
+                          <Check className="w-2 h-2 text-white" />
                         </div>
                       )}
                     </button>
@@ -789,17 +791,17 @@ export default function TrainingVideo() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15 }}
-              className="rounded-xl border bg-card overflow-hidden"
+              className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl overflow-hidden"
             >
-              <div className="p-2.5 border-b flex items-center justify-between">
+              <div className="p-2.5 border-b border-white/[0.08] flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Preview</span>
+                  <Video className="w-4 h-4 text-white/50" />
+                  <span className="text-sm font-medium text-white">Preview</span>
                 </div>
-                <Badge variant="outline" className="text-[10px]">16:9</Badge>
+                <Badge variant="outline" className="text-[10px] border-white/20 text-white/60">16:9</Badge>
               </div>
               
-              <div className="aspect-video bg-muted/50 relative">
+              <div className="aspect-video bg-black/50 relative">
                 <AnimatePresence mode="wait">
                   {generatedVideoUrl ? (
                     <motion.video
@@ -823,16 +825,16 @@ export default function TrainingVideo() {
                         </div>
                       ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <div className="w-12 h-12 rounded-full bg-muted/80 flex items-center justify-center">
-                            <User className="w-6 h-6 text-muted-foreground" />
+                          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                            <User className="w-6 h-6 text-white/40" />
                           </div>
                         </div>
                       )}
                       
                       {isGenerating && (
-                        <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center backdrop-blur-sm">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
-                          <p className="text-sm font-medium mb-2">
+                        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mb-2" />
+                          <p className="text-sm font-medium text-white mb-2">
                             {generationStep === 'generating_audio' && 'Generating voice...'}
                             {generationStep === 'generating_video' && 'Creating video...'}
                             {generationStep === 'applying_lipsync' && 'Syncing lips...'}
@@ -842,10 +844,10 @@ export default function TrainingVideo() {
                       )}
                       
                       {generationStep === 'error' && (
-                        <div className="absolute inset-0 bg-destructive/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
-                          <AlertCircle className="w-6 h-6 text-destructive mb-2" />
-                          <p className="text-xs text-destructive text-center line-clamp-2">{error}</p>
-                          <Button variant="outline" size="sm" className="mt-2" onClick={() => setGenerationStep('idle')}>Retry</Button>
+                        <div className="absolute inset-0 bg-red-500/10 flex flex-col items-center justify-center backdrop-blur-sm p-4">
+                          <AlertCircle className="w-6 h-6 text-red-400 mb-2" />
+                          <p className="text-xs text-red-400 text-center line-clamp-2">{error}</p>
+                          <Button variant="outline" size="sm" className="mt-2 border-white/20 text-white hover:bg-white/10" onClick={() => setGenerationStep('idle')}>Retry</Button>
                         </div>
                       )}
                     </motion.div>
@@ -854,7 +856,7 @@ export default function TrainingVideo() {
               </div>
               
               {/* Quick Summary */}
-              <div className="p-2.5 border-t bg-muted/30 flex items-center justify-between text-[10px]">
+              <div className="p-2.5 border-t border-white/[0.08] bg-white/[0.02] flex items-center justify-between text-[10px] text-white/50">
                 <div className="flex items-center gap-1">
                   <Mic className="w-3 h-3" />
                   <span>{VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name}</span>
@@ -870,27 +872,27 @@ export default function TrainingVideo() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               {generationStep === 'complete' ? (
                 <div className="space-y-2">
-                  <Button className="w-full h-10" asChild>
+                  <Button className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white" asChild>
                     <a href={generatedVideoUrl || '#'} download="training-video.mp4">
                       <Download className="w-4 h-4 mr-2" />
                       Download Video
                     </a>
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full" onClick={handleReset}>
+                  <Button variant="outline" size="sm" className="w-full border-white/20 text-white hover:bg-white/10" onClick={handleReset}>
                     <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                     Create Another
                   </Button>
                 </div>
               ) : (
                 <Button 
-                  className="w-full h-10"
+                  className="w-full h-10 bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-white/10 disabled:text-white/30"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
                   {isGenerating ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
                   ) : (
-                    <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge variant="secondary" className="ml-2 text-xs">{ESTIMATED_CREDITS} cr</Badge></>
+                    <><Wand2 className="w-4 h-4 mr-2" />Generate Video<Badge className="ml-2 text-xs bg-white/20 text-white border-0">{ESTIMATED_CREDITS} cr</Badge></>
                   )}
                 </Button>
               )}
@@ -906,7 +908,7 @@ export default function TrainingVideo() {
               ].map((item, i) => (
                 <div key={i} className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-full text-[10px]",
-                  item.ok ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  item.ok ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/40"
                 )}>
                   {item.ok ? <Check className="w-2.5 h-2.5" /> : <CircleDot className="w-2.5 h-2.5" />}
                   {item.label}

@@ -503,3 +503,189 @@ export async function runPreGenerationChecks(
     resolvedFrameSource: frameResult.source,
   };
 }
+
+// =====================================================
+// ORPHANED VIDEO RECOVERY - Scans storage for videos
+// that exist but aren't linked to clip records
+// =====================================================
+
+export interface OrphanedVideoResult {
+  found: boolean;
+  videoUrl?: string;
+  storagePath?: string;
+  createdAt?: string;
+}
+
+/**
+ * Check if a video already exists in storage for a given clip
+ * This recovers clips where the video was stored but DB update failed
+ */
+export async function findOrphanedVideo(
+  supabase: SupabaseClient,
+  projectId: string,
+  shotIndex: number
+): Promise<OrphanedVideoResult> {
+  try {
+    // List files in the project's video-clips folder
+    const { data: files, error } = await supabase.storage
+      .from('video-clips')
+      .list(projectId, {
+        limit: 100,
+        sortBy: { column: 'created_at', order: 'desc' },
+      });
+    
+    if (error || !files) {
+      console.warn(`[GuardRails] Failed to list storage files:`, error);
+      return { found: false };
+    }
+    
+    // Look for clips matching this shot index
+    // File naming pattern: clip_${projectId}_${clipIndex}_${timestamp}.mp4
+    const matchingFile = files.find(f => 
+      f.name.includes(`_${shotIndex}_`) && 
+      f.name.endsWith('.mp4')
+    );
+    
+    if (matchingFile) {
+      const storagePath = `${projectId}/${matchingFile.name}`;
+      const { data: { publicUrl } } = supabase.storage
+        .from('video-clips')
+        .getPublicUrl(storagePath);
+      
+      console.log(`[GuardRails] ✓ Found orphaned video for clip ${shotIndex + 1}: ${matchingFile.name}`);
+      
+      return {
+        found: true,
+        videoUrl: publicUrl,
+        storagePath,
+        createdAt: matchingFile.created_at,
+      };
+    }
+    
+    return { found: false };
+  } catch (err) {
+    console.error(`[GuardRails] Orphaned video scan error:`, err);
+    return { found: false };
+  }
+}
+
+/**
+ * Recover a stuck clip by checking storage for existing video
+ * and updating the database record accordingly
+ */
+export async function recoverStuckClip(
+  supabase: SupabaseClient,
+  projectId: string,
+  shotIndex: number,
+  clipId: string,
+  referenceImageUrl?: string
+): Promise<{ recovered: boolean; videoUrl?: string; reason?: string }> {
+  try {
+    console.log(`[GuardRails] Attempting to recover stuck clip ${shotIndex + 1} (${clipId})...`);
+    
+    // Step 1: Check if video already exists in storage
+    const orphanedVideo = await findOrphanedVideo(supabase, projectId, shotIndex);
+    
+    if (orphanedVideo.found && orphanedVideo.videoUrl) {
+      console.log(`[GuardRails] ✓ Found existing video in storage - updating clip record`);
+      
+      // Update clip record with the found video
+      const updateData: Record<string, any> = {
+        status: 'completed',
+        video_url: orphanedVideo.videoUrl,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        frame_extraction_status: 'pending', // Will need to extract frame
+      };
+      
+      // For Clip 0, use reference image as last_frame_url
+      if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+        updateData.last_frame_url = referenceImageUrl;
+        console.log(`[GuardRails] ✓ Set Clip 0 last_frame_url to reference image`);
+      }
+      
+      await supabase
+        .from('video_clips')
+        .update(updateData)
+        .eq('id', clipId);
+      
+      // Release any stale mutex
+      await supabase
+        .from('movie_projects')
+        .update({
+          generation_lock: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      console.log(`[GuardRails] ✓ Clip ${shotIndex + 1} recovered and mutex released`);
+      
+      return { 
+        recovered: true, 
+        videoUrl: orphanedVideo.videoUrl,
+        reason: 'Found existing video in storage',
+      };
+    }
+    
+    console.log(`[GuardRails] No orphaned video found for clip ${shotIndex + 1}`);
+    return { recovered: false, reason: 'No video in storage' };
+  } catch (err) {
+    console.error(`[GuardRails] Clip recovery error:`, err);
+    return { recovered: false, reason: `Error: ${err}` };
+  }
+}
+
+/**
+ * Aggressively detect and recover ALL stuck clips for a project
+ * This should be called by the watchdog for comprehensive recovery
+ */
+export async function recoverAllStuckClips(
+  supabase: SupabaseClient,
+  projectId: string,
+  referenceImageUrl?: string
+): Promise<{ recoveredCount: number; details: Array<{ clipIndex: number; result: string }> }> {
+  const details: Array<{ clipIndex: number; result: string }> = [];
+  let recoveredCount = 0;
+  
+  // Find all clips stuck in "generating" for more than 2 minutes
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  
+  const { data: stuckClips, error } = await supabase
+    .from('video_clips')
+    .select('id, shot_index, status, video_url, updated_at')
+    .eq('project_id', projectId)
+    .eq('status', 'generating')
+    .lt('updated_at', twoMinutesAgo)
+    .order('shot_index');
+  
+  if (error || !stuckClips || stuckClips.length === 0) {
+    return { recoveredCount: 0, details };
+  }
+  
+  console.log(`[GuardRails] Found ${stuckClips.length} stuck clips to recover`);
+  
+  for (const clip of stuckClips) {
+    const result = await recoverStuckClip(
+      supabase, 
+      projectId, 
+      clip.shot_index, 
+      clip.id,
+      referenceImageUrl
+    );
+    
+    if (result.recovered) {
+      recoveredCount++;
+      details.push({ 
+        clipIndex: clip.shot_index, 
+        result: `Recovered: ${result.reason}`,
+      });
+    } else {
+      details.push({ 
+        clipIndex: clip.shot_index, 
+        result: `Not recovered: ${result.reason}`,
+      });
+    }
+  }
+  
+  return { recoveredCount, details };
+}

@@ -57,8 +57,8 @@ export function useTierLimits() {
   });
 
   const canCreate2MinuteVideo = tierLimits?.max_duration_minutes === 2;
-  const maxClips = tierLimits?.max_clips_per_video ?? 6;
-  const maxRetries = tierLimits?.max_retries_per_clip ?? 1;
+  const maxClips = tierLimits?.max_clips_per_video ?? 5; // Free tier default
+  const maxRetries = tierLimits?.max_retries_per_clip ?? 4;
   const hasChunkedStitching = tierLimits?.chunked_stitching ?? false;
   const hasPriorityQueue = tierLimits?.priority_queue ?? false;
 

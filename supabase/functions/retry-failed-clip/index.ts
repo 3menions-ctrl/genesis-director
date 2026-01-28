@@ -184,12 +184,46 @@ serve(async (req) => {
     
     console.log(`[RetryClip] Loaded context: identityBible=${identityBible ? 'YES' : 'NO'}, anchors=${accumulatedAnchors.length}, ref=${referenceImageUrl ? 'YES' : 'NO'}`);
     
-    // 5b. Get corrective prompts from failed clip's validation results
+    // 5b. CRITICAL FIX: Detect and recover corrupted prompts
+    // If prompt contains "Generation failed" or is very short, rebuild from script
     let enhancedPrompt = failedClip.prompt;
+    const isCorruptedPrompt = 
+      !enhancedPrompt || 
+      enhancedPrompt.toLowerCase().includes('generation failed') ||
+      enhancedPrompt.length < 50;
+    
+    if (isCorruptedPrompt) {
+      console.warn(`[RetryClip] ⚠️ Corrupted prompt detected: "${enhancedPrompt?.substring(0, 50)}..."`);
+      
+      // Try to recover from generated_script
+      try {
+        const script = typeof project.generated_script === 'string' 
+          ? JSON.parse(project.generated_script) 
+          : project.generated_script;
+        
+        const shots = script?.shots || [];
+        const shot = shots[request.clipIndex];
+        
+        if (shot?.description || shot?.title) {
+          enhancedPrompt = shot.description || shot.title || `Scene ${request.clipIndex + 1}`;
+          console.log(`[RetryClip] ✓ Recovered prompt from script: "${enhancedPrompt.substring(0, 60)}..."`);
+        } else {
+          // Fallback to extracting from characters
+          const chars = proFeatures?.extractedCharacters || [];
+          const charDesc = chars.map((c: any) => `${c.name}: ${c.appearance}`).join('; ');
+          enhancedPrompt = charDesc ? `[CHARACTERS: ${charDesc}] Scene ${request.clipIndex + 1}` : `Scene ${request.clipIndex + 1}`;
+          console.log(`[RetryClip] ✓ Built fallback prompt from characters`);
+        }
+      } catch (scriptErr) {
+        console.warn(`[RetryClip] Script parse failed, using fallback prompt`);
+        enhancedPrompt = `Scene ${request.clipIndex + 1}`;
+      }
+    }
+    
+    // Add corrective prompts if available
     if (failedClip.corrective_prompts && failedClip.corrective_prompts.length > 0) {
-      // Use corrective prompts from comprehensive validation
       const correctivePrompts = failedClip.corrective_prompts.slice(0, 3);
-      enhancedPrompt = `[CORRECTIVE FIXES: ${correctivePrompts.join('. ')}] ${failedClip.prompt}`;
+      enhancedPrompt = `[CORRECTIVE FIXES: ${correctivePrompts.join('. ')}] ${enhancedPrompt}`;
       console.log(`[RetryClip] Using ${correctivePrompts.length} corrective prompts from validation`);
     }
     

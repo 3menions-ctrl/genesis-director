@@ -909,15 +909,20 @@ serve(async (req) => {
     // =========================================================
     if (userId && projectId) {
       try {
+        // CRITICAL FIX: Preserve the original prompt from the request body
+        // NEVER overwrite prompt with error messages - this corrupts future retries
+        const body = await req.clone().json().catch(() => ({}));
+        const originalPrompt = body.prompt || `Shot ${shotIndex + 1}`;
+        
         await upsertClipRecord(supabase, {
           projectId,
           userId,
           shotIndex,
-          prompt: 'Generation failed',
+          prompt: originalPrompt, // Keep original prompt, NOT "Generation failed"
           status: 'failed',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
         });
-        console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked as failed`);
+        console.log(`[SingleClip] ✓ Clip ${shotIndex + 1} marked as failed (original prompt preserved)`);
       } catch (dbError) {
         console.error(`[SingleClip] Failed to update clip status:`, dbError);
       }

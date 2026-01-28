@@ -322,10 +322,10 @@ export interface VoiceOption {
 }
 
 export const AVATAR_VOICES: VoiceOption[] = [
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', style: 'Professional narrator' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', style: 'Warm and friendly' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', style: 'Authoritative presenter' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', style: 'Youthful and energetic' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', style: 'Soft and calm' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', style: 'Deep and resonant' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', style: 'Professional narrator', preview: 'https://api.elevenlabs.io/v1/text-to-speech/onwK4e9ZLuTAKqWW03F9/stream?text=Hello' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', style: 'Warm and friendly', preview: 'https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL/stream?text=Hello' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', style: 'Authoritative presenter', preview: 'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb/stream?text=Hello' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', style: 'Youthful and energetic', preview: 'https://api.elevenlabs.io/v1/text-to-speech/XrExE9yKIg1WjnnlVkGX/stream?text=Hello' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', style: 'Soft and calm', preview: 'https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku/stream?text=Hello' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', style: 'Deep and resonant', preview: 'https://api.elevenlabs.io/v1/text-to-speech/nPczCjzI2devNBz1zQrb/stream?text=Hello' },
 ];

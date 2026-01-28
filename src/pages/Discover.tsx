@@ -18,6 +18,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { TrailerGenerator } from '@/components/TrailerGenerator';
 import DiscoverBackground from '@/components/landing/DiscoverBackground';
+import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
 interface PublicVideo {
@@ -390,7 +391,8 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
     };
   }, [isHovered, isPlaying]);
 
-  const isPlayableVideo = video.video_url && !video.video_url.endsWith('.json');
+  // Allow both direct videos AND manifest files to be playable
+  const isPlayableVideo = Boolean(video.video_url);
 
   return (
     <motion.div
@@ -527,12 +529,13 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const ModeIcon = getModeIcon(video.mode);
-  const isPlayableVideo = video.video_url && !video.video_url.endsWith('.json');
+  const isManifest = video.video_url?.endsWith('.json');
+  const isDirectVideo = video.video_url && !isManifest;
 
-  // Attempt autoplay on mount
+  // Attempt autoplay on mount for direct videos only
   useEffect(() => {
     const videoEl = videoRef.current;
-    if (!videoEl || !isPlayableVideo) return;
+    if (!videoEl || !isDirectVideo) return;
 
     const attemptPlay = async () => {
       try {
@@ -552,7 +555,7 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
     };
 
     attemptPlay();
-  }, [isPlayableVideo]);
+  }, [isDirectVideo]);
 
   const toggleMute = () => {
     if (videoRef.current) {
@@ -589,7 +592,7 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
       >
         {/* Video Player */}
         <div className="relative aspect-video bg-black">
-          {isPlayableVideo ? (
+          {isDirectVideo ? (
             <>
               <video
                 ref={videoRef}
@@ -633,6 +636,10 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
                 </div>
               </div>
             </>
+          ) : isManifest ? (
+            <div className="w-full h-full">
+              <ManifestVideoPlayer manifestUrl={video.video_url!} className="w-full h-full" />
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-black">
               {video.thumbnail_url && (
@@ -646,8 +653,8 @@ function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModal
                 <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 border border-white/20">
                   <Film className="w-8 h-8 text-white/50" />
                 </div>
-                <p className="text-white/70 font-medium mb-1">Multi-Clip Production</p>
-                <p className="text-white/40 text-sm">Open in full studio to view this cinematic project</p>
+                <p className="text-white/70 font-medium mb-1">Video Unavailable</p>
+                <p className="text-white/40 text-sm">This video could not be loaded</p>
               </div>
             </div>
           )}

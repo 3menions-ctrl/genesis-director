@@ -730,22 +730,44 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 {selectedMode === 'avatar' && (
                   <div className="space-y-3">
                     <Label className="text-sm text-white/60 font-medium">Voice</Label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-white h-12 rounded-xl">
-                        <SelectValue placeholder="Select a voice" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/10">
-                        {AVATAR_VOICES.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.id} className="text-white focus:bg-white/10 focus:text-white">
+                    <div className="grid grid-cols-1 gap-2">
+                      {AVATAR_VOICES.map((voice) => {
+                        const isSelected = selectedVoice === voice.id;
+                        return (
+                          <button
+                            key={voice.id}
+                            onClick={() => setSelectedVoice(voice.id)}
+                            className={cn(
+                              "flex items-center justify-between p-3 rounded-xl border transition-all",
+                              isSelected
+                                ? "bg-white/[0.1] border-white/30"
+                                : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                            )}
+                          >
                             <div className="flex items-center gap-3">
-                              <Mic className="w-4 h-4 text-white/50" />
-                              <span className="font-medium">{voice.name}</span>
-                              <span className="text-white/40 text-sm">• {voice.style}</span>
+                              <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center",
+                                voice.gender === 'male' 
+                                  ? "bg-blue-500/20 text-blue-400" 
+                                  : "bg-pink-500/20 text-pink-400"
+                              )}>
+                                <User className="w-4 h-4" />
+                              </div>
+                              <div className="text-left">
+                                <span className={cn("font-medium text-sm", isSelected ? "text-white" : "text-white/70")}>{voice.name}</span>
+                                <p className="text-xs text-white/40">{voice.style}</p>
+                              </div>
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                            <div className="flex items-center gap-2">
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-white/30 mt-2">
+                      Voice preview coming soon — Select a voice for your avatar narration
+                    </p>
                   </div>
                 )}
               </div>

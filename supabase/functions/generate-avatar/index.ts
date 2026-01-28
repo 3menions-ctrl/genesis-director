@@ -117,6 +117,7 @@ serve(async (req) => {
     console.log("[generate-avatar] Step 3: Generating base talking video from image...");
     
     // Use Kling to animate the avatar with speaking motion
+    // Use official model identifier for Replicate API
     const klingResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -124,11 +125,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "kwaivgi/kling-v2.6",
+        version: "kwaivgi/kling-v2.6", // Official model identifier
         input: {
           mode: "pro",
           prompt: "The person in the image is speaking naturally, direct eye contact with camera, subtle head movements, professional presentation style, clear articulate speech",
-          duration: "5",
+          duration: 5,
           start_image: avatarImageUrl,
           aspect_ratio: aspectRatio,
           negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth",
@@ -144,6 +145,7 @@ serve(async (req) => {
       // This may have limitations but provides a fallback
       console.log("[generate-avatar] Trying direct lipsync with Sync Labs...");
       
+      // Use Sync Labs Lipsync-2 - official model identifier
       const lipsyncResponse = await fetch("https://api.replicate.com/v1/predictions", {
         method: "POST",
         headers: {
@@ -151,7 +153,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "sync/lipsync-2",
+          version: "sync/lipsync-2", // Official model identifier
           input: {
             audio: audioUrl,
             video: avatarImageUrl, // Will be processed as single frame

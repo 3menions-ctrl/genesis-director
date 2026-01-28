@@ -479,20 +479,24 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
   }, [clips, isLoadingClips]); // Removed getActiveVideo/getStandbyVideo from deps to prevent re-runs on activeVideoIndex change
 
   // Preload next clip into standby video when clip changes
+  // NOTE: This is for manual skip navigation only - crossfade handles its own preloading
   useEffect(() => {
-    if (useStitchedVideo || isTransitioningRef.current) return;
+    if (useStitchedVideo) return;
+    // CRITICAL: Don't interfere with ongoing transitions - they handle their own preloading
+    if (isTransitioningRef.current || isCrossfading) return;
     
-    const standbyVideo = getStandbyVideo();
+    // Use refs to get correct video without dependency issues
+    const standbyVideo = activeVideoIndex === 0 ? videoBRef.current : videoARef.current;
     const nextClipIndex = currentClipIndex + 1;
     
     if (standbyVideo && nextClipIndex < clips.length && clips[nextClipIndex]?.blobUrl) {
-      // Only update if different
+      // Only update if different - prevents unnecessary reloads
       if (standbyVideo.src !== clips[nextClipIndex].blobUrl) {
         standbyVideo.src = clips[nextClipIndex].blobUrl;
         standbyVideo.load();
       }
     }
-  }, [currentClipIndex, clips, useStitchedVideo, getStandbyVideo]);
+  }, [currentClipIndex, clips, useStitchedVideo, activeVideoIndex, isCrossfading]);
 
   // Ref for transition trigger to avoid hook dependency issues
   const triggerTransitionRef = useRef<(() => void) | null>(null);

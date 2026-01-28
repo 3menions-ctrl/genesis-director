@@ -122,10 +122,15 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
   }, [manifest]);
 
   // Preload next clip into standby video when clip changes
+  // Preload next clip into standby video when clip changes
+  // NOTE: This is for manual skip navigation only - crossfade handles its own preloading
   useEffect(() => {
-    if (!manifest || isTransitioningRef.current) return;
+    if (!manifest) return;
+    // CRITICAL: Don't interfere with ongoing transitions - they handle their own preloading
+    if (isTransitioningRef.current || isCrossfading) return;
     
-    const standbyVideo = getStandbyVideo();
+    // Use refs directly to get correct video without dependency issues
+    const standbyVideo = activeVideoIndex === 0 ? videoBRef.current : videoARef.current;
     const nextClipIndex = currentClipIndex + 1;
     
     if (standbyVideo && nextClipIndex < manifest.clips.length && manifest.clips[nextClipIndex]) {
@@ -135,7 +140,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         standbyVideo.load();
       }
     }
-  }, [currentClipIndex, manifest, getStandbyVideo]);
+  }, [currentClipIndex, manifest, activeVideoIndex, isCrossfading]);
 
   // Crossfade transition logic - TRUE OVERLAP: both videos visible simultaneously
   const triggerCrossfadeTransition = useCallback(() => {

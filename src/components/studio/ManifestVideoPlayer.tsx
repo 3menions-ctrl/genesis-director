@@ -4,8 +4,9 @@
  * Features:
  * - Dual video element switching for ZERO gap transitions
  * - Preloads next clip while current plays
- * - Seamless crossfade transitions (150ms)
- * - Triggers transition BEFORE clip ends
+ * - Seamless crossfade transitions (100ms)
+ * - Triggers transition 0.25s BEFORE clip ends for zero gaps
+ * - Center play button only shows when paused
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -36,10 +37,10 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - ultra smooth
-const CROSSFADE_DURATION = 150;
-// Trigger transition this many seconds before clip ends
-const TRANSITION_THRESHOLD = CROSSFADE_DURATION / 1000;
+// Crossfade duration in milliseconds - ultra smooth seamless transition
+const CROSSFADE_DURATION = 100;
+// Trigger transition this many seconds before clip ends for ZERO gap
+const TRANSITION_THRESHOLD = 0.25;
 
 export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPlayerProps) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
@@ -452,18 +453,16 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
 
       {/* Overlay Controls */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-        {/* Center Play Button */}
+        {/* Center Play Button - ONLY show when paused */}
         <button
           onClick={togglePlay}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
-            {isPlaying ? (
-              <Pause className="w-8 h-8 text-white" />
-            ) : (
+          {!isPlaying && (
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
               <Play className="w-8 h-8 text-white ml-1" />
-            )}
-          </div>
+            </div>
+          )}
         </button>
 
         {/* Bottom Controls */}

@@ -141,8 +141,10 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds (0.15s like Cloud Run)
-const CROSSFADE_DURATION = 150;
+// Crossfade duration in milliseconds - ultra smooth seamless transition
+const CROSSFADE_DURATION = 100;
+// Trigger transition this many seconds before clip ends for ZERO gap
+const TRANSITION_TRIGGER_OFFSET = 0.25;
 
 // ForwardRef wrapper for AnimatePresence compatibility
 export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlayerProps>(
@@ -512,15 +514,13 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       stallRecoveryRef.current = null;
     }
     
-    // Trigger seamless transition 0.15s before clip ends (crossfade duration)
+    // Trigger seamless transition WELL BEFORE clip ends to ensure zero gaps
     const timeRemaining = activeVideo.duration - activeVideo.currentTime;
-    const crossfadeThreshold = CROSSFADE_DURATION / 1000; // 0.15s
     
-    if (timeRemaining <= crossfadeThreshold && timeRemaining > 0 && !isTransitioningRef.current && !isCrossfading) {
+    if (timeRemaining <= TRANSITION_TRIGGER_OFFSET && timeRemaining > 0 && !isTransitioningRef.current && !isCrossfading) {
       if (currentClipIndex < clips.length - 1) {
         // Trigger crossfade transition NOW, before clip ends
-        // Use ref to access the function without circular dependency
-        console.log('[SmartStitcher] Triggering crossfade transition from timeUpdate');
+        console.log('[SmartStitcher] Triggering crossfade transition', { timeRemaining, threshold: TRANSITION_TRIGGER_OFFSET });
         triggerTransitionRef.current?.();
       }
     }
@@ -1350,15 +1350,20 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
               </div>
             </div>
 
-            {/* Center play button */}
+            {/* Center play button - ONLY show when paused */}
             <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-              >
-                {isPlaying ? <Pause className="w-8 h-8 text-white" /> : <Play className="w-8 h-8 text-white ml-1" />}
-              </motion.div>
+              {!isPlaying && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+                >
+                  <Play className="w-8 h-8 text-white ml-1" />
+                </motion.div>
+              )}
             </button>
 
             {/* Bottom controls */}

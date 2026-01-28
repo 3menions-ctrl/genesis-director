@@ -1,12 +1,12 @@
 /**
- * ManifestVideoPlayer v2 - True Gapless Playback
+ * ManifestVideoPlayer v3 - INSTANTANEOUS Gapless Playback
  * 
  * Features:
  * - Dual video element switching for ZERO gap transitions
  * - Preloads next clip while current plays
- * - Seamless crossfade transitions (100ms)
- * - Triggers transition 0.25s BEFORE clip ends for zero gaps
- * - Center play button only shows when paused
+ * - 50ms crossfade for INSTANT transitions
+ * - Triggers transition 0.15s BEFORE clip ends for zero gaps
+ * - NO center play button - only bottom controls
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -37,10 +37,10 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - ultra smooth seamless transition
-const CROSSFADE_DURATION = 100;
+// Crossfade duration in milliseconds - INSTANTANEOUS transition
+const CROSSFADE_DURATION = 50;
 // Trigger transition this many seconds before clip ends for ZERO gap
-const TRANSITION_THRESHOLD = 0.25;
+const TRANSITION_THRESHOLD = 0.15;
 
 export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPlayerProps) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
@@ -453,17 +453,8 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
 
       {/* Overlay Controls */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-        {/* Center Play Button - ONLY show when paused */}
-        <button
-          onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          {!isPlaying && (
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
-              <Play className="w-8 h-8 text-white ml-1" />
-            </div>
-          )}
-        </button>
+        {/* Invisible click area for play/pause - no center button */}
+        <button onClick={togglePlay} className="absolute inset-0" />
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">

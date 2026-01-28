@@ -134,7 +134,9 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStylePreset>('anime');
-  const [selectedVoice, setSelectedVoice] = useState('onwK4e9ZLuTAKqWW03F9');
+  const [selectedVoice, setSelectedVoice] = useState('nova');
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -160,6 +162,57 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [mood, setMood] = useState('epic');
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
+  
+  // Voice preview handler
+  const handleVoicePreview = useCallback(async (voiceId: string, sampleText: string) => {
+    // Check cache first
+    if (voicePreviewCache[voiceId]) {
+      const audio = new Audio(voicePreviewCache[voiceId]);
+      audio.play().catch(console.error);
+      return;
+    }
+    
+    setPreviewingVoice(voiceId);
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            text: sampleText,
+            voiceId,
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Voice generation failed');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.audioUrl) {
+        // Cache the result
+        setVoicePreviewCache(prev => ({ ...prev, [voiceId]: data.audioUrl }));
+        
+        // Play the audio
+        const audio = new Audio(data.audioUrl);
+        audio.play().catch(console.error);
+      } else {
+        throw new Error(data.error || 'No audio returned');
+      }
+    } catch (err) {
+      console.error('Voice preview error:', err);
+    } finally {
+      setPreviewingVoice(null);
+    }
+  }, [voicePreviewCache]);
   const modeConfig = VIDEO_MODES.find(m => m.id === selectedMode);
   
   // Check if mode supports advanced options
@@ -759,20 +812,21 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              {voice.preview && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Play voice preview
-                                    const audio = new Audio(voice.preview);
-                                    audio.play().catch(console.error);
-                                  }}
-                                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                                  title="Preview voice"
-                                >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVoicePreview(voice.id, voice.sample);
+                                }}
+                                disabled={previewingVoice === voice.id}
+                                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
+                                title="Preview voice"
+                              >
+                                {previewingVoice === voice.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 text-white/60 animate-spin" />
+                                ) : (
                                   <Volume2 className="w-3.5 h-3.5 text-white/60" />
-                                </button>
-                              )}
+                                )}
+                              </button>
                               {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                             </div>
                           </button>

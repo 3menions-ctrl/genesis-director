@@ -312,20 +312,31 @@ export const STYLE_PRESETS: StylePresetConfig[] = [
   },
 ];
 
-// Voice options for avatar generation
+// Voice options for avatar generation - Maps to Replicate XTTS-v2 voice presets
 export interface VoiceOption {
   id: string;
   name: string;
   gender: 'male' | 'female' | 'neutral';
   style: string;
-  preview?: string;
+  sample: string; // Sample text for preview generation
 }
 
+/**
+ * AVATAR_VOICES - Uses Replicate XTTS-v2 built-in voice presets
+ * 
+ * Voice IDs map to the edge function's VOICE_PRESETS:
+ * - onyx: Deep, authoritative male
+ * - echo: Friendly, warm male  
+ * - fable: Storyteller, expressive male
+ * - nova: Warm, professional female
+ * - shimmer: Soft, elderly female
+ * - alloy: Neutral, versatile
+ */
 export const AVATAR_VOICES: VoiceOption[] = [
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', style: 'Professional narrator', preview: 'https://api.elevenlabs.io/v1/text-to-speech/onwK4e9ZLuTAKqWW03F9/stream?text=Hello' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', style: 'Warm and friendly', preview: 'https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL/stream?text=Hello' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', style: 'Authoritative presenter', preview: 'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb/stream?text=Hello' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', style: 'Youthful and energetic', preview: 'https://api.elevenlabs.io/v1/text-to-speech/XrExE9yKIg1WjnnlVkGX/stream?text=Hello' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', style: 'Soft and calm', preview: 'https://api.elevenlabs.io/v1/text-to-speech/pFZP5JQG7iQjIQuC4Bku/stream?text=Hello' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', style: 'Deep and resonant', preview: 'https://api.elevenlabs.io/v1/text-to-speech/nPczCjzI2devNBz1zQrb/stream?text=Hello' },
+  { id: 'onyx', name: 'Marcus', gender: 'male', style: 'Deep & authoritative', sample: 'Welcome to your cinematic journey. Let me guide you through this story.' },
+  { id: 'echo', name: 'Alex', gender: 'male', style: 'Friendly & warm', sample: "Hey there! I'm excited to bring your ideas to life." },
+  { id: 'fable', name: 'Oliver', gender: 'male', style: 'Expressive narrator', sample: 'Once upon a time, in a world not unlike our own, a story began to unfold.' },
+  { id: 'nova', name: 'Sarah', gender: 'female', style: 'Professional & warm', sample: "Hello, I'm here to help you create something amazing together." },
+  { id: 'shimmer', name: 'Grace', gender: 'female', style: 'Soft & gentle', sample: 'Let me share with you a tale of wonder and imagination.' },
+  { id: 'alloy', name: 'Jordan', gender: 'neutral', style: 'Versatile & clear', sample: 'Ready to transform your vision into reality. Let\'s get started.' },
 ];

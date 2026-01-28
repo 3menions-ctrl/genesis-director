@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -8,52 +7,56 @@ const corsHeaders = {
 };
 
 /**
- * Voice Generation using Replicate XTTS-v2
+ * Voice Generation using Replicate Kokoro-82M
  * 
- * Replaces OpenAI TTS with Replicate's cjwbw/xtts-v2 model for high-quality
- * text-to-speech without external API dependencies.
+ * Kokoro is a fast, high-quality TTS model with 50+ built-in voice presets.
+ * No external audio files needed - just select a voice ID.
  * 
- * CHARACTER VOICE CONSISTENCY:
- * - Each character can have a persistent voice_id stored in the characters table
- * - Voice IDs map to reference audio samples for voice cloning
+ * Voice ID format: {language}{gender}_{name}
+ * - af_ = American Female, am_ = American Male
+ * - bf_ = British Female, bm_ = British Male
  */
 
-// Voice presets - these map to reference audio samples or speaker embeddings
-const VOICE_PRESETS: Record<string, { 
-  name: string; 
-  gender: string; 
-  description: string;
-  language: string;
-}> = {
-  onyx: { name: 'Onyx', gender: 'male', description: 'Deep, authoritative male voice', language: 'en' },
-  echo: { name: 'Echo', gender: 'male', description: 'Friendly, warm male voice', language: 'en' },
-  fable: { name: 'Fable', gender: 'male', description: 'Storyteller, expressive male voice', language: 'en' },
-  nova: { name: 'Nova', gender: 'female', description: 'Warm, professional female voice', language: 'en' },
-  shimmer: { name: 'Shimmer', gender: 'female', description: 'Soft, elderly female voice', language: 'en' },
-  alloy: { name: 'Alloy', gender: 'neutral', description: 'Neutral, versatile voice', language: 'en' },
+// Map our simplified voice IDs to Kokoro voice presets
+const VOICE_MAP: Record<string, { kokoroVoice: string; description: string }> = {
+  // Male voices
+  onyx: { kokoroVoice: 'am_onyx', description: 'Deep, authoritative male voice' },
+  echo: { kokoroVoice: 'am_echo', description: 'Friendly, warm male voice' },
+  fable: { kokoroVoice: 'bm_fable', description: 'Storyteller, expressive male voice' },
+  adam: { kokoroVoice: 'am_adam', description: 'Professional male narrator' },
+  michael: { kokoroVoice: 'am_michael', description: 'Clear, confident male voice' },
+  // Female voices
+  nova: { kokoroVoice: 'af_nova', description: 'Warm, professional female voice' },
+  shimmer: { kokoroVoice: 'af_sky', description: 'Soft, gentle female voice' },
+  alloy: { kokoroVoice: 'af_alloy', description: 'Neutral, versatile voice' },
+  sarah: { kokoroVoice: 'af_sarah', description: 'Clear, professional female' },
+  bella: { kokoroVoice: 'af_bella', description: 'Warm, friendly female' },
+  jessica: { kokoroVoice: 'af_jessica', description: 'Youthful, energetic female' },
+  lily: { kokoroVoice: 'bf_lily', description: 'British female, soft-spoken' },
+  // Default fallback
+  narrator: { kokoroVoice: 'af_nova', description: 'Default narrator' },
+  default: { kokoroVoice: 'af_bella', description: 'Default voice' },
 };
 
 // Voice type mapping for character types
-const VOICE_MAP: Record<string, { voice: string; speed: number }> = {
-  grandmother: { voice: 'shimmer', speed: 0.85 },
-  elderly_female: { voice: 'shimmer', speed: 0.85 },
-  grandma: { voice: 'shimmer', speed: 0.85 },
-  narrator: { voice: 'nova', speed: 1.0 },
-  storyteller: { voice: 'fable', speed: 0.95 },
-  male: { voice: 'onyx', speed: 1.0 },
-  male_deep: { voice: 'onyx', speed: 0.9 },
-  friendly_male: { voice: 'echo', speed: 1.0 },
-  female: { voice: 'nova', speed: 1.0 },
-  young_female: { voice: 'alloy', speed: 1.0 },
-  default: { voice: 'nova', speed: 1.0 },
+const CHARACTER_VOICE_MAP: Record<string, string> = {
+  grandmother: 'shimmer',
+  elderly_female: 'shimmer',
+  grandma: 'shimmer',
+  narrator: 'nova',
+  storyteller: 'fable',
+  male: 'onyx',
+  male_deep: 'onyx',
+  friendly_male: 'echo',
+  female: 'nova',
+  young_female: 'jessica',
+  default: 'bella',
 };
 
-// Generate voice using Replicate XTTS-v2
-async function generateWithReplicate(
+async function generateWithKokoro(
   text: string, 
-  voicePreset: string,
-  speed: number,
-  language: string = 'en'
+  voiceId: string,
+  speed: number = 1.0
 ): Promise<{ audioUrl: string; duration: number } | null> {
   const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   
@@ -61,39 +64,41 @@ async function generateWithReplicate(
     throw new Error("REPLICATE_API_KEY is not configured");
   }
   
+  // Get Kokoro voice preset
+  const voiceConfig = VOICE_MAP[voiceId] || VOICE_MAP.default;
+  const kokoroVoice = voiceConfig.kokoroVoice;
+  
   try {
-    console.log(`[Voice-Replicate] Starting XTTS-v2 generation for ${text.length} chars`);
+    console.log(`[Voice-Kokoro] Starting generation: ${text.length} chars, voice: ${kokoroVoice}`);
     
-    // XTTS-v2 model - high quality TTS with voice cloning capability
-    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // Kokoro-82M model via models endpoint (auto-selects latest version)
+    const createResponse = await fetch("https://api.replicate.com/v1/models/jaaari/kokoro-82m/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "684bc3855b37866c0c65add2ff39c78f3dea3f4ff103a436465326e0f438d55e", // cjwbw/xtts-v2
         input: {
           text: text,
-          speaker: voicePreset, // Built-in speaker presets
-          language: language,
-          cleanup_voice: true, // Clean up generated audio
+          voice: kokoroVoice,
+          speed: speed,
         },
       }),
     });
     
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
-      console.error("[Voice-Replicate] Create failed:", errorText);
+      console.error("[Voice-Kokoro] Create failed:", errorText);
       return null;
     }
     
     const prediction = await createResponse.json();
-    console.log("[Voice-Replicate] Prediction started:", prediction.id);
+    console.log("[Voice-Kokoro] Prediction started:", prediction.id);
     
-    // Poll for completion (max 90 seconds)
-    const maxAttempts = 18;
-    const pollInterval = 5000;
+    // Poll for completion (max 60 seconds - Kokoro is fast!)
+    const maxAttempts = 24;
+    const pollInterval = 2500;
     
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -105,10 +110,10 @@ async function generateWithReplicate(
       if (!statusResponse.ok) continue;
       
       const status = await statusResponse.json();
-      console.log(`[Voice-Replicate] Status: ${status.status}`);
+      console.log(`[Voice-Kokoro] Status: ${status.status}`);
       
       if (status.status === "succeeded" && status.output) {
-        console.log("[Voice-Replicate] Generation succeeded!");
+        console.log("[Voice-Kokoro] ✅ Generation succeeded!");
         return {
           audioUrl: status.output,
           duration: estimateDuration(text),
@@ -116,72 +121,16 @@ async function generateWithReplicate(
       }
       
       if (status.status === "failed" || status.status === "canceled") {
-        console.error("[Voice-Replicate] Failed:", status.error);
+        console.error("[Voice-Kokoro] Failed:", status.error);
         return null;
       }
     }
     
-    console.warn("[Voice-Replicate] Polling timed out");
+    console.warn("[Voice-Kokoro] Polling timed out");
     return null;
     
   } catch (error) {
-    console.error("[Voice-Replicate] Error:", error);
-    return null;
-  }
-}
-
-// Fallback: Use Bark for more expressive speech
-async function generateWithBark(text: string): Promise<{ audioUrl: string; duration: number } | null> {
-  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
-  
-  if (!REPLICATE_API_KEY) return null;
-  
-  try {
-    console.log(`[Voice-Bark] Fallback: Using Bark for ${text.length} chars`);
-    
-    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: "b76242b40d67c76ab6742e987628a2a9ac019e11d56ab96c4e91ce03b79b2787", // suno-ai/bark
-        input: {
-          prompt: text,
-          text_temp: 0.7,
-          waveform_temp: 0.7,
-        },
-      }),
-    });
-    
-    if (!createResponse.ok) return null;
-    
-    const prediction = await createResponse.json();
-    
-    // Poll for completion
-    for (let i = 0; i < 18; i++) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
-      });
-      
-      const status = await statusResponse.json();
-      
-      if (status.status === "succeeded" && status.output?.audio_out) {
-        return {
-          audioUrl: status.output.audio_out,
-          duration: estimateDuration(text),
-        };
-      }
-      
-      if (status.status === "failed" || status.status === "canceled") return null;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error("[Voice-Bark] Error:", error);
+    console.error("[Voice-Kokoro] Error:", error);
     return null;
   }
 }
@@ -201,7 +150,6 @@ serve(async (req) => {
       speed,
       characterId,
       characterName,
-      language = 'en',
     } = await req.json();
 
     if (!text) {
@@ -216,12 +164,11 @@ serve(async (req) => {
       : null;
 
     // Voice resolution priority
-    let resolvedVoice = 'nova';
-    let resolvedSpeed = 1.0;
+    let resolvedVoice = 'bella';
     let voiceSource = 'default';
     
     // Priority 1: Direct voice override
-    if (voiceId && Object.keys(VOICE_PRESETS).includes(voiceId)) {
+    if (voiceId && Object.keys(VOICE_MAP).includes(voiceId)) {
       resolvedVoice = voiceId;
       voiceSource = 'direct_override';
     }
@@ -257,28 +204,20 @@ serve(async (req) => {
       }
     }
     // Priority 4: Voice type mapping
-    else if (voiceType && VOICE_MAP[voiceType]) {
-      const config = VOICE_MAP[voiceType];
-      resolvedVoice = config.voice;
-      resolvedSpeed = config.speed;
+    else if (voiceType && CHARACTER_VOICE_MAP[voiceType]) {
+      resolvedVoice = CHARACTER_VOICE_MAP[voiceType];
       voiceSource = `voiceType:${voiceType}`;
     }
     
-    const finalSpeed = speed || resolvedSpeed;
+    const finalSpeed = speed || 1.0;
     
     console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, source: ${voiceSource}`);
 
-    // Try XTTS-v2 first
-    let result = await generateWithReplicate(text, resolvedVoice, finalSpeed, language);
-    
-    // Fallback to Bark if XTTS fails
-    if (!result) {
-      console.log("[Voice] XTTS failed, trying Bark fallback...");
-      result = await generateWithBark(text);
-    }
+    // Generate with Kokoro
+    const result = await generateWithKokoro(text, resolvedVoice, finalSpeed);
     
     if (!result) {
-      throw new Error("Voice generation failed with all providers");
+      throw new Error("Voice generation failed");
     }
 
     // Download and upload to our storage for persistence
@@ -292,7 +231,7 @@ serve(async (req) => {
           const timestamp = Date.now();
           const filename = shotId 
             ? `voice-${projectId || 'unknown'}-${shotId}-${timestamp}.wav`
-            : `voice-${projectId || 'unknown'}-${timestamp}.wav`;
+            : `voice-${projectId || 'preview'}-${timestamp}.wav`;
           
           const { error: uploadError } = await supabase.storage
             .from('voice-tracks')
@@ -307,10 +246,10 @@ serve(async (req) => {
               .getPublicUrl(filename);
             
             finalAudioUrl = publicUrl;
-            console.log("[Voice] Uploaded to storage:", publicUrl);
+            console.log("[Voice] ✅ Uploaded to storage:", publicUrl);
 
             // Update project if needed
-            if (projectId) {
+            if (projectId && shotId) {
               await supabase
                 .from('movie_projects')
                 .update({ voice_audio_url: publicUrl })
@@ -322,11 +261,11 @@ serve(async (req) => {
         // Log API cost
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId || null,
-          p_shot_id: shotId || 'narration',
-          p_service: 'replicate-xtts',
+          p_shot_id: shotId || 'preview',
+          p_service: 'replicate-kokoro',
           p_operation: 'text_to_speech',
-          p_credits_charged: 2,
-          p_real_cost_cents: 3, // ~$0.03 per generation on Replicate
+          p_credits_charged: 1,
+          p_real_cost_cents: 1, // ~$0.01 per generation on Replicate
           p_duration_seconds: Math.round(result.duration / 1000),
           p_status: 'completed',
           p_metadata: JSON.stringify({
@@ -346,7 +285,8 @@ serve(async (req) => {
         success: true,
         audioUrl: finalAudioUrl,
         durationMs: result.duration,
-        provider: "replicate-xtts",
+        provider: "replicate-kokoro",
+        voice: resolvedVoice,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

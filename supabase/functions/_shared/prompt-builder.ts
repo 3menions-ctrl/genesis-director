@@ -228,6 +228,12 @@ const BASE_QUALITY_NEGATIVES = [
   'blur',
   'blurry',
   'distortion',
+  'distorted',
+  'warped',
+  'stretched',
+  'squashed',
+  'deformed',
+  'mutated',
   'watermark',
   'artifact',
   'jarring transition',
@@ -236,6 +242,20 @@ const BASE_QUALITY_NEGATIVES = [
   'pixelated',
   'noisy',
   'grainy in a bad way',
+  'morphing',
+  'melting',
+  'glitching',
+  'jittery',
+  'unnatural movement',
+  'twisted limbs',
+  'extra limbs',
+  'missing limbs',
+  'fused body parts',
+  'disfigured',
+  'bad anatomy',
+  'wrong proportions',
+  'unrealistic physics',
+  'floating objects',
 ];
 
 const DEFAULT_ANTI_MORPHING_PROMPTS = [
@@ -283,6 +303,32 @@ const DEFAULT_OCCLUSION_NEGATIVES = [
 const APEX_QUALITY_SUFFIX = ", cinematic lighting, 8K resolution, ultra high definition, highly detailed, professional cinematography, film grain, masterful composition, award-winning cinematographer, ARRI Alexa camera quality, anamorphic lens flares, perfect exposure, theatrical color grading";
 
 // =============================================================================
+// PROMPT DEDUPLICATION - Strip existing blocks to prevent redundancy
+// =============================================================================
+
+const BLOCK_PATTERNS_TO_STRIP = [
+  /\[CHARACTER IDENTITY[^\]]*\]/gi,
+  /\[IDENTITY[^\]]*\]/gi,
+  /\[CHARACTERS:[^\]]*\]/gi,
+  /\[VISUAL ANCHORS:[^\]]*\]/gi,
+  /\[COLOR DNA:[^\]]*\]/gi,
+  /\[PROGRESSIVE COLOR:[^\]]*\]/gi,
+  /\[CAMERA:[^\]]*\]/gi,
+  /\[LENS:[^\]]*\]/gi,
+  /\[PHYSICS:[^\]]*\]/gi,
+  /\[CONSISTENCY LOCK:[^\]]*\]/gi,
+];
+
+function stripExistingBlocks(prompt: string): string {
+  let cleaned = prompt;
+  for (const pattern of BLOCK_PATTERNS_TO_STRIP) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  // Remove multiple newlines and extra spaces
+  return cleaned.replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ').trim();
+}
+
+// =============================================================================
 // MAIN BUILDER FUNCTION
 // =============================================================================
 
@@ -291,6 +337,8 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   const promptParts: string[] = [];
   const negativeParts: string[] = [...BASE_QUALITY_NEGATIVES];
   
+  // CRITICAL: Strip pre-existing identity blocks from base prompt to prevent duplication
+  const cleanedBasePrompt = stripExistingBlocks(request.basePrompt);
   // Detect pose from prompt
   const poseAnalysis = request.detectedPose 
     ? { pose: request.detectedPose, confidence: 100, faceVisible: !['back', 'silhouette', 'occluded'].includes(request.detectedPose) }
@@ -525,9 +573,10 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
-  // 7. BASE PROMPT + QUALITY SUFFIX
+  // 7. CLEANED BASE PROMPT + QUALITY SUFFIX
+  // Use cleaned base prompt to avoid duplicate identity blocks
   // ===========================================================================
-  promptParts.push(request.basePrompt);
+  promptParts.push(cleanedBasePrompt);
   promptParts.push(APEX_QUALITY_SUFFIX);
   
   // ===========================================================================

@@ -1,6 +1,9 @@
 // Account Tier System Types
 // Defines clip RECOMMENDATIONS (not limits) for Free, Pro, Growth, and Agency tiers
-// IMPORTANT: 10 credits = 1 clip = $1 (no hard limit on clips per video)
+// CREDIT PRICING:
+// - Base: 10 credits per clip (clips 1-6, up to 6 seconds)
+// - Extended: 15 credits per clip (clips 7+ OR >6 seconds)
+// - 1 credit = $0.10
 // SINGLE SOURCE OF TRUTH - used by both frontend and edge functions
 
 export type AccountTier = 'free' | 'pro' | 'growth' | 'agency';
@@ -83,7 +86,7 @@ export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
 // Tier clip RECOMMENDATIONS for edge functions (matches DEFAULT_TIER_LIMITS)
 // These are suggested values based on typical package sizes, NOT hard limits
 // Users can create videos with any number of clips - they just need enough credits
-// 10 credits = 1 clip = $1
+// Pricing: Clips 1-6 = 10 credits each, clips 7+ = 15 credits each
 export const TIER_CLIP_LIMITS: Record<AccountTier, { 
   maxClips: number;  // Recommended max (not enforced)
   maxDuration: number; 

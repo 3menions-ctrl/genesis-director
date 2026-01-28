@@ -4,31 +4,34 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+// Credit pricing: 1 credit = $0.10
+// Base: 10 credits per clip (clips 1-6, ≤6 seconds)
+// Extended: 15 credits per clip (clips 7+ OR >6 seconds)
 const PRICING_TIERS = [
   {
     name: 'Starter',
     price: 37,
     period: 'one-time',
     credits: '370 credits',
-    videos: '~7 videos',
+    videos: '~6 videos',
     features: ['HD export', 'AI scripts', 'Standard support'],
     popular: false,
   },
   {
     name: 'Growth',
-    price: 99,
+    price: 100,
     period: 'one-time',
     credits: '1,000 credits',
-    videos: '~17 videos',
+    videos: '~16 videos',
     features: ['4K export', 'Priority processing', 'Priority support'],
     popular: true,
   },
   {
     name: 'Agency',
-    price: 249,
+    price: 250,
     period: 'one-time',
     credits: '2,500 credits',
-    videos: '~42 videos',
+    videos: '~41 videos',
     features: ['4K HDR', 'API access', 'Dedicated support'],
     popular: false,
   },

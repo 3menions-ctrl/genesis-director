@@ -469,6 +469,9 @@ export function SmartStitcherPlayer({
     }
   }, [currentClipIndex, clips, useStitchedVideo, getStandbyVideo]);
 
+  // Ref for transition trigger to avoid hook dependency issues
+  const triggerTransitionRef = useRef<(() => void) | null>(null);
+
   // Handle video time update - trigger transition BEFORE clip ends
   const handleTimeUpdate = useCallback(() => {
     const activeVideo = getActiveVideo();
@@ -485,7 +488,8 @@ export function SmartStitcherPlayer({
     if (timeRemaining <= crossfadeThreshold && timeRemaining > 0 && !isTransitioningRef.current && !isCrossfading) {
       if (currentClipIndex < clips.length - 1) {
         // Trigger crossfade transition NOW, before clip ends
-        triggerCrossfadeTransition();
+        // Use ref to access the function without circular dependency
+        triggerTransitionRef.current?.();
       }
     }
   }, [currentClipIndex, clips, currentClip, isCrossfading, getActiveVideo]);
@@ -559,6 +563,11 @@ export function SmartStitcherPlayer({
     }
   }, [currentClipIndex, clips, isCrossfading, activeVideoIndex, getActiveVideo, getStandbyVideo]);
 
+  // Keep the ref updated with the latest trigger function
+  useEffect(() => {
+    triggerTransitionRef.current = triggerCrossfadeTransition;
+  }, [triggerCrossfadeTransition]);
+
   // Handle clip ended - fallback for end of playlist (transitions handled by timeupdate)
   const handleClipEnded = useCallback(() => {
     const activeVideo = getActiveVideo();
@@ -607,9 +616,9 @@ export function SmartStitcherPlayer({
       }
     } else if (!isTransitioningRef.current && !isCrossfading) {
       // Fallback: if clip ended but transition wasn't triggered, do it now
-      triggerCrossfadeTransition();
+      triggerTransitionRef.current?.();
     }
-  }, [currentClipIndex, clips, isCrossfading, triggerCrossfadeTransition, getActiveVideo]);
+  }, [currentClipIndex, clips, isCrossfading, getActiveVideo]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {

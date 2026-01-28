@@ -759,6 +759,20 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              {voice.preview && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Play voice preview
+                                    const audio = new Audio(voice.preview);
+                                    audio.play().catch(console.error);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                                  title="Preview voice"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5 text-white/60" />
+                                </button>
+                              )}
                               {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                             </div>
                           </button>
@@ -766,7 +780,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                       })}
                     </div>
                     <p className="text-xs text-white/30 mt-2">
-                      Voice preview coming soon — Select a voice for your avatar narration
+                      Click the speaker icon to preview each voice
                     </p>
                   </div>
                 )}

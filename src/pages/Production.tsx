@@ -136,6 +136,7 @@ export default function Production() {
   const [selectedClipUrl, setSelectedClipUrl] = useState<string | null>(null);
   const [retryingClipIndex, setRetryingClipIndex] = useState<number | null>(null);
   const [expectedClipCount, setExpectedClipCount] = useState(6);
+  const [clipDuration, setClipDuration] = useState(5); // 5s or 10s per clip
   const [isSimpleStitching, setIsSimpleStitching] = useState(false);
   const [autoStitchAttempted, setAutoStitchAttempted] = useState(false);
   const [allProductionProjects, setAllProductionProjects] = useState<ProductionProject[]>([]);
@@ -375,6 +376,9 @@ export default function Production() {
       if (tasks) {
         if (tasks.progress) setProgress(tasks.progress);
         if (tasks.clipCount) setExpectedClipCount(tasks.clipCount);
+        // Extract clip duration from script shots or default
+        const scriptDuration = tasks.script?.shots?.[0]?.durationSeconds;
+        if (scriptDuration) setClipDuration(scriptDuration);
         if (tasks.auditScore) setAuditScore(tasks.auditScore);
         if (tasks.stage) setPipelineStage(tasks.stage);
         
@@ -1021,6 +1025,7 @@ export default function Production() {
                   isStitching={isSimpleStitching}
                   isResuming={isResuming}
                   finalVideoUrl={finalVideoUrl}
+                  clipDuration={clipDuration}
                 />
               )}
 

@@ -54,6 +54,10 @@ export function FullscreenVideoPlayer({
   const [preloadedClipIndex, setPreloadedClipIndex] = useState<number | null>(null);
   const [isWaitingForBuffer, setIsWaitingForBuffer] = useState(false);
   
+  // Explicit opacity state for render-verified crossfade
+  const [videoAOpacity, setVideoAOpacity] = useState(1);
+  const [videoBOpacity, setVideoBOpacity] = useState(0);
+  
   // Track video sources via state
   const [videoASrc, setVideoASrc] = useState(clips[0] || '');
   const [videoBSrc, setVideoBSrc] = useState('');
@@ -176,35 +180,51 @@ export function FullscreenVideoPlayer({
       nextVideo.load();
     }
 
-    // TRUE OVERLAP: Both videos visible, then hide old after next frame renders
+    // RENDER-VERIFIED OVERLAP: Make incoming visible FIRST, then fade out old
     const executeInstantSwap = () => {
-      // Immediately swap active video state
-      setActiveVideo(isNextA ? 'A' : 'B');
-      setCurrentClipIndex(nextIndex);
+      // STEP 1: Make incoming video visible at FULL OPACITY (both now visible)
+      if (isNextA) {
+        setVideoAOpacity(1); // Incoming now visible
+      } else {
+        setVideoBOpacity(1); // Incoming now visible
+      }
       
-      // Use double RAF to ensure next video has rendered before hiding old
+      // STEP 2: Wait for browser to actually PAINT the incoming frame
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          // Now pause and cleanup old video
-          currentVideo.pause();
-          currentVideo.currentTime = 0;
-          
-          // Handle audio swap instantly
-          if (!isMuted) {
-            currentVideo.volume = 0;
-            nextVideo.volume = volume;
+          // Now browser has definitely rendered the incoming video
+          // STEP 3: Fade out the outgoing video
+          if (isNextA) {
+            setVideoBOpacity(0); // Old fades out
+          } else {
+            setVideoAOpacity(0); // Old fades out
           }
           
-          setIsTransitioning(false);
-          transitionTriggeredRef.current = false;
-          preloadTriggeredRef.current = false;
-          setPreloadedClipIndex(null);
+          // Swap active video state
+          setActiveVideo(isNextA ? 'A' : 'B');
+          setCurrentClipIndex(nextIndex);
           
-          // Start preloading the NEXT next clip
-          const upcomingIndex = (nextIndex + 1) % clips.length;
-          if (clips.length > 1) {
-            preloadNextClip(upcomingIndex);
-          }
+          // Clean up after crossfade duration
+          setTimeout(() => {
+            currentVideo.pause();
+            currentVideo.currentTime = 0;
+            
+            if (!isMuted) {
+              currentVideo.volume = 0;
+              nextVideo.volume = volume;
+            }
+            
+            setIsTransitioning(false);
+            transitionTriggeredRef.current = false;
+            preloadTriggeredRef.current = false;
+            setPreloadedClipIndex(null);
+            
+            // Start preloading the NEXT next clip
+            const upcomingIndex = (nextIndex + 1) % clips.length;
+            if (clips.length > 1) {
+              preloadNextClip(upcomingIndex);
+            }
+          }, CROSSFADE_DURATION_SEC * 1000 + 20);
         });
       });
     };
@@ -591,9 +611,9 @@ export function FullscreenVideoPlayer({
         src={videoASrc}
         className="absolute inset-0 w-full h-full object-contain"
         style={{ 
-          opacity: activeVideo === 'A' ? 1 : 0,
+          opacity: videoAOpacity,
           zIndex: activeVideo === 'A' ? 10 : 5,
-          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out`
         }}
         autoPlay
         loop={clips.length === 1}
@@ -609,9 +629,9 @@ export function FullscreenVideoPlayer({
         src={videoBSrc}
         className="absolute inset-0 w-full h-full object-contain"
         style={{ 
-          opacity: activeVideo === 'B' ? 1 : 0,
+          opacity: videoBOpacity,
           zIndex: activeVideo === 'B' ? 10 : 5,
-          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out`
         }}
         loop={clips.length === 1}
         muted={isMuted}

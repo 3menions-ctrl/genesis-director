@@ -52,6 +52,8 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
 import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
+import ProjectsBackground from '@/components/projects/ProjectsBackground';
+import { ProjectsHero } from '@/components/projects/ProjectsHero';
 
 // ============= HELPERS =============
 
@@ -97,125 +99,7 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// ============= PREMIUM STAT CARD COMPONENT =============
-
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  color = 'default',
-  delay = 0 
-}: { 
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  color?: 'default' | 'amber' | 'emerald' | 'blue' | 'purple';
-  delay?: number;
-}) {
-  const colorConfig = {
-    default: { 
-      icon: 'text-zinc-400',
-      text: 'text-white',
-      glow: 'from-white/10 to-white/5'
-    },
-    amber: { 
-      icon: 'text-amber-400',
-      text: 'text-amber-400',
-      glow: 'from-amber-500/20 to-amber-500/5'
-    },
-    emerald: { 
-      icon: 'text-emerald-400',
-      text: 'text-emerald-400',
-      glow: 'from-emerald-500/20 to-emerald-500/5'
-    },
-    blue: { 
-      icon: 'text-blue-400',
-      text: 'text-blue-400',
-      glow: 'from-blue-500/20 to-blue-500/5'
-    },
-    purple: { 
-      icon: 'text-purple-400',
-      text: 'text-purple-400',
-      glow: 'from-purple-500/20 to-purple-500/5'
-    },
-  };
-
-  const config = colorConfig[color];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ scale: 1.03 }}
-      className="relative group flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800/60 border border-white/[0.06] backdrop-blur-xl"
-    >
-      {/* Glow effect on hover */}
-      <div className={cn(
-        "absolute inset-0 rounded-lg bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl",
-        config.glow
-      )} />
-      
-      <div className="relative flex items-center gap-1.5">
-        <div className="w-6 h-6 rounded-md flex items-center justify-center bg-zinc-800 border border-white/[0.06]">
-          <Icon className={cn("w-3 h-3", config.icon)} />
-        </div>
-        <div className="flex flex-col">
-          <span className={cn("text-sm font-bold leading-none", config.text)}>{value}</span>
-          <span className="text-[9px] text-zinc-500 uppercase tracking-wider">{label}</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ============= PREMIUM HERO HEADER COMPONENT =============
-
-function HeroHeader({ 
-  stats 
-}: { 
-  stats: { total: number; completed: number; processing: number; totalClips: number };
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="relative mb-4"
-    >
-      {/* Dark theme container */}
-      <div className="relative p-4 rounded-2xl bg-zinc-900/80 border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
-        {/* Subtle inner glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-        
-        {/* Content */}
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          {/* Title & Description */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-          >
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-              Your Projects
-            </h1>
-            <p className="text-xs text-zinc-500">
-              Manage and watch your AI-generated videos
-            </p>
-          </motion.div>
-
-          {/* Stats Row - Compact Cards */}
-          <div className="flex flex-wrap items-center gap-2">
-            <StatCard icon={FolderOpen} label="Total" value={stats.total} color="purple" delay={0} />
-            <StatCard icon={Check} label="Ready" value={stats.completed} color="emerald" delay={0.05} />
-            <StatCard icon={Activity} label="Active" value={stats.processing} color="amber" delay={0.1} />
-            <StatCard icon={Film} label="Clips" value={stats.totalClips} color="blue" delay={0.15} />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+// The StatCard and HeroHeader components are now imported from ProjectsHero
 
 // ============= PROJECT CARD COMPONENT =============
 
@@ -1219,45 +1103,9 @@ export default function Projects() {
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] relative overflow-x-hidden">
-      {/* Dark Theme Ambient Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Base dark overlay */}
-        <div className="absolute inset-0 bg-[#0a0a0b]" />
-        
-        {/* Subtle animated gradient orbs - very muted for dark theme */}
-        <motion.div 
-          className="absolute top-[-30%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-br from-white/[0.02] via-white/[0.01] to-transparent blur-[120px]"
-          animate={{ 
-            scale: [1, 1.1, 1],
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-white/[0.02] via-white/[0.01] to-transparent blur-[100px]"
-          animate={{ 
-            scale: [1, 1.15, 1],
-            x: [0, -40, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-        />
-        
-        {/* Subtle grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px'
-          }}
-        />
-        
-        {/* Edge vignette for depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0b_80%)]" />
-      </div>
+    <div className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+      {/* Premium Orange-Themed Animated Background */}
+      <ProjectsBackground />
 
       {/* Navigation */}
       <AppHeader onCreateClick={handleCreateProject} />
@@ -1417,20 +1265,20 @@ export default function Projects() {
           </motion.div>
         ) : (
           <>
-            {/* Cinematic Hero Header with Stats */}
-            <HeroHeader stats={stats} />
+            {/* Premium Hero Header with Orange Theme */}
+            <ProjectsHero stats={stats} />
 
-            {/* Quick Actions - Creation Modes */}
+            {/* Premium Quick Actions - Creation Modes with Orange Accents */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.5 }}
-              className="mb-4"
+              className="mb-6"
             >
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
                   onClick={() => navigate('/create')}
-                  className="group relative h-10 px-4 rounded-xl bg-white text-black hover:bg-white/90 font-semibold text-sm shadow-lg overflow-hidden"
+                  className="group relative h-11 px-5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-semibold text-sm shadow-lg shadow-orange-500/25 border-0 overflow-hidden"
                 >
                   <span className="relative flex items-center gap-2">
                     <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
@@ -1448,11 +1296,11 @@ export default function Projects() {
                     navigate('/create');
                   }}
                   variant="outline"
-                  className="group h-10 px-4 rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400/50 font-medium text-sm gap-2"
+                  className="group h-11 px-4 rounded-xl border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400/50 font-medium text-sm gap-2"
                 >
                   <Palette className="w-4 h-4" />
                   Style Transfer
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200">NEW</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200">NEW</span>
                 </Button>
 
                 {/* Other quick modes */}
@@ -1465,7 +1313,7 @@ export default function Projects() {
                     navigate('/create');
                   }}
                   variant="ghost"
-                  className="h-10 px-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 font-medium text-sm gap-2"
+                  className="h-11 px-4 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.06] font-medium text-sm gap-2 border border-white/[0.06]"
                 >
                   <Image className="w-4 h-4" />
                   <span className="hidden sm:inline">Animate Image</span>
@@ -1480,7 +1328,7 @@ export default function Projects() {
                     navigate('/create');
                   }}
                   variant="ghost"
-                  className="h-10 px-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 font-medium text-sm gap-2"
+                  className="h-11 px-4 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.06] font-medium text-sm gap-2 border border-white/[0.06]"
                 >
                   <Video className="w-4 h-4" />
                   <span className="hidden sm:inline">AI Avatar</span>
@@ -1488,48 +1336,48 @@ export default function Projects() {
               </div>
             </motion.div>
 
-            {/* Premium Search & Filter Toolbar */}
+            {/* Premium Search & Filter Toolbar with Orange Accents */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="mb-4"
+              className="mb-6"
             >
-              <div className="relative p-3 rounded-xl bg-zinc-900/80 border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
-                {/* Subtle inner highlight */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+              <div className="relative p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl overflow-hidden">
+                {/* Subtle orange glow in corner */}
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
                 
                 <div className="relative flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
-                  {/* Search Bar - Premium */}
+                  {/* Search Bar - Premium with orange focus */}
                   <div className="relative flex-1 group">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/5 to-white/[0.02] opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-white transition-colors" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/10 to-amber-500/5 opacity-0 group-focus-within:opacity-100 blur-xl transition-opacity duration-500" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-orange-400 transition-colors" />
                     <Input
                       id="project-search"
                       placeholder="Search your projects..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="relative h-12 pl-12 pr-12 bg-zinc-800/60 border border-white/[0.06] text-white placeholder:text-zinc-500 rounded-xl focus:ring-2 focus:ring-white/20 focus:border-white/20 text-base backdrop-blur-xl transition-all"
+                      className="relative h-12 pl-12 pr-12 bg-white/[0.03] border border-white/[0.08] text-white placeholder:text-white/30 rounded-xl focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 text-base backdrop-blur-xl transition-all"
                     />
                     {searchQuery ? (
                       <button 
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     ) : (
-                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-zinc-500 bg-zinc-800 px-2.5 py-1 rounded-lg border border-white/[0.06]">/</kbd>
+                      <kbd className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:inline-flex text-xs font-mono text-white/30 bg-white/5 px-2.5 py-1 rounded-lg border border-white/[0.08]">/</kbd>
                     )}
                   </div>
 
                   {/* Divider */}
-                  <div className="hidden lg:block w-px h-8 bg-white/10" />
+                  <div className="hidden lg:block w-px h-10 bg-white/[0.08]" />
 
                   {/* Filter Controls */}
                   <div className="flex items-center gap-3">
-                    {/* Status Filter Tabs */}
-                    <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-800/60">
+                    {/* Status Filter Tabs - Orange themed */}
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                       {[
                         { value: 'all', label: 'All', icon: Layers },
                         { value: 'completed', label: 'Ready', icon: Check },
@@ -1542,8 +1390,8 @@ export default function Projects() {
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
                             statusFilter === filter.value 
-                              ? "bg-white text-black shadow-sm" 
-                              : "text-zinc-500 hover:text-white hover:bg-white/10"
+                              ? "bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-400 border border-orange-500/30" 
+                              : "text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
                           )}
                         >
                           <filter.icon className="w-3.5 h-3.5" />
@@ -1598,13 +1446,13 @@ export default function Projects() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* View Mode Toggle */}
-                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-zinc-800/60">
+                    {/* View Mode Toggle - Orange themed */}
+                    <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                       <button
                         onClick={() => setViewMode('grid')}
                         className={cn(
                           "p-2.5 rounded-lg transition-all",
-                          viewMode === 'grid' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-white"
+                          viewMode === 'grid' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
                         )}
                         title="Grid view"
                       >
@@ -1614,7 +1462,7 @@ export default function Projects() {
                         onClick={() => setViewMode('list')}
                         className={cn(
                           "p-2.5 rounded-lg transition-all",
-                          viewMode === 'list' ? "bg-white text-black shadow-sm" : "text-zinc-500 hover:text-white"
+                          viewMode === 'list' ? "bg-orange-500/20 text-orange-400" : "text-white/40 hover:text-white/70"
                         )}
                         title="List view"
                       >
@@ -1624,16 +1472,16 @@ export default function Projects() {
                   </div>
                 </div>
 
-                {/* Active filters indicator */}
+                {/* Active filters indicator - Orange themed */}
                 {(searchQuery || statusFilter !== 'all') && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06]"
+                    className="flex items-center gap-2 mt-4 pt-4 border-t border-white/[0.06]"
                   >
-                    <span className="text-xs text-zinc-500">Showing:</span>
+                    <span className="text-xs text-white/40">Showing:</span>
                     {searchQuery && (
-                      <Badge className="gap-1 text-xs bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700">
+                      <Badge className="gap-1 text-xs bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/20">
                         "{searchQuery}"
                         <button onClick={() => setSearchQuery('')} className="ml-1 hover:text-white">
                           <X className="w-3 h-3" />
@@ -1641,14 +1489,14 @@ export default function Projects() {
                       </Badge>
                     )}
                     {statusFilter !== 'all' && (
-                      <Badge className="gap-1 text-xs capitalize bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700">
+                      <Badge className="gap-1 text-xs capitalize bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/20">
                         {statusFilter}
                         <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-white">
                           <X className="w-3 h-3" />
                         </button>
                       </Badge>
                     )}
-                    <span className="text-xs text-zinc-500 ml-auto">
+                    <span className="text-xs text-white/40 ml-auto">
                       {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
                     </span>
                   </motion.div>

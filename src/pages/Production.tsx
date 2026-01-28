@@ -420,9 +420,13 @@ export default function Production() {
       const tasks = parsePendingVideoTasks(project.pending_video_tasks);
       if (tasks) {
         if (tasks.progress) setProgress(tasks.progress);
-        if (tasks.clipCount) setExpectedClipCount(tasks.clipCount);
-        // Extract clip duration from script shots or default
-        const scriptDuration = tasks.script?.shots?.[0]?.durationSeconds;
+        // Try multiple sources for clip count: clipCount > shotCount > stages.preproduction.shotCount
+        const clipCountValue = tasks.clipCount 
+          || tasks.shotCount 
+          || (tasks.stages as any)?.preproduction?.shotCount;
+        if (clipCountValue) setExpectedClipCount(clipCountValue);
+        // Extract clip duration from script shots or clipDuration
+        const scriptDuration = tasks.clipDuration || tasks.script?.shots?.[0]?.durationSeconds;
         if (scriptDuration) setClipDuration(scriptDuration);
         if (tasks.auditScore) setAuditScore(tasks.auditScore);
         if (tasks.stage) setPipelineStage(tasks.stage);
@@ -585,6 +589,12 @@ export default function Production() {
             setProgress(tasks.progress);
             springProgress.set(tasks.progress);
           }
+          
+          // Update clip count from any available source
+          const clipCountValue = tasks.clipCount 
+            || tasks.shotCount 
+            || (tasks.stages as any)?.preproduction?.shotCount;
+          if (clipCountValue) setExpectedClipCount(clipCountValue);
           
           if (tasks.stage) setPipelineStage(tasks.stage);
 

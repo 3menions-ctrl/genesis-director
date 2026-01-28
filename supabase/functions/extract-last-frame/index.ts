@@ -88,31 +88,17 @@ serve(async (req) => {
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
 
     // ============================================================
-    // CLIP 0 SPECIAL CASE: Always use reference image
-    // The first clip should chain from the user's uploaded image
+    // CLIP 0 SPECIAL CASE: EXTRACT THE ACTUAL LAST FRAME
+    // 
+    // CRITICAL FIX: Clip 0's last frame should be the ACTUAL end of the generated video,
+    // NOT the user's uploaded reference image. This ensures clip 1 continues from
+    // where clip 0 actually ended, maintaining true visual continuity.
+    //
+    // The reference image is only used as a FALLBACK if extraction fails.
     // ============================================================
-    if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
-      console.log(`[ExtractFrame] ✅ CLIP 0: Using reference image directly (no extraction needed)`);
-      
-      try {
-        await supabase
-          .from('video_clips')
-          .update({ last_frame_url: referenceImageUrl })
-          .eq('project_id', projectId)
-          .eq('shot_index', shotIndex);
-      } catch (e) {
-        console.warn(`[ExtractFrame] DB save failed:`, e);
-      }
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          frameUrl: referenceImageUrl,
-          method: 'reference-fallback',
-          confidence: 'high',
-        } as ExtractLastFrameResult),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (shotIndex === 0) {
+      console.log(`[ExtractFrame] CLIP 0: Will attempt to extract ACTUAL last frame (reference as fallback)`);
+      // Continue to normal extraction flow - don't short-circuit with reference image
     }
 
     // Helper to save frame URL to database

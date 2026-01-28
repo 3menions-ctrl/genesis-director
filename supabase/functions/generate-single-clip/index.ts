@@ -701,7 +701,7 @@ serve(async (req) => {
       }
     }
     
-    // GUARD RAIL #4: Use guaranteed fallback chain for last frame
+    // GUARD RAIL #4: Use guaranteed fallback chain for last frame - ONLY IF EXTRACTION FAILED
     if (!extractedLastFrameUrl) {
       console.error(`[SingleClip] ⚠️ All ${FRAME_EXTRACTION_MAX_RETRIES} frame extraction attempts failed!`);
       
@@ -723,11 +723,18 @@ serve(async (req) => {
       }
     }
     
-    // GUARD RAIL #5: Clip 0 ALWAYS uses reference image as last frame for Clip 1
-    if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
-      console.log(`[SingleClip] ✓ Clip 0: Overriding last frame with reference image for continuity anchor`);
-      extractedLastFrameUrl = referenceImageUrl;
-      frameExtractionStatus = 'success'; // Reference is always reliable
+    // CRITICAL FIX: For clip 0, prefer the EXTRACTED last frame over reference image
+    // This ensures clip 1 starts from where clip 0 actually ended, not from the original upload
+    // The reference image is only used as a FALLBACK if extraction failed
+    if (shotIndex === 0) {
+      if (extractedLastFrameUrl && extractedLastFrameUrl !== referenceImageUrl) {
+        console.log(`[SingleClip] ✓ Clip 0: Using EXTRACTED last frame for clip 1 continuity (${extractedLastFrameUrl.substring(0, 60)}...)`);
+        // Keep the extracted frame - this is correct behavior
+      } else if (!extractedLastFrameUrl && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+        console.log(`[SingleClip] ⚠️ Clip 0: No extracted frame, falling back to reference image`);
+        extractedLastFrameUrl = referenceImageUrl;
+        frameExtractionStatus = 'fallback_used';
+      }
     }
     
     // Update frame extraction status in DB

@@ -2,14 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 /**
- * AUTO-STITCH TRIGGER v3 - BULLETPROOF
+ * AUTO-STITCH TRIGGER v4 - MANIFEST-ONLY
  * 
- * STRATEGY: Always guarantee a working video for users
+ * STRATEGY: Always guarantee a working video for users via manifest playback
  * 1. Check if all clips are completed
- * 2. ALWAYS call simple-stitch first (creates manifest, marks completed)
- * 3. simple-stitch handles Cloud Run upgrade in background
- * 
- * This ensures users NEVER see a "stitching_failed" state.
+ * 2. Call simple-stitch to create manifest
+ * 3. Users get immediate playback via SmartStitcherPlayer
  */
 
 const corsHeaders = {
@@ -21,13 +19,6 @@ interface AutoStitchRequest {
   projectId: string;
   userId?: string;
   forceStitch?: boolean;
-  useWan2?: boolean;  // Use Wan 2.1 for AI-powered transitions
-  wan2Options?: {
-    maxBridgeClips?: number;
-    transitionThreshold?: number;
-    bridgeDurationSeconds?: number;
-    resolution?: "480p" | "720p";
-  };
 }
 
 serve(async (req) => {
@@ -38,7 +29,7 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    const { projectId, userId, forceStitch = false, useWan2 = false, wan2Options } = await req.json() as AutoStitchRequest;
+    const { projectId, userId, forceStitch = false } = await req.json() as AutoStitchRequest;
 
     if (!projectId) {
       throw new Error("projectId is required");
@@ -46,7 +37,6 @@ serve(async (req) => {
 
     console.log(`[AutoStitch] Checking project: ${projectId}`);
 
-    // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -127,46 +117,8 @@ serve(async (req) => {
       })
       .eq('id', projectId);
 
-    // Step 6: Choose stitching method
-    // - useWan2=true: Use Wan 2.1 for AI-powered transitions (premium)
-    // - default: Use simple-stitch (fast, reliable)
-    
-    if (useWan2) {
-      console.log("[AutoStitch] Calling wan2-stitch for AI-powered transitions...");
-      
-      const { data: wan2Result, error: wan2Error } = await supabase.functions.invoke('wan2-stitch', {
-        body: { 
-          projectId, 
-          userId,
-          maxBridgeClips: wan2Options?.maxBridgeClips ?? 3,
-          transitionThreshold: wan2Options?.transitionThreshold ?? 70,
-          bridgeDurationSeconds: wan2Options?.bridgeDurationSeconds ?? 4,
-          resolution: wan2Options?.resolution ?? "480p",
-        },
-      });
-      
-      if (wan2Error) {
-        console.error(`[AutoStitch] wan2-stitch failed, falling back to simple-stitch: ${wan2Error.message}`);
-        // Fall through to simple-stitch
-      } else {
-        console.log("[AutoStitch] wan2-stitch started:", JSON.stringify(wan2Result));
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            readyToStitch: true,
-            stitchMode: 'wan2_ai_transitions',
-            message: 'Wan 2.1 AI stitching in progress',
-            completedClips: completedCount,
-            processingTimeMs: Date.now() - startTime,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-    
-    // Default: Use simple-stitch (guaranteed success)
-    console.log("[AutoStitch] Calling simple-stitch (guaranteed success)...");
+    // Step 6: Use simple-stitch for manifest creation
+    console.log("[AutoStitch] Calling simple-stitch for manifest creation...");
     
     const { data: stitchResult, error: stitchError } = await supabase.functions.invoke('simple-stitch', {
       body: { projectId, userId },
@@ -175,8 +127,7 @@ serve(async (req) => {
     if (stitchError) {
       console.error(`[AutoStitch] simple-stitch invocation error: ${stitchError.message}`);
       
-      // Even if simple-stitch fails to invoke, try to mark completed with clips
-      // This is a last resort fallback
+      // Mark as completed anyway - clips are available individually
       await supabase
         .from('movie_projects')
         .update({
@@ -186,7 +137,7 @@ serve(async (req) => {
             stage: 'complete',
             progress: 100,
             mode: 'clips_only',
-            error: 'simple-stitch invocation failed, clips available individually',
+            error: 'Manifest creation failed, clips available individually',
             completedAt: new Date().toISOString(),
           },
           updated_at: new Date().toISOString(),
@@ -224,7 +175,7 @@ serve(async (req) => {
     const errorMsg = error instanceof Error ? error.message : "Auto-stitch failed";
     console.error("[AutoStitch] Error:", errorMsg);
     
-    // Even on error, try to recover by marking as completed if possible
+    // Recovery: mark as completed if clips exist
     try {
       const body = await req.clone().json() as AutoStitchRequest;
       if (body.projectId) {
@@ -232,7 +183,6 @@ serve(async (req) => {
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Check if there are completed clips
         const { data: clips } = await supabase
           .from('video_clips')
           .select('id')

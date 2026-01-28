@@ -4643,59 +4643,25 @@ async function runProduction(
         console.log(`[Hollywood] Scene consistency: ${intelligentStitchResult.plan?.overallConsistency || 'N/A'}%`);
         console.log(`[Hollywood] Total bridge clips: ${bridgeClipUrls.length + (intelligentStitchResult.bridgeClipsGenerated || 0)}`);
       } else {
-        console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to direct stitch`);
+        console.warn(`[Hollywood] Intelligent stitch returned no video, falling back to simple-stitch manifest`);
       }
       
-      // Fallback: Direct Cloud Run stitch if intelligent stitch failed
+      // Fallback: Use simple-stitch for manifest-based playback if intelligent stitch failed
       if (!state.finalVideoUrl) {
-        const stitcherUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-        if (stitcherUrl) {
-          console.log(`[Hollywood] Fallback: Direct Cloud Run stitch with 10 minute timeout`);
+        console.log(`[Hollywood] Fallback: Using simple-stitch for manifest playback`);
+        
+        try {
+          const simpleStitchResult = await callEdgeFunction('simple-stitch', {
+            projectId: state.projectId,
+            userId: request.userId,
+          }, { timeoutMs: 30000, maxRetries: 1 });
           
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minute timeout
-          
-          try {
-            const response = await fetch(`${stitcherUrl}/stitch`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                projectId: state.projectId,
-                projectTitle: `Video - ${state.projectId}`,
-                clips: clipSequence.map(c => ({
-                  shotId: c.shotId,
-                  videoUrl: c.videoUrl,
-                  durationSeconds: c.isBridge ? 3 : DEFAULT_CLIP_DURATION,
-                  transitionOut: 'continuous',
-                })),
-                audioMixMode: hasAudioTracks ? 'full' : 'mute',
-                muteNativeAudio, // Strip Veo 3.1 native audio if no narration wanted
-                outputFormat: 'mp4',
-                colorGrading: request.colorGrading || 'cinematic',
-                isFinalAssembly: true,
-                voiceTrackUrl: state.assets?.voiceUrl,
-                backgroundMusicUrl: state.assets?.musicUrl,
-                // Pass music sync plan for intelligent audio mixing
-                musicSyncPlan: (state as any).musicSyncPlan,
-                // Pass color grading filter for FFmpeg processing
-                colorGradingFilter: (state as any).colorGrading?.masterFilter,
-              }),
-              signal: controller.signal,
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              const result = await response.json();
-              if (result.success && result.finalVideoUrl) {
-                state.finalVideoUrl = result.finalVideoUrl;
-                console.log(`[Hollywood] Final video assembled: ${state.finalVideoUrl}`);
-              }
-            }
-          } catch (directStitchError) {
-            clearTimeout(timeoutId);
-            console.error(`[Hollywood] Direct stitch error:`, directStitchError);
+          if (simpleStitchResult.success && simpleStitchResult.finalVideoUrl) {
+            state.finalVideoUrl = simpleStitchResult.finalVideoUrl;
+            console.log(`[Hollywood] Manifest created: ${state.finalVideoUrl}`);
           }
+        } catch (manifestError) {
+          console.error(`[Hollywood] Simple-stitch fallback error:`, manifestError);
         }
       }
     } catch (stitchError) {

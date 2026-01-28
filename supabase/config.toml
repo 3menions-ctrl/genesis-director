@@ -1,8 +1,5 @@
 project_id = "ahlikyhgcqvrdvbtkghh"
 
-[functions.health-check-stitcher]
-verify_jwt = false
-
 [functions.generate-script]
 verify_jwt = false
 
@@ -51,9 +48,6 @@ verify_jwt = false
 [functions.generate-identity-bible]
 verify_jwt = false
 
-[functions.stitch-video]
-verify_jwt = false
-
 [functions.generate-single-clip]
 verify_jwt = false
 
@@ -96,9 +90,6 @@ verify_jwt = false
 [functions.extract-video-frame]
 verify_jwt = false
 
-[functions.analyze-motion-vectors]
-verify_jwt = false
-
 [functions.analyze-transition-gap]
 verify_jwt = false
 
@@ -109,9 +100,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-upload-url]
-verify_jwt = false
-
-[functions.finalize-stitch]
 verify_jwt = false
 
 [functions.extract-style-anchor]
@@ -228,12 +216,6 @@ verify_jwt = false
 [functions.generate-project-thumbnail]
 verify_jwt = false
 
-[functions.wan2-bridge-clip]
-verify_jwt = false
-
-[functions.wan2-stitch]
-verify_jwt = false
-
 [functions.generate-avatar]
 verify_jwt = false
 
@@ -244,4 +226,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-face-lock]
+verify_jwt = false
+
+[functions.check-specialized-status]
+verify_jwt = false
+
+[functions.mode-router]
 verify_jwt = false

@@ -41,7 +41,6 @@ import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRetryStitch } from '@/hooks/useRetryStitch';
 import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
-import { MotionVectorsDisplay } from '@/components/studio/MotionVectorsDisplay';
 import {
   Table,
   TableBody,
@@ -986,12 +985,6 @@ export default function Clips() {
                         <TableCell>
                           <div className="space-y-1.5">
                             <p className="text-sm text-white/80 line-clamp-2 leading-relaxed">{clip.prompt}</p>
-                            {clip.motion_vectors && (
-                              <MotionVectorsDisplay 
-                                motionVectors={clip.motion_vectors}
-                                shotIndex={clip.shot_index}
-                              />
-                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1255,15 +1248,6 @@ export default function Clips() {
                                   <p className="text-xs text-white/50 line-clamp-2 leading-relaxed min-h-[32px]">
                                     {clip.prompt}
                                   </p>
-                                  
-                                  {/* Motion Vectors */}
-                                  {clip.motion_vectors && (
-                                    <MotionVectorsDisplay 
-                                      motionVectors={clip.motion_vectors}
-                                      shotIndex={clip.shot_index}
-                                      className="mt-2"
-                                    />
-                                  )}
                                   
                                   {/* Actions */}
                                   <motion.div 

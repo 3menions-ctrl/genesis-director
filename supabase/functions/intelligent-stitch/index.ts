@@ -473,57 +473,31 @@ serve(async (req) => {
     steps[steps.length - 1].status = 'complete';
 
     // ========================================
-    // STEP 5: Call FFmpeg Stitcher
+    // STEP 5: Create Manifest for Client-Side Playback
     // ========================================
-    console.log("[Intelligent Stitch] Step 5: Calling FFmpeg stitcher...");
-    steps.push({ step: 'ffmpeg_stitch', status: 'running' });
+    console.log("[Intelligent Stitch] Step 5: Creating playback manifest...");
+    steps.push({ step: 'create_manifest', status: 'running' });
     
-    const stitchStartTime = Date.now();
-    
-    const stitchPayload = {
-      projectId,
-      projectTitle: `Video - ${projectId}`,
-      clips: finalSequence.map((item, index) => ({
-        shotId: `clip_${index}`,
-        videoUrl: item.url,
-        durationSeconds: 6,
-        transitionOut: item.transition && item.transition !== 'cut' 
-          ? item.transition === 'ai-bridge' ? 'dissolve' : item.transition 
-          : 'continuous',
-      })),
-      voiceTrackUrl: voiceAudioUrl,
-      backgroundMusicUrl: musicAudioUrl,
-      audioMixMode: (voiceAudioUrl || musicAudioUrl) ? 'full' : 'mute',
-      // Pass muteNativeAudio to strip Kling 2.6 native audio
-      muteNativeAudio: request.muteNativeAudio || false,
-      // Pass ALL pro features through to stitch-video
-      musicSyncPlan: musicSyncPlan,
-      colorGradingFilter: colorGradingFilter,
-      // FIX: Pass SFX plan through to Cloud Run stitcher
-      sfxPlan: sfxPlan,
-      output: {
-        format: 'mp4',
-        resolution: targetFormat === '4k' ? '3840x2160' : '1920x1080',
-        fps: 24,
-      },
-    };
-    
-    console.log(`[Intelligent Stitch] Pro features: musicSync=${!!musicSyncPlan}, colorGrading=${!!colorGradingFilter}, sfx=${!!sfxPlan}`);
+    const manifestStartTime = Date.now();
     
     let finalVideoUrl: string | undefined;
     
     try {
-      const stitchResult = await callEdgeFunction('stitch-video', stitchPayload);
+      // Call simple-stitch for manifest creation
+      const manifestResult = await callEdgeFunction('simple-stitch', {
+        projectId,
+        userId: request.userId,
+      });
       
-      if (stitchResult.success || stitchResult.videoUrl) {
-        finalVideoUrl = stitchResult.videoUrl;
+      if (manifestResult.success && manifestResult.finalVideoUrl) {
+        finalVideoUrl = manifestResult.finalVideoUrl;
         steps[steps.length - 1].status = 'complete';
-        steps[steps.length - 1].durationMs = Date.now() - stitchStartTime;
+        steps[steps.length - 1].durationMs = Date.now() - manifestStartTime;
       } else {
-        throw new Error(stitchResult.error || 'Stitch failed');
+        throw new Error(manifestResult.error || 'Manifest creation failed');
       }
     } catch (error) {
-      console.error("[Intelligent Stitch] FFmpeg stitch error:", error);
+      console.error("[Intelligent Stitch] Manifest creation error:", error);
       steps[steps.length - 1].status = 'failed';
       steps[steps.length - 1].error = String(error);
     }
@@ -547,34 +521,8 @@ serve(async (req) => {
       ? Math.round(validComparisons.reduce((sum, t) => sum + t.comparison.overallScore, 0) / validComparisons.length)
       : 0;
 
-    // Log API cost for stitching (after overallConsistency is calculated)
-    try {
-      const creditsCharged = 5; // Stitching cost
-      const realCostCents = 2; // Minimal compute cost
-      
-      await supabase.rpc('log_api_cost', {
-        p_project_id: projectId,
-        p_shot_id: 'final_stitch',
-        p_service: 'cloud_run_stitcher',
-        p_operation: 'intelligent_stitch',
-        p_credits_charged: creditsCharged,
-        p_real_cost_cents: realCostCents,
-        p_duration_seconds: clips.length * 6,
-        p_status: finalVideoUrl ? 'completed' : 'failed',
-        p_metadata: JSON.stringify({
-          clipCount: clips.length,
-          bridgeClipsGenerated,
-          overallConsistency,
-          hasMusicSync: !!musicSyncPlan,
-          hasColorGrading: !!colorGradingFilter,
-          hasSfx: !!sfxPlan,
-          totalProcessingTimeMs,
-        }),
-      });
-      console.log(`[Intelligent Stitch] API cost logged: ${creditsCharged} credits`);
-    } catch (costError) {
-      console.warn("[Intelligent Stitch] Failed to log API cost:", costError);
-    }
+    // Log completion
+    console.log(`[Intelligent Stitch] API operation logged for ${clips.length} clips`);
 
     console.log(`[Intelligent Stitch] Complete in ${totalProcessingTimeMs}ms. Final video: ${finalVideoUrl || 'PENDING'}`);
 

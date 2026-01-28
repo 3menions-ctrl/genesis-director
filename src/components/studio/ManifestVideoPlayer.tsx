@@ -413,8 +413,12 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       {/* Dual Video Elements for Gapless Playback */}
       <video
         ref={videoARef}
-        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-0"
-        style={{ opacity: videoAOpacity, zIndex: activeVideoIndex === 0 ? 2 : 1 }}
+        className="absolute inset-0 w-full h-full object-contain"
+        style={{ 
+          opacity: videoAOpacity, 
+          zIndex: activeVideoIndex === 0 ? 2 : 1,
+          transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+        }}
         onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
         onPlay={activeVideoIndex === 0 ? () => setIsPlaying(true) : undefined}
@@ -425,8 +429,12 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       />
       <video
         ref={videoBRef}
-        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-0"
-        style={{ opacity: videoBOpacity, zIndex: activeVideoIndex === 1 ? 2 : 1 }}
+        className="absolute inset-0 w-full h-full object-contain"
+        style={{ 
+          opacity: videoBOpacity, 
+          zIndex: activeVideoIndex === 1 ? 2 : 1,
+          transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
+        }}
         onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
         onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
         onPlay={activeVideoIndex === 1 ? () => setIsPlaying(true) : undefined}

@@ -16,7 +16,7 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 0.030; // ms - ultra-fast overlap for seamless blending
+const CROSSFADE_DURATION_SEC = 0.030; // seconds - ultra-fast overlap for seamless blending
 const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 
@@ -593,7 +593,7 @@ export function FullscreenVideoPlayer({
         style={{ 
           opacity: activeVideo === 'A' ? 1 : 0,
           zIndex: activeVideo === 'A' ? 10 : 5,
-          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
         }}
         autoPlay
         loop={clips.length === 1}
@@ -611,7 +611,7 @@ export function FullscreenVideoPlayer({
         style={{ 
           opacity: activeVideo === 'B' ? 1 : 0,
           zIndex: activeVideo === 'B' ? 10 : 5,
-          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
         }}
         loop={clips.length === 1}
         muted={isMuted}

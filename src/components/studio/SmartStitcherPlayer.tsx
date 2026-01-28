@@ -142,8 +142,8 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds - ultra-fast overlap for seamless blending
-const CROSSFADE_DURATION = 0.030;
+// Crossfade duration in seconds - ultra-fast overlap for seamless blending
+const CROSSFADE_DURATION_SEC = 0.030; // 30ms crossfade
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_TRIGGER_OFFSET = 0.15;
 
@@ -576,7 +576,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     };
   }, [isPlaying, isCrossfading, currentClipIndex, clips.length, getActiveVideo]);
 
-  // Crossfade transition logic - TRUE OVERLAP: both videos visible simultaneously
+  // Crossfade transition logic - TRUE CROSSFADE: outgoing fades out while incoming fades in
   const triggerCrossfadeTransition = useCallback(() => {
     if (isTransitioningRef.current || isCrossfading) return;
     if (currentClipIndex >= clips.length - 1) return;
@@ -588,55 +588,52 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     const activeVideo = getActiveVideo();
     const standbyVideo = getStandbyVideo();
     
-    // CRITICAL FIX: Capture which video is currently active BEFORE state update
-    // This prevents closure bugs where the RAF callback uses stale activeVideoIndex
+    // Capture which video is currently active BEFORE state update
     const currentActiveIndex = activeVideoIndex;
     
     if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
       
-      // CRITICAL: Set BOTH videos to full opacity BEFORE playing next
-      // This ensures there's never a frame where neither video is visible
-      setVideoAOpacity(1);
-      setVideoBOpacity(1);
-      
-      // Start playing standby immediately while current is still visible
+      // Start playing standby BEFORE it becomes visible (it's at opacity 0)
       standbyVideo.play().catch(() => {});
+      
+      // CROSSFADE: Fade in incoming, fade out outgoing - SIMULTANEOUSLY
+      // Incoming goes from 0 → 1, outgoing goes from 1 → 0
+      if (currentActiveIndex === 0) {
+        // A is active (opacity 1), B is standby (opacity 0)
+        // Crossfade: A → 0, B → 1
+        setVideoAOpacity(0);
+        setVideoBOpacity(1);
+      } else {
+        // B is active (opacity 1), A is standby (opacity 0)
+        // Crossfade: B → 0, A → 1
+        setVideoBOpacity(0);
+        setVideoAOpacity(1);
+      }
       
       // Swap active/standby state
       setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
-      // Use requestAnimationFrame to ensure the next video frame is rendered
-      // BEFORE we hide the old video - this prevents ANY visual gap
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          // Now that next video has rendered at least 1 frame, hide the OLD one
-          // Use captured currentActiveIndex to avoid closure bug
-          if (currentActiveIndex === 0) {
-            setVideoAOpacity(0);
-          } else {
-            setVideoBOpacity(0);
-          }
-          
-          // Pause the old active
-          if (activeVideo) {
-            activeVideo.pause();
-          }
-          
-          setIsCrossfading(false);
-          
-          // Preload the NEXT clip into the old active (now standby)
-          const futureClipIndex = nextIndex + 1;
-          if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
-            activeVideo.src = clips[futureClipIndex].blobUrl;
-            activeVideo.load();
-          }
-          isTransitioningRef.current = false;
-        });
-      });
+      // After crossfade duration, clean up
+      setTimeout(() => {
+        // Pause the old video
+        if (activeVideo) {
+          activeVideo.pause();
+        }
+        
+        setIsCrossfading(false);
+        
+        // Preload the NEXT clip into the old active (now standby)
+        const futureClipIndex = nextIndex + 1;
+        if (activeVideo && futureClipIndex < clips.length && clips[futureClipIndex]?.blobUrl) {
+          activeVideo.src = clips[futureClipIndex].blobUrl;
+          activeVideo.load();
+        }
+        isTransitioningRef.current = false;
+      }, CROSSFADE_DURATION_SEC * 1000 + 10); // Add small buffer
     } else {
       // Fallback if standby not ready
       console.warn('[SmartStitcher] Standby video not ready, skipping transition');
@@ -855,7 +852,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     const quality = QUALITY_PRESETS[selectedQuality];
     const fps = 30;
     const frameTime = 1000 / fps;
-    const crossfadeDurationSec = CROSSFADE_DURATION / 1000; // 0.15s crossfade
+    const crossfadeDurationSec = CROSSFADE_DURATION_SEC; // Use global constant
 
     setStitchState({
       status: 'stitching',
@@ -1214,7 +1211,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             style={{ 
               opacity: videoAOpacity,
               zIndex: activeVideoIndex === 0 ? 10 : 5,
-              transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+              transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
             }}
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -1248,7 +1245,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             style={{ 
               opacity: videoBOpacity,
               zIndex: activeVideoIndex === 1 ? 10 : 5,
-              transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+              transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out` // 30ms crossfade
             }}
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}

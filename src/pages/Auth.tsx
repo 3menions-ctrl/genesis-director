@@ -9,6 +9,7 @@ import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
+import authHeroImage from '@/assets/auth-hero.jpg';
 
 // Validation schemas
 const emailSchema = z.string()
@@ -182,71 +183,40 @@ export default function Auth() {
         }}
       />
 
-      {/* Left Side - Branding Content */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10">
-        {/* Content */}
-        <div className="relative flex flex-col justify-between p-12 xl:p-16 w-full">
-          {/* Logo */}
-          <div>
-            <div className="flex items-center gap-3 mb-16">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl">
-                <span className="text-2xl font-display font-bold text-white">AS</span>
-              </div>
-              <span className="text-2xl font-display font-bold text-white">Apex Studio</span>
+      {/* Left Side - Hero Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 items-center justify-center overflow-hidden">
+        {/* Hero Image */}
+        <div className="absolute inset-0">
+          <img 
+            src={authHeroImage}
+            alt="Premium race car"
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Gradient overlays for blending */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40" />
+        </div>
+        
+        {/* Floating Logo & Text Overlay */}
+        <div className="relative z-10 p-12 xl:p-16 w-full h-full flex flex-col justify-between">
+          {/* Top: Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl">
+              <span className="text-2xl font-display font-bold text-white">AS</span>
             </div>
-
-            {/* Hero text */}
-            <h1 className="text-6xl xl:text-7xl font-display font-bold text-white leading-[1.1] mb-8">
-              Create<br />
-              <span className="text-white/50">cinematic</span><br />
-              videos
-            </h1>
-            <p className="text-xl text-white/60 max-w-md leading-relaxed">
-              Transform your ideas into stunning video content with our AI-powered generation platform.
+            <span className="text-2xl font-display font-bold text-white drop-shadow-lg">Apex Studio</span>
+          </div>
+          
+          {/* Bottom: Tagline */}
+          <div className="space-y-4">
+            <h2 className="text-4xl xl:text-5xl font-display font-bold text-white leading-tight drop-shadow-lg">
+              Speed.<br />
+              <span className="text-white/70">Precision.</span><br />
+              <span className="text-white/50">Vision.</span>
+            </h2>
+            <p className="text-lg text-white/60 max-w-md leading-relaxed drop-shadow-md">
+              AI-powered video generation at the speed of thought.
             </p>
-          </div>
-
-          {/* Features with glass cards */}
-          <div className="space-y-3 mb-8">
-            {[
-              { icon: Zap, text: 'AI-powered script generation', highlight: true },
-              { icon: Play, text: 'Text & image to video' },
-              { icon: Sparkles, text: 'Smart retry system' },
-            ].map((feature, i) => (
-              <div 
-                key={i} 
-                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${
-                  feature.highlight 
-                    ? 'bg-white/10 backdrop-blur-xl border border-white/20' 
-                    : 'bg-white/5 backdrop-blur-sm border border-white/10'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  feature.highlight ? 'bg-white text-black' : 'bg-white/10 text-white'
-                }`}>
-                  <feature.icon className="w-5 h-5" />
-                </div>
-                <span className={`font-medium ${feature.highlight ? 'text-white' : 'text-white/70'}`}>
-                  {feature.text}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Credits callout */}
-          <div className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
-                <Film className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-bold text-lg">Start Free</p>
-                <p className="text-white/50 text-sm">60 credits • No card required</p>
-              </div>
-              <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                <span className="text-white font-bold text-sm">1 clip</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

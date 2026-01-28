@@ -37,70 +37,117 @@ function formatTime(seconds: number): string {
 }
 
 function PremiumPipeline({ stages }: { stages: StageStatus[] }) {
-  const activeIndex = stages.findIndex(s => s.status === 'active');
   const completedCount = stages.filter(s => s.status === 'complete').length;
+  const progressPercent = stages.length > 1 
+    ? (completedCount / (stages.length - 1)) * 100 
+    : 0;
   
   return (
-    <div className="flex items-center gap-1">
+    <div className="relative flex items-center">
+      {/* Background track */}
+      <div className="absolute inset-y-0 left-4 right-4 flex items-center">
+        <div className="h-[3px] w-full rounded-full bg-white/[0.06] overflow-hidden">
+          {/* Animated progress fill */}
+          <motion.div
+            className="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-cyan-300"
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(progressPercent, 100)}%` }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {/* Shimmer effect */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+            />
+          </motion.div>
+        </div>
+      </div>
+      
+      {/* Stage nodes */}
       {stages.map((stage, i) => {
         const isActive = stage.status === 'active';
         const isComplete = stage.status === 'complete';
         const isError = stage.status === 'error';
+        const isPending = stage.status === 'pending';
         
         return (
           <div key={i} className="relative group flex items-center">
+            {/* Spacer for track */}
+            {i > 0 && <div className="w-6" />}
+            
             {/* Stage Node */}
             <motion.div 
               initial={false}
-              animate={{
-                scale: isActive ? 1.1 : 1,
-              }}
-              className={cn(
-                "relative w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300",
-                "border backdrop-blur-sm",
-                isComplete && "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]",
-                isActive && "bg-primary/15 border-primary/30 text-primary shadow-[0_0_25px_rgba(255,255,255,0.15)]",
-                !isComplete && !isActive && !isError && "bg-white/[0.03] border-white/[0.06] text-zinc-500",
-                isError && "bg-rose-500/15 border-rose-500/30 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
-              )}
+              animate={{ scale: isActive ? 1.15 : 1 }}
+              className="relative"
             >
+              {/* Pulse ring for active */}
               {isActive && (
-                <motion.div
-                  className="absolute inset-0 rounded-xl bg-primary/10"
-                  animate={{ opacity: [0.5, 0.2, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
+                <>
+                  <motion.div
+                    className="absolute inset-0 rounded-xl bg-cyan-400/30"
+                    initial={{ scale: 1, opacity: 0.5 }}
+                    animate={{ scale: 2, opacity: 0 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 rounded-xl bg-cyan-400/20"
+                    initial={{ scale: 1, opacity: 0.3 }}
+                    animate={{ scale: 2.5, opacity: 0 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.3 }}
+                  />
+                </>
               )}
-              {isActive ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : isComplete ? (
-                <CheckCircle2 className="w-3.5 h-3.5" />
-              ) : isError ? (
-                <XCircle className="w-3.5 h-3.5" />
-              ) : (
-                <stage.icon className="w-3.5 h-3.5" />
+              
+              {/* Glow effect */}
+              {(isComplete || isActive) && (
+                <div className={cn(
+                  "absolute -inset-1 rounded-2xl blur-md",
+                  isComplete && "bg-emerald-500/30",
+                  isActive && "bg-cyan-500/30"
+                )} />
               )}
+              
+              {/* Main node */}
+              <div className={cn(
+                "relative w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300",
+                "border backdrop-blur-sm",
+                isPending && "bg-white/[0.03] border-white/[0.08] text-zinc-600",
+                isActive && "bg-gradient-to-br from-cyan-500/25 to-cyan-600/15 border-cyan-400/50 text-cyan-300 shadow-[0_0_30px_rgba(34,211,238,0.4)]",
+                isComplete && "bg-gradient-to-br from-emerald-500/25 to-emerald-600/15 border-emerald-400/50 text-emerald-300 shadow-[0_0_30px_rgba(52,211,153,0.4)]",
+                isError && "bg-gradient-to-br from-rose-500/25 to-rose-600/15 border-rose-400/50 text-rose-300 shadow-[0_0_30px_rgba(251,113,133,0.4)]"
+              )}>
+                {isActive ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isComplete ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </motion.div>
+                ) : isError ? (
+                  <XCircle className="w-4 h-4" />
+                ) : (
+                  <stage.icon className="w-4 h-4" />
+                )}
+              </div>
             </motion.div>
             
-            {/* Connector Line */}
-            {i < stages.length - 1 && (
-              <div className="relative w-4 h-px mx-0.5">
-                <div className="absolute inset-0 bg-white/[0.06]" />
-                <motion.div
-                  className={cn(
-                    "absolute inset-y-0 left-0",
-                    isComplete ? "bg-emerald-500/60" : "bg-white/10"
-                  )}
-                  initial={{ width: 0 }}
-                  animate={{ width: isComplete ? '100%' : '0%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            )}
-            
             {/* Tooltip */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/95 backdrop-blur-sm text-zinc-200 text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none border border-white/[0.08] shadow-xl z-20 hidden sm:block">
-              {stage.shortName}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 rounded-xl bg-zinc-900/95 backdrop-blur-xl text-zinc-200 text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none border border-white/[0.1] shadow-2xl z-20 hidden sm:block">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "w-2 h-2 rounded-full",
+                  isComplete && "bg-emerald-400",
+                  isActive && "bg-cyan-400 animate-pulse",
+                  isError && "bg-rose-400",
+                  isPending && "bg-zinc-500"
+                )} />
+                {stage.shortName}
+              </div>
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900/95" />
             </div>
           </div>

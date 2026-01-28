@@ -1196,7 +1196,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             style={{ 
               opacity: videoAOpacity,
               zIndex: activeVideoIndex === 0 ? 10 : 5,
-              transition: isCrossfading ? 'none' : 'opacity 0.1s ease-out'
+              transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
             }}
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -1232,7 +1232,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             style={{ 
               opacity: videoBOpacity,
               zIndex: activeVideoIndex === 1 ? 10 : 5,
-              transition: isCrossfading ? 'none' : 'opacity 0.1s ease-out'
+              transition: 'opacity 16ms linear' // 1 frame micro-transition to prevent blink
             }}
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}

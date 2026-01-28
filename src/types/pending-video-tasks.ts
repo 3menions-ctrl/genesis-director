@@ -53,6 +53,8 @@ export interface PendingVideoTasksDegradation {
   characterExtractionFailed?: boolean;
   sfxGenerationFailed?: boolean;
   reducedConsistencyMode?: boolean;
+  frameExtractionFailed?: boolean;
+  continuityCheckFailed?: boolean;
 }
 
 export interface PendingVideoTasks {

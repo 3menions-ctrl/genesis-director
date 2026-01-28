@@ -10,13 +10,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
+import { parsePendingVideoTasks, PendingVideoTasksDegradation } from '@/types/pending-video-tasks';
 
 // Components - New modular design
 import { ProductionSidebar } from '@/components/production/ProductionSidebar';
 import { ProductionHeader } from '@/components/production/ProductionHeader';
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
 import { ProductionDashboard } from '@/components/production/ProductionDashboard';
+import { PipelineErrorBanner } from '@/components/production/PipelineErrorBanner';
 
 // Existing components - Keep for specialized functionality
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -147,6 +148,8 @@ export default function Production() {
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
   const [projectMode, setProjectMode] = useState<string>('text-to-video');
   const [pipelineState, setPipelineState] = useState<any>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [degradationFlags, setDegradationFlags] = useState<Array<{type: string; message: string; severity: 'info' | 'warning' | 'error'}>>([]);
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -252,6 +255,8 @@ export default function Production() {
     setAuditScore(null);
     setPipelineStage(null);
     setError(null);
+    setLastError(null);
+    setDegradationFlags([]);
     setAutoStitchAttempted(false);
     setStages(STAGE_CONFIG.map(s => ({ ...s, status: 'pending' as const })));
     setPipelineLogs([]);
@@ -333,6 +338,46 @@ export default function Production() {
       }
       
       if (project.video_url) setFinalVideoUrl(project.video_url);
+      
+      // Load last error for display
+      if (project.last_error) {
+        setLastError(project.last_error);
+        addLog(`Error: ${project.last_error}`, 'error');
+      }
+      
+      // Extract degradation flags from pending_video_tasks
+      const pendingTasks = parsePendingVideoTasks(project.pending_video_tasks);
+      if (pendingTasks?.degradation) {
+        const flags: Array<{type: string; message: string; severity: 'info' | 'warning' | 'error'}> = [];
+        const deg = pendingTasks.degradation;
+        
+        if (deg.identityBibleFailed) {
+          flags.push({ type: 'Identity Bible', message: 'Character identity extraction failed. Using fallback.', severity: 'warning' });
+        }
+        if (deg.musicGenerationFailed) {
+          flags.push({ type: 'Music', message: 'Background music generation failed.', severity: 'info' });
+        }
+        if (deg.voiceGenerationFailed) {
+          flags.push({ type: 'Voice', message: 'Voice narration generation failed.', severity: 'info' });
+        }
+        if (deg.auditFailed) {
+          flags.push({ type: 'Quality Audit', message: 'Script quality audit was skipped.', severity: 'warning' });
+        }
+        if (deg.characterExtractionFailed) {
+          flags.push({ type: 'Characters', message: 'Character extraction incomplete.', severity: 'warning' });
+        }
+        if (deg.sfxGenerationFailed) {
+          flags.push({ type: 'Sound Effects', message: 'SFX generation failed.', severity: 'info' });
+        }
+        if (deg.reducedConsistencyMode) {
+          flags.push({ type: 'Consistency', message: 'Running in reduced consistency mode.', severity: 'warning' });
+        }
+        if (deg.sceneImagePartialFail && deg.sceneImagePartialFail > 0) {
+          flags.push({ type: 'Scene Images', message: `${deg.sceneImagePartialFail} scene image(s) failed to generate.`, severity: 'warning' });
+        }
+        
+        setDegradationFlags(flags);
+      }
       
       // Load pro features data
       const proData = project.pro_features_data as any;
@@ -492,6 +537,13 @@ export default function Production() {
 
         setProjectStatus(project.status as string);
         if (project.video_url) setFinalVideoUrl(project.video_url as string);
+        
+        // Update error state from realtime
+        if (project.last_error) {
+          setLastError(project.last_error as string);
+        } else {
+          setLastError(null);
+        }
         
         const proData = project.pro_features_data as any;
         if (proData) {
@@ -993,6 +1045,23 @@ export default function Production() {
                   onRetry={() => {
                     toast.info('Retry feature coming soon');
                   }}
+               />
+              )}
+              
+              {/* Pipeline Error Banner - Shows errors and degradation warnings */}
+              {(lastError || degradationFlags.length > 0 || projectStatus === 'failed') && (
+                <PipelineErrorBanner
+                  error={lastError}
+                  degradationFlags={degradationFlags}
+                  projectStatus={projectStatus}
+                  failedClipCount={clipResults.filter(c => c.status === 'failed').length}
+                  totalClipCount={expectedClipCount}
+                  onRetry={handleResume}
+                  onDismiss={() => {
+                    setLastError(null);
+                    setDegradationFlags([]);
+                  }}
+                  isRetrying={isResuming}
                 />
               )}
               

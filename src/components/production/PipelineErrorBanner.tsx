@@ -221,12 +221,11 @@ export function PipelineErrorBanner({
   };
   
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className={cn(
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className={cn(
           "rounded-2xl overflow-hidden border",
           errorStyle.borderColor,
           errorStyle.bgColor,
@@ -384,6 +383,5 @@ export function PipelineErrorBanner({
           )}
         </AnimatePresence>
       </motion.div>
-    </AnimatePresence>
   );
 }

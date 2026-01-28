@@ -30,7 +30,15 @@ interface CinematicPipelineProgressProps {
   stages: StageStatus[];
   progress: number;
   isComplete: boolean;
+  isError?: boolean;
+  isRunning?: boolean;
   elapsedTime: number;
+  projectTitle?: string;
+  lastError?: string | null;
+  onResume?: () => void;
+  onCancel?: () => void;
+  isResuming?: boolean;
+  isCancelling?: boolean;
   className?: string;
 }
 
@@ -449,7 +457,7 @@ function StageNode({
 }
 
 // Main progress line with energy flow
-function ProgressLine({ progress, stages }: { progress: number; stages: StageStatus[] }) {
+function ProgressLine({ progress, stages, isError }: { progress: number; stages: StageStatus[]; isError?: boolean }) {
   const completedCount = stages.filter(s => s.status === 'complete').length;
   const activeIndex = stages.findIndex(s => s.status === 'active');
   const progressValue = activeIndex >= 0 
@@ -468,18 +476,23 @@ function ProgressLine({ progress, stages }: { progress: number; stages: StageSta
         animate={{ width: `${Math.min(progressValue, 100)}%` }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400" />
+        <div className={cn(
+          "absolute inset-0",
+          isError 
+            ? "bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500"
+            : "bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400"
+        )} />
         
-        {/* Animated shine */}
+        {/* Animated shine - smoother */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
           animate={{ x: ['-200%', '200%'] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 0.5 }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
         />
       </motion.div>
       
-      {/* Energy orb at progress head */}
-      {progressValue > 0 && progressValue < 100 && (
+      {/* Energy orb at progress head - smooth pulse, no trailing particles */}
+      {progressValue > 0 && progressValue < 100 && !isError && (
         <motion.div
           className="absolute top-1/2 -translate-y-1/2 w-3 h-3"
           style={{ left: `${progressValue}%` }}
@@ -488,23 +501,13 @@ function ProgressLine({ progress, stages }: { progress: number; stages: StageSta
             className="absolute inset-0 rounded-full bg-white"
             animate={{
               boxShadow: [
-                '0 0 10px 2px rgba(255,255,255,0.5)',
-                '0 0 20px 4px rgba(255,255,255,0.8)',
-                '0 0 10px 2px rgba(255,255,255,0.5)',
+                '0 0 8px 2px rgba(255,255,255,0.4)',
+                '0 0 16px 3px rgba(255,255,255,0.6)',
+                '0 0 8px 2px rgba(255,255,255,0.4)',
               ],
             }}
-            transition={{ duration: 1, repeat: Infinity }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
-          {/* Trailing particles */}
-          {[...Array(3)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-cyan-300"
-              initial={{ x: 0, opacity: 1 }}
-              animate={{ x: -20 - i * 8, opacity: 0 }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-            />
-          ))}
         </motion.div>
       )}
     </div>
@@ -512,7 +515,7 @@ function ProgressLine({ progress, stages }: { progress: number; stages: StageSta
 }
 
 // Overall progress ring
-function ProgressRing({ progress }: { progress: number }) {
+function ProgressRing({ progress, isError, isComplete }: { progress: number; isError?: boolean; isComplete?: boolean }) {
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
   
@@ -534,7 +537,7 @@ function ProgressRing({ progress }: { progress: number }) {
           cy="50"
           r="45"
           fill="none"
-          stroke="url(#progressGradient)"
+          stroke={isError ? '#f43f5e' : isComplete ? '#10b981' : 'url(#progressGradient)'}
           strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -554,33 +557,38 @@ function ProgressRing({ progress }: { progress: number }) {
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span 
-          className="text-2xl font-bold text-white tabular-nums"
+          className={cn(
+            "text-2xl font-bold tabular-nums",
+            isError ? "text-rose-400" : isComplete ? "text-emerald-400" : "text-white"
+          )}
           key={Math.floor(progress)}
-          initial={{ scale: 1.2, opacity: 0 }}
+          initial={{ scale: 1.1, opacity: 0.8 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
           {Math.round(progress)}%
         </motion.span>
-        <span className="text-[10px] text-white/40 uppercase tracking-wider">Complete</span>
+        <span className="text-[10px] text-white/40 uppercase tracking-wider">
+          {isError ? 'Failed' : isComplete ? 'Done' : 'Complete'}
+        </span>
       </div>
       
-      {/* Orbiting dot */}
-      {progress > 0 && progress < 100 && (
+      {/* Subtle orbiting dot - smooth, not flashing */}
+      {progress > 0 && progress < 100 && !isError && (
         <motion.div
-          className="absolute w-2 h-2 rounded-full bg-cyan-400"
+          className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400/60"
           style={{
             left: '50%',
             top: '50%',
-            marginLeft: '-4px',
-            marginTop: '-4px',
+            marginLeft: '-3px',
+            marginTop: '-3px',
           }}
           animate={{
             rotate: 360,
             x: [0, 45, 0, -45, 0],
             y: [-45, 0, 45, 0, -45],
           }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
         />
       )}
     </div>
@@ -593,10 +601,19 @@ export function CinematicPipelineProgress({
   stages,
   progress,
   isComplete,
+  isError,
+  isRunning,
   elapsedTime,
+  projectTitle,
+  lastError,
+  onResume,
+  onCancel,
+  isResuming,
+  isCancelling,
   className,
 }: CinematicPipelineProgressProps) {
   const activeStage = stages.find(s => s.status === 'active');
+  const errorStage = stages.find(s => s.status === 'error');
   const activeMetadata = activeStage ? STAGE_METADATA[activeStage.shortName] : null;
   
   const formatTime = (seconds: number) => {
@@ -622,7 +639,7 @@ export function CinematicPipelineProgress({
       {/* Animated background gradient */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Dynamic glow based on active stage */}
-        {activeMetadata && (
+        {activeMetadata && !isError && (
           <motion.div
             className={cn("absolute w-[600px] h-[600px] rounded-full blur-[150px] bg-gradient-to-r opacity-20", activeMetadata.color)}
             animate={{ 
@@ -631,6 +648,16 @@ export function CinematicPipelineProgress({
               scale: [1, 1.2, 1],
             }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ left: '30%', top: '-50%' }}
+          />
+        )}
+        
+        {/* Error glow */}
+        {isError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.15 }}
+            className="absolute w-[600px] h-[600px] rounded-full blur-[150px] bg-rose-500"
             style={{ left: '30%', top: '-50%' }}
           />
         )}
@@ -654,12 +681,13 @@ export function CinematicPipelineProgress({
       </div>
 
       <div className="relative p-8 md:p-10">
-        {/* Header */}
+        {/* Header with controls */}
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-4">
             <div className={cn(
               "w-14 h-14 rounded-2xl flex items-center justify-center",
-              "bg-gradient-to-br from-white/10 to-white/5 border border-white/10"
+              "bg-gradient-to-br from-white/10 to-white/5 border border-white/10",
+              isError && "border-rose-500/30"
             )}>
               {isComplete ? (
                 <motion.div
@@ -669,40 +697,103 @@ export function CinematicPipelineProgress({
                 >
                   <Sparkles className="w-7 h-7 text-emerald-400" />
                 </motion.div>
+              ) : isError ? (
+                <XCircle className="w-7 h-7 text-rose-400" />
               ) : (
                 <Clapperboard className="w-6 h-6 text-white/60" />
               )}
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                {isComplete ? 'Production Complete' : 'Production Pipeline'}
+                {projectTitle || (isComplete ? 'Production Complete' : isError ? 'Production Failed' : 'Production Pipeline')}
               </h2>
               <p className="text-sm text-white/40">
                 {isComplete 
                   ? 'Your video is ready to preview'
-                  : activeStage 
-                    ? activeMetadata?.description 
-                    : 'Preparing your production...'
+                  : isError
+                    ? lastError || 'An error occurred during production'
+                    : activeStage 
+                      ? activeMetadata?.description 
+                      : 'Preparing your production...'
                 }
               </p>
             </div>
           </div>
           
-          {/* Progress ring and timer */}
-          <div className="flex items-center gap-6">
+          {/* Progress ring, timer, and controls */}
+          <div className="flex items-center gap-4">
+            {/* Action buttons */}
+            {onCancel && isRunning && !isComplete && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={onCancel}
+                disabled={isCancelling}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                  "bg-white/5 border border-white/10 text-white/60",
+                  "hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400",
+                  isCancelling && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isCancelling ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Cancelling
+                  </span>
+                ) : 'Cancel'}
+              </motion.button>
+            )}
+            
+            {onResume && isError && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={onResume}
+                disabled={isResuming}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
+                  "bg-gradient-to-r from-amber-500 to-orange-500 text-black",
+                  "hover:from-amber-400 hover:to-orange-400",
+                  "shadow-lg shadow-amber-500/20",
+                  isResuming && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isResuming ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Resuming
+                  </span>
+                ) : 'Resume'}
+              </motion.button>
+            )}
+            
+            {/* Status indicator */}
+            {isRunning && !isComplete && !isError && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                <motion.div
+                  className="w-2 h-2 rounded-full bg-cyan-400"
+                  animate={{ 
+                    opacity: [1, 0.4, 1],
+                    scale: [1, 0.9, 1]
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <span className="text-xs font-medium text-white/60 uppercase tracking-wider">Live</span>
+              </div>
+            )}
+            
             <div className="text-right hidden sm:block">
               <p className="text-3xl font-mono font-bold text-white tracking-tighter tabular-nums">
                 {formatTime(elapsedTime)}
               </p>
               <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Elapsed</p>
             </div>
-            <ProgressRing progress={progress} />
+            <ProgressRing progress={progress} isError={isError} isComplete={isComplete} />
           </div>
         </div>
 
         {/* Desktop: Horizontal stage display */}
         <div className="hidden md:block relative">
-          <ProgressLine progress={progress} stages={stages} />
+          <ProgressLine progress={progress} stages={stages} isError={isError} />
           
           <div className="grid grid-cols-6 gap-4 pt-6">
             {stages.map((stage, index) => (
@@ -723,9 +814,9 @@ export function CinematicPipelineProgress({
           {stages.map((stage, index) => {
             const metadata = STAGE_METADATA[stage.shortName];
             const Icon = metadata?.icon || FileText;
-            const isActive = stage.status === 'active';
-            const isComplete = stage.status === 'complete';
-            const isError = stage.status === 'error';
+            const stageIsActive = stage.status === 'active';
+            const stageIsComplete = stage.status === 'complete';
+            const stageIsError = stage.status === 'error';
             const isPending = stage.status === 'pending';
             
             return (
@@ -736,9 +827,9 @@ export function CinematicPipelineProgress({
                 transition={{ delay: index * 0.05 }}
                 className={cn(
                   "relative flex items-center gap-4 p-4 rounded-2xl transition-all",
-                  isActive && `bg-gradient-to-r ${metadata?.color} bg-opacity-10 border border-white/20`,
-                  isComplete && "bg-emerald-500/10 border border-emerald-500/20",
-                  isError && "bg-rose-500/10 border border-rose-500/20",
+                  stageIsActive && "bg-white/5 border border-white/20",
+                  stageIsComplete && "bg-emerald-500/10 border border-emerald-500/20",
+                  stageIsError && "bg-rose-500/10 border border-rose-500/20",
                   isPending && "opacity-40"
                 )}
               >
@@ -746,15 +837,15 @@ export function CinematicPipelineProgress({
                 <div className={cn(
                   "w-12 h-12 rounded-xl flex items-center justify-center",
                   isPending && "bg-white/5 text-white/30",
-                  isActive && "bg-white/20 text-white",
-                  isComplete && "bg-emerald-500/20 text-emerald-400",
-                  isError && "bg-rose-500/20 text-rose-400"
+                  stageIsActive && "bg-white/10 text-white",
+                  stageIsComplete && "bg-emerald-500/20 text-emerald-400",
+                  stageIsError && "bg-rose-500/20 text-rose-400"
                 )}>
-                  {isActive ? (
+                  {stageIsActive ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : isComplete ? (
+                  ) : stageIsComplete ? (
                     <CheckCircle2 className="w-5 h-5" />
-                  ) : isError ? (
+                  ) : stageIsError ? (
                     <XCircle className="w-5 h-5" />
                   ) : (
                     <Icon className="w-5 h-5" />
@@ -766,14 +857,14 @@ export function CinematicPipelineProgress({
                   <p className={cn(
                     "text-sm font-semibold",
                     isPending && "text-white/40",
-                    isActive && "text-white",
-                    isComplete && "text-emerald-400",
-                    isError && "text-rose-400"
+                    stageIsActive && "text-white",
+                    stageIsComplete && "text-emerald-400",
+                    stageIsError && "text-rose-400"
                   )}>
                     {stage.shortName}
                   </p>
                   <AnimatePresence mode="wait">
-                    {isActive && metadata && (
+                    {stageIsActive && metadata && (
                       <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -785,12 +876,15 @@ export function CinematicPipelineProgress({
                   </AnimatePresence>
                 </div>
                 
-                {/* Status indicator */}
-                {isActive && (
+                {/* Status indicator - smooth pulse, not flashing */}
+                {stageIsActive && (
                   <motion.div
-                    className="w-2 h-2 rounded-full bg-white"
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-2 h-2 rounded-full bg-cyan-400"
+                    animate={{ 
+                      opacity: [1, 0.4, 1],
+                      scale: [1, 0.85, 1]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   />
                 )}
               </motion.div>
@@ -800,7 +894,7 @@ export function CinematicPipelineProgress({
 
         {/* Active stage detail panel */}
         <AnimatePresence>
-          {activeStage && activeMetadata && (
+          {activeStage && activeMetadata && !isError && (
             <motion.div
               initial={{ opacity: 0, y: 20, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
@@ -828,7 +922,7 @@ export function CinematicPipelineProgress({
                   <div className="flex-1" />
                   <motion.div
                     animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                     className="flex items-center gap-2"
                   >
                     <Brain className="w-4 h-4 text-cyan-400" />
@@ -848,6 +942,48 @@ export function CinematicPipelineProgress({
             </motion.div>
           )}
         </AnimatePresence>
+        
+        {/* Error detail panel */}
+        {isError && lastError && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8"
+          >
+            <div className={cn(
+              "relative p-5 rounded-2xl overflow-hidden",
+              "bg-rose-500/5 border border-rose-500/20"
+            )}>
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-500 to-rose-600" />
+              
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-rose-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-rose-400">Production Error</p>
+                  <p className="text-sm text-white/60 mt-1 break-words">{lastError}</p>
+                </div>
+                {onResume && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onResume}
+                    disabled={isResuming}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-semibold flex-shrink-0",
+                      "bg-gradient-to-r from-amber-500 to-orange-500 text-black",
+                      "hover:from-amber-400 hover:to-orange-400",
+                      isResuming && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {isResuming ? 'Resuming...' : 'Resume Production'}
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );

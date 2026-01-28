@@ -368,7 +368,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-12"
+          className="mb-8"
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {CREATION_MODES.map((mode, index) => (
@@ -385,6 +385,38 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 delay={index}
               />
             ))}
+          </div>
+        </motion.div>
+
+        {/* Quick Access - Templates, Universes, Training */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-12"
+        >
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="/templates"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group"
+            >
+              <Layers className="w-4 h-4 text-violet-400 group-hover:text-violet-300" />
+              <span className="text-sm text-white/70 group-hover:text-white/90">Templates</span>
+            </a>
+            <a
+              href="/universes"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400 group-hover:text-amber-300" />
+              <span className="text-sm text-white/70 group-hover:text-white/90">Universes</span>
+            </a>
+            <a
+              href="/training-video"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.15] transition-all group"
+            >
+              <Play className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300" />
+              <span className="text-sm text-white/70 group-hover:text-white/90">Training Video</span>
+            </a>
           </div>
         </motion.div>
 

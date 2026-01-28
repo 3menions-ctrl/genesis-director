@@ -286,6 +286,9 @@ export interface BuiltPrompt {
     hasMotionVectors: boolean;
     hasMasterSceneAnchor: boolean;
     hasExtractedCharacters: boolean;
+    hasMotionEnforcement: boolean;
+    motionIntensity: string;
+    motionType: string;
     poseDetected: string;
     warningsCount: number;
     warnings: string[];
@@ -335,6 +338,89 @@ function detectPoseFromPrompt(prompt: string): { pose: string; confidence: numbe
   const faceVisible = !nonFacialPoses.includes(bestPose);
   
   return { pose: bestPose, confidence: bestConfidence, faceVisible };
+}
+
+// =============================================================================
+// MOTION DETECTION PATTERNS
+// =============================================================================
+
+interface MotionAnalysis {
+  hasMotion: boolean;
+  motionType: 'walking' | 'running' | 'exploring' | 'moving' | 'gesturing' | 'static' | 'subtle';
+  intensity: 'high' | 'medium' | 'low' | 'static';
+  detectedActions: string[];
+  motionEnforcementPrompt: string;
+  motionNegatives: string[];
+}
+
+const MOTION_PATTERNS: { pattern: RegExp; type: MotionAnalysis['motionType']; intensity: MotionAnalysis['intensity'] }[] = [
+  // High-intensity motion
+  { pattern: /\b(running|sprinting|dashing|racing|chasing|fleeing|escaping)\b/i, type: 'running', intensity: 'high' },
+  { pattern: /\b(jumping|leaping|diving|tumbling|rolling)\b/i, type: 'moving', intensity: 'high' },
+  
+  // Medium-intensity motion (walking, exploring)
+  { pattern: /\b(walking|strolling|wandering|roaming|hiking|trekking)\b/i, type: 'walking', intensity: 'medium' },
+  { pattern: /\b(exploring|discovering|searching|investigating|navigating)\b/i, type: 'exploring', intensity: 'medium' },
+  { pattern: /\b(stepping|stepping\s+through|steps\s+through|moving\s+through)\b/i, type: 'walking', intensity: 'medium' },
+  { pattern: /\b(approaching|retreating|advancing|entering|exiting)\b/i, type: 'moving', intensity: 'medium' },
+  { pattern: /\b(climbing|descending|ascending)\b/i, type: 'moving', intensity: 'medium' },
+  
+  // Low-intensity motion (gestures, subtle)
+  { pattern: /\b(gesturing|pointing|waving|reaching|touching)\b/i, type: 'gesturing', intensity: 'low' },
+  { pattern: /\b(turning|rotating|spinning|pivoting|looking\s+around)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(gazing|observing|watching|surveying|scanning)\b/i, type: 'subtle', intensity: 'low' },
+  { pattern: /\b(breathing|swaying|shifting)\b/i, type: 'subtle', intensity: 'low' },
+];
+
+function detectMotionFromPrompt(prompt: string): MotionAnalysis {
+  const detectedActions: string[] = [];
+  let primaryType: MotionAnalysis['motionType'] = 'static';
+  let primaryIntensity: MotionAnalysis['intensity'] = 'static';
+  
+  for (const { pattern, type, intensity } of MOTION_PATTERNS) {
+    const match = prompt.match(pattern);
+    if (match) {
+      detectedActions.push(match[0]);
+      // Take the highest intensity motion detected
+      const intensityOrder = { high: 3, medium: 2, low: 1, static: 0 };
+      if (intensityOrder[intensity] > intensityOrder[primaryIntensity]) {
+        primaryType = type;
+        primaryIntensity = intensity;
+      }
+    }
+  }
+  
+  const hasMotion = detectedActions.length > 0;
+  
+  // Build motion enforcement prompt based on detected motion
+  let motionEnforcementPrompt = '';
+  let motionNegatives: string[] = [];
+  
+  if (hasMotion) {
+    switch (primaryIntensity) {
+      case 'high':
+        motionEnforcementPrompt = `[MOTION REQUIRED - HIGH INTENSITY: Character must be actively ${primaryType} with visible body movement, leg motion, arm swing. Continuous fluid motion throughout the clip. Dynamic movement is MANDATORY.]`;
+        motionNegatives = ['static pose', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'paused', 'stopped', 'idle'];
+        break;
+      case 'medium':
+        motionEnforcementPrompt = `[MOTION REQUIRED - CONTINUOUS MOVEMENT: Character must be visibly ${primaryType} - legs moving, body in motion, traveling through scene. Show actual locomotion with each step visible. The character is NOT standing still.]`;
+        motionNegatives = ['static', 'frozen', 'still', 'motionless', 'stationary', 'standing still', 'not moving', 'stuck in place', 'no movement', 'idle pose'];
+        break;
+      case 'low':
+        motionEnforcementPrompt = `[SUBTLE MOTION REQUIRED: Character performs visible ${primaryType} action - body shifts, gestures are animated, natural micro-movements present throughout.]`;
+        motionNegatives = ['completely frozen', 'totally still', 'no movement at all', 'statue-like'];
+        break;
+    }
+  }
+  
+  return {
+    hasMotion,
+    motionType: primaryType,
+    intensity: primaryIntensity,
+    detectedActions,
+    motionEnforcementPrompt,
+    motionNegatives,
+  };
 }
 
 // =============================================================================
@@ -513,6 +599,24 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
     : detectPoseFromPrompt(request.basePrompt);
   
   const isBackFacingOrOccluded = !poseAnalysis.faceVisible;
+  
+  // ===========================================================================
+  // MOTION DETECTION AND ENFORCEMENT (NEW - CRITICAL FOR ANIMATION)
+  // Detects walking, running, exploring, etc. and enforces motion in the clip
+  // ===========================================================================
+  const motionAnalysis = detectMotionFromPrompt(request.basePrompt);
+  
+  if (motionAnalysis.hasMotion) {
+    // Inject motion enforcement EARLY (before identity blocks get processed)
+    promptParts.push(motionAnalysis.motionEnforcementPrompt);
+    
+    // Add anti-static negatives
+    negativeParts.push(...motionAnalysis.motionNegatives);
+    
+    console.log(`[PromptBuilder] Clip ${request.clipIndex + 1} MOTION DETECTED: ${motionAnalysis.detectedActions.join(', ')} (${motionAnalysis.intensity} intensity)`);
+  } else {
+    warnings.push('No motion detected in prompt - character may appear static');
+  }
   
   // ===========================================================================
   // 0. FACE LOCK INJECTION (ABSOLUTE HIGHEST PRIORITY)
@@ -969,6 +1073,9 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
       hasMotionVectors,
       hasMasterSceneAnchor,
       hasExtractedCharacters,
+      hasMotionEnforcement: motionAnalysis.hasMotion,
+      motionIntensity: motionAnalysis.intensity,
+      motionType: motionAnalysis.motionType,
       poseDetected: poseAnalysis.pose,
       warningsCount: warnings.length,
       warnings,
@@ -1090,6 +1197,7 @@ export function logPipelineState(
   console.log(`${prefix}   - Continuity Manifest: ${builtPrompt.injectionSummary.hasContinuityManifest ? '✓' : '✗'}`);
   console.log(`${prefix}   - Motion Vectors: ${builtPrompt.injectionSummary.hasMotionVectors ? '✓' : '✗'}`);
   console.log(`${prefix}   - Master Scene Anchor: ${builtPrompt.injectionSummary.hasMasterSceneAnchor ? '✓' : '✗'}`);
+  console.log(`${prefix}   - Motion Enforcement: ${builtPrompt.injectionSummary.hasMotionEnforcement ? `✓ ${builtPrompt.injectionSummary.motionType} (${builtPrompt.injectionSummary.motionIntensity})` : '✗ STATIC'}`);
   console.log(`${prefix}   - Pose Detected: ${builtPrompt.injectionSummary.poseDetected}`);
   console.log(`${prefix} PROMPT LENGTH: ${builtPrompt.enhancedPrompt.length} chars`);
   console.log(`${prefix} NEGATIVE LENGTH: ${builtPrompt.negativePrompt.length} chars`);

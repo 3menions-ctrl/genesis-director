@@ -188,16 +188,19 @@ serve(async (req) => {
     
     console.log(`[ResumePipeline] Restored identity data: bible=${!!identityBible}, chars=${extractedCharacters?.length || 0}, ref=${!!referenceAnalysis}`);
 
-    // Update project to indicate resumption
+    // Update project to indicate resumption - CRITICAL: Clear stale errors
     await supabase
       .from('movie_projects')
       .update({
         status: 'generating',
+        last_error: null, // CRITICAL: Clear stale error messages
+        pipeline_stage: resumeFrom, // Sync pipeline stage with resume point
         pending_video_tasks: {
           ...pendingTasks,
           stage: 'resuming',
           progress: resumeFrom === 'production' ? 75 : 30,
           script,
+          error: null, // Clear any nested error state
           resumedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },

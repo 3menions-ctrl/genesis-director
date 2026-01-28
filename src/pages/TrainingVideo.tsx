@@ -21,7 +21,7 @@ import {
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import TrainingBackground from '@/components/training/TrainingBackground';
 
-// Import learning-themed environment presets
+// Import environment presets - Diverse variety for training videos
 import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
 import lectureHallImg from '@/assets/environments/lecture-hall.jpg';
 import startupOfficeImg from '@/assets/environments/startup-office.jpg';
@@ -36,6 +36,19 @@ import workshopTrainingImg from '@/assets/environments/workshop-training.jpg';
 import modernClassroomImg from '@/assets/environments/modern-classroom.jpg';
 import webinarStageImg from '@/assets/environments/webinar-stage.jpg';
 import coffeeShopImg from '@/assets/environments/coffee-shop.jpg';
+// Additional diverse environments
+import whiteStudioImg from '@/assets/environments/white-studio.jpg';
+import goldenHourStudioImg from '@/assets/environments/golden-hour-studio.jpg';
+import modernMinimalistImg from '@/assets/environments/modern-minimalist.jpg';
+import urbanLuxuryImg from '@/assets/environments/urban-luxury.jpg';
+import cozyFirelightImg from '@/assets/environments/cozy-firelight.jpg';
+import zenGardenImg from '@/assets/environments/zen-garden.jpg';
+import neonNightsImg from '@/assets/environments/neon-nights.jpg';
+import tropicalParadiseImg from '@/assets/environments/tropical-paradise.jpg';
+import mountainSummitImg from '@/assets/environments/mountain-summit.jpg';
+import spaceStationImg from '@/assets/environments/space-station.jpg';
+import cherryBlossomImg from '@/assets/environments/cherry-blossom.jpg';
+import cozyCabinImg from '@/assets/environments/cozy-cabin.jpg';
 
 // Voice options from OpenAI TTS with sample text for preview
 const VOICE_OPTIONS = [
@@ -47,22 +60,45 @@ const VOICE_OPTIONS = [
   { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Soft, gentle', sample: 'Take a moment to reflect on what you have learned. Every step forward matters.' },
 ];
 
-// Background presets - Learning/Training themed
+// Background presets - Diverse variety organized by category
 const BACKGROUND_PRESETS = [
-  { id: 'home_studio', name: 'Home Studio', image: homeStudioImg },
-  { id: 'corporate_boardroom', name: 'Corporate Boardroom', image: corporateBoardroomImg },
-  { id: 'lecture_hall', name: 'Lecture Hall', image: lectureHallImg },
-  { id: 'modern_classroom', name: 'Modern Classroom', image: modernClassroomImg },
-  { id: 'startup_office', name: 'Startup Office', image: startupOfficeImg },
-  { id: 'news_studio', name: 'News Studio', image: newsStudioImg },
-  { id: 'webinar_stage', name: 'Webinar Stage', image: webinarStageImg },
-  { id: 'science_lab', name: 'Science Lab', image: scienceLabImg },
-  { id: 'medical_training', name: 'Medical Training', image: medicalTrainingImg },
-  { id: 'executive_library', name: 'Executive Library', image: executiveLibraryImg },
-  { id: 'podcast_studio', name: 'Podcast Studio', image: podcastStudioImg },
-  { id: 'workshop_training', name: 'Workshop Training', image: workshopTrainingImg },
-  { id: 'coffee_shop', name: 'Coffee Shop', image: coffeeShopImg },
-  { id: 'green_screen', name: 'Green Screen', image: greenScreenImg },
+  // Professional Studios (Most Popular)
+  { id: 'white_studio', name: 'White Studio', image: whiteStudioImg, category: 'studio' },
+  { id: 'home_studio', name: 'Home Studio', image: homeStudioImg, category: 'studio' },
+  { id: 'golden_hour_studio', name: 'Golden Hour Studio', image: goldenHourStudioImg, category: 'studio' },
+  { id: 'podcast_studio', name: 'Podcast Studio', image: podcastStudioImg, category: 'studio' },
+  { id: 'news_studio', name: 'News Studio', image: newsStudioImg, category: 'studio' },
+  { id: 'green_screen', name: 'Green Screen', image: greenScreenImg, category: 'studio' },
+  
+  // Corporate & Business
+  { id: 'corporate_boardroom', name: 'Corporate Boardroom', image: corporateBoardroomImg, category: 'corporate' },
+  { id: 'startup_office', name: 'Startup Office', image: startupOfficeImg, category: 'corporate' },
+  { id: 'executive_library', name: 'Executive Library', image: executiveLibraryImg, category: 'corporate' },
+  { id: 'modern_minimalist', name: 'Modern Minimalist', image: modernMinimalistImg, category: 'corporate' },
+  { id: 'urban_luxury', name: 'Urban Luxury', image: urbanLuxuryImg, category: 'corporate' },
+  
+  // Education & Training
+  { id: 'lecture_hall', name: 'Lecture Hall', image: lectureHallImg, category: 'education' },
+  { id: 'modern_classroom', name: 'Modern Classroom', image: modernClassroomImg, category: 'education' },
+  { id: 'webinar_stage', name: 'Webinar Stage', image: webinarStageImg, category: 'education' },
+  { id: 'science_lab', name: 'Science Lab', image: scienceLabImg, category: 'education' },
+  { id: 'medical_training', name: 'Medical Training', image: medicalTrainingImg, category: 'education' },
+  { id: 'workshop_training', name: 'Workshop Training', image: workshopTrainingImg, category: 'education' },
+  
+  // Lifestyle & Creative
+  { id: 'coffee_shop', name: 'Coffee Shop', image: coffeeShopImg, category: 'lifestyle' },
+  { id: 'cozy_firelight', name: 'Cozy Firelight', image: cozyFirelightImg, category: 'lifestyle' },
+  { id: 'cozy_cabin', name: 'Cozy Cabin', image: cozyCabinImg, category: 'lifestyle' },
+  { id: 'zen_garden', name: 'Zen Garden', image: zenGardenImg, category: 'lifestyle' },
+  { id: 'neon_nights', name: 'Neon Nights', image: neonNightsImg, category: 'lifestyle' },
+  
+  // Nature & Outdoor
+  { id: 'tropical_paradise', name: 'Tropical Paradise', image: tropicalParadiseImg, category: 'nature' },
+  { id: 'mountain_summit', name: 'Mountain Summit', image: mountainSummitImg, category: 'nature' },
+  { id: 'cherry_blossom', name: 'Cherry Blossom', image: cherryBlossomImg, category: 'nature' },
+  
+  // Sci-Fi & Fantasy
+  { id: 'space_station', name: 'Space Station', image: spaceStationImg, category: 'scifi' },
 ];
 
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';

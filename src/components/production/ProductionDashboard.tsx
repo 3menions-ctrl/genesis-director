@@ -182,14 +182,11 @@ function ClipThumbnail({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
+          <div
             className={cn(
               "relative w-14 h-14 rounded-xl overflow-hidden cursor-pointer transition-all duration-300",
               "border-2 backdrop-blur-sm",
+              "hover:scale-105 active:scale-[0.98]",
               style.border,
               style.bg,
               clip.status === 'completed' && style.glow,
@@ -236,7 +233,7 @@ function ClipThumbnail({
                 <RotateCcw className={cn("w-4 h-4 text-white", isRetrying && "animate-spin")} />
               </div>
             )}
-          </motion.div>
+          </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="bg-zinc-900/95 border-zinc-700/50 backdrop-blur-xl">
           <p className="text-xs font-medium">

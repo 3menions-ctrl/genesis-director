@@ -122,6 +122,9 @@ interface StoryRequest {
   mood?: string;
   style?: string;
   targetDurationSeconds?: number;
+  // CRITICAL: Explicit clip count and duration from user selection
+  clipCount?: number;         // User's explicit clip count (1-20)
+  clipDuration?: number;      // User's explicit duration per clip (5 or 10 seconds)
   referenceAnalysis?: ReferenceAnalysis;
   // Scene-based story generation
   sceneMode?: 'single_scene' | 'multi_scene' | 'episode';
@@ -249,12 +252,31 @@ serve(async (req) => {
     const targetDuration = request.targetDurationSeconds || (detectedContent.recommendedClipCount * 6);
     const sceneMode = request.sceneMode || 'single_scene';
     
-    // Calculate EXACT clip count from targetDuration - this is the user's selection
-    // Kling 2.6: 5-second clips for optimal quality
-    const CLIP_DURATION = 5;
-    const requestedClips = Math.round(targetDuration / CLIP_DURATION);
-    const clipCount = requestedClips > 0 ? requestedClips : 6; // Default to 6 only if no duration specified
-    console.log(`[GenerateStory] Using ${clipCount} clips @ ${CLIP_DURATION}s each (Kling 2.6)`);
+    // CRITICAL FIX: Use explicit clip count and duration from user selection
+    // Priority 1: Explicit clipCount from request
+    // Priority 2: Calculate from targetDuration using explicit clipDuration
+    // Priority 3: Fall back to calculated values
+    
+    const clipDuration = request.clipDuration && request.clipDuration > 0 
+      ? request.clipDuration 
+      : 5; // Only default to 5 if not provided
+    
+    let clipCount: number;
+    
+    if (request.clipCount && request.clipCount > 0) {
+      // User explicitly selected clip count - USE IT
+      clipCount = request.clipCount;
+      console.log(`[GenerateStory] Using EXPLICIT clip count: ${clipCount}`);
+    } else if (targetDuration > 0) {
+      // Calculate from duration using the correct clip duration
+      clipCount = Math.round(targetDuration / clipDuration);
+      clipCount = clipCount > 0 ? clipCount : 6;
+      console.log(`[GenerateStory] Calculated: ${targetDuration}s / ${clipDuration}s = ${clipCount} clips`);
+    } else {
+      clipCount = 6; // Default fallback
+    }
+    
+    console.log(`[GenerateStory] Using ${clipCount} clips × ${clipDuration}s each = ${clipCount * clipDuration}s total`);
 
     // SCENE-BASED SYSTEM PROMPT - use dynamic clip count
     const systemPrompt = `You are a SCENE WRITER for AI video generation. Your job is to write ONE CONTINUOUS SCENE that unfolds across EXACTLY ${clipCount} connected clips.

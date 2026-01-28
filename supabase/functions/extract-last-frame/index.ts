@@ -180,7 +180,8 @@ serve(async (req) => {
           // For Supabase-hosted videos, we can try adding a thumbnail query
           // But since this might not work, we'll use Replicate's prediction API
           
-          // Start a prediction to extract frames
+          // Start a prediction to extract frames using lucataco/extract-video-frames
+          // This model is reliable and actively maintained
           const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
             method: 'POST',
             headers: {
@@ -188,12 +189,11 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              // Using a simple video frame extraction model
-              version: "a97a0a2e37ef87f7175ad88ba6ac019e51e6c3fc447c72a47c6a0d364a34d6b0",
+              // lucataco/extract-video-frames - reliable frame extraction
+              version: "3d73be6d3b3a80e48e6ba31f4e33b9e1419a19094518c4f8ca0cc6c1c7f91dbe",
               input: {
                 video: videoUrl,
-                fps: 1, // Extract 1 frame per second
-                format: "jpg"
+                fps: 2, // Extract 2 frames per second to ensure we get the last frame
               }
             }),
           });

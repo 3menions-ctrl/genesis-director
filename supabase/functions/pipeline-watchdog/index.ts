@@ -10,6 +10,7 @@ import {
   recoverAllStuckClips,
   findOrphanedVideo,
   recoverStuckClip,
+  releaseStaleCompletedLock,
 } from "../_shared/pipeline-guard-rails.ts";
 
 const corsHeaders = {
@@ -115,6 +116,21 @@ serve(async (req) => {
       .limit(50);
     
     for (const project of (lockedProjects || [])) {
+      // CRITICAL FIX: First check if the locked clip is already completed
+      // This catches the case where clip completed but function timed out before releasing lock
+      const completedLockResult = await releaseStaleCompletedLock(supabase, project.id);
+      if (completedLockResult.released) {
+        result.mutexesReleased++;
+        result.details.push({
+          projectId: project.id,
+          action: 'completed_clip_lock_released',
+          result: `Released lock from completed clip ${completedLockResult.completedClip}`,
+        });
+        console.log(`[Watchdog] 🔓 CRITICAL FIX: Released stale lock from COMPLETED clip ${completedLockResult.completedClip} for ${project.id}`);
+        continue; // Skip to next project - lock is now released
+      }
+      
+      // Standard stale lock check (for clips still generating too long)
       const mutexResult = await checkAndRecoverStaleMutex(supabase, project.id);
       if (mutexResult.wasStale) {
         result.mutexesReleased++;

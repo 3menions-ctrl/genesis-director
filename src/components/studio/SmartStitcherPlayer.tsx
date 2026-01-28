@@ -561,8 +561,30 @@ export function SmartStitcherPlayer({
 
   // Handle clip ended - fallback for end of playlist (transitions handled by timeupdate)
   const handleClipEnded = useCallback(() => {
+    const activeVideo = getActiveVideo();
+    
+    // CRITICAL: Ignore spurious ended events
+    // Safari/iOS can fire 'ended' when video hasn't actually played through
+    // Check that the video has actually played for a reasonable duration
+    if (activeVideo) {
+      const actualDuration = activeVideo.duration;
+      const currentPosition = activeVideo.currentTime;
+      
+      // If video hasn't played at least 90% of its duration, ignore the ended event
+      // This prevents spurious resets on iOS/Safari
+      if (actualDuration && currentPosition < actualDuration * 0.9) {
+        console.warn('[SmartStitcher] Ignoring spurious ended event:', {
+          currentPosition,
+          duration: actualDuration,
+          clipIndex: currentClipIndex
+        });
+        return;
+      }
+    }
+    
     // If we're at the last clip and it ends, reset playlist
     if (currentClipIndex >= clips.length - 1) {
+      console.log('[SmartStitcher] Last clip ended, resetting playlist');
       setIsPlaying(false);
       setCurrentClipIndex(0);
       setCurrentTime(0);
@@ -572,17 +594,22 @@ export function SmartStitcherPlayer({
       setVideoBOpacity(0);
       setActiveVideoIndex(0);
       
-      // Reset to first clip
-      const activeVideo = videoARef.current;
-      if (activeVideo && clips[0]?.blobUrl) {
-        activeVideo.src = clips[0].blobUrl;
-        activeVideo.load();
+      // Reset to first clip - but DON'T reload if already loaded
+      const firstVideo = videoARef.current;
+      if (firstVideo && clips[0]?.blobUrl) {
+        if (firstVideo.src !== clips[0].blobUrl) {
+          firstVideo.src = clips[0].blobUrl;
+          firstVideo.load();
+        } else {
+          // Just seek to start instead of reloading
+          firstVideo.currentTime = 0;
+        }
       }
     } else if (!isTransitioningRef.current && !isCrossfading) {
       // Fallback: if clip ended but transition wasn't triggered, do it now
       triggerCrossfadeTransition();
     }
-  }, [currentClipIndex, clips, isCrossfading, triggerCrossfadeTransition]);
+  }, [currentClipIndex, clips, isCrossfading, triggerCrossfadeTransition, getActiveVideo]);
 
   // Play/Pause toggle
   const togglePlay = useCallback(() => {
@@ -1101,10 +1128,14 @@ export function SmartStitcherPlayer({
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 0 && setIsPlaying(true)}
-            onPause={() => activeVideoIndex === 0 && setIsPlaying(false)}
+            onPause={() => activeVideoIndex === 0 && !isCrossfading && setIsPlaying(false)}
+            onError={(e) => console.error('[SmartStitcher] Video A error:', e)}
+            onStalled={() => console.warn('[SmartStitcher] Video A stalled')}
+            onWaiting={() => console.log('[SmartStitcher] Video A waiting for data')}
             muted={isMuted}
             playsInline
             preload="auto"
+            crossOrigin="anonymous"
           />
           
           {/* Video B */}
@@ -1119,10 +1150,14 @@ export function SmartStitcherPlayer({
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 1 && setIsPlaying(true)}
-            onPause={() => activeVideoIndex === 1 && setIsPlaying(false)}
+            onPause={() => activeVideoIndex === 1 && !isCrossfading && setIsPlaying(false)}
+            onError={(e) => console.error('[SmartStitcher] Video B error:', e)}
+            onStalled={() => console.warn('[SmartStitcher] Video B stalled')}
+            onWaiting={() => console.log('[SmartStitcher] Video B waiting for data')}
             muted={isMuted}
             playsInline
             preload="auto"
+            crossOrigin="anonymous"
           />
         </>
       )}

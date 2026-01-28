@@ -5,7 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Cinema-grade style presets with hyper-detailed prompt engineering
+/**
+ * STYLE TRANSFER - Native Replicate-Powered Implementation
+ * 
+ * No external dependencies - uses Kling v2.6 via Replicate for style transfer.
+ * Cinema-grade style presets with hyper-detailed prompt engineering.
+ */
+
 const STYLE_PRESETS: Record<string, {
   prompt: string;
   negative: string;
@@ -72,6 +78,42 @@ const STYLE_PRESETS: Record<string, {
     strength: 0.85,
     guidance: 8.0
   },
+  "hyperrealism": {
+    prompt: "ultra photorealistic 8K cinematography, ARRI Alexa LF sensor quality, Zeiss Master Prime lens sharpness, perfect skin pore detail, subsurface scattering, natural ambient occlusion, ray-traced reflections, National Geographic documentary quality",
+    negative: "stylized, cartoon, anime, painting, illustration, low resolution, blurry",
+    strength: 0.6,
+    guidance: 9.5
+  },
+  "surrealist": {
+    prompt: "Salvador Dalí dreamscape, Magritte impossible geometry, melting clocks and floating objects, uncanny juxtapositions, hyperreal rendering of impossible scenes, subconscious imagery, metaphysical landscapes, René Magritte sky bowler hats",
+    negative: "realistic, mundane, ordinary, documentary, naturalistic",
+    strength: 0.8,
+    guidance: 7.5
+  },
+  "ukiyo-e": {
+    prompt: "traditional Japanese ukiyo-e woodblock print, Hokusai wave patterns, flat color planes, bold outlines, decorative patterns, traditional pigments, rice paper texture, Edo period aesthetic, Hiroshige landscapes",
+    negative: "3D, realistic, western, modern, CGI, photography",
+    strength: 0.85,
+    guidance: 8.0
+  },
+  "art-deco": {
+    prompt: "1920s Art Deco glamour, geometric patterns, gold and black color scheme, luxury hotel aesthetics, Gatsby era opulence, sunburst motifs, streamline moderne curves, chrome and marble textures, theatrical lighting",
+    negative: "minimalist, rustic, casual, grunge, distressed",
+    strength: 0.75,
+    guidance: 8.0
+  },
+  "gothic": {
+    prompt: "dark gothic cathedral architecture, dramatic chiaroscuro lighting, stained glass color bleeding, Victorian mourning aesthetic, baroque ornamental details, candlelit atmosphere, Tim Burton inspired shadows, dramatic storm clouds",
+    negative: "bright, cheerful, modern, minimal, sunny, colorful",
+    strength: 0.8,
+    guidance: 8.5
+  },
+  "solarpunk": {
+    prompt: "solarpunk utopia, organic architecture covered in plants, living walls and rooftop gardens, sustainable technology integration, Art Nouveau natural curves, bioluminescent lighting, bamboo and reclaimed materials, hopeful future aesthetic",
+    negative: "dystopian, polluted, industrial, dark, cyberpunk, neon",
+    strength: 0.75,
+    guidance: 8.0
+  },
 };
 
 serve(async (req) => {
@@ -82,11 +124,14 @@ serve(async (req) => {
   try {
     const { 
       videoUrl, 
+      imageUrl, // Allow image input for style preview
       style,
       customStylePrompt,
       customNegativePrompt,
       strength: customStrength,
       guidanceScale: customGuidance,
+      duration = 5,
+      aspectRatio = "16:9",
     } = await req.json();
 
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -95,8 +140,9 @@ serve(async (req) => {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
 
-    if (!videoUrl) {
-      throw new Error("videoUrl is required");
+    const sourceUrl = videoUrl || imageUrl;
+    if (!sourceUrl) {
+      throw new Error("videoUrl or imageUrl is required");
     }
 
     // Get preset configuration or use custom
@@ -111,26 +157,24 @@ serve(async (req) => {
       throw new Error(`Either 'style' preset or 'customStylePrompt' is required. Available styles: ${Object.keys(STYLE_PRESETS).join(", ")}`);
     }
 
-    console.log("[stylize-video] Starting video stylization");
+    console.log("[stylize-video] Starting style transfer");
     console.log("[stylize-video] Style:", style || "custom");
-    console.log("[stylize-video] Prompt preview:", stylePrompt.substring(0, 60) + "...");
+    console.log("[stylize-video] Source:", videoUrl ? "video" : "image");
 
-    // Use Kling v2.6 with video input for style transfer
-    // Use official model identifier for Replicate API
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
+    // Use Kling v2.6 via Replicate's model endpoint
+    const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "kwaivgi/kling-v2.6", // Official model identifier
         input: {
           mode: "pro",
-          prompt: `${stylePrompt}, maintain motion and composition from original video`,
-          start_image: videoUrl, // First frame extracted for img2vid
-          duration: 5,
-          aspect_ratio: "16:9",
+          prompt: `${stylePrompt}, maintain motion and composition from original, seamless style transfer`,
+          start_image: sourceUrl,
+          duration: Math.min(Math.max(duration, 5), 10), // Clamp to 5-10s
+          aspect_ratio: aspectRatio,
           negative_prompt: negativePrompt,
         },
       }),
@@ -138,8 +182,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[stylize-video] Kling stylization failed:", errorText);
-      throw new Error(`Video stylization failed: ${errorText}`);
+      console.error("[stylize-video] Kling stylization failed:", response.status, errorText);
+      throw new Error(`Style transfer failed: ${response.status}`);
     }
 
     const prediction = await response.json();
@@ -154,7 +198,7 @@ serve(async (req) => {
         appliedStrength: strength,
         appliedGuidance: guidanceScale,
         availableStyles: Object.keys(STYLE_PRESETS),
-        message: "Video is being stylized. Poll for status.",
+        message: "Style transfer in progress. Poll for status.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

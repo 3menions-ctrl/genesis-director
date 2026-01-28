@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { getAccessToken } from "../_shared/gcp-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,16 +7,17 @@ const corsHeaders = {
 };
 
 /**
- * Scene Anchor Extractor
+ * Scene Anchor Extractor - LOVABLE AI POWERED
+ * 
+ * Uses Lovable AI Gateway (Gemini) for scene analysis instead of direct Google Vertex.
+ * No GCP credentials needed - uses LOVABLE_API_KEY automatically.
  * 
  * Analyzes a frame/image to extract environment DNA:
  * - Lighting fingerprint
  * - Color palette
  * - Depth cues
  * - Key objects
- * - Motion signature (if video provided)
- * 
- * Uses Gemini Vision for comprehensive scene analysis.
+ * - Motion signature
  */
 
 interface SceneAnchor {
@@ -92,124 +92,99 @@ interface MotionSignature {
   promptFragment: string;
 }
 
-// Fetch image and convert to base64
-async function imageToBase64(imageUrl: string): Promise<string> {
-  const response = await fetch(imageUrl);
-  const buffer = await response.arrayBuffer();
-  const uint8Array = new Uint8Array(buffer);
-  let binary = '';
-  const chunkSize = 32768;
-  for (let i = 0; i < uint8Array.length; i += chunkSize) {
-    const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-    binary += String.fromCharCode.apply(null, Array.from(chunk));
-  }
-  return btoa(binary);
-}
-
-// Analyze scene using Gemini Vision
-async function analyzeScene(imageBase64: string, accessToken: string, projectId: string): Promise<SceneAnchor> {
-  const endpoint = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent`;
-  
+// Analyze scene using Lovable AI Gateway (Gemini with vision)
+async function analyzeSceneWithLovableAI(imageUrl: string, apiKey: string): Promise<any> {
   const analysisPrompt = `Analyze this image as a film cinematographer. Extract the complete visual DNA for scene consistency.
 
 Return a JSON object with this EXACT structure (no markdown, just JSON):
 {
   "lighting": {
-    "keyLightDirection": "description of main light source direction (e.g., 'top-left 45 degrees', 'direct frontal', 'backlit')",
+    "keyLightDirection": "description of main light source direction",
     "keyLightIntensity": "soft" | "medium" | "harsh",
-    "keyLightColor": "color description or hex (e.g., 'warm orange #FFA500')",
-    "fillRatio": 0.0-1.0 (0 = high contrast dramatic, 1 = flat even lighting),
+    "keyLightColor": "color description",
+    "fillRatio": 0.0-1.0,
     "ambientColor": "ambient light color",
     "shadowHardness": "soft" | "medium" | "hard",
     "shadowDirection": "where shadows fall",
     "timeOfDay": "golden-hour" | "midday" | "blue-hour" | "night" | "overcast" | "indoor",
-    "promptFragment": "Concise lighting description for AI prompt (e.g., 'dramatic golden hour backlighting with soft fill, warm orange tones')"
+    "promptFragment": "Concise lighting description for AI prompt"
   },
   "colorPalette": {
-    "dominant": [
-      {"hex": "#HEXCODE", "percentage": 30, "name": "descriptive name"},
-      {"hex": "#HEXCODE", "percentage": 25, "name": "descriptive name"},
-      {"hex": "#HEXCODE", "percentage": 20, "name": "descriptive name"}
-    ],
+    "dominant": [{"hex": "#HEXCODE", "percentage": 30, "name": "color name"}],
     "accents": ["#HEX1", "#HEX2"],
     "temperature": "warm" | "neutral" | "cool",
     "saturation": "muted" | "natural" | "vibrant",
-    "gradeStyle": "color grading style (e.g., 'teal-orange blockbuster', 'desaturated noir', 'high-key commercial')",
-    "promptFragment": "Color palette description for AI prompt (e.g., 'teal and orange color grading, warm skin tones, cool shadows')"
+    "gradeStyle": "color grading style description",
+    "promptFragment": "Color palette description for AI prompt"
   },
   "depthCues": {
     "dofStyle": "deep" | "shallow" | "rack-focus",
     "focalPlane": "foreground" | "midground" | "background",
-    "bokehQuality": "bokeh description (e.g., 'smooth circular bokeh', 'anamorphic oval bokeh')",
+    "bokehQuality": "bokeh description",
     "atmosphericPerspective": true/false,
     "fogHaze": "none" | "light" | "medium" | "heavy",
-    "foregroundElements": ["list of foreground elements"],
-    "midgroundElements": ["list of midground elements"],
-    "backgroundElements": ["list of background elements"],
+    "foregroundElements": ["list"],
+    "midgroundElements": ["list"],
+    "backgroundElements": ["list"],
     "perspectiveType": "one-point" | "two-point" | "three-point" | "isometric",
-    "vanishingPointLocation": "where perspective lines converge",
-    "promptFragment": "Depth description for AI prompt (e.g., 'shallow depth of field, subject isolated, smooth background bokeh')"
+    "vanishingPointLocation": "location",
+    "promptFragment": "Depth description for AI prompt"
   },
   "keyObjects": {
-    "objects": [
-      {
-        "id": "unique_id",
-        "name": "object name",
-        "description": "detailed description",
-        "position": "left" | "center" | "right",
-        "depth": "foreground" | "midground" | "background",
-        "importance": "hero" | "supporting" | "environmental"
-      }
-    ],
+    "objects": [{"id": "id", "name": "name", "description": "desc", "position": "center", "depth": "midground", "importance": "hero"}],
     "environmentType": "interior" | "exterior" | "mixed",
-    "settingDescription": "overall setting description",
-    "architecturalStyle": "architectural or environmental style",
+    "settingDescription": "overall setting",
+    "architecturalStyle": "style",
     "promptFragment": "Environment description for AI prompt"
   },
   "motionSignature": {
     "cameraMotionStyle": "static" | "subtle" | "dynamic" | "chaotic",
-    "preferredMovements": ["list of suggested camera movements that would fit this scene"],
+    "preferredMovements": ["movement types"],
     "subjectMotionIntensity": "still" | "subtle" | "active" | "intense",
     "pacingTempo": "slow" | "medium" | "fast",
-    "cutRhythm": "suggested editing rhythm",
-    "promptFragment": "Motion description for AI prompt (e.g., 'slow subtle camera drift, static subject')"
+    "cutRhythm": "rhythm description",
+    "promptFragment": "Motion description for AI prompt"
   }
 }`;
 
-  const response = await fetch(endpoint, {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
+      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      contents: [{
-        role: "user",
-        parts: [
-          {
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: imageBase64
+      model: "google/gemini-2.5-flash", // Fast multimodal model
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: analysisPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageUrl
+              }
             }
-          },
-          { text: analysisPrompt }
-        ]
-      }],
-      generationConfig: {
-        maxOutputTokens: 4000,
-        temperature: 0.1 // Low temperature for consistent analysis
-      }
-    })
+          ]
+        }
+      ],
+      temperature: 0.1, // Low temperature for consistent analysis
+      max_tokens: 4000,
+    }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[Scene Anchor] Gemini error:", errorText);
-    throw new Error(`Gemini analysis failed: ${errorText}`);
+    console.error("[Scene Anchor] Lovable AI error:", response.status, errorText);
+    throw new Error(`Lovable AI analysis failed: ${response.status}`);
   }
 
   const data = await response.json();
-  const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const textContent = data.choices?.[0]?.message?.content || "";
   
   // Extract JSON from response
   let jsonStr = textContent;
@@ -218,8 +193,7 @@ Return a JSON object with this EXACT structure (no markdown, just JSON):
     jsonStr = jsonMatch[0];
   }
   
-  const analysis = JSON.parse(jsonStr);
-  return analysis;
+  return JSON.parse(jsonStr);
 }
 
 // Build master consistency prompt from all components
@@ -235,41 +209,29 @@ function buildMasterPrompt(analysis: any): string {
   return fragments.join('. ') + '.';
 }
 
-// =====================================================
-// FAILSAFE UTILITIES (embedded for edge function isolation)
-// =====================================================
-const RETRY_CONFIG = {
-  maxRetries: 3,
-  baseDelayMs: 1000,
-  maxDelayMs: 10000,
-  backoffMultiplier: 2,
-};
-
+// Retry utility
 async function withRetry<T>(
   fn: () => Promise<T>,
   operationName: string,
-  config = RETRY_CONFIG
+  maxRetries = 3
 ): Promise<T> {
   let lastError: Error | null = null;
   
-  for (let attempt = 0; attempt < config.maxRetries; attempt++) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
-      if (attempt < config.maxRetries - 1) {
-        const delay = Math.min(
-          config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt),
-          config.maxDelayMs
-        );
-        console.warn(`[${operationName}] Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+      if (attempt < maxRetries - 1) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+        console.warn(`[${operationName}] Attempt ${attempt + 1} failed, retrying in ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
   
-  throw lastError || new Error(`${operationName} failed after ${config.maxRetries} attempts`);
+  throw lastError || new Error(`${operationName} failed after ${maxRetries} attempts`);
 }
 
 function getDefaultSceneAnchor(shotId: string, frameUrl: string): SceneAnchor {
@@ -332,7 +294,6 @@ function getDefaultSceneAnchor(shotId: string, frameUrl: string): SceneAnchor {
 function validateAndFixAnchor(analysis: any, shotId: string, frameUrl: string): SceneAnchor {
   const defaultAnchor = getDefaultSceneAnchor(shotId, frameUrl);
   
-  // Validate and fix each component
   const lighting = analysis.lighting || defaultAnchor.lighting;
   if (!lighting.promptFragment) {
     lighting.promptFragment = `${lighting.keyLightIntensity || 'medium'} ${lighting.timeOfDay || 'natural'} lighting`;
@@ -382,7 +343,7 @@ serve(async (req) => {
 
   try {
     requestData = await req.json();
-    const { frameUrl, shotId, projectId: requestProjectId } = requestData;
+    const { frameUrl, shotId } = requestData;
 
     if (!frameUrl) {
       throw new Error("frameUrl is required");
@@ -390,47 +351,27 @@ serve(async (req) => {
 
     console.log(`[Scene Anchor] Extracting from frame: ${frameUrl}`);
 
-    // Get service account credentials
-    const serviceAccountJson = Deno.env.get("GOOGLE_VERTEX_SERVICE_ACCOUNT");
-    if (!serviceAccountJson) {
-      throw new Error("GOOGLE_VERTEX_SERVICE_ACCOUNT is not configured");
+    // Get Lovable AI key
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
-
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    const gcpProjectId = serviceAccount.project_id;
 
     let sceneAnchor: SceneAnchor;
     let usedFallback = false;
 
     try {
-      // Get access token with retry
-      console.log("[Scene Anchor] Getting OAuth2 access token...");
-      const accessToken = await withRetry(
-        () => getAccessToken(serviceAccount),
-        "OAuth2 Token"
-      );
-
-      // Convert image to base64 with retry
-      console.log("[Scene Anchor] Fetching and encoding image...");
-      const imageBase64 = await withRetry(
-        () => imageToBase64(frameUrl),
-        "Image Fetch"
-      );
-
-      // Analyze scene with retry
-      console.log("[Scene Anchor] Analyzing scene with Gemini Vision...");
+      console.log("[Scene Anchor] Analyzing scene with Lovable AI (Gemini Vision)...");
       const analysis = await withRetry(
-        () => analyzeScene(imageBase64, accessToken, gcpProjectId),
+        () => analyzeSceneWithLovableAI(frameUrl, LOVABLE_API_KEY),
         "Scene Analysis"
       );
 
-      // Validate and fix the analysis result
       sceneAnchor = validateAndFixAnchor(analysis, shotId, frameUrl);
       console.log(`[Scene Anchor] ✓ Extraction successful`);
       
     } catch (extractionError) {
-      // FAILSAFE: Use default anchor if extraction fails completely
-      console.error("[Scene Anchor] Extraction failed after retries, using default anchor:", extractionError);
+      console.error("[Scene Anchor] Extraction failed, using fallback:", extractionError);
       sceneAnchor = getDefaultSceneAnchor(shotId || 'unknown', frameUrl);
       usedFallback = true;
     }
@@ -438,7 +379,6 @@ serve(async (req) => {
     const processingTimeMs = Date.now() - startTime;
     
     console.log(`[Scene Anchor] Complete in ${processingTimeMs}ms${usedFallback ? ' (FALLBACK)' : ''}`);
-    console.log(`[Scene Anchor] Master prompt: ${sceneAnchor.masterConsistencyPrompt.substring(0, 200)}...`);
 
     return new Response(
       JSON.stringify({
@@ -453,7 +393,6 @@ serve(async (req) => {
   } catch (error) {
     console.error("[Scene Anchor] Critical error:", error);
     
-    // ABSOLUTE FAILSAFE: Return a default anchor even on critical error
     const fallbackAnchor = getDefaultSceneAnchor(
       requestData?.shotId || 'unknown',
       requestData?.frameUrl || ''
@@ -461,7 +400,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        success: true, // Mark as success with fallback to prevent pipeline failure
+        success: true,
         anchor: fallbackAnchor,
         processingTimeMs: Date.now() - startTime,
         usedFallback: true,

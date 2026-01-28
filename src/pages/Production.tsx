@@ -24,8 +24,6 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppLoader } from '@/components/ui/app-loader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
 import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
-import { CloudRunProgressPanel } from '@/components/studio/CloudRunProgressPanel';
-import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
 
 // ============= TYPES =============
@@ -1134,39 +1132,14 @@ export default function Production() {
                 />
               )}
 
-              {/* Cloud Run Progress */}
+              {/* Stitch Progress - Simple inline message */}
               {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
-                <CloudRunProgressPanel
-                  projectId={projectId}
-                  projectStatus={projectStatus}
-                  onComplete={(url) => {
-                    setFinalVideoUrl(url);
-                    setProjectStatus('completed');
-                    setProgress(100);
-                    updateStageStatus(5, 'complete');
-                    toast.success('Video stitching complete!');
-                  }}
-                />
-              )}
-
-              {/* Troubleshooter - Only when needed */}
-              {completedClips > 0 && projectId && !finalVideoUrl && completedClips === expectedClipCount && (
-                <StitchingTroubleshooter
-                  projectId={projectId}
-                  projectStatus={projectStatus}
-                  completedClips={completedClips}
-                  totalClips={expectedClipCount}
-                  onStitchComplete={(url) => {
-                    setFinalVideoUrl(url);
-                    setProjectStatus('completed');
-                    setProgress(100);
-                  }}
-                  onStatusChange={(status) => {
-                    setProjectStatus(status);
-                    if (status === 'stitching') updateStageStatus(5, 'active');
-                    else if (status === 'completed') updateStageStatus(5, 'complete');
-                  }}
-                />
+                <Card className="bg-white/5 border-white/10">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-white/70">Stitching video clips together...</span>
+                  </CardContent>
+                </Card>
               )}
 
             </div>

@@ -3,9 +3,13 @@
 
 /**
  * Credit Pricing (SINGLE SOURCE OF TRUTH):
- * - Base: 10 credits per clip (up to 6 seconds)
- * - Extended: +5 credits per additional second beyond 6s
+ * - Base: 10 credits per clip (clips 1-6, up to 6 seconds each)
+ * - Extended: 15 credits per clip if:
+ *   - Clip count exceeds 6 clips (clips 7+), OR
+ *   - Clip duration exceeds 6 seconds
  * - New users get 60 free credits (6 clips at base rate)
+ * 
+ * Stripe: 1 credit = $0.10 (10 credits = $1)
  * 
  * CLIP DURATION: User-selectable (5s or 10s via Kling 2.6)
  * CLIP COUNT: User-selectable (1-20 clips)
@@ -13,21 +17,33 @@
  */
 
 export const CREDIT_SYSTEM = {
-  // Base cost for clips up to 6 seconds
+  // Base cost for clips 1-6 at ≤6 seconds
   BASE_CREDITS_PER_CLIP: 10,
   
-  // Threshold for additional charges
-  BASE_DURATION_THRESHOLD: 6,
+  // Extended cost for clips 7+ OR clips >6 seconds
+  EXTENDED_CREDITS_PER_CLIP: 15,
   
-  // Additional credits per second beyond threshold
-  CREDITS_PER_EXTRA_SECOND: 5,
+  // Threshold for base vs extended pricing
+  BASE_CLIP_COUNT_THRESHOLD: 6,  // Clips 1-6 are base rate
+  BASE_DURATION_THRESHOLD: 6,    // Up to 6 seconds is base rate
   
-  // Cost per clip breakdown (for base 6s clips)
+  // Stripe pricing: 1 credit = $0.10
+  CENTS_PER_CREDIT: 10,
+  
+  // Cost per clip breakdown (for base rate clips)
   COST_PER_CLIP: {
     PRE_PRODUCTION: 2,    // Script analysis, scene optimization
     PRODUCTION: 6,        // Video generation, voice synthesis
     QUALITY_ASSURANCE: 2, // Director audit, visual debugger, retries
     TOTAL: 10,            // Total per clip (base rate)
+  },
+  
+  // Cost per clip breakdown (for extended rate clips)
+  COST_PER_CLIP_EXTENDED: {
+    PRE_PRODUCTION: 3,    // More complex processing
+    PRODUCTION: 9,        // Longer generation
+    QUALITY_ASSURANCE: 3, // More QA needed
+    TOTAL: 15,            // Total per clip (extended rate)
   },
   
   // Welcome bonus
@@ -48,37 +64,54 @@ export const CREDIT_SYSTEM = {
 } as const;
 
 /**
- * Calculate credits for a single clip based on duration
- * Base: 10 credits for up to 6 seconds
- * Extended: +5 credits per additional second
+ * Determine if a clip should use extended pricing
+ * Extended if: clip index > 6 OR duration > 6 seconds
  */
-export function calculateCreditsPerClip(clipDuration: number): number {
-  const baseCost = CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
-  
-  if (clipDuration <= CREDIT_SYSTEM.BASE_DURATION_THRESHOLD) {
-    return baseCost;
+export function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
+  // clipIndex is 0-based, so clip 7 is index 6
+  return clipIndex >= CREDIT_SYSTEM.BASE_CLIP_COUNT_THRESHOLD || 
+         clipDuration > CREDIT_SYSTEM.BASE_DURATION_THRESHOLD;
+}
+
+/**
+ * Calculate credits for a single clip based on its index and duration
+ * Base (10): clips 1-6 at ≤6 seconds
+ * Extended (15): clips 7+ OR duration >6 seconds
+ */
+export function calculateCreditsPerClip(clipDuration: number, clipIndex: number = 0): number {
+  if (isExtendedPricing(clipIndex, clipDuration)) {
+    return CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
   }
-  
-  const extraSeconds = clipDuration - CREDIT_SYSTEM.BASE_DURATION_THRESHOLD;
-  const extraCost = extraSeconds * CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND;
-  
-  return baseCost + extraCost;
+  return CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
 }
 
 /**
  * Calculate credits required for a given number of clips at specified duration
+ * Accounts for per-clip pricing based on index
  */
 export function calculateCreditsRequired(clipCount: number, clipDuration: number = 5): number {
-  const creditsPerClip = calculateCreditsPerClip(clipDuration);
-  return clipCount * creditsPerClip;
+  let total = 0;
+  for (let i = 0; i < clipCount; i++) {
+    total += calculateCreditsPerClip(clipDuration, i);
+  }
+  return total;
 }
 
 /**
  * Calculate how many clips can be afforded with given credits at specified duration
  */
 export function calculateAffordableClips(credits: number, clipDuration: number = 5): number {
-  const creditsPerClip = calculateCreditsPerClip(clipDuration);
-  return Math.floor(credits / creditsPerClip);
+  let clipCount = 0;
+  let remaining = credits;
+  
+  while (remaining > 0) {
+    const costForNextClip = calculateCreditsPerClip(clipDuration, clipCount);
+    if (remaining < costForNextClip) break;
+    remaining -= costForNextClip;
+    clipCount++;
+  }
+  
+  return clipCount;
 }
 
 /**
@@ -104,22 +137,39 @@ export function formatDuration(totalSeconds: number): string {
  * Get breakdown of credits for display
  */
 export function getCreditBreakdown(clipCount: number, clipDuration: number): {
+  baseClipCount: number;
+  extendedClipCount: number;
   baseCredits: number;
-  extraCredits: number;
+  extendedCredits: number;
   totalCredits: number;
-  creditsPerClip: number;
-  extraSecondsPerClip: number;
+  creditsPerClipBase: number;
+  creditsPerClipExtended: number;
+  isExtended: boolean;
 } {
-  const creditsPerClip = calculateCreditsPerClip(clipDuration);
-  const extraSecondsPerClip = Math.max(0, clipDuration - CREDIT_SYSTEM.BASE_DURATION_THRESHOLD);
-  const extraCreditsPerClip = extraSecondsPerClip * CREDIT_SYSTEM.CREDITS_PER_EXTRA_SECOND;
+  // Determine how many clips are base vs extended
+  let baseClipCount = 0;
+  let extendedClipCount = 0;
+  
+  for (let i = 0; i < clipCount; i++) {
+    if (isExtendedPricing(i, clipDuration)) {
+      extendedClipCount++;
+    } else {
+      baseClipCount++;
+    }
+  }
+  
+  const baseCredits = baseClipCount * CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP;
+  const extendedCredits = extendedClipCount * CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP;
   
   return {
-    baseCredits: clipCount * CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP,
-    extraCredits: clipCount * extraCreditsPerClip,
-    totalCredits: clipCount * creditsPerClip,
-    creditsPerClip,
-    extraSecondsPerClip,
+    baseClipCount,
+    extendedClipCount,
+    baseCredits,
+    extendedCredits,
+    totalCredits: baseCredits + extendedCredits,
+    creditsPerClipBase: CREDIT_SYSTEM.BASE_CREDITS_PER_CLIP,
+    creditsPerClipExtended: CREDIT_SYSTEM.EXTENDED_CREDITS_PER_CLIP,
+    isExtended: extendedClipCount > 0,
   };
 }
 
@@ -138,4 +188,18 @@ export function canAffordGeneration(
     required,
     shortfall,
   };
+}
+
+/**
+ * Convert credits to dollars (for display)
+ */
+export function creditsToDollars(credits: number): number {
+  return credits * (CREDIT_SYSTEM.CENTS_PER_CREDIT / 100);
+}
+
+/**
+ * Convert dollars to credits
+ */
+export function dollarsToCredits(dollars: number): number {
+  return Math.floor(dollars * 100 / CREDIT_SYSTEM.CENTS_PER_CREDIT);
 }

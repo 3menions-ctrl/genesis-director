@@ -98,24 +98,26 @@ export function getClip0StartImage(
 }
 
 /**
- * For Clip 0 LAST FRAME, always use the reference image as the anchor.
- * This ensures Clip 1+ chain from a known-good source.
+ * For Clip 0 LAST FRAME, PREFER the extracted frame over reference image.
+ * This ensures Clip 1 starts from where Clip 0 actually ended, not the original upload.
+ * 
+ * CRITICAL FIX: The previous implementation incorrectly prioritized reference image,
+ * which caused clip 1 to show the uploaded picture instead of continuing from clip 0.
  */
 export function getClip0LastFrame(
   referenceImageUrl: string | undefined,
   extractedFrameUrl: string | undefined
 ): { frameUrl: string | null; source: string; confidence: 'high' | 'medium' | 'low' } {
-  // Clip 0's "last frame" for continuity should be the reference image
-  // This ensures Clip 1 starts from the known character/scene anchor
-  if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
-    console.log(`[GuardRails] Clip 0 last frame: using reference image (guaranteed anchor)`);
-    return { frameUrl: referenceImageUrl, source: 'reference_image', confidence: 'high' };
+  // PRIORITIZE extracted frame - this is the actual end of clip 0's video
+  if (extractedFrameUrl && isValidImageUrl(extractedFrameUrl)) {
+    console.log(`[GuardRails] Clip 0 last frame: using EXTRACTED frame (correct behavior)`);
+    return { frameUrl: extractedFrameUrl, source: 'extracted_frame', confidence: 'high' };
   }
   
-  // Fallback to extracted frame if reference is somehow missing
-  if (extractedFrameUrl && isValidImageUrl(extractedFrameUrl)) {
-    console.log(`[GuardRails] Clip 0 last frame: using extracted frame (fallback)`);
-    return { frameUrl: extractedFrameUrl, source: 'extracted_frame', confidence: 'medium' };
+  // Fallback to reference image only if extraction failed
+  if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+    console.log(`[GuardRails] Clip 0 last frame: using reference image (fallback)`);
+    return { frameUrl: referenceImageUrl, source: 'reference_image', confidence: 'medium' };
   }
   
   console.error(`[GuardRails] ❌ No valid last frame for Clip 0!`);

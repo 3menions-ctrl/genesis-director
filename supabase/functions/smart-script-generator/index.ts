@@ -43,6 +43,37 @@ interface SmartScriptRequest {
   environmentPrompt?: string;
   // VOICE/NARRATION CONTROL - when false, NO dialogue or narration should be generated
   includeVoice?: boolean;
+  // STRICT MODE: Reference image analysis - script MUST describe what's in the image
+  referenceImageAnalysis?: {
+    characterIdentity?: {
+      description: string;
+      facialFeatures: string;
+      clothing: string;
+      bodyType: string;
+      distinctiveMarkers: string[];
+      hairColor?: string;
+      skinTone?: string;
+    };
+    environment?: {
+      setting: string;
+      geometry: string;
+      keyObjects: string[];
+      backgroundElements: string[];
+    };
+    lighting?: {
+      style: string;
+      direction: string;
+      quality: string;
+      timeOfDay: string;
+    };
+    colorPalette?: {
+      dominant: string[];
+      mood: string;
+    };
+    consistencyPrompt?: string;
+  };
+  // Mode flag to enforce strict adherence
+  mode?: 'text-to-video' | 'image-to-video' | 'b-roll';
 }
 
 interface SceneClip {
@@ -179,14 +210,95 @@ serve(async (req) => {
     
     console.log(`[SmartScript] Generating EXACTLY ${clipCount} clips for continuous scene, preserveContent: ${mustPreserveContent}, voiceDisabled: ${voiceDisabled}`);
 
+    // =====================================================
+    // STRICT REFERENCE ADHERENCE: For image-to-video mode
+    // The script MUST describe what's visible in the image
+    // =====================================================
+    const hasReferenceImage = !!request.referenceImageAnalysis;
+    const isImageToVideo = request.mode === 'image-to-video' || hasReferenceImage;
+    
+    // Build reference image context if available
+    let referenceImageContext = '';
+    if (request.referenceImageAnalysis) {
+      const ref = request.referenceImageAnalysis;
+      referenceImageContext = `
+=======================================================================
+🎯 STRICT REFERENCE IMAGE ADHERENCE (MANDATORY)
+=======================================================================
+
+The user has uploaded a REFERENCE IMAGE. Your script MUST describe EXACTLY what is in this image.
+DO NOT invent new characters, locations, or scenarios that are not visible in the image.
+
+REFERENCE IMAGE ANALYSIS:
+${ref.characterIdentity ? `
+CHARACTER IN IMAGE (MUST USE EXACTLY):
+- Description: ${ref.characterIdentity.description}
+- Face: ${ref.characterIdentity.facialFeatures}
+- Clothing: ${ref.characterIdentity.clothing}
+- Body Type: ${ref.characterIdentity.bodyType}
+- Hair Color: ${ref.characterIdentity.hairColor || 'as shown'}
+- Skin Tone: ${ref.characterIdentity.skinTone || 'as shown'}
+- Distinctive Features: ${ref.characterIdentity.distinctiveMarkers?.join(', ') || 'none specified'}
+` : ''}
+
+${ref.environment ? `
+ENVIRONMENT IN IMAGE (MUST USE EXACTLY):
+- Setting: ${ref.environment.setting}
+- Geometry: ${ref.environment.geometry}
+- Key Objects: ${ref.environment.keyObjects?.join(', ') || 'as visible'}
+- Background: ${ref.environment.backgroundElements?.join(', ') || 'as visible'}
+` : ''}
+
+${ref.lighting ? `
+LIGHTING IN IMAGE (MUST USE EXACTLY):
+- Style: ${ref.lighting.style}
+- Direction: ${ref.lighting.direction}
+- Quality: ${ref.lighting.quality}
+- Time of Day: ${ref.lighting.timeOfDay}
+` : ''}
+
+${ref.colorPalette ? `
+COLOR PALETTE (MUST MAINTAIN):
+- Dominant Colors: ${ref.colorPalette.dominant?.join(', ') || 'as visible'}
+- Mood: ${ref.colorPalette.mood}
+` : ''}
+
+${ref.consistencyPrompt ? `
+CONSISTENCY ANCHOR (INCLUDE IN EVERY CLIP):
+"${ref.consistencyPrompt}"
+` : ''}
+
+STRICT RULES FOR IMAGE-TO-VIDEO:
+1. The character MUST be the same person from the reference image - same face, same clothing, same features
+2. The environment MUST be the same location from the reference image
+3. The lighting MUST match the reference image
+4. DO NOT invent new characters or locations not visible in the image
+5. Your clips should show the person in the image performing actions in that environment
+6. Use the user's prompt to define WHAT HAPPENS, but the WHO and WHERE come from the image
+=======================================================================
+`;
+      console.log(`[SmartScript] STRICT MODE: Using reference image analysis for script generation`);
+    }
+
     // Build the system prompt for CONTINUOUS SCENE breakdown
     const systemPrompt = `You are a SCENE BREAKDOWN SPECIALIST for AI video generation. Your job is to break ONE CONTINUOUS SCENE into EXACTLY ${clipCount} clips that flow seamlessly together.
+
+${referenceImageContext}
 
 CRITICAL CLIP COUNT REQUIREMENT:
 - You MUST output EXACTLY ${clipCount} clips - no more, no less
 - The clips array MUST have exactly ${clipCount} items
 - Do NOT output 6 clips if ${clipCount} clips are requested
 - This is non-negotiable: output = ${clipCount} clips
+
+${isImageToVideo ? `
+🎬 IMAGE-TO-VIDEO MODE - STRICT ADHERENCE:
+- The character, environment, and lighting are LOCKED to the reference image
+- Your job is ONLY to describe MOTION and ACTION of the subject
+- DO NOT change the character's appearance, clothing, or location
+- Every clip must show the SAME person from the image in the SAME environment
+- Focus on: what the person DOES, how they MOVE, camera angles
+` : ''}
 
 ${voiceDisabled ? `
 CRITICAL - NO DIALOGUE OR NARRATION:
@@ -224,9 +336,9 @@ OUTPUT FORMAT (STRICT JSON):
       "previousAction": "What happened in previous clip (empty for clip 0)",
       "currentAction": "What happens in this exact 5-second moment",
       "nextAction": "What will happen in next clip (empty for last clip)",
-      "characterDescription": "EXACT character description - SAME in all clips",
-      "locationDescription": "EXACT location description - SAME in all clips",
-      "lightingDescription": "EXACT lighting description - SAME in all clips",
+      "characterDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT character description - SAME in all clips'}",
+      "locationDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT location description - SAME in all clips'}",
+      "lightingDescription": "${hasReferenceImage ? 'COPY FROM REFERENCE IMAGE ANALYSIS EXACTLY' : 'EXACT lighting description - SAME in all clips'}",
       "cameraScale": "wide|medium|close-up",
       "cameraAngle": "eye-level|low-angle|high-angle",
       "movementType": "static|pan|tracking|dolly",
@@ -250,14 +362,17 @@ CONTINUITY REQUIREMENTS (CRITICAL):
 1. CHARACTER LOCK: Copy the EXACT same character description to ALL ${clipCount} clips
    - Same clothes, hair, face, body in every clip
    - No outfit changes, no appearance drift
+   ${hasReferenceImage ? '- USE THE CHARACTER FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 2. LOCATION LOCK: Copy the EXACT same location description to ALL ${clipCount} clips
    - Same room, street, forest - never changes
    - Same background elements visible
+   ${hasReferenceImage ? '- USE THE ENVIRONMENT FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 3. LIGHTING LOCK: Copy the EXACT same lighting to ALL ${clipCount} clips
    - Same sun position, same shadows
    - Same color temperature
+   ${hasReferenceImage ? '- USE THE LIGHTING FROM THE REFERENCE IMAGE EXACTLY' : ''}
    
 4. ACTION CONTINUITY: Each clip picks up WHERE the previous ended
    - Clip 1's "previousAction" = Clip 0's "currentAction"
@@ -337,14 +452,53 @@ ${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE in the "dia
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     } else {
       // Generate from topic - create a continuous scene
+      // For image-to-video, the reference image analysis is the PRIMARY source
+      const refAnalysis = request.referenceImageAnalysis;
+      
       userPrompt = `Create a continuous scene broken into ${clipCount} clips for:
 
+${isImageToVideo && refAnalysis ? `
+=======================================================================
+🎯 IMAGE-TO-VIDEO MODE: FOLLOW THE REFERENCE IMAGE STRICTLY
+=======================================================================
+The user has uploaded a reference image. The script MUST describe what's IN this image.
+
+USER'S ACTION PROMPT (what should happen):
+"${request.topic}"
+
+CHARACTER FROM IMAGE (MANDATORY - use in ALL clips):
+${refAnalysis.characterIdentity?.description || 'Person as shown in reference'}
+- Clothing: ${refAnalysis.characterIdentity?.clothing || 'As shown in image'}
+- Features: ${refAnalysis.characterIdentity?.facialFeatures || 'As shown in image'}
+- Body: ${refAnalysis.characterIdentity?.bodyType || 'As shown in image'}
+
+ENVIRONMENT FROM IMAGE (MANDATORY - use in ALL clips):
+${refAnalysis.environment?.setting || 'Location as shown in reference'}
+- Key Objects: ${refAnalysis.environment?.keyObjects?.join(', ') || 'As visible in image'}
+
+LIGHTING FROM IMAGE (MANDATORY - use in ALL clips):
+${refAnalysis.lighting?.style || 'As shown in reference'}, ${refAnalysis.lighting?.direction || 'natural direction'}
+
+COLOR MOOD: ${refAnalysis.colorPalette?.mood || 'As shown in reference'}
+
+CONSISTENCY PROMPT (include in every clip description):
+"${refAnalysis.consistencyPrompt || 'Same person, same location, same lighting as reference image'}"
+
+STRICT RULES:
+1. The character is the EXACT person from the reference image
+2. The location is the EXACT environment from the reference image  
+3. Your job is to describe the ACTIONS specified in the user's prompt
+4. DO NOT invent new characters, locations, or change the appearance
+5. Each clip shows this person doing the actions the user requested
+=======================================================================
+` : `
 TOPIC: ${request.topic}
 ${request.synopsis ? `SYNOPSIS: ${request.synopsis}` : ''}
 ${request.style ? `STYLE: ${request.style}` : ''}
 ${request.genre ? `GENRE: ${request.genre}` : ''}
 ${request.mainSubjects?.length ? `MAIN SUBJECTS: ${request.mainSubjects.join(', ')}` : ''}
 ${request.environmentHints?.length ? `ENVIRONMENT: ${request.environmentHints.join(', ')}` : ''}
+`}
 
 ${request.environmentPrompt ? `
 ENVIRONMENT DNA (MANDATORY - ALL clips MUST use this EXACT environment):
@@ -385,6 +539,7 @@ All clips in SAME location with SAME character appearance.
 Show progressive action: establish → initiate → develop → escalate → peak → settle.
 ${request.environmentPrompt ? 'MANDATORY: Use the ENVIRONMENT DNA for ALL clips\' locationDescription and lightingDescription.' : ''}
 ${mustPreserveContent ? 'CRITICAL: Use the user\'s EXACT narration/dialogue text - do not paraphrase.' : ''}
+${isImageToVideo ? 'CRITICAL: The character and environment MUST match the reference image exactly. Focus on describing the ACTIONS the user requested.' : ''}
 
 Output ONLY valid JSON with exactly ${clipCount} clips.`;
     }

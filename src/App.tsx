@@ -24,7 +24,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Contact = lazy(() => import("./pages/Contact"));
-const LongVideo = lazy(() => import("./pages/LongVideo"));
+
 const ScriptReview = lazy(() => import("./pages/ScriptReview"));
 const Production = lazy(() => import("./pages/Production"));
 const Clips = lazy(() => import("./pages/Clips"));
@@ -40,7 +40,7 @@ const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
 const Create = lazy(() => import("./pages/Create"));
 
-const StudioLayout = lazy(() => import("@/components/layout/StudioLayout").then(m => ({ default: m.StudioLayout })));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,14 +112,8 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                {/* Legacy Video Generator with StudioLayout */}
-                <Route path="/studio" element={
-                  <ProtectedRoute>
-                    <Suspense fallback={<AppLoader message="Loading studio..." />}>
-                      <StudioLayout><LongVideo /></StudioLayout>
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
+                {/* Legacy route - redirect to new Create page */}
+                <Route path="/studio" element={<Navigate to="/create" replace />} />
                 
                 {/* Script Review Route */}
                 <Route path="/script-review" element={

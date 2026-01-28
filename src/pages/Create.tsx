@@ -24,6 +24,8 @@ export default function Create() {
     clipDuration: number;
     enableNarration: boolean;
     enableMusic: boolean;
+    genre?: string;
+    mood?: string;
   }) => {
     if (!user) {
       toast.error('Please sign in to create videos');
@@ -53,6 +55,8 @@ export default function Create() {
             clipDuration: config.clipDuration,
             enableNarration: config.enableNarration,
             enableMusic: config.enableMusic,
+            genre: config.genre,
+            mood: config.mood,
           },
         });
 
@@ -93,6 +97,8 @@ export default function Create() {
           clipDuration: config.clipDuration,
           enableNarration: config.enableNarration,
           enableMusic: config.enableMusic,
+          genre: config.genre,
+          mood: config.mood,
         },
       });
 

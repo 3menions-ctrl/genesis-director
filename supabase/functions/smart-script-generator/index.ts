@@ -165,8 +165,10 @@ serve(async (req) => {
       ...(request.userDialogue || []),
     ].join(' ');
     
-    const detectedContent = detectUserContent(inputText);
-    console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
+    // CRITICAL: Pass explicit clipCount so detection doesn't override user's selection
+    const explicitClipCount = request.clipCount && request.clipCount > 0 ? request.clipCount : undefined;
+    const detectedContent = detectUserContent(inputText, explicitClipCount);
+    console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, clips: ${detectedContent.recommendedClipCount} (explicit: ${explicitClipCount || 'none'})`);
 
     // STRICT CLIP COUNT ENFORCEMENT
     // Priority 1: Explicit clipCount from request (user's selection in CreationHub)

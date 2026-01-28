@@ -326,15 +326,23 @@ export interface DetectedContent {
  * - Narration markers: [NARRATION], (voiceover), VO:
  * - Script format: INT./EXT. scenes
  */
-export function detectUserContent(text: string): DetectedContent {
+/**
+ * Detect dialogue and narration from user input
+ * @param text - User input text to analyze
+ * @param explicitClipCount - If provided, this OVERRIDES any calculated clip count
+ */
+export function detectUserContent(text: string, explicitClipCount?: number): DetectedContent {
+  // If explicit clip count provided, use it - this is the user's selection
+  const defaultClipCount = explicitClipCount && explicitClipCount > 0 ? explicitClipCount : 6;
+  
   if (!text || typeof text !== 'string') {
     return {
       hasDialogue: false,
       hasNarration: false,
       dialogueLines: [],
       narrationText: '',
-      estimatedDurationSeconds: 36,
-      recommendedClipCount: 6, // Default, but templates can override
+      estimatedDurationSeconds: defaultClipCount * 5, // Match clip count
+      recommendedClipCount: defaultClipCount,
     };
   }
 
@@ -401,12 +409,19 @@ export function detectUserContent(text: string): DetectedContent {
   const CLIP_DURATION = 5; // Kling 2.6: 5-second clips
   const WORDS_PER_CLIP = WORDS_PER_SECOND * CLIP_DURATION;
   
-  const estimatedDurationSeconds = Math.max(36, Math.ceil(wordCount / WORDS_PER_SECOND));
-  // Allow dynamic clip counts - minimum 1 shot, max 30
-  let recommendedClipCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_CLIP));
+  const estimatedDurationSeconds = Math.max(30, Math.ceil(wordCount / WORDS_PER_SECOND));
   
-  // Cap at reasonable maximum for long-form content
-  recommendedClipCount = Math.min(recommendedClipCount, 30);
+  // If explicit clip count was provided, use it; otherwise calculate from content
+  let recommendedClipCount: number;
+  if (explicitClipCount && explicitClipCount > 0) {
+    recommendedClipCount = explicitClipCount;
+    console.log(`[ContentDetection] Using EXPLICIT clip count: ${explicitClipCount}`);
+  } else {
+    // Allow dynamic clip counts - minimum 1 shot, max 30
+    recommendedClipCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_CLIP));
+    // Cap at reasonable maximum for long-form content
+    recommendedClipCount = Math.min(recommendedClipCount, 30);
+  }
   
   console.log(`[ContentDetection] Words: ${wordCount}, Duration: ${estimatedDurationSeconds}s, Clips: ${recommendedClipCount}`);
   

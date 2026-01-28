@@ -124,7 +124,9 @@ serve(async (req) => {
       ...(requestData.userDialogue || []),
     ].join(' ');
     
-    const detectedContent = detectUserContent(inputText);
+    // CRITICAL: Pass explicit clipCount to detection so it doesn't get overridden
+    const explicitClipCount = requestData.clipCount && requestData.clipCount > 0 ? requestData.clipCount : undefined;
+    const detectedContent = detectUserContent(inputText, explicitClipCount);
     
     // Use detected content if no explicit user content provided
     let hasUserNarration = requestData.userNarration && requestData.userNarration.trim().length > 10;
@@ -146,11 +148,12 @@ serve(async (req) => {
     const mustPreserveContent = requestData.preserveUserContent || hasUserNarration || hasUserDialogue;
     
     // STRICT CLIP COUNT ENFORCEMENT
-    // Priority: 1) Explicit clipCount from user, 2) Content-based detection
+    // Priority 1: Explicit clipCount from user selection (HIGHEST PRIORITY)
+    // Priority 2: Content-based detection
     const userRequestedClips = requestData.clipCount && requestData.clipCount > 0 ? requestData.clipCount : null;
     const clipCount = userRequestedClips || detectedContent.recommendedClipCount;
     
-    console.log(`[generate-script] Clip count: ${clipCount} (user requested: ${userRequestedClips}, detected: ${detectedContent.recommendedClipCount})`);
+    console.log(`[generate-script] ENFORCED clip count: ${clipCount} (user requested: ${userRequestedClips}, detected: ${detectedContent.recommendedClipCount})`);
     
     if (isFullMovieMode) {
       // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)

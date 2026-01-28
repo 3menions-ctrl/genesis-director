@@ -122,8 +122,13 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                {/* Production Pipeline Route */}
+                {/* Production Pipeline Routes - supports both query params and path params */}
                 <Route path="/production" element={
+                  <ProtectedRoute>
+                    <Production />
+                  </ProtectedRoute>
+                } />
+                <Route path="/production/:projectId" element={
                   <ProtectedRoute>
                     <Production />
                   </ProtectedRoute>

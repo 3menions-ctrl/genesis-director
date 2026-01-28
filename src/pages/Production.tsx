@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -117,7 +117,9 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 export default function Production() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const projectId = searchParams.get('projectId');
+  const params = useParams();
+  // Support both /production/:projectId and /production?projectId=xxx
+  const projectId = params.projectId || searchParams.get('projectId');
   const { user } = useAuth();
   
   // UI State
@@ -297,13 +299,13 @@ export default function Production() {
           .from('movie_projects')
           .select('id')
           .eq('user_id', session.user.id)
-          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed'])
+          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed', 'awaiting_approval'])
           .order('updated_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (recentProject) {
-          navigate(`/production?projectId=${recentProject.id}`, { replace: true });
+          navigate(`/production/${recentProject.id}`, { replace: true });
           return;
         }
         
@@ -312,15 +314,39 @@ export default function Production() {
         return;
       }
 
-      const { data: project, error: projectError } = await supabase
-        .from('movie_projects')
-        .select('*')
-        .eq('id', projectId)
-        .eq('user_id', session.user.id)
-        .single();
+      // Retry logic for newly created projects that may not be immediately available
+      let project = null;
+      let projectError = null;
+      const maxRetries = 3;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const { data, error } = await supabase
+          .from('movie_projects')
+          .select('*')
+          .eq('id', projectId)
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (data) {
+          project = data;
+          projectError = null;
+          break;
+        }
+        
+        if (error) {
+          projectError = error;
+        }
+        
+        // Wait before retrying (project might still be creating)
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          addLog(`Waiting for project to initialize... (attempt ${attempt + 2}/${maxRetries})`, 'info');
+        }
+      }
 
-      if (projectError || !project) {
-        toast.error('Project not found');
+      if (!project) {
+        console.error('[Production] Project not found after retries:', projectId, projectError);
+        toast.error('Project not found or still initializing. Redirecting to projects...');
         navigate('/projects');
         return;
       }

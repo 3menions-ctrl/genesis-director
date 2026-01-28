@@ -1,7 +1,16 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * ManifestVideoPlayer v2 - True Gapless Playback
+ * 
+ * Features:
+ * - Dual video element switching for ZERO gap transitions
+ * - Preloads next clip while current plays
+ * - Seamless crossfade transitions (150ms)
+ * - Triggers transition BEFORE clip ends
+ */
+
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 
 interface ManifestClip {
@@ -27,6 +36,11 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
+// Crossfade duration in milliseconds - ultra smooth
+const CROSSFADE_DURATION = 150;
+// Trigger transition this many seconds before clip ends
+const TRANSITION_THRESHOLD = CROSSFADE_DURATION / 1000;
+
 export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPlayerProps) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,15 +49,41 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [clipProgress, setClipProgress] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Dual video state for gapless playback
+  const [activeVideoIndex, setActiveVideoIndex] = useState<0 | 1>(0);
+  const [isCrossfading, setIsCrossfading] = useState(false);
+  const [videoAOpacity, setVideoAOpacity] = useState(1);
+  const [videoBOpacity, setVideoBOpacity] = useState(0);
+  
+  // Refs
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isTransitioningRef = useRef(false);
+  const triggerTransitionRef = useRef<(() => void) | null>(null);
+  const initialSetupDoneRef = useRef(false);
+
+  // Get active and standby video refs
+  const getActiveVideo = useCallback(() => {
+    return activeVideoIndex === 0 ? videoARef.current : videoBRef.current;
+  }, [activeVideoIndex]);
+
+  const getStandbyVideo = useCallback(() => {
+    return activeVideoIndex === 0 ? videoBRef.current : videoARef.current;
+  }, [activeVideoIndex]);
+
+  // Calculate total duration from manifest
+  const totalDuration = useMemo(() => {
+    return manifest?.totalDuration || manifest?.clips.reduce((sum, c) => sum + c.duration, 0) || 0;
+  }, [manifest]);
 
   // Load manifest
   useEffect(() => {
     const loadManifest = async () => {
       try {
         setIsLoading(true);
+        initialSetupDoneRef.current = false;
         const response = await fetch(manifestUrl);
         if (!response.ok) throw new Error('Failed to load manifest');
         const data = await response.json();
@@ -58,66 +98,268 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     loadManifest();
   }, [manifestUrl]);
 
-  // Handle video time updates
-  const handleTimeUpdate = useCallback(() => {
-    if (!videoRef.current || !manifest) return;
-    
-    const video = videoRef.current;
-    const clip = manifest.clips[currentClipIndex];
-    
-    // Calculate overall progress
-    const overallTime = clip.startTime + video.currentTime;
-    setCurrentTime(overallTime);
-    setClipProgress((video.currentTime / clip.duration) * 100);
-  }, [currentClipIndex, manifest]);
+  // Setup first clip and preload second when manifest is loaded
+  useEffect(() => {
+    if (!manifest || manifest.clips.length === 0 || initialSetupDoneRef.current) return;
 
-  // Handle clip ended - move to next
+    const videoA = videoARef.current;
+    const videoB = videoBRef.current;
+    
+    // Load first clip into video A (active)
+    if (videoA && manifest.clips[0]) {
+      videoA.src = manifest.clips[0].videoUrl;
+      videoA.load();
+    }
+
+    // Preload second clip into video B (standby)
+    if (videoB && manifest.clips[1]) {
+      videoB.src = manifest.clips[1].videoUrl;
+      videoB.load();
+    }
+
+    initialSetupDoneRef.current = true;
+  }, [manifest]);
+
+  // Preload next clip into standby video when clip changes
+  useEffect(() => {
+    if (!manifest || isTransitioningRef.current) return;
+    
+    const standbyVideo = getStandbyVideo();
+    const nextClipIndex = currentClipIndex + 1;
+    
+    if (standbyVideo && nextClipIndex < manifest.clips.length && manifest.clips[nextClipIndex]) {
+      const nextClipUrl = manifest.clips[nextClipIndex].videoUrl;
+      if (standbyVideo.src !== nextClipUrl) {
+        standbyVideo.src = nextClipUrl;
+        standbyVideo.load();
+      }
+    }
+  }, [currentClipIndex, manifest, getStandbyVideo]);
+
+  // Crossfade transition logic
+  const triggerCrossfadeTransition = useCallback(() => {
+    if (!manifest) return;
+    if (isTransitioningRef.current || isCrossfading) return;
+    if (currentClipIndex >= manifest.clips.length - 1) return;
+    
+    isTransitioningRef.current = true;
+    setIsCrossfading(true);
+    
+    const nextIndex = currentClipIndex + 1;
+    const activeVideo = getActiveVideo();
+    const standbyVideo = getStandbyVideo();
+    
+    if (standbyVideo && standbyVideo.readyState >= 2 && manifest.clips[nextIndex]) {
+      standbyVideo.currentTime = 0;
+      standbyVideo.muted = isMuted;
+      
+      // Start playing standby immediately for seamless transition
+      standbyVideo.play().catch(() => {});
+      
+      // Animate crossfade
+      const startTime = performance.now();
+      const animateCrossfade = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
+        
+        // Smooth cubic easing
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        if (activeVideoIndex === 0) {
+          setVideoAOpacity(1 - eased);
+          setVideoBOpacity(eased);
+        } else {
+          setVideoAOpacity(eased);
+          setVideoBOpacity(1 - eased);
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateCrossfade);
+        } else {
+          // Crossfade complete
+          setIsCrossfading(false);
+          
+          // Pause the old active
+          if (activeVideo) {
+            activeVideo.pause();
+          }
+          
+          // Preload the NEXT clip into the old active (now standby)
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
+            activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
+            activeVideo.load();
+          }
+          isTransitioningRef.current = false;
+        }
+      };
+      
+      // Swap active/standby
+      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+      setCurrentClipIndex(nextIndex);
+      setIsPlaying(true);
+      
+      requestAnimationFrame(animateCrossfade);
+    } else {
+      // Standby not ready - try immediate switch as fallback
+      console.warn('[ManifestPlayer] Standby video not ready, using fallback transition');
+      isTransitioningRef.current = false;
+      setIsCrossfading(false);
+      setCurrentClipIndex(prev => prev + 1);
+    }
+  }, [currentClipIndex, manifest, isCrossfading, isMuted, activeVideoIndex, getActiveVideo, getStandbyVideo]);
+
+  // Keep the ref updated with the latest trigger function
+  useEffect(() => {
+    triggerTransitionRef.current = triggerCrossfadeTransition;
+  }, [triggerCrossfadeTransition]);
+
+  // Handle video time update - trigger transition BEFORE clip ends
+  const handleTimeUpdate = useCallback(() => {
+    const activeVideo = getActiveVideo();
+    if (!activeVideo || !manifest) return;
+    
+    const clip = manifest.clips[currentClipIndex];
+    if (!clip) return;
+    
+    // Calculate overall time for progress bar
+    const overallTime = (clip.startTime || 0) + activeVideo.currentTime;
+    setCurrentTime(overallTime);
+    
+    // Trigger seamless transition BEFORE clip ends
+    const timeRemaining = activeVideo.duration - activeVideo.currentTime;
+    
+    if (timeRemaining <= TRANSITION_THRESHOLD && timeRemaining > 0 && !isTransitioningRef.current && !isCrossfading) {
+      if (currentClipIndex < manifest.clips.length - 1) {
+        console.log('[ManifestPlayer] Triggering crossfade transition', {
+          clipIndex: currentClipIndex,
+          timeRemaining,
+          threshold: TRANSITION_THRESHOLD
+        });
+        triggerTransitionRef.current?.();
+      }
+    }
+  }, [currentClipIndex, manifest, isCrossfading, getActiveVideo]);
+
+  // Handle clip ended - fallback for last clip or missed transitions
   const handleClipEnded = useCallback(() => {
+    const activeVideo = getActiveVideo();
     if (!manifest) return;
     
-    if (currentClipIndex < manifest.clips.length - 1) {
-      setCurrentClipIndex(prev => prev + 1);
-    } else {
-      // Video complete
+    // Ignore spurious ended events
+    if (activeVideo) {
+      const duration = activeVideo.duration;
+      const currentPos = activeVideo.currentTime;
+      if (duration && currentPos < duration * 0.8) {
+        console.warn('[ManifestPlayer] Ignoring spurious ended event');
+        return;
+      }
+    }
+    
+    // If we're at the last clip and it ends, reset playlist
+    if (currentClipIndex >= manifest.clips.length - 1) {
+      console.log('[ManifestPlayer] Last clip ended, resetting playlist');
       setIsPlaying(false);
       setCurrentClipIndex(0);
+      setCurrentTime(0);
+      
+      // Reset opacities and active video
+      setVideoAOpacity(1);
+      setVideoBOpacity(0);
+      setActiveVideoIndex(0);
+      
+      // Reset to first clip
+      const firstVideo = videoARef.current;
+      if (firstVideo && manifest.clips[0]) {
+        if (firstVideo.src !== manifest.clips[0].videoUrl) {
+          firstVideo.src = manifest.clips[0].videoUrl;
+          firstVideo.load();
+        } else {
+          firstVideo.currentTime = 0;
+        }
+      }
+    } else if (!isTransitioningRef.current && !isCrossfading) {
+      // Fallback: if clip ended but transition wasn't triggered, do it now
+      triggerTransitionRef.current?.();
     }
-  }, [currentClipIndex, manifest]);
+  }, [currentClipIndex, manifest, isCrossfading, getActiveVideo]);
 
-  // Auto-play next clip when index changes
-  useEffect(() => {
-    if (!videoRef.current || !manifest || !isPlaying) return;
-    videoRef.current.play().catch(() => {});
-  }, [currentClipIndex, manifest, isPlaying]);
-
-  // Play/Pause
-  const togglePlay = () => {
-    if (!videoRef.current) return;
+  // Play/Pause toggle
+  const togglePlay = useCallback(() => {
+    const activeVideo = getActiveVideo();
+    if (!activeVideo) return;
     
     if (isPlaying) {
-      videoRef.current.pause();
+      activeVideo.pause();
+      setIsPlaying(false);
     } else {
-      videoRef.current.play().catch(() => {});
+      activeVideo.play().catch(() => {});
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
-  };
+  }, [isPlaying, getActiveVideo]);
 
-  // Skip to next/previous clip
-  const skipNext = () => {
+  // Toggle mute on both videos
+  const toggleMute = useCallback(() => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    
+    if (videoARef.current) videoARef.current.muted = newMuted;
+    if (videoBRef.current) videoBRef.current.muted = newMuted;
+  }, [isMuted]);
+
+  // Skip to specific clip
+  const skipToClip = useCallback((index: number) => {
+    if (!manifest || index < 0 || index >= manifest.clips.length) return;
+    
+    // Reset transition state
+    isTransitioningRef.current = false;
+    setIsCrossfading(false);
+    setVideoAOpacity(1);
+    setVideoBOpacity(0);
+    setActiveVideoIndex(0);
+    
+    setCurrentClipIndex(index);
+    
+    const videoA = videoARef.current;
+    if (videoA && manifest.clips[index]) {
+      videoA.src = manifest.clips[index].videoUrl;
+      videoA.load();
+      videoA.muted = isMuted;
+      if (isPlaying) {
+        videoA.play().catch(() => {});
+      }
+    }
+    
+    // Preload next clip
+    const videoB = videoBRef.current;
+    if (videoB && manifest.clips[index + 1]) {
+      videoB.src = manifest.clips[index + 1].videoUrl;
+      videoB.load();
+    }
+    
+    // Update time
+    const clip = manifest.clips[index];
+    setCurrentTime(clip?.startTime || 0);
+  }, [manifest, isMuted, isPlaying]);
+
+  // Skip next/previous
+  const skipNext = useCallback(() => {
     if (!manifest || currentClipIndex >= manifest.clips.length - 1) return;
-    setCurrentClipIndex(prev => prev + 1);
-  };
+    skipToClip(currentClipIndex + 1);
+  }, [manifest, currentClipIndex, skipToClip]);
 
-  const skipPrev = () => {
+  const skipPrev = useCallback(() => {
     if (currentClipIndex <= 0) {
-      if (videoRef.current) videoRef.current.currentTime = 0;
+      const activeVideo = getActiveVideo();
+      if (activeVideo) activeVideo.currentTime = 0;
+      setCurrentTime(0);
       return;
     }
-    setCurrentClipIndex(prev => prev - 1);
-  };
+    skipToClip(currentClipIndex - 1);
+  }, [currentClipIndex, skipToClip, getActiveVideo]);
 
   // Fullscreen - Safari/iOS compatible
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
     
     const elem = containerRef.current as HTMLElement & {
@@ -143,21 +385,23 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
         elem.webkitRequestFullscreen();
       }
     }
-  };
+  }, []);
 
   // Format time
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
-  // Download all clips as a zip would be ideal, but for now link to first clip
-  const handleDownload = () => {
+  // Download
+  const handleDownload = useCallback(() => {
     if (!manifest || manifest.clips.length === 0) return;
-    // Open first clip for download - in future could implement zip
     window.open(manifest.clips[0].videoUrl, '_blank');
-  };
+  }, [manifest]);
+
+  // Calculate progress
+  const overallProgress = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
 
   if (isLoading) {
     return (
@@ -178,26 +422,36 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
     );
   }
 
-  const currentClip = manifest.clips[currentClipIndex];
-  const overallProgress = (currentTime / manifest.totalDuration) * 100;
-
   return (
     <div ref={containerRef} className={cn("relative bg-black rounded-xl overflow-hidden group", className)}>
-      {/* Video Element */}
+      {/* Dual Video Elements for Gapless Playback */}
       <video
-        ref={videoRef}
-        src={currentClip.videoUrl}
-        className="w-full h-full object-contain"
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleClipEnded}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        ref={videoARef}
+        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-0"
+        style={{ opacity: videoAOpacity, zIndex: activeVideoIndex === 0 ? 2 : 1 }}
+        onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
+        onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
+        onPlay={activeVideoIndex === 0 ? () => setIsPlaying(true) : undefined}
+        onPause={activeVideoIndex === 0 ? () => setIsPlaying(false) : undefined}
         muted={isMuted}
         playsInline
+        preload="auto"
+      />
+      <video
+        ref={videoBRef}
+        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-0"
+        style={{ opacity: videoBOpacity, zIndex: activeVideoIndex === 1 ? 2 : 1 }}
+        onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
+        onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
+        onPlay={activeVideoIndex === 1 ? () => setIsPlaying(true) : undefined}
+        onPause={activeVideoIndex === 1 ? () => setIsPlaying(false) : undefined}
+        muted={isMuted}
+        playsInline
+        preload="auto"
       />
 
       {/* Overlay Controls */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
         {/* Center Play Button */}
         <button
           onClick={togglePlay}
@@ -223,7 +477,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
                 style={{ width: `${overallProgress}%` }}
               />
             </div>
-            <span className="text-xs text-white/80 w-12 text-right">{formatTime(manifest.totalDuration)}</span>
+            <span className="text-xs text-white/80 w-12 text-right">{formatTime(totalDuration)}</span>
           </div>
 
           {/* Control Buttons */}
@@ -257,7 +511,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={toggleMute}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </Button>
@@ -268,7 +522,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
               {manifest.clips.map((_, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setCurrentClipIndex(idx)}
+                  onClick={() => skipToClip(idx)}
                   className={cn(
                     "w-2 h-2 rounded-full transition-all",
                     idx === currentClipIndex 
@@ -304,7 +558,7 @@ export function ManifestVideoPlayer({ manifestUrl, className }: ManifestVideoPla
       </div>
 
       {/* Clip Badge */}
-      <div className="absolute top-3 left-3 px-2 py-1 rounded bg-black/60 text-xs text-white/80">
+      <div className="absolute top-3 left-3 px-2 py-1 rounded bg-black/60 text-xs text-white/80 z-10">
         Clip {currentClipIndex + 1} of {manifest.clips.length}
       </div>
     </div>

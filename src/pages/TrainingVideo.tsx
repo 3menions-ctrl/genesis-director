@@ -101,6 +101,39 @@ const BACKGROUND_PRESETS = [
   { id: 'space_station', name: 'Space Station', image: spaceStationImg, category: 'scifi' },
 ];
 
+// Background descriptions for richer video prompts
+function getBackgroundDescription(backgroundId: string): string {
+  const descriptions: Record<string, string> = {
+    white_studio: 'Clean white cyclorama studio with soft diffused lighting, minimalist professional backdrop.',
+    home_studio: 'Modern home office studio setup with ring light, acoustic panels, professional yet approachable atmosphere.',
+    golden_hour_studio: 'Warm golden hour lighting streaming through windows, cinematic amber tones, romantic studio ambiance.',
+    podcast_studio: 'Professional podcast studio with foam panels, boom microphone visible, intimate broadcast setting.',
+    news_studio: 'Broadcast news desk setup with multiple monitors, professional lighting grid, authoritative media environment.',
+    green_screen: 'Chroma key green screen setup for compositing, evenly lit green backdrop.',
+    corporate_boardroom: 'Executive boardroom with mahogany table, city skyline through windows, premium corporate setting.',
+    startup_office: 'Modern open-plan startup office with exposed brick, standing desks, energetic tech company vibe.',
+    executive_library: 'Traditional executive library with leather chairs, book-lined walls, prestigious academic atmosphere.',
+    modern_minimalist: 'Ultra-clean minimalist space with concrete walls, designer furniture, architectural lighting.',
+    urban_luxury: 'High-rise penthouse with floor-to-ceiling windows, city lights, sophisticated urban luxury.',
+    lecture_hall: 'University lecture hall with tiered seating, projection screen, academic teaching environment.',
+    modern_classroom: 'Contemporary classroom with interactive whiteboard, collaborative seating, educational setting.',
+    webinar_stage: 'Professional webinar stage with branded backdrop, presentation screen, virtual event setup.',
+    science_lab: 'Research laboratory with equipment, monitors, scientific instruments, high-tech research environment.',
+    medical_training: 'Medical training facility with anatomical models, clinical setting, healthcare education environment.',
+    workshop_training: 'Hands-on workshop space with tools, workbenches, practical skills training environment.',
+    coffee_shop: 'Cozy coffee shop corner with warm lighting, exposed brick, casual comfortable atmosphere.',
+    cozy_firelight: 'Intimate fireside setting with warm flickering light, comfortable seating, relaxed ambiance.',
+    cozy_cabin: 'Rustic cabin interior with wooden beams, fireplace, mountain lodge comfort.',
+    zen_garden: 'Tranquil zen garden with raked sand, bonsai, bamboo, peaceful meditation space.',
+    neon_nights: 'Cyberpunk neon-lit environment with colorful LED strips, futuristic urban nightlife aesthetic.',
+    tropical_paradise: 'Beachside tropical setting with palm trees, ocean view, paradise vacation backdrop.',
+    mountain_summit: 'Mountain peak overlook with panoramic views, alpine scenery, inspiring summit location.',
+    cherry_blossom: 'Japanese cherry blossom garden in spring, pink petals, serene traditional garden.',
+    space_station: 'Futuristic space station interior with curved walls, holographic displays, sci-fi environment.',
+  };
+  return descriptions[backgroundId] || 'Professional studio environment with balanced lighting.';
+}
+
 type GenerationStep = 'idle' | 'generating_audio' | 'generating_video' | 'applying_lipsync' | 'complete' | 'error';
 
 // Wizard steps - logical order: Script first (content), Voice (how it sounds), Character (who speaks), Scene (backdrop)
@@ -375,7 +408,7 @@ export default function TrainingVideo() {
     return () => clearTimeout(autoPreloadTimeout);
   }, []);
 
-  // Generate training video
+  // Generate training video - Uses dedicated avatar pipeline
   const handleGenerate = async () => {
     if (!characterImage || !scriptText.trim()) {
       toast.error('Please upload a character image and enter script text');
@@ -393,6 +426,10 @@ export default function TrainingVideo() {
     setGeneratedVideoUrl(null);
 
     try {
+      // Get the selected background for the prompt
+      const selectedBg = BACKGROUND_PRESETS.find(b => b.id === selectedBackground);
+      const backgroundName = selectedBg?.name || 'professional studio';
+      
       // Step 1: Generate audio from text (30%)
       toast.info('Generating voice audio...');
       setProgress(10);
@@ -422,24 +459,55 @@ export default function TrainingVideo() {
       setGeneratedAudioUrl(audioUrl);
       setProgress(30);
 
-      // Step 2: Generate video with character image (60%)
+      // Step 2: Upload character image to storage for use with video generation
       setGenerationStep('generating_video');
-      toast.info('Generating character video...');
+      toast.info('Preparing avatar for video generation...');
       
-      const backgroundUrl = customBackground || 
-        BACKGROUND_PRESETS.find(b => b.id === selectedBackground)?.image || 
-        homeStudioImg;
+      // Upload the character image to storage first
+      const imageBlob = await fetch(characterImage).then(r => r.blob());
+      const imageFileName = `training-avatar-${user.id}-${Date.now()}.jpg`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('character-references')
+        .upload(imageFileName, imageBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+      
+      if (uploadError) {
+        console.warn('Image upload failed, using base64:', uploadError);
+      }
+      
+      // Get the public URL for the uploaded image
+      let avatarImageUrl: string;
+      if (uploadData) {
+        const { data: publicUrl } = supabase.storage
+          .from('character-references')
+          .getPublicUrl(imageFileName);
+        avatarImageUrl = publicUrl.publicUrl;
+      } else {
+        // Fallback to base64 in prompt if upload failed
+        avatarImageUrl = characterImage;
+      }
+      
+      setProgress(40);
+      toast.info('Generating talking head video with your character...');
+      
+      // Build a rich prompt that describes the scene with the background
+      const scenePrompt = `Professional training video presenter. The person is speaking directly to camera in a ${backgroundName} environment. ${getBackgroundDescription(selectedBackground || 'home_studio')} Natural head movements, subtle gestures, direct eye contact, confident professional demeanor. Corporate training video aesthetic. The presenter is delivering educational content with engaging body language.`;
 
-      const imageBase64 = characterImage.split(',')[1];
-      
+      // Use generate-video with the character image as start_image
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: {
-          prompt: `Professional talking head video. A person speaking directly to camera in a ${selectedBackground || 'professional studio'} setting. Natural head movements, professional presentation style, corporate training video aesthetic. The person is delivering an educational presentation with confident body language.`,
-          imageUrl: characterImage,
-          imageBase64,
+          prompt: scenePrompt,
+          imageUrl: avatarImageUrl,
+          imageBase64: characterImage.split(',')[1],
           aspectRatio: '16:9',
           duration: Math.min(Math.ceil(scriptText.length / 15), 10),
           userId: user.id,
+          // Pass additional context for training video mode
+          mode: 'training_avatar',
+          voiceId: selectedVoice,
         },
       });
 

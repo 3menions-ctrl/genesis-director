@@ -584,8 +584,13 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     const activeVideo = getActiveVideo();
     const standbyVideo = getStandbyVideo();
     
+    // CRITICAL FIX: Capture which video is currently active BEFORE state update
+    // This prevents closure bugs where the RAF callback uses stale activeVideoIndex
+    const currentActiveIndex = activeVideoIndex;
+    
     if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
       standbyVideo.currentTime = 0;
+      standbyVideo.muted = isMuted;
       
       // CRITICAL: Set BOTH videos to full opacity BEFORE playing next
       // This ensures there's never a frame where neither video is visible
@@ -596,7 +601,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       standbyVideo.play().catch(() => {});
       
       // Swap active/standby state
-      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+      setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
       setCurrentClipIndex(nextIndex);
       setIsPlaying(true);
       
@@ -604,8 +609,9 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       // BEFORE we hide the old video - this prevents ANY visual gap
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          // Now that next video has rendered at least 1 frame, hide the old one
-          if (activeVideoIndex === 0) {
+          // Now that next video has rendered at least 1 frame, hide the OLD one
+          // Use captured currentActiveIndex to avoid closure bug
+          if (currentActiveIndex === 0) {
             setVideoAOpacity(0);
           } else {
             setVideoBOpacity(0);
@@ -629,10 +635,11 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       });
     } else {
       // Fallback if standby not ready
+      console.warn('[SmartStitcher] Standby video not ready, skipping transition');
       isTransitioningRef.current = false;
       setIsCrossfading(false);
     }
-  }, [currentClipIndex, clips, isCrossfading, activeVideoIndex, getActiveVideo, getStandbyVideo]);
+  }, [currentClipIndex, clips, isCrossfading, isMuted, activeVideoIndex, getActiveVideo, getStandbyVideo]);
 
   // Keep the ref updated with the latest trigger function
   useEffect(() => {

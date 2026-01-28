@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Film } from 'lucide-react';
+import { ArrowLeft, Film, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { CollaborativeMovieHub } from '@/components/genesis/CollaborativeMovieHub';
 import { UniverseEmptyState } from '@/components/universes/UniverseEmptyState';
 import { useUniverses } from '@/hooks/useUniverses';
-import universeBackground from '@/assets/universe-background.jpg';
+import UniversesBackground from '@/components/universes/UniversesBackground';
+import { motion } from 'framer-motion';
 
 export default function Universes() {
   const navigate = useNavigate();
@@ -13,41 +15,41 @@ export default function Universes() {
   const hasUniverses = !isLoading && universes && universes.length > 0;
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-10"
-        style={{ backgroundImage: `url(${universeBackground})` }}
-      />
-      <div className="fixed inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
+    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+      <UniversesBackground />
+      <AppHeader />
 
-      <div className="relative z-10">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border/50">
-          <div className="container mx-auto px-4 py-3 flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/projects')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Film className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-semibold">Genesis Universe</h1>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-amber-400" />
             </div>
+            <h1 className="text-2xl font-bold text-white">Genesis Universes</h1>
           </div>
-        </div>
+          <p className="text-white/50 ml-13">
+            Create and explore collaborative cinematic universes
+          </p>
+        </motion.div>
 
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
           {!isLoading && !hasUniverses ? (
             <UniverseEmptyState onCreated={(id) => navigate(`/universes/${id}`)} />
           ) : (
             <CollaborativeMovieHub />
           )}
-        </div>
-      </div>
+        </motion.div>
+      </main>
     </div>
   );
 }

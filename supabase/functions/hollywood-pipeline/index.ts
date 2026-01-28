@@ -2909,6 +2909,9 @@ async function runProduction(
           totalClips: clips.length,
           startImageUrl: useStartImage, // Last frame for MOTION continuity
           previousMotionVectors,
+          // CRITICAL FIX: Pass duration from clip/state - user's selection
+          // CRITICAL FIX: Pass duration from state - user's selection
+          durationSeconds: state.clipDuration || 5,
           // NEW: Pass previous shot's continuity manifest for comprehensive consistency
           previousContinuityManifest: i > 0 ? previousContinuityManifest : undefined,
           // NEW: Pass golden frame data from clip 1 to prevent character decay
@@ -3380,6 +3383,7 @@ async function runProduction(
                 colorGrading: request.colorGrading || 'cinematic',
                 qualityTier: request.qualityTier || 'standard',
                 aspectRatio: request.aspectRatio || '16:9',
+                durationSeconds: state.clipDuration || 5,
                 referenceImageUrl,
                 isRetry: true,
                 sceneContext: clip.sceneContext,
@@ -3909,6 +3913,7 @@ async function runProduction(
                   colorGrading: request.colorGrading || 'cinematic',
                   qualityTier: request.qualityTier || 'standard',
                   aspectRatio: request.aspectRatio || '16:9',
+                  durationSeconds: state.clipDuration || 5,
                   referenceImageUrl,
                   isRetry: true,
                   isIdentityRetry: true,

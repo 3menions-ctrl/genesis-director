@@ -47,7 +47,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_CLIP_DURATION = 6;
+const DEFAULT_CLIP_DURATION = 5; // Kling 2.6: Default to 5 seconds
 
 // =====================================================
 // APEX MANDATORY QUALITY SUFFIX

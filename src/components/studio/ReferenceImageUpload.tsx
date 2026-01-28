@@ -17,6 +17,7 @@ interface ReferenceImageUploadProps {
   onAnalysisComplete: (analysis: ReferenceImageAnalysis) => void;
   onClear?: () => void;
   existingAnalysis?: ReferenceImageAnalysis;
+  targetAspectRatio?: '16:9' | '9:16' | '1:1';
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export function ReferenceImageUpload({
   onAnalysisComplete, 
   onClear,
   existingAnalysis,
+  targetAspectRatio = '16:9',
   className 
 }: ReferenceImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -95,13 +97,21 @@ export function ReferenceImageUpload({
 
       toast.info('Analyzing reference image with AI vision...');
 
-      // Call the analysis edge function
+      // Call the analysis edge function with target aspect ratio
       const { data, error: fnError } = await supabase.functions.invoke('analyze-reference-image', {
-        body: { imageBase64 },
+        body: { 
+          imageBase64,
+          targetAspectRatio, // Pass target aspect ratio for auto-expansion
+        },
       });
 
       if (fnError) throw fnError;
       if (data.error) throw new Error(data.error);
+
+      // Show expansion status if image was expanded
+      if (data.wasExpanded) {
+        toast.success(`Image expanded from ${data.originalAspectRatio} to ${data.targetAspectRatio} for optimal video generation`);
+      }
 
       // Use the storage URL returned from the edge function (HTTP URL for Replicate)
       // Fall back to local preview for display purposes only
@@ -118,7 +128,13 @@ export function ReferenceImageUpload({
 
       setAnalysis(analysisResult);
       onAnalysisComplete(analysisResult);
-      toast.success('Reference image analyzed! Visual anchors extracted.');
+      
+      // Final success message
+      if (!data.wasExpanded) {
+        toast.success('Reference image analyzed! Visual anchors extracted.');
+      } else {
+        toast.success('Image analyzed and expanded to fit your video aspect ratio!');
+      }
 
     } catch (err) {
       console.error('Image analysis error:', err);

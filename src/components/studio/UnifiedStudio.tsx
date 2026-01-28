@@ -1863,6 +1863,7 @@ export function UnifiedStudio() {
                     onAnalysisComplete={(analysis) => setReferenceImageAnalysis(analysis)}
                     onClear={() => setReferenceImageAnalysis(undefined)}
                     existingAnalysis={referenceImageAnalysis}
+                    targetAspectRatio={aspectRatio as '16:9' | '9:16' | '1:1'}
                   />
                 </div>
               </CollapsibleContent>

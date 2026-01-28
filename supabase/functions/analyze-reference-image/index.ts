@@ -204,6 +204,62 @@ async function uploadToStorage(base64Data: string): Promise<string> {
   return publicUrlData.publicUrl;
 }
 
+/**
+ * Expand image to target aspect ratio using AI outpainting
+ */
+async function expandImageToAspectRatio(
+  imageUrl: string,
+  currentOrientation: ImageOrientation,
+  targetAspectRatio: '16:9' | '9:16' | '1:1',
+  environmentPrompt: string
+): Promise<{ expanded: boolean; imageUrl: string }> {
+  // Check if expansion is needed
+  if (currentOrientation.veoAspectRatio === targetAspectRatio) {
+    console.log('[analyze-reference-image] No aspect ratio expansion needed');
+    return { expanded: false, imageUrl };
+  }
+  
+  console.log(`[analyze-reference-image] Expanding image from ${currentOrientation.veoAspectRatio} to ${targetAspectRatio}`);
+  
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  
+  try {
+    // Call the expand-image-aspect-ratio edge function
+    const response = await fetch(`${supabaseUrl}/functions/v1/expand-image-aspect-ratio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        imageUrl,
+        targetAspectRatio,
+        environmentPrompt,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[analyze-reference-image] Expansion failed:', errorText);
+      // Fall back to original image
+      return { expanded: false, imageUrl };
+    }
+    
+    const result = await response.json();
+    
+    if (result.expanded && result.imageUrl) {
+      console.log('[analyze-reference-image] Image successfully expanded:', result.imageUrl);
+      return { expanded: true, imageUrl: result.imageUrl };
+    }
+    
+    return { expanded: false, imageUrl };
+  } catch (err) {
+    console.error('[analyze-reference-image] Expansion error:', err);
+    // Fall back to original image on error
+    return { expanded: false, imageUrl };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -211,7 +267,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, imageBase64 } = await req.json();
+    const { imageUrl, imageBase64, targetAspectRatio } = await req.json();
     
     if (!imageUrl && !imageBase64) {
       return new Response(
@@ -373,10 +429,51 @@ Return ONLY valid JSON in this exact format:
     
     console.log('[analyze-reference-image] Image orientation detected:', imageOrientation);
 
+    // NEW: Expand image to target aspect ratio if needed
+    let finalImageUrl = storedImageUrl;
+    let wasExpanded = false;
+    const validTargetRatio = targetAspectRatio as '16:9' | '9:16' | '1:1' | undefined;
+    
+    if (validTargetRatio && validTargetRatio !== imageOrientation.veoAspectRatio) {
+      console.log(`[analyze-reference-image] Aspect ratio mismatch detected: image is ${imageOrientation.veoAspectRatio}, target is ${validTargetRatio}`);
+      
+      // Build environment prompt from analysis for seamless outpainting
+      const environmentPrompt = [
+        parsedAnalysis.environment?.setting,
+        parsedAnalysis.lighting?.style,
+        parsedAnalysis.colorPalette?.mood,
+        parsedAnalysis.consistencyPrompt
+      ].filter(Boolean).join(', ');
+      
+      const expansionResult = await expandImageToAspectRatio(
+        storedImageUrl,
+        imageOrientation,
+        validTargetRatio,
+        environmentPrompt
+      );
+      
+      if (expansionResult.expanded) {
+        finalImageUrl = expansionResult.imageUrl;
+        wasExpanded = true;
+        console.log('[analyze-reference-image] Image expanded to target aspect ratio');
+      }
+    }
+
+    // Update orientation to reflect target if expanded
+    const finalOrientation = wasExpanded && validTargetRatio
+      ? {
+          ...imageOrientation,
+          veoAspectRatio: validTargetRatio,
+          orientation: validTargetRatio === '16:9' ? 'landscape' as const 
+            : validTargetRatio === '9:16' ? 'portrait' as const 
+            : 'square' as const,
+        }
+      : imageOrientation;
+
     const analysis: ReferenceImageAnalysis = {
-      imageUrl: storedImageUrl,
+      imageUrl: finalImageUrl,
       analysisComplete: true,
-      imageOrientation,
+      imageOrientation: finalOrientation,
       characterIdentity: parsedAnalysis.characterIdentity || {
         description: '',
         facialFeatures: '',
@@ -410,10 +507,16 @@ Return ONLY valid JSON in this exact format:
       lightingStyle: analysis.lighting.style,
       orientation: analysis.imageOrientation.orientation,
       veoAspectRatio: analysis.imageOrientation.veoAspectRatio,
+      wasExpanded,
     });
 
     return new Response(
-      JSON.stringify({ analysis }),
+      JSON.stringify({ 
+        analysis,
+        wasExpanded,
+        originalAspectRatio: imageOrientation.veoAspectRatio,
+        targetAspectRatio: validTargetRatio,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

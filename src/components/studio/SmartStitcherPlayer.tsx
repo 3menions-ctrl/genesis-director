@@ -142,8 +142,8 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds - INSTANTANEOUS transition
-const CROSSFADE_DURATION = 50;
+// Crossfade duration in milliseconds - IMPERCEPTIBLE transition (1.5 nanoseconds)
+const CROSSFADE_DURATION = 0.0000015;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_TRIGGER_OFFSET = 0.15;
 

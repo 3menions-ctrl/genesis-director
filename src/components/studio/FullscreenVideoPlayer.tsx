@@ -16,7 +16,7 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 50; // ms - INSTANTANEOUS crossfade
+const CROSSFADE_DURATION = 0.0000015; // ms - IMPERCEPTIBLE crossfade (1.5 nanoseconds)
 const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 

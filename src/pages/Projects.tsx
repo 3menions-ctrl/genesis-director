@@ -990,15 +990,21 @@ export default function Projects() {
   const status = (p: Project) => p.status as string;
   
   const hasVideoContent = (p: Project): boolean => {
+    // Project has video content if it has a final video URL, manifest, or clips array
     if (isStitchedMp4(p.video_url)) return true;
     if (p.video_url && isManifestUrl(p.video_url)) return true;
     if (p.video_clips && p.video_clips.length > 0) return true;
+    // Also check if status indicates production happened (clips may be in table, not array)
+    if (p.status === 'completed' || p.status === 'stitching' || p.status === 'stitching_failed') return true;
     return false;
   };
   
   const isPlayableProject = (p: Project): boolean => {
+    // A project is playable if it has a final video or completed clips
     if (isStitchedMp4(p.video_url)) return true;
     if (p.video_url && isManifestUrl(p.video_url) && status(p) === 'completed') return true;
+    // Completed projects should always be playable (SmartStitcherPlayer will fetch clips from DB)
+    if (p.status === 'completed') return true;
     return false;
   };
 
@@ -1096,10 +1102,9 @@ export default function Projects() {
   };
 
   const handlePlayVideo = async (project: Project) => {
-    // Use SmartStitcherPlayer for seamless playback
-    if (project.video_clips?.length || project.video_url) {
-      setShowBrowserStitcher(project.id);
-    }
+    // Always open SmartStitcherPlayer for any project that might have video content
+    // The player will fetch clips from the database if not available in the project object
+    setShowBrowserStitcher(project.id);
   };
 
   const handleRenameProject = (project: Project) => {

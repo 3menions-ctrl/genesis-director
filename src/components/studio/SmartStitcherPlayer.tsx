@@ -207,7 +207,13 @@ export function SmartStitcherPlayer({
   const currentClip = clips[currentClipIndex];
   const loadedCount = clips.filter((c) => c.loaded).length;
 
-  // Fetch clips from database if not provided
+  // Retry count for database fetches - increment triggers re-fetch
+  const [fetchRetryCount, setFetchRetryCount] = useState(0);
+  // Manual retry trigger - increment to force re-fetch
+  const [manualRetryTrigger, setManualRetryTrigger] = useState(0);
+  const maxFetchRetries = 3;
+
+  // Fetch clips from database if not provided - with robust fallbacks
   useEffect(() => {
     const controller = new AbortController();
     
@@ -217,40 +223,93 @@ export function SmartStitcherPlayer({
       setLoadProgress(0);
 
       try {
-        let urls: string[];
+        let urls: string[] = [];
         
+        // Priority 1: Use provided clip URLs
         if (providedClipUrls && providedClipUrls.length > 0) {
+          console.log('[SmartStitcher] Using provided clip URLs:', providedClipUrls.length);
           urls = providedClipUrls;
-        } else {
-          // First try video_clips column from movie_projects
-          const { data: projectData } = await supabase
-            .from('movie_projects')
-            .select('video_clips, video_url')
-            .eq('id', projectId)
-            .single();
+        } 
+        
+        // Priority 2: Check video_clips TABLE (completed clips with video_url)
+        if (urls.length === 0) {
+          console.log('[SmartStitcher] Fetching from video_clips table for project:', projectId);
+          
+          const { data: tableClips, error: tableError } = await supabase
+            .from('video_clips')
+            .select('id, video_url, shot_index, status, quality_score, created_at')
+            .eq('project_id', projectId)
+            .eq('status', 'completed')
+            .not('video_url', 'is', null)
+            .order('shot_index', { ascending: true })
+            .order('quality_score', { ascending: false, nullsFirst: false });
 
-          if (projectData?.video_clips?.length) {
-            urls = projectData.video_clips;
-          } else {
-            // Fallback to video_clips table
-            const { data, error } = await supabase
-              .from('video_clips')
-              .select('video_url, shot_index')
-              .eq('project_id', projectId)
-              .eq('status', 'completed')
-              .not('video_url', 'is', null)
-              .order('shot_index', { ascending: true });
-
-            if (error) throw error;
-            urls = data?.map((clip) => clip.video_url).filter(Boolean) as string[];
+          if (tableError) {
+            console.error('[SmartStitcher] Error fetching from video_clips table:', tableError);
+          } else if (tableClips && tableClips.length > 0) {
+            // Select BEST clip per shot_index (highest quality_score)
+            const bestClipsMap = new Map<number, typeof tableClips[0]>();
+            for (const clip of tableClips) {
+              const existing = bestClipsMap.get(clip.shot_index);
+              if (!existing) {
+                bestClipsMap.set(clip.shot_index, clip);
+              } else {
+                const existingScore = existing.quality_score ?? -1;
+                const newScore = clip.quality_score ?? -1;
+                if (newScore > existingScore || 
+                    (newScore === existingScore && clip.created_at > existing.created_at)) {
+                  bestClipsMap.set(clip.shot_index, clip);
+                }
+              }
+            }
+            
+            const sortedClips = Array.from(bestClipsMap.values())
+              .sort((a, b) => a.shot_index - b.shot_index);
+            
+            urls = sortedClips.map(c => c.video_url).filter(Boolean) as string[];
+            console.log('[SmartStitcher] Found', urls.length, 'best clips from table');
           }
         }
 
+        // Priority 3: Fallback to movie_projects.video_clips array
         if (urls.length === 0) {
-          setLoadError('No completed clips found');
+          console.log('[SmartStitcher] Fallback to movie_projects.video_clips array');
+          
+          const { data: projectData, error: projectError } = await supabase
+            .from('movie_projects')
+            .select('video_clips, video_url')
+            .eq('id', projectId)
+            .maybeSingle();
+
+          if (projectError) {
+            console.error('[SmartStitcher] Error fetching project:', projectError);
+          } else if (projectData?.video_clips?.length) {
+            urls = projectData.video_clips.filter(Boolean);
+            console.log('[SmartStitcher] Found', urls.length, 'clips from project array');
+          } else if (projectData?.video_url && !projectData.video_url.endsWith('.json')) {
+            // Single final video URL
+            urls = [projectData.video_url];
+            console.log('[SmartStitcher] Using single video_url');
+          }
+        }
+
+        // Final check - no clips found
+        if (urls.length === 0) {
+          // Retry logic - maybe clips are still being saved
+          if (fetchRetryCount < maxFetchRetries) {
+            console.log(`[SmartStitcher] No clips found, retrying (${fetchRetryCount + 1}/${maxFetchRetries})...`);
+            setFetchRetryCount(prev => prev + 1);
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s before retry
+            return; // Exit and let the effect re-run
+          }
+          
+          setLoadError('No completed clips found. Try clicking Retry or wait for clips to finish generating.');
           setIsLoadingClips(false);
           return;
         }
+
+        // Reset retry count on success
+        setFetchRetryCount(0);
 
         // Initialize clips array
         const initialClips: ClipData[] = urls.map((url) => ({
@@ -294,6 +353,7 @@ export function SmartStitcherPlayer({
               return;
             } catch (err) {
               lastError = err instanceof Error ? err : new Error(String(err));
+              console.warn(`[SmartStitcher] Clip ${index} load attempt ${attempt + 1} failed:`, lastError.message);
               if (attempt < maxRetries - 1) {
                 await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
               }
@@ -324,7 +384,7 @@ export function SmartStitcherPlayer({
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          console.error('Failed to fetch clips:', err);
+          console.error('[SmartStitcher] Failed to fetch clips:', err);
           setLoadError(err instanceof Error ? err.message : 'Failed to load clips');
           setIsLoadingClips(false);
         }
@@ -336,7 +396,7 @@ export function SmartStitcherPlayer({
     return () => {
       controller.abort();
     };
-  }, [projectId, providedClipUrls, autoPlay]);
+  }, [projectId, providedClipUrls, autoPlay, fetchRetryCount, manualRetryTrigger]);
 
   // Setup first clip and preload second when clips are loaded
   useEffect(() => {
@@ -923,6 +983,18 @@ export function SmartStitcherPlayer({
     };
   }, []);
 
+  // Retry handler for failed loads - triggers re-fetch from database
+  // IMPORTANT: This hook must be before any early returns
+  const handleRetry = useCallback(() => {
+    console.log('[SmartStitcher] Manual retry triggered');
+    setLoadError(null);
+    setClips([]);
+    setFetchRetryCount(0);
+    setIsLoadingClips(true);
+    // Increment manual trigger to force the useEffect to re-run
+    setManualRetryTrigger(prev => prev + 1);
+  }, []);
+
   // Loading state
   if (isLoadingClips) {
     return (
@@ -939,13 +1011,21 @@ export function SmartStitcherPlayer({
     );
   }
 
-  // Error state
-  if (loadError || clips.length === 0) {
+  // Error state with smart retry
+  if (loadError || (clips.length === 0 && !isLoadingClips)) {
     return (
       <div className={cn('flex flex-col items-center justify-center bg-black rounded-xl aspect-video', className)}>
         <AlertCircle className="w-10 h-10 text-destructive mb-4" />
-        <p className="text-sm text-destructive">{loadError || 'No clips available'}</p>
-        <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={() => window.location.reload()}>
+        <p className="text-sm text-destructive text-center px-4">{loadError || 'No clips available'}</p>
+        <p className="text-xs text-muted-foreground mt-2 text-center px-4">
+          Clips may still be generating. Click Retry to check again.
+        </p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-4 gap-2" 
+          onClick={handleRetry}
+        >
           <RefreshCw className="w-4 h-4" />
           Retry
         </Button>

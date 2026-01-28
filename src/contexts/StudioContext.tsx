@@ -151,7 +151,37 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         return [];
       }
       
-      const mappedProjects = data.map(mapDbProject);
+      // FAILSAFE: Enrich projects with clips from video_clips table
+      // This ensures video_clips array is always populated even if the column is null
+      const projectIds = data.map(p => p.id);
+      const { data: allClips } = await supabase
+        .from('video_clips')
+        .select('project_id, video_url, shot_index, status')
+        .in('project_id', projectIds)
+        .eq('status', 'completed')
+        .not('video_url', 'is', null)
+        .order('shot_index', { ascending: true });
+      
+      // Group clips by project_id
+      const clipsByProject: Record<string, string[]> = {};
+      if (allClips) {
+        for (const clip of allClips) {
+          if (!clipsByProject[clip.project_id]) {
+            clipsByProject[clip.project_id] = [];
+          }
+          clipsByProject[clip.project_id].push(clip.video_url);
+        }
+      }
+      
+      const mappedProjects = data.map(dbProject => {
+        const mapped = mapDbProject(dbProject);
+        // If project doesn't have video_clips but we found clips in the table, use those
+        if ((!mapped.video_clips || mapped.video_clips.length === 0) && clipsByProject[dbProject.id]) {
+          mapped.video_clips = clipsByProject[dbProject.id];
+        }
+        return mapped;
+      });
+      
       setProjects(mappedProjects);
       setHasLoadedOnce(true);
       

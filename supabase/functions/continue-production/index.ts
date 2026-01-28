@@ -295,7 +295,7 @@ serve(async (req: Request) => {
       .eq('id', projectId)
       .single();
 
-    let nextClipPrompt = 'Continue the scene';
+    let nextClipPrompt = '';
     let shots: any[] = [];
     
     if (scriptData?.generated_script) {
@@ -307,7 +307,7 @@ serve(async (req: Request) => {
         
         if (shots[nextClipIndex]) {
           const shot = shots[nextClipIndex];
-          nextClipPrompt = shot.description || shot.title || 'Continue the scene';
+          nextClipPrompt = shot.description || shot.title || '';
           
           // Add character identity if available
           const characters = scriptData.pro_features_data?.extractedCharacters || [];
@@ -322,6 +322,24 @@ serve(async (req: Request) => {
       } catch (e) {
         console.warn(`[ContinueProduction] Failed to parse script:`, e);
       }
+    }
+    
+    // CRITICAL VALIDATION: Ensure prompt is valid before proceeding
+    // A corrupted prompt will break the entire pipeline
+    if (!nextClipPrompt || nextClipPrompt.length < 20) {
+      console.warn(`[ContinueProduction] ⚠️ Prompt too short or empty, building from context...`);
+      
+      // Try to build from extracted characters
+      const chars = scriptData?.pro_features_data?.extractedCharacters || context?.extractedCharacters || [];
+      if (chars.length > 0) {
+        const charDesc = chars.map((c: any) => `${c.name}: ${c.appearance}`).join('; ');
+        nextClipPrompt = `[CHARACTERS: ${charDesc}] Scene ${nextClipIndex + 1} - Continue the narrative with consistent character appearance`;
+      } else if (context?.identityBible?.characterDescription) {
+        nextClipPrompt = `[CHARACTER: ${context.identityBible.characterDescription}] Scene ${nextClipIndex + 1} - Continue with consistent appearance`;
+      } else {
+        nextClipPrompt = `Scene ${nextClipIndex + 1} - Continue the narrative from the previous scene`;
+      }
+      console.log(`[ContinueProduction] ✓ Built fallback prompt: ${nextClipPrompt.substring(0, 60)}...`);
     }
 
     // Build visual continuity from previous clip

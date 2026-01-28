@@ -18,6 +18,7 @@ import { ProductionHeader } from '@/components/production/ProductionHeader';
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
 import { ProductionDashboard } from '@/components/production/ProductionDashboard';
 import { PipelineErrorBanner } from '@/components/production/PipelineErrorBanner';
+import { CinematicPipelineProgress } from '@/components/production/CinematicPipelineProgress';
 
 // Existing components - Keep for specialized functionality
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -1078,7 +1079,17 @@ export default function Production() {
                 <ProductionFinalVideo videoUrl={finalVideoUrl} />
               )}
 
-              {/* NEW: Streamlined Production Dashboard - Real data only */}
+              {/* NEW: World-Class Cinematic Pipeline Animation */}
+              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+                <CinematicPipelineProgress
+                  stages={stages}
+                  progress={progress}
+                  isComplete={isComplete}
+                  elapsedTime={elapsedTime}
+                />
+              )}
+
+              {/* Streamlined Production Dashboard - Real data only */}
               {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
                 <ProductionDashboard
                   projectTitle={projectTitle}

@@ -134,19 +134,19 @@ serve(async (req) => {
     };
 
     // ============================================================
-    // TIER 1: Cloud Run FFmpeg - AGGRESSIVE RETRY (10 attempts)
-    // This MUST succeed. We do not fall back to AI generation.
+    // TIER 1: Cloud Run FFmpeg - BALANCED RETRY (5 attempts max)
+    // Fail faster to allow fallback to reference image
     // ============================================================
     const cloudRunUrl = Deno.env.get("CLOUD_RUN_STITCHER_URL");
-    const MAX_RETRIES = 10; // Aggressive retry - frame extraction is critical
+    const MAX_RETRIES = 5; // Reduced: fail faster to use reference fallback
     
     if (cloudRunUrl) {
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
-          // Exponential backoff with jitter on retries
+          // Shorter backoff: 2s, 4s, 6s, 8s, 10s
           if (attempt > 0) {
-            const backoffMs = calculateBackoff(attempt - 1);
-            console.log(`[ExtractFrame] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${backoffMs}ms...`);
+            const backoffMs = 2000 * attempt + (Math.random() * 1000);
+            console.log(`[ExtractFrame] 🔄 Retry ${attempt + 1}/${MAX_RETRIES}, waiting ${Math.round(backoffMs)}ms...`);
             await new Promise(resolve => setTimeout(resolve, backoffMs));
           }
           
@@ -156,8 +156,7 @@ serve(async (req) => {
           console.log(`[ExtractFrame] TIER 1: Cloud Run FFmpeg attempt ${attempt + 1}/${MAX_RETRIES}`);
           
           const controller = new AbortController();
-          // Increase timeout on later attempts (30s base, up to 60s)
-          const timeoutMs = 30000 + (attempt * 5000);
+          const timeoutMs = 20000; // Fixed 20s timeout
           const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
           
           const response = await fetch(extractEndpoint, {
@@ -223,41 +222,33 @@ serve(async (req) => {
           } else {
             const errorText = await response.text();
             console.warn(`[ExtractFrame] Attempt ${attempt + 1}: HTTP ${response.status} - ${errorText.substring(0, 100)}`);
-            
-            // 4xx errors (except 429) are client errors - may not be worth retrying
-            if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-              console.warn(`[ExtractFrame] Client error ${response.status}, but will still retry...`);
-            }
-            
             continue;
           }
         } catch (cloudRunError) {
           const errorMsg = cloudRunError instanceof Error ? cloudRunError.message : 'Unknown error';
           console.warn(`[ExtractFrame] Attempt ${attempt + 1} error: ${errorMsg}`);
-          
-          // Always retry on any error type
           continue;
         }
       }
       
-      console.error(`[ExtractFrame] ❌ TIER 1 FAILED after ${MAX_RETRIES} attempts - Cloud Run extraction exhausted`);
+      console.warn(`[ExtractFrame] ⚠️ TIER 1 exhausted after ${MAX_RETRIES} attempts - moving to fallbacks`);
     } else {
-      console.error(`[ExtractFrame] ❌ CLOUD_RUN_STITCHER_URL not configured - cannot extract frames!`);
+      console.warn(`[ExtractFrame] ⚠️ CLOUD_RUN_STITCHER_URL not configured - using fallbacks`);
     }
 
     // ============================================================
-    // TIER 2: User-Uploaded Reference Image ONLY
-    // Only use images uploaded by user - no AI-generated scene images
-    // Reference image is the ONLY valid fallback for frame extraction
+    // TIER 2: User-Uploaded Reference Image (CRITICAL FALLBACK)
+    // When Cloud Run fails, use reference image to maintain continuity
+    // Scene images ARE acceptable fallbacks to prevent pipeline failure
     // ============================================================
-    console.log(`[ExtractFrame] TIER 2: Checking for user-uploaded reference image...`);
+    console.log(`[ExtractFrame] TIER 2: Using reference image as fallback for continuity...`);
     
-    // Only accept user-uploaded reference image or previously extracted golden frames
-    // Scene images are AI-generated (DALL-E) so we exclude them entirely
+    // Accept multiple fallback sources - ANY image is better than pipeline failure
     const validFallbacks = [
       { name: 'reference', url: referenceImageUrl, confidence: 'medium' as const },
       { name: 'golden', url: goldenFrameUrl, confidence: 'medium' as const },
       { name: 'identity', url: identityBibleFrontUrl, confidence: 'low' as const },
+      { name: 'scene', url: sceneImageUrl, confidence: 'low' as const }, // Accept scene images as fallback
     ].filter(s => isValidImageUrl(s.url));
     
     if (validFallbacks.length > 0) {
@@ -266,6 +257,7 @@ serve(async (req) => {
       
       await saveFrameToDb(frameUrl);
       console.log(`[ExtractFrame] ✅ TIER 2 SUCCESS (${best.name}): ${frameUrl.substring(0, 80)}...`);
+      console.log(`[ExtractFrame] ⚠️ Using fallback - next clip will chain from this reference`);
       
       return new Response(
         JSON.stringify({

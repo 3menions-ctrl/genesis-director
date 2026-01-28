@@ -1058,6 +1058,20 @@ async function runPreProduction(
         consistencyPrompt: analysis.consistencyPrompt,
       };
       
+      // =====================================================
+      // CRITICAL FIX: Always populate masterSceneAnchor from referenceAnalysis
+      // This ensures PromptBuilder has scene DNA even if identity-bible fails
+      // =====================================================
+      if (analysis) {
+        state.identityBible.masterSceneAnchor = {
+          masterConsistencyPrompt: analysis.consistencyPrompt || analysis.characterIdentity?.description || '',
+          colorPalette: analysis.colorPalette?.dominant || analysis.colorPalette || [],
+          lighting: analysis.lighting?.description || analysis.lighting?.type || '',
+          visualStyle: analysis.visualStyle || analysis.environment?.description || '',
+        };
+        console.log(`[Hollywood] ✓ masterSceneAnchor populated from referenceAnalysis (lighting=${!!analysis.lighting})`);
+      }
+      
       if (identityResult?.success) {
         // v3.0: No multi-view generation - use original reference + detailed prompts
         state.identityBible.consistencyAnchors = identityResult.consistencyAnchors || [];

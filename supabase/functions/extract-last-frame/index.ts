@@ -170,18 +170,10 @@ serve(async (req) => {
           
           console.log(`[ExtractFrame] TIER 1: Replicate extraction attempt ${attempt + 1}/${MAX_RETRIES}`);
           
-          // Use a simple video-to-image model or ffprobe approach
-          // We'll use a direct approach - get the video duration and seek to the end
-          // Using replicate's ffmpeg capability through a custom endpoint
-          
-          // Alternative: Use video thumbnail extraction via a simple fetch
-          // Many video URLs support frame extraction via query params
-          
-          // For Supabase-hosted videos, we can try adding a thumbnail query
-          // But since this might not work, we'll use Replicate's prediction API
-          
-          // Start a prediction to extract frames using lucataco/extract-video-frames
-          // This model is reliable and actively maintained
+          // Use lucataco/frame-extractor - simple, reliable first/last frame extraction
+          // 825K+ runs on Replicate, specifically designed for video-to-video workflows
+          // Cost: ~$0.0001 per run, completes in ~1 second
+          // Version: c02b3c1df64728476b1c21b0876235119e6ac08b0c9b8a99b82c5f0e0d42442d
           const predictionResponse = await fetch('https://api.replicate.com/v1/predictions', {
             method: 'POST',
             headers: {
@@ -189,11 +181,10 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              // lucataco/extract-video-frames - reliable frame extraction
-              version: "3d73be6d3b3a80e48e6ba31f4e33b9e1419a19094518c4f8ca0cc6c1c7f91dbe",
+              version: "c02b3c1df64728476b1c21b0876235119e6ac08b0c9b8a99b82c5f0e0d42442d",
               input: {
                 video: videoUrl,
-                fps: 2, // Extract 2 frames per second to ensure we get the last frame
+                return_first_frame: position === 'first', // false = last frame (default)
               }
             }),
           });
@@ -235,20 +226,37 @@ serve(async (req) => {
             const status = await statusResponse.json();
             
             if (status.status === 'succeeded') {
-              // Output should be an array of frame URLs
-              const frames = status.output;
+              // lucataco/frame-extractor returns a single image URL directly
+              const frameOutput = status.output;
               
-              if (Array.isArray(frames) && frames.length > 0) {
-                // Get the last frame
-                const lastFrameUrl = position === 'last' ? frames[frames.length - 1] : frames[0];
+              if (frameOutput && typeof frameOutput === 'string') {
+                // Download and re-upload to our storage for permanence
+                const storedUrl = await downloadAndStore(frameOutput);
+                const finalUrl = storedUrl || frameOutput;
+                
+                await saveFrameToDb(finalUrl);
+                console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS: ${finalUrl.substring(0, 80)}...`);
+                
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    frameUrl: finalUrl,
+                    method: 'replicate-extract',
+                    confidence: 'high',
+                    retryCount: attempt,
+                  } as ExtractLastFrameResult),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              } else if (Array.isArray(frameOutput) && frameOutput.length > 0) {
+                // Fallback: some models might return array - get last frame
+                const lastFrameUrl = position === 'last' ? frameOutput[frameOutput.length - 1] : frameOutput[0];
                 
                 if (lastFrameUrl) {
-                  // Download and re-upload to our storage for permanence
                   const storedUrl = await downloadAndStore(lastFrameUrl);
                   const finalUrl = storedUrl || lastFrameUrl;
                   
                   await saveFrameToDb(finalUrl);
-                  console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS: ${finalUrl.substring(0, 80)}...`);
+                  console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS (array): ${finalUrl.substring(0, 80)}...`);
                   
                   return new Response(
                     JSON.stringify({
@@ -261,27 +269,9 @@ serve(async (req) => {
                     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
                   );
                 }
-              } else if (typeof frames === 'string' && frames) {
-                // Single output URL
-                const storedUrl = await downloadAndStore(frames);
-                const finalUrl = storedUrl || frames;
-                
-                await saveFrameToDb(finalUrl);
-                console.log(`[ExtractFrame] ✅ TIER 1 SUCCESS (single): ${finalUrl.substring(0, 80)}...`);
-                
-                return new Response(
-                  JSON.stringify({
-                    success: true,
-                    frameUrl: finalUrl,
-                    method: 'replicate-extract',
-                    confidence: 'high',
-                    retryCount: attempt,
-                  } as ExtractLastFrameResult),
-                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
               }
               
-              console.warn(`[ExtractFrame] Extraction succeeded but no frames returned`);
+              console.warn(`[ExtractFrame] Extraction succeeded but no valid output returned: ${JSON.stringify(frameOutput)}`);
               break;
             } else if (status.status === 'failed') {
               console.warn(`[ExtractFrame] Prediction failed: ${status.error}`);

@@ -167,6 +167,76 @@ export interface FaceLock {
   sourceImageUrl?: string;
 }
 
+// =============================================================================
+// MULTI-VIEW IDENTITY BIBLE (5-ANGLE CHARACTER CONSISTENCY)
+// =============================================================================
+
+export interface MultiViewViewDescription {
+  viewType: 'front' | 'side' | 'three-quarter' | 'back' | 'silhouette';
+  description: string;
+  keyFeatures: string[];
+  consistencyAnchors: string[];
+  negativePrompts: string[];
+}
+
+export interface MultiViewIdentityBible {
+  characterName?: string;
+  
+  // Core identity (from reference)
+  coreIdentity?: {
+    description?: string;
+    facialFeatures?: string;
+    bodyType?: string;
+    height?: string;
+    skinTone?: string;
+    age?: string;
+    gender?: string;
+  };
+  
+  // 5-view descriptions
+  views?: {
+    front?: MultiViewViewDescription;
+    side?: MultiViewViewDescription;
+    threeQuarter?: MultiViewViewDescription;
+    back?: MultiViewViewDescription;
+    silhouette?: MultiViewViewDescription;
+  };
+  
+  // Non-facial anchors (critical for back/occluded views)
+  nonFacialAnchors?: {
+    bodyType?: string;
+    bodyProportions?: string;
+    posture?: string;
+    gait?: string;
+    height?: string;
+    clothingDescription?: string;
+    clothingColors?: string[];
+    clothingPatterns?: string[];
+    clothingTextures?: string[];
+    clothingDistinctive?: string;
+    hairColor?: string;
+    hairColorHex?: string;
+    hairLength?: string;
+    hairStyle?: string;
+    hairFromBehind?: string;
+    hairSilhouette?: string;
+    accessories?: string[];
+    accessoryPositions?: string;
+    backViewMarkers?: string;
+    overallSilhouette?: string;
+  };
+  
+  // Comprehensive consistency prompt
+  masterConsistencyPrompt?: string;
+  
+  // Global negatives
+  occlusionNegatives?: string[];
+  
+  // Metadata
+  extractedAt?: string;
+  confidence?: number;
+}
+
 export interface PromptBuildRequest {
   // Base prompt (shot description)
   basePrompt: string;
@@ -177,6 +247,9 @@ export interface PromptBuildRequest {
   
   // FACE LOCK (HIGHEST PRIORITY - injected FIRST)
   faceLock?: FaceLock;
+  
+  // MULTI-VIEW IDENTITY BIBLE (5-angle character consistency)
+  multiViewIdentityBible?: MultiViewIdentityBible;
   
   // Identity data
   identityBible?: IdentityBible;
@@ -204,6 +277,7 @@ export interface BuiltPrompt {
   negativePrompt: string;
   injectionSummary: {
     hasFaceLock: boolean;
+    hasMultiViewIdentity: boolean;
     hasIdentityBible: boolean;
     hasNonFacialAnchors: boolean;
     hasAntiMorphing: boolean;
@@ -473,6 +547,92 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
+  // 0.75 MULTI-VIEW IDENTITY BIBLE (5-ANGLE CHARACTER CONSISTENCY)
+  // Injects pose-specific identity when Multi-View Bible is available
+  // ===========================================================================
+  let hasMultiViewIdentity = false;
+  const mvib = request.multiViewIdentityBible;
+  
+  if (mvib) {
+    hasMultiViewIdentity = true;
+    
+    // Core identity is ALWAYS injected
+    if (mvib.coreIdentity?.description) {
+      promptParts.push(`[MULTI-VIEW IDENTITY: ${mvib.coreIdentity.description}]`);
+    }
+    
+    // Master consistency prompt
+    if (mvib.masterConsistencyPrompt) {
+      promptParts.push(`[CHARACTER CONSISTENCY: ${mvib.masterConsistencyPrompt}]`);
+    }
+    
+    // Inject POSE-SPECIFIC view description
+    const poseViewMap: Record<string, keyof NonNullable<typeof mvib.views>> = {
+      'front': 'front',
+      'side': 'side',
+      'three-quarter': 'threeQuarter',
+      'back': 'back',
+      'silhouette': 'silhouette',
+      'occluded': 'silhouette',
+    };
+    
+    const viewKey = poseViewMap[poseAnalysis.pose];
+    const viewData = viewKey && mvib.views?.[viewKey];
+    
+    if (viewData) {
+      // Inject view-specific description
+      if (viewData.description) {
+        promptParts.push(`[${viewData.viewType?.toUpperCase() || poseAnalysis.pose.toUpperCase()} VIEW: ${viewData.description}]`);
+      }
+      
+      // View-specific anchors
+      if (viewData.consistencyAnchors?.length) {
+        promptParts.push(`[VIEW ANCHORS: ${viewData.consistencyAnchors.join(', ')}]`);
+      }
+      
+      // View-specific negatives
+      if (viewData.negativePrompts?.length) {
+        negativeParts.push(...viewData.negativePrompts);
+      }
+    }
+    
+    // For back/occluded poses, inject enhanced non-facial anchors from Multi-View
+    if (isBackFacingOrOccluded && mvib.nonFacialAnchors) {
+      const mvNfa = mvib.nonFacialAnchors;
+      const mvNfaParts: string[] = [];
+      
+      // Hair from behind (CRITICAL for back views)
+      if (mvNfa.hairFromBehind) {
+        mvNfaParts.push(`HAIR BACK VIEW: ${mvNfa.hairFromBehind}`);
+      }
+      
+      // Back view markers
+      if (mvNfa.backViewMarkers) {
+        mvNfaParts.push(`BACK MARKERS: ${mvNfa.backViewMarkers}`);
+      }
+      
+      // Silhouette
+      if (mvNfa.overallSilhouette) {
+        mvNfaParts.push(`SILHOUETTE: ${mvNfa.overallSilhouette}`);
+      }
+      
+      // Clothing from all angles
+      if (mvNfa.clothingDescription) {
+        mvNfaParts.push(`OUTFIT: ${mvNfa.clothingDescription}`);
+      }
+      
+      if (mvNfaParts.length > 0) {
+        promptParts.push(`[MULTI-VIEW NON-FACIAL: ${mvNfaParts.join(' | ')}]`);
+      }
+    }
+    
+    // Global occlusion negatives from Multi-View
+    if (mvib.occlusionNegatives?.length) {
+      negativeParts.push(...mvib.occlusionNegatives);
+    }
+  }
+  
+  // ===========================================================================
   // 1. IDENTITY BIBLE INJECTION (HIGHEST PRIORITY)
   // ===========================================================================
   const ib = request.identityBible;
@@ -725,6 +885,7 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
     negativePrompt,
     injectionSummary: {
       hasFaceLock,
+      hasMultiViewIdentity,
       hasIdentityBible,
       hasNonFacialAnchors,
       hasAntiMorphing: true, // Always added
@@ -846,6 +1007,7 @@ export function logPipelineState(
   
   console.log(`${prefix} INJECTION SUMMARY:`);
   console.log(`${prefix}   - Face Lock: ${builtPrompt.injectionSummary.hasFaceLock ? '✓ LOCKED' : '✗'}`);
+  console.log(`${prefix}   - Multi-View Identity: ${builtPrompt.injectionSummary.hasMultiViewIdentity ? '✓ 5-VIEW' : '✗'}`);
   console.log(`${prefix}   - Identity Bible: ${builtPrompt.injectionSummary.hasIdentityBible ? '✓' : '✗'}`);
   console.log(`${prefix}   - Non-Facial Anchors: ${builtPrompt.injectionSummary.hasNonFacialAnchors ? '✓' : '✗'}`);
   console.log(`${prefix}   - Anti-Morphing: ${builtPrompt.injectionSummary.hasAntiMorphing ? '✓' : '✗'}`);

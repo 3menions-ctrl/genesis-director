@@ -17,6 +17,7 @@ import {
   type MotionVectors,
   type MasterSceneAnchor,
   type ExtractedCharacter,
+  type FaceLock,
 } from "../_shared/prompt-builder.ts";
 import {
   GUARD_RAIL_CONFIG,
@@ -417,6 +418,7 @@ serve(async (req) => {
       durationSeconds = DEFAULT_CLIP_DURATION,
       sceneContext,
       identityBible,
+      faceLock, // FACE LOCK - highest priority identity system
       skipPolling = false,
       triggerNextClip = false,
       totalClips,
@@ -549,10 +551,20 @@ serve(async (req) => {
     );
     
     // BUILD COMPREHENSIVE PROMPT with all data injection
+    // Resolve face lock from request or pipeline context
+    const resolvedFaceLock: FaceLock | undefined = 
+      faceLock || 
+      pipelineContext?.faceLock;
+    
+    if (resolvedFaceLock) {
+      console.log(`[SingleClip] ✓ FACE LOCK ACTIVE: ${resolvedFaceLock.goldenReference?.substring(0, 60) || 'enabled'}...`);
+    }
+    
     const promptRequest: PromptBuildRequest = {
       basePrompt: prompt,
       clipIndex: shotIndex,
       totalClips: totalClips || 6,
+      faceLock: resolvedFaceLock, // FACE LOCK - HIGHEST PRIORITY
       identityBible: resolvedIdentityBible,
       extractedCharacters: resolvedExtractedCharacters,
       previousContinuityManifest: resolvedContinuityManifest,

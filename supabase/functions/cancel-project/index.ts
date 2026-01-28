@@ -30,7 +30,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const replicateApiKey = Deno.env.get("REPLICATE_API_TOKEN");
+  const replicateApiKey = Deno.env.get("REPLICATE_API_KEY");
   
   const supabase = createClient(supabaseUrl, supabaseKey);
 

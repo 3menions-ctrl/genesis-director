@@ -670,6 +670,9 @@ async function runPreProduction(
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
+        // CRITICAL: Pass explicit clip count and duration from user selection
+        clipCount: state.clipCount,
+        clipDuration: state.clipDuration,
         characterLock, // Pass character lock for consistency
         // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
         environmentPrompt: request.environmentPrompt,
@@ -775,6 +778,9 @@ async function runPreProduction(
         genre: request.genre || 'cinematic',
         pacingStyle: 'moderate',
         targetDurationSeconds: state.clipCount * state.clipDuration,
+        // CRITICAL: Pass explicit clip count and duration from user selection
+        clipCount: state.clipCount,
+        clipDuration: state.clipDuration,
         characterLock, // Pass character lock for consistency
         // ENVIRONMENT DNA: Pass through for visual atmosphere consistency
         environmentPrompt: request.environmentPrompt,

@@ -18,6 +18,10 @@ interface SmartScriptRequest {
   style?: string;
   genre?: string;
   targetDurationSeconds: number;
+  // CRITICAL: Explicit clip count and duration from user selection
+  // These take ABSOLUTE priority over calculated values
+  clipCount?: number;         // User's explicit clip count (1-20)
+  clipDuration?: number;      // User's explicit duration per clip (5 or 10 seconds)
   pacingStyle?: 'fast' | 'moderate' | 'slow';
   mainSubjects?: string[];
   environmentHints?: string[];
@@ -165,18 +169,36 @@ serve(async (req) => {
     console.log(`[SmartScript] Detected: ${detectedContent.dialogueLines.length} dialogue lines, narration: ${detectedContent.hasNarration}, recommended clips: ${detectedContent.recommendedClipCount}`);
 
     // STRICT CLIP COUNT ENFORCEMENT
-    // The user explicitly selects clip count in CreationHub - we MUST respect it
-    // Kling 2.6: 5-second clips for optimal quality
-    const CLIP_DURATION = 5;
-    const requestedClips = Math.round(request.targetDurationSeconds / CLIP_DURATION);
+    // Priority 1: Explicit clipCount from request (user's selection in CreationHub)
+    // Priority 2: Calculate from targetDurationSeconds / clipDuration
+    // Priority 3: Fall back to content detection
     
-    // IRON-CLAD: User's clip count is NON-NEGOTIABLE
-    // Only fall back to detection if no explicit count was provided (legacy flows)
-    const clipCount = requestedClips > 0 ? requestedClips : detectedContent.recommendedClipCount;
-    const targetSeconds = clipCount * CLIP_DURATION;
+    // CRITICAL FIX: Use user's selected clip duration, NOT hardcoded 5 seconds
+    const clipDuration = request.clipDuration && request.clipDuration > 0 
+      ? request.clipDuration 
+      : 5; // Only default to 5 if not provided
     
-    console.log(`[SmartScript] ENFORCED clip count: ${clipCount} clips @ ${CLIP_DURATION}s each = ${targetSeconds}s total`);
-    console.log(`[SmartScript] User requested: ${requestedClips} clips | Detected recommendation: ${detectedContent.recommendedClipCount} | Using: ${clipCount}`);
+    let clipCount: number;
+    
+    if (request.clipCount && request.clipCount > 0) {
+      // User explicitly selected clip count - USE IT
+      clipCount = request.clipCount;
+      console.log(`[SmartScript] Using EXPLICIT clip count from request: ${clipCount}`);
+    } else if (request.targetDurationSeconds > 0) {
+      // Calculate from duration using the correct clip duration
+      clipCount = Math.round(request.targetDurationSeconds / clipDuration);
+      console.log(`[SmartScript] Calculated clip count: ${request.targetDurationSeconds}s / ${clipDuration}s = ${clipCount}`);
+    } else {
+      // Fall back to content-based detection
+      clipCount = detectedContent.recommendedClipCount;
+      console.log(`[SmartScript] Using detected clip count: ${clipCount}`);
+    }
+    
+    // Ensure at least 1 clip
+    clipCount = Math.max(1, clipCount);
+    const targetSeconds = clipCount * clipDuration;
+    
+    console.log(`[SmartScript] ENFORCED: ${clipCount} clips × ${clipDuration}s = ${targetSeconds}s total`);
     
     // VOICE CONTROL: If includeVoice is explicitly false, NEVER include dialogue or narration
     const voiceDisabled = request.includeVoice === false;
@@ -656,7 +678,7 @@ Output ONLY valid JSON with exactly ${clipCount} clips.`;
       index,
       title: clip.title || `Clip ${index + 1}`,
       description: clip.description || '',
-      durationSeconds: CLIP_DURATION,
+      durationSeconds: clipDuration,
       actionPhase: ACTION_PHASES[index % ACTION_PHASES.length], // Handle variable clip counts
       previousAction: index > 0 ? (parsedClips[index - 1]?.currentAction || '') : '',
       currentAction: clip.currentAction || clip.description?.substring(0, 100) || '',

@@ -1,11 +1,17 @@
 // Quality Tier System Types
-// Premium: $6 per video (6 clips) = 60 credits total = 10 credits per clip
+// Pricing: 
+// - Base: 10 credits per clip (clips 1-6, up to 6 seconds)
+// - Extended: 15 credits per clip (clips 7+ OR duration >6 seconds)
+// 1 credit = $0.10
 
 export type QualityTier = 'standard' | 'professional';
 
 export interface QualityTierConfig {
   id: QualityTier;
   name: string;
+  baseCredits: number;
+  extendedCredits: number;
+  /** @deprecated Use baseCredits instead */
   credits: number;
   description: string;
   features: string[];
@@ -19,7 +25,9 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'standard',
     name: 'Premium',
-    credits: 10, // 10 credits per clip. Video costs: 50 (5 clips), 100 (10), 200 (20), 300 (30)
+    baseCredits: 10, // Clips 1-6, ≤6 seconds
+    extendedCredits: 15, // Clips 7+ OR >6 seconds
+    credits: 10, // Deprecated, use baseCredits
     description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
@@ -38,7 +46,9 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   {
     id: 'professional',
     name: 'Premium',
-    credits: 10, // Same - all clips are premium
+    baseCredits: 10,
+    extendedCredits: 15,
+    credits: 10, // Deprecated, use baseCredits
     description: 'Zero-Waste quality with autonomous retries',
     features: [
       'Script-to-video generation',
@@ -56,22 +66,25 @@ export const QUALITY_TIERS: QualityTierConfig[] = [
   },
 ];
 
-// Credit cost breakdown - 10 credits per clip
-// Video costs: Free ~30s (50), Pro ~1min (100), Growth ~2min (200), Agency ~3min (300)
-export const PROFESSIONAL_CREDIT_BREAKDOWN = {
+// Credit cost breakdown - Base rate (clips 1-6, ≤6 seconds)
+export const BASE_CREDIT_BREAKDOWN = {
   PRE_PRODUCTION: 2,    // Script analysis per clip
   PRODUCTION: 6,        // Video generation per clip
   QUALITY_INSURANCE: 2, // Audit + debugger + retries per clip
   TOTAL: 10,            // = 10 credits per clip
 } as const;
 
-// All clips are premium quality
-export const STANDARD_CREDIT_BREAKDOWN = {
-  PRE_PRODUCTION: 2,
-  PRODUCTION: 6,
-  QUALITY_INSURANCE: 2,
-  TOTAL: 10,
+// Extended rate (clips 7+ OR >6 seconds)
+export const EXTENDED_CREDIT_BREAKDOWN = {
+  PRE_PRODUCTION: 3,
+  PRODUCTION: 9,
+  QUALITY_INSURANCE: 3,
+  TOTAL: 15,
 } as const;
+
+// Legacy exports for backward compatibility
+export const PROFESSIONAL_CREDIT_BREAKDOWN = BASE_CREDIT_BREAKDOWN;
+export const STANDARD_CREDIT_BREAKDOWN = BASE_CREDIT_BREAKDOWN;
 
 // Visual Debugger result interface
 export interface VisualDebugResult {

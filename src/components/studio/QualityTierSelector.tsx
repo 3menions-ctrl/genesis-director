@@ -29,7 +29,10 @@ export function QualityTierSelector({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {QUALITY_TIERS.map((tier) => {
           const isSelected = selectedTier === tier.id;
-          const totalCost = tier.credits * shotCount;
+          // Calculate total using tiered pricing: 10 for clips 1-6, 15 for clips 7+
+          const baseClips = Math.min(shotCount, 6);
+          const extendedClips = Math.max(0, shotCount - 6);
+          const totalCost = (baseClips * tier.baseCredits) + (extendedClips * tier.extendedCredits);
           const isProfessional = tier.id === 'professional';
           
           return (
@@ -76,9 +79,15 @@ export function QualityTierSelector({
               
               <CardContent className="space-y-4">
                 {/* Pricing */}
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold">{tier.credits}</span>
-                  <span className="text-muted-foreground">credits/shot</span>
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold">{tier.baseCredits}</span>
+                    <span className="text-muted-foreground">credits/clip (1-6)</span>
+                  </div>
+                  <div className="flex items-baseline gap-1 text-warning">
+                    <span className="text-lg font-semibold">{tier.extendedCredits}</span>
+                    <span className="text-muted-foreground text-sm">credits/clip (7+ or &gt;6s)</span>
+                  </div>
                 </div>
                 
                 {/* Total cost */}

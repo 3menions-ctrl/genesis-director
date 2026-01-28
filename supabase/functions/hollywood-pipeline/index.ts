@@ -214,21 +214,38 @@ const MINIMUM_QUALITY_THRESHOLD = 0; // Accept all clips
 const MIN_CLIPS_PER_PROJECT = 1; // Allow single-clip projects
 
 // Tier-aware credit costs (MUST match frontend useCreditBilling.ts)
-// Pricing: 10 credits per clip = $1 per clip
-const TIER_CREDIT_COSTS = {
-  standard: {
-    PRE_PRODUCTION: 2,
-    PRODUCTION: 6,
-    QUALITY_INSURANCE: 2,
-    TOTAL_PER_SHOT: 10,    // 10 credits per clip
-  },
-  professional: {
-    PRE_PRODUCTION: 2,
-    PRODUCTION: 6,
-    QUALITY_INSURANCE: 2,
-    TOTAL_PER_SHOT: 10,    // Same - all clips are premium quality
-  },
+// Pricing: 
+// - Base: 10 credits per clip (clips 1-6, up to 6 seconds)
+// - Extended: 15 credits per clip (clips 7+ OR duration >6 seconds)
+// 1 credit = $0.10
+const CREDIT_PRICING = {
+  BASE_CREDITS_PER_CLIP: 10,       // Clips 1-6, ≤6 seconds
+  EXTENDED_CREDITS_PER_CLIP: 15,  // Clips 7+ OR >6 seconds
+  BASE_CLIP_COUNT_THRESHOLD: 6,   // Clips 1-6 are base rate
+  BASE_DURATION_THRESHOLD: 6,     // Up to 6 seconds is base rate
 } as const;
+
+// Check if a clip should use extended pricing
+function isExtendedPricing(clipIndex: number, clipDuration: number): boolean {
+  return clipIndex >= CREDIT_PRICING.BASE_CLIP_COUNT_THRESHOLD || 
+         clipDuration > CREDIT_PRICING.BASE_DURATION_THRESHOLD;
+}
+
+// Calculate credits for a single clip
+function getCreditsForClip(clipIndex: number, clipDuration: number): number {
+  return isExtendedPricing(clipIndex, clipDuration) 
+    ? CREDIT_PRICING.EXTENDED_CREDITS_PER_CLIP 
+    : CREDIT_PRICING.BASE_CREDITS_PER_CLIP;
+}
+
+// Calculate total credits for a video
+function calculateTotalCredits(clipCount: number, clipDuration: number): number {
+  let total = 0;
+  for (let i = 0; i < clipCount; i++) {
+    total += getCreditsForClip(i, clipDuration);
+  }
+  return total;
+}
 
 // Fetch user tier limits from database
 async function getUserTierLimits(supabase: any, userId: string): Promise<{
@@ -295,10 +312,8 @@ function calculatePipelineParams(
     console.log(`[Hollywood] Reduced clip count to ${clipCount} due to ${maxDuration}s duration limit`);
   }
   
-  // Use tier-aware credit calculation
-  const tier = request.qualityTier || 'standard';
-  const creditsPerClip = TIER_CREDIT_COSTS[tier].TOTAL_PER_SHOT;
-  const totalCredits = clipCount * creditsPerClip;
+  // Use tiered credit calculation: 10 credits for clips 1-6, 15 for clips 7+
+  const totalCredits = calculateTotalCredits(clipCount, clipDuration);
   
   console.log(`[Hollywood] Pipeline params: ${clipCount} clips × ${clipDuration}s = ${clipCount * clipDuration}s total (max: ${maxDuration}s, tier limit: ${maxClips} clips)`);
   

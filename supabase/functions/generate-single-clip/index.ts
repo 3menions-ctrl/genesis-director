@@ -7,6 +7,17 @@ import {
   persistPipelineContext,
   updateFrameExtractionStatus,
 } from "../_shared/generation-mutex.ts";
+import {
+  buildComprehensivePrompt,
+  validatePipelineData,
+  logPipelineState,
+  type PromptBuildRequest,
+  type IdentityBible,
+  type ContinuityManifest,
+  type MotionVectors,
+  type MasterSceneAnchor,
+  type ExtractedCharacter,
+} from "../_shared/prompt-builder.ts";
 
 // ============================================================================
 // Kling 2.6 via Replicate - Latest Model with HD Pro Quality
@@ -29,95 +40,6 @@ const corsHeaders = {
 };
 
 const DEFAULT_CLIP_DURATION = 6;
-
-// =====================================================
-// CONSISTENCY ENGINE (Embedded for Edge Function)
-// =====================================================
-
-type DetectedPose = 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette' | 'occluded' | 'unknown';
-
-interface PoseAnalysis {
-  detectedPose: DetectedPose;
-  confidence: number;
-  faceVisible: boolean;
-  recommendedView: 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette';
-}
-
-const POSE_PATTERNS: { pattern: RegExp; pose: DetectedPose; confidence: number }[] = [
-  { pattern: /\b(from\s+behind|from\s+the\s+back|rear\s+view|back\s+to\s+(camera|us|viewer))\b/i, pose: 'back', confidence: 95 },
-  { pattern: /\b(walking\s+away|running\s+away|retreating|departing|leaving)\b/i, pose: 'back', confidence: 85 },
-  { pattern: /\b(facing\s+away|turned\s+away|back\s+turned)\b/i, pose: 'back', confidence: 90 },
-  { pattern: /\b(looking\s+into\s+(the\s+)?distance|gazing\s+at\s+the\s+horizon)\b/i, pose: 'back', confidence: 75 },
-  { pattern: /\b(over\s+the\s+shoulder)\b/i, pose: 'back', confidence: 80 },
-  { pattern: /\b(profile\s+(view|shot)|side\s+(view|profile|angle))\b/i, pose: 'side', confidence: 95 },
-  { pattern: /\b(from\s+the\s+side|lateral\s+view)\b/i, pose: 'side', confidence: 90 },
-  { pattern: /\b(three[-\s]quarter|3\/4\s+view|angled\s+view)\b/i, pose: 'three-quarter', confidence: 95 },
-  { pattern: /\b(silhouette|backlit|shadow\s+figure)\b/i, pose: 'silhouette', confidence: 95 },
-  { pattern: /\b(face\s+(hidden|obscured|covered)|wearing\s+(mask|helmet|hood))\b/i, pose: 'occluded', confidence: 90 },
-  { pattern: /\b(facing\s+(camera|us|forward|viewer)|front\s+view|head-on)\b/i, pose: 'front', confidence: 95 },
-  { pattern: /\b(looking\s+at\s+(camera|us|viewer)|eye\s+contact)\b/i, pose: 'front', confidence: 90 },
-];
-
-function detectPoseFromPrompt(prompt: string): PoseAnalysis {
-  let bestPose: DetectedPose = 'front';
-  let bestConfidence = 50;
-  
-  for (const { pattern, pose, confidence } of POSE_PATTERNS) {
-    if (pattern.test(prompt) && confidence > bestConfidence) {
-      bestPose = pose;
-      bestConfidence = confidence;
-    }
-  }
-  
-  const nonFacialPoses: DetectedPose[] = ['back', 'silhouette', 'occluded'];
-  const faceVisible = !nonFacialPoses.includes(bestPose);
-  
-  const viewMap: Record<DetectedPose, 'front' | 'side' | 'back' | 'three-quarter' | 'silhouette'> = {
-    'front': 'front', 'side': 'side', 'back': 'back',
-    'three-quarter': 'three-quarter', 'silhouette': 'silhouette',
-    'occluded': 'front', 'unknown': 'front',
-  };
-  
-  return { detectedPose: bestPose, confidence: bestConfidence, faceVisible, recommendedView: viewMap[bestPose] };
-}
-
-interface MultiViewUrls {
-  frontViewUrl?: string;
-  sideViewUrl?: string;
-  threeQuarterViewUrl?: string;
-  backViewUrl?: string;
-  silhouetteUrl?: string;
-}
-
-function selectViewForPose(pose: PoseAnalysis, views: MultiViewUrls): { url: string | null; type: string } {
-  const viewUrlMap: Record<string, string | undefined> = {
-    'front': views.frontViewUrl, 'side': views.sideViewUrl, 'back': views.backViewUrl,
-    'three-quarter': views.threeQuarterViewUrl, 'silhouette': views.silhouetteUrl,
-  };
-  
-  if (viewUrlMap[pose.recommendedView]) {
-    return { url: viewUrlMap[pose.recommendedView]!, type: pose.recommendedView };
-  }
-  
-  // Fallback priority
-  const fallbacks = pose.recommendedView === 'back' 
-    ? ['silhouette', 'three-quarter', 'side', 'front']
-    : ['front', 'three-quarter', 'side'];
-  
-  for (const fb of fallbacks) {
-    if (viewUrlMap[fb]) return { url: viewUrlMap[fb]!, type: fb };
-  }
-  
-  return { url: null, type: 'none' };
-}
-
-function buildCharacterSpecificNegatives(nonFacialAnchors?: any): string[] {
-  const negatives: string[] = [];
-  if (nonFacialAnchors?.silhouetteUrl) {
-    negatives.push('face clearly visible when character is backlit');
-  }
-  return negatives;
-}
 
 // =====================================================
 // APEX MANDATORY QUALITY SUFFIX
@@ -486,12 +408,20 @@ serve(async (req) => {
       aspectRatio = "16:9",
       durationSeconds = DEFAULT_CLIP_DURATION,
       sceneContext,
-      characterReferences = [],
       identityBible,
-      skipPolling = false, // If true, return prediction ID immediately
-      triggerNextClip = false, // If true, call continue-production after completion
+      skipPolling = false,
+      triggerNextClip = false,
       totalClips,
       pipelineContext,
+      // Additional continuity data
+      previousMotionVectors,
+      previousContinuityManifest,
+      masterSceneAnchor,
+      goldenFrameData,
+      accumulatedAnchors,
+      extractedCharacters,
+      referenceImageUrl,
+      sceneImageUrl,
     } = body;
 
     if (!projectId || !prompt) {
@@ -511,7 +441,6 @@ serve(async (req) => {
       if (!continuityCheck.ready) {
         console.error(`[SingleClip] ⛔ Continuity check FAILED: ${continuityCheck.reason}`);
         
-        // If previous clip is generating, wait - don't spawn parallel generation
         if (continuityCheck.reason === 'previous_clip_not_completed') {
           return new Response(
             JSON.stringify({
@@ -524,7 +453,6 @@ serve(async (req) => {
           );
         }
         
-        // If previous clip is missing frame, this is a critical failure
         if (continuityCheck.reason === 'previous_clip_missing_frame') {
           return new Response(
             JSON.stringify({
@@ -560,42 +488,74 @@ serve(async (req) => {
     
     console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
     
-    // Ensure lock is released on exit
     const releaseLock = async () => {
       await releaseGenerationLock(supabase, projectId!, lockId);
     };
 
-    // Build enhanced prompt
-    let enhancedPrompt = prompt;
+    // =========================================================
+    // COMPREHENSIVE PROMPT BUILDING (BULLETPROOF)
+    // Uses centralized prompt-builder for guaranteed data injection
+    // =========================================================
     
-    // Add scene context
-    if (sceneContext) {
-      const contextParts = [];
-      if (sceneContext.lighting) contextParts.push(`Lighting: ${sceneContext.lighting}`);
-      if (sceneContext.colorPalette) contextParts.push(`Colors: ${sceneContext.colorPalette}`);
-      if (sceneContext.environment) contextParts.push(`Environment: ${sceneContext.environment}`);
-      if (sceneContext.mood) contextParts.push(`Mood: ${sceneContext.mood}`);
-      if (contextParts.length > 0) {
-        enhancedPrompt = `${enhancedPrompt}. ${contextParts.join('. ')}.`;
-      }
-    }
-
-    // Add APEX quality suffix
-    enhancedPrompt = `${enhancedPrompt}${APEX_QUALITY_SUFFIX}`;
-
-    // Build negative prompt
-    const fullNegativePrompt = negativePrompt 
-      ? `${negativePrompt}, low quality, blur, distortion, watermark, artifact`
-      : "low quality, blur, distortion, watermark, artifact, jarring transition, flickering";
-
-    // Validate start image if provided
+    // Resolve identity bible from multiple sources
+    const resolvedIdentityBible: IdentityBible | undefined = identityBible 
+      || pipelineContext?.identityBible;
+    
+    // Resolve master scene anchor
+    const resolvedMasterSceneAnchor: MasterSceneAnchor | undefined = masterSceneAnchor 
+      || pipelineContext?.masterSceneAnchor;
+    
+    // Resolve extracted characters
+    const resolvedExtractedCharacters: ExtractedCharacter[] | undefined = extractedCharacters 
+      || pipelineContext?.extractedCharacters;
+    
+    // Resolve motion vectors and continuity from previous clip
+    const resolvedMotionVectors: MotionVectors | undefined = previousMotionVectors;
+    const resolvedContinuityManifest: ContinuityManifest | undefined = previousContinuityManifest;
+    
+    // VALIDATE PIPELINE DATA (log warnings for missing critical data)
+    const validation = validatePipelineData(
+      shotIndex,
+      resolvedIdentityBible,
+      {
+        lastFrameUrl: startImageUrl,
+        motionVectors: resolvedMotionVectors,
+        continuityManifest: resolvedContinuityManifest,
+      },
+      resolvedMasterSceneAnchor
+    );
+    
+    // BUILD COMPREHENSIVE PROMPT with all data injection
+    const promptRequest: PromptBuildRequest = {
+      basePrompt: prompt,
+      clipIndex: shotIndex,
+      totalClips: totalClips || 6,
+      identityBible: resolvedIdentityBible,
+      extractedCharacters: resolvedExtractedCharacters,
+      previousContinuityManifest: resolvedContinuityManifest,
+      previousMotionVectors: resolvedMotionVectors,
+      masterSceneAnchor: resolvedMasterSceneAnchor,
+      sceneContext: sceneContext,
+      userNegativePrompt: negativePrompt,
+    };
+    
+    const builtPrompt = buildComprehensivePrompt(promptRequest);
+    
+    // LOG PIPELINE STATE (for debugging)
+    logPipelineState(shotIndex, validation, builtPrompt);
+    
+    const enhancedPrompt = builtPrompt.enhancedPrompt;
+    const fullNegativePrompt = builtPrompt.negativePrompt;
+    
+    // =========================================================
+    // VALIDATE AND USE START IMAGE
+    // =========================================================
     let validatedStartImage: string | null = null;
     if (startImageUrl) {
       const lowerUrl = startImageUrl.toLowerCase();
       if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.mov')) {
         console.warn(`[SingleClip] ⚠️ REJECTED: startImageUrl is a VIDEO file, not an image!`);
       } else if (startImageUrl.startsWith("http")) {
-        // Validate the image is accessible
         try {
           const imageCheckResponse = await fetch(startImageUrl, { method: 'HEAD' });
           if (imageCheckResponse.ok) {
@@ -608,7 +568,7 @@ serve(async (req) => {
       }
     }
 
-    // Create Replicate prediction
+    // Create Replicate prediction with enhanced prompt
     const { predictionId } = await createReplicatePrediction(
       enhancedPrompt,
       fullNegativePrompt,

@@ -6,6 +6,7 @@ import {
   checkContinuityReady,
   loadPipelineContext,
 } from "../_shared/generation-mutex.ts";
+// Note: Prompt building now happens in generate-single-clip via prompt-builder.ts
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

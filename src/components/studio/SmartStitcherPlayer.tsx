@@ -572,7 +572,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     };
   }, [isPlaying, isCrossfading, currentClipIndex, clips.length, getActiveVideo]);
 
-  // Crossfade transition logic - extracted for reuse
+  // Crossfade transition logic - TRUE OVERLAP: both videos visible simultaneously
   const triggerCrossfadeTransition = useCallback(() => {
     if (isTransitioningRef.current || isCrossfading) return;
     if (currentClipIndex >= clips.length - 1) return;
@@ -587,34 +587,36 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     if (standbyVideo && standbyVideo.readyState >= 2 && clips[nextIndex]?.blobUrl) {
       standbyVideo.currentTime = 0;
       
-      // Start playing standby immediately - both videos now visible for overlap
+      // CRITICAL: Set BOTH videos to full opacity BEFORE playing next
+      // This ensures there's never a frame where neither video is visible
+      setVideoAOpacity(1);
+      setVideoBOpacity(1);
+      
+      // Start playing standby immediately while current is still visible
       standbyVideo.play().catch(() => {});
       
-      // Brief crossfade animation - last frame of current overlaps with first frame of next
-      const startTime = performance.now();
-      const animateCrossfade = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / CROSSFADE_DURATION, 1);
-        
-        // Linear blend for smooth overlap
-        if (activeVideoIndex === 0) {
-          setVideoAOpacity(1 - progress);
-          setVideoBOpacity(progress);
-        } else {
-          setVideoAOpacity(progress);
-          setVideoBOpacity(1 - progress);
-        }
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateCrossfade);
-        } else {
-          // Crossfade complete
-          setIsCrossfading(false);
+      // Swap active/standby state
+      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
+      setCurrentClipIndex(nextIndex);
+      setIsPlaying(true);
+      
+      // Use requestAnimationFrame to ensure the next video frame is rendered
+      // BEFORE we hide the old video - this prevents ANY visual gap
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Now that next video has rendered at least 1 frame, hide the old one
+          if (activeVideoIndex === 0) {
+            setVideoAOpacity(0);
+          } else {
+            setVideoBOpacity(0);
+          }
           
           // Pause the old active
           if (activeVideo) {
             activeVideo.pause();
           }
+          
+          setIsCrossfading(false);
           
           // Preload the NEXT clip into the old active (now standby)
           const futureClipIndex = nextIndex + 1;
@@ -623,15 +625,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             activeVideo.load();
           }
           isTransitioningRef.current = false;
-        }
-      };
-      
-      // Swap active/standby state
-      setActiveVideoIndex((prev) => (prev === 0 ? 1 : 0));
-      setCurrentClipIndex(nextIndex);
-      setIsPlaying(true);
-      
-      requestAnimationFrame(animateCrossfade);
+        });
+      });
     } else {
       // Fallback if standby not ready
       isTransitioningRef.current = false;

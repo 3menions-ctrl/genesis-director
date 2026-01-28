@@ -95,6 +95,71 @@ export async function releaseGenerationLock(
 }
 
 /**
+ * FAILSAFE: Force release lock by clearing generation_lock column directly
+ * Use when clip is confirmed completed but lock wasn't properly released
+ */
+export async function forceReleaseLock(
+  supabase: SupabaseClient,
+  projectId: string,
+  reason: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('movie_projects')
+      .update({ generation_lock: null })
+      .eq('id', projectId);
+    
+    if (error) {
+      console.error('[Mutex] Force release failed:', error);
+      return false;
+    }
+    
+    console.log(`[Mutex] ✓ Lock FORCE-RELEASED for project ${projectId}: ${reason}`);
+    return true;
+  } catch (err) {
+    console.error('[Mutex] Force release error:', err);
+    return false;
+  }
+}
+
+/**
+ * GUARD RAIL: Check if a completed clip left a stale lock and release it
+ * This should be called after confirming a clip has status='completed' and video_url
+ */
+export async function releaseStaleCompletedLock(
+  supabase: SupabaseClient,
+  projectId: string,
+  completedClipIndex: number
+): Promise<boolean> {
+  try {
+    // Check current lock state
+    const { data: project, error } = await supabase
+      .from('movie_projects')
+      .select('generation_lock')
+      .eq('id', projectId)
+      .maybeSingle();
+    
+    if (error || !project) {
+      console.warn('[Mutex] Could not check lock state:', error);
+      return false;
+    }
+    
+    const lock = project.generation_lock as { locked_by_clip?: number } | null;
+    
+    // If lock is held by the completed clip, release it
+    if (lock && lock.locked_by_clip === completedClipIndex) {
+      console.log(`[Mutex] ⚠️ Stale lock detected: clip ${completedClipIndex} is completed but lock not released`);
+      return await forceReleaseLock(supabase, projectId, `clip ${completedClipIndex} completed but lock stuck`);
+    }
+    
+    return true; // No stale lock
+  } catch (err) {
+    console.error('[Mutex] Stale lock check error:', err);
+    return false;
+  }
+}
+
+/**
  * Check if previous clip is ready for continuity (strict sequential enforcement)
  */
 export async function checkContinuityReady(

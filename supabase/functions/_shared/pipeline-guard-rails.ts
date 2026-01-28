@@ -636,6 +636,72 @@ export async function recoverStuckClip(
 }
 
 /**
+ * CRITICAL GUARD RAIL: Release stale lock for completed clips
+ * This fixes the case where a clip completes but the function times out
+ * before releasing the mutex
+ */
+export async function releaseStaleCompletedLock(
+  supabase: SupabaseClient,
+  projectId: string
+): Promise<{ released: boolean; completedClip?: number; reason?: string }> {
+  try {
+    // Get current lock state
+    const { data: project, error } = await supabase
+      .from('movie_projects')
+      .select('generation_lock')
+      .eq('id', projectId)
+      .maybeSingle();
+    
+    if (error || !project?.generation_lock) {
+      return { released: false, reason: 'No lock to release' };
+    }
+    
+    const lock = project.generation_lock as { 
+      locked_by_clip?: number; 
+      locked_at?: string;
+    };
+    
+    if (lock.locked_by_clip === undefined) {
+      return { released: false, reason: 'Invalid lock format' };
+    }
+    
+    // Check if the locked clip is actually completed
+    const { data: lockedClip } = await supabase
+      .from('video_clips')
+      .select('id, status, video_url')
+      .eq('project_id', projectId)
+      .eq('shot_index', lock.locked_by_clip)
+      .maybeSingle();
+    
+    if (lockedClip?.status === 'completed' && lockedClip?.video_url) {
+      console.log(`[GuardRails] 🔓 STALE LOCK DETECTED: Clip ${lock.locked_by_clip} is completed but lock not released`);
+      
+      // Release the lock
+      await supabase
+        .from('movie_projects')
+        .update({
+          generation_lock: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+      
+      console.log(`[GuardRails] ✓ Lock released - pipeline can now continue`);
+      
+      return { 
+        released: true, 
+        completedClip: lock.locked_by_clip,
+        reason: 'Clip completed but lock was stuck',
+      };
+    }
+    
+    return { released: false, reason: 'Locked clip not yet completed' };
+  } catch (err) {
+    console.error(`[GuardRails] releaseStaleCompletedLock error:`, err);
+    return { released: false, reason: `Error: ${err}` };
+  }
+}
+
+/**
  * Aggressively detect and recover ALL stuck clips for a project
  * This should be called by the watchdog for comprehensive recovery
  */

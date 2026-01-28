@@ -237,6 +237,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       setIsLoadingClips(true);
       setLoadError(null);
       setLoadProgress(0);
+      // Reset initial setup flag when fetching new clips
+      initialSetupDoneRef.current = false;
 
       try {
         let urls: string[] = [];
@@ -414,7 +416,10 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     };
   }, [projectId, providedClipUrls, autoPlay, fetchRetryCount, manualRetryTrigger]);
 
-  // Setup first clip and preload second when clips are loaded
+  // Track whether initial setup has been done (prevents re-running after transitions)
+  const initialSetupDoneRef = useRef(false);
+
+  // Setup first clip and preload second when clips are loaded - ONLY ONCE on initial load
   useEffect(() => {
     if (clips.length === 0 || isLoadingClips) return;
     
@@ -422,40 +427,41 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
     const firstClipReady = clips[0]?.blobUrl && clips[0]?.loaded;
     if (!firstClipReady) return;
 
-    const activeVideo = getActiveVideo();
-    const standbyVideo = getStandbyVideo();
+    // CRITICAL: Only run initial setup ONCE to prevent resetting after transitions
+    if (initialSetupDoneRef.current) return;
+
+    const videoA = videoARef.current;
+    const videoB = videoBRef.current;
     
-    // Load first clip into active video - check if src needs updating
-    if (activeVideo && clips[0]?.blobUrl) {
-      const currentSrc = activeVideo.src;
-      const targetSrc = clips[0].blobUrl;
-      // Only update if src is empty or different
-      if (!currentSrc || currentSrc !== targetSrc) {
-        console.log('[SmartStitcher] Loading first clip into active video');
-        activeVideo.src = targetSrc;
-        activeVideo.load();
+    // Load first clip into video A (starts as active)
+    if (videoA && clips[0]?.blobUrl) {
+      if (!videoA.src || videoA.src !== clips[0].blobUrl) {
+        console.log('[SmartStitcher] Initial setup: Loading first clip into video A');
+        videoA.src = clips[0].blobUrl;
+        videoA.load();
       }
     }
 
-    // Preload second clip into standby video
-    if (standbyVideo && clips[1]?.blobUrl && clips[1]?.loaded) {
-      const currentSrc = standbyVideo.src;
-      const targetSrc = clips[1].blobUrl;
-      if (!currentSrc || currentSrc !== targetSrc) {
-        console.log('[SmartStitcher] Preloading second clip into standby video');
-        standbyVideo.src = targetSrc;
-        standbyVideo.load();
+    // Preload second clip into video B (starts as standby)
+    if (videoB && clips[1]?.blobUrl && clips[1]?.loaded) {
+      if (!videoB.src || videoB.src !== clips[1].blobUrl) {
+        console.log('[SmartStitcher] Initial setup: Preloading second clip into video B');
+        videoB.src = clips[1].blobUrl;
+        videoB.load();
       }
     }
+
+    // Mark initial setup as done
+    initialSetupDoneRef.current = true;
 
     // Handle auto-play
-    if (pendingPlayRef.current && activeVideo && activeVideo.src) {
+    if (pendingPlayRef.current && videoA && videoA.src) {
       pendingPlayRef.current = false;
       // Wait for video to be ready to play
       const attemptPlay = () => {
-        if (activeVideo.readyState >= 2) {
+        if (videoA.readyState >= 2) {
           console.log('[SmartStitcher] Auto-playing first clip');
-          activeVideo.play().then(() => {
+          videoA.play().then(() => {
             setIsPlaying(true);
           }).catch((err) => {
             console.warn('[SmartStitcher] Auto-play failed:', err);
@@ -467,7 +473,7 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
       };
       setTimeout(attemptPlay, 100);
     }
-  }, [clips, isLoadingClips, getActiveVideo, getStandbyVideo]);
+  }, [clips, isLoadingClips]); // Removed getActiveVideo/getStandbyVideo from deps to prevent re-runs on activeVideoIndex change
 
   // Preload next clip into standby video when clip changes
   useEffect(() => {

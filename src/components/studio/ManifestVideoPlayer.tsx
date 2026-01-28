@@ -37,8 +37,8 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - INSTANTANEOUS transition
-const CROSSFADE_DURATION = 50;
+// Crossfade duration in milliseconds - IMPERCEPTIBLE transition (1.5 nanoseconds)
+const CROSSFADE_DURATION = 0.0000015;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_THRESHOLD = 0.15;
 

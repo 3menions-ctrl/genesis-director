@@ -3123,6 +3123,9 @@ async function runProduction(
               shotIndex: i,
               shotPrompt: clip.prompt,
               sceneImageUrl: sceneImageFallback, // Guaranteed fallback
+              referenceImageUrl: referenceImageUrl, // User uploaded reference - critical fallback
+              goldenFrameUrl: state.identityBible?.masterSceneAnchor?.frameUrl, // Golden frame fallback
+              identityBibleFrontUrl: state.identityBible?.originalReferenceUrl, // Identity bible fallback
               position: 'last',
             });
             
@@ -3408,6 +3411,9 @@ async function runProduction(
                     shotIndex: i,
                     shotPrompt: correctedPrompt,
                     sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
+                    referenceImageUrl: referenceImageUrl,
+                    goldenFrameUrl: state.identityBible?.masterSceneAnchor?.frameUrl,
+                    identityBibleFrontUrl: state.identityBible?.originalReferenceUrl,
                     position: 'last',
                   });
                   if (newFrameResult.success && newFrameResult.frameUrl) {
@@ -3939,6 +3945,9 @@ async function runProduction(
                       shotIndex: i,
                       shotPrompt: correctedPrompt,
                       sceneImageUrl: sceneImageLookup[i] || sceneImageLookup[0],
+                      referenceImageUrl: referenceImageUrl,
+                      goldenFrameUrl: state.identityBible?.masterSceneAnchor?.frameUrl,
+                      identityBibleFrontUrl: state.identityBible?.originalReferenceUrl,
                       position: 'last',
                     });
                     if (newFrameResult.success && newFrameResult.frameUrl) {

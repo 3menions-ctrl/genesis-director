@@ -1443,7 +1443,87 @@ export default function Projects() {
               transition={{ delay: 0.3 }}
               className="space-y-6"
             >
-              {filteredProjects.length === 0 ? (
+              {/* Training Videos Section - Always show if there are training videos */}
+              {trainingVideos.length > 0 && (
+                <motion.section 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="relative"
+                >
+                  <div className="relative flex items-center gap-2 mb-4">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
+                      <GraduationCap className="w-3 h-3 text-black" />
+                    </div>
+                    <h2 className="text-sm font-semibold text-foreground">Training Videos</h2>
+                    <Badge className="ml-auto bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 text-[10px] px-1.5">
+                      {trainingVideos.length}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/training-video')}
+                      className="h-7 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      New
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {trainingVideos.map((video, index) => (
+                      <motion.div
+                        key={video.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group relative cursor-pointer"
+                        onClick={() => {
+                          setSelectedTrainingVideo(video);
+                          setTrainingVideoModalOpen(true);
+                        }}
+                      >
+                        <div className={cn(
+                          "relative aspect-video rounded-xl overflow-hidden",
+                          "bg-zinc-900 border border-white/[0.06]",
+                          "group-hover:border-emerald-500/30 transition-all duration-300"
+                        )}>
+                          <video
+                            src={video.video_url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                            onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
+                              <Play className="w-5 h-5 text-black ml-0.5" />
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTrainingVideo(video.id);
+                            }}
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-white" />
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <h3 className="text-xs font-medium text-white truncate">{video.title}</h3>
+                            <p className="text-[10px] text-white/50 mt-0.5">{formatTimeAgo(video.created_at)}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.section>
+              )}
+
+              {filteredProjects.length === 0 && trainingVideos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 rounded-xl bg-zinc-800/60 flex items-center justify-center mb-4">
                     <Search className="w-6 h-6 text-zinc-500" />
@@ -1455,7 +1535,7 @@ export default function Projects() {
                     Clear filters
                   </Button>
                 </div>
-              ) : (
+              ) : filteredProjects.length > 0 ? (
                 <>
                   {/* Pinned Projects Section - Premium */}
                   {pinnedProjects.size > 0 && filteredProjects.some(p => pinnedProjects.has(p.id)) && (
@@ -1526,97 +1606,6 @@ export default function Projects() {
                       )}
                     </motion.section>
                   )}
-
-                  {/* Training Videos Section */}
-                  {trainingVideos.length > 0 && (
-                    <motion.section 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                      className="relative"
-                    >
-                      
-                      <div className="relative flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
-                          <GraduationCap className="w-3 h-3 text-black" />
-                        </div>
-                        <h2 className="text-sm font-semibold text-foreground">Training Videos</h2>
-                        <Badge className="ml-auto bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 text-[10px] px-1.5">
-                          {trainingVideos.length}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate('/training-video')}
-                          className="h-7 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                        >
-                          <Plus className="w-3 h-3 mr-1" />
-                          New
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                        {trainingVideos.map((video, index) => (
-                          <motion.div
-                            key={video.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="group relative cursor-pointer"
-                            onClick={() => {
-                              setSelectedTrainingVideo(video);
-                              setTrainingVideoModalOpen(true);
-                            }}
-                          >
-                            <div className={cn(
-                              "relative aspect-video rounded-xl overflow-hidden",
-                              "bg-zinc-900 border border-white/[0.06]",
-                              "group-hover:border-emerald-500/30 transition-all duration-300"
-                            )}>
-                              {/* Video preview */}
-                              <video
-                                src={video.video_url}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-                                onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                              />
-                              
-                              {/* Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                              
-                              {/* Play button on hover */}
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                                  <Play className="w-5 h-5 text-black ml-0.5" />
-                                </div>
-                              </div>
-                              
-                              {/* Delete button */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTrainingVideo(video.id);
-                                }}
-                                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-white" />
-                              </button>
-                              
-                              {/* Info */}
-                              <div className="absolute bottom-0 left-0 right-0 p-3">
-                                <h3 className="text-xs font-medium text-white truncate">{video.title}</h3>
-                                <p className="text-[10px] text-white/50 mt-0.5">{formatTimeAgo(video.created_at)}</p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.section>
-                  )}
-
                   {/* Genre-based Project Sections - Premium */}
                   {groupedProjects.sortedGenres.map((genre, genreIndex) => {
                     const genreProjects = groupedProjects.groups[genre];
@@ -1689,7 +1678,7 @@ export default function Projects() {
                     );
                   })}
                 </>
-              )}
+              ) : null}
             </motion.div>
           </>
         )}

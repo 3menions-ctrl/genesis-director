@@ -14,7 +14,7 @@ import { parsePendingVideoTasks, PendingVideoTasksDegradation } from '@/types/pe
 
 // Components - New modular design
 import { ProductionSidebar } from '@/components/production/ProductionSidebar';
-import { ProductionHeader } from '@/components/production/ProductionHeader';
+// ProductionHeader removed - using consolidated CinematicPipelineProgress
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
 import { ProductionDashboard } from '@/components/production/ProductionDashboard';
 import { PipelineErrorBanner } from '@/components/production/PipelineErrorBanner';
@@ -1001,22 +1001,6 @@ export default function Production() {
 
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Production Header */}
-          <ProductionHeader
-            projectTitle={projectTitle}
-            projectStatus={projectStatus}
-            stages={stages}
-            progress={progress}
-            elapsedTime={elapsedTime}
-            isRunning={isRunning}
-            isComplete={isComplete}
-            isError={isError}
-            isCancelling={isCancelling}
-            isResuming={isResuming}
-            hasClips={clipResults.length > 0}
-            onCancel={handleCancelPipeline}
-            onResume={handleResume}
-          />
 
           {/* Content Grid */}
           <div className="flex-1 overflow-auto p-4 lg:p-6">
@@ -1085,7 +1069,15 @@ export default function Production() {
                   stages={stages}
                   progress={progress}
                   isComplete={isComplete}
+                  isError={isError}
+                  isRunning={isRunning}
                   elapsedTime={elapsedTime}
+                  projectTitle={projectTitle}
+                  lastError={lastError}
+                  onResume={handleResume}
+                  onCancel={handleCancelPipeline}
+                  isResuming={isResuming}
+                  isCancelling={isCancelling}
                 />
               )}
 

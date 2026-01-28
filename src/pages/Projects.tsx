@@ -1268,74 +1268,6 @@ export default function Projects() {
             {/* Premium Hero Header with Orange Theme */}
             <ProjectsHero stats={stats} />
 
-            {/* Premium Quick Actions - Creation Modes with Orange Accents */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.5 }}
-              className="mb-6"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  onClick={() => navigate('/create')}
-                  className="group relative h-11 px-5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-black font-semibold text-sm shadow-lg shadow-orange-500/25 border-0 overflow-hidden"
-                >
-                  <span className="relative flex items-center gap-2">
-                    <Plus className="w-4 h-4 transition-transform group-hover:rotate-90 duration-300" />
-                    New Video
-                  </span>
-                </Button>
-                
-                {/* Style Transfer - Dedicated Entry Point */}
-                <Button
-                  onClick={() => {
-                    sessionStorage.setItem('pendingCreation', JSON.stringify({
-                      mode: 'video-to-video',
-                      timestamp: Date.now(),
-                    }));
-                    navigate('/create');
-                  }}
-                  variant="outline"
-                  className="group h-11 px-4 rounded-xl border-orange-500/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 hover:border-orange-400/50 font-medium text-sm gap-2"
-                >
-                  <Palette className="w-4 h-4" />
-                  Style Transfer
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200">NEW</span>
-                </Button>
-
-                {/* Other quick modes */}
-                <Button
-                  onClick={() => {
-                    sessionStorage.setItem('pendingCreation', JSON.stringify({
-                      mode: 'image-to-video',
-                      timestamp: Date.now(),
-                    }));
-                    navigate('/create');
-                  }}
-                  variant="ghost"
-                  className="h-11 px-4 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.06] font-medium text-sm gap-2 border border-white/[0.06]"
-                >
-                  <Image className="w-4 h-4" />
-                  <span className="hidden sm:inline">Animate Image</span>
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    sessionStorage.setItem('pendingCreation', JSON.stringify({
-                      mode: 'avatar',
-                      timestamp: Date.now(),
-                    }));
-                    navigate('/create');
-                  }}
-                  variant="ghost"
-                  className="h-11 px-4 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.06] font-medium text-sm gap-2 border border-white/[0.06]"
-                >
-                  <Video className="w-4 h-4" />
-                  <span className="hidden sm:inline">AI Avatar</span>
-                </Button>
-              </div>
-            </motion.div>
-
             {/* Premium Search & Filter Toolbar with Orange Accents */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1504,73 +1436,6 @@ export default function Projects() {
               </div>
             </motion.div>
 
-            {/* Needs Stitching Section */}
-            {(needsStitching.length > 0 || stitchingProjects.length > 0) && (
-              <motion.section 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="mb-4 p-3 rounded-xl bg-gradient-to-r from-amber-500/5 to-transparent border border-amber-500/10"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-3.5 h-3.5 text-amber-400" />
-                    <h2 className="text-xs font-semibold text-white">Ready to Stitch</h2>
-                    <Badge variant="outline" className="text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
-                      {needsStitching.length + stitchingProjects.length}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {stitchingProjects.map(project => (
-                    <div key={project.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
-                      <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
-                    </div>
-                  ))}
-                  {needsStitching.slice(0, 5).map(project => (
-                    <DropdownMenu key={project.id}>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          disabled={retryingProjectId === project.id || browserStitchingProjectId === project.id}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                        >
-                          {retryingProjectId === project.id ? (
-                            <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
-                          ) : (
-                            <Zap className="w-3 h-3 text-amber-400" />
-                          )}
-                          <span className="text-xs text-white/80 truncate max-w-[120px]">{project.name}</span>
-                          <ChevronDown className="w-3 h-3 text-white/40" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="bg-zinc-900 border-zinc-700 min-w-[160px]">
-                        <DropdownMenuItem
-                          onClick={() => handleGoogleStitch(project.id)}
-                          disabled={retryingProjectId === project.id}
-                          className="gap-2 text-xs"
-                        >
-                          <RefreshCw className={cn("w-3 h-3", retryingProjectId === project.id && "animate-spin")} />
-                          Server Stitch
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleBrowserStitch(project.id)}
-                          className="gap-2 text-xs text-purple-400"
-                        >
-                          <MonitorPlay className="w-3 h-3" />
-                          Browser Stitch
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ))}
-                  {needsStitching.length > 5 && (
-                    <span className="px-3 py-1.5 text-xs text-white/40">+{needsStitching.length - 5} more</span>
-                  )}
-                </div>
-              </motion.section>
-            )}
-
             {/* Categorized Projects Grid */}
             <motion.div 
               initial={{ opacity: 0 }}
@@ -1598,10 +1463,8 @@ export default function Projects() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="relative p-4 rounded-2xl bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.04] to-transparent border border-amber-500/20 backdrop-blur-2xl overflow-hidden"
+                      className="relative"
                     >
-                      {/* Subtle glow */}
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
                       
                       <div className="relative flex items-center gap-2 mb-4">
                         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
@@ -1670,10 +1533,8 @@ export default function Projects() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.15 }}
-                      className="relative p-4 rounded-2xl bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent border border-emerald-500/20 backdrop-blur-2xl overflow-hidden"
+                      className="relative"
                     >
-                      {/* Subtle glow */}
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
                       
                       <div className="relative flex items-center gap-2 mb-4">
                         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
@@ -1768,7 +1629,7 @@ export default function Projects() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 + genreIndex * 0.05 }}
-                        className="relative p-4 rounded-2xl bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border border-border/30 backdrop-blur-2xl overflow-hidden"
+                        className="relative"
                       >
                         <div className="relative flex items-center gap-2 mb-4">
                           <div className="w-6 h-6 rounded-lg flex items-center justify-center shadow-lg border border-border/40 bg-gradient-to-br from-muted/80 to-muted/40">

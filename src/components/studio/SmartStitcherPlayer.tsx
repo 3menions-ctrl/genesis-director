@@ -1,15 +1,16 @@
 /**
- * SmartStitcherPlayer v4 - True Gapless Playback with ForwardRef
+ * SmartStitcherPlayer v5 - INSTANTANEOUS Gapless Playback with ForwardRef
  * 
  * Features:
  * - Dual video element switching for ZERO gap transitions
  * - Preloads next clip while current plays
- * - Seamless crossfade between clips
+ * - 50ms crossfade for INSTANT transitions
  * - High-quality RAF-based stitching export
  * - Quality selector (720p/1080p/1440p)
  * - Works offline, no Cloud Run timeouts
  * - ForwardRef compatible for AnimatePresence
  * - Enhanced error recovery and stall detection
+ * - NO center play button - only bottom controls
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'react';
@@ -141,10 +142,10 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds - ultra smooth seamless transition
-const CROSSFADE_DURATION = 100;
+// Crossfade duration in milliseconds - INSTANTANEOUS transition
+const CROSSFADE_DURATION = 50;
 // Trigger transition this many seconds before clip ends for ZERO gap
-const TRANSITION_TRIGGER_OFFSET = 0.25;
+const TRANSITION_TRIGGER_OFFSET = 0.15;
 
 // ForwardRef wrapper for AnimatePresence compatibility
 export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlayerProps>(

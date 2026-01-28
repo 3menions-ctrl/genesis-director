@@ -16,8 +16,8 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 1500; // ms - smooth crossfade duration
-const CROSSFADE_START_BEFORE_END = 2; // seconds - start transition before clip ends
+const CROSSFADE_DURATION = 50; // ms - INSTANTANEOUS crossfade
+const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 
 // Buffer states for the triple buffer pool

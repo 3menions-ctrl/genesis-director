@@ -485,45 +485,24 @@ function ProjectCard({
         isActive && "ring-2 ring-white/30"
       )}>
         
-        {/* Video/Thumbnail - always visible, no loading state */}
+        {/* Video/Thumbnail - use actual video frame, never AI-generated images */}
         {hasVideo && videoSrc ? (
           <>
-            {/* Static thumbnail image - always visible as base layer */}
-            {project.thumbnail_url && (
-              <img
-                src={project.thumbnail_url}
-                alt={project.name}
-                className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-transform duration-700",
-                  isHovered && "scale-105"
-                )}
-              />
-            )}
-            
-            {/* Video element - overlays thumbnail on hover */}
+            {/* Video element - ALWAYS visible as base layer (paused at thumbnail frame) */}
             <video
               ref={videoRef}
               src={videoSrc}
-              poster={project.thumbnail_url || undefined}
               className={cn(
                 "absolute inset-0 w-full h-full object-cover transition-all duration-700",
-                isHovered ? "opacity-100 scale-105" : "opacity-0",
-                !project.thumbnail_url && "opacity-100" // Show video if no thumbnail
+                isHovered && "scale-105"
               )}
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="auto"
               onLoadedData={handleVideoLoaded}
               crossOrigin="anonymous"
             />
-            
-            {/* Loading spinner when no thumbnail */}
-            {!project.thumbnail_url && (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/50">
-                <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
-              </div>
-            )}
             
             {/* Cinematic bars on hover */}
             <motion.div 

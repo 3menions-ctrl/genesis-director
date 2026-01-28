@@ -142,8 +142,8 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
   });
 }
 
-// Crossfade duration in milliseconds - brief overlap for smooth blending
-const CROSSFADE_DURATION = 30;
+// Crossfade duration in milliseconds - ultra-fast overlap for seamless blending
+const CROSSFADE_DURATION = 0.030;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_TRIGGER_OFFSET = 0.15;
 

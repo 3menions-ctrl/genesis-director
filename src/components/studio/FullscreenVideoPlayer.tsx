@@ -16,7 +16,7 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION = 30; // ms - brief overlap for smooth blending
+const CROSSFADE_DURATION = 0.030; // ms - ultra-fast overlap for seamless blending
 const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 

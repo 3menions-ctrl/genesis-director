@@ -37,8 +37,8 @@ interface ManifestVideoPlayerProps {
   className?: string;
 }
 
-// Crossfade duration in milliseconds - brief overlap for smooth blending
-const CROSSFADE_DURATION = 30;
+// Crossfade duration in milliseconds - ultra-fast overlap for seamless blending
+const CROSSFADE_DURATION = 0.030;
 // Trigger transition this many seconds before clip ends for ZERO gap
 const TRANSITION_THRESHOLD = 0.15;
 

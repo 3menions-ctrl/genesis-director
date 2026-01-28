@@ -1,5 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  GUARD_RAIL_CONFIG,
+  checkAndRecoverStaleMutex,
+  detectStuckClips,
+  checkPipelineHealth,
+  getGuaranteedLastFrame,
+  isValidImageUrl,
+} from "../_shared/pipeline-guard-rails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,14 +15,15 @@ const corsHeaders = {
 };
 
 /**
- * Pipeline Watchdog Edge Function v3.0 - COMPLETE RECOVERY SYSTEM
+ * Pipeline Watchdog Edge Function v4.0 - GUARD RAILS INTEGRATED
  * 
  * Now handles:
- * 1. PRODUCTION RECOVERY: Stalled 'generating' projects
- * 2. STITCHING RECOVERY: Stuck 'stitching' projects
- * 3. RETRY_SCHEDULED RECOVERY: Projects waiting for retry (NEW!)
- * 4. STITCH_JOBS RECOVERY: Tracks and resumes failed stitch jobs (NEW!)
- * 5. COMPLETION GUARANTEE: Falls back to manifest after max retries
+ * 1. AUTOMATIC MUTEX RECOVERY: Releases stale locks proactively
+ * 2. CLIP 0 FRAME GUARANTEE: Ensures Clip 0 always has reference image as last_frame
+ * 3. STUCK CLIP DETECTION: Uses guard rail detection for comprehensive recovery
+ * 4. PRODUCTION RECOVERY: Stalled 'generating' projects
+ * 5. STITCHING RECOVERY: Stuck 'stitching' projects
+ * 6. COMPLETION GUARANTEE: Falls back to manifest after max retries
  */
 
 interface StalledProject {
@@ -26,6 +35,8 @@ interface StalledProject {
   user_id: string;
   generated_script: string | null;
   stitch_attempts: number | null;
+  generation_lock: Record<string, unknown> | null;
+  pro_features_data: Record<string, unknown> | null;
 }
 
 interface StitchJob {
@@ -47,6 +58,9 @@ interface WatchdogResult {
   manifestFallbacks: number;
   projectsCompleted: number;
   projectsMarkedFailed: number;
+  mutexesReleased: number;
+  clip0FramesFixed: number;
+  stuckClipsRecovered: number;
   details: Array<{
     projectId: string;
     action: string;
@@ -54,8 +68,8 @@ interface WatchdogResult {
   }>;
 }
 
-// Timeouts
-const STALE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+// Timeouts - use guard rail config where applicable
+const STALE_TIMEOUT_MS = GUARD_RAIL_CONFIG.CLIP_STUCK_THRESHOLD_MS; // 3 minutes
 const STITCHING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_STITCHING_ATTEMPTS = 3;
 const MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes
@@ -80,10 +94,77 @@ serve(async (req) => {
       manifestFallbacks: 0,
       projectsCompleted: 0,
       projectsMarkedFailed: 0,
+      mutexesReleased: 0,
+      clip0FramesFixed: 0,
+      stuckClipsRecovered: 0,
       details: [],
     };
 
-    console.log("[Watchdog] Starting aggressive pipeline recovery check...");
+    console.log("[Watchdog] Starting v4.0 pipeline recovery with guard rails...");
+
+    // ==================== PHASE 0: GLOBAL MUTEX SWEEP ====================
+    // Find and release ALL stale mutexes across all generating projects
+    const { data: lockedProjects } = await supabase
+      .from('movie_projects')
+      .select('id, generation_lock, pro_features_data')
+      .eq('status', 'generating')
+      .not('generation_lock', 'is', null)
+      .limit(50);
+    
+    for (const project of (lockedProjects || [])) {
+      const mutexResult = await checkAndRecoverStaleMutex(supabase, project.id);
+      if (mutexResult.wasStale) {
+        result.mutexesReleased++;
+        result.details.push({
+          projectId: project.id,
+          action: 'mutex_released',
+          result: `Released stale lock from clip ${mutexResult.releasedClip}`,
+        });
+        console.log(`[Watchdog] 🔓 Released stale mutex for ${project.id} (clip ${mutexResult.releasedClip})`);
+      }
+    }
+
+    // ==================== PHASE 0.5: CLIP 0 FRAME GUARANTEE ====================
+    // Ensure all Clip 0s have last_frame_url set to reference image
+    const { data: projectsWithClips } = await supabase
+      .from('movie_projects')
+      .select('id, pro_features_data')
+      .eq('status', 'generating')
+      .limit(30);
+    
+    for (const project of (projectsWithClips || [])) {
+      const { data: clip0 } = await supabase
+        .from('video_clips')
+        .select('id, last_frame_url, video_url, status')
+        .eq('project_id', project.id)
+        .eq('shot_index', 0)
+        .maybeSingle();
+      
+      // If Clip 0 is completed but missing last_frame_url, fix it
+      if (clip0 && clip0.status === 'completed' && !clip0.last_frame_url) {
+        const proFeatures = project.pro_features_data as Record<string, any> || {};
+        const referenceImageUrl = proFeatures.referenceAnalysis?.imageUrl 
+          || proFeatures.identityBible?.originalReferenceUrl;
+        
+        if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+          await supabase
+            .from('video_clips')
+            .update({ 
+              last_frame_url: referenceImageUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', clip0.id);
+          
+          result.clip0FramesFixed++;
+          result.details.push({
+            projectId: project.id,
+            action: 'clip0_frame_fixed',
+            result: `Set last_frame_url to reference image`,
+          });
+          console.log(`[Watchdog] ✓ Fixed Clip 0 last_frame for ${project.id}`);
+        }
+      }
+    }
 
     // ==================== PHASE 1: RETRY_SCHEDULED PROJECTS ====================
     // These are projects that have scheduled retries - process them first

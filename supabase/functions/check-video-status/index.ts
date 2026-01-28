@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  isValidImageUrl,
+  getGuaranteedLastFrame,
+  GUARD_RAIL_CONFIG,
+} from "../_shared/pipeline-guard-rails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,6 +174,7 @@ serve(async (req) => {
             // =========================================================
             // AUTO-COMPLETE: Store video and update clip record
             // This recovers clips where generate-single-clip timed out
+            // GUARD RAIL: Also ensures Clip 0 has reference image as last_frame
             // =========================================================
             if (autoComplete && videoUrl && reqProjectId && shotIndex !== undefined) {
               try {
@@ -177,9 +183,29 @@ serve(async (req) => {
                 // Store video in Supabase storage
                 storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, reqProjectId, shotIndex);
                 
+                // GUARD RAIL: For Clip 0, ALWAYS use reference image as last_frame_url
+                let lastFrameUrl: string | null = null;
+                if (shotIndex === 0) {
+                  // Fetch reference image from project
+                  const { data: projectData } = await supabase
+                    .from('movie_projects')
+                    .select('pro_features_data')
+                    .eq('id', reqProjectId)
+                    .maybeSingle();
+                  
+                  const proFeatures = projectData?.pro_features_data as Record<string, any> || {};
+                  const referenceImageUrl = proFeatures.referenceAnalysis?.imageUrl 
+                    || proFeatures.identityBible?.originalReferenceUrl;
+                  
+                  if (referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+                    lastFrameUrl = referenceImageUrl;
+                    console.log(`[CheckStatus] ✓ Clip 0: Using reference image as last_frame (GUARANTEED)`);
+                  }
+                }
+                
                 // Update clip record
                 if (userId) {
-                  const clipData = {
+                  const clipData: Record<string, any> = {
                     project_id: reqProjectId,
                     user_id: userId,
                     shot_index: shotIndex,
@@ -189,6 +215,11 @@ serve(async (req) => {
                     completed_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                   };
+                  
+                  // Add last_frame_url if we have one (Clip 0 reference image)
+                  if (lastFrameUrl) {
+                    clipData.last_frame_url = lastFrameUrl;
+                  }
                   
                   // Check if clip exists
                   const { data: existingClip } = await supabase

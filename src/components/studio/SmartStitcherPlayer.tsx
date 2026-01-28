@@ -401,30 +401,55 @@ export function SmartStitcherPlayer({
   // Setup first clip and preload second when clips are loaded
   useEffect(() => {
     if (clips.length === 0 || isLoadingClips) return;
+    
+    // Ensure first clip has blobUrl before proceeding
+    const firstClipReady = clips[0]?.blobUrl && clips[0]?.loaded;
+    if (!firstClipReady) return;
 
     const activeVideo = getActiveVideo();
     const standbyVideo = getStandbyVideo();
     
-    // Load first clip into active video
-    if (activeVideo && clips[0]?.blobUrl && !activeVideo.src) {
-      activeVideo.src = clips[0].blobUrl;
-      activeVideo.load();
+    // Load first clip into active video - check if src needs updating
+    if (activeVideo && clips[0]?.blobUrl) {
+      const currentSrc = activeVideo.src;
+      const targetSrc = clips[0].blobUrl;
+      // Only update if src is empty or different
+      if (!currentSrc || currentSrc !== targetSrc) {
+        console.log('[SmartStitcher] Loading first clip into active video');
+        activeVideo.src = targetSrc;
+        activeVideo.load();
+      }
     }
 
     // Preload second clip into standby video
-    if (standbyVideo && clips[1]?.blobUrl && !standbyVideo.src) {
-      standbyVideo.src = clips[1].blobUrl;
-      standbyVideo.load();
+    if (standbyVideo && clips[1]?.blobUrl && clips[1]?.loaded) {
+      const currentSrc = standbyVideo.src;
+      const targetSrc = clips[1].blobUrl;
+      if (!currentSrc || currentSrc !== targetSrc) {
+        console.log('[SmartStitcher] Preloading second clip into standby video');
+        standbyVideo.src = targetSrc;
+        standbyVideo.load();
+      }
     }
 
     // Handle auto-play
-    if (pendingPlayRef.current && activeVideo) {
+    if (pendingPlayRef.current && activeVideo && activeVideo.src) {
       pendingPlayRef.current = false;
-      setTimeout(() => {
-        activeVideo.play().then(() => {
-          setIsPlaying(true);
-        }).catch(() => {});
-      }, 100);
+      // Wait for video to be ready to play
+      const attemptPlay = () => {
+        if (activeVideo.readyState >= 2) {
+          console.log('[SmartStitcher] Auto-playing first clip');
+          activeVideo.play().then(() => {
+            setIsPlaying(true);
+          }).catch((err) => {
+            console.warn('[SmartStitcher] Auto-play failed:', err);
+          });
+        } else {
+          // Video not ready yet, wait and retry
+          setTimeout(attemptPlay, 100);
+        }
+      };
+      setTimeout(attemptPlay, 100);
     }
   }, [clips, isLoadingClips, getActiveVideo, getStandbyVideo]);
 
@@ -660,14 +685,33 @@ export function SmartStitcherPlayer({
     [clips, isPlaying, useStitchedVideo, getActiveVideo]
   );
 
-  // Fullscreen toggle
+  // Fullscreen toggle - Safari/iOS compatible
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
+    
+    const elem = containerRef.current as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element;
+    };
+    
+    const isCurrentlyFullscreen = document.fullscreenElement || doc.webkitFullscreenElement;
+    
+    if (isCurrentlyFullscreen) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+      }
       setIsFullscreen(false);
     } else {
-      containerRef.current.requestFullscreen();
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
       setIsFullscreen(true);
     }
   }, []);

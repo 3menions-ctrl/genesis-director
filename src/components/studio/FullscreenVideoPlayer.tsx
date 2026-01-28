@@ -345,15 +345,35 @@ export function FullscreenVideoPlayer({
     video.currentTime = Math.max(0, Math.min(duration, video.currentTime + seconds));
   }, [duration]);
 
-  // Toggle fullscreen
+  // Toggle fullscreen - Safari/iOS compatible
   const toggleFullscreen = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    const elem = container as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element;
+    };
+    
+    const isCurrentlyFullscreen = document.fullscreenElement || doc.webkitFullscreenElement;
+
+    if (!isCurrentlyFullscreen) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+        setIsFullscreen(true);
+      }
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+        setIsFullscreen(false);
+      }
     }
   }, []);
 

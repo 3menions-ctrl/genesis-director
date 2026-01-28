@@ -550,8 +550,60 @@ async function runPreProduction(
   await updateProjectProgress(supabase, state.projectId, 'preproduction', 10);
   
   // =====================================================
-  // CRITICAL: Analyze reference image FIRST if provided
-  // This ensures script generation follows the image
+  // CRITICAL: ASPECT RATIO EXPANSION - BEFORE ANYTHING ELSE
+  // If reference image aspect ratio doesn't match target, expand it
+  // =====================================================
+  if (request.referenceImageUrl && request.aspectRatio) {
+    console.log(`[Hollywood] Checking reference image aspect ratio vs target: ${request.aspectRatio}`);
+    
+    try {
+      await updateProjectProgress(supabase, state.projectId, 'preproduction', 5, {
+        message: 'Analyzing image dimensions...',
+      });
+      
+      // Call the expand-image-aspect-ratio function
+      const expansionResult = await callEdgeFunction('expand-image-aspect-ratio', {
+        imageUrl: request.referenceImageUrl,
+        targetAspectRatio: request.aspectRatio,
+        environmentPrompt: request.environmentPrompt || request.concept || 'natural environment, seamless extension',
+      });
+      
+      if (expansionResult?.expanded && expansionResult?.imageUrl) {
+        console.log(`[Hollywood] ✓ Image EXPANDED from ${expansionResult.expansion?.originalAspectRatio?.toFixed(2)} to ${request.aspectRatio}`);
+        console.log(`[Hollywood]   Original: ${expansionResult.originalUrl}`);
+        console.log(`[Hollywood]   Expanded: ${expansionResult.imageUrl}`);
+        
+        // CRITICAL: Replace the reference image URL with the expanded version
+        request.referenceImageUrl = expansionResult.imageUrl;
+        
+        // Update project with expanded image
+        await supabase
+          .from('movie_projects')
+          .update({
+            source_image_url: expansionResult.imageUrl,
+            pipeline_state: {
+              originalImageUrl: expansionResult.originalUrl,
+              expandedImageUrl: expansionResult.imageUrl,
+              aspectRatioExpansion: expansionResult.expansion,
+            },
+          })
+          .eq('id', state.projectId);
+          
+        await updateProjectProgress(supabase, state.projectId, 'preproduction', 8, {
+          message: `Image expanded to ${request.aspectRatio} aspect ratio`,
+        });
+      } else if (!expansionResult?.expanded) {
+        console.log(`[Hollywood] ✓ Image already matches ${request.aspectRatio} aspect ratio, no expansion needed`);
+      }
+    } catch (err) {
+      console.warn(`[Hollywood] Aspect ratio expansion failed (using original image):`, err);
+      // Continue with original image - video may have black bars but won't fail
+    }
+  }
+  
+  // =====================================================
+  // Analyze reference image AFTER expansion if provided
+  // This ensures script generation uses the correct (expanded) image
   // =====================================================
   if (request.referenceImageUrl && !request.referenceImageAnalysis) {
     console.log(`[Hollywood] Analyzing reference image BEFORE script generation for strict adherence...`);

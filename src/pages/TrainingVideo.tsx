@@ -408,7 +408,7 @@ export default function TrainingVideo() {
     return () => clearTimeout(autoPreloadTimeout);
   }, []);
 
-  // Generate training video - Uses dedicated avatar pipeline
+  // Generate training video - Character compositing + Kling animation pipeline
   const handleGenerate = async () => {
     if (!characterImage || !scriptText.trim()) {
       toast.error('Please upload a character image and enter script text');
@@ -426,13 +426,17 @@ export default function TrainingVideo() {
     setGeneratedVideoUrl(null);
 
     try {
-      // Get the selected background for the prompt
+      // Get the selected background for compositing
       const selectedBg = BACKGROUND_PRESETS.find(b => b.id === selectedBackground);
-      const backgroundName = selectedBg?.name || 'professional studio';
+      const backgroundImage = customBackground || selectedBg?.image;
       
-      // Step 1: Generate audio from text (30%)
+      if (!backgroundImage) {
+        throw new Error('No background selected');
+      }
+      
+      // Step 1: Generate audio from script (10%)
       toast.info('Generating voice audio...');
-      setProgress(10);
+      setProgress(5);
       
       const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-voice', {
         body: {
@@ -457,81 +461,125 @@ export default function TrainingVideo() {
       }
       
       setGeneratedAudioUrl(audioUrl);
-      setProgress(30);
+      setProgress(15);
 
-      // Step 2: Upload character image to storage for use with video generation
+      // Step 2: Composite character onto background (15-40%)
       setGenerationStep('generating_video');
-      toast.info('Preparing avatar for video generation...');
+      toast.info('Extracting character and compositing onto scene...');
       
-      // Upload the character image to storage first
-      const imageBlob = await fetch(characterImage).then(r => r.blob());
-      const imageFileName = `training-avatar-${user.id}-${Date.now()}.jpg`;
+      // Convert background to base64 if it's an imported module
+      let backgroundBase64: string | undefined;
+      let backgroundUrl: string | undefined;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('character-references')
-        .upload(imageFileName, imageBlob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-      
-      if (uploadError) {
-        console.warn('Image upload failed, using base64:', uploadError);
+      if (backgroundImage.startsWith('data:')) {
+        backgroundBase64 = backgroundImage.split(',')[1];
+      } else if (backgroundImage.startsWith('http')) {
+        backgroundUrl = backgroundImage;
+      } else {
+        // It's an imported asset, need to fetch and convert
+        try {
+          const bgResponse = await fetch(backgroundImage);
+          const bgBlob = await bgResponse.blob();
+          const reader = new FileReader();
+          backgroundBase64 = await new Promise<string>((resolve) => {
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.readAsDataURL(bgBlob);
+          });
+        } catch (e) {
+          console.warn('Failed to load background, using URL:', e);
+          backgroundUrl = backgroundImage;
+        }
       }
       
-      // Get the public URL for the uploaded image
-      let avatarImageUrl: string;
-      if (uploadData) {
-        const { data: publicUrl } = supabase.storage
-          .from('character-references')
-          .getPublicUrl(imageFileName);
-        avatarImageUrl = publicUrl.publicUrl;
-      } else {
-        // Fallback to base64 in prompt if upload failed
-        avatarImageUrl = characterImage;
+      setProgress(20);
+      
+      // Call the compositing service
+      const { data: compositeData, error: compositeError } = await supabase.functions.invoke('composite-character', {
+        body: {
+          characterBase64: characterImage.split(',')[1],
+          backgroundBase64,
+          backgroundImageUrl: backgroundUrl,
+          placement: 'center',
+          scale: 0.7,
+          aspectRatio: '16:9',
+        },
+      });
+
+      if (compositeError) {
+        console.warn('Compositing service error, falling back to direct generation:', compositeError);
       }
       
       setProgress(40);
-      toast.info('Generating talking head video with your character...');
       
-      // Build a rich prompt that describes the scene with the background
-      const scenePrompt = `Professional training video presenter. The person is speaking directly to camera in a ${backgroundName} environment. ${getBackgroundDescription(selectedBackground || 'home_studio')} Natural head movements, subtle gestures, direct eye contact, confident professional demeanor. Corporate training video aesthetic. The presenter is delivering educational content with engaging body language.`;
+      // Use composited image if available, otherwise fall back to character image
+      let startImageUrl: string;
+      
+      if (compositeData?.success && compositeData?.compositedImageUrl) {
+        startImageUrl = compositeData.compositedImageUrl;
+        toast.success(`Character composited onto scene (${compositeData.method})`);
+      } else {
+        // Fallback: Upload character image directly
+        toast.info('Using character image directly for generation...');
+        const imageBlob = await fetch(characterImage).then(r => r.blob());
+        const imageFileName = `training-avatar-${user.id}-${Date.now()}.jpg`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('character-references')
+          .upload(imageFileName, imageBlob, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
+        
+        if (uploadError) {
+          console.warn('Image upload failed:', uploadError);
+          startImageUrl = characterImage; // Use base64 as last resort
+        } else {
+          const { data: publicUrl } = supabase.storage
+            .from('character-references')
+            .getPublicUrl(imageFileName);
+          startImageUrl = publicUrl.publicUrl;
+        }
+      }
 
-      // Use generate-video with the character image as start_image
+      // Step 3: Generate animated video with Kling (40-75%)
+      toast.info('Animating speaking presenter...');
+      setProgress(45);
+      
+      // Build prompt for natural speaking animation
+      const animationPrompt = `The person in the image is speaking naturally to camera with confident body language. Direct eye contact, subtle natural head movements, professional presenter demeanor. The presenter is delivering educational content with engaging expressions. No scene change, consistent lighting and environment.`;
+
       const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
         body: {
-          prompt: scenePrompt,
-          imageUrl: avatarImageUrl,
-          imageBase64: characterImage.split(',')[1],
+          prompt: animationPrompt,
+          imageUrl: startImageUrl,
           aspectRatio: '16:9',
           duration: Math.min(Math.ceil(scriptText.length / 15), 10),
           userId: user.id,
-          // Pass additional context for training video mode
           mode: 'training_avatar',
-          voiceId: selectedVoice,
         },
       });
 
       if (videoError) throw videoError;
       
-      // Handle async video generation (Kling returns taskId, need to poll)
+      // Handle async video generation
       let finalVideoUrl: string;
       
       if (videoData?.videoUrl) {
-        // Direct video URL returned
         finalVideoUrl = videoData.videoUrl;
       } else if (videoData?.taskId) {
-        // Async generation - poll for completion
         toast.info('Video processing... This may take 1-3 minutes');
         const taskId = videoData.taskId;
-        const provider = videoData.provider || 'kling';
+        const provider = videoData.provider || 'replicate';
         
-        // Poll for video completion (max 5 minutes)
         const maxAttempts = 60;
-        const pollInterval = 5000; // 5 seconds
+        const pollInterval = 5000;
         
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           await new Promise(resolve => setTimeout(resolve, pollInterval));
-          setProgress(30 + Math.min(25, attempt)); // Progress from 30% to 55%
+          setProgress(45 + Math.min(30, attempt)); // 45% to 75%
           
           const { data: statusData, error: statusError } = await supabase.functions.invoke('check-video-status', {
             body: { taskId, provider }
@@ -542,7 +590,6 @@ export default function TrainingVideo() {
             continue;
           }
           
-          // Check for completion - Kling returns 'SUCCEEDED', normalize to handle both
           const isCompleted = statusData?.status === 'completed' || 
                               statusData?.status === 'SUCCEEDED' || 
                               statusData?.status === 'succeeded';
@@ -554,7 +601,6 @@ export default function TrainingVideo() {
             throw new Error(statusData?.error || 'Video generation failed');
           }
           
-          // Update progress message
           if (attempt % 6 === 0 && attempt > 0) {
             toast.info(`Still processing... ${Math.ceil((maxAttempts - attempt) * pollInterval / 60000)} min remaining`);
           }
@@ -567,62 +613,28 @@ export default function TrainingVideo() {
         throw new Error('No video URL or task ID received');
       }
       
-      setProgress(60);
+      setProgress(80);
+      setGeneratedVideoUrl(finalVideoUrl);
 
-      // Step 3: Apply lip sync (90%)
-      setGenerationStep('applying_lipsync');
-      toast.info('Applying lip synchronization...');
-
-      let videoToSave = finalVideoUrl;
-      
-      try {
-        const { data: lipSyncData, error: lipSyncError } = await supabase.functions.invoke('lip-sync-service', {
-          body: {
-            projectId: `training_${user.id}_${Date.now()}`,
-            videoUrl: finalVideoUrl,
-            audioUrl: audioStorageUrl || audioUrl,
-            userId: user.id,
-            quality: 'balanced',
-            faceEnhance: true,
-          },
-        });
-
-        if (!lipSyncError && lipSyncData?.success && lipSyncData?.outputVideoUrl) {
-          videoToSave = lipSyncData.outputVideoUrl;
-          setGeneratedVideoUrl(lipSyncData.outputVideoUrl);
-          toast.success('Lip sync applied successfully!');
-        } else {
-          console.warn('Lip sync not available:', lipSyncData?.error || 'Service unavailable');
-          setGeneratedVideoUrl(finalVideoUrl);
-          if (lipSyncData?.error?.includes('not configured')) {
-            toast.info('Video generated without lip sync (service not configured)');
-          }
-        }
-      } catch (lipSyncErr) {
-        console.warn('Lip sync service not available:', lipSyncErr);
-        setGeneratedVideoUrl(finalVideoUrl);
-        toast.info('Video generated without lip sync');
-      }
-
-      setProgress(100);
+      // Step 4: Skip lip sync per user preference (Kling animation only)
+      // The video already has speaking motion from Kling
       setGenerationStep('complete');
+      setProgress(100);
       
-      // Save training video to database with the correct URL
-      if (videoToSave && user) {
+      // Save training video to database
+      if (finalVideoUrl && user) {
         try {
           const { error: saveError } = await supabase.from('training_videos').insert({
             user_id: user.id,
             title: `Training Video - ${new Date().toLocaleDateString()}`,
             description: scriptText.slice(0, 200),
-            video_url: videoToSave,
+            video_url: finalVideoUrl,
             voice_id: selectedVoice,
             environment: selectedBackground,
           });
           
           if (saveError) {
             console.error('Failed to save training video:', saveError);
-          } else {
-            console.log('Training video saved successfully');
           }
         } catch (saveErr) {
           console.error('Error saving training video:', saveErr);

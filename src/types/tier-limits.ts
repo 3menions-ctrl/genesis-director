@@ -44,8 +44,8 @@ export type ErrorCategory = 'timeout' | 'api_error' | 'validation' | 'quota' | '
 export const DEFAULT_TIER_LIMITS: Record<AccountTier, TierLimits> = {
   free: {
     tier: 'free',
-    max_duration_minutes: 1, // ~32 seconds (5 clips × 6 sec)
-    max_clips_per_video: 5,
+    max_duration_minutes: 1, // 60 seconds (6 clips × 10 sec max)
+    max_clips_per_video: 6, // Matches 60 credit welcome bonus
     max_concurrent_projects: 2,
     max_retries_per_clip: 1,
     priority_queue: false,
@@ -90,7 +90,7 @@ export const TIER_CLIP_LIMITS: Record<AccountTier, {
   maxRetries: number; 
   chunkedStitching: boolean;
 }> = {
-  free: { maxClips: 5, maxDuration: 32, maxRetries: 1, chunkedStitching: false },
+  free: { maxClips: 6, maxDuration: 60, maxRetries: 1, chunkedStitching: false },
   pro: { maxClips: 10, maxDuration: 60, maxRetries: 2, chunkedStitching: true },
   growth: { maxClips: 20, maxDuration: 120, maxRetries: 3, chunkedStitching: true },
   agency: { maxClips: 30, maxDuration: 180, maxRetries: 4, chunkedStitching: true },

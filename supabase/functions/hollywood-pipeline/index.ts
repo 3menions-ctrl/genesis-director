@@ -201,7 +201,7 @@ const MAX_CLIP_DURATION = 10;
 // COST OPTIMIZATION: Quality retries disabled to reduce Kling API costs
 // Each clip is generated once and accepted regardless of quality score
 const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; maxRetries: number; chunkedStitching: boolean }> = {
-  'free': { maxClips: 5, maxDuration: 32, maxRetries: 0, chunkedStitching: false },
+  'free': { maxClips: 6, maxDuration: 60, maxRetries: 0, chunkedStitching: false }, // 6 clips to match 60 credit welcome bonus
   'pro': { maxClips: 10, maxDuration: 60, maxRetries: 0, chunkedStitching: true },
   'growth': { maxClips: 20, maxDuration: 120, maxRetries: 0, chunkedStitching: true },
   'agency': { maxClips: 30, maxDuration: 180, maxRetries: 0, chunkedStitching: true },
@@ -211,7 +211,7 @@ const TIER_CLIP_LIMITS: Record<string, { maxClips: number; maxDuration: number; 
 // const MINIMUM_QUALITY_THRESHOLD = 65;
 const MINIMUM_QUALITY_THRESHOLD = 0; // Accept all clips
 
-const MIN_CLIPS_PER_PROJECT = 2;
+const MIN_CLIPS_PER_PROJECT = 1; // Allow single-clip projects
 
 // Tier-aware credit costs (MUST match frontend useCreditBilling.ts)
 // Pricing: 10 credits per clip = $1 per clip

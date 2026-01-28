@@ -176,48 +176,34 @@ export function FullscreenVideoPlayer({
       nextVideo.load();
     }
 
-    // Audio crossfade function
-    const crossfadeAudio = () => {
-      const steps = 30;
-      const stepDuration = CROSSFADE_DURATION / steps;
-      let step = 0;
+    // INSTANT audio swap - no crossfade for imperceptible transitions
+    const instantAudioSwap = () => {
+      if (!isMuted) {
+        currentVideo.volume = 0;
+        nextVideo.volume = volume;
+      }
+      currentVideo.pause();
+      currentVideo.currentTime = 0;
+      currentVideo.volume = volume;
+      setIsTransitioning(false);
+      transitionTriggeredRef.current = false;
+      preloadTriggeredRef.current = false;
+      setPreloadedClipIndex(null);
       
-      const fadeInterval = setInterval(() => {
-        step++;
-        const progress = step / steps;
-        const eased = 1 - Math.pow(1 - progress, 2);
-        
-        if (!isMuted) {
-          currentVideo.volume = Math.max(0, volume * (1 - eased));
-          nextVideo.volume = Math.min(volume, volume * eased);
-        }
-        
-        if (step >= steps) {
-          clearInterval(fadeInterval);
-          currentVideo.pause();
-          currentVideo.currentTime = 0;
-          currentVideo.volume = volume;
-          setIsTransitioning(false);
-          transitionTriggeredRef.current = false;
-          preloadTriggeredRef.current = false;
-          setPreloadedClipIndex(null);
-          
-          // Start preloading the NEXT next clip
-          const upcomingIndex = (nextIndex + 1) % clips.length;
-          if (clips.length > 1) {
-            preloadNextClip(upcomingIndex);
-          }
-        }
-      }, stepDuration);
+      // Start preloading the NEXT next clip
+      const upcomingIndex = (nextIndex + 1) % clips.length;
+      if (clips.length > 1) {
+        preloadNextClip(upcomingIndex);
+      }
     };
 
-    // Start transition when video is ready
+    // Start transition immediately when video is ready
     const startTransition = () => {
       setIsWaitingForBuffer(false);
       nextVideo.play().then(() => {
         setActiveVideo(isNextA ? 'A' : 'B');
         setCurrentClipIndex(nextIndex);
-        crossfadeAudio();
+        instantAudioSwap();
       }).catch((err) => {
         console.error('Video play failed:', err);
         setIsTransitioning(false);

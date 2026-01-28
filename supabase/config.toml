@@ -242,3 +242,6 @@ verify_jwt = false
 
 [functions.motion-transfer]
 verify_jwt = false
+
+[functions.generate-face-lock]
+verify_jwt = false

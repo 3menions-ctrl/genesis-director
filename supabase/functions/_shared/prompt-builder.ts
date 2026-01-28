@@ -127,6 +127,46 @@ export interface SceneContext {
   timeOfDay?: string;
 }
 
+// =============================================================================
+// FACE LOCK INTERFACE (HIGHEST PRIORITY IDENTITY SYSTEM)
+// =============================================================================
+
+export interface FaceLock {
+  // Core face identity
+  faceShape?: string;
+  eyeDescription?: string;
+  noseDescription?: string;
+  mouthDescription?: string;
+  skinTone?: string;
+  skinTexture?: string;
+  facialHair?: string;
+  
+  // Distinguishing features (CRITICAL for identity)
+  distinguishingFeatures?: string[];
+  
+  // Age and expression baseline
+  apparentAge?: string;
+  restingExpression?: string;
+  
+  // Hair framing the face
+  hairlineDescription?: string;
+  hairColorExact?: string;
+  
+  // Full description for injection
+  fullFaceDescription?: string;
+  
+  // Golden reference - single sentence identity lock
+  goldenReference?: string;
+  
+  // Face-specific negatives
+  faceNegatives?: string[];
+  
+  // Metadata
+  lockedAt?: string;
+  confidence?: number;
+  sourceImageUrl?: string;
+}
+
 export interface PromptBuildRequest {
   // Base prompt (shot description)
   basePrompt: string;
@@ -134,6 +174,9 @@ export interface PromptBuildRequest {
   // Clip metadata
   clipIndex: number;
   totalClips: number;
+  
+  // FACE LOCK (HIGHEST PRIORITY - injected FIRST)
+  faceLock?: FaceLock;
   
   // Identity data
   identityBible?: IdentityBible;
@@ -160,6 +203,7 @@ export interface BuiltPrompt {
   enhancedPrompt: string;
   negativePrompt: string;
   injectionSummary: {
+    hasFaceLock: boolean;
     hasIdentityBible: boolean;
     hasNonFacialAnchors: boolean;
     hasAntiMorphing: boolean;
@@ -362,8 +406,66 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   const isBackFacingOrOccluded = !poseAnalysis.faceVisible;
   
   // ===========================================================================
-  // 0. HARD IDENTITY LOCK - First line of prompt for maximum model attention
-  // This is the MOST IMPORTANT instruction for character consistency
+  // 0. FACE LOCK INJECTION (ABSOLUTE HIGHEST PRIORITY)
+  // This is injected FIRST to ensure maximum model attention on face identity
+  // ===========================================================================
+  let hasFaceLock = false;
+  const fl = request.faceLock;
+  
+  if (fl) {
+    hasFaceLock = true;
+    
+    // Golden reference is the single most important identity sentence
+    if (fl.goldenReference) {
+      promptParts.push(`[FACE LOCK - DO NOT CHANGE THIS FACE: ${fl.goldenReference}]`);
+    }
+    
+    // Full face description
+    if (fl.fullFaceDescription) {
+      promptParts.push(`[EXACT FACE: ${fl.fullFaceDescription}]`);
+    }
+    
+    // Key facial features
+    const faceDetails: string[] = [];
+    if (fl.eyeDescription) faceDetails.push(`EYES: ${fl.eyeDescription}`);
+    if (fl.skinTone) faceDetails.push(`SKIN: ${fl.skinTone}`);
+    if (fl.faceShape) faceDetails.push(`FACE SHAPE: ${fl.faceShape}`);
+    if (fl.hairColorExact) faceDetails.push(`HAIR: ${fl.hairColorExact}`);
+    if (fl.distinguishingFeatures?.length) {
+      faceDetails.push(`DISTINCTIVE: ${fl.distinguishingFeatures.join(', ')}`);
+    }
+    
+    if (faceDetails.length > 0) {
+      promptParts.push(`[LOCKED FACIAL FEATURES: ${faceDetails.join(' | ')}]`);
+    }
+    
+    // Face-specific negatives (CRITICAL)
+    if (fl.faceNegatives?.length) {
+      negativeParts.push(...fl.faceNegatives);
+    } else {
+      // Default face negatives
+      negativeParts.push(
+        'different face',
+        'changed eyes',
+        'different eye color',
+        'different nose',
+        'different lips',
+        'different skin tone',
+        'aged face',
+        'younger face',
+        'different facial structure',
+        'morphed features',
+        'face swap',
+        'different person',
+        'altered appearance',
+        'changed bone structure',
+        'different ethnicity'
+      );
+    }
+  }
+  
+  // ===========================================================================
+  // 0.5 HARD IDENTITY LOCK - Reinforce same person continuation
   // ===========================================================================
   if (request.clipIndex > 0) {
     // For clips 2+, enforce same character from previous frame
@@ -622,6 +724,7 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
     enhancedPrompt,
     negativePrompt,
     injectionSummary: {
+      hasFaceLock,
       hasIdentityBible,
       hasNonFacialAnchors,
       hasAntiMorphing: true, // Always added
@@ -742,6 +845,7 @@ export function logPipelineState(
   }
   
   console.log(`${prefix} INJECTION SUMMARY:`);
+  console.log(`${prefix}   - Face Lock: ${builtPrompt.injectionSummary.hasFaceLock ? '✓ LOCKED' : '✗'}`);
   console.log(`${prefix}   - Identity Bible: ${builtPrompt.injectionSummary.hasIdentityBible ? '✓' : '✗'}`);
   console.log(`${prefix}   - Non-Facial Anchors: ${builtPrompt.injectionSummary.hasNonFacialAnchors ? '✓' : '✗'}`);
   console.log(`${prefix}   - Anti-Morphing: ${builtPrompt.injectionSummary.hasAntiMorphing ? '✓' : '✗'}`);

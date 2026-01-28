@@ -7,33 +7,35 @@ const corsHeaders = {
 };
 
 /**
- * Voice Generation - ElevenLabs Primary, Replicate Fallback
+ * Voice Generation - MiniMax Speech 2.6 Turbo (Always Warm)
  * 
- * Uses ElevenLabs for fast, high-quality TTS with built-in voices.
- * Falls back to Replicate Kokoro if ElevenLabs is unavailable.
+ * Uses minimax/speech-2.6-turbo on Replicate for fast, high-quality TTS.
+ * This model is always warm (~3s generation time) with 300+ voices.
  */
 
-// ElevenLabs voice mapping
-const ELEVENLABS_VOICES: Record<string, { voiceId: string; name: string }> = {
+// MiniMax voice mapping - these are ACTUAL MiniMax system voice IDs
+const VOICE_MAP: Record<string, { minimaxVoice: string; description: string }> = {
   // Male voices
-  onyx: { voiceId: 'onyx', name: 'Onyx - Deep male' },
-  adam: { voiceId: 'pNInz6obpgDQGcFmaJgB', name: 'Adam - Narrator' },
-  echo: { voiceId: 'VR6AewLTigWG4xSOukaG', name: 'Arnold - Deep' },
-  fable: { voiceId: 'ODq5zmih8GrVes37Dizd', name: 'Patrick - Expressive' },
-  michael: { voiceId: 'flq6f7yk4E4fJM5XTYuZ', name: 'Michael - Professional' },
-  george: { voiceId: 'JBFqnCBsd6RMkjVDRZzb', name: 'George - British' },
+  onyx: { minimaxVoice: 'English_ManWithDeepVoice', description: 'Deep male voice' },
+  adam: { minimaxVoice: 'English_expressive_narrator', description: 'Expressive narrator' },
+  echo: { minimaxVoice: 'English_Gentle-voiced_man', description: 'Gentle male voice' },
+  fable: { minimaxVoice: 'English_CaptivatingStoryteller', description: 'Captivating storyteller' },
+  michael: { minimaxVoice: 'English_Trustworth_Man', description: 'Trustworthy man' },
+  george: { minimaxVoice: 'English_Deep-VoicedGentleman', description: 'Deep-voiced gentleman' },
+  
   // Female voices  
-  nova: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella - Warm' },
-  bella: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella - Friendly' },
-  shimmer: { voiceId: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli - Soft' },
-  alloy: { voiceId: 'jsCqWAovK2LkecY7zXl4', name: 'Freya - Versatile' },
-  sarah: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily - Professional' },
-  jessica: { voiceId: 'g5CIjZEefAph4nQFvHAz', name: 'Aria - Young' },
-  lily: { voiceId: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily - British' },
-  emma: { voiceId: 'D38z5RcWu1voky8WS1ja', name: 'Fin - British' },
-  // Defaults
-  narrator: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Default narrator' },
-  default: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Default' },
+  nova: { minimaxVoice: 'English_ConfidentWoman', description: 'Confident woman' },
+  bella: { minimaxVoice: 'English_Upbeat_Woman', description: 'Upbeat woman' },
+  shimmer: { minimaxVoice: 'English_Wiselady', description: 'Wise lady' },
+  alloy: { minimaxVoice: 'English_SereneWoman', description: 'Serene woman' },
+  sarah: { minimaxVoice: 'English_CalmWoman', description: 'Calm woman' },
+  jessica: { minimaxVoice: 'English_radiant_girl', description: 'Radiant girl' },
+  lily: { minimaxVoice: 'English_Graceful_Lady', description: 'Graceful lady' },
+  emma: { minimaxVoice: 'English_Kind-heartedGirl', description: 'Kind-hearted girl' },
+  
+  // Special voices
+  narrator: { minimaxVoice: 'English_expressive_narrator', description: 'Expressive narrator' },
+  default: { minimaxVoice: 'English_ConfidentWoman', description: 'Default voice' },
 };
 
 // Character type to voice mapping
@@ -41,7 +43,7 @@ const CHARACTER_VOICE_MAP: Record<string, string> = {
   grandmother: 'shimmer',
   elderly_female: 'shimmer',
   grandma: 'shimmer',
-  narrator: 'nova',
+  narrator: 'adam',
   storyteller: 'fable',
   male: 'onyx',
   male_deep: 'onyx',
@@ -51,84 +53,112 @@ const CHARACTER_VOICE_MAP: Record<string, string> = {
   default: 'bella',
 };
 
-async function generateWithElevenLabs(
+// Emotion mapping based on context
+function detectEmotion(text: string): string {
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('!') && (lowerText.includes('wow') || lowerText.includes('amazing'))) return 'surprised';
+  if (lowerText.includes('sorry') || lowerText.includes('sad') || lowerText.includes('unfortunately')) return 'sad';
+  if (lowerText.includes('angry') || lowerText.includes('furious')) return 'angry';
+  if (lowerText.includes('scared') || lowerText.includes('afraid')) return 'fearful';
+  if (lowerText.includes('happy') || lowerText.includes('excited') || lowerText.includes('!')) return 'happy';
+  return 'auto'; // Let MiniMax choose
+}
+
+async function generateWithMiniMax(
   text: string, 
-  voiceId: string
+  voiceId: string,
+  speed: number = 1.0
 ): Promise<{ audioUrl: string; duration: number } | null> {
-  const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
   
-  if (!ELEVENLABS_API_KEY) {
-    console.log("[Voice] ElevenLabs API key not configured");
+  if (!REPLICATE_API_KEY) {
+    console.error("[Voice] REPLICATE_API_KEY not configured");
     return null;
   }
   
-  const voiceConfig = ELEVENLABS_VOICES[voiceId] || ELEVENLABS_VOICES.default;
-  const elevenLabsVoiceId = voiceConfig.voiceId;
+  const voiceConfig = VOICE_MAP[voiceId] || VOICE_MAP.default;
+  const emotion = detectEmotion(text);
+  
+  console.log(`[Voice-MiniMax] Starting: ${text.length} chars, voice: ${voiceConfig.minimaxVoice}, emotion: ${emotion}`);
   
   try {
-    console.log(`[Voice-ElevenLabs] Starting: ${text.length} chars, voice: ${elevenLabsVoiceId}`);
-    
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    // Create prediction
+    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "minimax/speech-2.6-turbo",
+        input: {
           text: text,
-          model_id: "eleven_turbo_v2_5",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
+          voice_id: voiceConfig.minimaxVoice,
+          speed: Math.max(0.5, Math.min(2.0, speed)),
+          emotion: emotion,
+          audio_format: "mp3",
+          sample_rate: 32000,
+          bitrate: 128000,
+        },
+      }),
+    });
+    
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error("[Voice-MiniMax] Create error:", errorText);
+      return null;
+    }
+    
+    const prediction = await createResponse.json();
+    console.log(`[Voice-MiniMax] Prediction created: ${prediction.id}`);
+    
+    // Poll for completion (MiniMax is fast, ~3-5 seconds)
+    const maxAttempts = 30;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const statusResponse = await fetch(
+        `https://api.replicate.com/v1/predictions/${prediction.id}`,
+        {
+          headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+        }
+      );
+      
+      const status = await statusResponse.json();
+      
+      if (status.status === "succeeded") {
+        // MiniMax returns the audio URL directly
+        const audioUrl = typeof status.output === 'string' ? status.output : status.output?.url || status.output;
+        
+        if (!audioUrl) {
+          console.error("[Voice-MiniMax] No audio URL in output:", status.output);
+          return null;
+        }
+        
+        console.log(`[Voice-MiniMax] ✅ Success in ${i + 1}s: ${audioUrl.substring(0, 80)}...`);
+        
+        return {
+          audioUrl: audioUrl,
+          duration: estimateDuration(text),
+        };
       }
-    );
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[Voice-ElevenLabs] Error:", errorText);
-      return null;
+      
+      if (status.status === "failed") {
+        console.error("[Voice-MiniMax] Generation failed:", status.error);
+        return null;
+      }
+      
+      // Still processing
+      if (i % 5 === 0) {
+        console.log(`[Voice-MiniMax] Still processing... (${i}s)`);
+      }
     }
     
-    // ElevenLabs returns audio directly
-    const audioBuffer = await response.arrayBuffer();
-    
-    // Upload to storage
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const timestamp = Date.now();
-    const filename = `preview-${timestamp}.mp3`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('voice-tracks')
-      .upload(filename, audioBuffer, {
-        contentType: 'audio/mpeg',
-        upsert: true,
-      });
-    
-    if (uploadError) {
-      console.error("[Voice-ElevenLabs] Upload error:", uploadError);
-      return null;
-    }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('voice-tracks')
-      .getPublicUrl(filename);
-    
-    console.log("[Voice-ElevenLabs] ✅ Success:", publicUrl);
-    
-    return {
-      audioUrl: publicUrl,
-      duration: estimateDuration(text),
-    };
+    console.error("[Voice-MiniMax] Timeout after 30s");
+    return null;
     
   } catch (error) {
-    console.error("[Voice-ElevenLabs] Error:", error);
+    console.error("[Voice-MiniMax] Error:", error);
     return null;
   }
 }
@@ -166,7 +196,7 @@ serve(async (req) => {
     let voiceSource = 'default';
     
     // Priority 1: Direct voice override
-    if (voiceId && Object.keys(ELEVENLABS_VOICES).includes(voiceId)) {
+    if (voiceId && Object.keys(VOICE_MAP).includes(voiceId)) {
       resolvedVoice = voiceId;
       voiceSource = 'direct_override';
     }
@@ -209,14 +239,11 @@ serve(async (req) => {
     
     console.log(`[Voice] Generating: ${text.length} chars, voice: ${resolvedVoice}, source: ${voiceSource}`);
 
-    // Try ElevenLabs first (faster, more reliable)
-    let result = await generateWithElevenLabs(text, resolvedVoice);
-    let provider = "elevenlabs";
+    // Generate with MiniMax (always warm, ~3s)
+    const result = await generateWithMiniMax(text, resolvedVoice, speed || 1.0);
     
     if (!result) {
-      // Return a user-friendly error with retry suggestion
-      console.warn("[Voice] ElevenLabs unavailable, quota may be exhausted");
-      throw new Error("Voice preview temporarily unavailable. Please try again later.");
+      throw new Error("Voice generation failed. Please try again.");
     }
 
     // Log API cost
@@ -225,10 +252,10 @@ serve(async (req) => {
         await supabase.rpc('log_api_cost', {
           p_project_id: projectId || null,
           p_shot_id: shotId || 'preview',
-          p_service: 'elevenlabs',
+          p_service: 'replicate_minimax',
           p_operation: 'text_to_speech',
           p_credits_charged: 1,
-          p_real_cost_cents: 1,
+          p_real_cost_cents: Math.ceil(text.length * 0.006), // $0.06 per 1000 chars
           p_duration_seconds: Math.round(result.duration / 1000),
           p_status: 'completed',
           p_metadata: JSON.stringify({
@@ -236,6 +263,7 @@ serve(async (req) => {
             voice: resolvedVoice,
             voiceSource,
             characterName: characterName || null,
+            model: 'minimax/speech-2.6-turbo',
           }),
         });
       } catch (logError) {
@@ -248,7 +276,7 @@ serve(async (req) => {
         success: true,
         audioUrl: result.audioUrl,
         durationMs: result.duration,
-        provider: "elevenlabs",
+        provider: "minimax",
         voice: resolvedVoice,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

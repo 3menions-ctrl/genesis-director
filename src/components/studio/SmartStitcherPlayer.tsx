@@ -1,5 +1,5 @@
 /**
- * SmartStitcherPlayer v3 - True Gapless Playback
+ * SmartStitcherPlayer v4 - True Gapless Playback with ForwardRef
  * 
  * Features:
  * - Dual video element switching for ZERO gap transitions
@@ -8,9 +8,11 @@
  * - High-quality RAF-based stitching export
  * - Quality selector (720p/1080p/1440p)
  * - Works offline, no Cloud Run timeouts
+ * - ForwardRef compatible for AnimatePresence
+ * - Enhanced error recovery and stall detection
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -142,14 +144,16 @@ async function loadVideoElement(blobUrl: string): Promise<{ duration: number; wi
 // Crossfade duration in milliseconds (0.15s like Cloud Run)
 const CROSSFADE_DURATION = 150;
 
-export function SmartStitcherPlayer({
-  projectId,
-  clipUrls: providedClipUrls,
-  audioUrl,
-  onExportComplete,
-  className,
-  autoPlay = false,
-}: SmartStitcherPlayerProps) {
+// ForwardRef wrapper for AnimatePresence compatibility
+export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlayerProps>(
+  function SmartStitcherPlayerInner({
+    projectId,
+    clipUrls: providedClipUrls,
+    audioUrl,
+    onExportComplete,
+    className,
+    autoPlay = false,
+  }, forwardedRef) {
   // Clip data
   const [clips, setClips] = useState<ClipData[]>([]);
   const [isLoadingClips, setIsLoadingClips] = useState(true);
@@ -183,12 +187,24 @@ export function SmartStitcherPlayer({
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
   const stitchedVideoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalContainerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const stitchCancelRef = useRef(false);
   const preloadedBlobs = useRef<Map<number, string>>(new Map());
   const isTransitioningRef = useRef(false);
   const pendingPlayRef = useRef(false);
+  const stallRecoveryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastProgressTimeRef = useRef<number>(0);
+
+  // Merge forwarded ref with internal ref
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    internalContainerRef.current = node;
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(node);
+    } else if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }, [forwardedRef]);
 
   // Get active and standby video refs
   const getActiveVideo = useCallback(() => {
@@ -472,7 +488,7 @@ export function SmartStitcherPlayer({
   // Ref for transition trigger to avoid hook dependency issues
   const triggerTransitionRef = useRef<(() => void) | null>(null);
 
-  // Handle video time update - trigger transition BEFORE clip ends
+  // Handle video time update - trigger transition BEFORE clip ends + stall detection
   const handleTimeUpdate = useCallback(() => {
     const activeVideo = getActiveVideo();
     if (!activeVideo || !currentClip) return;
@@ -480,6 +496,15 @@ export function SmartStitcherPlayer({
     const clipTime = activeVideo.currentTime;
     const elapsedBefore = clips.slice(0, currentClipIndex).reduce((sum, c) => sum + c.duration, 0);
     setCurrentTime(elapsedBefore + clipTime);
+    
+    // Track last progress time for stall detection
+    lastProgressTimeRef.current = Date.now();
+    
+    // Clear any stall recovery timeout since we're making progress
+    if (stallRecoveryRef.current) {
+      clearTimeout(stallRecoveryRef.current);
+      stallRecoveryRef.current = null;
+    }
     
     // Trigger seamless transition 0.15s before clip ends (crossfade duration)
     const timeRemaining = activeVideo.duration - activeVideo.currentTime;
@@ -489,10 +514,56 @@ export function SmartStitcherPlayer({
       if (currentClipIndex < clips.length - 1) {
         // Trigger crossfade transition NOW, before clip ends
         // Use ref to access the function without circular dependency
+        console.log('[SmartStitcher] Triggering crossfade transition from timeUpdate');
         triggerTransitionRef.current?.();
       }
     }
   }, [currentClipIndex, clips, currentClip, isCrossfading, getActiveVideo]);
+
+  // Stall detection and recovery effect
+  useEffect(() => {
+    if (!isPlaying || isCrossfading || isTransitioningRef.current) return;
+    
+    const checkForStall = () => {
+      const now = Date.now();
+      const timeSinceLastProgress = now - lastProgressTimeRef.current;
+      
+      // If no progress in 3 seconds and we're supposed to be playing, try recovery
+      if (timeSinceLastProgress > 3000 && lastProgressTimeRef.current > 0) {
+        console.warn('[SmartStitcher] Video appears stalled, attempting recovery...');
+        const activeVideo = getActiveVideo();
+        
+        if (activeVideo) {
+          // Try to nudge playback forward
+          const currentTime = activeVideo.currentTime;
+          activeVideo.currentTime = currentTime + 0.01;
+          
+          // If near the end, force transition
+          const timeRemaining = activeVideo.duration - activeVideo.currentTime;
+          if (timeRemaining < 0.5 && currentClipIndex < clips.length - 1) {
+            console.log('[SmartStitcher] Force triggering transition due to stall near end');
+            triggerTransitionRef.current?.();
+          } else {
+            // Try to resume playback
+            activeVideo.play().catch(() => {
+              console.error('[SmartStitcher] Failed to resume after stall');
+            });
+          }
+        }
+        
+        lastProgressTimeRef.current = now; // Reset to prevent repeated recovery attempts
+      }
+    };
+    
+    const stallCheckInterval = setInterval(checkForStall, 2000);
+    
+    return () => {
+      clearInterval(stallCheckInterval);
+      if (stallRecoveryRef.current) {
+        clearTimeout(stallRecoveryRef.current);
+      }
+    };
+  }, [isPlaying, isCrossfading, currentClipIndex, clips.length, getActiveVideo]);
 
   // Crossfade transition logic - extracted for reuse
   const triggerCrossfadeTransition = useCallback(() => {
@@ -723,9 +794,9 @@ export function SmartStitcherPlayer({
 
   // Fullscreen toggle - Safari/iOS compatible
   const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return;
+    if (!internalContainerRef.current) return;
     
-    const elem = containerRef.current as HTMLElement & {
+    const elem = internalContainerRef.current as HTMLElement & {
       webkitRequestFullscreen?: () => Promise<void>;
     };
     const doc = document as Document & {
@@ -1138,8 +1209,22 @@ export function SmartStitcherPlayer({
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 0 && setIsPlaying(true)}
             onPause={() => activeVideoIndex === 0 && !isCrossfading && setIsPlaying(false)}
-            onError={(e) => console.error('[SmartStitcher] Video A error:', e)}
-            onStalled={() => console.warn('[SmartStitcher] Video A stalled')}
+            onError={(e) => {
+              console.error('[SmartStitcher] Video A error:', e);
+              // Try to recover by forcing next clip if available
+              if (activeVideoIndex === 0 && currentClipIndex < clips.length - 1) {
+                console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
+                triggerTransitionRef.current?.();
+              }
+            }}
+            onStalled={() => {
+              console.warn('[SmartStitcher] Video A stalled - attempting recovery');
+              const video = videoARef.current;
+              if (video && activeVideoIndex === 0 && isPlaying) {
+                // Try to resume
+                video.play().catch(() => {});
+              }
+            }}
             onWaiting={() => console.log('[SmartStitcher] Video A waiting for data')}
             muted={isMuted}
             playsInline
@@ -1160,8 +1245,22 @@ export function SmartStitcherPlayer({
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}
             onPlay={() => activeVideoIndex === 1 && setIsPlaying(true)}
             onPause={() => activeVideoIndex === 1 && !isCrossfading && setIsPlaying(false)}
-            onError={(e) => console.error('[SmartStitcher] Video B error:', e)}
-            onStalled={() => console.warn('[SmartStitcher] Video B stalled')}
+            onError={(e) => {
+              console.error('[SmartStitcher] Video B error:', e);
+              // Try to recover by forcing next clip if available
+              if (activeVideoIndex === 1 && currentClipIndex < clips.length - 1) {
+                console.log('[SmartStitcher] Attempting recovery by transitioning to next clip');
+                triggerTransitionRef.current?.();
+              }
+            }}
+            onStalled={() => {
+              console.warn('[SmartStitcher] Video B stalled - attempting recovery');
+              const video = videoBRef.current;
+              if (video && activeVideoIndex === 1 && isPlaying) {
+                // Try to resume
+                video.play().catch(() => {});
+              }
+            }}
             onWaiting={() => console.log('[SmartStitcher] Video B waiting for data')}
             muted={isMuted}
             playsInline
@@ -1407,4 +1506,7 @@ export function SmartStitcherPlayer({
       </AnimatePresence>
     </div>
   );
-}
+});
+
+// Add display name for dev tools
+SmartStitcherPlayer.displayName = 'SmartStitcherPlayer';

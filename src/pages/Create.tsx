@@ -105,7 +105,7 @@ export default function Create() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background flex flex-col">
+    <div className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}

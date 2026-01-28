@@ -18,6 +18,7 @@ import {
   type MasterSceneAnchor,
   type ExtractedCharacter,
   type FaceLock,
+  type MultiViewIdentityBible,
 } from "../_shared/prompt-builder.ts";
 import {
   GUARD_RAIL_CONFIG,
@@ -419,6 +420,7 @@ serve(async (req) => {
       sceneContext,
       identityBible,
       faceLock, // FACE LOCK - highest priority identity system
+      multiViewIdentityBible, // MULTI-VIEW IDENTITY - 5-angle character consistency
       skipPolling = false,
       triggerNextClip = false,
       totalClips,
@@ -556,8 +558,17 @@ serve(async (req) => {
       faceLock || 
       pipelineContext?.faceLock;
     
+    // Resolve multi-view identity bible from request or pipeline context
+    const resolvedMultiViewIdentity: MultiViewIdentityBible | undefined = 
+      multiViewIdentityBible || 
+      pipelineContext?.multiViewIdentityBible;
+    
     if (resolvedFaceLock) {
       console.log(`[SingleClip] ✓ FACE LOCK ACTIVE: ${resolvedFaceLock.goldenReference?.substring(0, 60) || 'enabled'}...`);
+    }
+    
+    if (resolvedMultiViewIdentity) {
+      console.log(`[SingleClip] ✓ MULTI-VIEW IDENTITY ACTIVE: 5-angle character consistency enabled`);
     }
     
     const promptRequest: PromptBuildRequest = {
@@ -565,6 +576,7 @@ serve(async (req) => {
       clipIndex: shotIndex,
       totalClips: totalClips || 6,
       faceLock: resolvedFaceLock, // FACE LOCK - HIGHEST PRIORITY
+      multiViewIdentityBible: resolvedMultiViewIdentity, // MULTI-VIEW IDENTITY - 5-ANGLE CONSISTENCY
       identityBible: resolvedIdentityBible,
       extractedCharacters: resolvedExtractedCharacters,
       previousContinuityManifest: resolvedContinuityManifest,

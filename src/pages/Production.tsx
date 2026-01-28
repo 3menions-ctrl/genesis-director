@@ -5,36 +5,27 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { 
-  Film, Loader2, CheckCircle2, XCircle, X, FileText, Users, Shield, Wand2,
-  AlertCircle, Sparkles, RotateCcw, Cpu, Layers, Eye, Activity
+  Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 
 // Components - New modular design
 import { ProductionSidebar } from '@/components/production/ProductionSidebar';
 import { ProductionHeader } from '@/components/production/ProductionHeader';
-import { ProductionStatsRealtime } from '@/components/production/ProductionStatsRealtime';
-import { ProductionClipsGrid } from '@/components/production/ProductionClipsGrid';
 import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
-import { ProductionInsightsPanel } from '@/components/production/ProductionInsightsPanel';
+import { ProductionDashboard } from '@/components/production/ProductionDashboard';
 
 // Existing components - Keep for specialized functionality
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppLoader } from '@/components/ui/app-loader';
 import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
-import { ConsistencyDashboard } from '@/components/studio/ConsistencyDashboard';
-import { TransitionTimeline } from '@/components/studio/TransitionTimeline';
 import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
 import { CloudRunProgressPanel } from '@/components/studio/CloudRunProgressPanel';
 import { StitchingTroubleshooter } from '@/components/studio/StitchingTroubleshooter';
 import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
-import { useContinuityOrchestrator } from '@/hooks/useContinuityOrchestrator';
-import { useContinuityManifest } from '@/hooks/useContinuityManifest';
 
 // ============= TYPES =============
 
@@ -153,31 +144,8 @@ export default function Production() {
   const [pipelineStage, setPipelineStage] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
-  const [selectedManifestIndex, setSelectedManifestIndex] = useState<number>(0);
   const [projectMode, setProjectMode] = useState<string>('text-to-video');
   const [pipelineState, setPipelineState] = useState<any>(null);
-
-  // Continuity orchestrator for transition analysis
-  const {
-    isAnalyzing: isContinuityAnalyzing,
-    transitionAnalyses,
-    clipsToRetry: continuityClipsToRetry,
-    overallScore: continuityScore,
-    bridgeClipsNeeded,
-    postProcessClips,
-  } = useContinuityOrchestrator();
-
-  // Continuity manifest for per-shot detail tracking
-  const {
-    isExtracting: isExtractingManifest,
-    getManifestForShot,
-    extractManifest,
-  } = useContinuityManifest({ 
-    projectId: projectId || '',
-    onManifestExtracted: (manifest) => {
-      addLog(`Extracted continuity for shot ${manifest.shotIndex + 1}: ${manifest.criticalAnchors?.length || 0} anchors`, 'success');
-    }
-  });
 
   const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
   const logIdRef = useRef(0);
@@ -663,24 +631,6 @@ export default function Production() {
     }
   }, [completedClips, expectedClipCount, projectStatus, autoStitchAttempted, isSimpleStitching, projectId, user, addLog, updateStageStatus]);
 
-  // Auto-run continuity analysis
-  useEffect(() => {
-    if (!projectId || completedClips < 2) return;
-    
-    const completedClipData = clipResults
-      .filter(c => c.status === 'completed' && c.videoUrl)
-      .map(c => ({
-        index: c.index,
-        videoUrl: c.videoUrl!,
-        prompt: scriptShots?.[c.index]?.description || `Clip ${c.index + 1}`,
-        motionVectors: c.motionVectors,
-      }));
-    
-    if (completedClipData.length === expectedClipCount && completedClipData.length >= 2 && transitionAnalyses.length === 0 && !isContinuityAnalyzing) {
-      addLog('Running continuity analysis...', 'info');
-      postProcessClips(projectId, completedClipData);
-    }
-  }, [completedClips, expectedClipCount, projectId, clipResults, scriptShots, transitionAnalyses.length, isContinuityAnalyzing, postProcessClips, addLog]);
 
   const handleRetryClip = async (clipIndex: number) => {
     if (!projectId || !user) return;
@@ -996,298 +946,136 @@ export default function Production() {
 
           {/* Content Grid */}
           <div className="flex-1 overflow-auto p-4 lg:p-6">
-            <div className="max-w-7xl mx-auto space-y-5 lg:space-y-6">
+            <div className="max-w-5xl mx-auto space-y-5">
               
-              {/* Premium Stats Row */}
-              <ProductionStatsRealtime
-                completedClips={completedClips}
-                totalClips={clipResults.length || expectedClipCount}
-                elapsedTime={elapsedTime}
-                progress={progress}
-                auditScore={auditScore}
-                isComplete={isComplete}
-                isError={isError}
-              />
-
-              {/* Main Content - Full Width */}
-              <div className="space-y-5 lg:space-y-6">
-                {/* Main Column - Now Full Width */}
-                  
-                  {/* Script Review Panel */}
-                  {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
-                    <Card className="glass-card ring-1 ring-primary/30">
-                      <CardContent className="p-6">
-                        <ScriptReviewPanel
-                          shots={scriptShots}
-                          onApprove={handleApproveScript}
-                          onRegenerate={handleRegenerateScript}
-                          onCancel={() => navigate('/projects')}
-                          isLoading={isApprovingScript}
-                          totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
-                          projectTitle={projectTitle}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {/* Specialized Mode Progress - Avatar, Motion Transfer, Style Transfer */}
-                  {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && pipelineState && (
-                    <SpecializedModeProgress
-                      projectId={projectId!}
-                      mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
-                      pipelineState={pipelineState}
-                      videoUrl={finalVideoUrl}
-                      onComplete={() => {
-                        setProjectStatus('completed');
-                        setProgress(100);
-                        toast.success('Video generation complete!');
-                      }}
-                      onRetry={() => {
-                        toast.info('Retry feature coming soon');
-                      }}
+              {/* Script Review Panel - Only shown when awaiting approval */}
+              {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
+                <Card className="glass-card ring-1 ring-primary/30">
+                  <CardContent className="p-6">
+                    <ScriptReviewPanel
+                      shots={scriptShots}
+                      onApprove={handleApproveScript}
+                      onRegenerate={handleRegenerateScript}
+                      onCancel={() => navigate('/projects')}
+                      isLoading={isApprovingScript}
+                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
+                      projectTitle={projectTitle}
                     />
-                  )}
-                  
-                  {/* Final Video (for cinematic pipeline) */}
-                  {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
-                    <ProductionFinalVideo videoUrl={finalVideoUrl} />
-                  )}
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Specialized Mode Progress - Avatar, Motion Transfer, Style Transfer */}
+              {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && pipelineState && (
+                <SpecializedModeProgress
+                  projectId={projectId!}
+                  mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
+                  pipelineState={pipelineState}
+                  videoUrl={finalVideoUrl}
+                  onComplete={() => {
+                    setProjectStatus('completed');
+                    setProgress(100);
+                    toast.success('Video generation complete!');
+                  }}
+                  onRetry={() => {
+                    toast.info('Retry feature coming soon');
+                  }}
+                />
+              )}
+              
+              {/* Final Video (for cinematic pipeline) */}
+              {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+                <ProductionFinalVideo videoUrl={finalVideoUrl} />
+              )}
 
-                  {/* Consistency Dashboard */}
-                  {projectId && (proFeatures || clipResults.length > 0) && (
-                    <ConsistencyDashboard
-                      masterAnchor={proFeatures?.masterSceneAnchor}
-                      characters={proFeatures?.characters?.map((c: any) => ({
-                        name: c.name || 'Unknown',
-                        appearance: c.appearance,
-                        verified: c.verified,
-                        consistencyScore: c.consistencyScore,
-                      })) || []}
-                      identityBibleActive={!!proFeatures?.identityBible}
-                      nonFacialAnchors={proFeatures?.identityBible?.nonFacialAnchors || []}
-                      consistencyScore={
-                        proFeatures?.consistencyScore ?? 
-                        (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined) ??
-                        (completedClips > 0 ? completedClips / (clipResults.length || expectedClipCount) : 0)
-                      }
-                      consistencyMetrics={(() => {
-                        // Calculate metrics from continuity analysis if available
-                        const transitions = proFeatures?.continuityAnalysis?.transitions || [];
-                        if (transitions.length > 0) {
-                          const avgMotion = transitions.reduce((sum, t) => sum + (t.motionScore || 0), 0) / transitions.length / 100;
-                          const avgColor = transitions.reduce((sum, t) => sum + (t.colorScore || 0), 0) / transitions.length / 100;
-                          const avgSemantic = transitions.reduce((sum, t) => sum + (t.semanticScore || 0), 0) / transitions.length / 100;
-                          return {
-                            color: avgColor || undefined,
-                            motion: avgMotion || undefined,
-                            scene: avgSemantic || undefined,
-                          };
-                        }
-                        return {
-                          color: proFeatures?.masterSceneAnchor?.dominantColors?.length ? 0.85 : undefined,
-                          scene: proFeatures?.masterSceneAnchor ? 0.9 : undefined,
-                        };
-                      })()}
-                      isProTier={proFeatures?.qualityTier === 'professional'}
-                    />
-                  )}
+              {/* NEW: Streamlined Production Dashboard - Real data only */}
+              {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
+                <ProductionDashboard
+                  projectTitle={projectTitle}
+                  progress={progress}
+                  elapsedTime={elapsedTime}
+                  isRunning={isRunning}
+                  isComplete={isComplete}
+                  clips={clipResults.map(c => ({
+                    index: c.index,
+                    status: c.status,
+                    videoUrl: c.videoUrl,
+                    error: c.error,
+                  }))}
+                  totalClips={expectedClipCount}
+                  completedClips={completedClips}
+                  consistencyScore={
+                    proFeatures?.consistencyScore ?? 
+                    (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined)
+                  }
+                  transitions={proFeatures?.continuityAnalysis?.transitions?.map(t => ({
+                    fromIndex: t.fromIndex,
+                    toIndex: t.toIndex,
+                    overallScore: t.overallScore,
+                    needsBridge: t.needsBridge,
+                  }))}
+                  onPlayClip={setSelectedClipUrl}
+                  onRetryClip={handleRetryClip}
+                  onStitch={handleSimpleStitch}
+                  onResume={handleResume}
+                  isStitching={isSimpleStitching}
+                  isResuming={isResuming}
+                  finalVideoUrl={finalVideoUrl}
+                />
+              )}
 
-                  {/* Clips Grid */}
-                  <ProductionClipsGrid
-                    clips={clipResults}
-                    completedClips={completedClips}
-                    expectedClipCount={expectedClipCount}
-                    projectId={projectId}
-                    finalVideoUrl={finalVideoUrl}
-                    isSimpleStitching={isSimpleStitching}
-                    retryingIndex={retryingClipIndex}
-                    onPlay={setSelectedClipUrl}
-                    onRetry={handleRetryClip}
-                    onStitch={handleSimpleStitch}
-                    onViewAll={() => navigate(`/clips?projectId=${projectId}`)}
-                  />
+              {/* Failed Clips Panel - Keep for detailed error handling */}
+              {clipResults.filter(c => c.status === 'failed').length > 0 && user && projectId && (
+                <FailedClipsPanel
+                  clips={clipResults.filter(c => c.status === 'failed').map(c => ({
+                    index: c.index,
+                    error: c.error,
+                    prompt: scriptShots?.[c.index]?.description,
+                    id: c.id,
+                  }))}
+                  projectId={projectId}
+                  userId={user.id}
+                  onRetry={handleRetryClip}
+                  isRetrying={retryingClipIndex !== null}
+                  retryingIndex={retryingClipIndex}
+                />
+              )}
 
-                  {/* Failed Clips Panel */}
-                  {clipResults.filter(c => c.status === 'failed').length > 0 && user && projectId && (
-                    <FailedClipsPanel
-                      clips={clipResults.filter(c => c.status === 'failed').map(c => ({
-                        index: c.index,
-                        error: c.error,
-                        prompt: scriptShots?.[c.index]?.description,
-                        id: c.id,
-                      }))}
-                      projectId={projectId}
-                      userId={user.id}
-                      onRetry={handleRetryClip}
-                      isRetrying={retryingClipIndex !== null}
-                      retryingIndex={retryingClipIndex}
-                    />
-                  )}
+              {/* Cloud Run Progress */}
+              {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
+                <CloudRunProgressPanel
+                  projectId={projectId}
+                  projectStatus={projectStatus}
+                  onComplete={(url) => {
+                    setFinalVideoUrl(url);
+                    setProjectStatus('completed');
+                    setProgress(100);
+                    updateStageStatus(5, 'complete');
+                    toast.success('Video stitching complete!');
+                  }}
+                />
+              )}
 
-                  {/* Transition Timeline - Use database data if hook data is empty */}
-                  {clipResults.length >= 2 && completedClips >= 2 && (
-                    (transitionAnalyses.length > 0 || (proFeatures?.continuityAnalysis?.transitions?.length ?? 0) > 0) && (
-                      <TransitionTimeline
-                        transitions={transitionAnalyses.length > 0 
-                          ? transitionAnalyses 
-                          : (proFeatures?.continuityAnalysis?.transitions || []) as any
-                        }
-                        clipsToRetry={continuityClipsToRetry.length > 0 
-                          ? continuityClipsToRetry 
-                          : (proFeatures?.continuityAnalysis?.clipsToRetry || [])
-                        }
-                        onRetryClip={handleRetryClip}
-                        isRetrying={retryingClipIndex !== null}
-                      />
-                    )
-                  )}
+              {/* Troubleshooter - Only when needed */}
+              {completedClips > 0 && projectId && !finalVideoUrl && completedClips === expectedClipCount && (
+                <StitchingTroubleshooter
+                  projectId={projectId}
+                  projectStatus={projectStatus}
+                  completedClips={completedClips}
+                  totalClips={expectedClipCount}
+                  onStitchComplete={(url) => {
+                    setFinalVideoUrl(url);
+                    setProjectStatus('completed');
+                    setProgress(100);
+                  }}
+                  onStatusChange={(status) => {
+                    setProjectStatus(status);
+                    if (status === 'stitching') updateStageStatus(5, 'active');
+                    else if (status === 'completed') updateStageStatus(5, 'complete');
+                  }}
+                />
+              )}
 
-                  {/* Status Cards */}
-                  <AnimatePresence mode="wait">
-                    {!isRunning && !isComplete && projectId && clipResults.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <Card className="glass-card ring-1 ring-warning/30">
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-                                <AlertCircle className="w-5 h-5 text-warning" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold text-warning">Pipeline Paused</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {completedClips} of {expectedClipCount} clips completed
-                                </p>
-                                <div className="flex gap-2 mt-3">
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-warning hover:bg-warning/90 text-warning-foreground" 
-                                    onClick={handleResume} 
-                                    disabled={isResuming}
-                                  >
-                                    {isResuming ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
-                                    Resume Pipeline
-                                  </Button>
-                                  {completedClips === expectedClipCount && (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      className="border-warning/30 text-warning hover:bg-warning/10" 
-                                      onClick={handleSimpleStitch} 
-                                      disabled={isSimpleStitching}
-                                    >
-                                      {isSimpleStitching ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                                      Quick Stitch
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )}
-
-                    {projectStatus === 'stitching' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <Card className="glass-card">
-                          <CardContent className="p-4 flex items-center gap-3">
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-                              <Cpu className="w-5 h-5 text-primary" />
-                            </motion.div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">Assembling Video</p>
-                              <p className="text-xs text-muted-foreground">Cloud processing in progress...</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Cloud Run Progress */}
-                  {projectId && ['stitching', 'post_production', 'processing'].includes(projectStatus) && (
-                    <CloudRunProgressPanel
-                      projectId={projectId}
-                      projectStatus={projectStatus}
-                      onComplete={(url) => {
-                        setFinalVideoUrl(url);
-                        setProjectStatus('completed');
-                        setProgress(100);
-                        updateStageStatus(5, 'complete');
-                        toast.success('Video stitching complete!');
-                      }}
-                    />
-                  )}
-
-                  {/* Troubleshooter */}
-                  {completedClips > 0 && projectId && !finalVideoUrl && (
-                    <StitchingTroubleshooter
-                      projectId={projectId}
-                      projectStatus={projectStatus}
-                      completedClips={completedClips}
-                      totalClips={expectedClipCount}
-                      onStitchComplete={(url) => {
-                        setFinalVideoUrl(url);
-                        setProjectStatus('completed');
-                        setProgress(100);
-                      }}
-                      onStatusChange={(status) => {
-                        setProjectStatus(status);
-                        if (status === 'stitching') updateStageStatus(5, 'active');
-                        else if (status === 'completed') updateStageStatus(5, 'complete');
-                      }}
-                    />
-                  )}
-
-                {/* Production Insights Panel - Unified Continuity & Logs */}
-                {(clipResults.length > 0 || pipelineLogs.length > 0) && (
-                  <ProductionInsightsPanel
-                    logs={pipelineLogs}
-                    isLive={isRunning}
-                    manifest={getManifestForShot(selectedManifestIndex) || null}
-                    shotIndex={selectedManifestIndex}
-                    isExtractingManifest={isExtractingManifest}
-                    onShotChange={async (idx) => {
-                      setSelectedManifestIndex(idx);
-                      const clip = clipResults.find(c => c.index === idx);
-                      if (!getManifestForShot(idx) && clip?.videoUrl) {
-                        const clipData = await supabase
-                          .from('video_clips')
-                          .select('last_frame_url')
-                          .eq('project_id', projectId)
-                          .eq('shot_index', idx)
-                          .single();
-                        
-                        if (clipData.data?.last_frame_url) {
-                          extractManifest(
-                            clipData.data.last_frame_url,
-                            idx,
-                            { 
-                              shotDescription: scriptShots?.[idx]?.description,
-                              previousManifest: getManifestForShot(idx - 1),
-                            }
-                          );
-                        }
-                      }
-                    }}
-                    availableShots={clipResults.filter(c => c.status === 'completed').map(c => c.index)}
-                    consistencyScore={
-                      proFeatures?.consistencyScore ?? 
-                      (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined)
-                    }
-                    bridgeClipsNeeded={bridgeClipsNeeded || proFeatures?.continuityAnalysis?.bridgeClipsNeeded}
-                  />
-                )}
-
-              </div>
             </div>
           </div>
         </div>

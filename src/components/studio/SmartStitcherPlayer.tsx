@@ -1213,7 +1213,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             className="absolute inset-0 w-full h-full object-contain"
             style={{ 
               opacity: videoAOpacity,
-              zIndex: activeVideoIndex === 0 ? 10 : 5
+              zIndex: activeVideoIndex === 0 ? 10 : 5,
+              transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
             }}
             onTimeUpdate={activeVideoIndex === 0 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 0 ? handleClipEnded : undefined}
@@ -1246,7 +1247,8 @@ export const SmartStitcherPlayer = forwardRef<HTMLDivElement, SmartStitcherPlaye
             className="absolute inset-0 w-full h-full object-contain"
             style={{ 
               opacity: videoBOpacity,
-              zIndex: activeVideoIndex === 1 ? 10 : 5
+              zIndex: activeVideoIndex === 1 ? 10 : 5,
+              transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
             }}
             onTimeUpdate={activeVideoIndex === 1 ? handleTimeUpdate : undefined}
             onEnded={activeVideoIndex === 1 ? handleClipEnded : undefined}

@@ -589,12 +589,12 @@ export function FullscreenVideoPlayer({
       <video
         ref={videoARef}
         src={videoASrc}
-        className={cn(
-          "absolute inset-0 w-full h-full object-contain",
-          "transition-opacity ease-in-out",
-          activeVideo === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
-        )}
-        style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
+        className="absolute inset-0 w-full h-full object-contain"
+        style={{ 
+          opacity: activeVideo === 'A' ? 1 : 0,
+          zIndex: activeVideo === 'A' ? 10 : 5,
+          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+        }}
         autoPlay
         loop={clips.length === 1}
         muted={isMuted}
@@ -607,12 +607,12 @@ export function FullscreenVideoPlayer({
       <video
         ref={videoBRef}
         src={videoBSrc}
-        className={cn(
-          "absolute inset-0 w-full h-full object-contain",
-          "transition-opacity ease-in-out",
-          activeVideo === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
-        )}
-        style={{ transitionDuration: `${CROSSFADE_DURATION}ms` }}
+        className="absolute inset-0 w-full h-full object-contain"
+        style={{ 
+          opacity: activeVideo === 'B' ? 1 : 0,
+          zIndex: activeVideo === 'B' ? 10 : 5,
+          transition: 'none' // CRITICAL: Instant opacity switch, no CSS animation
+        }}
         loop={clips.length === 1}
         muted={isMuted}
         playsInline

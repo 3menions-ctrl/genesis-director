@@ -5,7 +5,8 @@ import {
   Sparkles, Upload, Mic, ChevronRight, Play,
   Video, Layers, ArrowRight, RectangleHorizontal,
   Square, RectangleVertical, Clock, Hash, Music,
-  Volume2, Settings2, X, CheckCircle2, Loader2
+  Volume2, Settings2, X, CheckCircle2, Loader2,
+  Clapperboard, ChevronDown, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Select,
   SelectContent,
@@ -24,6 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Extended mode data with visuals
 const CREATION_MODES = [
@@ -82,6 +89,27 @@ const CLIP_DURATIONS = [
   { id: 10, name: '10 sec', description: 'Standard length' },
 ];
 
+const GENRE_OPTIONS = [
+  { value: 'cinematic', label: 'Cinematic', icon: '🎬' },
+  { value: 'documentary', label: 'Documentary', icon: '📽️' },
+  { value: 'ad', label: 'Commercial', icon: '📺' },
+  { value: 'educational', label: 'Educational', icon: '📚' },
+  { value: 'explainer', label: 'Explainer', icon: '💡' },
+  { value: 'storytelling', label: 'Narrative', icon: '📖' },
+  { value: 'motivational', label: 'Motivational', icon: '✨' },
+];
+
+const MOOD_OPTIONS = [
+  { value: 'epic', label: 'Epic', icon: '⚔️' },
+  { value: 'tension', label: 'Suspense', icon: '🎭' },
+  { value: 'emotional', label: 'Emotional', icon: '💫' },
+  { value: 'action', label: 'Action', icon: '⚡' },
+  { value: 'mysterious', label: 'Mystery', icon: '🌙' },
+  { value: 'uplifting', label: 'Uplifting', icon: '🌅' },
+  { value: 'dark', label: 'Dark', icon: '🖤' },
+  { value: 'romantic', label: 'Romantic', icon: '❤️' },
+];
+
 interface CreationHubProps {
   onStartCreation: (config: {
     mode: VideoGenerationMode;
@@ -95,11 +123,14 @@ interface CreationHubProps {
     clipDuration: number;
     enableNarration: boolean;
     enableMusic: boolean;
+    genre?: string;
+    mood?: string;
   }) => void;
   className?: string;
 }
 
 export function CreationHub({ onStartCreation, className }: CreationHubProps) {
+  const { profile } = useAuth();
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStylePreset>('anime');
@@ -122,16 +153,27 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [clipDuration, setClipDuration] = useState(5);
   const [enableNarration, setEnableNarration] = useState(true);
   const [enableMusic, setEnableMusic] = useState(true);
+  
+  // Advanced options (for cinematic modes)
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [genre, setGenre] = useState('cinematic');
+  const [mood, setMood] = useState('epic');
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
   const modeConfig = VIDEO_MODES.find(m => m.id === selectedMode);
+  
+  // Check if mode supports advanced options
+  const supportsAdvancedOptions = selectedMode === 'text-to-video' || selectedMode === 'b-roll';
   
   // Calculate estimated duration
   const estimatedDuration = clipCount * clipDuration;
   const estimatedMinutes = Math.floor(estimatedDuration / 60);
   const estimatedSeconds = estimatedDuration % 60;
   const estimatedCredits = clipCount * 10;
+  
+  // User credits
+  const userCredits = profile?.credits_balance ?? 0;
+  const hasInsufficientCredits = userCredits < estimatedCredits;
 
   // Handle file selection
   const handleImageSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,10 +246,13 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
       clipDuration,
       enableNarration,
       enableMusic,
+      genre: supportsAdvancedOptions ? genre : undefined,
+      mood: supportsAdvancedOptions ? mood : undefined,
     });
   };
 
   const isReadyToCreate = () => {
+    if (hasInsufficientCredits) return false;
     if (modeConfig?.requiresText && !prompt.trim()) return false;
     if (modeConfig?.requiresImage && !uploadedImage) return false;
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;
@@ -239,6 +284,17 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
           <p className="text-lg text-white/40 max-w-xl mx-auto">
             Choose your creation mode and bring your vision to life
           </p>
+          
+          {/* Credits display */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.06]"
+          >
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span className="text-sm text-white/70">{userCredits.toLocaleString()} credits available</span>
+          </motion.div>
         </motion.div>
 
         {/* Mode Selection Grid - Clean minimal cards */}
@@ -309,7 +365,10 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                   <div className="w-px h-8 bg-white/10" />
                   <div className="text-center">
                     <p className="text-white/30 text-xs mb-1">Credits</p>
-                    <p className="text-white font-medium">{estimatedCredits}</p>
+                    <p className={cn(
+                      "font-medium",
+                      hasInsufficientCredits ? "text-red-400" : "text-white"
+                    )}>{estimatedCredits}</p>
                   </div>
                 </div>
               </div>
@@ -425,6 +484,79 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Advanced Options for Cinematic modes */}
+              {supportsAdvancedOptions && (
+                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                  <CollapsibleTrigger asChild>
+                    <button className="flex items-center gap-2 text-sm text-white/50 hover:text-white/70 transition-colors">
+                      <Settings2 className="w-4 h-4" />
+                      <span>Advanced Options</span>
+                      <ChevronDown className={cn(
+                        "w-4 h-4 transition-transform",
+                        showAdvanced && "rotate-180"
+                      )} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Genre Selection */}
+                      <div className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                        <Label className="text-xs text-white/50 font-medium uppercase tracking-wider flex items-center gap-2">
+                          <Clapperboard className="w-3.5 h-3.5" />
+                          Genre
+                        </Label>
+                        <Select value={genre} onValueChange={setGenre}>
+                          <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-white h-11 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-900 border-white/10">
+                            {GENRE_OPTIONS.map((g) => (
+                              <SelectItem 
+                                key={g.value} 
+                                value={g.value}
+                                className="text-white focus:bg-white/10 focus:text-white"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span>{g.icon}</span>
+                                  <span>{g.label}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Mood Selection */}
+                      <div className="space-y-3 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                        <Label className="text-xs text-white/50 font-medium uppercase tracking-wider">
+                          Mood
+                        </Label>
+                        <ScrollArea className="w-full">
+                          <div className="flex gap-2 pb-2">
+                            {MOOD_OPTIONS.map((m) => (
+                              <button
+                                key={m.value}
+                                onClick={() => setMood(m.value)}
+                                className={cn(
+                                  "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all text-sm",
+                                  mood === m.value
+                                    ? "bg-white/[0.1] border-white/30 text-white"
+                                    : "bg-white/[0.02] border-white/[0.06] text-white/50 hover:bg-white/[0.05]"
+                                )}
+                              >
+                                <span>{m.icon}</span>
+                                <span>{m.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
               {/* Input Section based on mode */}
               <div className="space-y-6">
@@ -634,6 +766,12 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                     <Clock className="w-3.5 h-3.5 text-white/50" />
                     <span className="text-white/70">{clipDuration}s each</span>
                   </div>
+                  {supportsAdvancedOptions && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
+                      <Clapperboard className="w-3.5 h-3.5 text-white/50" />
+                      <span className="text-white/70 capitalize">{genre}</span>
+                    </div>
+                  )}
                   {enableNarration && (
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.05] border border-white/[0.08]">
                       <Mic className="w-3.5 h-3.5 text-white/50" />
@@ -648,9 +786,20 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                   )}
                 </div>
                 
+                {/* Insufficient credits warning */}
+                {hasInsufficientCredits && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <Zap className="w-5 h-5 text-red-400" />
+                    <p className="text-sm text-red-300">
+                      You need {estimatedCredits - userCredits} more credits for this video.{' '}
+                      <button className="underline hover:text-red-200">Get credits</button>
+                    </p>
+                  </div>
+                )}
+                
                 {/* Create Button */}
                 <Button
-                  size="xl"
+                  size="lg"
                   onClick={handleCreate}
                   disabled={!isReadyToCreate()}
                   className={cn(

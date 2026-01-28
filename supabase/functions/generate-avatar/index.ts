@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,14 +8,11 @@ const corsHeaders = {
 /**
  * AVATAR GENERATION - Direct Script-to-Talking-Head Pipeline
  * 
- * CRITICAL: The text input IS the final spoken script - no breakdown needed.
- * This function generates a talking head video that speaks the exact text provided.
+ * Uses OpenAI TTS (fallback from ElevenLabs) + SadTalker/Wav2Lip for lip-sync.
  * 
  * Pipeline:
- * 1. ElevenLabs TTS - Convert text to high-quality speech audio
+ * 1. OpenAI TTS - Convert text to high-quality speech audio
  * 2. SadTalker/Wav2Lip - Lip-sync the audio to the avatar image
- * 
- * The result is a single video where the avatar speaks the exact script.
  */
 
 serve(async (req) => {
@@ -26,8 +22,8 @@ serve(async (req) => {
 
   try {
     const { 
-      text,  // The EXACT script to be spoken - no modification
-      voiceId = "onwK4e9ZLuTAKqWW03F9", // Daniel - professional male voice
+      text,
+      voiceId = "onyx", // OpenAI voice: alloy, echo, fable, onyx, nova, shimmer
       avatarImageUrl,
       aspectRatio = "16:9"
     } = await req.json();
@@ -36,46 +32,43 @@ serve(async (req) => {
       throw new Error("Both 'text' (script) and 'avatarImageUrl' are required");
     }
 
-    const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
 
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error("ELEVENLABS_API_KEY is not configured");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
 
-    console.log("[generate-avatar] Creating talking head video");
+    console.log("[generate-avatar] Creating talking head video with OpenAI TTS");
     console.log(`[generate-avatar] Script length: ${text.length} chars`);
     console.log(`[generate-avatar] Script preview: "${text.substring(0, 100)}..."`);
 
-    // Step 1: Generate high-quality speech with ElevenLabs
-    console.log("[generate-avatar] Step 1: Generating speech with ElevenLabs...");
-    const ttsResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text, // Use the EXACT text as provided
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.3,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
+    // Map ElevenLabs voice IDs to OpenAI voices
+    const openaiVoice = mapToOpenAIVoice(voiceId);
+
+    // Step 1: Generate high-quality speech with OpenAI TTS
+    console.log(`[generate-avatar] Step 1: Generating speech with OpenAI TTS (voice: ${openaiVoice})...`);
+    const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "tts-1-hd",
+        voice: openaiVoice,
+        input: text,
+        response_format: "mp3",
+        speed: 1.0,
+      }),
+    });
 
     if (!ttsResponse.ok) {
       const errorText = await ttsResponse.text();
-      console.error("[generate-avatar] ElevenLabs TTS failed:", errorText);
+      console.error("[generate-avatar] OpenAI TTS failed:", errorText);
       throw new Error(`TTS generation failed: ${ttsResponse.status}`);
     }
 
@@ -110,7 +103,6 @@ serve(async (req) => {
     // Step 2: Generate lip-synced talking head with SadTalker
     console.log("[generate-avatar] Step 2: Generating talking head video...");
     
-    // SadTalker produces high-quality lip-synced videos
     const lipSyncResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -122,10 +114,10 @@ serve(async (req) => {
         input: {
           source_image: avatarImageUrl,
           driven_audio: audioUrl,
-          preprocess: "crop", // Focus on face
-          still_mode: false,  // Allow head movement
-          use_enhancer: true, // High quality output
-          facerender: "facevid2vid", // Best quality face rendering
+          preprocess: "crop",
+          still_mode: false,
+          use_enhancer: true,
+          facerender: "facevid2vid",
           expression_scale: 1.0,
         },
       }),
@@ -168,9 +160,9 @@ serve(async (req) => {
           predictionId: fallbackPrediction.id,
           audioUrl,
           status: "processing",
-          message: "Avatar video is being generated. The script will be spoken exactly as written.",
+          message: "Avatar video is being generated with OpenAI TTS.",
           scriptLength: text.length,
-          estimatedDuration: Math.ceil(text.length / 15), // ~15 chars per second
+          estimatedDuration: Math.ceil(text.length / 15),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -179,7 +171,6 @@ serve(async (req) => {
     const prediction = await lipSyncResponse.json();
     console.log("[generate-avatar] SadTalker prediction created:", prediction.id);
 
-    // Estimate video duration based on text length (~15 characters per second average)
     const estimatedDuration = Math.ceil(text.length / 15);
 
     return new Response(
@@ -188,7 +179,7 @@ serve(async (req) => {
         predictionId: prediction.id,
         audioUrl,
         status: "processing",
-        message: "Avatar video is being generated. The script will be spoken exactly as written.",
+        message: "Avatar video is being generated with OpenAI TTS.",
         scriptLength: text.length,
         estimatedDuration,
       }),
@@ -206,3 +197,28 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Map ElevenLabs voice IDs or names to OpenAI voices
+ */
+function mapToOpenAIVoice(voiceId: string): string {
+  // OpenAI voices: alloy, echo, fable, onyx, nova, shimmer
+  const voiceMap: Record<string, string> = {
+    // ElevenLabs IDs -> OpenAI
+    'onwK4e9ZLuTAKqWW03F9': 'onyx',    // Daniel -> onyx (deep male)
+    'JBFqnCBsd6RMkjVDRZzb': 'echo',    // George -> echo (warm male)
+    'EXAVITQu4vr4xnSDxMaL': 'nova',    // Sarah -> nova (female)
+    'pFZP5JQG7iQjIQuC4Bku': 'shimmer', // Lily -> shimmer (female)
+    'cjVigY5qzO86Huf0OWal': 'alloy',   // Eric -> alloy (neutral)
+    
+    // Direct OpenAI voice names
+    'alloy': 'alloy',
+    'echo': 'echo',
+    'fable': 'fable',
+    'onyx': 'onyx',
+    'nova': 'nova',
+    'shimmer': 'shimmer',
+  };
+
+  return voiceMap[voiceId] || 'onyx'; // Default to onyx
+}

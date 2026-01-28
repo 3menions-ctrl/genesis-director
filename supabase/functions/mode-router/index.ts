@@ -60,6 +60,42 @@ serve(async (req) => {
     console.log(`[ModeRouter] Routing ${mode} request for user ${userId}`);
     console.log(`[ModeRouter] Config: ${clipCount} clips × ${clipDuration}s, aspect ${aspectRatio}`);
 
+    // =========================================================
+    // SINGLE PROJECT CONSTRAINT: Only one active project per user
+    // Prevents resource abuse and confusion
+    // =========================================================
+    const { data: activeProjects, error: activeCheckError } = await supabase
+      .from('movie_projects')
+      .select('id, title, status, created_at')
+      .eq('user_id', userId)
+      .in('status', ['generating', 'processing', 'pending', 'awaiting_approval'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (activeCheckError) {
+      console.error('[ModeRouter] Failed to check active projects:', activeCheckError);
+      throw new Error('Failed to verify project availability');
+    }
+
+    if (activeProjects && activeProjects.length > 0) {
+      const existing = activeProjects[0];
+      console.log(`[ModeRouter] BLOCKED: User ${userId} already has active project ${existing.id} (${existing.status})`);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'active_project_exists',
+          message: `You already have an active project "${existing.title}" in progress. Please wait for it to complete or cancel it before starting a new one.`,
+          existingProjectId: existing.id,
+          existingProjectTitle: existing.title,
+          existingProjectStatus: existing.status,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[ModeRouter] ✓ No active projects, proceeding with creation`);
+
     // Create or get project with full mode data
     let projectId = request.projectId;
     if (!projectId) {

@@ -85,13 +85,6 @@ export function ProductionFinalVideo({ videoUrl }: ProductionFinalVideoProps) {
         
         {/* Video Player */}
         <div className="relative aspect-video bg-black/50">
-          {/* Play button overlay for aesthetic */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10">
-            <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-              <Play className="w-8 h-8 text-white" fill="white" />
-            </div>
-          </div>
-          
           {isManifest ? (
             <ManifestVideoPlayer manifestUrl={videoUrl} className="w-full h-full" />
           ) : (

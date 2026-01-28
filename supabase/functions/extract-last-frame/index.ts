@@ -89,6 +89,36 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ============================================================
+    // CLIP 0 SPECIAL CASE: Always use reference image
+    // The first clip should chain from the user's uploaded image
+    // ============================================================
+    if (shotIndex === 0 && referenceImageUrl && isValidImageUrl(referenceImageUrl)) {
+      console.log(`[ExtractFrame] ✅ CLIP 0: Using reference image directly (no FFmpeg needed)`);
+      console.log(`[ExtractFrame] Reference: ${referenceImageUrl.substring(0, 80)}...`);
+      
+      // Save to DB
+      try {
+        await lovableSupabase
+          .from('video_clips')
+          .update({ last_frame_url: referenceImageUrl })
+          .eq('project_id', projectId)
+          .eq('shot_index', shotIndex);
+      } catch (e) {
+        console.warn(`[ExtractFrame] DB save failed:`, e);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          frameUrl: referenceImageUrl,
+          method: 'reference-fallback',
+          confidence: 'high',
+        } as ExtractLastFrameResult),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Helper to save frame URL to database
     const saveFrameToDb = async (frameUrl: string) => {
       try {

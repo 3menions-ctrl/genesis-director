@@ -5188,9 +5188,12 @@ async function executePipelineInBackground(
     if (stages.includes('preproduction') && resumeStageIndex < 0) {
       state = await runPreProduction(request, state, supabase);
       
-      // PAUSE FOR SCRIPT APPROVAL (unless resuming or skipApproval flag is set)
-      if (!(request as any).skipApproval && !resumeFrom) {
-        console.log(`[Hollywood] Pausing for script approval...`);
+      // AUTO-APPROVE: Scripts are automatically approved and pipeline continues
+      // NOTE: Set requireApproval=true in request to pause for manual approval
+      const requireManualApproval = (request as any).requireApproval === true;
+      
+      if (requireManualApproval && !resumeFrom) {
+        console.log(`[Hollywood] Manual approval requested - pausing for script approval...`);
         
         await supabase
           .from('movie_projects')
@@ -5223,6 +5226,9 @@ async function executePipelineInBackground(
         
         console.log(`[Hollywood] Script ready for review. Awaiting user approval.`);
         return; // Stop here and wait for user to approve via resume-pipeline
+      } else {
+        // AUTO-APPROVE: Log and continue pipeline
+        console.log(`[Hollywood] ✓ Script auto-approved (${state.script?.shots?.length || 0} shots). Continuing pipeline...`);
       }
     }
     

@@ -781,14 +781,23 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   if (ib) {
     hasIdentityBible = true;
     
-    // Character description (MANDATORY) - STRONGER PHRASING
-    const charDesc = ib.characterDescription || ib.consistencyPrompt || ib.characterIdentity?.description;
+    // CHARACTER IDENTITY: Focus ONLY on the person/character - NOT the environment
+    // Use characterIdentity.description if available (pure character info)
+    // Fallback to characterDescription, but AVOID using consistencyPrompt directly
+    // as it often contains environment info that drowns out the shot action
+    const charDesc = ib.characterIdentity?.description 
+      || ib.characterDescription 
+      // Only use consistencyPrompt if it appears to be about a character (not just environment)
+      || (ib.consistencyPrompt && ib.consistencyPrompt.toLowerCase().includes('person') 
+          ? ib.consistencyPrompt.split('.').slice(0, 3).join('.') // Take first few sentences only
+          : undefined);
+    
     if (charDesc) {
       // For clip 1+, add "SAME PERSON AS BEFORE" emphasis
       const samePersonPrefix = request.clipIndex > 0 ? 'SAME PERSON AS PREVIOUS CLIP - ' : '';
       promptParts.push(`[CHARACTER IDENTITY - DO NOT CHANGE: ${samePersonPrefix}${charDesc}]`);
     } else {
-      warnings.push('Identity Bible exists but has no characterDescription');
+      warnings.push('Identity Bible exists but has no characterDescription - shot action will dominate');
     }
     
     // Character identity details (clothing, features)
@@ -1000,10 +1009,17 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
-  // 7. CLEANED BASE PROMPT + QUALITY SUFFIX
-  // Use cleaned base prompt to avoid duplicate identity blocks
+  // 7. SHOT DESCRIPTION (THE ACTUAL ACTION) - THIS IS THE CORE CONTENT
+  // CRITICAL: The base prompt contains the SHOT DESCRIPTION (what should HAPPEN)
+  // This MUST be prominent and not overwhelmed by identity/consistency blocks
   // ===========================================================================
-  promptParts.push(cleanedBasePrompt);
+  // Wrap the shot description to ensure AI prioritizes the ACTION over consistency
+  if (cleanedBasePrompt.length > 50) {
+    // If substantial shot description, mark it as the PRIMARY GOAL
+    promptParts.push(`[SHOT ACTION - PRIMARY GOAL: ${cleanedBasePrompt}]`);
+  } else {
+    promptParts.push(cleanedBasePrompt);
+  }
   promptParts.push(APEX_QUALITY_SUFFIX);
   
   // ===========================================================================

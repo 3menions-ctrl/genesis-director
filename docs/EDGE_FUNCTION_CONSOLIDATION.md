@@ -1,5 +1,22 @@
 # Edge Function Consolidation Plan
 
+## Audio Generation Stack (Replicate-Only)
+
+All audio generation now uses Replicate models - no external API dependencies:
+
+| Function | Model | Purpose |
+|----------|-------|---------|
+| `generate-voice` | XTTS-v2 / Bark | Text-to-speech with voice cloning |
+| `generate-music` | MusicGen / Riffusion | Background music generation |
+| `generate-sfx` | AudioLDM-2 / Tango | Sound effects generation |
+
+**Removed Dependencies:**
+- ~~OpenAI TTS~~ → Replaced with Replicate XTTS-v2
+- ~~ElevenLabs~~ → Replaced with Replicate AudioLDM-2
+- ~~generate-voice-openai~~ → Deleted, consolidated into generate-voice
+
+---
+
 ## Current State: ~65 Edge Functions (reduced from 80+)
 
 Recent cleanup removed Cloud Run dependencies and consolidated stitching to manifest-only mode.

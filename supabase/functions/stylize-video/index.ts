@@ -161,24 +161,46 @@ serve(async (req) => {
     console.log("[stylize-video] Style:", style || "custom");
     console.log("[stylize-video] Source:", videoUrl ? "video" : "image");
 
-    // Use Kling v2.6 via Replicate's model endpoint
-    const response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        input: {
-          mode: "pro",
-          prompt: `${stylePrompt}, maintain motion and composition from original, seamless style transfer`,
-          start_image: sourceUrl,
-          duration: Math.min(Math.max(duration, 5), 10), // Clamp to 5-10s
-          aspect_ratio: aspectRatio,
-          negative_prompt: negativePrompt,
+    // Use luma/modify-video for video-to-video style transfer
+    // Falls back to Kling for image-to-video with style
+    const isVideoSource = !!videoUrl;
+    
+    let response;
+    if (isVideoSource) {
+      // luma/modify-video - proper video-to-video stylization
+      response = await fetch("https://api.replicate.com/v1/models/luma/modify-video/predictions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          input: {
+            video: videoUrl,
+            prompt: `${stylePrompt}, maintain motion and composition from original`,
+          },
+        }),
+      });
+    } else {
+      // Use Kling for image-to-video with style
+      response = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          input: {
+            mode: "pro",
+            prompt: `${stylePrompt}, cinematic quality`,
+            start_image: imageUrl,
+            duration: Math.min(Math.max(duration, 5), 10),
+            aspect_ratio: aspectRatio,
+            negative_prompt: negativePrompt,
+          },
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

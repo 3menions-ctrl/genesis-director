@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Film, Clock, Zap, CheckCircle2, AlertTriangle, Play, 
@@ -5,7 +6,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -58,21 +58,14 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  subValue,
-  color = 'zinc',
-  pulse = false 
-}: {
+const StatCard = React.forwardRef<HTMLDivElement, {
   icon: React.ElementType;
   label: string;
   value: string | number;
   subValue?: string;
   color?: 'zinc' | 'emerald' | 'amber' | 'rose' | 'primary';
   pulse?: boolean;
-}) {
+}>(({ icon: Icon, label, value, subValue, color = 'zinc', pulse = false }, ref) => {
   const colorMap = {
     zinc: 'text-zinc-400 bg-zinc-500/10',
     emerald: 'text-emerald-400 bg-emerald-500/10',
@@ -82,7 +75,7 @@ function StatCard({
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+    <div ref={ref} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
       <div className={cn(
         "w-10 h-10 rounded-lg flex items-center justify-center",
         colorMap[color].split(' ')[1]
@@ -102,7 +95,8 @@ function StatCard({
       </div>
     </div>
   );
-}
+});
+StatCard.displayName = 'StatCard';
 
 function ClipThumbnail({ 
   clip, 

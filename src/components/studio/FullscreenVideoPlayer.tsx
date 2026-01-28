@@ -176,26 +176,25 @@ export function FullscreenVideoPlayer({
       nextVideo.load();
     }
 
-    // Brief crossfade with audio blend - last frame overlaps with first frame of next
-    const crossfadeAudioAndVideo = () => {
-      const steps = 3; // Very brief crossfade
-      const stepDuration = CROSSFADE_DURATION / steps;
-      let step = 0;
+    // TRUE OVERLAP: Both videos visible, then hide old after next frame renders
+    const executeInstantSwap = () => {
+      // Immediately swap active video state
+      setActiveVideo(isNextA ? 'A' : 'B');
+      setCurrentClipIndex(nextIndex);
       
-      const fadeInterval = setInterval(() => {
-        step++;
-        const progress = step / steps;
-        
-        if (!isMuted) {
-          currentVideo.volume = Math.max(0, volume * (1 - progress));
-          nextVideo.volume = Math.min(volume, volume * progress);
-        }
-        
-        if (step >= steps) {
-          clearInterval(fadeInterval);
+      // Use double RAF to ensure next video has rendered before hiding old
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Now pause and cleanup old video
           currentVideo.pause();
           currentVideo.currentTime = 0;
-          currentVideo.volume = volume;
+          
+          // Handle audio swap instantly
+          if (!isMuted) {
+            currentVideo.volume = 0;
+            nextVideo.volume = volume;
+          }
+          
           setIsTransitioning(false);
           transitionTriggeredRef.current = false;
           preloadTriggeredRef.current = false;
@@ -206,17 +205,15 @@ export function FullscreenVideoPlayer({
           if (clips.length > 1) {
             preloadNextClip(upcomingIndex);
           }
-        }
-      }, stepDuration);
+        });
+      });
     };
 
     // Start transition immediately when video is ready
     const startTransition = () => {
       setIsWaitingForBuffer(false);
       nextVideo.play().then(() => {
-        setActiveVideo(isNextA ? 'A' : 'B');
-        setCurrentClipIndex(nextIndex);
-        crossfadeAudioAndVideo();
+        executeInstantSwap();
       }).catch((err) => {
         console.error('Video play failed:', err);
         setIsTransitioning(false);

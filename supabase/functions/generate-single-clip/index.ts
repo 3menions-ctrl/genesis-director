@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  acquireGenerationLock,
+  releaseGenerationLock,
+  checkContinuityReady,
+  persistPipelineContext,
+  updateFrameExtractionStatus,
+} from "../_shared/generation-mutex.ts";
 
 // ============================================================================
 // Kling 2.6 via Replicate - Latest Model with HD Pro Quality
@@ -11,6 +18,10 @@ const KLING_MODEL_NAME = "kling-v2.6";
 const REPLICATE_MODEL_URL = `https://api.replicate.com/v1/models/${KLING_MODEL_OWNER}/${KLING_MODEL_NAME}/predictions`;
 const REPLICATE_PREDICTIONS_URL = "https://api.replicate.com/v1/predictions";
 const KLING_ENABLE_AUDIO = true; // Native audio generation
+
+// Frame extraction retry configuration
+const FRAME_EXTRACTION_MAX_RETRIES = 3;
+const FRAME_EXTRACTION_BACKOFF_MS = 2000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -490,6 +501,70 @@ serve(async (req) => {
     console.log(`[SingleClip] Starting generation for project ${projectId}, shot ${shotIndex}`);
     console.log(`[SingleClip] Using Kling v2.6 (HD Pro mode) via Replicate`);
 
+    // =========================================================
+    // FAILSAFE #1: Strict Sequential Enforcement
+    // Check if previous clip is ready before proceeding
+    // =========================================================
+    if (shotIndex > 0) {
+      const continuityCheck = await checkContinuityReady(supabase, projectId, shotIndex);
+      
+      if (!continuityCheck.ready) {
+        console.error(`[SingleClip] ⛔ Continuity check FAILED: ${continuityCheck.reason}`);
+        
+        // If previous clip is generating, wait - don't spawn parallel generation
+        if (continuityCheck.reason === 'previous_clip_not_completed') {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'SEQUENTIAL_VIOLATION',
+              message: `Cannot start clip ${shotIndex + 1}: previous clip is ${continuityCheck.previousStatus}`,
+              waitForClip: shotIndex - 1,
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // If previous clip is missing frame, this is a critical failure
+        if (continuityCheck.reason === 'previous_clip_missing_frame') {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'FRAME_CHAIN_BROKEN',
+              message: `Cannot start clip ${shotIndex + 1}: previous clip has no last frame`,
+              frameExtractionStatus: continuityCheck.frameExtractionStatus,
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
+    // =========================================================
+    // FAILSAFE #2: Generation Mutex (prevent parallel generation)
+    // =========================================================
+    const lockId = crypto.randomUUID();
+    const lockResult = await acquireGenerationLock(supabase, projectId, shotIndex, lockId);
+    
+    if (!lockResult.acquired) {
+      console.warn(`[SingleClip] ⚠️ Generation blocked by mutex - clip ${lockResult.blockedByClip} is generating`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'GENERATION_LOCKED',
+          message: `Another clip (${lockResult.blockedByClip}) is currently generating`,
+          lockAgeSeconds: lockResult.lockAgeSeconds,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`[SingleClip] ✓ Generation lock acquired: ${lockId}`);
+    
+    // Ensure lock is released on exit
+    const releaseLock = async () => {
+      await releaseGenerationLock(supabase, projectId!, lockId);
+    };
+
     // Build enhanced prompt
     let enhancedPrompt = prompt;
     
@@ -582,43 +657,85 @@ serve(async (req) => {
     // =========================================================
     // POST-PROCESSING: Extract frame and continuity data
     // CRITICAL: Must happen BEFORE callback to pass real data
+    // FAILSAFE #3: Frame extraction with retries and fallback
     // =========================================================
     let extractedLastFrameUrl: string | null = null;
     let extractedMotionVectors: any = null;
     let extractedContinuityManifest: any = null;
+    let frameExtractionAttempts = 0;
+    let frameExtractionStatus: 'pending' | 'success' | 'failed' | 'fallback_used' = 'pending';
 
-    // Step 1: Extract last frame from video
-    console.log(`[SingleClip] Extracting last frame from clip ${shotIndex + 1}...`);
-    try {
-      const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
-          videoUrl: storedVideoUrl,
-          projectId,
-          shotIndex,
-          shotPrompt: prompt,
-          sceneImageUrl: sceneContext?.environment ? undefined : undefined, // Scene image passed separately
-          position: 'last',
-        }),
-      });
+    // Step 1: Extract last frame from video with retries
+    console.log(`[SingleClip] Extracting last frame from clip ${shotIndex + 1} (max ${FRAME_EXTRACTION_MAX_RETRIES} attempts)...`);
+    
+    for (let attempt = 1; attempt <= FRAME_EXTRACTION_MAX_RETRIES; attempt++) {
+      frameExtractionAttempts = attempt;
       
-      if (frameResponse.ok) {
-        const frameResult = await frameResponse.json();
-        if (frameResult.success && frameResult.frameUrl) {
-          extractedLastFrameUrl = frameResult.frameUrl;
-          console.log(`[SingleClip] ✓ Last frame extracted: ${extractedLastFrameUrl?.substring(0, 60)}...`);
+      try {
+        const frameResponse = await fetch(`${supabaseUrl}/functions/v1/extract-last-frame`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            videoUrl: storedVideoUrl,
+            projectId,
+            shotIndex,
+            shotPrompt: prompt,
+            sceneImageUrl: sceneContext?.environment ? undefined : undefined,
+            position: 'last',
+          }),
+        });
+        
+        if (frameResponse.ok) {
+          const frameResult = await frameResponse.json();
+          if (frameResult.success && frameResult.frameUrl) {
+            extractedLastFrameUrl = frameResult.frameUrl;
+            frameExtractionStatus = 'success';
+            console.log(`[SingleClip] ✓ Last frame extracted on attempt ${attempt}: ${extractedLastFrameUrl?.substring(0, 60)}...`);
+            break;
+          } else {
+            console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction returned no URL:`, frameResult.error);
+          }
         } else {
-          console.warn(`[SingleClip] Frame extraction returned no URL:`, frameResult.error);
+          const errorText = await frameResponse.text().catch(() => 'unknown');
+          console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction HTTP ${frameResponse.status}: ${errorText.substring(0, 100)}`);
         }
-      } else {
-        console.warn(`[SingleClip] Frame extraction failed: ${frameResponse.status}`);
+      } catch (frameErr) {
+        console.warn(`[SingleClip] Attempt ${attempt}: Frame extraction exception:`, frameErr);
       }
-    } catch (frameErr) {
-      console.warn(`[SingleClip] Frame extraction error:`, frameErr);
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < FRAME_EXTRACTION_MAX_RETRIES) {
+        const backoffMs = FRAME_EXTRACTION_BACKOFF_MS * Math.pow(2, attempt - 1);
+        console.log(`[SingleClip] Waiting ${backoffMs}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+    }
+    
+    // FAILSAFE #4: Fallback to scene image if frame extraction completely failed
+    if (!extractedLastFrameUrl) {
+      console.error(`[SingleClip] ⚠️ All ${FRAME_EXTRACTION_MAX_RETRIES} frame extraction attempts failed!`);
+      
+      // Try to use scene image as fallback
+      const sceneImageUrl = pipelineContext?.sceneImageLookup?.[shotIndex] || 
+                            pipelineContext?.sceneImageLookup?.[0] ||
+                            pipelineContext?.referenceImageUrl;
+      
+      if (sceneImageUrl) {
+        console.log(`[SingleClip] Using fallback scene image: ${sceneImageUrl.substring(0, 60)}...`);
+        extractedLastFrameUrl = sceneImageUrl;
+        frameExtractionStatus = 'fallback_used';
+      } else {
+        frameExtractionStatus = 'failed';
+        console.error(`[SingleClip] ❌ CRITICAL: No fallback image available - frame chain will be broken!`);
+      }
+    }
+    
+    // Update frame extraction status in DB
+    if (clipId) {
+      await updateFrameExtractionStatus(supabase, clipId, frameExtractionStatus, frameExtractionAttempts);
     }
 
     // Step 2: Extract continuity manifest from the last frame (if we have it)
@@ -739,6 +856,36 @@ serve(async (req) => {
     };
 
     // =========================================================
+    // FAILSAFE #5: Persist pipeline context before triggering next clip
+    // =========================================================
+    const updatedContext = {
+      ...pipelineContext,
+      accumulatedAnchors: [
+        ...(pipelineContext?.accumulatedAnchors || []),
+        {
+          clipIndex: shotIndex,
+          lastFrameUrl: extractedLastFrameUrl,
+          motionVectors: extractedMotionVectors,
+          continuityManifest: extractedContinuityManifest,
+          timestamp: Date.now(),
+        },
+      ],
+      goldenFrameData: shotIndex === 0 && extractedLastFrameUrl 
+        ? { goldenFrameUrl: extractedLastFrameUrl, clipIndex: 0, extractedAt: Date.now() }
+        : pipelineContext?.goldenFrameData,
+      referenceImageUrl: pipelineContext?.referenceImageUrl || (shotIndex === 0 ? extractedLastFrameUrl : null),
+    };
+    
+    await persistPipelineContext(supabase, projectId, updatedContext);
+    console.log(`[SingleClip] ✓ Pipeline context persisted with ${updatedContext.accumulatedAnchors.length} anchors`);
+
+    // =========================================================
+    // Release generation lock BEFORE triggering next clip
+    // =========================================================
+    await releaseLock();
+    console.log(`[SingleClip] ✓ Generation lock released`);
+
+    // =========================================================
     // Trigger next clip generation via continue-production
     // CRITICAL FIX: Now passes REAL extracted data, not nulls!
     // =========================================================
@@ -766,7 +913,7 @@ serve(async (req) => {
               continuityManifest: extractedContinuityManifest,
             },
             totalClips,
-            pipelineContext,
+            pipelineContext: updatedContext, // Pass updated context with all anchors
           }),
         }).catch(err => {
           console.warn(`[SingleClip] Failed to trigger continue-production:`, err);
@@ -783,6 +930,18 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[SingleClip] Error:", error);
+    
+    // =========================================================
+    // CRITICAL: Release lock on error
+    // =========================================================
+    if (projectId) {
+      try {
+        // Try to release any lock this function might have acquired
+        await releaseGenerationLock(supabase, projectId, '');
+      } catch (lockErr) {
+        console.warn(`[SingleClip] Failed to release lock on error:`, lockErr);
+      }
+    }
     
     // =========================================================
     // CRITICAL: Update clip record with failure status

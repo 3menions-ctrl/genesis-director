@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  checkContinuityReady,
+  loadPipelineContext,
+} from "../_shared/generation-mutex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +16,8 @@ const corsHeaders = {
  * Called by generate-single-clip when a clip completes.
  * Triggers generation of the next clip, or moves to post-production if all clips are done.
  * This prevents edge function timeouts by generating one clip per function invocation.
+ * 
+ * FAILSAFE: Validates continuity before triggering next clip
  */
 
 interface ContinueProductionRequest {

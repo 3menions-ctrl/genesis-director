@@ -1819,6 +1819,7 @@ export type Database = {
           created_at: string
           generated_script: string | null
           generation_checkpoint: Json | null
+          generation_lock: Json | null
           genre: Database["public"]["Enums"]["movie_genre"]
           id: string
           include_narration: boolean
@@ -1833,6 +1834,7 @@ export type Database = {
           music_url: string | null
           parent_project_id: string | null
           pending_video_tasks: Json | null
+          pipeline_context_snapshot: Json | null
           pipeline_stage: string | null
           pipeline_state: Json | null
           pro_features_data: Json | null
@@ -1863,6 +1865,7 @@ export type Database = {
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
+          generation_lock?: Json | null
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
@@ -1877,6 +1880,7 @@ export type Database = {
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pipeline_context_snapshot?: Json | null
           pipeline_stage?: string | null
           pipeline_state?: Json | null
           pro_features_data?: Json | null
@@ -1907,6 +1911,7 @@ export type Database = {
           created_at?: string
           generated_script?: string | null
           generation_checkpoint?: Json | null
+          generation_lock?: Json | null
           genre?: Database["public"]["Enums"]["movie_genre"]
           id?: string
           include_narration?: boolean
@@ -1921,6 +1926,7 @@ export type Database = {
           music_url?: string | null
           parent_project_id?: string | null
           pending_video_tasks?: Json | null
+          pipeline_context_snapshot?: Json | null
           pipeline_stage?: string | null
           pipeline_state?: Json | null
           pro_features_data?: Json | null
@@ -3111,6 +3117,8 @@ export type Database = {
           debug_attempts: number | null
           duration_seconds: number | null
           error_message: string | null
+          frame_extraction_attempts: number | null
+          frame_extraction_status: string | null
           id: string
           last_error_category: string | null
           last_frame_url: string | null
@@ -3136,6 +3144,8 @@ export type Database = {
           debug_attempts?: number | null
           duration_seconds?: number | null
           error_message?: string | null
+          frame_extraction_attempts?: number | null
+          frame_extraction_status?: string | null
           id?: string
           last_error_category?: string | null
           last_frame_url?: string | null
@@ -3161,6 +3171,8 @@ export type Database = {
           debug_attempts?: number | null
           duration_seconds?: number | null
           error_message?: string | null
+          frame_extraction_attempts?: number | null
+          frame_extraction_status?: string | null
           id?: string
           last_error_category?: string | null
           last_frame_url?: string | null
@@ -3353,6 +3365,10 @@ export type Database = {
       }
     }
     Functions: {
+      acquire_generation_lock: {
+        Args: { p_clip_index: number; p_lock_id?: string; p_project_id: string }
+        Returns: Json
+      }
       add_credits: {
         Args: {
           p_amount: number
@@ -3428,6 +3444,10 @@ export type Database = {
             Args: { p_project_id: string; p_shot_id: string; p_user_id: string }
             Returns: Json
           }
+      check_clip_continuity_ready: {
+        Args: { p_clip_index: number; p_project_id: string }
+        Returns: Json
+      }
       check_support_rate_limit: { Args: { p_email: string }; Returns: boolean }
       deduct_credits: {
         Args: {
@@ -3475,6 +3495,7 @@ export type Database = {
           voice_provider: string
         }[]
       }
+      get_pipeline_context: { Args: { p_project_id: string }; Returns: Json }
       get_project_voice_map: {
         Args: { p_project_id: string }
         Returns: {
@@ -3530,6 +3551,10 @@ export type Database = {
             }
             Returns: string
           }
+      persist_pipeline_context: {
+        Args: { p_context: Json; p_project_id: string }
+        Returns: boolean
+      }
       refund_production_credits:
         | {
             Args: { p_project_id: string; p_reason: string; p_shot_id: string }
@@ -3544,6 +3569,10 @@ export type Database = {
             }
             Returns: Json
           }
+      release_generation_lock: {
+        Args: { p_lock_id: string; p_project_id: string }
+        Returns: boolean
+      }
       update_generation_checkpoint: {
         Args: {
           p_failed_shots?: Json

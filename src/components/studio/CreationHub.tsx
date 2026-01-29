@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wand2, Image, User, Palette, Dices, Film, 
@@ -135,6 +136,7 @@ interface CreationHubProps {
 }
 
 export function CreationHub({ onStartCreation, className }: CreationHubProps) {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   const [prompt, setPrompt] = useState('');
@@ -455,7 +457,14 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                 isSelected={selectedMode === mode.id}
                 isPopular={mode.popular}
                 isNew={mode.isNew}
-                onClick={() => setSelectedMode(mode.id)}
+                onClick={() => {
+                  // Navigate to dedicated page for avatar mode
+                  if (mode.id === 'avatar') {
+                    navigate('/avatars');
+                  } else {
+                    setSelectedMode(mode.id);
+                  }
+                }}
                 delay={index}
               />
             ))}

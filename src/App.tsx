@@ -42,6 +42,7 @@ const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
 const Create = lazy(() => import("./pages/Create"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Pricing = lazy(() => import("./pages/Pricing"));
+const Avatars = lazy(() => import("./pages/Avatars"));
 
 
 
@@ -173,6 +174,15 @@ const App = () => (
                   <RouteContainer fallbackMessage="Preparing studio...">
                     <ProtectedRoute>
                       <Create />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                
+                {/* Avatar Selection Page */}
+                <Route path="/avatars" element={
+                  <RouteContainer fallbackMessage="Loading avatars...">
+                    <ProtectedRoute>
+                      <Avatars />
                     </ProtectedRoute>
                   </RouteContainer>
                 } />

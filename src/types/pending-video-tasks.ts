@@ -68,7 +68,7 @@ export interface PendingVideoTasks {
   scriptGenerated?: boolean;
   shotCount?: number;
   clipCount?: number;
-  clipDuration?: number; // 5 or 10 seconds per clip
+  clipDuration?: number; // 5 or 10 seconds per clip - CRITICAL for callback chain continuity
 
   // Quality audit
   auditScore?: number;

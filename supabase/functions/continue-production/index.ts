@@ -45,6 +45,8 @@ interface ContinueProductionRequest {
     tierLimits?: any;
     // CRITICAL FIX: Add extractedCharacters to context interface
     extractedCharacters?: any[];
+    // BUG FIX: Add clipDuration to ensure 10s clips propagate through callback chain
+    clipDuration?: number;
   };
 }
 
@@ -198,7 +200,7 @@ serve(async (req: Request) => {
       console.log(`[ContinueProduction] Loading pipeline context from DB...`);
       const { data: projectData } = await supabase
         .from('movie_projects')
-        .select('pro_features_data, generated_script, scene_images')
+        .select('pro_features_data, generated_script, scene_images, pending_video_tasks')
         .eq('id', projectId)
         .single();
 
@@ -207,6 +209,13 @@ serve(async (req: Request) => {
         
         // CRITICAL FIX: Load ALL identity-related data from pro_features_data
         const proFeatures = projectData.pro_features_data || {};
+        
+        // BUG FIX: Load clipDuration from pending_video_tasks
+        const pendingTasks = projectData.pending_video_tasks || {};
+        if (!context.clipDuration && pendingTasks.clipDuration) {
+          context.clipDuration = pendingTasks.clipDuration;
+          console.log(`[ContinueProduction] ✓ Loaded clipDuration from pending_video_tasks: ${context.clipDuration}s`);
+        }
         
         // Load identity bible with all its fields
         context.identityBible = context.identityBible || proFeatures.identityBible;
@@ -253,7 +262,7 @@ serve(async (req: Request) => {
           }
         }
 
-        console.log(`[ContinueProduction] Context loaded from DB: identityBible: ${context.identityBible ? 'YES' : 'NO'}, ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}`);
+        console.log(`[ContinueProduction] Context loaded from DB: identityBible: ${context.identityBible ? 'YES' : 'NO'}, ${context.accumulatedAnchors?.length || 0} anchors, ${Object.keys(context.sceneImageLookup || {}).length} scene images, ref: ${context.referenceImageUrl ? 'YES' : 'NO'}, clipDuration: ${context.clipDuration || 'default'}s`);
       }
     }
     
@@ -413,6 +422,7 @@ serve(async (req: Request) => {
     console.log(`[ContinueProduction] ═══════════════════════════════════════════════════`);
     console.log(`[ContinueProduction] DATA HANDOFF TO CLIP ${nextClipIndex + 1}:`);
     console.log(`[ContinueProduction]   - startImageUrl: ${startImageUrl ? 'YES' : 'NO'}`);
+    console.log(`[ContinueProduction]   - clipDuration: ${context?.clipDuration || 5}s`);
     console.log(`[ContinueProduction]   - identityBible: ${context?.identityBible ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - identityBible.characterDescription: ${context?.identityBible?.characterDescription ? 'YES' : 'NO'}`);
     console.log(`[ContinueProduction]   - identityBible.nonFacialAnchors: ${context?.identityBible?.nonFacialAnchors ? 'YES' : 'NO'}`);
@@ -427,6 +437,10 @@ serve(async (req: Request) => {
 
     // Call generate-single-clip with COMPLETE data handoff
     // CRITICAL: Pass ALL continuity and identity data
+    // BUG FIX: Ensure durationSeconds is passed through callback chain!
+    const clipDuration = context?.clipDuration || 5;
+    console.log(`[ContinueProduction] Clip ${nextClipIndex + 1} will use duration: ${clipDuration}s`);
+    
     const clipResult = await callEdgeFunction('generate-single-clip', {
       userId,
       projectId,
@@ -434,6 +448,8 @@ serve(async (req: Request) => {
       prompt: nextClipPrompt,
       totalClips,
       startImageUrl,
+      // BUG FIX: Pass durationSeconds - this was missing and defaulting to 5!
+      durationSeconds: clipDuration,
       // CONTINUITY DATA FROM PREVIOUS CLIP
       previousMotionVectors,
       previousContinuityManifest,

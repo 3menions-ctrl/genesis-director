@@ -39,6 +39,7 @@ const Press = lazy(() => import("./pages/Press"));
 const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
 const Create = lazy(() => import("./pages/Create"));
+const Gallery = lazy(() => import("./pages/Gallery"));
 
 
 
@@ -80,6 +81,7 @@ const App = () => (
                 <Route path="/help" element={<HelpCenter />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/press" element={<Press />} />
+                <Route path="/gallery" element={<Gallery />} />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={

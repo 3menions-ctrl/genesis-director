@@ -234,7 +234,7 @@ export function UnifiedStudio() {
       // A project was selected in context - check if it's a draft we should work with
       if (contextActiveProject && contextActiveProject.status === 'idle') {
         setActiveProjectId(contextActiveProjectId);
-        setProjectTitle(contextActiveProject.name || 'Untitled Project');
+        setProjectTitle(contextActiveProject.name || 'New Creation');
         console.log('[UnifiedStudio] Synced to context project:', contextActiveProjectId);
       }
     }
@@ -348,7 +348,7 @@ export function UnifiedStudio() {
               setCurrentStage('awaiting_approval');
               setProgress(30);
               setClipCount(scriptData.length);
-              setProjectTitle(project.title || 'Untitled Project');
+              setProjectTitle(project.title || 'New Creation');
               
               // Convert to ScriptShot format
               const formattedShots: ScriptShot[] = scriptData.map((shot: any, idx: number) => ({

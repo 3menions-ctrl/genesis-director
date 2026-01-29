@@ -252,13 +252,19 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
     
     try {
+      // Generate a timestamped draft name - will be replaced with AI-generated title during video creation
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const draftTitle = `Draft ${dateStr} ${timeStr}`;
+      
       const { data, error } = await supabase
         .from('movie_projects')
         .insert({
-          title: `Untitled Project ${projects.length + 1}`,
+          title: draftTitle,
           status: 'draft',
           target_duration_minutes: 1,
-          user_id: currentSession.user.id, // Use session user ID directly
+          user_id: currentSession.user.id,
         })
         .select()
         .single();

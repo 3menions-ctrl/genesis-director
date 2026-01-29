@@ -213,7 +213,7 @@ export default function Clips() {
       } else {
         const clipsWithTitles = (data || []).map((clip: any) => ({
           ...clip,
-          project_title: clip.movie_projects?.title || 'Untitled Project'
+          project_title: clip.movie_projects?.title || 'Video Creation'
         }));
         setClips(clipsWithTitles);
         
@@ -324,7 +324,7 @@ export default function Clips() {
       } else {
         groups.set(clip.project_id, {
           id: clip.project_id,
-          title: clip.project_title || 'Untitled Project',
+          title: clip.project_title || 'Video Creation',
           clips: [clip],
           completedCount: clip.status === 'completed' ? 1 : 0,
           pendingCount: clip.status === 'pending' || clip.status === 'generating' ? 1 : 0,

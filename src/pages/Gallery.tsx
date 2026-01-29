@@ -998,7 +998,7 @@ export default function Gallery() {
         <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
       </motion.div>
       
-      {/* Sign Up circular button - positioned on the left */}
+      {/* Sign Up circular button - positioned on the left with landing page colors */}
       <motion.button
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
@@ -1006,71 +1006,99 @@ export default function Gallery() {
         onClick={() => navigate('/auth')}
         className="fixed left-8 top-1/2 -translate-y-1/2 z-50 group"
       >
-        {/* Outer breathing glow */}
+        {/* Outer blue glow - breathing */}
         <motion.div
-          className="absolute -inset-4 rounded-full"
+          className="absolute -inset-6 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(96,165,250,0.1) 40%, transparent 70%)',
+            filter: 'blur(8px)',
           }}
           animate={{
-            scale: [1, 1.4, 1],
-            opacity: [0.4, 0.7, 0.4],
+            scale: [1, 1.3, 1],
+            opacity: [0.6, 1, 0.6],
           }}
           transition={{
-            duration: 3,
+            duration: 2.5,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         />
         
-        {/* Secondary glow ring */}
+        {/* Secondary silver glow ring */}
         <motion.div
-          className="absolute -inset-2 rounded-full"
+          className="absolute -inset-3 rounded-full"
           style={{
-            background: 'conic-gradient(from 0deg, transparent, rgba(255,255,255,0.1), transparent, rgba(255,255,255,0.15), transparent)',
+            background: 'radial-gradient(circle, rgba(148,163,184,0.2) 0%, transparent 60%)',
           }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          animate={{
+            scale: [1.1, 1.4, 1.1],
+            opacity: [0.4, 0.8, 0.4],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 0.5,
+          }}
         />
         
-        {/* Glass morphism button */}
-        <div 
-          className="relative w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all duration-500 group-hover:scale-110"
+        {/* Rotating conic gradient */}
+        <motion.div
+          className="absolute -inset-1 rounded-full opacity-60"
           style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'conic-gradient(from 0deg, transparent, rgba(59,130,246,0.3), transparent, rgba(148,163,184,0.2), transparent)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+        />
+        
+        {/* Main button - silver/blue gradient */}
+        <div 
+          className="relative w-[76px] h-[76px] rounded-full flex items-center justify-center transition-all duration-500 group-hover:scale-110"
+          style={{
+            background: 'linear-gradient(135deg, rgba(30,58,95,0.9) 0%, rgba(15,23,42,0.95) 50%, rgba(30,41,59,0.9) 100%)',
+            border: '1px solid rgba(148,163,184,0.3)',
             boxShadow: `
-              0 0 30px rgba(255,255,255,0.15),
-              0 0 60px rgba(255,255,255,0.08),
-              inset 0 1px 1px rgba(255,255,255,0.3),
-              inset 0 -1px 1px rgba(0,0,0,0.1)
+              0 0 25px rgba(59,130,246,0.4),
+              0 0 50px rgba(59,130,246,0.2),
+              0 0 80px rgba(96,165,250,0.1),
+              inset 0 1px 2px rgba(148,163,184,0.3),
+              inset 0 -1px 2px rgba(0,0,0,0.3)
             `,
           }}
         >
-          {/* Inner highlight */}
+          {/* Inner silver highlight arc */}
           <div 
-            className="absolute inset-[2px] rounded-full pointer-events-none"
-            style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
-            }}
-          />
+            className="absolute inset-[2px] rounded-full pointer-events-none overflow-hidden"
+          >
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(180deg, rgba(148,163,184,0.15) 0%, transparent 40%)',
+              }}
+            />
+          </div>
           
+          {/* Text with silver/blue glow */}
           <span 
-            className="relative text-[10px] font-medium tracking-[0.15em] uppercase text-white/90"
+            className="relative text-[10px] font-semibold tracking-[0.2em] uppercase"
             style={{
-              textShadow: '0 0 10px rgba(255,255,255,0.5)',
+              background: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 50%, #64748b 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 0 20px rgba(96,165,250,0.5)',
+              filter: 'drop-shadow(0 0 4px rgba(148,163,184,0.5))',
             }}
           >
             Sign Up
           </span>
         </div>
         
-        {/* Hover glow intensifier */}
-        <div 
-          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        {/* Hover glow intensifier - blue accent */}
+        <motion.div 
+          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            boxShadow: '0 0 40px rgba(255,255,255,0.3), 0 0 80px rgba(255,255,255,0.15)',
+            boxShadow: '0 0 40px rgba(59,130,246,0.5), 0 0 80px rgba(96,165,250,0.3), 0 0 120px rgba(59,130,246,0.15)',
           }}
         />
       </motion.button>

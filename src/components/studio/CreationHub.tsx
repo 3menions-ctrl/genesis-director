@@ -22,6 +22,8 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
+import { AvatarTemplateSelector } from './AvatarTemplateSelector';
+import { AvatarTemplate } from '@/types/avatar-templates';
 import {
   Select,
   SelectContent,
@@ -138,6 +140,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStylePreset>('anime');
   const [selectedVoice, setSelectedVoice] = useState('nova');
+  const [selectedAvatarTemplate, setSelectedAvatarTemplate] = useState<AvatarTemplate | null>(null);
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -331,12 +334,20 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     
+    // For avatar mode with template, use the template's face and voice
+    const avatarImageUrl = selectedMode === 'avatar' && selectedAvatarTemplate 
+      ? selectedAvatarTemplate.face_image_url 
+      : uploadedImage;
+    const avatarVoiceId = selectedMode === 'avatar' && selectedAvatarTemplate
+      ? selectedAvatarTemplate.voice_id
+      : selectedVoice;
+    
     onStartCreation({
       mode: selectedMode,
       prompt,
       style: selectedMode === 'video-to-video' ? selectedStyle : undefined,
-      voiceId: selectedMode === 'avatar' ? selectedVoice : undefined,
-      imageUrl: uploadedImage || undefined,
+      voiceId: selectedMode === 'avatar' ? avatarVoiceId : undefined,
+      imageUrl: avatarImageUrl || undefined,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount,
@@ -351,7 +362,12 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const isReadyToCreate = () => {
     if (hasInsufficientCredits) return false;
     if (modeConfig?.requiresText && !prompt.trim()) return false;
-    if (modeConfig?.requiresImage && !uploadedImage) return false;
+    // For avatar mode, either need template OR uploaded image
+    if (selectedMode === 'avatar') {
+      if (!selectedAvatarTemplate && !uploadedImage) return false;
+    } else if (modeConfig?.requiresImage && !uploadedImage) {
+      return false;
+    }
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;
     return true;
   };
@@ -897,64 +913,12 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                   </div>
                 )}
 
-                {/* Voice Selection for avatar */}
+                {/* Avatar Template Selection */}
                 {selectedMode === 'avatar' && (
-                  <div className="space-y-3">
-                    <Label className="text-sm text-white/60 font-medium">Voice</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {AVATAR_VOICES.map((voice) => {
-                        const isSelected = selectedVoice === voice.id;
-                        return (
-                          <button
-                            key={voice.id}
-                            onClick={() => setSelectedVoice(voice.id)}
-                            className={cn(
-                              "flex items-center justify-between p-3 rounded-xl border transition-all",
-                              isSelected
-                                ? "bg-white/[0.1] border-white/30"
-                                : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center",
-                                voice.gender === 'male' 
-                                  ? "bg-blue-500/20 text-blue-400" 
-                                  : "bg-pink-500/20 text-pink-400"
-                              )}>
-                                <User className="w-4 h-4" />
-                              </div>
-                              <div className="text-left">
-                                <span className={cn("font-medium text-sm", isSelected ? "text-white" : "text-white/70")}>{voice.name}</span>
-                                <p className="text-xs text-white/40">{voice.style}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVoicePreview(voice.id, voice.sample);
-                                }}
-                                disabled={previewingVoice === voice.id}
-                                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
-                                title="Preview voice"
-                              >
-                                {previewingVoice === voice.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 text-white/60 animate-spin" />
-                                ) : (
-                                  <Volume2 className="w-3.5 h-3.5 text-white/60" />
-                                )}
-                              </button>
-                              {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-white/30 mt-2">
-                      Click the speaker icon to preview each voice
-                    </p>
-                  </div>
+                  <AvatarTemplateSelector
+                    selectedAvatar={selectedAvatarTemplate}
+                    onSelect={setSelectedAvatarTemplate}
+                  />
                 )}
               </div>
 

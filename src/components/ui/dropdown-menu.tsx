@@ -38,9 +38,9 @@ const DropdownMenuSubTrigger = React.forwardRef<
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
 
 const dropdownContentStyles = {
-  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 50%, rgba(20, 30, 50, 0.98) 100%)',
-  border: '1px solid rgba(148, 163, 184, 0.15)',
-  boxShadow: '0 0 30px rgba(59, 130, 246, 0.12), 0 0 60px rgba(59, 130, 246, 0.06), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+  background: 'rgba(0, 0, 0, 0.95)',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+  boxShadow: '0 0 50px rgba(255, 255, 255, 0.03), 0 20px 40px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
   backdropFilter: 'blur(24px)',
 };
 
@@ -112,7 +112,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2.5 flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-blue-400" />
+        <Check className="h-4 w-4 text-white" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
@@ -134,7 +134,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     <span className="absolute left-2.5 flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-blue-400 text-blue-400" />
+        <Circle className="h-2 w-2 fill-white text-white" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}

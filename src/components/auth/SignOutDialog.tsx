@@ -61,25 +61,22 @@ export function SignOutDialog({
           </Button>
         )}
       </AlertDialogTrigger>
-      <AlertDialogContent className="bg-background border-border">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-foreground">Sign out?</AlertDialogTitle>
-          <AlertDialogDescription className="text-muted-foreground">
+          <AlertDialogTitle>Sign out?</AlertDialogTitle>
+          <AlertDialogDescription>
             Are you sure you want to sign out? You'll need to sign in again to access your projects and credits.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel 
-            disabled={isSigningOut}
-            className="border-border text-foreground hover:bg-muted"
-          >
+          <AlertDialogCancel disabled={isSigningOut}>
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleSignOut}
             disabled={isSigningOut}
             className={cn(
-              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              "bg-red-500 text-white hover:bg-red-500/90",
               isSigningOut && "opacity-50 cursor-not-allowed"
             )}
           >

@@ -13,34 +13,22 @@ interface GalleryVideo {
   video_url: string | null;
 }
 
-// Admin account ID for gallery showcase
-const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
-
-// Fetch completed video clips from admin account projects
+// Fetch completed video clips from public projects (Gallery showcase)
 const useGalleryVideos = () => {
   return useQuery({
-    queryKey: ['gallery-videos-admin'],
+    queryKey: ['gallery-videos-public'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // First get the admin's project IDs
-      const { data: adminProjects, error: projectsError } = await supabase
-        .from('movie_projects')
-        .select('id')
-        .eq('user_id', ADMIN_USER_ID);
-      
-      if (projectsError) throw projectsError;
-      
-      const projectIds = (adminProjects || []).map(p => p.id);
-      
-      if (projectIds.length === 0) {
-        return [];
-      }
-      
-      // Then get completed clips from those projects
+      // Fetch completed clips from public projects - RLS allows this now
       const { data, error } = await supabase
         .from('video_clips')
-        .select('id, video_url, project_id, shot_index')
+        .select(`
+          id, 
+          video_url, 
+          project_id,
+          movie_projects!inner(is_public)
+        `)
         .eq('status', 'completed')
-        .in('project_id', projectIds)
+        .eq('movie_projects.is_public', true)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(30);

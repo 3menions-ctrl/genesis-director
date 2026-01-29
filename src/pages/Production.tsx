@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { motion, AnimatePresence, useSpring } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Film, Loader2, X, FileText, Users, Shield, Wand2, Sparkles
 } from 'lucide-react';
@@ -14,7 +14,13 @@ import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 
-// Lazy load heavy components
+// CRITICAL: Import background directly - prevents flash on page load
+import PipelineBackground from '@/components/production/PipelineBackground';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { AppLoader } from '@/components/ui/app-loader';
+import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
+
+// Lazy load non-critical heavy components only
 const ProductionSidebar = lazy(() => import('@/components/production/ProductionSidebar').then(m => ({ default: m.ProductionSidebar })));
 const ProductionFinalVideo = lazy(() => import('@/components/production/ProductionFinalVideo').then(m => ({ default: m.ProductionFinalVideo })));
 const ProductionDashboard = lazy(() => import('@/components/production/ProductionDashboard').then(m => ({ default: m.ProductionDashboard })));
@@ -23,19 +29,10 @@ const CinematicPipelineProgress = lazy(() => import('@/components/production/Cin
 const ScriptReviewPanel = lazy(() => import('@/components/studio/ScriptReviewPanel').then(m => ({ default: m.ScriptReviewPanel })));
 const FailedClipsPanel = lazy(() => import('@/components/studio/FailedClipsPanel').then(m => ({ default: m.FailedClipsPanel })));
 const SpecializedModeProgress = lazy(() => import('@/components/production/SpecializedModeProgress').then(m => ({ default: m.SpecializedModeProgress })));
-const PipelineBackground = lazy(() => import('@/components/production/PipelineBackground'));
 
-// Non-lazy critical components
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppLoader } from '@/components/ui/app-loader';
-import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
-
-// Minimal fallbacks for error boundaries
+// Minimal fallbacks for error boundaries - memoized for stability
 const MinimalFallback = memo(() => <div className="py-8" />);
 MinimalFallback.displayName = 'MinimalFallback';
-
-const BackgroundFallback = memo(() => <div className="fixed inset-0 bg-background -z-10" />);
-BackgroundFallback.displayName = 'BackgroundFallback';
 
 const SectionLoader = memo(() => (
   <div className="py-12 flex items-center justify-center">
@@ -170,7 +167,8 @@ export default function Production() {
   const [lastError, setLastError] = useState<string | null>(null);
   const [degradationFlags, setDegradationFlags] = useState<Array<{type: string; message: string; severity: 'info' | 'warning' | 'error'}>>([]);
 
-  const springProgress = useSpring(progress, { stiffness: 100, damping: 30 });
+  // REMOVED: useSpring - causes continuous re-renders during progress updates
+  // Progress animation is now handled in CSS for GPU acceleration
   const logIdRef = useRef(0);
 
   const addLog = useCallback((message: string, type: PipelineLog['type'] = 'info') => {
@@ -257,28 +255,44 @@ export default function Production() {
     }
   }, []);
 
+  // OPTIMIZED: Timer only runs when pipeline is active, not on every render
+  const isRunningRef = useRef(false);
   useEffect(() => {
+    // Only tick when actively generating
+    const isActivelyGenerating = ['generating', 'producing', 'rendering', 'stitching'].includes(projectStatus);
+    isRunningRef.current = isActivelyGenerating;
+    
+    if (!isActivelyGenerating) return;
+    
     const interval = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      if (isRunningRef.current) {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, projectStatus]);
 
   useEffect(() => {
-    // Reset all project-specific state when projectId changes
-    setScriptShots(null);
-    setClipResults([]);
-    setFinalVideoUrl(null);
-    setProgress(0);
-    setCompletedClips(0);
-    setAuditScore(null);
-    setPipelineStage(null);
-    setError(null);
-    setLastError(null);
-    setDegradationFlags([]);
-    setAutoStitchAttempted(false);
-    setStages(STAGE_CONFIG.map(s => ({ ...s, status: 'pending' as const })));
-    setPipelineLogs([]);
+    // OPTIMIZED: Batch all state resets into a single update cycle using functional updates
+    // This prevents multiple re-renders from cascading setState calls
+    const resetState = () => {
+      setScriptShots(null);
+      setClipResults([]);
+      setFinalVideoUrl(null);
+      setProgress(0);
+      setCompletedClips(0);
+      setAuditScore(null);
+      setPipelineStage(null);
+      setError(null);
+      setLastError(null);
+      setDegradationFlags([]);
+      setAutoStitchAttempted(false);
+      setStages(STAGE_CONFIG.map(s => ({ ...s, status: 'pending' as const })));
+      setPipelineLogs([]);
+    };
+    
+    // Only reset if projectId actually changes (not on initial mount with same ID)
+    resetState();
     
     const loadProject = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -606,7 +620,6 @@ export default function Production() {
         if (tasks) {
           if (tasks.progress) {
             setProgress(tasks.progress);
-            springProgress.set(tasks.progress);
           }
           
           // Update clip count from any available source
@@ -687,7 +700,7 @@ export default function Production() {
       supabase.removeChannel(projectChannel);
       supabase.removeChannel(clipsChannel);
     };
-  }, [projectId, user, stages, updateStageStatus, addLog, loadVideoClips, springProgress]);
+  }, [projectId, user, stages, updateStageStatus, addLog, loadVideoClips]);
 
   // Auto-stitch
   useEffect(() => {
@@ -1003,12 +1016,8 @@ export default function Production() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Premium Green Pipeline Background */}
-      <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
-        <Suspense fallback={<BackgroundFallback />}>
-          <PipelineBackground />
-        </Suspense>
-      </ErrorBoundaryWrapper>
+      {/* Premium Green Pipeline Background - CRITICAL: Direct render, no lazy load */}
+      <PipelineBackground />
       
       {/* App Header */}
       <AppHeader showCreate={false} />

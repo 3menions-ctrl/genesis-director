@@ -1008,21 +1008,45 @@ export default function Production() {
               )}
               
               {/* Pipeline Error Banner - Shows errors and degradation warnings */}
-              {/* CRITICAL FIX: Only show error banner when NOT actively generating */}
-              {/* If status is 'generating' and we have clips generating/completed, suppress error banner */}
+              {/* CRITICAL FIX: Hide ALL error banners during active generation */}
+              {/* Transient errors (continuity failures, frame extraction) auto-recover - don't alarm users */}
               {(() => {
                 const hasGeneratingClips = clipResults.some(c => c.status === 'generating');
                 const hasCompletedClips = clipResults.some(c => c.status === 'completed');
+                const hasPendingClips = clipResults.some(c => c.status === 'pending');
                 const failedClipCount = clipResults.filter(c => c.status === 'failed').length;
+                
+                // Determine if pipeline is actively working (any clips generating OR more to process)
                 const isActivelyProducing = ['generating', 'producing', 'rendering'].includes(projectStatus) && 
-                  (hasGeneratingClips || (hasCompletedClips && completedClips < expectedClipCount));
+                  (hasGeneratingClips || hasPendingClips || (hasCompletedClips && completedClips < expectedClipCount));
                 
-                // Suppress "Production incomplete" errors when actively producing
-                const shouldSuppressError = isActivelyProducing && 
-                  lastError?.toLowerCase().includes('production incomplete');
+                // CRITICAL: Suppress ALL transient errors during active production
+                // These errors auto-recover and confuse users when shown mid-generation
+                const transientErrorPatterns = [
+                  'production incomplete',
+                  'continuity_failure',
+                  'strict_continuity',
+                  'frame extraction',
+                  'last frame',
+                  'no last frame',
+                  'generation_locked',
+                  'mutex',
+                  'rate limit'
+                ];
                 
-                const showBanner = !shouldSuppressError && 
+                const isTransientError = lastError && transientErrorPatterns.some(
+                  pattern => lastError.toLowerCase().includes(pattern)
+                );
+                
+                // Only show error banner when:
+                // 1. Pipeline has actually failed (not just transient error during generation)
+                // 2. OR we have real non-transient errors when not actively producing
+                const shouldShowBanner = !isActivelyProducing && 
                   (lastError || degradationFlags.length > 0 || projectStatus === 'failed');
+                
+                // If actively producing, never show transient errors
+                // If done/failed and still have error, show it
+                const showBanner = shouldShowBanner && !(isActivelyProducing && isTransientError);
                 
                 return showBanner ? (
                   <PipelineErrorBanner

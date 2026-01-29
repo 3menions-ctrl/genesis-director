@@ -101,7 +101,7 @@ export default function Pricing() {
       <nav className="relative z-50 px-6 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-xl font-bold text-white tracking-tight">
-            APEX
+            APEX-STUDIO
           </Link>
           <Button
             onClick={() => navigate('/auth?mode=signup')}

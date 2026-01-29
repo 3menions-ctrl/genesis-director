@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock, Users } from 'lucide-react';
+import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate, Link } from 'react-router-dom';
@@ -77,7 +77,7 @@ const PRICING_TIERS = [
 const TRUST_POINTS = [
   { icon: <Shield className="w-5 h-5" />, text: 'Secure payments via Stripe' },
   { icon: <Clock className="w-5 h-5" />, text: 'Credits never expire' },
-  { icon: <Users className="w-5 h-5" />, text: '10,000+ creators' },
+  { icon: <Sparkles className="w-5 h-5" />, text: 'Cancel anytime' },
 ];
 
 export default function Pricing() {

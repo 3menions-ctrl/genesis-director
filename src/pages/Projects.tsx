@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, forwardRef } from 'react';
 import { 
   Plus, MoreVertical, Trash2, Edit2, Film, Play, 
   Download, Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
@@ -72,24 +72,7 @@ const formatTimeAgo = (dateString: string) => {
 
 // ============= PROJECT CARD COMPONENT =============
 
-function ProjectCard({ 
-  project,
-  index,
-  onPlay,
-  onEdit,
-  onRename,
-  onDelete,
-  onDownload,
-  onRetryStitch,
-  onBrowserStitch,
-  onTogglePin,
-  onTogglePublic,
-  isActive,
-  isRetrying = false,
-  isBrowserStitching = false,
-  isPinned = false,
-  viewMode = 'grid'
-}: {
+interface ProjectCardProps {
   project: Project;
   index: number;
   onPlay: () => void;
@@ -106,7 +89,26 @@ function ProjectCard({
   isBrowserStitching?: boolean;
   isPinned?: boolean;
   viewMode?: 'grid' | 'list';
-}) {
+}
+
+const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function ProjectCard({ 
+  project,
+  index,
+  onPlay,
+  onEdit,
+  onRename,
+  onDelete,
+  onDownload,
+  onRetryStitch,
+  onBrowserStitch,
+  onTogglePin,
+  onTogglePublic,
+  isActive,
+  isRetrying = false,
+  isBrowserStitching = false,
+  isPinned = false,
+  viewMode = 'grid'
+}, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [fetchedClipUrl, setFetchedClipUrl] = useState<string | null>(null);
@@ -608,7 +610,7 @@ function ProjectCard({
       </div>
     </motion.div>
   );
-}
+});
 
 // ============= MAIN COMPONENT =============
 

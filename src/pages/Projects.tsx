@@ -1,14 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
-  Plus, MoreVertical, Trash2, Copy, Edit2, Film, Play, 
-  Download, Loader2, Zap, Clock, Sparkles, ArrowRight,
-  Pencil, Star, TrendingUp, Grid3X3, LayoutGrid, ChevronRight,
-  Eye, Heart, Share2, RefreshCw, AlertCircle, Layers,
-  Search, Filter, SortAsc, SortDesc, Calendar, FolderOpen,
-  BarChart3, Activity, Settings2, ChevronDown, X, Check,
-  Pin, PinOff, Archive, List, LayoutList, Command, Globe, Lock,
-  GraduationCap, Video, MonitorPlay, Palette, Wand2, Image, ExternalLink
+  Plus, MoreVertical, Trash2, Edit2, Film, Play, 
+  Download, Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
+  Pencil, Grid3X3, Calendar,
+  RefreshCw, AlertCircle, Layers, Sparkles,
+  Search, SortAsc, SortDesc,
+  Activity, X, Check,
+  Pin, PinOff, LayoutList, Command, Globe, Lock,
+  GraduationCap, MonitorPlay, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuLabel,
-  DropdownMenuGroup,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -30,15 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStudio } from '@/contexts/StudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -47,9 +38,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
-import { VideoThumbnail } from '@/components/studio/VideoThumbnail';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
 import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 import ProjectsBackground from '@/components/projects/ProjectsBackground';
@@ -62,17 +52,6 @@ const isManifestUrl = (url: string): boolean => url?.endsWith('.json');
 const isStitchedMp4 = (url: string | undefined): boolean => {
   if (!url) return false;
   return url.includes('/final-videos/') && url.endsWith('.mp4');
-};
-
-const fetchClipsFromManifest = async (manifestUrl: string): Promise<string[]> => {
-  try {
-    const response = await fetch(manifestUrl);
-    if (!response.ok) throw new Error('Failed to fetch manifest');
-    const manifest = await response.json();
-    return manifest.clips?.map((clip: { videoUrl: string }) => clip.videoUrl) || [];
-  } catch (err) {
-    return [];
-  }
 };
 
 const formatTimeAgo = (dateString: string) => {
@@ -90,16 +69,6 @@ const formatTimeAgo = (dateString: string) => {
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
-
-// The StatCard and HeroHeader components are now imported from ProjectsHero
 
 // ============= PROJECT CARD COMPONENT =============
 
@@ -641,32 +610,11 @@ function ProjectCard({
   );
 }
 
-// ============= ACTIVITY ITEM =============
-
-function ActivityItem({ project, action, time }: { project: string; action: string; time: string }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex items-start gap-3 py-2.5"
-    >
-      <div className="w-2 h-2 rounded-full bg-white/30 mt-1.5 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-white/70">
-          <span className="font-medium text-white">{project}</span>
-          {' '}{action}
-        </p>
-        <p className="text-[10px] text-white/40 mt-0.5">{time}</p>
-      </div>
-    </motion.div>
-  );
-}
-
 // ============= MAIN COMPONENT =============
 
 export default function Projects() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { 
     projects, 
     activeProjectId, 
@@ -680,7 +628,7 @@ export default function Projects() {
   } = useStudio();
   
   // Thumbnail generation hook
-  const { generateMissingThumbnails, isGenerating } = useProjectThumbnails();
+  const { generateMissingThumbnails } = useProjectThumbnails();
   
   // UI State
   const [videoModalOpen, setVideoModalOpen] = useState(false);
@@ -693,8 +641,6 @@ export default function Projects() {
   const [retryingProjectId, setRetryingProjectId] = useState<string | null>(null);
   const [browserStitchingProjectId, setBrowserStitchingProjectId] = useState<string | null>(null);
   const [showBrowserStitcher, setShowBrowserStitcher] = useState<string | null>(null);
-  const [isStitchingAll, setIsStitchingAll] = useState(false);
-  const [stitchQueue, setStitchQueue] = useState<string[]>([]);
   
   // View & Filter State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -734,9 +680,6 @@ export default function Projects() {
     }
   }, [hasLoadedOnce, projects, generateMissingThumbnails]);
 
-  // Scroll animation
-  const { scrollY } = useScroll();
-  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
 
   // Fetch training videos
   useEffect(() => {

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { RouteContainer } from "@/components/layout/RouteContainer";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -66,54 +67,114 @@ const App = () => (
             <StudioProvider>
               <Suspense fallback={<AppLoader message="Starting Apex Studio..." />}>
               <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/discover" element={
-                  <ProtectedRoute>
-                    <Discover />
-                  </ProtectedRoute>
+                {/* Public routes - each wrapped for isolation */}
+                <Route path="/" element={
+                  <RouteContainer fallbackMessage="Loading...">
+                    <Landing />
+                  </RouteContainer>
                 } />
-                <Route path="/help" element={<HelpCenter />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/press" element={<Press />} />
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/auth" element={
+                  <RouteContainer fallbackMessage="Loading authentication...">
+                    <Auth />
+                  </RouteContainer>
+                } />
+                <Route path="/forgot-password" element={
+                  <RouteContainer>
+                    <ForgotPassword />
+                  </RouteContainer>
+                } />
+                <Route path="/reset-password" element={
+                  <RouteContainer>
+                    <ResetPassword />
+                  </RouteContainer>
+                } />
+                <Route path="/terms" element={
+                  <RouteContainer>
+                    <Terms />
+                  </RouteContainer>
+                } />
+                <Route path="/privacy" element={
+                  <RouteContainer>
+                    <Privacy />
+                  </RouteContainer>
+                } />
+                <Route path="/contact" element={
+                  <RouteContainer>
+                    <Contact />
+                  </RouteContainer>
+                } />
+                <Route path="/discover" element={
+                  <RouteContainer fallbackMessage="Loading discover...">
+                    <ProtectedRoute>
+                      <Discover />
+                    </ProtectedRoute>
+                  </RouteContainer>
+                } />
+                <Route path="/help" element={
+                  <RouteContainer>
+                    <HelpCenter />
+                  </RouteContainer>
+                } />
+                <Route path="/blog" element={
+                  <RouteContainer>
+                    <Blog />
+                  </RouteContainer>
+                } />
+                <Route path="/press" element={
+                  <RouteContainer>
+                    <Press />
+                  </RouteContainer>
+                } />
+                <Route path="/gallery" element={
+                  <RouteContainer fallbackMessage="Loading gallery...">
+                    <Gallery />
+                  </RouteContainer>
+                } />
+                <Route path="/pricing" element={
+                  <RouteContainer>
+                    <Pricing />
+                  </RouteContainer>
+                } />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={
-                  <ProtectedRoute>
-                    <Onboarding />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Setting up your experience...">
+                    <ProtectedRoute>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
-                {/* Protected routes */}
+                {/* Protected routes - each with isolated error boundary */}
                 <Route path="/projects" element={
-                  <ProtectedRoute>
-                    <Projects />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading projects...">
+                    <ProtectedRoute>
+                      <Projects />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 <Route path="/profile" element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading profile...">
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 <Route path="/settings" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading settings...">
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* New Premium Creation Hub */}
                 <Route path="/create" element={
-                  <ProtectedRoute>
-                    <Create />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Preparing studio...">
+                    <ProtectedRoute>
+                      <Create />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Legacy route - redirect to new Create page */}
@@ -121,63 +182,81 @@ const App = () => (
                 
                 {/* Script Review Route */}
                 <Route path="/script-review" element={
-                  <ProtectedRoute>
-                    <ScriptReview />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading script review...">
+                    <ProtectedRoute>
+                      <ScriptReview />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Production Pipeline Routes - supports both query params and path params */}
                 <Route path="/production" element={
-                  <ProtectedRoute>
-                    <Production />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading production...">
+                    <ProtectedRoute>
+                      <Production />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 <Route path="/production/:projectId" element={
-                  <ProtectedRoute>
-                    <Production />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading production...">
+                    <ProtectedRoute>
+                      <Production />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Keep production route for active productions */}
                 
                 {/* Clips Gallery */}
                 <Route path="/clips" element={
-                  <ProtectedRoute>
-                    <Clips />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading clips...">
+                    <ProtectedRoute>
+                      <Clips />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Story Universes */}
                 <Route path="/universes" element={
-                  <ProtectedRoute>
-                    <Universes />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading universes...">
+                    <ProtectedRoute>
+                      <Universes />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 <Route path="/universes/:id" element={
-                  <ProtectedRoute>
-                    <UniverseDetail />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading universe...">
+                    <ProtectedRoute>
+                      <UniverseDetail />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Templates Gallery */}
                 <Route path="/templates" element={
-                  <ProtectedRoute>
-                    <Templates />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading templates...">
+                    <ProtectedRoute>
+                      <Templates />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Training Video Mode */}
                 <Route path="/training-video" element={
-                  <ProtectedRoute>
-                    <TrainingVideo />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading training mode...">
+                    <ProtectedRoute>
+                      <TrainingVideo />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Environments DNA */}
                 <Route path="/environments" element={
-                  <ProtectedRoute>
-                    <Environments />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading environments...">
+                    <ProtectedRoute>
+                      <Environments />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Social Hub - Redirect to Profile */}
@@ -189,19 +268,27 @@ const App = () => (
                 
                 {/* Admin Dashboard */}
                 <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <Admin />
-                  </ProtectedRoute>
+                  <RouteContainer fallbackMessage="Loading admin...">
+                    <ProtectedRoute>
+                      <Admin />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
                 {/* Thumbnail extraction utility */}
                 <Route path="/extract-thumbnails" element={
-                  <ProtectedRoute>
-                    <ExtractThumbnails />
-                  </ProtectedRoute>
+                  <RouteContainer>
+                    <ProtectedRoute>
+                      <ExtractThumbnails />
+                    </ProtectedRoute>
+                  </RouteContainer>
                 } />
                 
-                <Route path="*" element={<NotFound />} />
+                <Route path="*" element={
+                  <RouteContainer>
+                    <NotFound />
+                  </RouteContainer>
+                } />
               </Routes>
               </Suspense>
             </StudioProvider>

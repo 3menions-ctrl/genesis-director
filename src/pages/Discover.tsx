@@ -169,99 +169,206 @@ export default function Discover() {
   }, {} as Record<string, number>) || {};
 
   return (
-    <div className="min-h-screen text-white relative bg-black">
+    <div className="min-h-screen text-white relative bg-black overflow-hidden">
       {/* Premium Cinematic Background */}
       <DiscoverBackground />
       
+      {/* Floating Ambient Orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: 200 + i * 100,
+              height: 200 + i * 100,
+              background: i % 2 === 0 
+                ? 'radial-gradient(circle, rgba(251,146,60,0.08) 0%, transparent 70%)'
+                : 'radial-gradient(circle, rgba(244,114,182,0.06) 0%, transparent 70%)',
+              filter: 'blur(40px)',
+            }}
+            initial={{ 
+              x: `${20 + i * 15}%`, 
+              y: `${10 + i * 20}%`,
+              opacity: 0 
+            }}
+            animate={{ 
+              x: [`${20 + i * 15}%`, `${25 + i * 12}%`, `${20 + i * 15}%`],
+              y: [`${10 + i * 20}%`, `${15 + i * 18}%`, `${10 + i * 20}%`],
+              opacity: 0.6,
+            }}
+            transition={{
+              duration: 15 + i * 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+              opacity: { duration: 2, delay: i * 0.3 }
+            }}
+          />
+        ))}
+      </div>
+      
       <AppHeader />
 
-      {/* Hero Section - Premium Glass Container */}
-      <div className="relative overflow-hidden pt-24 pb-8">
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section - Ultra Premium Glass Design */}
+      <div className="relative overflow-hidden pt-28 pb-12">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2 }}
             className="text-center"
           >
-            {/* Floating Badge */}
+            {/* Floating Badge with Glow */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              initial={{ opacity: 0, y: 30, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="relative inline-block mb-8"
             >
-              <Badge className="mb-6 px-4 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 text-amber-200 backdrop-blur-xl rounded-full text-sm font-medium">
-                <Sparkles className="w-3.5 h-3.5 mr-2" />
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 to-rose-500/30 rounded-full blur-xl" />
+              <Badge className="relative px-6 py-2 bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-rose-500/20 border border-amber-400/30 text-amber-100 backdrop-blur-2xl rounded-full text-sm font-medium shadow-lg shadow-amber-500/10">
+                <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
                 Community Gallery
               </Badge>
             </motion.div>
 
-            {/* Main Title with 3D Effect */}
-            <motion.h1 
-              className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-4 tracking-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-            >
-              Discover{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-200 to-rose-300">
-                Creations
-              </span>
-            </motion.h1>
+            {/* Main Title with Epic 3D Effect */}
+            <div className="relative mb-6" style={{ perspective: '1200px' }}>
+              {/* Title Glow Layers */}
+              <motion.div
+                className="absolute inset-0 blur-[100px] pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.2, 0.4, 0.2] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(251,146,60,0.3) 0%, rgba(244,114,182,0.2) 50%, transparent 70%)',
+                }}
+              />
+              
+              <motion.h1 
+                className="relative text-6xl md:text-7xl lg:text-8xl font-black text-white tracking-tight"
+                initial={{ opacity: 0, rotateX: -30, y: 60 }}
+                animate={{ opacity: 1, rotateX: 0, y: 0 }}
+                transition={{ delay: 0.3, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformStyle: 'preserve-3d' }}
+              >
+                {'Discover'.split('').map((letter, i) => (
+                  <motion.span
+                    key={i}
+                    className="inline-block"
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + i * 0.05, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ 
+                      y: -8, 
+                      scale: 1.1,
+                      transition: { duration: 0.2 } 
+                    }}
+                  >
+                    {letter}
+                  </motion.span>
+                ))}
+                {' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-300 to-rose-300">
+                  {'Creations'.split('').map((letter, i) => (
+                    <motion.span
+                      key={i}
+                      className="inline-block"
+                      initial={{ opacity: 0, y: 40 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 + i * 0.04, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={{ 
+                        y: -8, 
+                        scale: 1.1,
+                        filter: 'brightness(1.3)',
+                        transition: { duration: 0.2 } 
+                      }}
+                    >
+                      {letter}
+                    </motion.span>
+                  ))}
+                </span>
+              </motion.h1>
+              
+              {/* Animated Underline */}
+              <motion.div
+                className="absolute -bottom-3 left-1/2 h-[2px]"
+                initial={{ width: 0, x: '-50%', opacity: 0 }}
+                animate={{ width: '40%', opacity: 1 }}
+                transition={{ duration: 1.5, delay: 1.4, ease: [0.16, 1, 0.3, 1] }}
+                style={{
+                  background: 'linear-gradient(90deg, transparent, rgba(251,146,60,0.6), rgba(244,114,182,0.6), transparent)',
+                  boxShadow: '0 0 20px rgba(251,146,60,0.3)',
+                }}
+              />
+            </div>
 
             <motion.p 
-              className="text-lg text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              Explore AI-generated videos from creators worldwide
-            </motion.p>
-
-            {/* Premium Search Container */}
-            <motion.div
+              className="text-lg md:text-xl text-white/40 mb-12 max-w-2xl mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="relative max-w-2xl mx-auto mb-8"
+              transition={{ delay: 1.2, duration: 0.8 }}
             >
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 rounded-2xl blur-xl" />
-                <div className="relative bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-1.5">
-                  <div className="relative flex items-center">
-                    <Search className="absolute left-4 w-5 h-5 text-white/40" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by title, genre, or description..."
-                      className="w-full h-12 pl-12 pr-4 bg-transparent border-0 text-white placeholder:text-white/30 focus:ring-0 focus-visible:ring-0 text-base"
-                    />
-                  </div>
+              Explore stunning AI-generated videos from creators worldwide
+            </motion.p>
+
+            {/* Premium Search Container with 3D Effect */}
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 1.4, duration: 0.8 }}
+              className="relative max-w-2xl mx-auto mb-10"
+            >
+              {/* Search Glow */}
+              <motion.div 
+                className="absolute -inset-2 rounded-3xl blur-2xl pointer-events-none"
+                animate={{ opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.15) 0%, rgba(244,114,182,0.1) 100%)' }}
+              />
+              
+              <div className="relative bg-white/[0.04] backdrop-blur-2xl border border-white/[0.1] rounded-2xl p-1.5 shadow-2xl shadow-black/50">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-5 w-5 h-5 text-white/40" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by title, genre, or description..."
+                    className="w-full h-14 pl-14 pr-6 bg-transparent border-0 text-white placeholder:text-white/25 focus:ring-0 focus-visible:ring-0 text-base"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
 
-            {/* Premium Filter Pills */}
+            {/* Premium Filter Pills with Glass Effect */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-wrap items-center justify-center gap-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.6, duration: 0.8 }}
+              className="flex flex-wrap items-center justify-center gap-3"
             >
-              {/* Sort Options */}
-              <div className="flex items-center gap-1 p-1 bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-full">
+              {/* Sort Options - Glass Container */}
+              <div className="flex items-center gap-1 p-1.5 bg-white/[0.04] backdrop-blur-2xl border border-white/[0.08] rounded-full shadow-lg">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSortBy('recent')}
                   className={cn(
-                    "h-8 px-4 rounded-full text-sm font-medium transition-all",
+                    "h-9 px-5 rounded-full text-sm font-medium transition-all duration-300",
                     sortBy === 'recent' 
-                      ? "bg-white/10 text-white shadow-lg" 
-                      : "text-white/50 hover:text-white/80 hover:bg-transparent"
+                      ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-100 shadow-lg border border-amber-500/20" 
+                      : "text-white/40 hover:text-white/70 hover:bg-white/5"
                   )}
                 >
-                  <Clock className="w-3.5 h-3.5 mr-1.5" />
+                  <Clock className="w-4 h-4 mr-2" />
                   Recent
                 </Button>
                 <Button
@@ -269,51 +376,55 @@ export default function Discover() {
                   size="sm"
                   onClick={() => setSortBy('popular')}
                   className={cn(
-                    "h-8 px-4 rounded-full text-sm font-medium transition-all",
+                    "h-9 px-5 rounded-full text-sm font-medium transition-all duration-300",
                     sortBy === 'popular' 
-                      ? "bg-white/10 text-white shadow-lg" 
-                      : "text-white/50 hover:text-white/80 hover:bg-transparent"
+                      ? "bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-100 shadow-lg border border-rose-500/20" 
+                      : "text-white/40 hover:text-white/70 hover:bg-white/5"
                   )}
                 >
-                  <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                  <TrendingUp className="w-4 h-4 mr-2" />
                   Popular
                 </Button>
               </div>
               
-              <div className="h-6 w-px bg-white/10 mx-2 hidden sm:block" />
+              <div className="h-8 w-px bg-white/10 mx-1 hidden sm:block" />
               
-              {/* Mode Filters */}
-              <div className="flex flex-wrap items-center gap-1.5">
+              {/* Mode Filters with Premium Styling */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setModeFilter('all')}
                   className={cn(
-                    "h-8 px-3 rounded-full text-sm transition-all",
+                    "h-9 px-4 rounded-full text-sm transition-all duration-300",
                     modeFilter === 'all' 
-                      ? "bg-white/10 text-white border border-white/20" 
-                      : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                      ? "bg-white/10 text-white border border-white/20 shadow-lg" 
+                      : "text-white/35 hover:text-white/60 hover:bg-white/5"
                   )}
                 >
-                  All
+                  All Videos
                 </Button>
-                {Object.entries(modeCounts).map(([mode, count]) => (
-                  <Button
-                    key={mode}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setModeFilter(mode as VideoGenerationMode)}
-                    className={cn(
-                      "h-8 px-3 rounded-full text-xs transition-all gap-1",
-                      modeFilter === mode 
-                        ? "bg-white/10 text-white border border-white/20" 
-                        : "text-white/40 hover:text-white/70 hover:bg-white/5"
-                    )}
-                  >
-                    {getModeLabel(mode as VideoGenerationMode)}
-                    <span className="text-white/30 ml-0.5">({count})</span>
-                  </Button>
-                ))}
+                {Object.entries(modeCounts).map(([mode, count]) => {
+                  const ModeFilterIcon = getModeIcon(mode as VideoGenerationMode);
+                  return (
+                    <Button
+                      key={mode}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setModeFilter(mode as VideoGenerationMode)}
+                      className={cn(
+                        "h-9 px-4 rounded-full text-sm transition-all duration-300 gap-2",
+                        modeFilter === mode 
+                          ? "bg-white/10 text-white border border-white/20 shadow-lg" 
+                          : "text-white/35 hover:text-white/60 hover:bg-white/5"
+                      )}
+                    >
+                      <ModeFilterIcon className="w-3.5 h-3.5" />
+                      {getModeLabel(mode as VideoGenerationMode)}
+                      <span className="text-white/25 text-xs">({count})</span>
+                    </Button>
+                  );
+                })}
               </div>
             </motion.div>
           </motion.div>
@@ -327,28 +438,52 @@ export default function Discover() {
         </div>
       )}
 
-      {/* Video Grid - Premium Cards */}
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+      {/* Video Grid - Ultra Premium Cards */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+        {/* Grid Stats Bar */}
+        {filteredVideos && filteredVideos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.8 }}
+            className="flex items-center justify-between mb-8"
+          >
+            <p className="text-white/30 text-sm">
+              Showing <span className="text-white/60 font-medium">{filteredVideos.length}</span> videos
+            </p>
+            <div className="flex items-center gap-2 text-white/30 text-sm">
+              <Film className="w-4 h-4" />
+              <span>AI-Generated</span>
+            </div>
+          </motion.div>
+        )}
+        
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="aspect-video w-full rounded-2xl bg-white/[0.03]" />
-                <Skeleton className="h-5 w-3/4 bg-white/[0.03]" />
-                <Skeleton className="h-4 w-1/2 bg-white/[0.03]" />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <motion.div 
+                key={i} 
+                className="space-y-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Skeleton className="aspect-video w-full rounded-2xl bg-white/[0.04]" />
+                <Skeleton className="h-5 w-3/4 bg-white/[0.04]" />
+                <Skeleton className="h-4 w-1/2 bg-white/[0.04]" />
+              </motion.div>
             ))}
           </div>
         ) : filteredVideos && filteredVideos.length > 0 ? (
           <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             initial="hidden"
             animate="visible"
             variants={{
-              visible: { transition: { staggerChildren: 0.08 } }
+              visible: { transition: { staggerChildren: 0.06, delayChildren: 1.8 } }
             }}
           >
-            {filteredVideos.map((video) => (
+            {filteredVideos.map((video, index) => (
               <VideoCard
                 key={video.id}
                 video={video}
@@ -356,35 +491,41 @@ export default function Discover() {
                 onPlay={() => setSelectedVideo(video)}
                 isLiked={userLikes?.includes(video.id) || false}
                 onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false)}
+                index={index}
               />
             ))}
           </motion.div>
         ) : (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-24"
+            transition={{ delay: 1.8 }}
+            className="text-center py-32"
           >
             {/* Premium Empty State */}
-            <div className="relative inline-block mb-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full blur-2xl" />
-              <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl flex items-center justify-center border border-white/[0.08]">
-                <Film className="w-10 h-10 text-white/30" />
+            <div className="relative inline-block mb-10">
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-amber-500/25 to-rose-500/25 rounded-full blur-3xl"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-white/[0.1] to-white/[0.03] backdrop-blur-2xl flex items-center justify-center border border-white/[0.1] shadow-2xl">
+                <Film className="w-12 h-12 text-white/40" />
               </div>
             </div>
-            <h3 className="text-2xl font-semibold text-white mb-3">No videos found</h3>
-            <p className="text-white/40 max-w-md mx-auto mb-8">
+            <h3 className="text-3xl font-bold text-white mb-4">No videos found</h3>
+            <p className="text-white/40 max-w-md mx-auto mb-10 text-lg">
               {searchQuery || modeFilter !== 'all'
                 ? "Try adjusting your filters or search query."
                 : "Be the first to share your creation with the community!"}
             </p>
             <Button
               onClick={() => navigate('/create')}
-              className="h-12 px-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-orange-500/20"
+              className="h-14 px-10 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 text-white font-semibold hover:from-amber-400 hover:to-rose-400 shadow-xl shadow-orange-500/25 text-base"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
+              <Sparkles className="w-5 h-5 mr-2" />
               Create Your First Video
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </motion.div>
         )}
@@ -412,9 +553,10 @@ interface VideoCardProps {
   onPlay: () => void;
   isLiked: boolean;
   onLike: (e: React.MouseEvent) => void;
+  index?: number;
 }
 
-function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardProps) {
+function VideoCard({ video, formatGenre, onPlay, isLiked, onLike, index = 0 }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -448,24 +590,35 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 30 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+        hidden: { opacity: 0, y: 40, scale: 0.95 },
+        visible: { 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          transition: { 
+            duration: 0.7, 
+            ease: [0.16, 1, 0.3, 1],
+          } 
+        }
       }}
       className="group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onPlay}
+      whileHover={{ y: -8, transition: { duration: 0.3 } }}
     >
       {/* Premium Glass Card Container */}
       <div className="relative">
-        {/* Ambient glow on hover */}
+        {/* Ambient glow on hover - Enhanced */}
         <motion.div
-          className="absolute -inset-1 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
-          style={{ background: 'linear-gradient(135deg, rgba(251,146,60,0.15) 0%, rgba(234,88,12,0.1) 100%)' }}
+          className="absolute -inset-3 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 blur-2xl"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(251,146,60,0.2) 0%, rgba(244,114,182,0.15) 50%, rgba(168,85,247,0.1) 100%)' 
+          }}
         />
         
         {/* Card Content */}
-        <div className="relative bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-2xl border border-white/[0.08] rounded-2xl overflow-hidden transition-all duration-500 group-hover:border-white/[0.15] group-hover:shadow-2xl group-hover:shadow-black/50">
+        <div className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-2xl border border-white/[0.1] rounded-2xl overflow-hidden transition-all duration-500 group-hover:border-white/[0.2] group-hover:shadow-2xl group-hover:shadow-black/60">
           {/* Thumbnail / Video Preview */}
           <div className="relative aspect-video overflow-hidden">
             {/* Thumbnail Image */}
@@ -476,7 +629,7 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover transition-all duration-700",
                   isPlaying && "opacity-0",
-                  isHovered && "scale-105"
+                  isHovered && "scale-110"
                 )}
               />
             )}
@@ -504,64 +657,70 @@ function VideoCard({ video, formatGenre, onPlay, isLiked, onLike }: VideoCardPro
               </div>
             )}
             
-            {/* Gradient Overlay */}
+            {/* Gradient Overlay - Enhanced */}
             <div className={cn(
-              "absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity duration-500",
-              isHovered ? "opacity-100" : "opacity-70"
+              "absolute inset-0 transition-all duration-500",
+              isHovered 
+                ? "bg-gradient-to-t from-black/95 via-black/40 to-transparent" 
+                : "bg-gradient-to-t from-black/80 via-black/20 to-transparent"
             )} />
 
-            {/* Play Button */}
+            {/* Play Button - Premium Design */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center"
               initial={false}
               animate={{ opacity: isHovered ? 1 : 0 }}
             >
               <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: isHovered ? 1 : 0.8 }}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ 
+                  scale: isHovered ? 1 : 0.6, 
+                  opacity: isHovered ? 1 : 0 
+                }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl"
+                className="w-18 h-18 rounded-full bg-white/10 backdrop-blur-2xl flex items-center justify-center border border-white/30 shadow-2xl shadow-black/50"
+                style={{ width: 72, height: 72 }}
               >
-                <Play className="w-7 h-7 text-white fill-white ml-1" />
+                <Play className="w-8 h-8 text-white fill-white ml-1" />
               </motion.div>
             </motion.div>
 
-            {/* Mode Badge */}
+            {/* Mode Badge - Enhanced */}
             <Badge 
               className={cn(
-                "absolute top-3 left-3 text-[11px] font-semibold backdrop-blur-xl border bg-gradient-to-r px-2.5 py-1 rounded-full",
+                "absolute top-4 left-4 text-[11px] font-semibold backdrop-blur-2xl border bg-gradient-to-r px-3 py-1.5 rounded-full shadow-lg",
                 getModeColor(video.mode)
               )}
             >
-              <ModeIcon className="w-3 h-3 mr-1.5" />
+              <ModeIcon className="w-3.5 h-3.5 mr-1.5" />
               {getModeLabel(video.mode)}
             </Badge>
 
             {/* Duration Badge */}
-            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl text-[11px] text-white font-medium border border-white/10">
+            <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-2xl text-[11px] text-white font-medium border border-white/10 shadow-lg">
               {video.target_duration_minutes} min
             </div>
 
-            {/* Like Button */}
+            {/* Like Button - Enhanced */}
             <button
               onClick={onLike}
               className={cn(
-                "absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all backdrop-blur-xl border",
+                "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 backdrop-blur-2xl border shadow-lg",
                 isLiked 
-                  ? "bg-red-500/80 text-white border-red-400/50 shadow-lg shadow-red-500/20" 
-                  : "bg-black/40 text-white/70 border-white/10 hover:text-white hover:bg-black/60 hover:border-white/20"
+                  ? "bg-red-500/90 text-white border-red-400/50 shadow-red-500/30 scale-110" 
+                  : "bg-black/50 text-white/70 border-white/10 hover:text-white hover:bg-black/70 hover:border-white/20 hover:scale-110"
               )}
             >
-              <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+              <Heart className={cn("w-4.5 h-4.5", isLiked && "fill-current")} />
             </button>
           </div>
 
-          {/* Info Section */}
-          <div className="p-4 space-y-2">
-            <h3 className="font-semibold text-white text-base truncate group-hover:text-white/90 transition-colors">
+          {/* Info Section - Enhanced */}
+          <div className="p-5 space-y-3">
+            <h3 className="font-bold text-white text-lg truncate group-hover:text-white/95 transition-colors">
               {video.title}
             </h3>
-            <div className="flex items-center gap-3 text-sm text-white/40">
+            <div className="flex items-center gap-4 text-sm text-white/40">
               <span className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}

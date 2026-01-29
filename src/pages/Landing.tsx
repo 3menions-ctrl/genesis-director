@@ -285,7 +285,7 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 1.6 }}
           >
             <Button
-              onClick={() => navigate('/auth?mode=signup')}
+              onClick={() => setShowCinematicTransition(true)}
               size="lg"
               className="group h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.15)] transition-all duration-300 hover:shadow-[0_0_80px_rgba(255,255,255,0.25)]"
             >
@@ -499,12 +499,12 @@ export default function Landing() {
                 transition={{ delay: 0.5 }}
               >
                 <Button
-                  onClick={handleViewGallery}
+                  onClick={() => navigate('/discover')}
                   size="lg"
                   className="group h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.1)] transition-all duration-500 hover:shadow-[0_0_80px_rgba(255,255,255,0.2)] hover:scale-105"
                 >
                   <Play className="w-5 h-5 mr-3 transition-transform group-hover:scale-110" />
-                  See More
+                  View Gallery
                   <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover:translate-x-1" />
                 </Button>
               </motion.div>

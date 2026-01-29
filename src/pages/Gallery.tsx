@@ -363,6 +363,7 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
   const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [thumbnailReady, setThumbnailReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // Vary sizes for gallery wall effect
   const sizes = [
@@ -375,11 +376,21 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
   ];
   const size = sizes[index % sizes.length];
   
+  // Timeout fallback - if thumbnail doesn't load in 5s, show placeholder
+  useEffect(() => {
+    if (thumbnailReady || hasError) return;
+    const timeout = setTimeout(() => {
+      if (!thumbnailReady) {
+        setThumbnailReady(true); // Force show whatever we have
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [thumbnailReady, hasError]);
+  
   // Seek to a frame to show as thumbnail
   const handleVideoLoaded = useCallback(() => {
     const vid = videoRef.current;
     if (vid && vid.duration > 0) {
-      // Seek to 10% of video for a good thumbnail frame
       vid.currentTime = Math.min(vid.duration * 0.1, 1);
     }
   }, []);
@@ -387,6 +398,24 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
   const handleSeeked = useCallback(() => {
     setThumbnailReady(true);
   }, []);
+  
+  const handleError = useCallback(() => {
+    setHasError(true);
+    setThumbnailReady(true); // Show placeholder on error
+  }, []);
+  
+  // Also handle canplay as fallback if seek doesn't trigger
+  const handleCanPlay = useCallback(() => {
+    const vid = videoRef.current;
+    if (vid && !thumbnailReady) {
+      // If we can play but haven't seeked yet, try seeking
+      if (vid.currentTime === 0 && vid.duration > 0) {
+        vid.currentTime = Math.min(vid.duration * 0.1, 1);
+      } else {
+        setThumbnailReady(true);
+      }
+    }
+  }, [thumbnailReady]);
   
   return (
     <motion.div
@@ -431,21 +460,29 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
           {video.video_url ? (
             <>
               {/* Video element paused at thumbnail frame */}
-              <video
-                ref={videoRef}
-                src={video.video_url}
-                className={cn(
-                  "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110",
-                  !thumbnailReady && "opacity-0"
-                )}
-                muted
-                playsInline
-                preload="auto"
-                onLoadedData={handleVideoLoaded}
-                onSeeked={handleSeeked}
-              />
+              {!hasError ? (
+                <video
+                  ref={videoRef}
+                  src={video.video_url}
+                  className={cn(
+                    "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110",
+                    !thumbnailReady && "opacity-0"
+                  )}
+                  muted
+                  playsInline
+                  preload="auto"
+                  onLoadedData={handleVideoLoaded}
+                  onSeeked={handleSeeked}
+                  onCanPlay={handleCanPlay}
+                  onError={handleError}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black">
+                  <Film className="w-10 h-10 text-slate-500/30" />
+                </div>
+              )}
               {/* Loading state while thumbnail extracts */}
-              {!thumbnailReady && (
+              {!thumbnailReady && !hasError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                   <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
                 </div>

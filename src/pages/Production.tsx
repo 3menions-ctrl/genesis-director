@@ -1089,9 +1089,15 @@ export default function Production() {
               )}
               
               {/* Pipeline Error Banner - Shows errors and degradation warnings */}
-              {/* CRITICAL FIX: Hide ALL error banners during active generation */}
+              {/* CRITICAL FIX: Hide ALL error banners during active generation OR completed projects */}
               {/* Transient errors (continuity failures, frame extraction) auto-recover - don't alarm users */}
               {(() => {
+                // CRITICAL: Never show error banners for completed projects
+                // The video is done - showing old transient errors is confusing
+                if (projectStatus === 'completed' && finalVideoUrl) {
+                  return null;
+                }
+                
                 const hasGeneratingClips = clipResults.some(c => c.status === 'generating');
                 const hasCompletedClips = clipResults.some(c => c.status === 'completed');
                 const hasPendingClips = clipResults.some(c => c.status === 'pending');
@@ -1129,6 +1135,20 @@ export default function Production() {
                 // If done/failed and still have error, show it
                 const showBanner = shouldShowBanner && !(isActivelyProducing && isTransientError);
                 
+                // Handler to dismiss error and clear from database
+                const handleDismissError = async () => {
+                  setLastError(null);
+                  setDegradationFlags([]);
+                  
+                  // Clear last_error from database to prevent it coming back on refresh
+                  if (projectId) {
+                    await supabase
+                      .from('movie_projects')
+                      .update({ last_error: null })
+                      .eq('id', projectId);
+                  }
+                };
+                
                 return showBanner ? (
                   <ErrorBoundaryWrapper fallback={null}>
                     <Suspense fallback={null}>
@@ -1139,10 +1159,7 @@ export default function Production() {
                         failedClipCount={failedClipCount}
                         totalClipCount={expectedClipCount}
                         onRetry={handleResume}
-                        onDismiss={() => {
-                          setLastError(null);
-                          setDegradationFlags([]);
-                        }}
+                        onDismiss={handleDismissError}
                         isRetrying={isResuming}
                       />
                     </Suspense>

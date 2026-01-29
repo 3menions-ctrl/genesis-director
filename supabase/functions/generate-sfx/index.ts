@@ -305,13 +305,101 @@ function calculateVolume(hasDialogue: boolean, category: SFXCategory, style: str
   return Math.min(1, Math.max(0.1, volume));
 }
 
+// Quick SFX generation for UI sounds (no project required)
+async function generateQuickSFX(prompt: string, duration: number): Promise<string | null> {
+  const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
+  if (!REPLICATE_API_KEY) {
+    console.warn("[SFX-Quick] No API key configured");
+    return null;
+  }
+
+  try {
+    console.log(`[SFX-Quick] Generating: "${prompt.substring(0, 50)}..." (${duration}s)`);
+    
+    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "48f1f2dc844d9e1e6f7e9c5e9c3a4a9a6e1c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6",
+        input: {
+          prompt: prompt,
+          duration: Math.min(10, Math.max(0.5, duration)),
+          num_inference_steps: 25,
+          guidance_scale: 3.0,
+        },
+      }),
+    });
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error("[SFX-Quick] Create error:", errorText);
+      return null;
+    }
+
+    const prediction = await createResponse.json();
+    console.log("[SFX-Quick] Prediction started:", prediction.id);
+
+    // Poll for completion (max 30 seconds for quick sounds)
+    for (let i = 0; i < 6; i++) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: { "Authorization": `Bearer ${REPLICATE_API_KEY}` },
+      });
+
+      const status = await statusResponse.json();
+
+      if (status.status === "succeeded" && status.output) {
+        console.log("[SFX-Quick] Success:", status.output);
+        return status.output;
+      }
+
+      if (status.status === "failed" || status.status === "canceled") {
+        console.error("[SFX-Quick] Failed:", status.error);
+        return null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("[SFX-Quick] Error:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const request: SFXRequest = await req.json();
+    const requestBody = await req.json();
+    
+    // Quick mode: simple prompt-based SFX generation (for UI sounds)
+    if (requestBody.prompt && !requestBody.projectId) {
+      const { prompt, duration = 1 } = requestBody;
+      
+      console.log(`[SFX Engine] Quick mode: "${prompt.substring(0, 40)}..."`);
+      
+      const audioUrl = await generateQuickSFX(prompt, duration);
+      
+      return new Response(
+        JSON.stringify({
+          success: !!audioUrl,
+          audioUrl,
+          mode: 'quick',
+          prompt,
+          duration,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Full mode: project-based SFX generation
+    const request: SFXRequest = requestBody;
     const { 
       projectId, 
       shots, 
@@ -324,7 +412,7 @@ serve(async (req) => {
     } = request;
 
     if (!projectId || !shots?.length) {
-      throw new Error("projectId and shots are required");
+      throw new Error("projectId and shots are required for full mode");
     }
 
     console.log(`[SFX Engine] Processing ${shots.length} shots, generateAudio=${generateAudio}`);

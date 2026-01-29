@@ -496,8 +496,8 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
   const [activeVideo, setActiveVideo] = useState<'A' | 'B'>('A');
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTransitioningRef = useRef(false);
+  const nextClipReadyRef = useRef(false);
   const triggerTransitionRef = useRef<() => void>(() => {});
   
   // Get all clips
@@ -516,89 +516,135 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
     return activeVideo === 'A' ? videoBRef : videoARef;
   }, [activeVideo]);
   
-  // Crossfade transition - True Overlap pattern (30ms)
+  // Preload next clip into inactive video element (called early)
+  const preloadNextClip = useCallback(() => {
+    if (totalClips <= 1) return;
+    
+    const nextIndex = (currentClipIndex + 1) % totalClips;
+    const inactiveVideo = getInactiveVideoRef().current;
+    
+    if (!inactiveVideo || inactiveVideo.src === clips[nextIndex]) return;
+    
+    console.log('[Gallery] Preloading next clip:', nextIndex);
+    inactiveVideo.src = clips[nextIndex];
+    inactiveVideo.load();
+    inactiveVideo.muted = true; // Keep muted during preload
+    nextClipReadyRef.current = false;
+    
+    inactiveVideo.oncanplaythrough = () => {
+      nextClipReadyRef.current = true;
+      console.log('[Gallery] Next clip ready:', nextIndex);
+      inactiveVideo.oncanplaythrough = null;
+    };
+  }, [totalClips, currentClipIndex, clips, getInactiveVideoRef]);
+  
+  // Instant crossfade transition - no waiting, clips already preloaded
   const triggerTransition = useCallback(() => {
-    if (isTransitioning || totalClips <= 1) return;
+    if (isTransitioningRef.current || totalClips <= 1) return;
+    isTransitioningRef.current = true;
     
     const nextIndex = (currentClipIndex + 1) % totalClips;
     const inactiveVideo = getInactiveVideoRef().current;
     const activeVideoEl = getActiveVideoRef().current;
     
-    if (!inactiveVideo) return;
+    if (!inactiveVideo || !activeVideoEl) {
+      isTransitioningRef.current = false;
+      return;
+    }
     
-    // Preload next clip into inactive video
-    inactiveVideo.src = clips[nextIndex];
-    inactiveVideo.load();
+    console.log('[Gallery] Triggering transition to clip:', nextIndex);
     
-    inactiveVideo.oncanplay = () => {
-      setIsTransitioning(true);
-      
-      // Start playing the incoming clip IMMEDIATELY (both visible at 100% for 30ms)
-      inactiveVideo.currentTime = 0;
-      inactiveVideo.muted = isMuted;
-      inactiveVideo.play().catch(() => {});
-      
-      // Use double-rAF to ensure browser has painted new frame before hiding old
+    // Start the next clip immediately - it's already preloaded
+    inactiveVideo.currentTime = 0;
+    inactiveVideo.muted = isMuted;
+    inactiveVideo.play().catch(() => {});
+    
+    // Both videos visible at 100% for ~30ms (True Overlap)
+    // Use double-rAF to ensure browser painted the new frame
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          // Now swap - after 30ms both were visible
-          setActiveVideo(prev => prev === 'A' ? 'B' : 'A');
-          setCurrentClipIndex(nextIndex);
-          
-          // Stop the old video after transition
-          if (activeVideoEl) {
-            activeVideoEl.pause();
+        // Swap active video
+        setActiveVideo(prev => prev === 'A' ? 'B' : 'A');
+        setCurrentClipIndex(nextIndex);
+        
+        // Pause and reset the old video
+        activeVideoEl.pause();
+        
+        isTransitioningRef.current = false;
+        
+        // Preload the next-next clip
+        setTimeout(() => {
+          const newNextIndex = (nextIndex + 1) % totalClips;
+          const newInactiveVideo = activeVideoEl; // Now the old one is inactive
+          if (newInactiveVideo && clips[newNextIndex]) {
+            newInactiveVideo.src = clips[newNextIndex];
+            newInactiveVideo.load();
+            newInactiveVideo.muted = true;
+            nextClipReadyRef.current = false;
+            newInactiveVideo.oncanplaythrough = () => {
+              nextClipReadyRef.current = true;
+              newInactiveVideo.oncanplaythrough = null;
+            };
           }
-          
-          setIsTransitioning(false);
-        });
+        }, 100);
       });
-      
-      inactiveVideo.oncanplay = null;
-    };
-  }, [isTransitioning, totalClips, currentClipIndex, clips, getInactiveVideoRef, getActiveVideoRef, isMuted]);
+    });
+  }, [totalClips, currentClipIndex, clips, getInactiveVideoRef, getActiveVideoRef, isMuted]);
   
   // Keep ref updated for event handlers
   useEffect(() => {
     triggerTransitionRef.current = triggerTransition;
   }, [triggerTransition]);
   
-  // Handle clip ending
-  const handleClipEnded = useCallback(() => {
-    triggerTransitionRef.current();
-  }, []);
-  
-  // Handle time update for early transition trigger (optional: start transition 30ms before end)
+  // Handle time update - trigger transition 50ms before clip ends
   const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (video.duration && video.currentTime >= video.duration - 0.05 && !isTransitioning) {
-      // Trigger transition slightly before actual end for seamless overlap
+    if (!video.duration || isTransitioningRef.current) return;
+    
+    // Trigger 50ms before end for seamless overlap
+    if (video.currentTime >= video.duration - 0.05) {
       triggerTransitionRef.current();
     }
-  }, [isTransitioning]);
+  }, []);
   
-  // Initial playback setup
+  // Handle clip ended (fallback if timeupdate didn't catch it)
+  const handleClipEnded = useCallback(() => {
+    if (!isTransitioningRef.current) {
+      triggerTransitionRef.current();
+    }
+  }, []);
+  
+  // Initial playback setup + preload second clip
   useEffect(() => {
     const startPlayback = async () => {
       const videoA = videoARef.current;
+      const videoB = videoBRef.current;
+      
       if (videoA && clips.length > 0) {
         videoA.src = clips[0];
         videoA.load();
+        
         try {
           await videoA.play();
           setIsPlaying(true);
+          
+          // Immediately preload second clip into video B
+          if (videoB && clips.length > 1) {
+            videoB.src = clips[1];
+            videoB.load();
+            videoB.muted = true;
+            videoB.oncanplaythrough = () => {
+              nextClipReadyRef.current = true;
+              console.log('[Gallery] Second clip preloaded');
+              videoB.oncanplaythrough = null;
+            };
+          }
         } catch (err) {
           console.warn('Autoplay failed:', err);
         }
       }
     };
     startPlayback();
-    
-    return () => {
-      if (transitionTimeoutRef.current) {
-        clearTimeout(transitionTimeoutRef.current);
-      }
-    };
   }, [clips]);
   
   // Sync muted state across both videos
@@ -627,12 +673,22 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
     if (idx === currentClipIndex) return;
     
     const activeVideoEl = getActiveVideoRef().current;
+    const inactiveVideoEl = getInactiveVideoRef().current;
+    
     if (activeVideoEl) {
       activeVideoEl.src = clips[idx];
       activeVideoEl.load();
       activeVideoEl.play().catch(() => {});
       setCurrentClipIndex(idx);
       setIsPlaying(true);
+      
+      // Preload next clip after this one
+      if (inactiveVideoEl && clips[(idx + 1) % totalClips]) {
+        const nextIdx = (idx + 1) % totalClips;
+        inactiveVideoEl.src = clips[nextIdx];
+        inactiveVideoEl.load();
+        inactiveVideoEl.muted = true;
+      }
     }
   };
   
@@ -650,12 +706,12 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       >
         {clips.length > 0 && !hasError ? (
           <>
-            {/* Video A */}
+            {/* Video A - always visible when active, both visible during overlap */}
             <video
               ref={videoARef}
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
+              className="absolute inset-0 w-full h-full object-contain"
               style={{ 
-                opacity: activeVideo === 'A' || isTransitioning ? 1 : 0,
+                opacity: activeVideo === 'A' ? 1 : 0,
                 zIndex: activeVideo === 'A' ? 2 : 1,
               }}
               muted={isMuted}
@@ -665,12 +721,12 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               onEnded={handleClipEnded}
               onTimeUpdate={handleTimeUpdate}
             />
-            {/* Video B */}
+            {/* Video B - always visible when active, both visible during overlap */}
             <video
               ref={videoBRef}
-              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
+              className="absolute inset-0 w-full h-full object-contain"
               style={{ 
-                opacity: activeVideo === 'B' || isTransitioning ? 1 : 0,
+                opacity: activeVideo === 'B' ? 1 : 0,
                 zIndex: activeVideo === 'B' ? 2 : 1,
               }}
               muted={isMuted}

@@ -14,12 +14,34 @@ const CINEMATIC_MESSAGES = [
   'Preparing your workspace...',
 ];
 
+// Pre-computed particle positions for deterministic animations
+const PARTICLE_POSITIONS = [
+  { angle: 0, delay: 0 },
+  { angle: 45, delay: 0.2 },
+  { angle: 90, delay: 0.4 },
+  { angle: 135, delay: 0.6 },
+  { angle: 180, delay: 0.8 },
+  { angle: 225, delay: 1.0 },
+  { angle: 270, delay: 1.2 },
+  { angle: 315, delay: 1.4 },
+];
+
+// Pre-computed light ray positions
+const LIGHT_RAYS = [
+  { left: '15%', rotate: -10, duration: 4, delay: 0 },
+  { left: '30%', rotate: -5, duration: 4.5, delay: 0.3 },
+  { left: '45%', rotate: 0, duration: 5, delay: 0.6 },
+  { left: '60%', rotate: 5, duration: 4.7, delay: 0.9 },
+  { left: '75%', rotate: 10, duration: 5.2, delay: 1.2 },
+  { left: '90%', rotate: 15, duration: 4.3, delay: 1.5 },
+];
+
 export function AppLoader({ message, className }: AppLoaderProps) {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const displayMessage = message || CINEMATIC_MESSAGES[currentMessageIndex];
 
   useEffect(() => {
-    if (message) return; // Don't cycle if custom message provided
+    if (message) return;
     
     const interval = setInterval(() => {
       setCurrentMessageIndex((prev) => (prev + 1) % CINEMATIC_MESSAGES.length);
@@ -33,7 +55,7 @@ export function AppLoader({ message, className }: AppLoaderProps) {
       "fixed inset-0 z-[100] flex items-center justify-center bg-black overflow-hidden",
       className
     )}>
-      {/* Premium glossy background with parallax effect */}
+      {/* Premium background - single motion for entry, then static */}
       <motion.div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${landingAbstractBg})` }}
@@ -42,30 +64,24 @@ export function AppLoader({ message, className }: AppLoaderProps) {
         transition={{ duration: 1.5, ease: 'easeOut' }}
       />
       
-      {/* Animated light rays */}
+      {/* Light rays - CSS animated for GPU acceleration */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
+        {LIGHT_RAYS.map((ray, i) => (
+          <div
             key={i}
-            className="absolute h-[200%] w-px"
+            className="absolute h-[200%] w-px animate-[loader-light-ray_4s_linear_infinite] will-change-transform"
             style={{
-              left: `${15 + i * 15}%`,
+              left: ray.left,
               background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.03), transparent)',
-              transformOrigin: 'top',
-            }}
-            initial={{ y: '-100%', rotate: -15 + i * 5 }}
-            animate={{ y: '100%' }}
-            transition={{
-              duration: 4 + i * 0.5,
-              repeat: Infinity,
-              delay: i * 0.3,
-              ease: 'linear',
+              transform: `rotate(${ray.rotate}deg)`,
+              animationDuration: `${ray.duration}s`,
+              animationDelay: `${ray.delay}s`,
             }}
           />
         ))}
       </div>
       
-      {/* Cinematic vignette overlay */}
+      {/* Cinematic vignette overlay - static, no animation */}
       <div 
         className="absolute inset-0"
         style={{
@@ -73,7 +89,7 @@ export function AppLoader({ message, className }: AppLoaderProps) {
         }}
       />
       
-      {/* Horizontal film grain lines */}
+      {/* Film grain lines - static texture */}
       <div 
         className="absolute inset-0 opacity-[0.03]"
         style={{
@@ -82,154 +98,76 @@ export function AppLoader({ message, className }: AppLoaderProps) {
       />
       
       <div className="relative flex flex-col items-center gap-10">
-        {/* Epic logo with particle effects */}
+        {/* Logo with CSS-animated effects */}
         <div className="relative">
-          {/* Orbiting particles */}
-          {[...Array(8)].map((_, i) => (
-            <motion.div
+          {/* Orbiting particles - CSS animated */}
+          {PARTICLE_POSITIONS.map((pos, i) => (
+            <div
               key={i}
-              className="absolute w-1 h-1 rounded-full bg-white/40"
+              className="absolute w-1 h-1 rounded-full bg-white/40 animate-loader-particle will-change-transform"
               style={{
                 left: '50%',
                 top: '50%',
-              }}
-              animate={{
-                x: [0, Math.cos((i * Math.PI) / 4) * 60, 0],
-                y: [0, Math.sin((i * Math.PI) / 4) * 60, 0],
-                opacity: [0, 0.8, 0],
-                scale: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                delay: i * 0.2,
-                ease: 'easeInOut',
-              }}
+                '--particle-end': `translate(${Math.cos((pos.angle * Math.PI) / 180) * 60}px, ${Math.sin((pos.angle * Math.PI) / 180) * 60}px)`,
+                animationDelay: `${pos.delay}s`,
+              } as React.CSSProperties}
             />
           ))}
           
-          {/* Pulsing outer ring */}
-          <motion.div 
-            className="absolute inset-[-30px] rounded-full border border-white/10"
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.1, 0.3],
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: 'easeInOut' 
-            }}
-          />
+          {/* Pulsing outer ring - CSS animated */}
+          <div className="absolute inset-[-30px] rounded-full border border-white/10 animate-loader-ring-pulse will-change-transform" />
           
-          {/* Secondary ring */}
-          <motion.div 
-            className="absolute inset-[-15px] rounded-full border border-white/20"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.5, 0.2, 0.5],
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity, 
-              ease: 'easeInOut',
-              delay: 0.3,
-            }}
-          />
+          {/* Secondary ring - CSS animated */}
+          <div className="absolute inset-[-15px] rounded-full border border-white/20 animate-loader-ring-inner will-change-transform" />
           
-          {/* Ambient glow */}
-          <motion.div 
-            className="absolute inset-[-40px] rounded-full blur-2xl"
+          {/* Ambient glow - CSS animated */}
+          <div 
+            className="absolute inset-[-40px] rounded-full blur-2xl animate-loader-glow will-change-transform"
             style={{
               background: 'radial-gradient(circle, rgba(100,150,255,0.15) 0%, transparent 70%)',
             }}
-            animate={{ 
-              scale: [1, 1.3, 1],
-              opacity: [0.3, 0.6, 0.3],
-            }}
-            transition={{ 
-              duration: 3, 
-              repeat: Infinity, 
-              ease: 'easeInOut' 
-            }}
           />
           
-          {/* Main logo container */}
+          {/* Main logo container - single entry animation */}
           <motion.div 
             className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-2xl border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden"
             initial={{ scale: 0.8, opacity: 0, rotateY: -90 }}
             animate={{ scale: 1, opacity: 1, rotateY: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Inner glow */}
+            {/* Inner glow - static */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent" />
             
-            {/* Logo text with gradient */}
-            <motion.span 
-              className="text-3xl font-display font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent tracking-tight relative z-10"
-              animate={{ 
-                textShadow: [
-                  '0 0 20px rgba(255,255,255,0.3)',
-                  '0 0 40px rgba(255,255,255,0.5)',
-                  '0 0 20px rgba(255,255,255,0.3)',
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
+            {/* Logo text - static with CSS text-shadow animation */}
+            <span className="text-3xl font-display font-bold bg-gradient-to-br from-white to-white/70 bg-clip-text text-transparent tracking-tight relative z-10 animate-pulse-glow">
               A–S
-            </motion.span>
+            </span>
             
-            {/* Premium shimmer effect */}
-            <motion.div 
-              className="absolute inset-0"
+            {/* Premium shimmer effect - CSS animated */}
+            <div 
+              className="absolute inset-0 animate-shimmer will-change-transform"
               style={{
                 background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%)',
-              }}
-              animate={{ x: ['-150%', '150%'] }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity, 
-                repeatDelay: 2,
-                ease: 'easeInOut'
+                animationDuration: '4s',
               }}
             />
             
-            {/* Top shine line */}
+            {/* Top shine line - static */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           </motion.div>
         </div>
         
-        {/* Cinematic loading bar */}
+        {/* Loading bar - CSS animated */}
         <div className="flex flex-col items-center gap-5 w-64">
-          {/* Progress bar container */}
           <div className="relative w-full h-[2px] bg-white/10 rounded-full overflow-hidden">
-            {/* Animated progress */}
-            <motion.div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400/80 via-white to-blue-400/80 rounded-full"
-              initial={{ width: '0%' }}
-              animate={{ 
-                width: ['0%', '30%', '60%', '80%', '100%', '0%'],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
+            {/* Animated progress - CSS keyframes */}
+            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-400/80 via-white to-blue-400/80 rounded-full animate-loader-progress will-change-transform" />
             
-            {/* Glow effect */}
-            <motion.div
-              className="absolute inset-y-[-4px] left-0 w-8 bg-white/30 blur-md"
-              animate={{ left: ['-10%', '100%'] }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
+            {/* Glow effect - CSS animated */}
+            <div className="absolute inset-y-[-4px] w-8 bg-white/30 blur-md animate-loader-shine will-change-transform" />
           </div>
           
-          {/* Message with typewriter effect */}
+          {/* Message with typewriter effect - only this uses Framer for text transitions */}
           <AnimatePresence mode="wait">
             <motion.p 
               key={displayMessage}
@@ -244,7 +182,7 @@ export function AppLoader({ message, className }: AppLoaderProps) {
           </AnimatePresence>
         </div>
         
-        {/* Brand signature */}
+        {/* Brand signature - single entry animation */}
         <motion.div 
           className="flex flex-col items-center gap-2"
           initial={{ opacity: 0 }}
@@ -269,7 +207,6 @@ export function AppLoader({ message, className }: AppLoaderProps) {
             />
           </div>
           
-          {/* Subtle tagline */}
           <motion.p 
             className="text-white/15 text-[10px] tracking-widest uppercase"
             initial={{ opacity: 0 }}

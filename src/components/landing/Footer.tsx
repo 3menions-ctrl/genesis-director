@@ -8,9 +8,9 @@ export default function Footer() {
           {/* Brand */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center">
-              <span className="text-xs font-bold text-black">A</span>
+              <span className="text-xs font-bold text-black">A-S</span>
             </div>
-            <span className="text-sm font-medium text-white">Apex Studio</span>
+            <span className="text-sm font-medium text-white">Apex-Studio</span>
           </div>
 
           {/* Links */}
@@ -35,7 +35,7 @@ export default function Footer() {
 
         <div className="mt-16 pt-8 border-t border-white/[0.05] text-center">
           <p className="text-xs text-white/20">
-            © {new Date().getFullYear()} Apex Studio. All rights reserved.
+            © {new Date().getFullYear()} Apex-Studio. All rights reserved.
           </p>
         </div>
       </div>

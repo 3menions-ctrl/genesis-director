@@ -25,29 +25,29 @@ export default function CinematicTransition({
       return;
     }
 
-    // Phase 0: Buildup tension (0-1s)
+    // Phase 0: Buildup tension (0-1.5s)
     setPhase('buildup');
 
-    // Phase 1: Logo reveal (1-3.5s)
+    // Phase 1: Logo reveal (1.5-5s)
     const logoTimer = setTimeout(() => {
       setPhase('logo');
-    }, 1000);
+    }, 1500);
     
-    // Phase 2: Particle explosion (3.5-5.5s)
+    // Phase 2: Particle explosion (5-7.5s)
     const explodeTimer = setTimeout(() => {
       setPhase('explode');
-    }, 3500);
+    }, 5000);
 
-    // Phase 3: Wipe transition (5.5-7s)
+    // Phase 3: Wipe transition (7.5-9.5s)
     const wipeTimer = setTimeout(() => {
       setPhase('wipe');
-    }, 5500);
+    }, 7500);
 
-    // Complete (7s+)
+    // Complete (9.5s+)
     const completeTimer = setTimeout(() => {
       setPhase('complete');
       onComplete();
-    }, 7000);
+    }, 9500);
 
     return () => {
       clearTimeout(logoTimer);

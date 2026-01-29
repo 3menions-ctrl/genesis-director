@@ -15,6 +15,7 @@ const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
+const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 
 const SectionLoader = () => (
   <div className="py-24 flex items-center justify-center">
@@ -354,45 +355,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="relative z-10 py-32 px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-              Built for creators
-            </h2>
-            <p className="text-lg text-white/40 max-w-md mx-auto">
-              Everything you need to create professional videos.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              { title: 'Text to Video', desc: 'Describe any scene and watch it come to life with cinematic quality.' },
-              { title: 'Image to Video', desc: 'Upload an image and animate it with natural, fluid motion.' },
-              { title: 'Character Lock', desc: 'Keep characters consistent across every scene in your video.' },
-              { title: 'AI Voiceover', desc: 'Generate professional narration in multiple voices and languages.' },
-            ].map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.03] hover:border-white/[0.08] transition-all duration-300"
-              >
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-white/40">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Features Showcase */}
+      <ErrorBoundaryWrapper fallback={<SectionLoader />}>
+        <Suspense fallback={<SectionLoader />}>
+          <FeaturesShowcase />
+        </Suspense>
+      </ErrorBoundaryWrapper>
 
       {/* Stats */}
       <section className="relative z-10 py-20 px-6">

@@ -20,6 +20,105 @@ const corsHeaders = {
  * the user input IS the final content.
  */
 
+/**
+ * Generate a creative, descriptive title from the user's prompt
+ */
+async function generateVideoTitle(prompt: string, mode: string, stylePreset?: string): Promise<string> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+  
+  // Fallback if no API key - create a short, clean title from the prompt
+  if (!OPENAI_API_KEY) {
+    return createFallbackTitle(prompt, mode);
+  }
+  
+  try {
+    const systemPrompt = `You are a creative video title generator. Generate a SHORT, catchy, memorable title (2-5 words max) for a video based on the user's concept.
+
+Rules:
+- Maximum 5 words, ideally 2-4 words
+- Be creative but relevant to the content
+- No quotes, colons, or special characters
+- Capitalize each word (Title Case)
+- Make it sound like a movie or video title
+- Capture the essence/mood of the content
+
+Examples:
+- "A dog running on the beach at sunset" → "Golden Shore Run"
+- "Explaining quantum physics" → "Quantum Unveiled"
+- "Space shuttle launching into orbit" → "Orbital Ascent"
+- "Chef cooking a gourmet meal" → "Culinary Mastery"
+- "City timelapse at night" → "Urban Nightscape"`;
+
+    const userPrompt = `Generate a title for this ${mode.replace(/-/g, ' ')} video:
+"${prompt.substring(0, 300)}"${stylePreset ? `\nStyle: ${stylePreset}` : ''}`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 30,
+        temperature: 0.8,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("[ModeRouter] Title generation API failed, using fallback");
+      return createFallbackTitle(prompt, mode);
+    }
+
+    const data = await response.json();
+    const generatedTitle = data.choices?.[0]?.message?.content?.trim();
+    
+    if (generatedTitle && generatedTitle.length > 0 && generatedTitle.length <= 60) {
+      // Clean up any quotes or unwanted characters
+      const cleanTitle = generatedTitle.replace(/["""'']/g, '').replace(/^[:;\-–—]+/, '').trim();
+      console.log(`[ModeRouter] Generated title: "${cleanTitle}"`);
+      return cleanTitle;
+    }
+    
+    return createFallbackTitle(prompt, mode);
+  } catch (error) {
+    console.error("[ModeRouter] Title generation error:", error);
+    return createFallbackTitle(prompt, mode);
+  }
+}
+
+/**
+ * Create a fallback title from the prompt when AI is unavailable
+ */
+function createFallbackTitle(prompt: string, mode: string): string {
+  // Extract key words from the prompt
+  const cleanPrompt = prompt
+    .replace(/[^\w\s]/g, '') // Remove special chars
+    .replace(/\s+/g, ' ')     // Normalize spaces
+    .trim();
+  
+  // Get first few meaningful words
+  const words = cleanPrompt.split(' ').filter(w => 
+    w.length > 2 && !['the', 'and', 'for', 'with', 'about', 'that', 'this', 'from', 'into'].includes(w.toLowerCase())
+  );
+  
+  if (words.length >= 2) {
+    // Take first 3-4 significant words and title case them
+    const titleWords = words.slice(0, 4).map(w => 
+      w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    );
+    return titleWords.join(' ');
+  }
+  
+  // Ultimate fallback with mode and timestamp
+  const modeLabel = mode.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return `${modeLabel} Creation`;
+}
+
 interface ModeRouterRequest {
   mode: 'text-to-video' | 'image-to-video' | 'avatar' | 'video-to-video' | 'motion-transfer' | 'b-roll';
   userId: string;
@@ -99,12 +198,14 @@ serve(async (req) => {
     // Create or get project with full mode data
     let projectId = request.projectId;
     if (!projectId) {
-      const projectName = `${mode.replace(/-/g, ' ')} - ${new Date().toLocaleDateString()}`;
+      // Generate a proper title from the user's prompt
+      const generatedTitle = await generateVideoTitle(prompt, mode, stylePreset);
+      
       const { data: project, error: projectError } = await supabase
         .from('movie_projects')
         .insert({
           user_id: userId,
-          title: projectName,
+          title: generatedTitle,
           aspect_ratio: aspectRatio,
           status: 'generating',
           mode: mode,

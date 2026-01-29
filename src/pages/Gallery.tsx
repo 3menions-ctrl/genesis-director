@@ -11,6 +11,19 @@ interface GalleryVideo {
   title: string;
   thumbnail_url: string | null;
   video_url: string | null;
+  all_clips?: string[]; // All clips for full stitched playback
+}
+
+// Manifest structure for stitched videos
+interface ManifestClip {
+  index: number;
+  videoUrl: string;
+  duration: number;
+}
+
+interface VideoManifest {
+  clips: ManifestClip[];
+  totalDuration: number;
 }
 
 // Fetch stitched/completed project videos from public projects (Gallery showcase)
@@ -29,22 +42,51 @@ const useGalleryVideos = () => {
         .limit(20);
       
       if (error) throw error;
+      if (!data || data.length === 0) return [];
       
-      // Transform to gallery format - filter for valid video URLs (exclude manifests)
-      const videos: GalleryVideo[] = (data || [])
-        .filter(project => {
-          const url = project.video_url?.toLowerCase() || '';
-          // Only include actual video files, not manifest JSONs
-          return url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov');
+      // For each project, fetch manifest and extract first clip URL
+      const videosWithClips = await Promise.all(
+        data.map(async (project) => {
+          const url = project.video_url || '';
+          
+          // If it's a manifest JSON, fetch and extract first clip
+          if (url.endsWith('.json')) {
+            try {
+              const response = await fetch(url);
+              const manifest: VideoManifest = await response.json();
+              
+              if (manifest.clips && manifest.clips.length > 0) {
+                // Use first clip's video URL for playback
+                return {
+                  id: project.id,
+                  title: '',
+                  thumbnail_url: project.thumbnail_url,
+                  video_url: manifest.clips[0].videoUrl,
+                  all_clips: manifest.clips.map(c => c.videoUrl), // Store all clips for full playback
+                };
+              }
+            } catch (e) {
+              console.error('Failed to fetch manifest:', e);
+            }
+          }
+          
+          // Direct video URL (MP4, WebM, etc.)
+          if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
+            return {
+              id: project.id,
+              title: '',
+              thumbnail_url: project.thumbnail_url,
+              video_url: url,
+              all_clips: [url],
+            };
+          }
+          
+          return null;
         })
-        .map((project) => ({
-          id: project.id,
-          title: '',
-          thumbnail_url: project.thumbnail_url,
-          video_url: project.video_url,
-        }));
+      );
       
-      return videos;
+      // Filter out nulls and return valid videos
+      return videosWithClips.filter((v): v is GalleryVideo & { all_clips: string[] } => v !== null);
     },
   });
 };
@@ -395,10 +437,9 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
                 )}
                 muted
                 playsInline
-                preload="metadata"
+                preload="auto"
                 onLoadedData={handleVideoLoaded}
                 onSeeked={handleSeeked}
-                crossOrigin="anonymous"
               />
               {/* Loading state while thumbnail extracts */}
               {!thumbnailReady && (

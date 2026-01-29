@@ -318,6 +318,178 @@ export interface DetectedContent {
   recommendedClipCount: number;
 }
 
+// ============= USER INTENT EXTRACTION =============
+
+export interface UserIntent {
+  coreAction: string;        // The primary action/event the user wants to see
+  keyElements: string[];     // Critical visual elements that MUST appear
+  forbiddenElements: string[]; // Things the user explicitly does NOT want
+  contextualDetails: string; // Supporting details (setting, mood, etc.)
+  preservationPriority: 'action' | 'character' | 'environment' | 'balanced';
+}
+
+/**
+ * Extract user's core intent from their input
+ * This is used to validate that generated scripts actually contain what the user asked for
+ */
+export function extractUserIntent(userInput: string): UserIntent {
+  if (!userInput || typeof userInput !== 'string') {
+    return {
+      coreAction: '',
+      keyElements: [],
+      forbiddenElements: [],
+      contextualDetails: '',
+      preservationPriority: 'balanced',
+    };
+  }
+
+  const normalizedInput = userInput.toLowerCase();
+  
+  // Extract action verbs and dramatic events
+  const actionPatterns = [
+    // Dramatic events
+    /(?:an?\s+)?(asteroid|meteor|comet)\s+(?:impact|crash|strike|hit|collid)/gi,
+    /(?:an?\s+)?(explosion|blast|eruption|detonation)/gi,
+    /(?:an?\s+)?(battle|fight|war|conflict|combat)/gi,
+    /(?:an?\s+)?(storm|hurricane|tornado|tsunami|earthquake)/gi,
+    /(?:an?\s+)?(chase|pursuit|escape|race)/gi,
+    /(?:an?\s+)?(transformation|metamorphosis|change|evolution)/gi,
+    /(?:an?\s+)?(attack|assault|invasion|raid)/gi,
+    /(?:an?\s+)?(rescue|save|liberation|escape)/gi,
+    /(?:an?\s+)?(discovery|revelation|finding)/gi,
+    // Character actions
+    /(running|walking|flying|swimming|climbing|falling|jumping|dancing)/gi,
+    /(fighting|battling|defending|attacking|shooting)/gi,
+    /(speaking|singing|crying|laughing|screaming)/gi,
+    /(building|creating|destroying|breaking)/gi,
+    // Camera/cinematographic intentions
+    /(close-?up|wide shot|pan|zoom|tracking shot)/gi,
+  ];
+  
+  const keyElements: string[] = [];
+  let coreAction = '';
+  
+  for (const pattern of actionPatterns) {
+    let match;
+    while ((match = pattern.exec(userInput)) !== null) {
+      const element = match[0].trim();
+      if (!keyElements.includes(element.toLowerCase())) {
+        keyElements.push(element.toLowerCase());
+        if (!coreAction && element.length > 3) {
+          coreAction = element;
+        }
+      }
+    }
+  }
+  
+  // Extract "not" or "no" constraints
+  const forbiddenPatterns = [
+    /\b(?:no|not|without|don'?t|avoid|exclude)\s+(\w+(?:\s+\w+)?)/gi,
+    /\b(?:never|shouldn'?t)\s+(\w+(?:\s+\w+)?)/gi,
+  ];
+  
+  const forbiddenElements: string[] = [];
+  for (const pattern of forbiddenPatterns) {
+    let match;
+    while ((match = pattern.exec(userInput)) !== null) {
+      forbiddenElements.push(match[1].toLowerCase());
+    }
+  }
+  
+  // Determine preservation priority based on input
+  let preservationPriority: UserIntent['preservationPriority'] = 'balanced';
+  
+  // Action-heavy content
+  if (/impact|crash|explosion|attack|battle|chase/i.test(userInput)) {
+    preservationPriority = 'action';
+  } 
+  // Character-focused content
+  else if (/character|person|protagonist|hero|villain|face|expression/i.test(userInput)) {
+    preservationPriority = 'character';
+  }
+  // Environment-focused content
+  else if (/landscape|setting|environment|scenery|location/i.test(userInput)) {
+    preservationPriority = 'environment';
+  }
+  
+  // Extract contextual details (everything not captured above)
+  const contextualDetails = userInput
+    .replace(/\b(?:no|not|without|don'?t|avoid|exclude|never|shouldn'?t)\s+\w+(?:\s+\w+)?/gi, '')
+    .trim();
+  
+  console.log(`[UserIntent] Extracted - Core: "${coreAction}", Elements: [${keyElements.join(', ')}], Priority: ${preservationPriority}`);
+  
+  return {
+    coreAction,
+    keyElements,
+    forbiddenElements,
+    contextualDetails,
+    preservationPriority,
+  };
+}
+
+/**
+ * Validate that a generated script contains the user's core intent
+ * Returns a score from 0-100 and specific issues found
+ */
+export function validateScriptAgainstIntent(
+  script: string,
+  userIntent: UserIntent
+): { score: number; issues: string[]; passed: boolean } {
+  const issues: string[] = [];
+  let score = 100;
+  
+  const normalizedScript = script.toLowerCase();
+  
+  // Check for core action presence (MOST CRITICAL)
+  if (userIntent.coreAction) {
+    const coreActionVariants = [
+      userIntent.coreAction.toLowerCase(),
+      // Handle common word variations
+      userIntent.coreAction.toLowerCase().replace('impact', 'crash'),
+      userIntent.coreAction.toLowerCase().replace('crash', 'impact'),
+      userIntent.coreAction.toLowerCase().replace('explosion', 'blast'),
+    ];
+    
+    const hasCore = coreActionVariants.some(variant => 
+      normalizedScript.includes(variant)
+    );
+    
+    if (!hasCore) {
+      issues.push(`CRITICAL: Script missing core action "${userIntent.coreAction}"`);
+      score -= 40;
+    }
+  }
+  
+  // Check for key elements
+  let elementsFound = 0;
+  for (const element of userIntent.keyElements) {
+    if (normalizedScript.includes(element.toLowerCase())) {
+      elementsFound++;
+    } else {
+      issues.push(`Missing key element: "${element}"`);
+      score -= 10;
+    }
+  }
+  
+  // Check forbidden elements aren't present
+  for (const forbidden of userIntent.forbiddenElements) {
+    if (normalizedScript.includes(forbidden.toLowerCase())) {
+      issues.push(`Script contains forbidden element: "${forbidden}"`);
+      score -= 15;
+    }
+  }
+  
+  // Clamp score
+  score = Math.max(0, Math.min(100, score));
+  
+  return {
+    score,
+    issues,
+    passed: score >= 60 && !issues.some(i => i.startsWith('CRITICAL')),
+  };
+}
+
 /**
  * Detect dialogue and narration from user input
  * Patterns detected:

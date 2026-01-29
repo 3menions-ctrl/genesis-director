@@ -8,6 +8,9 @@ import {
   errorResponse,
   successResponse,
   calculateMaxTokens,
+  extractUserIntent,
+  validateScriptAgainstIntent,
+  type UserIntent,
 } from "../_shared/script-utils.ts";
 
 interface CharacterInput {
@@ -155,6 +158,10 @@ serve(async (req) => {
     
     console.log(`[generate-script] ENFORCED clip count: ${clipCount} (user requested: ${userRequestedClips}, detected: ${detectedContent.recommendedClipCount})`);
     
+    // GUARDRAIL #1: Extract user intent for validation
+    const userIntent = extractUserIntent(inputText);
+    console.log(`[generate-script] User intent extracted - Core action: "${userIntent.coreAction}", Key elements: [${userIntent.keyElements.join(', ')}]`);
+    
     if (isFullMovieMode) {
       // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)
       systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 5 seconds.
@@ -164,6 +171,18 @@ CRITICAL - USER CONTENT PRESERVATION:
 The user has provided specific narration/dialogue that MUST be used EXACTLY as written.
 DO NOT paraphrase, summarize, or rewrite the user's text.
 Your job is to create VISUAL descriptions that accompany the user's exact words.
+` : ''}
+
+${userIntent.coreAction ? `
+═══════════════════════════════════════════════════════════════════════════════
+MANDATORY USER REQUEST - THIS MUST APPEAR IN THE VIDEO:
+The user SPECIFICALLY asked for: ${userIntent.coreAction}
+${userIntent.keyElements.length > 0 ? `Key elements that MUST appear: ${userIntent.keyElements.join(', ')}` : ''}
+${userIntent.forbiddenElements.length > 0 ? `Elements to AVOID: ${userIntent.forbiddenElements.join(', ')}` : ''}
+
+YOU MUST INCLUDE ${userIntent.coreAction.toUpperCase()} IN AT LEAST ONE SHOT.
+If you fail to include what the user asked for, the script is INVALID.
+═══════════════════════════════════════════════════════════════════════════════
 ` : ''}
 
 FORMAT (use exactly this):
@@ -205,7 +224,8 @@ RULES:
 - Rich visual descriptions with motion and physics
 - Every transition must be seamless - use buffer shots for major scene changes
 - NO static scenes - always movement (even buffer shots have subtle motion)
-${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not modify their words' : ''}`;
+${mustPreserveContent ? '- PRESERVE USER\'S EXACT NARRATION/DIALOGUE - do not modify their words' : ''}
+${userIntent.coreAction ? `- YOU MUST INCLUDE "${userIntent.coreAction.toUpperCase()}" IN THE SCRIPT - THIS IS NON-NEGOTIABLE` : ''}`;
 
       // Build character descriptions if provided
       const characterDescriptions = hasCharacters 
@@ -322,6 +342,14 @@ Write the script now:`;
       return errorResponse("Script generation returned insufficient content. Please try again.", 500);
     }
     
+    // GUARDRAIL #2: Validate generated script contains user's core intent
+    const intentValidation = validateScriptAgainstIntent(script, userIntent);
+    console.log(`[generate-script] Intent validation: score=${intentValidation.score}, passed=${intentValidation.passed}`);
+    
+    if (!intentValidation.passed) {
+      console.warn(`[generate-script] ⚠️ Script may not fully reflect user intent:`, intentValidation.issues);
+    }
+    
     // Count actual shots in generated script
     const shotMatches = script?.match(/\[SHOT \d+\]/g) || [];
     const actualShotCount = shotMatches.length || clipCount;
@@ -343,6 +371,14 @@ Write the script now:`;
         hasNarration: detectedContent.hasNarration,
         dialogueLineCount: detectedContent.dialogueLines.length,
         contentPreserved: mustPreserveContent,
+      },
+      // NEW: User intent validation results
+      intentValidation: {
+        score: intentValidation.score,
+        passed: intentValidation.passed,
+        issues: intentValidation.issues,
+        coreAction: userIntent.coreAction,
+        keyElements: userIntent.keyElements,
       },
       model: "gpt-4o-mini",
       usage: data.usage,

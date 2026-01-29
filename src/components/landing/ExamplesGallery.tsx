@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
@@ -94,6 +94,7 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
   const [isMuted, setIsMuted] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const currentVideo = SHOWCASE_VIDEOS[currentIndex];
 
@@ -157,6 +158,7 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
 
           {/* Video fills entire screen */}
           <video
+            ref={videoRef}
             key={currentIndex}
             autoPlay={isPlaying}
             muted={isMuted}
@@ -233,7 +235,13 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
               
               {/* Mute/Unmute */}
               <button
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={() => {
+                  // Directly control video element in user gesture context for browser policy compliance
+                  if (videoRef.current) {
+                    videoRef.current.muted = !videoRef.current.muted;
+                    setIsMuted(videoRef.current.muted);
+                  }
+                }}
                 className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all hover:scale-105"
               >
                 {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}

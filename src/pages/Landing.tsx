@@ -45,7 +45,7 @@ export default function Landing() {
   }, []);
 
   const handleTransitionComplete = useCallback(() => {
-    navigate('/discover');
+    navigate('/gallery', { state: { fromAnimation: true } });
   }, [navigate]);
 
   return (

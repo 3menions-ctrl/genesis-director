@@ -331,15 +331,60 @@ interface VideoCardProps {
 const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked, onLike, index = 0 }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout>();
 
   const ModeIcon = getModeIcon(video.mode);
+  const isPlayableVideo = Boolean(video.video_url);
+
+  // Extract thumbnail frame from video when loaded
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !isPlayableVideo) return;
+
+    let mounted = true;
+
+    const handleLoadedData = () => {
+      if (mounted && videoEl.duration) {
+        // Seek to 10% of video for a good thumbnail frame
+        videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
+      }
+    };
+
+    const handleSeeked = () => {
+      if (mounted) {
+        setThumbnailReady(true);
+      }
+    };
+
+    videoEl.addEventListener('loadeddata', handleLoadedData);
+    videoEl.addEventListener('seeked', handleSeeked);
+
+    // Fallback timeout to prevent indefinite loading state
+    const timeout = setTimeout(() => {
+      if (mounted && !thumbnailReady) {
+        setThumbnailReady(true);
+      }
+    }, 5000);
+
+    // If video is already loaded
+    if (videoEl.readyState >= 2 && videoEl.duration) {
+      videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
+    }
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      videoEl.removeEventListener('loadeddata', handleLoadedData);
+      videoEl.removeEventListener('seeked', handleSeeked);
+    };
+  }, [isPlayableVideo, thumbnailReady]);
 
   // Handle hover preview playback
   useEffect(() => {
     const videoEl = videoRef.current;
-    if (!videoEl) return;
+    if (!videoEl || !thumbnailReady) return;
 
     if (isHovered && !isPlaying) {
       hoverTimeoutRef.current = setTimeout(() => {
@@ -349,14 +394,16 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
     } else if (!isHovered && isPlaying) {
       videoEl.pause();
       setIsPlaying(false);
+      // Return to thumbnail frame
+      if (videoEl.duration) {
+        videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
+      }
     }
 
     return () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
-  }, [isHovered, isPlaying]);
-
-  const isPlayableVideo = Boolean(video.video_url);
+  }, [isHovered, isPlaying, thumbnailReady]);
 
   return (
     <motion.div
@@ -385,22 +432,19 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
         
         {/* Card Content */}
         <div className="relative bg-zinc-900/80 backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden transition-all duration-300 group-hover:border-white/[0.15] group-hover:shadow-xl group-hover:shadow-black/50">
-          {/* Thumbnail / Video Preview */}
-          <div className="relative aspect-video overflow-hidden">
-            {/* Thumbnail Image */}
-            {video.thumbnail_url && (
-              <img
-                src={video.thumbnail_url}
-                alt={video.title}
-                className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-all duration-500",
-                  isPlaying && "opacity-0",
-                  isHovered && "scale-105"
-                )}
-              />
+          {/* Video Frame Thumbnail */}
+          <div className="relative aspect-video overflow-hidden bg-zinc-800">
+            {/* Loading skeleton - shown until video frame is ready */}
+            {!thumbnailReady && isPlayableVideo && (
+              <div className="absolute inset-0 z-10 bg-zinc-800">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-pulse" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Film className="w-8 h-8 text-zinc-700" />
+                </div>
+              </div>
             )}
             
-            {/* Video Preview */}
+            {/* Video element - paused on thumbnail frame, plays on hover */}
             {isPlayableVideo && (
               <video
                 ref={videoRef}
@@ -408,16 +452,17 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
                 muted
                 loop
                 playsInline
-                preload="metadata"
+                preload="auto"
                 className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
-                  isPlaying ? "opacity-100" : "opacity-0"
+                  "absolute inset-0 w-full h-full object-cover transition-all duration-500",
+                  thumbnailReady ? "opacity-100" : "opacity-0",
+                  isHovered && "scale-105"
                 )}
               />
             )}
 
-            {/* Fallback */}
-            {!video.thumbnail_url && !isPlayableVideo && (
+            {/* Fallback for non-playable videos */}
+            {!isPlayableVideo && (
               <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
                 <Film className="w-10 h-10 text-zinc-700" />
               </div>

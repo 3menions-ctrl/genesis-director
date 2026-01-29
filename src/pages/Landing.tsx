@@ -13,7 +13,6 @@ import CinematicTransition from '@/components/landing/CinematicTransition';
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
-const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 
@@ -387,14 +386,78 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <div id="pricing">
-        <ErrorBoundaryWrapper fallback={<SectionLoader />}>
-          <Suspense fallback={<SectionLoader />}>
-            <PricingSection />
-          </Suspense>
-        </ErrorBoundaryWrapper>
-      </div>
+      {/* Pricing CTA */}
+      <section className="relative z-10 py-24 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-4xl mx-auto"
+        >
+          <div className="relative group">
+            {/* Animated glow background */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            
+            {/* Card */}
+            <div 
+              onClick={() => navigate('/pricing')}
+              className="relative rounded-3xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] p-12 md:p-16 cursor-pointer transition-all duration-500 overflow-hidden"
+            >
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-500/[0.03] to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+              
+              <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="text-center md:text-left">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] mb-4"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-white/50">Simple pricing</span>
+                  </motion.div>
+                  
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-3">
+                    Pay once. Create forever.
+                  </h2>
+                  <p className="text-white/40 text-lg">
+                    No subscriptions. Credits that never expire.
+                  </p>
+                </div>
+                
+                <div className="shrink-0">
+                  <div className="group/btn relative">
+                    <div className="absolute -inset-1 bg-white/20 rounded-full blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                    <Button
+                      size="lg"
+                      className="relative h-14 px-8 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300"
+                    >
+                      View Pricing
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Bottom stats */}
+              <div className="relative mt-10 pt-8 border-t border-white/[0.06] grid grid-cols-3 gap-4">
+                {[
+                  { value: '$0.10', label: 'per credit' },
+                  { value: '~10', label: 'credits/clip' },
+                  { value: '∞', label: 'no expiry' },
+                ].map((stat, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-2xl md:text-3xl font-semibold text-white">{stat.value}</div>
+                    <div className="text-xs text-white/30 mt-1">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
 
       {/* FAQ */}
       <div id="faq">

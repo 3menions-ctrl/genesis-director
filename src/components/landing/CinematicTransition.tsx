@@ -295,11 +295,23 @@ export default function CinematicTransition({
               }}
             />
 
-            {/* APEX logo with 3D effect */}
+            {/* APEX logo with premium 3D metallic effect */}
             <motion.div
               className="relative"
-              style={{ perspective: '1200px' }}
+              style={{ perspective: '1500px' }}
             >
+              {/* Ambient letter glow backdrop */}
+              <motion.div
+                className="absolute inset-0 blur-[80px] pointer-events-none"
+                animate={{
+                  opacity: phase === 'logo' || phase === 'explode' ? 0.6 : 0,
+                }}
+                transition={{ duration: 1.5 }}
+                style={{
+                  background: 'linear-gradient(90deg, rgba(100, 150, 255, 0.4), rgba(180, 200, 255, 0.5), rgba(140, 180, 255, 0.4))',
+                }}
+              />
+
               <motion.div
                 initial={{ rotateX: -90, y: 150, opacity: 0 }}
                 animate={{ 
@@ -313,34 +325,89 @@ export default function CinematicTransition({
                   ease: [0.16, 1, 0.3, 1],
                 }}
               >
-                <h1 className="text-8xl md:text-[12rem] font-black tracking-[-0.04em] text-white relative">
+                <h1 className="text-8xl md:text-[12rem] font-black tracking-[-0.02em] relative select-none">
                   {'APEX'.split('').map((letter, i) => (
                     <motion.span
                       key={i}
                       className="inline-block relative"
                       style={{
-                        textShadow: phase === 'explode' 
-                          ? '0 0 80px rgba(140, 180, 255, 1), 0 0 160px rgba(100, 150, 255, 0.7), 0 0 240px rgba(80, 120, 255, 0.4)' 
+                        background: phase === 'explode'
+                          ? 'linear-gradient(180deg, #ffffff 0%, #e0e8ff 25%, #b8caff 50%, #8fb0ff 75%, #6090ff 100%)'
                           : phase === 'logo'
-                          ? '0 0 40px rgba(180, 210, 255, 0.6), 0 0 80px rgba(140, 180, 255, 0.3)'
-                          : '0 0 20px rgba(200, 220, 255, 0.25)',
+                          ? 'linear-gradient(180deg, #ffffff 0%, #e8eeff 30%, #c0d4ff 60%, #a0c0ff 100%)'
+                          : 'linear-gradient(180deg, #888888 0%, #666666 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        filter: phase === 'explode' 
+                          ? 'drop-shadow(0 0 60px rgba(140, 180, 255, 1)) drop-shadow(0 0 120px rgba(100, 150, 255, 0.8)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
+                          : phase === 'logo'
+                          ? 'drop-shadow(0 0 30px rgba(180, 210, 255, 0.7)) drop-shadow(0 0 60px rgba(140, 180, 255, 0.4)) drop-shadow(0 4px 6px rgba(0,0,0,0.4))'
+                          : 'drop-shadow(0 0 15px rgba(200, 220, 255, 0.3)) drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
                       }}
-                      initial={{ opacity: 0, y: 60, rotateY: -30 }}
+                      initial={{ opacity: 0, y: 80, rotateY: -45, scale: 0.8 }}
                       animate={{ 
                         opacity: phase !== 'buildup' ? 1 : 0.3, 
                         y: 0,
                         rotateY: 0,
+                        scale: 1,
                       }}
                       transition={{
-                        duration: 1,
-                        delay: 1.2 + i * 0.15,
+                        duration: 1.2,
+                        delay: 1.2 + i * 0.18,
                         ease: [0.16, 1, 0.3, 1],
                       }}
                     >
+                      {/* Main letter */}
                       {letter}
+                      
+                      {/* Shimmer overlay effect */}
+                      <motion.span
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}
+                        initial={{ x: '-100%' }}
+                        animate={{ 
+                          x: phase === 'logo' || phase === 'explode' ? ['100%', '100%'] : '-100%',
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          delay: 2.5 + i * 0.1,
+                          ease: [0.16, 1, 0.3, 1],
+                        }}
+                      >
+                        {letter}
+                      </motion.span>
                     </motion.span>
                   ))}
                 </h1>
+
+                {/* Reflection effect below text */}
+                <motion.div
+                  className="absolute -bottom-4 left-0 right-0 h-20 pointer-events-none overflow-hidden"
+                  style={{ transform: 'scaleY(-0.3) translateY(-100%)' }}
+                  animate={{
+                    opacity: phase === 'logo' || phase === 'explode' ? 0.15 : 0,
+                  }}
+                  transition={{ duration: 1, delay: 2.2 }}
+                >
+                  <h1 
+                    className="text-8xl md:text-[12rem] font-black tracking-[-0.02em]"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(140, 180, 255, 0.6) 0%, transparent 80%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      filter: 'blur(2px)',
+                    }}
+                  >
+                    APEX
+                  </h1>
+                </motion.div>
               </motion.div>
             </motion.div>
 

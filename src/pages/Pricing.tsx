@@ -1,5 +1,5 @@
-import { useState, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { lazy, Suspense } from 'react';
+import { motion } from 'framer-motion';
 import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Shield, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -82,7 +82,6 @@ const TRUST_POINTS = [
 
 export default function Pricing() {
   const navigate = useNavigate();
-  const [hoveredTier, setHoveredTier] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
@@ -159,25 +158,18 @@ export default function Pricing() {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 + index * 0.15 }}
-                onMouseEnter={() => setHoveredTier(tier.id)}
-                onMouseLeave={() => setHoveredTier(null)}
                 className={cn(
-                  "relative group rounded-3xl transition-all duration-500",
+                  "relative group rounded-3xl",
                   tier.popular ? "lg:-mt-4 lg:mb-4" : ""
                 )}
               >
-                {/* Glow effect */}
-                <AnimatePresence>
-                  {(hoveredTier === tier.id || tier.popular) && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute -inset-[1px] rounded-3xl blur-xl transition-opacity duration-500"
-                      style={{ background: tier.glowColor }}
-                    />
-                  )}
-                </AnimatePresence>
+                {/* Glow effect - static for popular, subtle on hover for others */}
+                {tier.popular && (
+                  <div
+                    className="absolute -inset-[1px] rounded-3xl blur-xl opacity-50"
+                    style={{ background: tier.glowColor }}
+                  />
+                )}
 
                 {/* Card */}
                 <div

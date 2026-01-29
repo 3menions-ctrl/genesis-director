@@ -140,11 +140,37 @@ function ProjectCard({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [fetchedClipUrl, setFetchedClipUrl] = useState<string | null>(null);
   
   const status = project.status as string;
-  // For direct stitched MP4s, use video_url; for manifests/clips, use video_clips array
+  // For direct stitched MP4s, use video_url; for manifests/clips, use video_clips array or fetch from DB
   const isDirectVideo = project.video_url && !isManifestUrl(project.video_url);
-  const hasVideo = Boolean(project.video_clips?.length || isDirectVideo);
+  const isManifest = project.video_url && isManifestUrl(project.video_url);
+  // Consider completed projects or those with manifest URLs as having video content
+  const hasVideo = Boolean(project.video_clips?.length || isDirectVideo || isManifest || status === 'completed');
+  
+  // Fetch first clip from database for completed projects without video_clips array
+  useEffect(() => {
+    const fetchClipFromDb = async () => {
+      if (!hasVideo || project.video_clips?.length || isDirectVideo) return;
+      
+      // For manifests or completed projects, fetch first clip from database
+      const { data } = await supabase
+        .from('video_clips')
+        .select('video_url')
+        .eq('project_id', project.id)
+        .eq('status', 'completed')
+        .order('shot_index', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data?.video_url) {
+        setFetchedClipUrl(data.video_url);
+      }
+    };
+    
+    fetchClipFromDb();
+  }, [project.id, hasVideo, project.video_clips?.length, isDirectVideo]);
   
   // Determine video source - prioritize direct video_url for completed projects
   const videoSrc = useMemo(() => {
@@ -155,8 +181,12 @@ function ProjectCard({
       // Use second clip if available (more representative), else first
       return project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0];
     }
+    // Use fetched clip from database
+    if (fetchedClipUrl) {
+      return fetchedClipUrl;
+    }
     return null;
-  }, [project.video_url, project.video_clips, isDirectVideo]);
+  }, [project.video_url, project.video_clips, isDirectVideo, fetchedClipUrl]);
 
   // Force video to show a frame when loaded - browsers need this to display video thumbnail
   const handleVideoLoaded = useCallback(() => {
@@ -859,6 +889,8 @@ export default function Projects() {
     if (p.video_clips && p.video_clips.length > 0) return true;
     // Also check if status indicates production happened (clips may be in table, not array)
     if (p.status === 'completed' || p.status === 'stitching' || p.status === 'stitching_failed') return true;
+    // Check if video_url exists (even non-manifest) - indicates completed video
+    if (p.video_url) return true;
     return false;
   };
   

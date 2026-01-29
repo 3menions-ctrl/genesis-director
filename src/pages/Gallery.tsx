@@ -21,33 +21,41 @@ const useGalleryVideos = () => {
   return useQuery({
     queryKey: ['gallery-videos-admin'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // Fetch completed video clips from admin's projects
+      // First get the admin's project IDs
+      const { data: adminProjects, error: projectsError } = await supabase
+        .from('movie_projects')
+        .select('id')
+        .eq('user_id', ADMIN_USER_ID);
+      
+      if (projectsError) throw projectsError;
+      
+      const projectIds = (adminProjects || []).map(p => p.id);
+      
+      if (projectIds.length === 0) {
+        return [];
+      }
+      
+      // Then get completed clips from those projects
       const { data, error } = await supabase
         .from('video_clips')
-        .select(`
-          id,
-          video_url,
-          project_id,
-          shot_index,
-          movie_projects!inner(title, user_id)
-        `)
+        .select('id, video_url, project_id, shot_index')
         .eq('status', 'completed')
-        .eq('movie_projects.user_id', ADMIN_USER_ID)
+        .in('project_id', projectIds)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(30);
       
       if (error) throw error;
       
-      // Transform to gallery format with unique titles
+      // Transform to gallery format - filter for valid video URLs
       const videos: GalleryVideo[] = (data || [])
         .filter(clip => {
           const url = clip.video_url?.toLowerCase() || '';
           return url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov');
         })
-        .map((clip, index) => ({
+        .map((clip) => ({
           id: clip.id,
-          title: `${(clip.movie_projects as any)?.title || 'Untitled'} - Clip ${clip.shot_index + 1}`,
+          title: '',
           thumbnail_url: null,
           video_url: clip.video_url,
         }));

@@ -3046,6 +3046,11 @@ async function runProduction(
             // This ensures continuity data survives edge function timeouts
             // =====================================================
             previousContinuityManifest: previousContinuityManifest,
+            // =====================================================
+            // BUG FIX: Include clipDuration in context for callback chain
+            // This was missing and causing clips 2+ to default to 5s!
+            // =====================================================
+            clipDuration: state.clipDuration,
           },
         });
         
@@ -5725,6 +5730,9 @@ serve(async (req) => {
             stage: 'initializing',
             progress: 0,
             startedAt: new Date().toISOString(),
+            // BUG FIX: Store clipCount and clipDuration for recovery and callback chains
+            clipCount,
+            clipDuration,
           },
         })
         .select()
@@ -5743,6 +5751,9 @@ serve(async (req) => {
             stage: 'initializing',
             progress: 0,
             startedAt: new Date().toISOString(),
+            // BUG FIX: Store clipCount and clipDuration for recovery and callback chains
+            clipCount,
+            clipDuration,
           },
         })
         .eq('id', projectId);

@@ -194,23 +194,41 @@ interface FullscreenPlayerProps {
 
 function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   useEffect(() => {
-    if (videoRef.current && video.video_url) {
-      videoRef.current.play().catch(() => {});
-    }
+    const playVideo = async () => {
+      if (videoRef.current && video.video_url) {
+        try {
+          await videoRef.current.play();
+          setIsPlaying(true);
+          setHasError(false);
+        } catch (err) {
+          console.warn('Autoplay failed:', err);
+          setIsPlaying(false);
+        }
+      }
+    };
+    playVideo();
   }, [video.video_url]);
   
-  const togglePlay = () => {
-    if (videoRef.current) {
+  const togglePlay = async () => {
+    if (!videoRef.current) return;
+    
+    try {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        await videoRef.current.play();
+        setIsPlaying(true);
+        setHasError(false);
       }
-      setIsPlaying(!isPlaying);
+    } catch (err) {
+      console.warn('Playback failed:', err);
+      setHasError(true);
     }
   };
   
@@ -219,6 +237,11 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
+  };
+
+  const handleVideoError = () => {
+    setHasError(true);
+    setIsPlaying(false);
   };
   
   return (
@@ -231,10 +254,10 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
     >
       {/* Video - full screen */}
       <div 
-        className="absolute inset-0"
+        className="absolute inset-0 flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {video.video_url ? (
+        {video.video_url && !hasError ? (
           <video
             ref={videoRef}
             src={video.video_url}
@@ -243,6 +266,8 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
             muted={isMuted}
             playsInline
             onClick={togglePlay}
+            onError={handleVideoError}
+            onCanPlay={() => setHasError(false)}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -254,7 +279,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
                 className="mb-8"
               >
                 <div className="w-32 h-32 mx-auto rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-xl">
-                  <Play className="w-14 h-14 text-white/80 fill-white/80 ml-2" />
+                  <Film className="w-14 h-14 text-white/80" />
                 </div>
               </motion.div>
               <motion.h2 
@@ -265,36 +290,47 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               >
                 {video.title}
               </motion.h2>
+              {hasError && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-white/50 text-sm"
+                >
+                  Video unavailable
+                </motion.p>
+              )}
             </div>
           </div>
         )}
         
         {/* Minimal controls at bottom */}
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4"
-        >
-          <button 
-            className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlay();
-            }}
+        {video.video_url && !hasError && (
+          <motion.div 
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4"
           >
-            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-          </button>
-          <button 
-            className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleMute();
-            }}
-          >
-            {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-          </button>
-        </motion.div>
+            <button 
+              className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
+            >
+              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+            </button>
+            <button 
+              className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMute();
+              }}
+            >
+              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+            </button>
+          </motion.div>
+        )}
       </div>
       
       {/* Close button */}
@@ -426,22 +462,22 @@ export default function Gallery() {
         </div>
       )}
       
-      {/* Main content - Wall tilted 76° from horizontal (looking up at paintings) */}
+      {/* Main content - Wall tilted 76° from horizontal (approaching at angle) */}
       <div 
         className="min-h-screen flex items-center justify-center overflow-hidden"
         style={{ 
-          perspective: '1500px',
-          perspectiveOrigin: 'center 60%',
+          perspective: '2000px',
+          perspectiveOrigin: 'center 40%',
         }}
       >
         <motion.div
           ref={containerRef}
-          className="flex items-end gap-20 px-[50vw] pb-32 cursor-grab active:cursor-grabbing"
+          className="flex items-center gap-20 px-[50vw] cursor-grab active:cursor-grabbing"
           style={{ 
             x,
             transformStyle: 'preserve-3d',
-            transform: 'rotateX(76deg) translateZ(-100px)',
-            transformOrigin: 'center bottom',
+            transform: 'rotateX(-14deg) rotateY(-12deg) translateZ(50px)',
+            transformOrigin: 'center center',
           }}
           drag="x"
           dragConstraints={{

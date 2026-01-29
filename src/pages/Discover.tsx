@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Clock, Heart, Film, Sparkles, 
-  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2, ArrowRight
+  X, Volume2, VolumeX, Pause, Palette, User, Image, Wand2, ArrowRight, Maximize2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -487,6 +487,7 @@ interface VideoModalProps {
 
 const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
@@ -533,6 +534,35 @@ const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLik
     }
   }, [isVideoPlaying]);
 
+  const toggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const elem = container as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element;
+    };
+    
+    const isCurrentlyFullscreen = document.fullscreenElement || doc.webkitFullscreenElement;
+    
+    if (isCurrentlyFullscreen) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+      }
+    } else {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
+    }
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -558,7 +588,7 @@ const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLik
         </button>
 
         {/* Video Player */}
-        <div className="relative aspect-video bg-black">
+        <div ref={containerRef} className="relative aspect-video bg-black">
           {isDirectVideo ? (
             <>
               <video
@@ -590,6 +620,14 @@ const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLik
                       className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-xl border border-white/10"
                     >
                       {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={toggleFullscreen}
+                      className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-xl border border-white/10"
+                    >
+                      <Maximize2 className="w-4 h-4" />
                     </Button>
                   </div>
                   

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
@@ -239,7 +239,7 @@ interface TiltVideoCardProps {
   onClick: () => void;
 }
 
-function TiltVideoCard({ video, isActive, onClick }: TiltVideoCardProps) {
+const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function TiltVideoCard({ video, isActive, onClick }, ref) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [thumbnailReady, setThumbnailReady] = useState(false);
@@ -420,7 +420,7 @@ function TiltVideoCard({ video, isActive, onClick }: TiltVideoCardProps) {
       </motion.div>
     </motion.div>
   );
-}
+});
 
 // Fullscreen immersive player
 interface FullscreenPlayerProps {

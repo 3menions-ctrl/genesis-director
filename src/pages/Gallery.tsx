@@ -291,7 +291,8 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
         });
         
         if (!mounted) return;
-        vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
+        const targetTime = vid.duration && isFinite(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
+        vid.currentTime = targetTime;
         
         await new Promise<void>((resolve) => {
           vid.onseeked = () => resolve();
@@ -317,7 +318,8 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
       vid.play().catch(() => {});
     } else {
       vid.pause();
-      vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
+      const targetTime = vid.duration && isFinite(vid.duration) ? Math.min(vid.duration * 0.1, 0.5) : 0;
+      vid.currentTime = targetTime;
     }
   }, [isHovered, videoSrc]);
   

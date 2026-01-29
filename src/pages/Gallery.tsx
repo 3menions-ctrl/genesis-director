@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 
 interface GalleryVideo {
   id: string;
@@ -29,11 +28,9 @@ const useGalleryVideos = () => {
       
       if (error) throw error;
       
-      // Filter to only include actual video files, not manifests
+      // Filter to only include actual video files
       const videos = (data || []).filter(v => {
         const url = v.video_url?.toLowerCase() || '';
-        // Include if it's an actual video file (mp4, webm, mov) 
-        // Exclude JSON manifests
         return (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) 
           && !url.includes('manifest');
       });
@@ -43,7 +40,7 @@ const useGalleryVideos = () => {
   });
 };
 
-// Fallback sample videos when no real data
+// Fallback sample videos
 const FALLBACK_VIDEOS: GalleryVideo[] = [
   { id: '1', title: 'Sunset Dreams', thumbnail_url: null, video_url: null },
   { id: '2', title: 'Urban Pulse', thumbnail_url: null, video_url: null },
@@ -51,40 +48,69 @@ const FALLBACK_VIDEOS: GalleryVideo[] = [
   { id: '4', title: 'Digital Horizons', thumbnail_url: null, video_url: null },
   { id: '5', title: 'Abstract Flow', thumbnail_url: null, video_url: null },
   { id: '6', title: 'Character Story', thumbnail_url: null, video_url: null },
+  { id: '7', title: 'Cosmic Journey', thumbnail_url: null, video_url: null },
+  { id: '8', title: 'Ocean Depths', thumbnail_url: null, video_url: null },
 ];
 
-// Circular background with abstract pattern
-function CircularBackground() {
+// Abstract room/wall background with depth
+function GalleryRoom() {
   return (
     <div className="fixed inset-0 overflow-hidden">
-      {/* Base black */}
-      <div className="absolute inset-0 bg-black" />
+      {/* Deep dark base */}
+      <div className="absolute inset-0 bg-[#0a0a0f]" />
       
-      {/* Circular masked abstract background */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div 
-          className="w-[180vmax] h-[180vmax] rounded-full overflow-hidden opacity-50"
-          style={{
-            background: `url(${landingAbstractBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            maskImage: 'radial-gradient(circle, black 20%, transparent 60%)',
-            WebkitMaskImage: 'radial-gradient(circle, black 20%, transparent 60%)',
-          }}
-        />
-      </div>
-      
-      {/* Subtle radial overlay */}
+      {/* Abstract wall texture - dark navy like reference */}
       <div 
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.9) 70%)',
+          background: 'linear-gradient(135deg, #0d1420 0%, #151a28 30%, #0a0f18 70%, #080c14 100%)',
+        }}
+      />
+      
+      {/* Floor gradient for room depth */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-[40%]"
+        style={{
+          background: 'linear-gradient(to top, rgba(20,15,10,0.9) 0%, transparent 100%)',
+        }}
+      />
+      
+      {/* Subtle geometric patterns */}
+      <div className="absolute inset-0 opacity-[0.03]">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute border border-white/20"
+            style={{
+              width: `${100 + i * 50}px`,
+              height: `${100 + i * 50}px`,
+              left: `${10 + (i % 5) * 20}%`,
+              top: `${10 + Math.floor(i / 5) * 25}%`,
+              transform: `rotate(${i * 15}deg)`,
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* Ambient light from left side */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 0% 30%, rgba(100,120,180,0.08) 0%, transparent 50%)',
+        }}
+      />
+      
+      {/* Subtle spotlight on wall */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.03) 0%, transparent 40%)',
         }}
       />
       
       {/* Noise texture */}
       <div 
-        className="absolute inset-0 opacity-[0.02] pointer-events-none"
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
@@ -93,93 +119,96 @@ function CircularBackground() {
   );
 }
 
-interface PaintingCardProps {
+interface FramedVideoProps {
   video: GalleryVideo;
   index: number;
   onClick: () => void;
-  isActive: boolean;
+  rowIndex: number;
 }
 
-function PaintingCard({ video, index, onClick, isActive }: PaintingCardProps) {
+function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
   const [isHovered, setIsHovered] = useState(false);
   
-  // Staggered vertical positions for painting wall effect
-  const verticalOffset = index % 3 === 0 ? -30 : index % 3 === 1 ? 20 : -10;
+  // Vary sizes for gallery wall effect
+  const sizes = [
+    { w: 180, h: 240 },
+    { w: 220, h: 160 },
+    { w: 160, h: 200 },
+    { w: 200, h: 280 },
+    { w: 180, h: 180 },
+    { w: 240, h: 180 },
+  ];
+  const size = sizes[index % sizes.length];
   
   return (
     <motion.div
       className="flex-shrink-0 cursor-pointer"
       style={{ 
-        width: '280px',
-        marginTop: verticalOffset,
+        width: size.w,
+        height: size.h,
       }}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ 
-        opacity: 1, 
-        scale: isActive ? 1.08 : 1,
-      }}
-      transition={{ 
-        duration: 0.6,
-        delay: index * 0.06,
-      }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: index * 0.05 }}
+      whileHover={{ scale: 1.05, zIndex: 10 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
     >
-      {/* Painting frame */}
-      <div className="relative group">
-        {/* Outer frame - elegant dark frame */}
+      <div className="relative w-full h-full group">
+        {/* Frame shadow */}
+        <div 
+          className="absolute -inset-1 rounded-sm bg-black/60 blur-md transition-all duration-300"
+          style={{ transform: 'translate(8px, 8px)' }}
+        />
+        
+        {/* Outer frame */}
         <div 
           className={cn(
-            "absolute -inset-4 transition-all duration-500",
-            "bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900",
-            "shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]",
-            isHovered && "shadow-[0_40px_100px_-20px_rgba(255,255,255,0.1)]"
+            "absolute -inset-3 transition-all duration-300",
+            "bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900",
+            "shadow-xl",
+            isHovered && "from-zinc-600 via-zinc-700 to-zinc-800"
           )}
         />
         
         {/* Inner mat */}
-        <div className="absolute -inset-2 bg-zinc-950" />
+        <div className="absolute -inset-1.5 bg-zinc-950" />
         
-        {/* Canvas/Image area */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-black">
+        {/* Image/video area */}
+        <div className="relative w-full h-full overflow-hidden bg-black">
           {video.thumbnail_url ? (
             <img 
               src={video.thumbnail_url} 
               alt={video.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black">
-              <Film className="w-12 h-12 text-white/20" />
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+              <Film className="w-10 h-10 text-white/20" />
             </div>
           )}
           
           {/* Hover overlay */}
           <motion.div 
-            className="absolute inset-0 bg-black/70 flex items-center justify-center"
+            className="absolute inset-0 bg-black/60 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: isHovered ? 1 : 0 }}
-            transition={{ duration: 0.3 }}
           >
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ 
-                scale: isHovered ? 1 : 0.5, 
-                opacity: isHovered ? 1 : 0 
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/30"
+              initial={{ scale: 0.5 }}
+              animate={{ scale: isHovered ? 1 : 0.5 }}
+              className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/30"
             >
-              <Play className="w-7 h-7 text-white fill-white ml-1" />
+              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
             </motion.div>
           </motion.div>
         </div>
         
         {/* Title plaque */}
-        <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 w-[90%]">
-          <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 px-4 py-2.5 text-center">
-            <h3 className="text-white text-sm font-medium truncate">{video.title}</h3>
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%]">
+          <div className="bg-zinc-900/90 backdrop-blur px-2 py-1 text-center border border-white/5">
+            <span className="text-white/80 text-xs font-medium truncate block">{video.title}</span>
           </div>
         </div>
       </div>
@@ -204,10 +233,8 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         try {
           await videoRef.current.play();
           setIsPlaying(true);
-          setHasError(false);
         } catch (err) {
           console.warn('Autoplay failed:', err);
-          setIsPlaying(false);
         }
       }
     };
@@ -216,7 +243,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   
   const togglePlay = async () => {
     if (!videoRef.current) return;
-    
     try {
       if (isPlaying) {
         videoRef.current.pause();
@@ -224,24 +250,10 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       } else {
         await videoRef.current.play();
         setIsPlaying(true);
-        setHasError(false);
       }
     } catch (err) {
-      console.warn('Playback failed:', err);
       setHasError(true);
     }
-  };
-  
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const handleVideoError = () => {
-    setHasError(true);
-    setIsPlaying(false);
   };
   
   return (
@@ -252,7 +264,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       className="fixed inset-0 z-[100] bg-black"
       onClick={onClose}
     >
-      {/* Video - full screen */}
       <div 
         className="absolute inset-0 flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
@@ -266,83 +277,42 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
             muted={isMuted}
             playsInline
             onClick={togglePlay}
-            onError={handleVideoError}
-            onCanPlay={() => setHasError(false)}
+            onError={() => setHasError(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mb-8"
-              >
-                <div className="w-32 h-32 mx-auto rounded-full border border-white/20 flex items-center justify-center bg-white/5 backdrop-blur-xl">
-                  <Film className="w-14 h-14 text-white/80" />
-                </div>
-              </motion.div>
-              <motion.h2 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-4xl md:text-6xl font-bold text-white mb-4"
-              >
-                {video.title}
-              </motion.h2>
-              {hasError && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-white/50 text-sm"
-                >
-                  Video unavailable
-                </motion.p>
-              )}
+          <div className="text-center">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-white/20 flex items-center justify-center bg-white/5">
+              <Film className="w-10 h-10 text-white/60" />
             </div>
+            <h2 className="text-3xl font-bold text-white mb-2">{video.title}</h2>
+            <p className="text-white/40 text-sm">Video preview</p>
           </div>
         )}
         
-        {/* Minimal controls at bottom */}
         {video.video_url && !hasError && (
-          <motion.div 
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4"
-          >
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <button 
-              className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             >
-              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
             </button>
             <button 
-              className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleMute();
-              }}
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+              onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); if(videoRef.current) videoRef.current.muted = !isMuted; }}
             >
-              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
-          </motion.div>
+          </div>
         )}
       </div>
       
-      {/* Close button */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.3 }}
+      <button
         onClick={onClose}
-        className="absolute top-8 right-8 w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all border border-white/20 z-10"
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 border border-white/20 z-10"
       >
-        <X className="w-6 h-6" />
-      </motion.button>
+        <X className="w-5 h-5" />
+      </button>
     </motion.div>
   );
 }
@@ -352,15 +322,14 @@ export default function Gallery() {
   const location = useLocation();
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  const containerRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const isDragging = useRef(false);
-  
-  // Fetch real videos
   const { data: realVideos, isLoading } = useGalleryVideos();
   const videos = realVideos && realVideos.length > 0 ? realVideos : FALLBACK_VIDEOS;
+  
+  // Split videos into rows for gallery wall layout
+  const row1 = videos.filter((_, i) => i % 2 === 0);
+  const row2 = videos.filter((_, i) => i % 2 === 1);
   
   // Access control
   useEffect(() => {
@@ -368,47 +337,20 @@ export default function Gallery() {
     const sessionAccess = sessionStorage.getItem('gallery_access') === 'true';
     
     if (fromAnimation || sessionAccess) {
-      if (fromAnimation) {
-        sessionStorage.setItem('gallery_access', 'true');
-      }
+      if (fromAnimation) sessionStorage.setItem('gallery_access', 'true');
       setHasAccess(true);
     } else {
       navigate('/', { replace: true });
     }
   }, [location, navigate]);
 
-  // Calculate card width + gap
-  const cardWidth = 280;
-  const cardGap = 80;
-  
-  // Swipe navigation
-  const handleDragEnd = (event: any, info: { offset: { x: number }; velocity: { x: number } }) => {
-    const threshold = 50;
-    const velocity = info.velocity.x;
-    const offset = info.offset.x;
-    
-    let newIndex = activeIndex;
-    
-    if (offset < -threshold || velocity < -500) {
-      newIndex = Math.min(activeIndex + 1, videos.length - 1);
-    } else if (offset > threshold || velocity > 500) {
-      newIndex = Math.max(activeIndex - 1, 0);
+  // Scroll handlers
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const amount = direction === 'left' ? -400 : 400;
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
-    
-    setActiveIndex(newIndex);
-    const targetX = -(newIndex * (cardWidth + cardGap));
-    animate(x, targetX, { type: 'spring', stiffness: 300, damping: 30 });
   };
-  
-  const goTo = (index: number) => {
-    const clampedIndex = Math.max(0, Math.min(index, videos.length - 1));
-    setActiveIndex(clampedIndex);
-    const targetX = -(clampedIndex * (cardWidth + cardGap));
-    animate(x, targetX, { type: 'spring', stiffness: 300, damping: 30 });
-  };
-  
-  const goNext = () => goTo(activeIndex + 1);
-  const goPrev = () => goTo(activeIndex - 1);
   
   if (!hasAccess) {
     return (
@@ -419,116 +361,104 @@ export default function Gallery() {
   }
 
   return (
-    <div className="min-h-screen bg-black overflow-hidden">
-      <CircularBackground />
+    <div className="min-h-screen overflow-hidden">
+      <GalleryRoom />
       
       {/* Back button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.3 }}
         onClick={() => navigate('/')}
-        className="fixed top-8 left-8 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors group"
+        className="fixed top-6 left-6 z-50 flex items-center gap-2 text-white/50 hover:text-white transition-colors group"
       >
         <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
         <span className="text-sm font-medium">Back</span>
       </motion.button>
       
       {/* Navigation arrows */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: activeIndex > 0 ? 1 : 0.3 }}
-        onClick={goPrev}
-        disabled={activeIndex === 0}
-        className="fixed left-8 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all disabled:cursor-not-allowed"
+      <button
+        onClick={() => scroll('left')}
+        className="fixed left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
       >
-        <ChevronLeft className="w-6 h-6" />
-      </motion.button>
+        <ChevronLeft className="w-5 h-5" />
+      </button>
       
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: activeIndex < videos.length - 1 ? 1 : 0.3 }}
-        onClick={goNext}
-        disabled={activeIndex === videos.length - 1}
-        className="fixed right-8 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 hover:text-white transition-all disabled:cursor-not-allowed"
+      <button
+        onClick={() => scroll('right')}
+        className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
       >
-        <ChevronRight className="w-6 h-6" />
-      </motion.button>
+        <ChevronRight className="w-5 h-5" />
+      </button>
       
-      {/* Loading state */}
+      {/* Loading */}
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center z-40">
           <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}
       
-      {/* Main content - Wall tilted 76° from horizontal (approaching at angle) */}
+      {/* 3D Gallery Wall - Angled perspective like reference image */}
       <div 
-        className="min-h-screen flex items-center justify-center overflow-hidden"
+        className="min-h-screen flex items-center"
         style={{ 
-          perspective: '2000px',
-          perspectiveOrigin: 'center 40%',
+          perspective: '1200px',
+          perspectiveOrigin: '20% 50%',
         }}
       >
-        <motion.div
-          ref={containerRef}
-          className="flex items-center gap-20 px-[50vw] cursor-grab active:cursor-grabbing"
-          style={{ 
-            x,
+        <div
+          ref={scrollContainerRef}
+          className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide"
+          style={{
+            transform: 'rotateY(-25deg) translateX(15%)',
             transformStyle: 'preserve-3d',
-            transform: 'rotateX(-14deg) rotateY(-12deg) translateZ(50px)',
-            transformOrigin: 'center center',
-          }}
-          drag="x"
-          dragConstraints={{
-            left: -((videos.length - 1) * (cardWidth + cardGap)),
-            right: 0,
-          }}
-          dragElastic={0.1}
-          onDragStart={() => { isDragging.current = true; }}
-          onDragEnd={(e, info) => {
-            handleDragEnd(e, info);
-            setTimeout(() => { isDragging.current = false; }, 100);
+            transformOrigin: 'left center',
           }}
         >
-          {videos.map((video, index) => (
-            <PaintingCard
-              key={video.id}
-              video={video}
-              index={index}
-              isActive={index === activeIndex}
-              onClick={() => {
-                if (!isDragging.current) {
-                  setSelectedVideo(video);
-                }
-              }}
-            />
-          ))}
-        </motion.div>
+          <div className="min-w-max py-20 px-32">
+            {/* Wall content - Two rows of framed videos */}
+            <div className="flex flex-col gap-16">
+              {/* Top row */}
+              <div className="flex items-end gap-8 pl-12">
+                {row1.map((video, index) => (
+                  <FramedVideo
+                    key={video.id}
+                    video={video}
+                    index={index}
+                    rowIndex={0}
+                    onClick={() => setSelectedVideo(video)}
+                  />
+                ))}
+              </div>
+              
+              {/* Bottom row - offset for gallery wall feel */}
+              <div className="flex items-start gap-8 pl-24">
+                {row2.map((video, index) => (
+                  <FramedVideo
+                    key={video.id}
+                    video={video}
+                    index={index + row1.length}
+                    rowIndex={1}
+                    onClick={() => setSelectedVideo(video)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
-      {/* Progress indicator */}
+      {/* Gallery title */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2"
+        transition={{ delay: 0.5 }}
+        className="fixed top-6 left-1/2 -translate-x-1/2 z-40"
       >
-        {videos.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goTo(index)}
-            className={cn(
-              "w-2 h-2 rounded-full transition-all duration-300",
-              index === activeIndex 
-                ? "w-8 bg-white" 
-                : "bg-white/30 hover:bg-white/50"
-            )}
-          />
-        ))}
+        <h1 className="text-white/30 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
       </motion.div>
       
-      {/* Fullscreen video player */}
+      {/* Fullscreen player */}
       <AnimatePresence>
         {selectedVideo && (
           <FullscreenPlayer 
@@ -537,6 +467,12 @@ export default function Gallery() {
           />
         )}
       </AnimatePresence>
+      
+      {/* Hide scrollbar */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }

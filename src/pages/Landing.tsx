@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
+import CinematicTransition from '@/components/landing/CinematicTransition';
 
 // Lazy load components
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
@@ -25,6 +26,7 @@ export default function Landing() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showExamples, setShowExamples] = useState(false);
+  const [showCinematicTransition, setShowCinematicTransition] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -37,8 +39,22 @@ export default function Landing() {
     element?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  const handleViewGallery = useCallback(() => {
+    setShowCinematicTransition(true);
+  }, []);
+
+  const handleTransitionComplete = useCallback(() => {
+    navigate('/discover');
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">
+      {/* Epic Cinematic Transition */}
+      <CinematicTransition 
+        isActive={showCinematicTransition} 
+        onComplete={handleTransitionComplete} 
+      />
+
       {/* Abstract Background */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
         <AbstractBackground className="fixed inset-0 z-0" />
@@ -400,6 +416,100 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Showcase Gallery CTA - Epic "See More" */}
+      <section className="relative z-10 py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.08] p-12 md:p-16 text-center"
+          >
+            {/* Animated background glow */}
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              animate={{
+                background: [
+                  'radial-gradient(ellipse 80% 60% at 20% 40%, rgba(255,255,255,0.04) 0%, transparent 50%)',
+                  'radial-gradient(ellipse 80% 60% at 80% 60%, rgba(255,255,255,0.04) 0%, transparent 50%)',
+                  'radial-gradient(ellipse 80% 60% at 20% 40%, rgba(255,255,255,0.04) 0%, transparent 50%)',
+                ],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            {/* Sparkle decoration */}
+            <motion.div
+              className="absolute top-6 right-6"
+              animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Sparkles className="w-6 h-6 text-white/20" />
+            </motion.div>
+            <motion.div
+              className="absolute bottom-8 left-8"
+              animate={{ rotate: -360, scale: [1, 1.1, 1] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Sparkles className="w-5 h-5 text-white/15" />
+            </motion.div>
+
+            <div className="relative z-10">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.08] mb-6"
+              >
+                <Play className="w-3.5 h-3.5 text-white/60" />
+                <span className="text-xs font-medium text-white/60 tracking-wider uppercase">Gallery</span>
+              </motion.div>
+
+              <motion.h3
+                initial={{ y: 20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white mb-4"
+              >
+                See What Creators
+                <br />
+                <span className="text-white/40">Are Building</span>
+              </motion.h3>
+
+              <motion.p
+                initial={{ y: 20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="text-white/40 text-lg mb-10 max-w-md mx-auto"
+              >
+                Explore our gallery of AI-generated videos and discover what's possible.
+              </motion.p>
+
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                <Button
+                  onClick={handleViewGallery}
+                  size="lg"
+                  className="group h-14 px-10 text-base font-medium rounded-full bg-white text-black hover:bg-white/90 shadow-[0_0_60px_rgba(255,255,255,0.1)] transition-all duration-500 hover:shadow-[0_0_80px_rgba(255,255,255,0.2)] hover:scale-105"
+                >
+                  <Play className="w-5 h-5 mr-3 transition-transform group-hover:scale-110" />
+                  See More
+                  <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </section>
 

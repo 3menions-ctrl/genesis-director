@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -588,6 +588,9 @@ export default function Gallery() {
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   
   const { data: videos = [], isLoading } = useGalleryVideos();
   
@@ -608,12 +611,28 @@ export default function Gallery() {
     }
   }, [location, navigate]);
 
-  // Scroll handlers
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const amount = direction === 'left' ? -400 : 400;
-      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-    }
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // Multiplier for scroll speed
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
   };
   
   if (!hasAccess) {
@@ -640,20 +659,6 @@ export default function Gallery() {
         <span className="text-sm font-medium">Back</span>
       </motion.button>
       
-      {/* Navigation arrows */}
-      <button
-        onClick={() => scroll('left')}
-        className="fixed left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-slate-900/60 border border-zinc-800 hover:border-blue-700/50 flex items-center justify-center text-zinc-500 hover:text-blue-400 transition-all"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      
-      <button
-        onClick={() => scroll('right')}
-        className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-slate-900/60 border border-zinc-800 hover:border-blue-700/50 flex items-center justify-center text-zinc-500 hover:text-blue-400 transition-all"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
       
       {/* Loading */}
       {isLoading && (
@@ -672,12 +677,19 @@ export default function Gallery() {
       >
         <div
           ref={scrollContainerRef}
-          className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide"
+          className={cn(
+            "w-full overflow-x-auto overflow-y-hidden scrollbar-hide",
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          )}
           style={{
             transform: 'rotateY(-25deg) translateX(15%)',
             transformStyle: 'preserve-3d',
             transformOrigin: 'left center',
           }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
         >
           <div className="min-w-max py-20 px-32">
             {/* Wall content - Two rows of framed videos */}

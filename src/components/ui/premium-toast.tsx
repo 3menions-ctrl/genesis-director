@@ -1,6 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, AlertTriangle, Info, Sparkles, Zap, X } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Info, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'epic';
@@ -19,57 +19,45 @@ interface PremiumToastProps {
 
 const toastConfig: Record<ToastType, {
   icon: React.ElementType;
-  gradient: string;
   borderColor: string;
   glowColor: string;
   iconColor: string;
-  bgGradient: string;
-  pulseColor: string;
+  iconGlow: string;
 }> = {
   success: {
     icon: CheckCircle2,
-    gradient: 'from-emerald-500/20 via-emerald-500/10 to-transparent',
-    borderColor: 'border-emerald-500/30',
-    glowColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'border-emerald-500/20',
+    glowColor: 'rgba(16, 185, 129, 0.15)',
     iconColor: 'text-emerald-400',
-    bgGradient: 'linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(4, 47, 46, 0.98) 50%, rgba(17, 24, 39, 0.99) 100%)',
-    pulseColor: 'bg-emerald-400',
+    iconGlow: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.5))',
   },
   error: {
     icon: XCircle,
-    gradient: 'from-rose-500/20 via-rose-500/10 to-transparent',
-    borderColor: 'border-rose-500/30',
-    glowColor: 'rgba(244, 63, 94, 0.4)',
-    iconColor: 'text-rose-400',
-    bgGradient: 'linear-gradient(135deg, rgba(76, 29, 39, 0.95) 0%, rgba(51, 19, 26, 0.98) 50%, rgba(17, 24, 39, 0.99) 100%)',
-    pulseColor: 'bg-rose-400',
+    borderColor: 'border-red-500/20',
+    glowColor: 'rgba(239, 68, 68, 0.15)',
+    iconColor: 'text-red-400',
+    iconGlow: 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.5))',
   },
   warning: {
     icon: AlertTriangle,
-    gradient: 'from-amber-500/20 via-amber-500/10 to-transparent',
-    borderColor: 'border-amber-500/30',
-    glowColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: 'border-amber-500/20',
+    glowColor: 'rgba(245, 158, 11, 0.15)',
     iconColor: 'text-amber-400',
-    bgGradient: 'linear-gradient(135deg, rgba(78, 53, 6, 0.95) 0%, rgba(55, 37, 4, 0.98) 50%, rgba(17, 24, 39, 0.99) 100%)',
-    pulseColor: 'bg-amber-400',
+    iconGlow: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.5))',
   },
   info: {
     icon: Info,
-    gradient: 'from-blue-500/20 via-blue-500/10 to-transparent',
-    borderColor: 'border-blue-500/30',
-    glowColor: 'rgba(59, 130, 246, 0.4)',
-    iconColor: 'text-blue-400',
-    bgGradient: 'linear-gradient(135deg, rgba(23, 37, 84, 0.95) 0%, rgba(15, 23, 42, 0.98) 50%, rgba(17, 24, 39, 0.99) 100%)',
-    pulseColor: 'bg-blue-400',
+    borderColor: 'border-white/[0.08]',
+    glowColor: 'rgba(255, 255, 255, 0.05)',
+    iconColor: 'text-white/60',
+    iconGlow: 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.3))',
   },
   epic: {
     icon: Sparkles,
-    gradient: 'from-violet-500/20 via-fuchsia-500/10 to-cyan-500/5',
-    borderColor: 'border-violet-500/40',
-    glowColor: 'rgba(139, 92, 246, 0.5)',
-    iconColor: 'text-violet-400',
-    bgGradient: 'linear-gradient(135deg, rgba(76, 29, 149, 0.95) 0%, rgba(49, 10, 101, 0.98) 50%, rgba(17, 24, 39, 0.99) 100%)',
-    pulseColor: 'bg-violet-400',
+    borderColor: 'border-white/[0.12]',
+    glowColor: 'rgba(255, 255, 255, 0.1)',
+    iconColor: 'text-white',
+    iconGlow: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.6))',
   },
 };
 
@@ -81,7 +69,7 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ 
@@ -97,53 +85,33 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
             className="absolute inset-0 rounded-2xl blur-xl"
             style={{ background: config.glowColor }}
             animate={{ 
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.02, 1]
+              opacity: [0.4, 0.7, 0.4],
             }}
             transition={{ 
-              duration: 2, 
+              duration: 2.5, 
               repeat: Infinity,
               ease: "easeInOut"
             }}
           />
 
-          {/* Main toast container */}
+          {/* Main toast container - matching landing page black aesthetic */}
           <div
             className={cn(
-              "relative overflow-hidden rounded-2xl border backdrop-blur-2xl",
+              "relative overflow-hidden rounded-2xl border backdrop-blur-2xl bg-black/95",
               config.borderColor
             )}
             style={{ 
-              background: config.bgGradient,
-              boxShadow: `0 0 40px ${config.glowColor}, 0 0 80px ${config.glowColor.replace('0.4', '0.2')}, 0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+              boxShadow: `0 0 50px ${config.glowColor}, 0 0 100px ${config.glowColor.replace('0.15', '0.05')}, 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05)`
             }}
           >
-            {/* Animated gradient overlay */}
-            <motion.div 
-              className={cn(
-                "absolute inset-0 bg-gradient-to-r opacity-50",
-                config.gradient
-              )}
-              animate={{ 
-                opacity: [0.3, 0.5, 0.3],
-                x: ['-10%', '10%', '-10%']
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
+            {/* Top shine line */}
+            <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
-            {/* Shine effect */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-              initial={{ x: '-100%' }}
-              animate={{ x: '200%' }}
-              transition={{ 
-                duration: 1.5,
-                delay: 0.2,
-                ease: "easeInOut"
+            {/* Subtle gradient overlay */}
+            <div 
+              className="absolute inset-0 pointer-events-none"
+              style={{ 
+                background: `linear-gradient(135deg, ${config.glowColor.replace('0.15', '0.05')} 0%, transparent 50%)` 
               }}
             />
 
@@ -153,10 +121,11 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
               <div className="relative flex-shrink-0">
                 {/* Pulse ring */}
                 <motion.div
-                  className={cn("absolute inset-0 rounded-full", config.pulseColor)}
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: config.glowColor }}
                   animate={{ 
-                    scale: [1, 1.8, 1.8],
-                    opacity: [0.5, 0, 0]
+                    scale: [1, 2, 2],
+                    opacity: [0.4, 0, 0]
                   }}
                   transition={{ 
                     duration: 1.5,
@@ -165,24 +134,23 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                   }}
                 />
                 
-                {/* Icon background */}
-                <div className={cn(
-                  "relative w-10 h-10 rounded-xl flex items-center justify-center",
-                  "bg-white/10 backdrop-blur-sm border border-white/10"
-                )}>
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ 
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 20,
-                      delay: 0.1
-                    }}
-                  >
-                    <Icon className={cn("w-5 h-5", config.iconColor)} />
-                  </motion.div>
-                </div>
+                {/* Icon */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 20,
+                    delay: 0.1
+                  }}
+                  className="relative"
+                >
+                  <Icon 
+                    className={cn("w-5 h-5", config.iconColor)} 
+                    style={{ filter: config.iconGlow }}
+                  />
+                </motion.div>
               </div>
 
               {/* Text content */}
@@ -191,7 +159,7 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="text-sm font-semibold text-white tracking-tight"
+                  className="text-sm font-medium text-white tracking-tight"
                 >
                   {title}
                 </motion.h4>
@@ -200,7 +168,7 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="mt-1 text-sm text-white/60"
+                    className="mt-1 text-sm text-white/50"
                   >
                     {description}
                   </motion.p>
@@ -211,12 +179,7 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
                     onClick={action.onClick}
-                    className={cn(
-                      "mt-3 px-4 py-1.5 text-xs font-medium rounded-lg",
-                      "bg-white/10 hover:bg-white/20 text-white/90",
-                      "border border-white/10 hover:border-white/20",
-                      "transition-all duration-200"
-                    )}
+                    className="mt-3 px-4 py-1.5 text-xs font-medium rounded-full bg-white text-black hover:bg-white/90 transition-all duration-200"
                   >
                     {action.label}
                   </motion.button>
@@ -229,27 +192,11 @@ export function PremiumToast({ type, title, description, isVisible, onClose, act
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
                 onClick={onClose}
-                className={cn(
-                  "flex-shrink-0 p-1.5 rounded-lg",
-                  "text-white/40 hover:text-white/80",
-                  "hover:bg-white/10 transition-all duration-200"
-                )}
+                className="flex-shrink-0 p-1.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all duration-200"
               >
                 <X className="w-4 h-4" />
               </motion.button>
             </div>
-
-            {/* Bottom accent line */}
-            <motion.div
-              className={cn("h-0.5 w-full", config.pulseColor)}
-              initial={{ scaleX: 0, opacity: 0.8 }}
-              animate={{ scaleX: 1, opacity: [0.8, 0.4, 0.8] }}
-              transition={{ 
-                scaleX: { duration: 0.4, delay: 0.1 },
-                opacity: { duration: 2, repeat: Infinity }
-              }}
-              style={{ transformOrigin: 'left' }}
-            />
           </div>
         </motion.div>
       )}
@@ -364,3 +311,4 @@ export function usePremiumToastContext() {
   }
   return context;
 }
+

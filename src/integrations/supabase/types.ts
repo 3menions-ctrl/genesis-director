@@ -163,6 +163,81 @@ export type Database = {
           },
         ]
       }
+      avatar_templates: {
+        Row: {
+          age_range: string | null
+          created_at: string
+          description: string | null
+          ethnicity: string | null
+          face_image_url: string
+          gender: string
+          id: string
+          is_active: boolean | null
+          is_premium: boolean | null
+          name: string
+          personality: string | null
+          sample_audio_url: string | null
+          sort_order: number | null
+          style: string | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+          use_count: number | null
+          voice_description: string | null
+          voice_id: string
+          voice_name: string | null
+          voice_provider: string
+        }
+        Insert: {
+          age_range?: string | null
+          created_at?: string
+          description?: string | null
+          ethnicity?: string | null
+          face_image_url: string
+          gender?: string
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name: string
+          personality?: string | null
+          sample_audio_url?: string | null
+          sort_order?: number | null
+          style?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_count?: number | null
+          voice_description?: string | null
+          voice_id: string
+          voice_name?: string | null
+          voice_provider?: string
+        }
+        Update: {
+          age_range?: string | null
+          created_at?: string
+          description?: string | null
+          ethnicity?: string | null
+          face_image_url?: string
+          gender?: string
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          name?: string
+          personality?: string | null
+          sample_audio_url?: string | null
+          sort_order?: number | null
+          style?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_count?: number | null
+          voice_description?: string | null
+          voice_id?: string
+          voice_name?: string | null
+          voice_provider?: string
+        }
+        Relationships: []
+      }
       character_loans: {
         Row: {
           borrower_id: string

@@ -79,10 +79,10 @@ export function AppHeader({
               <div className="relative">
                 <div className="absolute inset-0 bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center group-hover:bg-white/90 transition-all shadow-lg">
-                  <span className="text-lg font-black text-black tracking-tighter">AS</span>
+                  <span className="text-lg font-black text-black tracking-tighter">A-S</span>
                 </div>
               </div>
-              <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex Studio</span>
+              <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex-Studio</span>
             </Link>
 
             {/* Center Navigation - Desktop */}

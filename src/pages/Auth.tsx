@@ -202,9 +202,9 @@ export default function Auth() {
           {/* Top: Logo */}
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-black/40 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl">
-              <span className="text-2xl font-display font-bold text-white">AS</span>
+              <span className="text-2xl font-display font-bold text-white">A-S</span>
             </div>
-            <span className="text-2xl font-display font-bold text-white drop-shadow-lg">Apex Studio</span>
+            <span className="text-2xl font-display font-bold text-white drop-shadow-lg">Apex-Studio</span>
           </div>
           
           {/* Bottom: Tagline */}
@@ -231,7 +231,7 @@ export default function Auth() {
               <span className="text-2xl font-display font-bold text-white">AS</span>
             </div>
             <h1 className="text-2xl font-display font-bold text-white">
-              Apex Studio
+              Apex-Studio
             </h1>
           </div>
 

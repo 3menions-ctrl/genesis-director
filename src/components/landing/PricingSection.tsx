@@ -19,7 +19,7 @@ const PRICING_TIERS = [
   },
   {
     name: 'Growth',
-    price: 100,
+    price: 99,
     period: 'one-time',
     credits: '1,000 credits',
     videos: '~16 videos',
@@ -28,7 +28,7 @@ const PRICING_TIERS = [
   },
   {
     name: 'Agency',
-    price: 250,
+    price: 249,
     period: 'one-time',
     credits: '2,500 credits',
     videos: '~41 videos',

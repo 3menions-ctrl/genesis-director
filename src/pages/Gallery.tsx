@@ -678,6 +678,37 @@ function Gallery() {
     }
   }, [location, navigate]);
   
+  // Scroll/wheel navigation with debounce
+  const lastScrollTime = useRef(0);
+  const scrollThreshold = 300; // ms between scroll events
+  
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (selectedVideo) return;
+      
+      const now = Date.now();
+      if (now - lastScrollTime.current < scrollThreshold) return;
+      
+      // Determine scroll direction (support both vertical and horizontal scroll)
+      const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      
+      if (delta > 20 && currentIndex < videos.length - 1) {
+        lastScrollTime.current = now;
+        setCurrentIndex(prev => prev + 1);
+        setScrollProgress(prev => prev + 0.1);
+        playTransition();
+      } else if (delta < -20 && currentIndex > 0) {
+        lastScrollTime.current = now;
+        setCurrentIndex(prev => prev - 1);
+        setScrollProgress(prev => prev - 0.1);
+        playTransition();
+      }
+    };
+    
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [currentIndex, videos.length, selectedVideo, playTransition]);
+  
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

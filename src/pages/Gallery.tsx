@@ -28,7 +28,17 @@ const useGalleryVideos = () => {
         .limit(20);
       
       if (error) throw error;
-      return data || [];
+      
+      // Filter to only include actual video files, not manifests
+      const videos = (data || []).filter(v => {
+        const url = v.video_url?.toLowerCase() || '';
+        // Include if it's an actual video file (mp4, webm, mov) 
+        // Exclude JSON manifests
+        return (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) 
+          && !url.includes('manifest');
+      });
+      
+      return videos;
     },
   });
 };

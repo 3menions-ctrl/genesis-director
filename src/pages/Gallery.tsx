@@ -66,15 +66,6 @@ function GalleryRoom() {
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          {/* Green gradient */}
-          <linearGradient id="greenLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0a0a0a" />
-            <stop offset="30%" stopColor="#1a4d3a" />
-            <stop offset="50%" stopColor="#2dd4a0" />
-            <stop offset="70%" stopColor="#1a4d3a" />
-            <stop offset="100%" stopColor="#0a0a0a" />
-          </linearGradient>
-          
           {/* White/silver gradient */}
           <linearGradient id="whiteLine" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#0a0a0a" />
@@ -92,15 +83,6 @@ function GalleryRoom() {
             <stop offset="100%" stopColor="#0a0a0a" />
           </linearGradient>
           
-          {/* Emerald glow gradient */}
-          <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="30%" stopColor="#10b981" stopOpacity="0.3" />
-            <stop offset="50%" stopColor="#34d399" stopOpacity="0.6" />
-            <stop offset="70%" stopColor="#10b981" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-          
           {/* Glow filter */}
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -112,11 +94,10 @@ function GalleryRoom() {
         </defs>
         
         {/* Horizontal flowing lines - creating 3D room depth */}
-        {/* Far wall lines */}
         <motion.path
           d="M -100,200 Q 500,180 960,200 T 2020,200"
           fill="none"
-          stroke="url(#greenLine)"
+          stroke="url(#whiteLine)"
           strokeWidth="2"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -126,9 +107,8 @@ function GalleryRoom() {
         <motion.path
           d="M -100,280 Q 600,260 960,280 T 2020,280"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#greyLine)"
           strokeWidth="1.5"
-          filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 0.6 }}
           transition={{ duration: 3.5, delay: 0.2, ease: "easeInOut" }}
@@ -143,12 +123,12 @@ function GalleryRoom() {
           transition={{ duration: 4, delay: 0.4, ease: "easeInOut" }}
         />
         
-        {/* Center prominent green lines */}
+        {/* Center prominent white lines */}
         <motion.path
           d="M -100,480 C 300,450 600,510 960,480 S 1600,510 2020,480"
           fill="none"
-          stroke="url(#emeraldGlow)"
-          strokeWidth="4"
+          stroke="url(#whiteLine)"
+          strokeWidth="3"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
@@ -157,11 +137,10 @@ function GalleryRoom() {
         <motion.path
           d="M -100,520 C 400,550 700,490 960,520 S 1500,490 2020,520"
           fill="none"
-          stroke="url(#greenLine)"
-          strokeWidth="2.5"
-          filter="url(#glow)"
+          stroke="url(#greyLine)"
+          strokeWidth="2"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.9 }}
+          animate={{ pathLength: 1, opacity: 0.7 }}
           transition={{ duration: 2.8, delay: 0.5, ease: "easeInOut" }}
         />
         <motion.path
@@ -171,7 +150,7 @@ function GalleryRoom() {
           strokeWidth="1.5"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.7 }}
+          animate={{ pathLength: 1, opacity: 0.6 }}
           transition={{ duration: 3.2, delay: 0.7, ease: "easeInOut" }}
         />
         
@@ -188,20 +167,20 @@ function GalleryRoom() {
         <motion.path
           d="M -100,760 Q 600,780 960,760 T 2020,760"
           fill="none"
-          stroke="url(#greenLine)"
+          stroke="url(#whiteLine)"
           strokeWidth="1.5"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
+          animate={{ pathLength: 1, opacity: 0.5 }}
           transition={{ duration: 4, delay: 0.8, ease: "easeInOut" }}
         />
         <motion.path
           d="M -100,840 Q 400,820 960,840 T 2020,840"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#greyLine)"
           strokeWidth="1"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.5 }}
+          animate={{ pathLength: 1, opacity: 0.4 }}
           transition={{ duration: 4.5, delay: 1, ease: "easeInOut" }}
         />
         
@@ -231,18 +210,18 @@ function GalleryRoom() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse at 0% 0%, rgba(16,185,129,0.08) 0%, transparent 40%),
-            radial-gradient(ellipse at 100% 100%, rgba(16,185,129,0.05) 0%, transparent 40%),
+            radial-gradient(ellipse at 0% 0%, rgba(255,255,255,0.04) 0%, transparent 40%),
+            radial-gradient(ellipse at 100% 100%, rgba(255,255,255,0.02) 0%, transparent 40%),
             radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 80%)
           `,
         }}
       />
       
-      {/* Ambient green glow */}
+      {/* Ambient silver glow */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-30"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(52,211,153,0.15) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)',
         }}
       />
       

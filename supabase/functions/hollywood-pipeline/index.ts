@@ -4514,36 +4514,84 @@ async function runProduction(
   console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips (${failedClips.length} failed)`);
   
   // =====================================================
-  // CRITICAL: Ensure ALL clips are generated before stitching
-  // If any clips failed, DO NOT proceed to stitching - wait for manual retry
+  // CRITICAL FIX: Check ACTUAL database state, not in-memory state
+  // The in-memory state.production.clipResults only tracks clips processed
+  // in THIS function invocation. Clips may still be generating via the
+  // callback chain (continue-production → generate-single-clip).
   // =====================================================
-  if (completedClips.length < clips.length) {
-    console.error(`[Hollywood] ⚠️ INCOMPLETE PRODUCTION: Only ${completedClips.length}/${clips.length} clips completed`);
-    console.error(`[Hollywood] Failed clips: ${failedClips.map(c => c.index + 1).join(', ')}`);
+  
+  // Fetch actual clip status from database before deciding to show errors
+  const { data: actualClips } = await supabase
+    .from('video_clips')
+    .select('shot_index, status, video_url')
+    .eq('project_id', state.projectId)
+    .order('shot_index');
+  
+  const dbCompletedClips = actualClips?.filter((c: any) => c.status === 'completed') || [];
+  const dbGeneratingClips = actualClips?.filter((c: any) => c.status === 'generating') || [];
+  const dbFailedClips = actualClips?.filter((c: any) => c.status === 'failed') || [];
+  const dbPendingClips = actualClips?.filter((c: any) => c.status === 'pending') || [];
+  
+  console.log(`[Hollywood] DB clip status: ${dbCompletedClips.length} completed, ${dbGeneratingClips.length} generating, ${dbFailedClips.length} failed, ${dbPendingClips.length} pending`);
+  
+  // CRITICAL: If clips are still generating, DON'T mark as incomplete - let the callback chain continue
+  if (dbGeneratingClips.length > 0) {
+    console.log(`[Hollywood] ⏳ ${dbGeneratingClips.length} clips still generating - callback chain is active`);
+    console.log(`[Hollywood] Exiting without error - continue-production will handle next steps`);
     
-    // Update project status to indicate incomplete production
+    // Update progress but DON'T set error - production is still active
     await supabase
       .from('movie_projects')
       .update({
-        status: 'production_incomplete',
+        status: 'generating',
         pending_video_tasks: {
-          stage: 'production_incomplete',
-          progress: 85,
-          clipsCompleted: completedClips.length,
+          stage: 'production',
+          progress: Math.min(80, 20 + (dbCompletedClips.length / clips.length) * 60),
+          clipsCompleted: dbCompletedClips.length,
           clipCount: clips.length,
-          failedClips: failedClips.map(c => c.index),
-          message: `${clips.length - completedClips.length} clips need to be regenerated before stitching`,
-          canRetryFailed: true,
+          clipDuration: (state.production as any)?.clipDuration || 5, // Preserve clip duration
+          updatedAt: new Date().toISOString(),
         },
-        last_error: `Production incomplete: ${completedClips.length}/${clips.length} clips. Failed: ${failedClips.map(c => c.index + 1).join(', ')}`,
         updated_at: new Date().toISOString(),
+        // CRITICAL: Do NOT set last_error - production is still running
       })
       .eq('id', state.projectId);
     
-    // Return state without proceeding to stitching
-    state.progress = 85;
-    state.error = `Production incomplete: ${completedClips.length}/${clips.length} clips completed. Stitching requires all clips.`;
+    state.progress = Math.min(80, 20 + (dbCompletedClips.length / clips.length) * 60);
     return state;
+  }
+  
+  // Only if ALL clips have been processed (no generating) AND some failed, then show error
+  if (dbCompletedClips.length < clips.length && dbGeneratingClips.length === 0) {
+    const actualFailedClipIndices = dbFailedClips.map((c: any) => c.shot_index + 1);
+    
+    // Only set error if there are ACTUAL failed clips (not just pending ones)
+    if (dbFailedClips.length > 0) {
+      console.error(`[Hollywood] ⚠️ INCOMPLETE PRODUCTION: Only ${dbCompletedClips.length}/${clips.length} clips completed`);
+      console.error(`[Hollywood] Failed clips: ${actualFailedClipIndices.join(', ')}`);
+      
+      await supabase
+        .from('movie_projects')
+        .update({
+          status: 'production_incomplete',
+          pending_video_tasks: {
+            stage: 'production_incomplete',
+            progress: 85,
+            clipsCompleted: dbCompletedClips.length,
+            clipCount: clips.length,
+            failedClips: dbFailedClips.map((c: any) => c.shot_index),
+            message: `${clips.length - dbCompletedClips.length} clips need to be regenerated before stitching`,
+            canRetryFailed: true,
+          },
+          last_error: `Production incomplete: ${dbCompletedClips.length}/${clips.length} clips. Failed: ${actualFailedClipIndices.join(', ')}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', state.projectId);
+      
+      state.progress = 85;
+      state.error = `Production incomplete: ${dbCompletedClips.length}/${clips.length} clips completed. Stitching requires all clips.`;
+      return state;
+    }
   }
   
   console.log(`[Hollywood] ✓ All ${completedClips.length} clips completed - proceeding to stitching`);

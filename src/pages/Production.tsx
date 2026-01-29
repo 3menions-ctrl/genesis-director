@@ -1008,21 +1008,38 @@ export default function Production() {
               )}
               
               {/* Pipeline Error Banner - Shows errors and degradation warnings */}
-              {(lastError || degradationFlags.length > 0 || projectStatus === 'failed') && (
-                <PipelineErrorBanner
-                  error={lastError}
-                  degradationFlags={degradationFlags}
-                  projectStatus={projectStatus}
-                  failedClipCount={clipResults.filter(c => c.status === 'failed').length}
-                  totalClipCount={expectedClipCount}
-                  onRetry={handleResume}
-                  onDismiss={() => {
-                    setLastError(null);
-                    setDegradationFlags([]);
-                  }}
-                  isRetrying={isResuming}
-                />
-              )}
+              {/* CRITICAL FIX: Only show error banner when NOT actively generating */}
+              {/* If status is 'generating' and we have clips generating/completed, suppress error banner */}
+              {(() => {
+                const hasGeneratingClips = clipResults.some(c => c.status === 'generating');
+                const hasCompletedClips = clipResults.some(c => c.status === 'completed');
+                const failedClipCount = clipResults.filter(c => c.status === 'failed').length;
+                const isActivelyProducing = ['generating', 'producing', 'rendering'].includes(projectStatus) && 
+                  (hasGeneratingClips || (hasCompletedClips && completedClips < expectedClipCount));
+                
+                // Suppress "Production incomplete" errors when actively producing
+                const shouldSuppressError = isActivelyProducing && 
+                  lastError?.toLowerCase().includes('production incomplete');
+                
+                const showBanner = !shouldSuppressError && 
+                  (lastError || degradationFlags.length > 0 || projectStatus === 'failed');
+                
+                return showBanner ? (
+                  <PipelineErrorBanner
+                    error={lastError}
+                    degradationFlags={degradationFlags}
+                    projectStatus={projectStatus}
+                    failedClipCount={failedClipCount}
+                    totalClipCount={expectedClipCount}
+                    onRetry={handleResume}
+                    onDismiss={() => {
+                      setLastError(null);
+                      setDegradationFlags([]);
+                    }}
+                    isRetrying={isResuming}
+                  />
+                ) : null;
+              })()}
               
               {/* Final Video (for cinematic pipeline) */}
               {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (

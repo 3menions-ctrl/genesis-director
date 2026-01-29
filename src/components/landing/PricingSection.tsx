@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 // Credit pricing: 1 credit = $0.10
@@ -141,9 +141,12 @@ export default function PricingSection() {
           viewport={{ once: true }}
           className="text-center mt-12"
         >
-          <p className="text-sm text-white/30">
-            Need custom volume? <button onClick={() => navigate('/contact')} className="text-white/50 hover:text-white underline underline-offset-4">Contact sales</button>
-          </p>
+        <p className="text-sm text-white/30">
+          Need custom volume?{' '}
+          <Link to="/contact" className="text-white/50 hover:text-white underline underline-offset-4">
+            Contact sales
+          </Link>
+        </p>
         </motion.div>
       </div>
     </section>

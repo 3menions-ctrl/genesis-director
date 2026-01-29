@@ -13,39 +13,35 @@ interface GalleryVideo {
   video_url: string | null;
 }
 
-// Fetch completed video clips from public projects (Gallery showcase)
+// Fetch stitched/completed project videos from public projects (Gallery showcase)
 const useGalleryVideos = () => {
   return useQuery({
-    queryKey: ['gallery-videos-public'],
+    queryKey: ['gallery-videos-stitched'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // Fetch completed clips from public projects - RLS allows this now
+      // Fetch completed stitched projects that are public
       const { data, error } = await supabase
-        .from('video_clips')
-        .select(`
-          id, 
-          video_url, 
-          project_id,
-          movie_projects!inner(is_public)
-        `)
+        .from('movie_projects')
+        .select('id, video_url, thumbnail_url')
+        .eq('is_public', true)
         .eq('status', 'completed')
-        .eq('movie_projects.is_public', true)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(20);
       
       if (error) throw error;
       
-      // Transform to gallery format - filter for valid video URLs
+      // Transform to gallery format - filter for valid video URLs (exclude manifests)
       const videos: GalleryVideo[] = (data || [])
-        .filter(clip => {
-          const url = clip.video_url?.toLowerCase() || '';
+        .filter(project => {
+          const url = project.video_url?.toLowerCase() || '';
+          // Only include actual video files, not manifest JSONs
           return url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov');
         })
-        .map((clip) => ({
-          id: clip.id,
+        .map((project) => ({
+          id: project.id,
           title: '',
-          thumbnail_url: null,
-          video_url: clip.video_url,
+          thumbnail_url: project.thumbnail_url,
+          video_url: project.video_url,
         }));
       
       return videos;

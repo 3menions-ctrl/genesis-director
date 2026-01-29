@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,24 +10,39 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { parsePendingVideoTasks, PendingVideoTasksDegradation } from '@/types/pending-video-tasks';
+import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
+import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
 
-// Components - New modular design
-import { ProductionSidebar } from '@/components/production/ProductionSidebar';
-// ProductionHeader removed - using consolidated CinematicPipelineProgress
-import { ProductionFinalVideo } from '@/components/production/ProductionFinalVideo';
-import { ProductionDashboard } from '@/components/production/ProductionDashboard';
-import { PipelineErrorBanner } from '@/components/production/PipelineErrorBanner';
-import { CinematicPipelineProgress } from '@/components/production/CinematicPipelineProgress';
+// Lazy load heavy components
+const ProductionSidebar = lazy(() => import('@/components/production/ProductionSidebar').then(m => ({ default: m.ProductionSidebar })));
+const ProductionFinalVideo = lazy(() => import('@/components/production/ProductionFinalVideo').then(m => ({ default: m.ProductionFinalVideo })));
+const ProductionDashboard = lazy(() => import('@/components/production/ProductionDashboard').then(m => ({ default: m.ProductionDashboard })));
+const PipelineErrorBanner = lazy(() => import('@/components/production/PipelineErrorBanner').then(m => ({ default: m.PipelineErrorBanner })));
+const CinematicPipelineProgress = lazy(() => import('@/components/production/CinematicPipelineProgress').then(m => ({ default: m.CinematicPipelineProgress })));
+const ScriptReviewPanel = lazy(() => import('@/components/studio/ScriptReviewPanel').then(m => ({ default: m.ScriptReviewPanel })));
+const FailedClipsPanel = lazy(() => import('@/components/studio/FailedClipsPanel').then(m => ({ default: m.FailedClipsPanel })));
+const SpecializedModeProgress = lazy(() => import('@/components/production/SpecializedModeProgress').then(m => ({ default: m.SpecializedModeProgress })));
+const PipelineBackground = lazy(() => import('@/components/production/PipelineBackground'));
 
-// Existing components - Keep for specialized functionality
+// Non-lazy critical components
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppLoader } from '@/components/ui/app-loader';
-import { ScriptReviewPanel, ScriptShot } from '@/components/studio/ScriptReviewPanel';
-import { FailedClipsPanel } from '@/components/studio/FailedClipsPanel';
-import { SpecializedModeProgress } from '@/components/production/SpecializedModeProgress';
-import PipelineBackground from '@/components/production/PipelineBackground';
+import type { ScriptShot } from '@/components/studio/ScriptReviewPanel';
+
+// Minimal fallbacks for error boundaries
+const MinimalFallback = memo(() => <div className="py-8" />);
+MinimalFallback.displayName = 'MinimalFallback';
+
+const BackgroundFallback = memo(() => <div className="fixed inset-0 bg-background -z-10" />);
+BackgroundFallback.displayName = 'BackgroundFallback';
+
+const SectionLoader = memo(() => (
+  <div className="py-12 flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+  </div>
+));
+SectionLoader.displayName = 'SectionLoader';
 
 // ============= TYPES =============
 
@@ -941,6 +956,47 @@ export default function Production() {
   const isError = projectStatus === 'failed' || projectStatus === 'stitching_failed';
   const canResume = isError || (projectStatus === 'failed' && clipResults.some(c => c.status === 'completed'));
 
+  // Memoized data transformations to prevent re-renders
+  const clipResultsForDashboard = useMemo(() => 
+    clipResults.map(c => ({
+      index: c.index,
+      status: c.status,
+      videoUrl: c.videoUrl,
+      error: c.error,
+    })), [clipResults]
+  );
+
+  const consistencyScoreValue = useMemo(() => 
+    proFeatures?.consistencyScore ?? 
+    (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined),
+    [proFeatures?.consistencyScore, proFeatures?.continuityAnalysis?.score]
+  );
+
+  const transitionsData = useMemo(() => 
+    proFeatures?.continuityAnalysis?.transitions?.map(t => ({
+      fromIndex: t.fromIndex,
+      toIndex: t.toIndex,
+      overallScore: t.overallScore,
+      needsBridge: t.needsBridge,
+    })),
+    [proFeatures?.continuityAnalysis?.transitions]
+  );
+
+  const failedClipsData = useMemo(() => 
+    clipResults.filter(c => c.status === 'failed').map(c => ({
+      index: c.index,
+      error: c.error,
+      prompt: scriptShots?.[c.index]?.description,
+      id: c.id,
+    })),
+    [clipResults, scriptShots]
+  );
+
+  // Stable callback for play clip
+  const handlePlayClip = useCallback((url: string) => {
+    setSelectedClipUrl(url);
+  }, []);
+
   if (isLoading) {
     return <AppLoader message="Loading production..." />;
   }
@@ -948,7 +1004,11 @@ export default function Production() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Premium Green Pipeline Background */}
-      <PipelineBackground />
+      <ErrorBoundaryWrapper fallback={<BackgroundFallback />}>
+        <Suspense fallback={<BackgroundFallback />}>
+          <PipelineBackground />
+        </Suspense>
+      </ErrorBoundaryWrapper>
       
       {/* App Header */}
       <AppHeader showCreate={false} />
@@ -957,12 +1017,16 @@ export default function Production() {
       <div className="relative z-10 flex-1 flex overflow-hidden">
         {/* Sidebar - Hidden on mobile */}
         <div className="hidden md:block">
-          <ProductionSidebar
-            projects={allProductionProjects}
-            activeProjectId={projectId}
-            isCollapsed={sidebarCollapsed}
-            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+          <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+            <Suspense fallback={<MinimalFallback />}>
+              <ProductionSidebar
+                projects={allProductionProjects}
+                activeProjectId={projectId}
+                isCollapsed={sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+              />
+            </Suspense>
+          </ErrorBoundaryWrapper>
         </div>
 
         {/* Content */}
@@ -974,37 +1038,45 @@ export default function Production() {
               
               {/* Script Review Panel - Only shown when awaiting approval */}
               {scriptShots && scriptShots.length > 0 && pipelineStage === 'awaiting_approval' && (
-                <Card className="glass-card ring-1 ring-primary/30">
-                  <CardContent className="p-6">
-                    <ScriptReviewPanel
-                      shots={scriptShots}
-                      onApprove={handleApproveScript}
-                      onRegenerate={handleRegenerateScript}
-                      onCancel={() => navigate('/projects')}
-                      isLoading={isApprovingScript}
-                      totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
-                      projectTitle={projectTitle}
-                    />
-                  </CardContent>
-                </Card>
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <Card className="glass-card ring-1 ring-primary/30">
+                      <CardContent className="p-6">
+                        <ScriptReviewPanel
+                          shots={scriptShots}
+                          onApprove={handleApproveScript}
+                          onRegenerate={handleRegenerateScript}
+                          onCancel={() => navigate('/projects')}
+                          isLoading={isApprovingScript}
+                          totalDuration={scriptShots.reduce((sum, shot) => sum + (shot.durationSeconds || 6), 0)}
+                          projectTitle={projectTitle}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
               
               {/* Specialized Mode Progress - Avatar, Motion Transfer, Style Transfer */}
               {['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && pipelineState && (
-                <SpecializedModeProgress
-                  projectId={projectId!}
-                  mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
-                  pipelineState={pipelineState}
-                  videoUrl={finalVideoUrl}
-                  onComplete={() => {
-                    setProjectStatus('completed');
-                    setProgress(100);
-                    toast.success('Video generation complete!');
-                  }}
-                  onRetry={() => {
-                    toast.info('Retry feature coming soon');
-                  }}
-               />
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <SpecializedModeProgress
+                      projectId={projectId!}
+                      mode={projectMode as 'avatar' | 'motion-transfer' | 'video-to-video'}
+                      pipelineState={pipelineState}
+                      videoUrl={finalVideoUrl}
+                      onComplete={() => {
+                        setProjectStatus('completed');
+                        setProgress(100);
+                        toast.success('Video generation complete!');
+                      }}
+                      onRetry={() => {
+                        toast.info('Retry feature coming soon');
+                      }}
+                    />
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
               
               {/* Pipeline Error Banner - Shows errors and degradation warnings */}
@@ -1049,97 +1121,99 @@ export default function Production() {
                 const showBanner = shouldShowBanner && !(isActivelyProducing && isTransientError);
                 
                 return showBanner ? (
-                  <PipelineErrorBanner
-                    error={lastError}
-                    degradationFlags={degradationFlags}
-                    projectStatus={projectStatus}
-                    failedClipCount={failedClipCount}
-                    totalClipCount={expectedClipCount}
-                    onRetry={handleResume}
-                    onDismiss={() => {
-                      setLastError(null);
-                      setDegradationFlags([]);
-                    }}
-                    isRetrying={isResuming}
-                  />
+                  <ErrorBoundaryWrapper fallback={null}>
+                    <Suspense fallback={null}>
+                      <PipelineErrorBanner
+                        error={lastError}
+                        degradationFlags={degradationFlags}
+                        projectStatus={projectStatus}
+                        failedClipCount={failedClipCount}
+                        totalClipCount={expectedClipCount}
+                        onRetry={handleResume}
+                        onDismiss={() => {
+                          setLastError(null);
+                          setDegradationFlags([]);
+                        }}
+                        isRetrying={isResuming}
+                      />
+                    </Suspense>
+                  </ErrorBoundaryWrapper>
                 ) : null;
               })()}
               
               {/* Final Video (for cinematic pipeline) */}
               {finalVideoUrl && !['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
-                <ProductionFinalVideo videoUrl={finalVideoUrl} />
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <ProductionFinalVideo videoUrl={finalVideoUrl} />
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
 
               {/* NEW: World-Class Cinematic Pipeline Animation */}
               {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
-                <CinematicPipelineProgress
-                  stages={stages}
-                  progress={progress}
-                  isComplete={isComplete}
-                  isError={isError}
-                  isRunning={isRunning}
-                  elapsedTime={elapsedTime}
-                  projectTitle={projectTitle}
-                  lastError={lastError}
-                  onResume={handleResume}
-                  onCancel={handleCancelPipeline}
-                  isResuming={isResuming}
-                  isCancelling={isCancelling}
-                />
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <CinematicPipelineProgress
+                      stages={stages}
+                      progress={progress}
+                      isComplete={isComplete}
+                      isError={isError}
+                      isRunning={isRunning}
+                      elapsedTime={elapsedTime}
+                      projectTitle={projectTitle}
+                      lastError={lastError}
+                      onResume={handleResume}
+                      onCancel={handleCancelPipeline}
+                      isResuming={isResuming}
+                      isCancelling={isCancelling}
+                    />
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
 
               {/* Streamlined Production Dashboard - Real data only */}
               {!['avatar', 'motion-transfer', 'video-to-video'].includes(projectMode) && (
-                <ProductionDashboard
-                  projectTitle={projectTitle}
-                  progress={progress}
-                  elapsedTime={elapsedTime}
-                  isRunning={isRunning}
-                  isComplete={isComplete}
-                  clips={clipResults.map(c => ({
-                    index: c.index,
-                    status: c.status,
-                    videoUrl: c.videoUrl,
-                    error: c.error,
-                  }))}
-                  totalClips={expectedClipCount}
-                  completedClips={completedClips}
-                  consistencyScore={
-                    proFeatures?.consistencyScore ?? 
-                    (proFeatures?.continuityAnalysis?.score ? proFeatures.continuityAnalysis.score / 100 : undefined)
-                  }
-                  transitions={proFeatures?.continuityAnalysis?.transitions?.map(t => ({
-                    fromIndex: t.fromIndex,
-                    toIndex: t.toIndex,
-                    overallScore: t.overallScore,
-                    needsBridge: t.needsBridge,
-                  }))}
-                  onPlayClip={setSelectedClipUrl}
-                  onRetryClip={handleRetryClip}
-                  onStitch={handleSimpleStitch}
-                  onResume={handleResume}
-                  isStitching={isSimpleStitching}
-                  isResuming={isResuming}
-                  finalVideoUrl={finalVideoUrl}
-                  clipDuration={clipDuration}
-                />
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <ProductionDashboard
+                      projectTitle={projectTitle}
+                      progress={progress}
+                      elapsedTime={elapsedTime}
+                      isRunning={isRunning}
+                      isComplete={isComplete}
+                      clips={clipResultsForDashboard}
+                      totalClips={expectedClipCount}
+                      completedClips={completedClips}
+                      consistencyScore={consistencyScoreValue}
+                      transitions={transitionsData}
+                      onPlayClip={handlePlayClip}
+                      onRetryClip={handleRetryClip}
+                      onStitch={handleSimpleStitch}
+                      onResume={handleResume}
+                      isStitching={isSimpleStitching}
+                      isResuming={isResuming}
+                      finalVideoUrl={finalVideoUrl}
+                      clipDuration={clipDuration}
+                    />
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
 
               {/* Failed Clips Panel - Keep for detailed error handling */}
-              {clipResults.filter(c => c.status === 'failed').length > 0 && user && projectId && (
-                <FailedClipsPanel
-                  clips={clipResults.filter(c => c.status === 'failed').map(c => ({
-                    index: c.index,
-                    error: c.error,
-                    prompt: scriptShots?.[c.index]?.description,
-                    id: c.id,
-                  }))}
-                  projectId={projectId}
-                  userId={user.id}
-                  onRetry={handleRetryClip}
-                  isRetrying={retryingClipIndex !== null}
-                  retryingIndex={retryingClipIndex}
-                />
+              {failedClipsData.length > 0 && user && projectId && (
+                <ErrorBoundaryWrapper fallback={<MinimalFallback />}>
+                  <Suspense fallback={<SectionLoader />}>
+                    <FailedClipsPanel
+                      clips={failedClipsData}
+                      projectId={projectId}
+                      userId={user.id}
+                      onRetry={handleRetryClip}
+                      isRetrying={retryingClipIndex !== null}
+                      retryingIndex={retryingClipIndex}
+                    />
+                  </Suspense>
+                </ErrorBoundaryWrapper>
               )}
 
               {/* Stitch Progress - Simple inline message */}

@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Film, Mail, Lock, Loader2, Sparkles, Play, User, ArrowRight, Zap } from 'lucide-react';
+import { Film, Mail, Lock, Loader2, User, ArrowRight } from 'lucide-react';
 import { z } from 'zod';
 import { PasswordStrength } from '@/components/ui/password-strength';
+import { WelcomeBackDialog } from '@/components/auth/WelcomeBackDialog';
 import landingAbstractBg from '@/assets/landing-abstract-bg.jpg';
 import authHeroImage from '@/assets/auth-hero.jpg';
-
 // Validation schemas
 const emailSchema = z.string()
   .trim()
@@ -55,6 +55,7 @@ export default function Auth() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string; terms?: string }>({});
   const [hasRedirected, setHasRedirected] = useState(false);
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
 
   // Check for pending creation on mount
   useEffect(() => {
@@ -145,7 +146,8 @@ export default function Auth() {
             toast.error(error.message);
           }
         } else {
-          toast.success('Welcome back!');
+          // Show epic welcome dialog instead of simple toast
+          setShowWelcomeDialog(true);
         }
       } else {
         const { error } = await signUp(trimmedEmail, password);
@@ -166,9 +168,21 @@ export default function Auth() {
     }
   };
 
+  const handleWelcomeComplete = () => {
+    setShowWelcomeDialog(false);
+    // Navigation will happen via the useEffect that watches user/profile
+  };
 
   return (
-    <div className="min-h-screen flex relative">
+    <>
+      {/* Epic Welcome Back Dialog */}
+      <WelcomeBackDialog 
+        isOpen={showWelcomeDialog} 
+        onComplete={handleWelcomeComplete}
+        userName={profile?.display_name?.split(' ')[0]}
+      />
+      
+      <div className="min-h-screen flex relative">
       {/* Full-page glossy black background */}
       <div 
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
@@ -428,7 +442,8 @@ export default function Auth() {
             )}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -380,10 +380,11 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
 
     let mounted = true;
 
-    const handleLoadedData = () => {
-      if (mounted && videoEl.duration) {
+    const handleLoadedMetadata = () => {
+      if (mounted && videoEl.duration && videoEl.duration > 0) {
         // Seek to 10% of video for a good thumbnail frame
-        videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
+        const seekTime = Math.min(videoEl.duration * 0.1, 2);
+        videoEl.currentTime = seekTime;
       }
     };
 
@@ -393,12 +394,23 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
       }
     };
 
+    const handleCanPlay = () => {
+      // If we haven't seeked yet, try again
+      if (mounted && !thumbnailReady && videoEl.duration > 0) {
+        const seekTime = Math.min(videoEl.duration * 0.1, 2);
+        if (videoEl.currentTime === 0) {
+          videoEl.currentTime = seekTime;
+        }
+      }
+    };
+
     const handleError = () => {
       if (mounted) setThumbnailReady(true);
     };
 
-    videoEl.addEventListener('loadeddata', handleLoadedData);
+    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
     videoEl.addEventListener('seeked', handleSeeked);
+    videoEl.addEventListener('canplay', handleCanPlay);
     videoEl.addEventListener('error', handleError);
 
     // Fallback timeout to prevent indefinite loading state
@@ -408,16 +420,21 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
       }
     }, 5000);
 
-    // If video is already loaded
-    if (videoEl.readyState >= 2 && videoEl.duration) {
-      videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
+    // If video is already loaded (e.g., from cache)
+    if (videoEl.readyState >= 1 && videoEl.duration > 0) {
+      const seekTime = Math.min(videoEl.duration * 0.1, 2);
+      videoEl.currentTime = seekTime;
     }
+
+    // Force load to start
+    videoEl.load();
 
     return () => {
       mounted = false;
       clearTimeout(timeout);
-      videoEl.removeEventListener('loadeddata', handleLoadedData);
+      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
       videoEl.removeEventListener('seeked', handleSeeked);
+      videoEl.removeEventListener('canplay', handleCanPlay);
       videoEl.removeEventListener('error', handleError);
     };
   }, [actualVideoUrl, thumbnailReady]);
@@ -493,8 +510,7 @@ const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked,
                 muted
                 loop
                 playsInline
-                preload="auto"
-                crossOrigin="anonymous"
+                preload="metadata"
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover transition-all duration-500 rounded-xl",
                   thumbnailReady ? "opacity-100" : "opacity-0",

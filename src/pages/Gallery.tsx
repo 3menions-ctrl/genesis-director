@@ -57,17 +57,6 @@ const useGalleryVideos = () => {
   });
 };
 
-// Fallback sample videos
-const FALLBACK_VIDEOS: GalleryVideo[] = [
-  { id: '1', title: 'Sunset Dreams', thumbnail_url: null, video_url: null },
-  { id: '2', title: 'Urban Pulse', thumbnail_url: null, video_url: null },
-  { id: '3', title: "Nature's Symphony", thumbnail_url: null, video_url: null },
-  { id: '4', title: 'Digital Horizons', thumbnail_url: null, video_url: null },
-  { id: '5', title: 'Abstract Flow', thumbnail_url: null, video_url: null },
-  { id: '6', title: 'Character Story', thumbnail_url: null, video_url: null },
-  { id: '7', title: 'Cosmic Journey', thumbnail_url: null, video_url: null },
-  { id: '8', title: 'Ocean Depths', thumbnail_url: null, video_url: null },
-];
 
 // Premium 3D room with perspective-aligned flowing lines - silver/blue/white/black palette
 function GalleryRoom() {
@@ -454,12 +443,6 @@ function FramedVideo({ video, index, onClick }: FramedVideoProps) {
           </motion.div>
         </div>
         
-        {/* Title plaque */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%]">
-          <div className="bg-zinc-950/95 backdrop-blur px-2 py-1 text-center border border-zinc-800/50">
-            <span className="text-zinc-300 text-xs font-medium truncate block">{video.title}</span>
-          </div>
-        </div>
       </div>
     </motion.div>
   );
@@ -573,8 +556,7 @@ export default function Gallery() {
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  const { data: realVideos, isLoading } = useGalleryVideos();
-  const videos = realVideos && realVideos.length > 0 ? realVideos : FALLBACK_VIDEOS;
+  const { data: videos = [], isLoading } = useGalleryVideos();
   
   // Split videos into rows for gallery wall layout
   const row1 = videos.filter((_, i) => i % 2 === 0);

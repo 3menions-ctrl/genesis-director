@@ -30,7 +30,7 @@ serve(async (req) => {
 
     console.log('[generate-trailer] Fetching public videos...');
 
-    // Fetch public videos with direct video URLs (not manifests)
+    // Fetch public videos
     const { data: videos, error: fetchError } = await supabase
       .from('movie_projects')
       .select('id, title, video_url')
@@ -43,12 +43,7 @@ serve(async (req) => {
       throw new Error(`Failed to fetch videos: ${fetchError.message}`);
     }
 
-    // Filter out manifest files
-    const directVideos = (videos || []).filter(v => 
-      v.video_url && !v.video_url.endsWith('.json')
-    );
-
-    if (directVideos.length === 0) {
+    if (!videos || videos.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -58,25 +53,61 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[generate-trailer] Found ${directVideos.length} videos`);
+    // Resolve video URLs - handle both manifests and direct videos
+    const resolvedVideos: { id: string; title: string; clipUrls: string[] }[] = [];
+
+    for (const video of videos) {
+      if (!video.video_url) continue;
+
+      if (video.video_url.endsWith('.json')) {
+        // Parse manifest to get clip URLs
+        try {
+          const manifestRes = await fetch(video.video_url);
+          if (manifestRes.ok) {
+            const manifest = await manifestRes.json();
+            const clipUrls = (manifest.clips || [])
+              .map((c: { url?: string }) => c.url)
+              .filter((url: string | undefined): url is string => !!url);
+            
+            if (clipUrls.length > 0) {
+              resolvedVideos.push({ id: video.id, title: video.title, clipUrls });
+            }
+          }
+        } catch (e) {
+          console.warn(`[generate-trailer] Failed to parse manifest for ${video.id}:`, e);
+        }
+      } else {
+        // Direct video URL
+        resolvedVideos.push({ id: video.id, title: video.title, clipUrls: [video.video_url] });
+      }
+    }
+
+    if (resolvedVideos.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No valid video clips found for trailer' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    console.log(`[generate-trailer] Resolved ${resolvedVideos.length} videos with clips`);
 
     // Create a manifest-style response with clip information
     // The client will use this to stitch in the browser with proper timing info
     const clips: { url: string; title: string; startSec: number; durationSec: number }[] = [];
     
-    for (const video of directVideos) {
-      // For each video, add snippets at different points
-      // Estimate video duration based on project settings (default 5 min = 300 sec)
-      const estimatedDuration = 60; // Assume 60 seconds for safety
+    for (const video of resolvedVideos) {
+      // For each video, pick clips from the resolved clip URLs
+      const clipsToUse = video.clipUrls.slice(0, partsPerVideo);
       
-      for (let part = 0; part < partsPerVideo; part++) {
-        const segmentLength = estimatedDuration / partsPerVideo;
-        const startTime = part * segmentLength + (segmentLength - snippetDuration) / 2;
-        
+      for (const clipUrl of clipsToUse) {
+        // Each clip is typically 5 seconds, use a snippet from the middle
         clips.push({
-          url: video.video_url!,
+          url: clipUrl,
           title: video.title,
-          startSec: Math.max(0, startTime),
+          startSec: 0, // Start from beginning of clip since these are already short clips
           durationSec: snippetDuration,
         });
       }

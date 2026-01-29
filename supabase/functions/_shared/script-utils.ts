@@ -490,6 +490,31 @@ export function validateScriptAgainstIntent(
   };
 }
 
+// ============= NON-CHARACTER SUBJECT DETECTION =============
+
+const NON_CHARACTER_PATTERNS: RegExp[] = [
+  /\b(space\s*shuttle|rocket|spacecraft|spaceship|satellite|probe)\b/i,
+  /\b(airplane|aircraft|jet|helicopter|drone|plane)\b/i,
+  /\b(car|truck|bus|motorcycle|vehicle|train|ship|boat|submarine)\b/i,
+  /\b(asteroid|meteor|comet|meteorite)\s*(impact|crash|strike|hit|collid|fall)/i,
+  /\b(explosion|blast|eruption|nuclear|atomic)\b/i,
+  /\b(volcano|earthquake|tsunami|hurricane|tornado|storm)\b/i,
+  /\b(landscape|scenery|vista|panorama|cityscape|skyline)\b/i,
+];
+
+const CHARACTER_INDICATORS: RegExp[] = [
+  /\b(person|man|woman|boy|girl|child|adult|human|people|character)\b/i,
+  /\b(he|she|they)\b/i,
+  /\b(protagonist|hero|villain|narrator|actor)\b/i,
+];
+
+export function detectNonCharacterSubject(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const hasNonCharacterPatterns = NON_CHARACTER_PATTERNS.some(p => p.test(text));
+  const hasCharacterIndicators = CHARACTER_INDICATORS.some(p => p.test(text));
+  return hasNonCharacterPatterns && !hasCharacterIndicators;
+}
+
 /**
  * Detect dialogue and narration from user input
  * Patterns detected:

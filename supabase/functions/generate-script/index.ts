@@ -5,6 +5,7 @@ import {
   validateStringArray,
   fetchWithRetry,
   detectUserContent,
+  detectNonCharacterSubject,
   errorResponse,
   successResponse,
   calculateMaxTokens,
@@ -162,9 +163,25 @@ serve(async (req) => {
     const userIntent = extractUserIntent(inputText);
     console.log(`[generate-script] User intent extracted - Core action: "${userIntent.coreAction}", Key elements: [${userIntent.keyElements.join(', ')}]`);
     
+    // GUARDRAIL #2: Detect if this is a character-focused or object/scene prompt
+    // This prevents hallucinating humans for non-human prompts (e.g., "space shuttle launch")
+    const isNonCharacterPrompt = detectNonCharacterSubject(inputText);
+    console.log(`[generate-script] Subject detection: isNonCharacter=${isNonCharacterPrompt}`);
+    
     if (isFullMovieMode) {
       // Full movie script generation - dynamic shot count based on content (Kling 2.6: 5s clips)
       systemPrompt = `You write cinematic scripts for AI video generation and stitching. Generate EXACTLY ${clipCount} shots, each 5 seconds.
+
+${isNonCharacterPrompt ? `
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL - NON-CHARACTER PROMPT DETECTED:
+The user is asking for a VIDEO OF AN OBJECT, VEHICLE, SCENE, OR EVENT - NOT A PERSON.
+- DO NOT invent human characters, observers, scientists, or narrators
+- DO NOT add "ground crew", "spectators", "witnesses", or any other humans
+- Focus ONLY on the subject the user requested: ${userIntent.coreAction || inputText.substring(0, 100)}
+- If no humans are mentioned, NO HUMANS should appear in any shot
+═══════════════════════════════════════════════════════════════════════════════
+` : ''}
 
 ${mustPreserveContent ? `
 CRITICAL - USER CONTENT PRESERVATION:

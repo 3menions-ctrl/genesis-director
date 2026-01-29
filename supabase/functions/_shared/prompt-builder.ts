@@ -424,6 +424,101 @@ function detectMotionFromPrompt(prompt: string): MotionAnalysis {
 }
 
 // =============================================================================
+// SUBJECT DETECTION - Detect if prompt is about characters, objects, or scenes
+// =============================================================================
+
+interface SubjectAnalysis {
+  type: 'character' | 'object' | 'scene' | 'vehicle' | 'animal' | 'mixed';
+  subject: string;
+  confidence: number;
+  humanCharacterDetected: boolean;
+}
+
+const OBJECT_PATTERNS: { pattern: RegExp; type: SubjectAnalysis['type']; weight: number }[] = [
+  // Vehicles / Transportation (highest priority - these are NEVER people)
+  { pattern: /\b(space\s*shuttle|rocket|spacecraft|spaceship|satellite|probe)\b/i, type: 'vehicle', weight: 100 },
+  { pattern: /\b(airplane|aircraft|jet|helicopter|drone|plane)\b/i, type: 'vehicle', weight: 100 },
+  { pattern: /\b(car|truck|bus|motorcycle|vehicle|train|ship|boat|submarine)\b/i, type: 'vehicle', weight: 95 },
+  { pattern: /\b(tank|fighter\s*jet|bomber|warship|battleship)\b/i, type: 'vehicle', weight: 100 },
+  
+  // Natural phenomena / Events
+  { pattern: /\b(asteroid|meteor|comet|meteorite)\s*(impact|crash|strike|hit|collid|fall)/i, type: 'scene', weight: 100 },
+  { pattern: /\b(explosion|blast|eruption|nuclear|atomic)\b/i, type: 'scene', weight: 90 },
+  { pattern: /\b(volcano|earthquake|tsunami|hurricane|tornado|storm)\b/i, type: 'scene', weight: 95 },
+  { pattern: /\b(sunset|sunrise|aurora|eclipse|rainbow)\b/i, type: 'scene', weight: 85 },
+  
+  // Objects / Items
+  { pattern: /\b(robot|mech|machine|device|gadget|weapon)\b/i, type: 'object', weight: 80 },
+  { pattern: /\b(building|tower|bridge|monument|statue|structure)\b/i, type: 'object', weight: 75 },
+  { pattern: /\b(food|drink|flower|plant|tree|crystal)\b/i, type: 'object', weight: 70 },
+  
+  // Animals
+  { pattern: /\b(dog|cat|bird|horse|lion|tiger|eagle|wolf|bear|elephant|whale|dolphin)\b/i, type: 'animal', weight: 85 },
+  { pattern: /\b(dinosaur|dragon|creature|monster|beast)\b/i, type: 'animal', weight: 80 },
+  
+  // Pure environments/scenes (no actors)
+  { pattern: /\b(landscape|scenery|vista|panorama|cityscape|skyline)\b/i, type: 'scene', weight: 90 },
+  { pattern: /\b(forest|ocean|mountain|desert|jungle|beach|lake|river|waterfall)\b/i, type: 'scene', weight: 70 },
+];
+
+const CHARACTER_PATTERNS: RegExp[] = [
+  /\b(person|man|woman|boy|girl|child|adult|human|people|character)\b/i,
+  /\b(he|she|they|him|her|his|hers|their)\b/i,
+  /\b(walking|running|talking|speaking|gesturing|smiling|crying|laughing)\b/i,
+  /\b(wearing|dressed|outfit|clothes|clothing)\b/i,
+  /\b(face|eyes|hair|hands|body|head|arms|legs)\b/i,
+  /\b(protagonist|hero|villain|character|actor)\b/i,
+];
+
+function detectPrimarySubject(prompt: string): SubjectAnalysis {
+  let bestMatch: SubjectAnalysis = {
+    type: 'mixed',
+    subject: '',
+    confidence: 0,
+    humanCharacterDetected: false,
+  };
+  
+  // Check for human/character indicators first
+  const hasHumanIndicators = CHARACTER_PATTERNS.some(p => p.test(prompt));
+  
+  // Check for object/scene patterns
+  for (const { pattern, type, weight } of OBJECT_PATTERNS) {
+    const match = prompt.match(pattern);
+    if (match && weight > bestMatch.confidence) {
+      bestMatch = {
+        type,
+        subject: match[0],
+        confidence: weight,
+        humanCharacterDetected: hasHumanIndicators,
+      };
+    }
+  }
+  
+  // If we found a high-confidence object/scene AND no human indicators, use it
+  if (bestMatch.confidence >= 80 && !hasHumanIndicators) {
+    return bestMatch;
+  }
+  
+  // If we have human indicators, it's likely a character prompt
+  if (hasHumanIndicators && bestMatch.confidence < 90) {
+    return {
+      type: 'character',
+      subject: 'human character',
+      confidence: 70,
+      humanCharacterDetected: true,
+    };
+  }
+  
+  // Mixed content or uncertain
+  return bestMatch.confidence > 0 ? bestMatch : {
+    type: 'character', // Default to character for safety
+    subject: 'unknown',
+    confidence: 30,
+    humanCharacterDetected: hasHumanIndicators,
+  }
+}
+
+// =============================================================================
 // DEFAULT NEGATIVES (ALWAYS INCLUDED)
 // =============================================================================
 
@@ -593,7 +688,20 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   
   // CRITICAL: Strip pre-existing identity blocks from base prompt to prevent duplication
   const cleanedBasePrompt = stripExistingBlocks(request.basePrompt);
-  // Detect pose from prompt
+  
+  // ===========================================================================
+  // SUBJECT DETECTION - Determine if prompt is about characters or objects/scenes
+  // If the subject is NOT a human/character, we SKIP all identity injection
+  // This prevents "space shuttle" prompts from generating "man in warehouse"
+  // ===========================================================================
+  const subjectAnalysis = detectPrimarySubject(cleanedBasePrompt);
+  const skipCharacterInjection = subjectAnalysis.type === 'object' || subjectAnalysis.type === 'scene' || subjectAnalysis.type === 'vehicle';
+  
+  if (skipCharacterInjection) {
+    console.log(`[PromptBuilder] ⚡ SUBJECT DETECTED: "${subjectAnalysis.subject}" (${subjectAnalysis.type}) - SKIPPING all character/identity injection`);
+  }
+  
+  // Detect pose from prompt (only relevant for character prompts)
   const poseAnalysis = request.detectedPose 
     ? { pose: request.detectedPose, confidence: 100, faceVisible: !['back', 'silhouette', 'occluded'].includes(request.detectedPose) }
     : detectPoseFromPrompt(request.basePrompt);
@@ -601,31 +709,59 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   const isBackFacingOrOccluded = !poseAnalysis.faceVisible;
   
   // ===========================================================================
-  // MOTION DETECTION AND ENFORCEMENT (NEW - CRITICAL FOR ANIMATION)
+  // ⭐ SHOT ACTION FIRST - THE MOST CRITICAL CHANGE
+  // User's requested action is ALWAYS the PRIMARY content, injected FIRST
+  // This ensures the AI model prioritizes the ACTION over any identity data
+  // ===========================================================================
+  const dramaticActionPatterns = [
+    /\b(asteroid|meteor|comet)\s*(impact|crash|strike|hit|collid)/i,
+    /\b(explosion|blast|eruption|detonate)/i,
+    /\b(attack|battle|fight|combat|war)/i,
+    /\b(storm|hurricane|tornado|tsunami|earthquake)/i,
+    /\b(transform|metamorphos|evolve)/i,
+    /\b(chase|pursuit|escape|flee)/i,
+    /\b(launch|takeoff|liftoff|blast[\s-]?off)/i,
+    /\b(rocket|shuttle|spacecraft|spaceship)\s*(launch|takeoff|ascending)/i,
+  ];
+  
+  const hasDramaticAction = dramaticActionPatterns.some(p => p.test(cleanedBasePrompt));
+  
+  // INJECT ACTION FIRST - before any identity blocks
+  if (cleanedBasePrompt.length > 20) {
+    if (hasDramaticAction || skipCharacterInjection) {
+      // For dramatic actions OR non-character subjects: MAXIMUM priority
+      promptParts.push(`[═══ PRIMARY SUBJECT - THIS IS WHAT THE VIDEO MUST SHOW ═══]`);
+      promptParts.push(cleanedBasePrompt);
+      promptParts.push(`[═══ END PRIMARY SUBJECT ═══]`);
+      console.log(`[PromptBuilder] Clip ${request.clipIndex + 1} ACTION-FIRST: "${cleanedBasePrompt.substring(0, 80)}..."`);
+    } else {
+      // Standard: action first but without dramatic emphasis
+      promptParts.push(`[SHOT ACTION: ${cleanedBasePrompt}]`);
+    }
+  }
+  
+  // ===========================================================================
+  // MOTION DETECTION AND ENFORCEMENT
   // Detects walking, running, exploring, etc. and enforces motion in the clip
   // ===========================================================================
   const motionAnalysis = detectMotionFromPrompt(request.basePrompt);
   
   if (motionAnalysis.hasMotion) {
-    // Inject motion enforcement EARLY (before identity blocks get processed)
     promptParts.push(motionAnalysis.motionEnforcementPrompt);
-    
-    // Add anti-static negatives
     negativeParts.push(...motionAnalysis.motionNegatives);
-    
     console.log(`[PromptBuilder] Clip ${request.clipIndex + 1} MOTION DETECTED: ${motionAnalysis.detectedActions.join(', ')} (${motionAnalysis.intensity} intensity)`);
   } else {
     warnings.push('No motion detected in prompt - character may appear static');
   }
   
   // ===========================================================================
-  // 0. FACE LOCK INJECTION (ABSOLUTE HIGHEST PRIORITY)
-  // This is injected FIRST to ensure maximum model attention on face identity
+  // 0. FACE LOCK INJECTION (ONLY FOR CHARACTER PROMPTS)
+  // SKIP entirely for object/scene/vehicle prompts
   // ===========================================================================
   let hasFaceLock = false;
   const fl = request.faceLock;
   
-  if (fl) {
+  if (fl && !skipCharacterInjection) {
     hasFaceLock = true;
     
     // Golden reference is the single most important identity sentence
@@ -679,8 +815,9 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   
   // ===========================================================================
   // 0.5 HARD IDENTITY LOCK - Reinforce same person continuation
+  // SKIP for non-character prompts
   // ===========================================================================
-  if (request.clipIndex > 0) {
+  if (request.clipIndex > 0 && !skipCharacterInjection) {
     // For clips 2+, enforce same character from previous frame
     promptParts.push('[CRITICAL: SAME EXACT PERSON continues from previous frame - identical face, same body, same outfit, same hair]');
   }
@@ -688,11 +825,12 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   // ===========================================================================
   // 0.75 MULTI-VIEW IDENTITY BIBLE (5-ANGLE CHARACTER CONSISTENCY)
   // Injects pose-specific identity when Multi-View Bible is available
+  // SKIP for non-character prompts
   // ===========================================================================
   let hasMultiViewIdentity = false;
   const mvib = request.multiViewIdentityBible;
   
-  if (mvib) {
+  if (mvib && !skipCharacterInjection) {
     hasMultiViewIdentity = true;
     
     // Core identity is ALWAYS injected
@@ -772,13 +910,14 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
-  // 1. IDENTITY BIBLE INJECTION (HIGHEST PRIORITY)
+  // 1. IDENTITY BIBLE INJECTION
+  // SKIP entirely for non-character prompts (objects, vehicles, scenes)
   // ===========================================================================
   const ib = request.identityBible;
   let hasIdentityBible = false;
   let hasNonFacialAnchors = false;
   
-  if (ib) {
+  if (ib && !skipCharacterInjection) {
     hasIdentityBible = true;
     
     // CHARACTER IDENTITY: Focus ONLY on the person/character - NOT the environment
@@ -895,9 +1034,10 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   
   // ===========================================================================
   // 2. EXTRACTED CHARACTERS INJECTION
+  // SKIP for non-character prompts
   // ===========================================================================
   let hasExtractedCharacters = false;
-  if (request.extractedCharacters?.length) {
+  if (request.extractedCharacters?.length && !skipCharacterInjection) {
     hasExtractedCharacters = true;
     const charDescriptions = request.extractedCharacters.map(c => {
       const parts = [c.name];
@@ -1009,40 +1149,8 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   }
   
   // ===========================================================================
-  // 7. SHOT DESCRIPTION (THE ACTUAL ACTION) - THIS IS THE CORE CONTENT
-  // CRITICAL: The base prompt contains the SHOT DESCRIPTION (what should HAPPEN)
-  // This MUST be prominent and not overwhelmed by identity/consistency blocks
-  // 
-  // GUARDRAIL: User's requested action MUST be the PRIMARY focus
+  // 7. QUALITY SUFFIX (Action is already injected FIRST at the top of this function)
   // ===========================================================================
-  
-  // Check if shot description contains dramatic events that need priority
-  const dramaticActionPatterns = [
-    /\b(asteroid|meteor|comet)\s*(impact|crash|strike|hit|collid)/i,
-    /\b(explosion|blast|eruption|detonate)/i,
-    /\b(attack|battle|fight|combat|war)/i,
-    /\b(storm|hurricane|tornado|tsunami|earthquake)/i,
-    /\b(transform|metamorphos|evolve)/i,
-    /\b(chase|pursuit|escape|flee)/i,
-  ];
-  
-  const hasDramaticAction = dramaticActionPatterns.some(p => p.test(cleanedBasePrompt));
-  
-  // Wrap the shot description to ensure AI prioritizes the ACTION over consistency
-  if (cleanedBasePrompt.length > 50) {
-    if (hasDramaticAction) {
-      // For dramatic actions, use EVEN STRONGER emphasis
-      promptParts.push(`[═══ MANDATORY ACTION - THIS MUST HAPPEN IN THIS SHOT ═══]`);
-      promptParts.push(`[SHOT ACTION - PRIMARY GOAL - DO NOT IGNORE: ${cleanedBasePrompt}]`);
-      promptParts.push(`[═══ THE ABOVE ACTION IS NON-NEGOTIABLE ═══]`);
-      console.log(`[PromptBuilder] Clip ${request.clipIndex + 1} DRAMATIC ACTION DETECTED - Maximum priority applied`);
-    } else {
-      // Standard shot description with priority marker
-      promptParts.push(`[SHOT ACTION - PRIMARY GOAL: ${cleanedBasePrompt}]`);
-    }
-  } else {
-    promptParts.push(cleanedBasePrompt);
-  }
   promptParts.push(APEX_QUALITY_SUFFIX);
   
   // ===========================================================================

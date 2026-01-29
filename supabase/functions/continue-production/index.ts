@@ -20,6 +20,53 @@ const corsHeaders = {
  * FAILSAFE: Validates continuity before triggering next clip
  */
 
+// =============================================================================
+// SUBJECT DETECTION - Skip character injection for non-character prompts
+// =============================================================================
+
+const OBJECT_PATTERNS: RegExp[] = [
+  // Vehicles / Transportation
+  /\b(space\s*shuttle|rocket|spacecraft|spaceship|satellite|probe)\b/i,
+  /\b(airplane|aircraft|jet|helicopter|drone|plane)\b/i,
+  /\b(car|truck|bus|motorcycle|vehicle|train|ship|boat|submarine)\b/i,
+  // Natural phenomena / Events
+  /\b(asteroid|meteor|comet|meteorite)\s*(impact|crash|strike|hit|collid|fall)/i,
+  /\b(explosion|blast|eruption|nuclear|atomic)\b/i,
+  /\b(volcano|earthquake|tsunami|hurricane|tornado|storm)\b/i,
+  // Pure environments/scenes
+  /\b(landscape|scenery|vista|panorama|cityscape|skyline)\b/i,
+];
+
+const CHARACTER_PATTERNS: RegExp[] = [
+  /\b(person|man|woman|boy|girl|child|adult|human|people|character)\b/i,
+  /\b(he|she|they|him|her|his|hers|their)\b/i,
+  /\b(walking|running|talking|speaking|gesturing|smiling|crying|laughing)\b/i,
+  /\b(wearing|dressed|outfit|clothes|clothing)\b/i,
+  /\b(face|eyes|hair|hands|body|head)\b/i,
+  /\b(protagonist|hero|villain|character|actor)\b/i,
+];
+
+function detectCharacterPrompt(prompt: string): boolean {
+  // Check if prompt has object/scene patterns (these override character patterns)
+  const hasObjectPatterns = OBJECT_PATTERNS.some(p => p.test(prompt));
+  
+  // Check if prompt has character patterns
+  const hasCharacterPatterns = CHARACTER_PATTERNS.some(p => p.test(prompt));
+  
+  // If object patterns are found AND no character patterns, it's NOT a character prompt
+  if (hasObjectPatterns && !hasCharacterPatterns) {
+    return false;
+  }
+  
+  // If character patterns are found, it IS a character prompt
+  if (hasCharacterPatterns) {
+    return true;
+  }
+  
+  // Default: assume character prompt for safety (legacy behavior)
+  return true;
+}
+
 interface ContinueProductionRequest {
   projectId: string;
   userId: string;
@@ -318,14 +365,19 @@ serve(async (req: Request) => {
           const shot = shots[nextClipIndex];
           nextClipPrompt = shot.description || shot.title || '';
           
-          // Add character identity if available
+          // CRITICAL FIX: Only inject character data if the prompt is about characters
+          // Skip character injection for objects, vehicles, scenes, etc.
           const characters = scriptData.pro_features_data?.extractedCharacters || [];
-          const characterPrompt = characters
-            .map((c: any) => `${c.name}: ${c.appearance}`)
-            .join('; ');
+          const isCharacterPrompt = detectCharacterPrompt(nextClipPrompt);
           
-          if (characterPrompt) {
+          if (characters.length > 0 && isCharacterPrompt) {
+            const characterPrompt = characters
+              .map((c: any) => `${c.name}: ${c.appearance}`)
+              .join('; ');
+            
             nextClipPrompt = `[CHARACTERS: ${characterPrompt}] ${nextClipPrompt}`;
+          } else if (characters.length > 0 && !isCharacterPrompt) {
+            console.log(`[ContinueProduction] ⚡ Skipping character injection - prompt is about non-character subject`);
           }
         }
       } catch (e) {
@@ -356,12 +408,16 @@ serve(async (req: Request) => {
     const previousMotionVectors = completedClipResult?.motionVectors;
     const previousContinuityManifest = completedClipResult?.continuityManifest;
 
-    // CRITICAL FIX: Inject identity bible into prompt for character consistency
-    // This ensures character description propagates to all clips
-    if (context?.identityBible?.characterDescription || context?.identityBible?.consistencyPrompt) {
+    // CRITICAL FIX: Only inject identity bible for character-focused prompts
+    // Skip for object/scene/vehicle prompts to prevent "man in warehouse" issue
+    const isCharacterFocused = detectCharacterPrompt(nextClipPrompt);
+    
+    if ((context?.identityBible?.characterDescription || context?.identityBible?.consistencyPrompt) && isCharacterFocused) {
       const charDesc = context.identityBible.characterDescription || context.identityBible.consistencyPrompt;
       nextClipPrompt = `[CHARACTER IDENTITY - MANDATORY: ${charDesc}]\n${nextClipPrompt}`;
       console.log(`[ContinueProduction] Injected character identity into prompt`);
+    } else if (context?.identityBible && !isCharacterFocused) {
+      console.log(`[ContinueProduction] ⚡ Skipping identity bible injection - non-character prompt detected`);
     }
 
     // Add visual continuity to prompt

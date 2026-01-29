@@ -40,6 +40,7 @@ const TrainingVideo = lazy(() => import("./pages/TrainingVideo"));
 const ExtractThumbnails = lazy(() => import("./pages/ExtractThumbnails"));
 const Create = lazy(() => import("./pages/Create"));
 const Gallery = lazy(() => import("./pages/Gallery"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 
 
 
@@ -82,6 +83,7 @@ const App = () => (
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/press" element={<Press />} />
                 <Route path="/gallery" element={<Gallery />} />
+                <Route path="/pricing" element={<Pricing />} />
                 
                 {/* Onboarding - protected but no layout */}
                 <Route path="/onboarding" element={

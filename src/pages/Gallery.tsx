@@ -5,6 +5,7 @@ import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, Film } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface GalleryVideo {
   id: string;
@@ -843,7 +844,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   );
 }
 
-export default function Gallery() {
+function Gallery() {
   const navigate = useNavigate();
   const location = useLocation();
   const [hasAccess, setHasAccess] = useState(false);
@@ -1119,5 +1120,14 @@ export default function Gallery() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
+  );
+}
+
+// Export with ErrorBoundary wrapper for crash protection
+export default function GalleryWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <Gallery />
+    </ErrorBoundary>
   );
 }

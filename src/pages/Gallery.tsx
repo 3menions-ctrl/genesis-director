@@ -998,6 +998,67 @@ export default function Gallery() {
         <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
       </motion.div>
       
+      {/* Sign Up circular button - positioned in scroll direction */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
+        onClick={() => navigate('/auth')}
+        className="fixed right-8 top-1/2 -translate-y-1/2 z-50 group"
+      >
+        {/* Outer glow ring - animated */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%)',
+            filter: 'blur(12px)',
+          }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{
+            duration: 2.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        {/* Main button */}
+        <div 
+          className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+          style={{
+            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(220,220,220,0.9))',
+            boxShadow: `
+              0 0 20px rgba(255,255,255,0.5),
+              0 0 40px rgba(255,255,255,0.3),
+              0 0 60px rgba(255,255,255,0.15),
+              inset 0 2px 4px rgba(255,255,255,1),
+              inset 0 -2px 4px rgba(0,0,0,0.1)
+            `,
+          }}
+        >
+          <span 
+            className="text-xs font-semibold tracking-wider uppercase"
+            style={{
+              color: '#1a1a1a',
+              textShadow: '0 1px 1px rgba(255,255,255,0.5)',
+            }}
+          >
+            Sign Up
+          </span>
+        </div>
+        
+        {/* Subtle arrow indicator */}
+        <motion.div
+          className="absolute -right-2 top-1/2 -translate-y-1/2"
+          animate={{ x: [0, 4, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <ChevronLeft className="w-4 h-4 text-white/40 rotate-180" />
+        </motion.div>
+      </motion.button>
+      
       {/* Fullscreen player */}
       <AnimatePresence>
         {selectedVideo && (

@@ -1012,11 +1012,34 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   // 7. SHOT DESCRIPTION (THE ACTUAL ACTION) - THIS IS THE CORE CONTENT
   // CRITICAL: The base prompt contains the SHOT DESCRIPTION (what should HAPPEN)
   // This MUST be prominent and not overwhelmed by identity/consistency blocks
+  // 
+  // GUARDRAIL: User's requested action MUST be the PRIMARY focus
   // ===========================================================================
+  
+  // Check if shot description contains dramatic events that need priority
+  const dramaticActionPatterns = [
+    /\b(asteroid|meteor|comet)\s*(impact|crash|strike|hit|collid)/i,
+    /\b(explosion|blast|eruption|detonate)/i,
+    /\b(attack|battle|fight|combat|war)/i,
+    /\b(storm|hurricane|tornado|tsunami|earthquake)/i,
+    /\b(transform|metamorphos|evolve)/i,
+    /\b(chase|pursuit|escape|flee)/i,
+  ];
+  
+  const hasDramaticAction = dramaticActionPatterns.some(p => p.test(cleanedBasePrompt));
+  
   // Wrap the shot description to ensure AI prioritizes the ACTION over consistency
   if (cleanedBasePrompt.length > 50) {
-    // If substantial shot description, mark it as the PRIMARY GOAL
-    promptParts.push(`[SHOT ACTION - PRIMARY GOAL: ${cleanedBasePrompt}]`);
+    if (hasDramaticAction) {
+      // For dramatic actions, use EVEN STRONGER emphasis
+      promptParts.push(`[═══ MANDATORY ACTION - THIS MUST HAPPEN IN THIS SHOT ═══]`);
+      promptParts.push(`[SHOT ACTION - PRIMARY GOAL - DO NOT IGNORE: ${cleanedBasePrompt}]`);
+      promptParts.push(`[═══ THE ABOVE ACTION IS NON-NEGOTIABLE ═══]`);
+      console.log(`[PromptBuilder] Clip ${request.clipIndex + 1} DRAMATIC ACTION DETECTED - Maximum priority applied`);
+    } else {
+      // Standard shot description with priority marker
+      promptParts.push(`[SHOT ACTION - PRIMARY GOAL: ${cleanedBasePrompt}]`);
+    }
   } else {
     promptParts.push(cleanedBasePrompt);
   }
@@ -1032,6 +1055,8 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   // ===========================================================================
   // FINAL ASSEMBLY WITH LENGTH OPTIMIZATION
   // Kling models work best with prompts under 1000 chars for video generation
+  // 
+  // GUARDRAIL: NEVER strip dramatic action content - user's request is sacred
   // ===========================================================================
   
   // Prioritize critical identity and scene data, trim excess
@@ -1041,6 +1066,7 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
   const MAX_PROMPT_LENGTH = 1500; // Allow some headroom
   if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
     // Remove lower priority blocks first (in order of priority)
+    // CRITICAL: We NEVER remove SHOT ACTION or MANDATORY ACTION blocks
     const lowPriorityPatterns = [
       /\[SCENE: [^\]]*\]/gi,           // Scene context (least critical)
       /\[MATCH MOTION: [^\]]*\]/gi,     // Motion matching
@@ -1048,6 +1074,11 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
       /\[MATCH LIGHTING: [^\]]*\]/gi,   // Lighting matching
       /\[CRITICAL ANCHORS: [^\]]*\]/gi, // Critical anchors
       /\[COLOR PALETTE: [^\]]*\]/gi,    // Color palette
+      /\[SCENE DNA: [^\]]*\]/gi,        // Scene DNA
+      /\[MASTER LIGHTING: [^\]]*\]/gi,  // Master lighting
+      /\[CONTINUE ACTION: [^\]]*\]/gi,  // Continue action
+      /\[VISUAL ANCHORS: [^\]]*\]/gi,   // Visual anchors
+      /\[VIEW ANCHORS: [^\]]*\]/gi,     // View anchors
     ];
     
     for (const pattern of lowPriorityPatterns) {
@@ -1055,17 +1086,44 @@ export function buildComprehensivePrompt(request: PromptBuildRequest): BuiltProm
       assembledPrompt = assembledPrompt.replace(pattern, '');
     }
     
-    // If still too long, truncate the shot description while keeping identity
+    // If still too long, try removing secondary identity blocks (keep face lock and shot action)
     if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
-      // Find the cleaned base prompt (shot description) and quality suffix
-      const qualitySuffixIndex = assembledPrompt.indexOf(', cinematic lighting');
-      if (qualitySuffixIndex > 0) {
-        const beforeQuality = assembledPrompt.substring(0, qualitySuffixIndex);
-        const qualitySuffix = assembledPrompt.substring(qualitySuffixIndex);
-        
-        // Keep as much as we can fit
-        const availableSpace = MAX_PROMPT_LENGTH - qualitySuffix.length - 50;
-        assembledPrompt = beforeQuality.substring(0, availableSpace) + '...' + qualitySuffix;
+      const secondaryIdentityPatterns = [
+        /\[CONSISTENCY LOCK: [^\]]*\]/gi,
+        /\[MULTI-VIEW NON-FACIAL: [^\]]*\]/gi,
+        /\[CHARACTER CONSISTENCY: [^\]]*\]/gi,
+      ];
+      
+      for (const pattern of secondaryIdentityPatterns) {
+        if (assembledPrompt.length <= MAX_PROMPT_LENGTH) break;
+        assembledPrompt = assembledPrompt.replace(pattern, '');
+      }
+    }
+    
+    // LAST RESORT: If STILL too long, truncate quality suffix, NEVER the action
+    if (assembledPrompt.length > MAX_PROMPT_LENGTH) {
+      // Check if this has a dramatic action - if so, PROTECT IT
+      const hasMandatoryAction = /\[═══ MANDATORY ACTION/.test(assembledPrompt);
+      
+      if (hasMandatoryAction) {
+        // Only strip quality suffix, keep the action intact
+        const qualitySuffixStart = assembledPrompt.indexOf(', cinematic lighting');
+        if (qualitySuffixStart > 0) {
+          // Shorten quality suffix to just essentials
+          assembledPrompt = assembledPrompt.substring(0, qualitySuffixStart) + ', cinematic 8K, detailed';
+        }
+        console.log(`[PromptBuilder] PROTECTED mandatory action during compression`);
+      } else {
+        // Standard compression for non-dramatic actions
+        const qualitySuffixIndex = assembledPrompt.indexOf(', cinematic lighting');
+        if (qualitySuffixIndex > 0) {
+          const beforeQuality = assembledPrompt.substring(0, qualitySuffixIndex);
+          const qualitySuffix = assembledPrompt.substring(qualitySuffixIndex);
+          
+          // Keep as much as we can fit
+          const availableSpace = MAX_PROMPT_LENGTH - qualitySuffix.length - 50;
+          assembledPrompt = beforeQuality.substring(0, availableSpace) + '...' + qualitySuffix;
+        }
       }
     }
     

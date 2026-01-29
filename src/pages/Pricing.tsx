@@ -181,15 +181,15 @@ export default function Pricing() {
                 {/* Card */}
                 <div
                   className={cn(
-                    "relative h-full rounded-3xl p-8 transition-all duration-500 overflow-hidden",
+                    "relative h-full rounded-3xl p-8 transition-all duration-500 overflow-hidden backdrop-blur-xl",
                     tier.popular
-                      ? "bg-white text-black"
+                      ? "bg-white/[0.08] border-2 border-white/[0.2]"
                       : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15]"
                   )}
                 >
                   {/* Popular badge */}
                   {tier.popular && (
-                    <div className="absolute top-0 right-0 px-4 py-1.5 bg-black text-white text-xs font-medium rounded-bl-2xl rounded-tr-3xl">
+                    <div className="absolute top-0 right-0 px-4 py-1.5 bg-white/[0.15] backdrop-blur-md text-white text-xs font-medium rounded-bl-2xl rounded-tr-3xl border-l border-b border-white/[0.1]">
                       Most Popular
                     </div>
                   )}
@@ -199,7 +199,7 @@ export default function Pricing() {
                     className={cn(
                       "w-12 h-12 rounded-2xl flex items-center justify-center mb-6",
                       tier.popular
-                        ? "bg-black text-white"
+                        ? "bg-white/[0.15] text-white"
                         : "bg-white/[0.05] text-white"
                     )}
                   >
@@ -208,20 +208,10 @@ export default function Pricing() {
 
                   {/* Tier info */}
                   <div className="mb-6">
-                    <h3
-                      className={cn(
-                        "text-2xl font-bold mb-1",
-                        tier.popular ? "text-black" : "text-white"
-                      )}
-                    >
+                    <h3 className="text-2xl font-bold mb-1 text-white">
                       {tier.name}
                     </h3>
-                    <p
-                      className={cn(
-                        "text-sm",
-                        tier.popular ? "text-black/50" : "text-white/40"
-                      )}
-                    >
+                    <p className="text-sm text-white/40">
                       {tier.description}
                     </p>
                   </div>
@@ -229,31 +219,14 @@ export default function Pricing() {
                   {/* Price */}
                   <div className="mb-6">
                     <div className="flex items-baseline gap-1">
-                      <span
-                        className={cn(
-                          "text-5xl font-bold tracking-tight",
-                          tier.popular ? "text-black" : "text-white"
-                        )}
-                      >
+                      <span className="text-5xl font-bold tracking-tight text-white">
                         ${tier.price}
                       </span>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          tier.popular ? "text-black/40" : "text-white/30"
-                        )}
-                      >
+                      <span className="text-sm text-white/30">
                         one-time
                       </span>
                     </div>
-                    <div
-                      className={cn(
-                        "mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm",
-                        tier.popular
-                          ? "bg-black/5 text-black/70"
-                          : "bg-white/[0.05] text-white/60"
-                      )}
-                    >
+                    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-white/[0.05] text-white/60">
                       <span className="font-medium">{tier.credits.toLocaleString()} credits</span>
                       <span className="opacity-50">•</span>
                       <span>{tier.videosEstimate}</span>
@@ -264,18 +237,8 @@ export default function Pricing() {
                   <ul className="space-y-3 mb-8">
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <Check
-                          className={cn(
-                            "w-5 h-5 mt-0.5 shrink-0",
-                            tier.popular ? "text-black" : "text-white/50"
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "text-sm",
-                            tier.popular ? "text-black/70" : "text-white/60"
-                          )}
-                        >
+                        <Check className="w-5 h-5 mt-0.5 shrink-0 text-white/50" />
+                        <span className="text-sm text-white/60">
                           {feature}
                         </span>
                       </li>
@@ -288,8 +251,8 @@ export default function Pricing() {
                     className={cn(
                       "w-full h-12 rounded-full font-medium text-base transition-all duration-300",
                       tier.popular
-                        ? "bg-black hover:bg-black/90 text-white shadow-lg"
-                        : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+                        ? "bg-white hover:bg-white/90 text-black shadow-lg"
+                        : "bg-white/[0.08] hover:bg-white/[0.12] text-white border border-white/[0.1]"
                     )}
                   >
                     Get Started

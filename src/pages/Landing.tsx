@@ -15,7 +15,6 @@ const ExamplesGallery = lazy(() => import('@/components/landing/ExamplesGallery'
 const FAQSection = lazy(() => import('@/components/landing/FAQSection'));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 const Footer = lazy(() => import('@/components/landing/Footer'));
-const VideoGallerySection = lazy(() => import('@/components/landing/VideoGallerySection'));
 
 const SectionLoader = () => (
   <div className="py-24 flex items-center justify-center">
@@ -419,13 +418,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Video Gallery Showcase */}
-      <ErrorBoundaryWrapper fallback={<SectionLoader />}>
-        <Suspense fallback={<SectionLoader />}>
-          <VideoGallerySection onNavigateToGallery={handleViewGallery} />
-        </Suspense>
-      </ErrorBoundaryWrapper>
 
       {/* Pricing */}
       <div id="pricing">

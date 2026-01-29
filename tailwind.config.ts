@@ -134,6 +134,38 @@ export default {
           "0%": { transform: "rotate(0deg) translateX(40px) rotate(0deg)" },
           "100%": { transform: "rotate(360deg) translateX(40px) rotate(-360deg)" },
         },
+        // GPU-accelerated loader animations
+        "loader-ring-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.3" },
+          "50%": { transform: "scale(1.2)", opacity: "0.1" },
+        },
+        "loader-ring-inner": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.5" },
+          "50%": { transform: "scale(1.1)", opacity: "0.2" },
+        },
+        "loader-glow": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.3" },
+          "50%": { transform: "scale(1.3)", opacity: "0.6" },
+        },
+        "loader-progress": {
+          "0%": { width: "0%" },
+          "30%": { width: "30%" },
+          "60%": { width: "60%" },
+          "80%": { width: "80%" },
+          "100%": { width: "100%" },
+        },
+        "loader-shine": {
+          "0%": { left: "-10%" },
+          "100%": { left: "100%" },
+        },
+        "loader-light-ray": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(100%)" },
+        },
+        "loader-particle": {
+          "0%, 100%": { transform: "translate(0, 0) scale(0.5)", opacity: "0" },
+          "50%": { opacity: "0.8", transform: "var(--particle-end) scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -147,6 +179,13 @@ export default {
         waveform: "waveform 0.8s ease-in-out infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
         orbit: "orbit 3s linear infinite",
+        // GPU-accelerated loader animations
+        "loader-ring-pulse": "loader-ring-pulse 2s ease-in-out infinite",
+        "loader-ring-inner": "loader-ring-inner 2s ease-in-out infinite 0.3s",
+        "loader-glow": "loader-glow 3s ease-in-out infinite",
+        "loader-progress": "loader-progress 3s ease-in-out infinite",
+        "loader-shine": "loader-shine 1.5s ease-in-out infinite",
+        "loader-particle": "loader-particle 3s ease-in-out infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

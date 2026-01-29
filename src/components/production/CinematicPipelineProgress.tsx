@@ -127,16 +127,31 @@ const STAGE_METADATA: Record<string, {
 
 // ============= SUB-COMPONENTS =============
 
-// Animated particle trail
+// Animated particle trail - OPTIMIZED: Deterministic values, CSS will-change hint
+const PARTICLE_OFFSETS = [
+  { x: 80, y: 30, duration: 2.4 },
+  { x: -60, y: -20, duration: 2.8 },
+  { x: 40, y: 45, duration: 3.2 },
+  { x: -80, y: 10, duration: 2.6 },
+  { x: 20, y: -40, duration: 3.0 },
+  { x: -40, y: 35, duration: 2.2 },
+  { x: 70, y: -15, duration: 3.4 },
+  { x: -20, y: 50, duration: 2.5 },
+  { x: 50, y: -30, duration: 2.9 },
+  { x: -70, y: 25, duration: 3.1 },
+  { x: 30, y: 40, duration: 2.7 },
+  { x: -50, y: -35, duration: 3.3 },
+];
+
 function ParticleTrail({ isActive }: { isActive: boolean }) {
   if (!isActive) return null;
   
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(12)].map((_, i) => (
+      {PARTICLE_OFFSETS.map((offset, i) => (
         <motion.div
           key={i}
-          className="absolute w-1 h-1 rounded-full bg-white"
+          className="absolute w-1 h-1 rounded-full bg-white will-change-transform"
           initial={{ 
             x: '-50%', 
             y: '50%',
@@ -144,13 +159,13 @@ function ParticleTrail({ isActive }: { isActive: boolean }) {
             scale: 0 
           }}
           animate={{ 
-            x: ['0%', `${Math.random() * 200 - 100}%`],
-            y: ['50%', `${Math.random() * 100 - 50}%`],
+            x: ['0%', `${offset.x}%`],
+            y: ['50%', `${offset.y}%`],
             opacity: [0, 1, 0],
             scale: [0, 1.5, 0]
           }}
           transition={{ 
-            duration: 2 + Math.random() * 2,
+            duration: offset.duration,
             repeat: Infinity,
             delay: i * 0.2,
             ease: 'easeOut'
@@ -188,21 +203,24 @@ function DNAHelix({ isActive }: { isActive: boolean }) {
   );
 }
 
-// Waveform visualization for audio stages
+// Waveform visualization for audio stages - OPTIMIZED: Deterministic heights
+const WAVEFORM_HEIGHTS = [14, 12, 16, 10, 15, 11, 13];
+const WAVEFORM_DURATIONS = [0.45, 0.52, 0.48, 0.55, 0.42, 0.58, 0.50];
+
 function AudioWaveform({ isActive }: { isActive: boolean }) {
   if (!isActive) return null;
   
   return (
     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-0.5 h-4 pointer-events-none">
-      {[...Array(7)].map((_, i) => (
+      {WAVEFORM_HEIGHTS.map((maxHeight, i) => (
         <motion.div
           key={i}
-          className="w-0.5 bg-amber-400 rounded-full"
+          className="w-0.5 bg-amber-400 rounded-full will-change-transform"
           animate={{
-            height: [4, 12 + Math.random() * 4, 4],
+            height: [4, maxHeight, 4],
           }}
           transition={{
-            duration: 0.4 + Math.random() * 0.3,
+            duration: WAVEFORM_DURATIONS[i],
             repeat: Infinity,
             delay: i * 0.05,
             ease: 'easeInOut',
@@ -260,44 +278,48 @@ function NeuralNodes({ isActive }: { isActive: boolean }) {
   );
 }
 
-// Rotating activity text - OPTIMIZED: Uses useRef to prevent re-renders
-const ActivityText = memo(function ActivityText({ stage, isActive }: { stage: string; isActive: boolean }) {
-  const [activityIndex, setActivityIndex] = useState(0);
-  const metadata = STAGE_METADATA[stage];
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    if (!isActive || !metadata) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
+// Rotating activity text - OPTIMIZED: forwardRef for AnimatePresence compatibility
+const ActivityText = memo(React.forwardRef<HTMLDivElement, { stage: string; isActive: boolean }>(
+  function ActivityText({ stage, isActive }, ref) {
+    const [activityIndex, setActivityIndex] = useState(0);
+    const metadata = STAGE_METADATA[stage];
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
     
-    intervalRef.current = setInterval(() => {
-      setActivityIndex(prev => (prev + 1) % metadata.activities.length);
-    }, 2500);
+    useEffect(() => {
+      if (!isActive || !metadata) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        return;
+      }
+      
+      intervalRef.current = setInterval(() => {
+        setActivityIndex(prev => (prev + 1) % metadata.activities.length);
+      }, 2500);
+      
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }, [isActive, metadata?.activities.length, stage]);
     
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isActive, metadata?.activities.length, stage]);
-  
-  if (!isActive || !metadata) return null;
-  
-  return (
-    <AnimatePresence mode="wait">
-      <motion.p
-        key={activityIndex}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.3 }}
-        className="text-[10px] text-white/60 font-mono tracking-wider"
-      >
-        {metadata.activities[activityIndex]}
-      </motion.p>
-    </AnimatePresence>
-  );
-});
+    if (!isActive || !metadata) return null;
+    
+    return (
+      <div ref={ref}>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={activityIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="text-[10px] text-white/60 font-mono tracking-wider"
+          >
+            {metadata.activities[activityIndex]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+    );
+  }
+));
 
 // Individual stage node
 function StageNode({ 
@@ -562,18 +584,15 @@ function ProgressRing({ progress, isError, isComplete }: { progress: number; isE
       
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.span 
+        {/* OPTIMIZED: Removed key={Math.floor(progress)} which caused re-mount on every 1% change */}
+        <span 
           className={cn(
-            "text-2xl font-bold tabular-nums",
+            "text-2xl font-bold tabular-nums transition-colors duration-300",
             isError ? "text-rose-400" : isComplete ? "text-emerald-400" : "text-white"
           )}
-          key={Math.floor(progress)}
-          initial={{ scale: 1.1, opacity: 0.8 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.2 }}
         >
           {Math.round(progress)}%
-        </motion.span>
+        </span>
         <span className="text-[10px] text-white/40 uppercase tracking-wider">
           {isError ? 'Failed' : isComplete ? 'Done' : 'Complete'}
         </span>
@@ -644,10 +663,10 @@ export function CinematicPipelineProgress({
     >
       {/* Animated background gradient */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Dynamic glow based on active stage */}
+        {/* Dynamic glow based on active stage - OPTIMIZED: Reduced blur from 150px to 80px for GPU */}
         {activeMetadata && !isError && (
           <motion.div
-            className={cn("absolute w-[600px] h-[600px] rounded-full blur-[150px] bg-gradient-to-r opacity-20", activeMetadata.color)}
+            className={cn("absolute w-[600px] h-[600px] rounded-full blur-[80px] bg-gradient-to-r opacity-20 will-change-transform", activeMetadata.color)}
             animate={{ 
               x: ['-20%', '20%', '-20%'],
               y: ['-20%', '10%', '-20%'],
@@ -663,7 +682,7 @@ export function CinematicPipelineProgress({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.15 }}
-            className="absolute w-[600px] h-[600px] rounded-full blur-[150px] bg-rose-500"
+            className="absolute w-[600px] h-[600px] rounded-full blur-[80px] bg-rose-500"
             style={{ left: '30%', top: '-50%' }}
           />
         )}

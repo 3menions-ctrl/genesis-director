@@ -127,39 +127,40 @@ export default function FeaturesShowcase() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: index * 0.08 }}
-              className={`group relative rounded-2xl md:rounded-3xl overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all duration-500 ${
+              className={`group relative rounded-2xl md:rounded-3xl overflow-hidden bg-transparent transition-all duration-500 ${
                 index === 0 || index === 3 ? 'lg:col-span-2 lg:row-span-1' : ''
               }`}
             >
-              {/* Image Container */}
-              <div className={`relative overflow-hidden ${
-                index === 0 || index === 3 ? 'aspect-[2/1]' : 'aspect-[4/3]'
+              {/* Image Container - Floating with glow */}
+              <div className={`relative overflow-hidden rounded-2xl mx-4 mt-4 ${
+                index === 0 || index === 3 ? 'aspect-[2.5/1]' : 'aspect-[16/10]'
               }`}>
                 <img 
                   src={feature.image} 
                   alt={feature.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
                 />
                 
-                {/* Gradient Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-90" />
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Subtle glow effect on hover */}
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/[0.08] group-hover:ring-white/[0.15] transition-all duration-500" />
                 
                 {/* Icon Badge */}
-                <div className="absolute top-4 left-4 p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/[0.1]">
+                <div className="absolute top-3 left-3 p-2 rounded-xl bg-black/60 backdrop-blur-xl border border-white/[0.1]">
                   {feature.icon}
                 </div>
               </div>
               
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-                <span className="text-[10px] md:text-xs font-medium text-white/30 uppercase tracking-widest mb-1 block">
-                  {feature.subtitle}
-                </span>
+              {/* Content - Below image */}
+              <div className="p-5 md:p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] md:text-xs font-medium text-white/30 uppercase tracking-widest">
+                    {feature.subtitle}
+                  </span>
+                </div>
                 <h3 className="text-lg md:text-xl font-semibold text-white mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-white/50 leading-relaxed mb-4 line-clamp-2">
+                <p className="text-sm text-white/50 leading-relaxed mb-4">
                   {feature.description}
                 </p>
                 
@@ -168,9 +169,9 @@ export default function FeaturesShowcase() {
                   {feature.highlights.map((highlight) => (
                     <span 
                       key={highlight}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] text-[10px] md:text-xs text-white/60"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-[10px] md:text-xs text-white/60"
                     >
-                      <Check className="w-2.5 h-2.5 text-blue-400" />
+                      <Check className="w-2.5 h-2.5 text-white/40" />
                       {highlight}
                     </span>
                   ))}

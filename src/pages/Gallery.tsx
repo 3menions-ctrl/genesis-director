@@ -13,27 +13,44 @@ interface GalleryVideo {
   video_url: string | null;
 }
 
-// Fetch public videos approved by admin
+// Admin account ID for gallery showcase
+const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
+
+// Fetch completed video clips from admin account projects
 const useGalleryVideos = () => {
   return useQuery({
-    queryKey: ['gallery-videos'],
+    queryKey: ['gallery-videos-admin'],
     queryFn: async (): Promise<GalleryVideo[]> => {
+      // Fetch completed video clips from admin's projects
       const { data, error } = await supabase
-        .from('movie_projects_public')
-        .select('id, title, thumbnail_url, video_url')
-        .eq('is_public', true)
+        .from('video_clips')
+        .select(`
+          id,
+          video_url,
+          project_id,
+          shot_index,
+          movie_projects!inner(title, user_id)
+        `)
+        .eq('status', 'completed')
+        .eq('movie_projects.user_id', ADMIN_USER_ID)
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
         .limit(30);
       
       if (error) throw error;
       
-      // Filter to only include actual video files
-      const videos = (data || []).filter(v => {
-        const url = v.video_url?.toLowerCase() || '';
-        return (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) 
-          && !url.includes('manifest');
-      });
+      // Transform to gallery format with unique titles
+      const videos: GalleryVideo[] = (data || [])
+        .filter(clip => {
+          const url = clip.video_url?.toLowerCase() || '';
+          return url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov');
+        })
+        .map((clip, index) => ({
+          id: clip.id,
+          title: `${(clip.movie_projects as any)?.title || 'Untitled'} - Clip ${clip.shot_index + 1}`,
+          thumbnail_url: null,
+          video_url: clip.video_url,
+        }));
       
       return videos;
     },
@@ -52,167 +69,229 @@ const FALLBACK_VIDEOS: GalleryVideo[] = [
   { id: '8', title: 'Ocean Depths', thumbnail_url: null, video_url: null },
 ];
 
-// Premium 3D room with flowing lines - silver/blue/white/black palette (matching landing)
+// Premium 3D room with perspective-aligned flowing lines - silver/blue/white/black palette
 function GalleryRoom() {
   return (
     <div className="fixed inset-0 overflow-hidden">
       {/* Deep black base */}
       <div className="absolute inset-0 bg-black" />
       
-      {/* Animated flowing lines - SVG based */}
+      {/* 3D Perspective-aligned lines container - matches gallery wall rotation */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          perspective: '1200px',
+          perspectiveOrigin: '20% 50%',
+        }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: 'rotateY(-25deg) translateX(15%)',
+            transformStyle: 'preserve-3d',
+            transformOrigin: 'left center',
+          }}
+        >
+          {/* SVG lines that follow the 3D plane */}
+          <svg 
+            className="absolute inset-0 w-[200%] h-full opacity-70"
+            viewBox="0 0 3840 1080"
+            preserveAspectRatio="xMidYMid slice"
+          >
+            <defs>
+              {/* Silver/white gradient */}
+              <linearGradient id="silverLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0a0a0a" />
+                <stop offset="20%" stopColor="#4b5563" />
+                <stop offset="50%" stopColor="#d1d5db" />
+                <stop offset="80%" stopColor="#4b5563" />
+                <stop offset="100%" stopColor="#0a0a0a" />
+              </linearGradient>
+              
+              {/* Blue accent gradient */}
+              <linearGradient id="blueLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0a0a0a" />
+                <stop offset="25%" stopColor="#1e3a5f" />
+                <stop offset="50%" stopColor="#3b82f6" />
+                <stop offset="75%" stopColor="#1e3a5f" />
+                <stop offset="100%" stopColor="#0a0a0a" />
+              </linearGradient>
+              
+              {/* Grey gradient */}
+              <linearGradient id="greyLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0a0a0a" />
+                <stop offset="30%" stopColor="#27272a" />
+                <stop offset="50%" stopColor="#3f3f46" />
+                <stop offset="70%" stopColor="#27272a" />
+                <stop offset="100%" stopColor="#0a0a0a" />
+              </linearGradient>
+              
+              {/* Glow filter */}
+              <filter id="glow3D" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            
+            {/* Horizontal lines following the tilted wall plane */}
+            {/* Top section - gallery ceiling area */}
+            <motion.line
+              x1="-200" y1="120" x2="4000" y2="120"
+              stroke="url(#greyLine3D)"
+              strokeWidth="1"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.4 }}
+              transition={{ duration: 2, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="200" x2="4000" y2="200"
+              stroke="url(#silverLine3D)"
+              strokeWidth="1.5"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.6 }}
+              transition={{ duration: 2.2, delay: 0.1, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="280" x2="4000" y2="280"
+              stroke="url(#blueLine3D)"
+              strokeWidth="1"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.5 }}
+              transition={{ duration: 2.4, delay: 0.2, ease: "easeOut" }}
+            />
+            
+            {/* Upper gallery wall lines */}
+            <motion.line
+              x1="-200" y1="360" x2="4000" y2="360"
+              stroke="url(#greyLine3D)"
+              strokeWidth="1"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.35 }}
+              transition={{ duration: 2.5, delay: 0.3, ease: "easeOut" }}
+            />
+            
+            {/* Center section - main gallery wall */}
+            <motion.line
+              x1="-200" y1="440" x2="4000" y2="440"
+              stroke="url(#silverLine3D)"
+              strokeWidth="2.5"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.9 }}
+              transition={{ duration: 2, delay: 0.4, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="500" x2="4000" y2="500"
+              stroke="url(#blueLine3D)"
+              strokeWidth="2"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.7 }}
+              transition={{ duration: 2.2, delay: 0.5, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="560" x2="4000" y2="560"
+              stroke="url(#silverLine3D)"
+              strokeWidth="2"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.8 }}
+              transition={{ duration: 2.4, delay: 0.6, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="620" x2="4000" y2="620"
+              stroke="url(#greyLine3D)"
+              strokeWidth="1.5"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.5 }}
+              transition={{ duration: 2.6, delay: 0.7, ease: "easeOut" }}
+            />
+            
+            {/* Lower gallery wall lines */}
+            <motion.line
+              x1="-200" y1="720" x2="4000" y2="720"
+              stroke="url(#blueLine3D)"
+              strokeWidth="1.5"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.6 }}
+              transition={{ duration: 2.5, delay: 0.8, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="800" x2="4000" y2="800"
+              stroke="url(#silverLine3D)"
+              strokeWidth="1.5"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.5 }}
+              transition={{ duration: 2.7, delay: 0.9, ease: "easeOut" }}
+            />
+            
+            {/* Floor section lines */}
+            <motion.line
+              x1="-200" y1="880" x2="4000" y2="880"
+              stroke="url(#greyLine3D)"
+              strokeWidth="1"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.4 }}
+              transition={{ duration: 2.8, delay: 1, ease: "easeOut" }}
+            />
+            <motion.line
+              x1="-200" y1="960" x2="4000" y2="960"
+              stroke="url(#blueLine3D)"
+              strokeWidth="1"
+              filter="url(#glow3D)"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.3 }}
+              transition={{ duration: 3, delay: 1.1, ease: "easeOut" }}
+            />
+          </svg>
+        </div>
+      </div>
+      
+      {/* Additional ambient lines in normal space for depth layering */}
       <svg 
-        className="absolute inset-0 w-full h-full opacity-60"
+        className="absolute inset-0 w-full h-full opacity-30 pointer-events-none"
         viewBox="0 0 1920 1080"
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          {/* Silver/white gradient */}
-          <linearGradient id="silverLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0a0a0a" />
-            <stop offset="30%" stopColor="#6b7280" />
-            <stop offset="50%" stopColor="#e5e7eb" />
-            <stop offset="70%" stopColor="#6b7280" />
-            <stop offset="100%" stopColor="#0a0a0a" />
+          <linearGradient id="ambientGrey" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="50%" stopColor="#27272a" />
+            <stop offset="100%" stopColor="transparent" />
           </linearGradient>
-          
-          {/* Blue accent gradient */}
-          <linearGradient id="blueLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0a0a0a" />
-            <stop offset="30%" stopColor="#1e3a5f" />
-            <stop offset="50%" stopColor="#60a5fa" />
-            <stop offset="70%" stopColor="#1e3a5f" />
-            <stop offset="100%" stopColor="#0a0a0a" />
-          </linearGradient>
-          
-          {/* Grey gradient */}
-          <linearGradient id="greyLine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0a0a0a" />
-            <stop offset="40%" stopColor="#3a3a3a" />
-            <stop offset="60%" stopColor="#3a3a3a" />
-            <stop offset="100%" stopColor="#0a0a0a" />
-          </linearGradient>
-          
-          {/* Glow filter */}
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
         </defs>
         
-        {/* Horizontal flowing lines - creating 3D room depth */}
-        <motion.path
-          d="M -100,200 Q 500,180 960,200 T 2020,200"
-          fill="none"
-          stroke="url(#silverLine)"
-          strokeWidth="2"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.8 }}
-          transition={{ duration: 3, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,280 Q 600,260 960,280 T 2020,280"
-          fill="none"
-          stroke="url(#greyLine)"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
-          transition={{ duration: 3.5, delay: 0.2, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,360 Q 400,340 960,360 T 2020,360"
-          fill="none"
-          stroke="url(#blueLine)"
-          strokeWidth="1"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.5 }}
-          transition={{ duration: 4, delay: 0.4, ease: "easeInOut" }}
-        />
-        
-        {/* Center prominent lines */}
-        <motion.path
-          d="M -100,480 C 300,450 600,510 960,480 S 1600,510 2020,480"
-          fill="none"
-          stroke="url(#silverLine)"
-          strokeWidth="3"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 2.5, delay: 0.3, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,520 C 400,550 700,490 960,520 S 1500,490 2020,520"
-          fill="none"
-          stroke="url(#blueLine)"
-          strokeWidth="2"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.7 }}
-          transition={{ duration: 2.8, delay: 0.5, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,560 C 350,530 650,590 960,560 S 1550,530 2020,560"
-          fill="none"
-          stroke="url(#greyLine)"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
-          transition={{ duration: 3.2, delay: 0.7, ease: "easeInOut" }}
-        />
-        
-        {/* Lower section lines */}
-        <motion.path
-          d="M -100,680 Q 500,700 960,680 T 2020,680"
-          fill="none"
-          stroke="url(#greyLine)"
-          strokeWidth="1"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.4 }}
-          transition={{ duration: 3.5, delay: 0.6, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,760 Q 600,780 960,760 T 2020,760"
-          fill="none"
-          stroke="url(#silverLine)"
-          strokeWidth="1.5"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.5 }}
-          transition={{ duration: 4, delay: 0.8, ease: "easeInOut" }}
-        />
-        <motion.path
-          d="M -100,840 Q 400,820 960,840 T 2020,840"
-          fill="none"
-          stroke="url(#blueLine)"
-          strokeWidth="1"
-          filter="url(#glow)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.4 }}
-          transition={{ duration: 4.5, delay: 1, ease: "easeInOut" }}
-        />
-        
-        {/* Vertical perspective lines for 3D room feel */}
-        <motion.path
-          d="M 100,0 C 120,300 80,600 100,1080"
-          fill="none"
-          stroke="url(#greyLine)"
+        {/* Subtle ambient horizontal lines */}
+        <motion.line
+          x1="0" y1="300" x2="1920" y2="300"
+          stroke="url(#ambientGrey)"
           strokeWidth="0.5"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.3 }}
-          transition={{ duration: 3, delay: 1.2, ease: "easeInOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ duration: 2, delay: 1.5 }}
         />
-        <motion.path
-          d="M 1820,0 C 1800,300 1840,600 1820,1080"
-          fill="none"
-          stroke="url(#greyLine)"
+        <motion.line
+          x1="0" y1="540" x2="1920" y2="540"
+          stroke="url(#ambientGrey)"
           strokeWidth="0.5"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.3 }}
-          transition={{ duration: 3, delay: 1.4, ease: "easeInOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ duration: 2, delay: 1.7 }}
+        />
+        <motion.line
+          x1="0" y1="780" x2="1920" y2="780"
+          stroke="url(#ambientGrey)"
+          strokeWidth="0.5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ duration: 2, delay: 1.9 }}
         />
       </svg>
       
@@ -221,24 +300,24 @@ function GalleryRoom() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse at 0% 0%, rgba(96,165,250,0.06) 0%, transparent 40%),
-            radial-gradient(ellipse at 100% 100%, rgba(96,165,250,0.04) 0%, transparent 40%),
-            radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 80%)
+            radial-gradient(ellipse at 0% 0%, rgba(96,165,250,0.05) 0%, transparent 35%),
+            radial-gradient(ellipse at 100% 100%, rgba(148,163,184,0.04) 0%, transparent 35%),
+            radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.75) 85%)
           `,
         }}
       />
       
-      {/* Ambient silver/blue glow */}
+      {/* Ambient silver/blue glow - centered */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-20"
+        className="absolute inset-0 pointer-events-none opacity-15"
         style={{
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(148,163,184,0.15) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse at 40% 50%, rgba(148,163,184,0.2) 0%, transparent 45%)',
         }}
       />
       
       {/* Noise texture */}
       <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        className="absolute inset-0 opacity-[0.025] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}

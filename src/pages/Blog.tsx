@@ -4,12 +4,15 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, User, Tag, ChevronRight, Share2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import Footer from '@/components/landing/Footer';
+import { lazy, Suspense } from 'react';
 
 // Import blog images
 import aiVideoEvolution from '@/assets/blog/ai-video-evolution.jpg';
 import smallBusinessVideo from '@/assets/blog/small-business-video.jpg';
 import videoAiPossibilities from '@/assets/blog/video-ai-possibilities.jpg';
+
+const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
+const Footer = lazy(() => import('@/components/landing/Footer'));
 
 interface BlogArticle {
   id: string;
@@ -132,20 +135,6 @@ Small businesses using Apex Studio are seeing remarkable results:
 
 **Real Estate Agents**: Creating property tour videos that attract more qualified buyers
 
-## Features Designed for Business Success
-
-### Multi-Platform Optimization
-Every video created in Apex Studio can be automatically optimized for different platforms. Create once, export for YouTube, Instagram, TikTok, and LinkedIn—all with the correct aspect ratios and formatting.
-
-### Brand Consistency
-Upload your brand assets and maintain consistent visual identity across all your video content. Colors, fonts, and style preferences are remembered and applied automatically.
-
-### Script Generation
-Not sure what to say? Our AI can generate compelling scripts based on your topic and goals. Just provide the basics, and receive professional copywriting tailored to your audience.
-
-### Automatic Retries and Quality Assurance
-Our system automatically ensures every clip meets quality standards. If something doesn't look right, the AI regenerates it automatically—you only see the final polished result.
-
 ## The ROI of AI Video
 
 The mathematics of AI video production are compelling for small businesses:
@@ -166,10 +155,6 @@ Apex Studio offers a straightforward path to professional video content:
 5. Download and publish
 
 There's no long-term commitment, no expensive equipment to purchase, and no steep learning curve to overcome. Just powerful AI video technology, designed for businesses of any size.
-
-## The Future is Now
-
-The small business video revolution is happening right now, and Apex Studio is leading the charge. Don't let budget or expertise hold your business back from the power of video marketing. Join the thousands of small businesses already using AI to compete with larger competitors on the visual content battlefield.
     `
   },
   {
@@ -233,60 +218,6 @@ The real estate industry has embraced AI video for property marketing:
 - **Before/after renovations**: Visualize potential improvements for properties
 - **Seasonal variations**: Show properties in different seasons or times of day
 
-## 6. Event Promotion and Recaps
-
-Events benefit from video content at every stage:
-
-- **Promotional teasers**: Build excitement before events with dynamic previews
-- **Highlight reels**: Capture the energy and key moments from events
-- **Speaker introductions**: Professional introductions for presenters and panelists
-- **Thank you videos**: Personalized follow-up content for attendees
-
-## 7. Internal Communications
-
-Organizations are using AI video for more engaging internal communications:
-
-- **Company updates**: Transform dry announcements into engaging video messages
-- **Onboarding content**: Welcome new employees with professional introduction videos
-- **Policy explanations**: Make compliance and policy content more digestible
-- **Team celebrations**: Recognize achievements with personalized video content
-
-## 8. Podcast and Content Repurposing
-
-Maximize the value of existing content by transforming it into new formats:
-
-- **Podcast visualizations**: Turn audio content into engaging video for YouTube and social
-- **Blog-to-video**: Transform written articles into visual content
-- **Quote graphics in motion**: Animate key quotes and insights from longer content
-- **Clip creation**: Extract and visualize the most compelling moments
-
-## 9. Personal Branding and Thought Leadership
-
-Individuals are using AI video to build their personal brands:
-
-- **Consistent content creation**: Maintain regular posting without appearing on camera
-- **Expertise visualization**: Demonstrate knowledge through visual explanations
-- **Speaking reel creation**: Build portfolios for speaking opportunities
-- **Professional introductions**: Create polished self-introduction videos
-
-## 10. Entertainment and Artistic Expression
-
-Finally, AI video is enabling new forms of creative expression:
-
-- **Music video creation**: Independent artists can create professional music videos
-- **Poetry visualization**: Transform written poetry into visual experiences
-- **Dream journals**: Bring dream imagery to life with AI generation
-- **Experimental art**: Push creative boundaries with AI-assisted visual art
-
-## Getting Started with AI Video Creation
-
-The barrier to entry for AI video has never been lower. Modern platforms like Apex Studio make it possible to:
-
-1. Start with just a text description or basic concept
-2. Refine and iterate on generated content
-3. Export in formats ready for any platform
-4. Scale production as needed
-
 ## The Creative Revolution
 
 We're in the early stages of a creative revolution powered by AI. The tools available today are more capable than anything we've seen before, and they're becoming more accessible every day. Whether you're looking to enhance your business marketing, educate your audience, tell compelling stories, or simply explore new creative possibilities, AI video offers a path forward.
@@ -301,262 +232,287 @@ export default function Blog() {
 
   if (selectedArticle) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#000] overflow-hidden relative">
+        {/* Abstract Background */}
+        <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
+          <AbstractBackground className="fixed inset-0 z-0" />
+        </Suspense>
+
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+                <span className="text-sm font-bold text-black">A</span>
+              </div>
+              <span className="text-base font-semibold text-white tracking-tight">Apex Studio</span>
+            </Link>
+          </div>
+        </nav>
+
         {/* Article View */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <Button
-            variant="ghost"
-            onClick={() => setSelectedArticle(null)}
-            className="mb-8 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Blog
-          </Button>
+        <div className="relative z-10 pt-24 pb-16">
+          <div className="max-w-4xl mx-auto px-6">
+            <Button
+              variant="ghost"
+              onClick={() => setSelectedArticle(null)}
+              className="mb-8 text-white/40 hover:text-white hover:bg-white/5"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Blog
+            </Button>
 
-          <motion.article
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Hero Image */}
-            <div className="relative aspect-video rounded-2xl overflow-hidden mb-8">
-              <img
-                src={selectedArticle.image}
-                alt={selectedArticle.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-              <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
-                {selectedArticle.category}
-              </Badge>
-            </div>
+            <motion.article
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Hero Image */}
+              <div className="relative rounded-3xl overflow-hidden mb-8 aspect-video">
+                <img 
+                  src={selectedArticle.image} 
+                  alt={selectedArticle.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              </div>
 
-            {/* Meta */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
-              <span className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                {selectedArticle.author}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {selectedArticle.date}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {selectedArticle.readTime}
-              </span>
-            </div>
-
-            {/* Title */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
-              {selectedArticle.title}
-            </h1>
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mb-8">
-              {selectedArticle.tags.map(tag => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  <Tag className="w-3 h-3 mr-1" />
-                  {tag}
+              {/* Meta */}
+              <div className="flex flex-wrap items-center gap-4 mb-6 text-white/40">
+                <Badge variant="secondary" className="bg-white/10 text-white/70 border-0">
+                  {selectedArticle.category}
                 </Badge>
-              ))}
-            </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-sm">{selectedArticle.date}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">{selectedArticle.readTime}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">{selectedArticle.author}</span>
+                </div>
+              </div>
 
-            {/* Content */}
-            <div className="prose prose-lg prose-invert max-w-none">
-              {selectedArticle.content.split('\n').map((paragraph, idx) => {
-                if (paragraph.startsWith('## ')) {
-                  return (
-                    <h2 key={idx} className="text-2xl font-bold text-foreground mt-10 mb-4">
-                      {paragraph.replace('## ', '')}
-                    </h2>
-                  );
-                }
-                if (paragraph.startsWith('### ')) {
-                  return (
-                    <h3 key={idx} className="text-xl font-semibold text-foreground mt-8 mb-3">
-                      {paragraph.replace('### ', '')}
-                    </h3>
-                  );
-                }
-                if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                  return (
-                    <p key={idx} className="font-semibold text-foreground my-4">
-                      {paragraph.replace(/\*\*/g, '')}
-                    </p>
-                  );
-                }
-                if (paragraph.startsWith('- ')) {
-                  return (
-                    <li key={idx} className="text-muted-foreground ml-6 my-2">
-                      {paragraph.replace('- ', '').split('**').map((part, i) => 
-                        i % 2 === 1 ? <strong key={i} className="text-foreground">{part}</strong> : part
-                      )}
-                    </li>
-                  );
-                }
-                if (paragraph.trim()) {
-                  return (
-                    <p key={idx} className="text-muted-foreground leading-relaxed my-4">
-                      {paragraph}
-                    </p>
-                  );
-                }
-                return null;
-              })}
-            </div>
+              {/* Title */}
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-8 leading-tight">
+                {selectedArticle.title}
+              </h1>
 
-            {/* Share */}
-            <div className="mt-12 pt-8 border-t border-border">
-              <div className="flex items-center justify-between">
-                <p className="text-muted-foreground">
-                  Found this article helpful? Share it with others.
-                </p>
-                <Button variant="outline" size="sm">
+              {/* Content */}
+              <div className="prose prose-invert prose-lg max-w-none">
+                <div 
+                  className="text-white/70 leading-relaxed space-y-6"
+                  dangerouslySetInnerHTML={{ 
+                    __html: selectedArticle.content
+                      .replace(/## /g, '<h2 class="text-2xl font-semibold text-white mt-12 mb-4">')
+                      .replace(/### /g, '<h3 class="text-xl font-medium text-white mt-8 mb-3">')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                      .replace(/- \*\*/g, '<li class="mb-2"><strong class="text-white">')
+                      .replace(/\*\*:/g, '</strong>:')
+                      .replace(/\n\n/g, '</p><p class="mb-4">')
+                      .replace(/^(.+)$/gm, (match) => {
+                        if (match.startsWith('<')) return match;
+                        return `<p class="mb-4">${match}</p>`;
+                      })
+                  }} 
+                />
+              </div>
+
+              {/* Tags */}
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Tag className="w-4 h-4 text-white/40" />
+                  {selectedArticle.tags.map(tag => (
+                    <Badge 
+                      key={tag} 
+                      variant="outline" 
+                      className="border-white/20 text-white/60 hover:bg-white/5"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Share */}
+              <div className="mt-8 flex items-center gap-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-white/20 text-white/60 hover:bg-white/5 hover:text-white"
+                >
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Article
                 </Button>
               </div>
-            </div>
-
-            {/* Related Articles */}
-            <div className="mt-12">
-              <h3 className="text-xl font-bold text-foreground mb-6">More Articles</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                {BLOG_ARTICLES.filter(a => a.id !== selectedArticle.id).slice(0, 2).map(article => (
-                  <button
-                    key={article.id}
-                    onClick={() => {
-                      setSelectedArticle(article);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="text-left group"
-                  >
-                    <div className="aspect-video rounded-lg overflow-hidden mb-3">
-                      <img
-                        src={article.image}
-                        alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {article.title}
-                    </h4>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.article>
+            </motion.article>
+          </div>
         </div>
-        <Footer />
+
+        {/* Footer */}
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-background to-background" />
-        <div className="relative max-w-7xl mx-auto text-center">
+    <div className="min-h-screen bg-[#000] overflow-hidden relative">
+      {/* Abstract Background */}
+      <Suspense fallback={<div className="fixed inset-0 bg-[#000]" />}>
+        <AbstractBackground className="fixed inset-0 z-0" />
+      </Suspense>
+
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+              <span className="text-sm font-bold text-black">A</span>
+            </div>
+            <span className="text-base font-semibold text-white tracking-tight">Apex Studio</span>
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => window.location.href = '/auth'}
+              className="h-9 px-4 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-full"
+            >
+              Sign in
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/auth?mode=signup'}
+              className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90"
+            >
+              Start Free
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Content */}
+      <div className="relative z-10 pt-24 pb-16">
+        <div className="max-w-6xl mx-auto px-6">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
           >
-            <Badge className="mb-4" variant="secondary">
-              <BookOpen className="w-3 h-3 mr-1" />
-              Apex Studio Blog
-            </Badge>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4">
-              Insights & Resources
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explore the latest trends in AI video creation, tips for content creators, 
-              and insights into the future of digital storytelling.
+            <Link 
+              to="/" 
+              className="inline-flex items-center gap-2 text-white/40 hover:text-white transition-colors mb-8"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Blog</h1>
+            <p className="text-lg text-white/40 max-w-2xl mx-auto">
+              Insights, tutorials, and updates from the Apex Studio team
             </p>
           </motion.div>
-        </div>
-      </section>
 
-      {/* Articles Grid */}
-      <section className="max-w-7xl mx-auto px-4 pb-20">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {BLOG_ARTICLES.map((article, idx) => (
-            <motion.article
-              key={article.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="group cursor-pointer"
-              onClick={() => setSelectedArticle(article)}
+          {/* Featured Article */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mb-12"
+          >
+            <button
+              onClick={() => setSelectedArticle(BLOG_ARTICLES[0])}
+              className="group w-full text-left"
             >
-              <div className="relative aspect-video rounded-xl overflow-hidden mb-4">
-                <img
-                  src={article.image}
-                  alt={article.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Badge className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-xs">
-                  {article.category}
-                </Badge>
+              <div className="relative rounded-3xl overflow-hidden bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-all duration-300">
+                <div className="aspect-[21/9] relative">
+                  <img 
+                    src={BLOG_ARTICLES[0].image} 
+                    alt={BLOG_ARTICLES[0].title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                  
+                  <div className="absolute bottom-0 left-0 right-0 p-8">
+                    <Badge className="mb-4 bg-white/10 text-white/80 border-0">
+                      Featured
+                    </Badge>
+                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 group-hover:text-white/90 transition-colors">
+                      {BLOG_ARTICLES[0].title}
+                    </h2>
+                    <p className="text-white/50 mb-4 max-w-2xl">
+                      {BLOG_ARTICLES[0].excerpt}
+                    </p>
+                    <div className="flex items-center gap-4 text-white/40 text-sm">
+                      <span>{BLOG_ARTICLES[0].date}</span>
+                      <span>•</span>
+                      <span>{BLOG_ARTICLES[0].readTime}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </button>
+          </motion.div>
 
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {article.date}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {article.readTime}
-                </span>
-              </div>
-
-              <h2 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
-                {article.title}
-              </h2>
-
-              <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                {article.excerpt}
-              </p>
-
-              <div className="flex items-center text-primary text-sm font-medium">
-                Read More
-                <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </motion.article>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-muted/30 py-16 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-            Ready to Create Amazing Videos?
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Join thousands of creators using Apex Studio to produce professional video content with AI.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth">
-              <Button size="lg" className="w-full sm:w-auto">
-                Get Started Free
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <Link to="/">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Learn More
-              </Button>
-            </Link>
+          {/* Article Grid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {BLOG_ARTICLES.slice(1).map((article, i) => (
+              <motion.div
+                key={article.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
+              >
+                <button
+                  onClick={() => setSelectedArticle(article)}
+                  className="group w-full text-left"
+                >
+                  <div className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.03] transition-all duration-300">
+                    <div className="aspect-video relative">
+                      <img 
+                        src={article.image} 
+                        alt={article.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                    </div>
+                    
+                    <div className="p-6">
+                      <Badge variant="secondary" className="mb-3 bg-white/10 text-white/60 border-0 text-xs">
+                        {article.category}
+                      </Badge>
+                      <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-white/90 transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                      <p className="text-white/40 text-sm mb-4 line-clamp-2">
+                        {article.excerpt}
+                      </p>
+                      <div className="flex items-center justify-between text-white/30 text-xs">
+                        <span>{article.date}</span>
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          {article.readTime}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      <Footer />
+      {/* Footer */}
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
     </div>
   );
 }

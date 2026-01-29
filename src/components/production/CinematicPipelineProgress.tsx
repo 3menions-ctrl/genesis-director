@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
@@ -260,20 +260,26 @@ function NeuralNodes({ isActive }: { isActive: boolean }) {
   );
 }
 
-// Rotating activity text
-function ActivityText({ stage, isActive }: { stage: string; isActive: boolean }) {
+// Rotating activity text - OPTIMIZED: Uses useRef to prevent re-renders
+const ActivityText = memo(function ActivityText({ stage, isActive }: { stage: string; isActive: boolean }) {
   const [activityIndex, setActivityIndex] = useState(0);
   const metadata = STAGE_METADATA[stage];
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    if (!isActive || !metadata) return;
+    if (!isActive || !metadata) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
     
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setActivityIndex(prev => (prev + 1) % metadata.activities.length);
     }, 2500);
     
-    return () => clearInterval(interval);
-  }, [isActive, metadata, stage]);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isActive, metadata?.activities.length, stage]);
   
   if (!isActive || !metadata) return null;
   
@@ -291,7 +297,7 @@ function ActivityText({ stage, isActive }: { stage: string; isActive: boolean })
       </motion.p>
     </AnimatePresence>
   );
-}
+});
 
 // Individual stage node
 function StageNode({ 

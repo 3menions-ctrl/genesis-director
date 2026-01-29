@@ -794,12 +794,10 @@ export default function Clips() {
                     const StatusIcon = statusConfig.icon;
                     
                     return (
-                      <motion.tr 
+                      <TableRow 
                         key={clip.id} 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.02 }}
-                        className="group border-white/[0.04] hover:bg-white/[0.03] transition-colors"
+                        className="group border-white/[0.04] hover:bg-white/[0.03] transition-colors animate-in fade-in-0 slide-in-from-bottom-2"
+                        style={{ animationDelay: `${index * 20}ms` }}
                       >
                         <TableCell className="py-3">
                           <div className="relative">
@@ -867,7 +865,7 @@ export default function Clips() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
-                      </motion.tr>
+                      </TableRow>
                     );
                   })}
                 </TableBody>

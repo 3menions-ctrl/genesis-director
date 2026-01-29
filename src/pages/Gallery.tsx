@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
@@ -52,7 +52,7 @@ const FALLBACK_VIDEOS: GalleryVideo[] = [
   { id: '8', title: 'Ocean Depths', thumbnail_url: null, video_url: null },
 ];
 
-// Premium 3D room with flowing lines - green/white/black/grey palette
+// Premium 3D room with flowing lines - silver/blue/white/black palette (matching landing)
 function GalleryRoom() {
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -66,12 +66,21 @@ function GalleryRoom() {
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          {/* White/silver gradient */}
-          <linearGradient id="whiteLine" x1="0%" y1="0%" x2="100%" y2="0%">
+          {/* Silver/white gradient */}
+          <linearGradient id="silverLine" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#0a0a0a" />
-            <stop offset="30%" stopColor="#4a4a4a" />
-            <stop offset="50%" stopColor="#ffffff" />
-            <stop offset="70%" stopColor="#4a4a4a" />
+            <stop offset="30%" stopColor="#6b7280" />
+            <stop offset="50%" stopColor="#e5e7eb" />
+            <stop offset="70%" stopColor="#6b7280" />
+            <stop offset="100%" stopColor="#0a0a0a" />
+          </linearGradient>
+          
+          {/* Blue accent gradient */}
+          <linearGradient id="blueLine" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#0a0a0a" />
+            <stop offset="30%" stopColor="#1e3a5f" />
+            <stop offset="50%" stopColor="#60a5fa" />
+            <stop offset="70%" stopColor="#1e3a5f" />
             <stop offset="100%" stopColor="#0a0a0a" />
           </linearGradient>
           
@@ -97,7 +106,7 @@ function GalleryRoom() {
         <motion.path
           d="M -100,200 Q 500,180 960,200 T 2020,200"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#silverLine)"
           strokeWidth="2"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -116,18 +125,19 @@ function GalleryRoom() {
         <motion.path
           d="M -100,360 Q 400,340 960,360 T 2020,360"
           fill="none"
-          stroke="url(#greyLine)"
+          stroke="url(#blueLine)"
           strokeWidth="1"
+          filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 0.5 }}
           transition={{ duration: 4, delay: 0.4, ease: "easeInOut" }}
         />
         
-        {/* Center prominent white lines */}
+        {/* Center prominent lines */}
         <motion.path
           d="M -100,480 C 300,450 600,510 960,480 S 1600,510 2020,480"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#silverLine)"
           strokeWidth="3"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -137,8 +147,9 @@ function GalleryRoom() {
         <motion.path
           d="M -100,520 C 400,550 700,490 960,520 S 1500,490 2020,520"
           fill="none"
-          stroke="url(#greyLine)"
+          stroke="url(#blueLine)"
           strokeWidth="2"
+          filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 0.7 }}
           transition={{ duration: 2.8, delay: 0.5, ease: "easeInOut" }}
@@ -146,9 +157,8 @@ function GalleryRoom() {
         <motion.path
           d="M -100,560 C 350,530 650,590 960,560 S 1550,530 2020,560"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#greyLine)"
           strokeWidth="1.5"
-          filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 0.6 }}
           transition={{ duration: 3.2, delay: 0.7, ease: "easeInOut" }}
@@ -167,7 +177,7 @@ function GalleryRoom() {
         <motion.path
           d="M -100,760 Q 600,780 960,760 T 2020,760"
           fill="none"
-          stroke="url(#whiteLine)"
+          stroke="url(#silverLine)"
           strokeWidth="1.5"
           filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -177,8 +187,9 @@ function GalleryRoom() {
         <motion.path
           d="M -100,840 Q 400,820 960,840 T 2020,840"
           fill="none"
-          stroke="url(#greyLine)"
+          stroke="url(#blueLine)"
           strokeWidth="1"
+          filter="url(#glow)"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 0.4 }}
           transition={{ duration: 4.5, delay: 1, ease: "easeInOut" }}
@@ -210,18 +221,18 @@ function GalleryRoom() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse at 0% 0%, rgba(255,255,255,0.04) 0%, transparent 40%),
-            radial-gradient(ellipse at 100% 100%, rgba(255,255,255,0.02) 0%, transparent 40%),
+            radial-gradient(ellipse at 0% 0%, rgba(96,165,250,0.06) 0%, transparent 40%),
+            radial-gradient(ellipse at 100% 100%, rgba(96,165,250,0.04) 0%, transparent 40%),
             radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 80%)
           `,
         }}
       />
       
-      {/* Ambient silver glow */}
+      {/* Ambient silver/blue glow */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(148,163,184,0.15) 0%, transparent 50%)',
         }}
       />
       
@@ -243,8 +254,10 @@ interface FramedVideoProps {
   rowIndex: number;
 }
 
-function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
+function FramedVideo({ video, index, onClick }: FramedVideoProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
   
   // Vary sizes for gallery wall effect
   const sizes = [
@@ -256,6 +269,19 @@ function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
     { w: 240, h: 180 },
   ];
   const size = sizes[index % sizes.length];
+  
+  // Seek to a frame to show as thumbnail
+  const handleVideoLoaded = useCallback(() => {
+    const vid = videoRef.current;
+    if (vid && vid.duration > 0) {
+      // Seek to 10% of video for a good thumbnail frame
+      vid.currentTime = Math.min(vid.duration * 0.1, 1);
+    }
+  }, []);
+  
+  const handleSeeked = useCallback(() => {
+    setThumbnailReady(true);
+  }, []);
   
   return (
     <motion.div
@@ -273,31 +299,55 @@ function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
       onClick={onClick}
     >
       <div className="relative w-full h-full group">
-        {/* Frame shadow with green tint */}
+        {/* Frame shadow with blue tint on hover */}
         <div 
           className="absolute -inset-1 rounded-sm blur-md transition-all duration-300"
           style={{ 
             transform: 'translate(8px, 8px)',
-            background: isHovered ? 'rgba(16,185,129,0.3)' : 'rgba(0,0,0,0.6)'
+            background: isHovered ? 'rgba(96,165,250,0.25)' : 'rgba(0,0,0,0.6)'
           }}
         />
         
-        {/* Outer frame - dark with subtle green accent */}
+        {/* Outer frame - dark with subtle blue accent on hover */}
         <div 
           className={cn(
             "absolute -inset-3 transition-all duration-300",
             "bg-gradient-to-br from-zinc-800 via-zinc-900 to-black",
             "shadow-xl",
-            isHovered && "from-emerald-950/50 via-zinc-900 to-black"
+            isHovered && "from-slate-800/60 via-zinc-900 to-black"
           )}
         />
         
         {/* Inner mat */}
         <div className="absolute -inset-1.5 bg-black" />
         
-        {/* Image/video area */}
+        {/* Video/thumbnail area */}
         <div className="relative w-full h-full overflow-hidden bg-zinc-950">
-          {video.thumbnail_url ? (
+          {video.video_url ? (
+            <>
+              {/* Video element paused at thumbnail frame */}
+              <video
+                ref={videoRef}
+                src={video.video_url}
+                className={cn(
+                  "w-full h-full object-cover transition-transform duration-500 group-hover:scale-110",
+                  !thumbnailReady && "opacity-0"
+                )}
+                muted
+                playsInline
+                preload="metadata"
+                onLoadedData={handleVideoLoaded}
+                onSeeked={handleSeeked}
+                crossOrigin="anonymous"
+              />
+              {/* Loading state while thumbnail extracts */}
+              {!thumbnailReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                  <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
+                </div>
+              )}
+            </>
+          ) : video.thumbnail_url ? (
             <img 
               src={video.thumbnail_url} 
               alt={video.title}
@@ -305,11 +355,11 @@ function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black">
-              <Film className="w-10 h-10 text-emerald-500/30" />
+              <Film className="w-10 h-10 text-slate-500/30" />
             </div>
           )}
           
-          {/* Hover overlay with green accent */}
+          {/* Hover overlay with blue accent */}
           <motion.div 
             className="absolute inset-0 bg-black/60 flex items-center justify-center"
             initial={{ opacity: 0 }}
@@ -318,16 +368,16 @@ function FramedVideo({ video, index, onClick, rowIndex }: FramedVideoProps) {
             <motion.div
               initial={{ scale: 0.5 }}
               animate={{ scale: isHovered ? 1 : 0.5 }}
-              className="w-12 h-12 rounded-full bg-emerald-500/20 backdrop-blur-xl flex items-center justify-center border border-emerald-400/40"
+              className="w-12 h-12 rounded-full bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-blue-400/40"
             >
-              <Play className="w-5 h-5 text-emerald-100 fill-emerald-100 ml-0.5" />
+              <Play className="w-5 h-5 text-blue-100 fill-blue-100 ml-0.5" />
             </motion.div>
           </motion.div>
         </div>
         
-        {/* Title plaque with green accent */}
+        {/* Title plaque */}
         <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%]">
-          <div className="bg-zinc-950/95 backdrop-blur px-2 py-1 text-center border border-emerald-900/30">
+          <div className="bg-zinc-950/95 backdrop-blur px-2 py-1 text-center border border-zinc-800/50">
             <span className="text-zinc-300 text-xs font-medium truncate block">{video.title}</span>
           </div>
         </div>
@@ -401,8 +451,8 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
           />
         ) : (
           <div className="text-center">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-emerald-500/30 flex items-center justify-center bg-emerald-500/10">
-              <Film className="w-10 h-10 text-emerald-400/60" />
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-slate-500/30 flex items-center justify-center bg-slate-500/10">
+              <Film className="w-10 h-10 text-slate-400/60" />
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">{video.title}</h2>
             <p className="text-zinc-500 text-sm">Video preview</p>
@@ -412,13 +462,13 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         {video.video_url && !hasError && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
             <button 
-              className="w-12 h-12 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center text-emerald-100 backdrop-blur-xl border border-emerald-500/30"
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
               onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             >
               {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
             </button>
             <button 
-              className="w-12 h-12 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center text-emerald-100 backdrop-blur-xl border border-emerald-500/30"
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
               onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); if(videoRef.current) videoRef.current.muted = !isMuted; }}
             >
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -475,7 +525,7 @@ export default function Gallery() {
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />
       </div>
     );
   }
@@ -490,7 +540,7 @@ export default function Gallery() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
         onClick={() => navigate('/')}
-        className="fixed top-6 left-6 z-50 flex items-center gap-2 text-zinc-500 hover:text-emerald-400 transition-colors group"
+        className="fixed top-6 left-6 z-50 flex items-center gap-2 text-zinc-500 hover:text-blue-400 transition-colors group"
       >
         <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
         <span className="text-sm font-medium">Back</span>
@@ -499,14 +549,14 @@ export default function Gallery() {
       {/* Navigation arrows */}
       <button
         onClick={() => scroll('left')}
-        className="fixed left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-emerald-900/30 border border-zinc-800 hover:border-emerald-700/50 flex items-center justify-center text-zinc-500 hover:text-emerald-400 transition-all"
+        className="fixed left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-slate-900/60 border border-zinc-800 hover:border-blue-700/50 flex items-center justify-center text-zinc-500 hover:text-blue-400 transition-all"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       
       <button
         onClick={() => scroll('right')}
-        className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-emerald-900/30 border border-zinc-800 hover:border-emerald-700/50 flex items-center justify-center text-zinc-500 hover:text-emerald-400 transition-all"
+        className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-zinc-900/50 hover:bg-slate-900/60 border border-zinc-800 hover:border-blue-700/50 flex items-center justify-center text-zinc-500 hover:text-blue-400 transition-all"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -514,7 +564,7 @@ export default function Gallery() {
       {/* Loading */}
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center z-40">
-          <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />
         </div>
       )}
       
@@ -568,14 +618,14 @@ export default function Gallery() {
         </div>
       </div>
       
-      {/* Gallery title with green accent */}
+      {/* Gallery title */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         className="fixed top-6 left-1/2 -translate-x-1/2 z-40"
       >
-        <h1 className="text-emerald-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
+        <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
       </motion.div>
       
       {/* Fullscreen player */}

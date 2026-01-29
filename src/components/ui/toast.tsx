@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
+import { X, CheckCircle2, XCircle, AlertTriangle, Info, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      "fixed bottom-0 left-1/2 -translate-x-1/2 z-[100] flex max-h-screen w-full flex-col p-4 sm:max-w-[420px]",
       className,
     )}
     {...props}
@@ -23,15 +24,16 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-2xl p-5 pr-10 transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-2xl p-5 pr-12 backdrop-blur-2xl border transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full",
   {
     variants: {
       variant: {
-        default: "",
-        destructive: "",
-        success: "",
-        warning: "",
-        info: "",
+        default: "bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-950/95 border-white/10 text-white shadow-[0_0_30px_rgba(148,163,184,0.15),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
+        destructive: "bg-gradient-to-br from-rose-950/95 via-rose-900/90 to-slate-950/95 border-rose-500/30 text-rose-50 shadow-[0_0_40px_rgba(244,63,94,0.25),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
+        success: "bg-gradient-to-br from-emerald-950/95 via-emerald-900/90 to-slate-950/95 border-emerald-500/30 text-emerald-50 shadow-[0_0_40px_rgba(16,185,129,0.25),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
+        warning: "bg-gradient-to-br from-amber-950/95 via-amber-900/90 to-slate-950/95 border-amber-500/30 text-amber-50 shadow-[0_0_40px_rgba(245,158,11,0.25),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
+        info: "bg-gradient-to-br from-blue-950/95 via-blue-900/90 to-slate-950/95 border-blue-500/30 text-blue-50 shadow-[0_0_40px_rgba(59,130,246,0.25),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
+        epic: "bg-gradient-to-br from-violet-950/95 via-fuchsia-900/90 to-slate-950/95 border-violet-500/40 text-violet-50 shadow-[0_0_50px_rgba(139,92,246,0.35),0_25px_50px_-12px_rgba(0,0,0,0.7)]",
       },
     },
     defaultVariants: {
@@ -40,55 +42,70 @@ const toastVariants = cva(
   },
 );
 
-const toastStyles: Record<string, React.CSSProperties> = {
-  default: {
-    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 50%, rgba(20, 30, 50, 0.98) 100%)',
-    border: '1px solid rgba(148, 163, 184, 0.2)',
-    boxShadow: '0 0 30px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.08), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(24px)',
-    color: '#e2e8f0',
-  },
-  destructive: {
-    background: 'linear-gradient(135deg, rgba(30, 15, 20, 0.98) 0%, rgba(25, 10, 15, 0.99) 50%, rgba(35, 20, 25, 0.98) 100%)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    boxShadow: '0 0 30px rgba(239, 68, 68, 0.15), 0 0 60px rgba(239, 68, 68, 0.08), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(24px)',
-    color: '#fecaca',
-  },
-  success: {
-    background: 'linear-gradient(135deg, rgba(15, 30, 25, 0.98) 0%, rgba(10, 25, 20, 0.99) 50%, rgba(20, 35, 30, 0.98) 100%)',
-    border: '1px solid rgba(34, 197, 94, 0.3)',
-    boxShadow: '0 0 30px rgba(34, 197, 94, 0.15), 0 0 60px rgba(34, 197, 94, 0.08), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(24px)',
-    color: '#bbf7d0',
-  },
-  warning: {
-    background: 'linear-gradient(135deg, rgba(30, 25, 15, 0.98) 0%, rgba(25, 20, 10, 0.99) 50%, rgba(35, 30, 20, 0.98) 100%)',
-    border: '1px solid rgba(251, 191, 36, 0.3)',
-    boxShadow: '0 0 30px rgba(251, 191, 36, 0.15), 0 0 60px rgba(251, 191, 36, 0.08), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(24px)',
-    color: '#fef08a',
-  },
-  info: {
-    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 20, 35, 0.99) 50%, rgba(20, 30, 50, 0.98) 100%)',
-    border: '1px solid rgba(59, 130, 246, 0.3)',
-    boxShadow: '0 0 30px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.08), 0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(24px)',
-    color: '#bfdbfe',
-  },
+const variantIcons: Record<string, React.ReactNode> = {
+  default: <Info className="h-5 w-5 text-white/70" />,
+  destructive: <XCircle className="h-5 w-5 text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />,
+  success: <CheckCircle2 className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />,
+  warning: <AlertTriangle className="h-5 w-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />,
+  info: <Info className="h-5 w-5 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" />,
+  epic: <Sparkles className="h-5 w-5 text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.6)]" />,
+};
+
+const variantGlows: Record<string, string> = {
+  default: "rgba(148, 163, 184, 0.1)",
+  destructive: "rgba(244, 63, 94, 0.15)",
+  success: "rgba(16, 185, 129, 0.15)",
+  warning: "rgba(245, 158, 11, 0.15)",
+  info: "rgba(59, 130, 246, 0.15)",
+  epic: "rgba(139, 92, 246, 0.2)",
 };
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
->(({ className, variant = "default", style, ...props }, ref) => {
+>(({ className, variant = "default", children, ...props }, ref) => {
   return (
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
-      style={{ ...toastStyles[variant || "default"], ...style }}
       {...props}
-    />
+    >
+      {/* Animated glow overlay */}
+      <motion.div 
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{ 
+          background: `radial-gradient(ellipse at top left, ${variantGlows[variant || 'default']}, transparent 60%)` 
+        }}
+        animate={{ 
+          opacity: [0.5, 0.8, 0.5]
+        }}
+        transition={{ 
+          duration: 3, 
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      
+      {/* Shine effect */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] via-transparent to-transparent" />
+      </div>
+
+      {/* Icon */}
+      <motion.div 
+        className="flex-shrink-0 relative z-10"
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 500, damping: 20, delay: 0.1 }}
+      >
+        {variantIcons[variant || 'default']}
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative z-10 flex-1">
+        {children}
+      </div>
+    </ToastPrimitives.Root>
   );
 });
 Toast.displayName = ToastPrimitives.Root.displayName;
@@ -100,8 +117,8 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-3 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50",
-      "bg-white/10 text-white/90 hover:bg-white/20 border border-white/20",
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50",
+      "bg-white/10 text-white/90 hover:bg-white/20 border border-white/15 hover:border-white/25 hover:scale-[1.02]",
       className,
     )}
     {...props}
@@ -116,7 +133,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-3 top-3 rounded-lg p-1.5 opacity-60 transition-all duration-200 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+      "absolute right-4 top-4 rounded-lg p-1.5 opacity-60 transition-all duration-200 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white/20",
       "text-white/60 hover:text-white hover:bg-white/10",
       className,
     )}
@@ -132,7 +149,7 @@ const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Title ref={ref} className={cn("text-sm font-semibold text-white", className)} {...props} />
+  <ToastPrimitives.Title ref={ref} className={cn("text-sm font-semibold tracking-tight", className)} {...props} />
 ));
 ToastTitle.displayName = ToastPrimitives.Title.displayName;
 
@@ -140,7 +157,7 @@ const ToastDescription = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Description>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Description ref={ref} className={cn("text-sm text-white/70", className)} {...props} />
+  <ToastPrimitives.Description ref={ref} className={cn("text-sm opacity-70 mt-1", className)} {...props} />
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 

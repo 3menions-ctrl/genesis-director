@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, Film } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -12,10 +12,9 @@ interface GalleryVideo {
   title: string;
   thumbnail_url: string | null;
   video_url: string | null;
-  all_clips?: string[]; // All clips for full stitched playback
+  all_clips?: string[];
 }
 
-// Manifest structure for stitched videos
 interface ManifestClip {
   index: number;
   videoUrl: string;
@@ -27,15 +26,12 @@ interface VideoManifest {
   totalDuration: number;
 }
 
-// Admin account ID for gallery showcase
 const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
 
-// Fetch stitched/completed project videos from admin account (Gallery showcase)
 const useGalleryVideos = () => {
   return useQuery({
     queryKey: ['gallery-videos-admin'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // Fetch completed stitched projects from admin account
       const { data, error } = await supabase
         .from('movie_projects')
         .select('id, video_url, thumbnail_url')
@@ -48,25 +44,22 @@ const useGalleryVideos = () => {
       if (error) throw error;
       if (!data || data.length === 0) return [];
       
-      // For each project, fetch manifest and extract first clip URL
       const videosWithClips = await Promise.all(
         data.map(async (project) => {
           const url = project.video_url || '';
           
-          // If it's a manifest JSON, fetch and extract first clip
           if (url.endsWith('.json')) {
             try {
               const response = await fetch(url);
               const manifest: VideoManifest = await response.json();
               
               if (manifest.clips && manifest.clips.length > 0) {
-                // Use first clip's video URL for playback
                 return {
                   id: project.id,
                   title: '',
                   thumbnail_url: project.thumbnail_url,
                   video_url: manifest.clips[0].videoUrl,
-                  all_clips: manifest.clips.map(c => c.videoUrl), // Store all clips for full playback
+                  all_clips: manifest.clips.map(c => c.videoUrl),
                 };
               }
             } catch (e) {
@@ -74,7 +67,6 @@ const useGalleryVideos = () => {
             }
           }
           
-          // Direct video URL (MP4, WebM, etc.)
           if (url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mov')) {
             return {
               id: project.id,
@@ -89,262 +81,149 @@ const useGalleryVideos = () => {
         })
       );
       
-      // Filter out nulls and return valid videos
       return videosWithClips.filter((v): v is GalleryVideo & { all_clips: string[] } => v !== null);
     },
   });
 };
 
+// Ambient sound manager
+const useAmbientSounds = () => {
+  const transitionSoundRef = useRef<HTMLAudioElement | null>(null);
+  
+  useEffect(() => {
+    // Create subtle whoosh sound for transitions
+    transitionSoundRef.current = new Audio();
+    transitionSoundRef.current.volume = 0.1;
+    
+    return () => {
+      transitionSoundRef.current = null;
+    };
+  }, []);
+  
+  const playTransition = useCallback(async () => {
+    // Generate and play a subtle transition sound using the generate-sfx endpoint
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-sfx`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ 
+            prompt: 'soft futuristic UI whoosh transition sound effect',
+            duration: 0.5
+          }),
+        }
+      );
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.volume = 0.08;
+        await audio.play();
+      }
+    } catch {
+      // Silent fail - ambient sounds are optional
+    }
+  }, []);
+  
+  return { playTransition };
+};
 
-// Premium 3D room with perspective-aligned flowing lines - silver/blue/white/black palette
-function GalleryRoom() {
+// Premium background with parallax
+function ImmersiveBackground({ scrollProgress }: { scrollProgress: number }) {
+  const parallaxY = scrollProgress * -50;
+  
   return (
     <div className="fixed inset-0 overflow-hidden">
-      {/* Deep black base */}
       <div className="absolute inset-0 bg-black" />
       
-      {/* 3D Perspective-aligned lines container - matches gallery wall rotation */}
-      <div 
+      {/* Parallax layer 1 - Deep ambient */}
+      <motion.div 
         className="absolute inset-0"
-        style={{
-          perspective: '1200px',
-          perspectiveOrigin: '20% 50%',
-        }}
+        style={{ y: parallaxY * 0.3 }}
       >
-        <div
-          className="absolute inset-0"
-          style={{
-            transform: 'rotateY(-25deg) translateX(15%)',
-            transformStyle: 'preserve-3d',
-            transformOrigin: 'left center',
-          }}
-        >
-          {/* SVG lines that follow the 3D plane */}
-          <svg 
-            className="absolute inset-0 w-[200%] h-full opacity-70"
-            viewBox="0 0 3840 1080"
-            preserveAspectRatio="xMidYMid slice"
-          >
-            <defs>
-              {/* Silver/white gradient */}
-              <linearGradient id="silverLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#0a0a0a" />
-                <stop offset="20%" stopColor="#4b5563" />
-                <stop offset="50%" stopColor="#d1d5db" />
-                <stop offset="80%" stopColor="#4b5563" />
-                <stop offset="100%" stopColor="#0a0a0a" />
-              </linearGradient>
-              
-              {/* Blue accent gradient */}
-              <linearGradient id="blueLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#0a0a0a" />
-                <stop offset="25%" stopColor="#1e3a5f" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="75%" stopColor="#1e3a5f" />
-                <stop offset="100%" stopColor="#0a0a0a" />
-              </linearGradient>
-              
-              {/* Grey gradient */}
-              <linearGradient id="greyLine3D" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#0a0a0a" />
-                <stop offset="30%" stopColor="#27272a" />
-                <stop offset="50%" stopColor="#3f3f46" />
-                <stop offset="70%" stopColor="#27272a" />
-                <stop offset="100%" stopColor="#0a0a0a" />
-              </linearGradient>
-              
-              {/* Glow filter */}
-              <filter id="glow3D" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            
-            {/* Horizontal lines following the tilted wall plane */}
-            {/* Top section - gallery ceiling area */}
-            <motion.line
-              x1="-200" y1="120" x2="4000" y2="120"
-              stroke="url(#greyLine3D)"
-              strokeWidth="1"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.4 }}
-              transition={{ duration: 2, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="200" x2="4000" y2="200"
-              stroke="url(#silverLine3D)"
-              strokeWidth="1.5"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.6 }}
-              transition={{ duration: 2.2, delay: 0.1, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="280" x2="4000" y2="280"
-              stroke="url(#blueLine3D)"
-              strokeWidth="1"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.5 }}
-              transition={{ duration: 2.4, delay: 0.2, ease: "easeOut" }}
-            />
-            
-            {/* Upper gallery wall lines */}
-            <motion.line
-              x1="-200" y1="360" x2="4000" y2="360"
-              stroke="url(#greyLine3D)"
-              strokeWidth="1"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.35 }}
-              transition={{ duration: 2.5, delay: 0.3, ease: "easeOut" }}
-            />
-            
-            {/* Center section - main gallery wall */}
-            <motion.line
-              x1="-200" y1="440" x2="4000" y2="440"
-              stroke="url(#silverLine3D)"
-              strokeWidth="2.5"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.9 }}
-              transition={{ duration: 2, delay: 0.4, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="500" x2="4000" y2="500"
-              stroke="url(#blueLine3D)"
-              strokeWidth="2"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.7 }}
-              transition={{ duration: 2.2, delay: 0.5, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="560" x2="4000" y2="560"
-              stroke="url(#silverLine3D)"
-              strokeWidth="2"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.8 }}
-              transition={{ duration: 2.4, delay: 0.6, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="620" x2="4000" y2="620"
-              stroke="url(#greyLine3D)"
-              strokeWidth="1.5"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.5 }}
-              transition={{ duration: 2.6, delay: 0.7, ease: "easeOut" }}
-            />
-            
-            {/* Lower gallery wall lines */}
-            <motion.line
-              x1="-200" y1="720" x2="4000" y2="720"
-              stroke="url(#blueLine3D)"
-              strokeWidth="1.5"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.6 }}
-              transition={{ duration: 2.5, delay: 0.8, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="800" x2="4000" y2="800"
-              stroke="url(#silverLine3D)"
-              strokeWidth="1.5"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.5 }}
-              transition={{ duration: 2.7, delay: 0.9, ease: "easeOut" }}
-            />
-            
-            {/* Floor section lines */}
-            <motion.line
-              x1="-200" y1="880" x2="4000" y2="880"
-              stroke="url(#greyLine3D)"
-              strokeWidth="1"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.4 }}
-              transition={{ duration: 2.8, delay: 1, ease: "easeOut" }}
-            />
-            <motion.line
-              x1="-200" y1="960" x2="4000" y2="960"
-              stroke="url(#blueLine3D)"
-              strokeWidth="1"
-              filter="url(#glow3D)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.3 }}
-              transition={{ duration: 3, delay: 1.1, ease: "easeOut" }}
-            />
-          </svg>
-        </div>
-      </div>
+        <div 
+          className="absolute top-1/4 left-1/4 w-[800px] h-[800px] rounded-full blur-[200px] opacity-20"
+          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)' }}
+        />
+        <div 
+          className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] rounded-full blur-[180px] opacity-15"
+          style={{ background: 'radial-gradient(circle, rgba(148,163,184,0.3) 0%, transparent 70%)' }}
+        />
+      </motion.div>
       
-      {/* Additional ambient lines in normal space for depth layering */}
-      <svg 
-        className="absolute inset-0 w-full h-full opacity-30 pointer-events-none"
+      {/* Parallax layer 2 - Silver lines */}
+      <motion.svg 
+        className="absolute inset-0 w-full h-full opacity-30"
         viewBox="0 0 1920 1080"
         preserveAspectRatio="xMidYMid slice"
+        style={{ y: parallaxY * 0.5 }}
       >
         <defs>
-          <linearGradient id="ambientGrey" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="silverLineGallery" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="transparent" />
-            <stop offset="50%" stopColor="#27272a" />
+            <stop offset="30%" stopColor="#4b5563" />
+            <stop offset="50%" stopColor="#9ca3af" />
+            <stop offset="70%" stopColor="#4b5563" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+          <linearGradient id="blueLineGallery" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="40%" stopColor="#1e40af" />
+            <stop offset="50%" stopColor="#3b82f6" />
+            <stop offset="60%" stopColor="#1e40af" />
             <stop offset="100%" stopColor="transparent" />
           </linearGradient>
         </defs>
         
-        {/* Subtle ambient horizontal lines */}
-        <motion.line
-          x1="0" y1="300" x2="1920" y2="300"
-          stroke="url(#ambientGrey)"
-          strokeWidth="0.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          transition={{ duration: 2, delay: 1.5 }}
-        />
-        <motion.line
-          x1="0" y1="540" x2="1920" y2="540"
-          stroke="url(#ambientGrey)"
-          strokeWidth="0.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
-          transition={{ duration: 2, delay: 1.7 }}
-        />
-        <motion.line
-          x1="0" y1="780" x2="1920" y2="780"
-          stroke="url(#ambientGrey)"
-          strokeWidth="0.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          transition={{ duration: 2, delay: 1.9 }}
-        />
-      </svg>
+        <line x1="0" y1="200" x2="1920" y2="200" stroke="url(#silverLineGallery)" strokeWidth="1" />
+        <line x1="0" y1="400" x2="1920" y2="400" stroke="url(#blueLineGallery)" strokeWidth="1.5" />
+        <line x1="0" y1="600" x2="1920" y2="600" stroke="url(#silverLineGallery)" strokeWidth="1" />
+        <line x1="0" y1="800" x2="1920" y2="800" stroke="url(#blueLineGallery)" strokeWidth="1" />
+      </motion.svg>
       
-      {/* Corner vignette for depth */}
+      {/* Parallax layer 3 - Floating particles */}
+      <motion.div 
+        className="absolute inset-0 pointer-events-none"
+        style={{ y: parallaxY * 0.8 }}
+      >
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-blue-400/30"
+            style={{
+              left: `${10 + (i * 4.5) % 80}%`,
+              top: `${15 + (i * 7) % 70}%`,
+            }}
+            animate={{
+              opacity: [0.2, 0.5, 0.2],
+              scale: [1, 1.5, 1],
+            }}
+            transition={{
+              duration: 3 + (i % 3),
+              repeat: Infinity,
+              delay: i * 0.2,
+            }}
+          />
+        ))}
+      </motion.div>
+      
+      {/* Vignette */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `
-            radial-gradient(ellipse at 0% 0%, rgba(96,165,250,0.05) 0%, transparent 35%),
-            radial-gradient(ellipse at 100% 100%, rgba(148,163,184,0.04) 0%, transparent 35%),
-            radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.75) 85%)
-          `,
-        }}
-      />
-      
-      {/* Ambient silver/blue glow - centered */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-15"
-        style={{
-          background: 'radial-gradient(ellipse at 40% 50%, rgba(148,163,184,0.2) 0%, transparent 45%)',
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.8) 100%)',
         }}
       />
       
       {/* Noise texture */}
       <div 
-        className="absolute inset-0 opacity-[0.025] pointer-events-none"
+        className="absolute inset-0 opacity-[0.02] pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
@@ -353,167 +232,197 @@ function GalleryRoom() {
   );
 }
 
-interface FramedVideoProps {
+// 3D Tilt video card
+interface TiltVideoCardProps {
   video: GalleryVideo;
-  index: number;
+  isActive: boolean;
   onClick: () => void;
-  rowIndex: number;
 }
 
-// FramedVideo component - displays video thumbnail
-const FramedVideo = React.forwardRef<HTMLDivElement, FramedVideoProps>(
-  function FramedVideo({ video, index, onClick }, ref) {
-    const [isHovered, setIsHovered] = useState(false);
-    const [thumbnailReady, setThumbnailReady] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
+function TiltVideoCard({ video, isActive, onClick }: TiltVideoCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [thumbnailReady, setThumbnailReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Motion values for 3D tilt
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const rotateX = useTransform(y, [-0.5, 0.5], [15, -15]);
+  const rotateY = useTransform(x, [-0.5, 0.5], [-15, 15]);
+  
+  const springConfig = { stiffness: 300, damping: 30 };
+  const springRotateX = useSpring(rotateX, springConfig);
+  const springRotateY = useSpring(rotateY, springConfig);
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set((e.clientX - centerX) / rect.width);
+    y.set((e.clientY - centerY) / rect.height);
+  };
+  
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+    setIsHovered(false);
+  };
+  
+  const videoSrc = video.video_url || (video.all_clips && video.all_clips[0]) || null;
+  
+  // Initialize thumbnail
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !videoSrc) return;
     
-    // Vary sizes for gallery wall effect
-    const sizes = [
-      { w: 180, h: 240 },
-      { w: 220, h: 160 },
-      { w: 160, h: 200 },
-      { w: 200, h: 280 },
-      { w: 180, h: 180 },
-      { w: 240, h: 180 },
-    ];
-    const size = sizes[index % sizes.length];
+    let mounted = true;
     
-    // Get video source - use first clip
-    const videoSrc = video.video_url || (video.all_clips && video.all_clips[0]) || null;
+    const initThumbnail = async () => {
+      try {
+        vid.src = videoSrc;
+        vid.load();
+        
+        await new Promise<void>((resolve) => {
+          vid.onloadedmetadata = () => resolve();
+          setTimeout(() => resolve(), 3000);
+        });
+        
+        if (!mounted) return;
+        vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
+        
+        await new Promise<void>((resolve) => {
+          vid.onseeked = () => resolve();
+          setTimeout(() => resolve(), 1000);
+        });
+        
+        if (mounted) setThumbnailReady(true);
+      } catch {
+        if (mounted) setThumbnailReady(true);
+      }
+    };
     
-    // Initialize video on mount - play briefly then pause to ensure frame is shown
-    useEffect(() => {
-      const vid = videoRef.current;
-      if (!vid || !videoSrc) return;
-      
-      let mounted = true;
-      
-      const initThumbnail = async () => {
-        try {
-          vid.src = videoSrc;
-          vid.load();
-          
-          // Wait for metadata
-          await new Promise<void>((resolve, reject) => {
-            vid.onloadedmetadata = () => resolve();
-            vid.onerror = () => reject(new Error('Load error'));
-            setTimeout(() => resolve(), 3000); // Timeout fallback
-          });
-          
-          if (!mounted) return;
-          
-          // Seek to first frame area
-          vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
-          
-          // Wait for seek
-          await new Promise<void>((resolve) => {
-            vid.onseeked = () => resolve();
-            setTimeout(() => resolve(), 1000);
-          });
-          
-          if (mounted) {
-            setThumbnailReady(true);
-          }
-        } catch (e) {
-          if (mounted) {
-            setThumbnailReady(true); // Show whatever we have
-          }
-        }
-      };
-      
-      initThumbnail();
-      
-      return () => { mounted = false; };
-    }, [videoSrc]);
+    initThumbnail();
+    return () => { mounted = false; };
+  }, [videoSrc]);
+  
+  // Auto-play on hover
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !videoSrc) return;
     
-    // Fallback timeout
-    useEffect(() => {
-      if (thumbnailReady) return;
-      const timeout = setTimeout(() => setThumbnailReady(true), 2500);
-      return () => clearTimeout(timeout);
-    }, [thumbnailReady]);
-    
-    return (
+    if (isHovered) {
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+      vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
+    }
+  }, [isHovered, videoSrc]);
+  
+  // Fallback timeout
+  useEffect(() => {
+    if (thumbnailReady) return;
+    const timeout = setTimeout(() => setThumbnailReady(true), 2500);
+    return () => clearTimeout(timeout);
+  }, [thumbnailReady]);
+  
+  return (
+    <motion.div
+      ref={cardRef}
+      className="relative cursor-pointer"
+      style={{
+        perspective: 1000,
+        transformStyle: 'preserve-3d',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ 
+        opacity: isActive ? 1 : 0.4, 
+        scale: isActive ? 1 : 0.85,
+      }}
+      whileHover={{ scale: isActive ? 1.02 : 0.9 }}
+      transition={{ duration: 0.5 }}
+    >
       <motion.div
-        ref={ref}
-        className="flex-shrink-0 cursor-pointer"
-        style={{ width: size.w, height: size.h }}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: index * 0.05 }}
-        whileHover={{ scale: 1.05, zIndex: 10 }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={onClick}
+        className="relative w-[280px] h-[400px] md:w-[400px] md:h-[560px] rounded-2xl overflow-hidden"
+        style={{
+          rotateX: springRotateX,
+          rotateY: springRotateY,
+          transformStyle: 'preserve-3d',
+        }}
       >
-        <div className="relative w-full h-full group">
-          {/* Frame shadow */}
+        {/* Glow effect */}
+        <div 
+          className={cn(
+            "absolute -inset-1 rounded-2xl blur-xl transition-all duration-500",
+            isHovered ? "opacity-60" : "opacity-0"
+          )}
+          style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.4) 0%, rgba(148,163,184,0.3) 100%)' }}
+        />
+        
+        {/* Card frame */}
+        <div className="relative w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10">
+          {videoSrc ? (
+            <>
+              <video
+                ref={videoRef}
+                className={cn(
+                  "w-full h-full object-cover transition-all duration-700",
+                  !thumbnailReady && "opacity-0",
+                  isHovered && "scale-105"
+                )}
+                muted
+                playsInline
+                loop
+                preload="metadata"
+              />
+              
+              {!thumbnailReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                  <div className="w-6 h-6 border-2 border-zinc-700 border-t-blue-400 rounded-full animate-spin" />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
+              <Film className="w-12 h-12 text-zinc-600" />
+            </div>
+          )}
+          
+          {/* Play icon overlay */}
+          <motion.div 
+            className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 1 : 0 }}
+          >
+            <motion.div
+              className="w-16 h-16 rounded-full bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-blue-400/40"
+              initial={{ scale: 0.5 }}
+              animate={{ scale: isHovered ? 1 : 0.5 }}
+            >
+              <Play className="w-7 h-7 text-blue-100 fill-blue-100 ml-1" />
+            </motion.div>
+          </motion.div>
+          
+          {/* Reflection effect */}
           <div 
-            className="absolute -inset-1 rounded-sm blur-md transition-all duration-300"
-            style={{ 
-              transform: 'translate(8px, 8px)',
-              background: isHovered ? 'rgba(96,165,250,0.25)' : 'rgba(0,0,0,0.6)'
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
             }}
           />
-          
-          {/* Outer frame */}
-          <div className={cn(
-            "absolute -inset-3 transition-all duration-300 shadow-xl",
-            "bg-gradient-to-br from-zinc-800 via-zinc-900 to-black",
-            isHovered && "from-slate-800/60 via-zinc-900 to-black"
-          )} />
-          
-          {/* Inner mat */}
-          <div className="absolute -inset-1.5 bg-black" />
-          
-          {/* Thumbnail area */}
-          <div className="relative w-full h-full overflow-hidden bg-zinc-950">
-            {videoSrc ? (
-              <>
-                <video
-                  ref={videoRef}
-                  className={cn(
-                    "w-full h-full object-cover transition-all duration-500 group-hover:scale-110",
-                    !thumbnailReady && "opacity-0"
-                  )}
-                  muted
-                  playsInline
-                  preload="metadata"
-                />
-                
-                {!thumbnailReady && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                    <div className="w-5 h-5 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-                <Film className="w-8 h-8 text-zinc-600" />
-              </div>
-            )}
-            
-            {/* Hover overlay */}
-            <motion.div 
-              className="absolute inset-0 bg-black/60 flex items-center justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered ? 1 : 0 }}
-            >
-              <motion.div
-                initial={{ scale: 0.5 }}
-                animate={{ scale: isHovered ? 1 : 0.5 }}
-                className="w-12 h-12 rounded-full bg-blue-500/20 backdrop-blur-xl flex items-center justify-center border border-blue-400/40"
-              >
-                <Play className="w-5 h-5 text-blue-100 fill-blue-100 ml-0.5" />
-              </motion.div>
-            </motion.div>
-          </div>
         </div>
       </motion.div>
-    );
-  }
-);
+    </motion.div>
+  );
+}
 
+// Fullscreen immersive player
 interface FullscreenPlayerProps {
   video: GalleryVideo;
   onClose: () => void;
@@ -525,22 +434,18 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   const [hasError, setHasError] = useState(false);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   
-  // Dual video refs for crossfade transitions
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
   const [activeVideo, setActiveVideo] = useState<'A' | 'B'>('A');
   const isTransitioningRef = useRef(false);
-  const nextClipReadyRef = useRef(false);
   const triggerTransitionRef = useRef<() => void>(() => {});
   
-  // Get all clips
   const clips = video.all_clips && video.all_clips.length > 0 
     ? video.all_clips 
     : video.video_url ? [video.video_url] : [];
   
   const totalClips = clips.length;
   
-  // Get video refs based on active state
   const getActiveVideoRef = useCallback(() => {
     return activeVideo === 'A' ? videoARef : videoBRef;
   }, [activeVideo]);
@@ -549,29 +454,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
     return activeVideo === 'A' ? videoBRef : videoARef;
   }, [activeVideo]);
   
-  // Preload next clip into inactive video element (called early)
-  const preloadNextClip = useCallback(() => {
-    if (totalClips <= 1) return;
-    
-    const nextIndex = (currentClipIndex + 1) % totalClips;
-    const inactiveVideo = getInactiveVideoRef().current;
-    
-    if (!inactiveVideo || inactiveVideo.src === clips[nextIndex]) return;
-    
-    console.log('[Gallery] Preloading next clip:', nextIndex);
-    inactiveVideo.src = clips[nextIndex];
-    inactiveVideo.load();
-    inactiveVideo.muted = true; // Keep muted during preload
-    nextClipReadyRef.current = false;
-    
-    inactiveVideo.oncanplaythrough = () => {
-      nextClipReadyRef.current = true;
-      console.log('[Gallery] Next clip ready:', nextIndex);
-      inactiveVideo.oncanplaythrough = null;
-    };
-  }, [totalClips, currentClipIndex, clips, getInactiveVideoRef]);
-  
-  // Instant crossfade transition - no waiting, clips already preloaded
   const triggerTransition = useCallback(() => {
     if (isTransitioningRef.current || totalClips <= 1) return;
     isTransitioningRef.current = true;
@@ -585,69 +467,48 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       return;
     }
     
-    console.log('[Gallery] Triggering transition to clip:', nextIndex);
-    
-    // Start the next clip immediately - it's already preloaded
     inactiveVideo.currentTime = 0;
     inactiveVideo.muted = isMuted;
     inactiveVideo.play().catch(() => {});
     
-    // Both videos visible at 100% for ~30ms (True Overlap)
-    // Use double-rAF to ensure browser painted the new frame
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        // Swap active video
         setActiveVideo(prev => prev === 'A' ? 'B' : 'A');
         setCurrentClipIndex(nextIndex);
-        
-        // Pause and reset the old video
         activeVideoEl.pause();
-        
         isTransitioningRef.current = false;
         
-        // Preload the next-next clip
         setTimeout(() => {
           const newNextIndex = (nextIndex + 1) % totalClips;
-          const newInactiveVideo = activeVideoEl; // Now the old one is inactive
+          const newInactiveVideo = activeVideoEl;
           if (newInactiveVideo && clips[newNextIndex]) {
             newInactiveVideo.src = clips[newNextIndex];
             newInactiveVideo.load();
             newInactiveVideo.muted = true;
-            nextClipReadyRef.current = false;
-            newInactiveVideo.oncanplaythrough = () => {
-              nextClipReadyRef.current = true;
-              newInactiveVideo.oncanplaythrough = null;
-            };
           }
         }, 100);
       });
     });
   }, [totalClips, currentClipIndex, clips, getInactiveVideoRef, getActiveVideoRef, isMuted]);
   
-  // Keep ref updated for event handlers
   useEffect(() => {
     triggerTransitionRef.current = triggerTransition;
   }, [triggerTransition]);
   
-  // Handle time update - trigger transition 50ms before clip ends
   const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget;
-    if (!video.duration || isTransitioningRef.current) return;
-    
-    // Trigger 50ms before end for seamless overlap
-    if (video.currentTime >= video.duration - 0.05) {
+    const vid = e.currentTarget;
+    if (!vid.duration || isTransitioningRef.current) return;
+    if (vid.currentTime >= vid.duration - 0.05) {
       triggerTransitionRef.current();
     }
   }, []);
   
-  // Handle clip ended (fallback if timeupdate didn't catch it)
   const handleClipEnded = useCallback(() => {
     if (!isTransitioningRef.current) {
       triggerTransitionRef.current();
     }
   }, []);
   
-  // Initial playback setup + preload second clip
   useEffect(() => {
     const startPlayback = async () => {
       const videoA = videoARef.current;
@@ -661,16 +522,10 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
           await videoA.play();
           setIsPlaying(true);
           
-          // Immediately preload second clip into video B
           if (videoB && clips.length > 1) {
             videoB.src = clips[1];
             videoB.load();
             videoB.muted = true;
-            videoB.oncanplaythrough = () => {
-              nextClipReadyRef.current = true;
-              console.log('[Gallery] Second clip preloaded');
-              videoB.oncanplaythrough = null;
-            };
           }
         } catch (err) {
           console.warn('Autoplay failed:', err);
@@ -680,7 +535,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
     startPlayback();
   }, [clips]);
   
-  // Sync muted state across both videos
   useEffect(() => {
     if (videoARef.current) videoARef.current.muted = isMuted;
     if (videoBRef.current) videoBRef.current.muted = isMuted;
@@ -697,31 +551,8 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         await activeVideoEl.play();
         setIsPlaying(true);
       }
-    } catch (err) {
+    } catch {
       setHasError(true);
-    }
-  };
-  
-  const jumpToClip = (idx: number) => {
-    if (idx === currentClipIndex) return;
-    
-    const activeVideoEl = getActiveVideoRef().current;
-    const inactiveVideoEl = getInactiveVideoRef().current;
-    
-    if (activeVideoEl) {
-      activeVideoEl.src = clips[idx];
-      activeVideoEl.load();
-      activeVideoEl.play().catch(() => {});
-      setCurrentClipIndex(idx);
-      setIsPlaying(true);
-      
-      // Preload next clip after this one
-      if (inactiveVideoEl && clips[(idx + 1) % totalClips]) {
-        const nextIdx = (idx + 1) % totalClips;
-        inactiveVideoEl.src = clips[nextIdx];
-        inactiveVideoEl.load();
-        inactiveVideoEl.muted = true;
-      }
     }
   };
   
@@ -739,7 +570,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       >
         {clips.length > 0 && !hasError ? (
           <>
-            {/* Video A - always visible when active, both visible during overlap */}
             <video
               ref={videoARef}
               className="absolute inset-0 w-full h-full object-contain"
@@ -754,7 +584,6 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               onEnded={handleClipEnded}
               onTimeUpdate={handleTimeUpdate}
             />
-            {/* Video B - always visible when active, both visible during overlap */}
             <video
               ref={videoBRef}
               className="absolute inset-0 w-full h-full object-contain"
@@ -775,60 +604,49 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
             <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-slate-500/30 flex items-center justify-center bg-slate-500/10">
               <Film className="w-10 h-10 text-slate-400/60" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">{video.title}</h2>
             <p className="text-zinc-500 text-sm">Video preview</p>
           </div>
         )}
         
         {clips.length > 0 && !hasError && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
-            {/* Clip progress indicator */}
             {totalClips > 1 && (
               <div className="flex items-center gap-1.5 mb-2">
                 {clips.map((_, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    onClick={(e) => { e.stopPropagation(); jumpToClip(idx); }}
                     className={cn(
-                      "w-2 h-2 rounded-full transition-all",
+                      "h-1 rounded-full transition-all",
                       idx === currentClipIndex 
-                        ? "bg-white w-6" 
-                        : "bg-white/30 hover:bg-white/50"
+                        ? "bg-white w-8" 
+                        : "bg-white/30 w-2"
                     )}
                   />
                 ))}
               </div>
             )}
             
-            {/* Controls */}
             <div className="flex items-center gap-3">
               <button 
-                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+                className="w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
                 onClick={(e) => { e.stopPropagation(); togglePlay(); }}
               >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
               </button>
               <button 
-                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20 transition-all"
                 onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
               >
                 {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
             </div>
-            
-            {/* Clip counter */}
-            {totalClips > 1 && (
-              <span className="text-white/50 text-xs">
-                Clip {currentClipIndex + 1} of {totalClips}
-              </span>
-            )}
           </div>
         )}
       </div>
       
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-700/50 z-10"
+        className="absolute top-6 right-6 w-12 h-12 rounded-full bg-zinc-900/80 backdrop-blur-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-700/50 z-10 transition-all"
       >
         <X className="w-5 h-5" />
       </button>
@@ -841,16 +659,11 @@ function Gallery() {
   const location = useLocation();
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
   
   const { data: videos = [], isLoading } = useGalleryVideos();
-  
-  // Split videos into rows for gallery wall layout
-  const row1 = videos.filter((_, i) => i % 2 === 0);
-  const row2 = videos.filter((_, i) => i % 2 === 1);
+  const { playTransition } = useAmbientSounds();
   
   // Access control
   useEffect(() => {
@@ -864,42 +677,54 @@ function Gallery() {
       navigate('/', { replace: true });
     }
   }, [location, navigate]);
-
-  // Drag-to-scroll handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollContainerRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
-    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedVideo) return;
+      
+      if (e.key === 'ArrowRight' && currentIndex < videos.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setScrollProgress(prev => prev + 0.1);
+        playTransition();
+      } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        setCurrentIndex(prev => prev - 1);
+        setScrollProgress(prev => prev - 0.1);
+        playTransition();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, videos.length, selectedVideo, playTransition]);
+  
+  const goNext = () => {
+    if (currentIndex < videos.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setScrollProgress(prev => prev + 0.1);
+      playTransition();
+    }
   };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollContainerRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Multiplier for scroll speed
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
+  
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+      setScrollProgress(prev => prev - 0.1);
+      playTransition();
+    }
   };
   
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-slate-500/30 border-t-blue-400 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen overflow-hidden">
-      <GalleryRoom />
+      <ImmersiveBackground scrollProgress={scrollProgress} />
       
       {/* Back button */}
       <motion.button
@@ -913,74 +738,6 @@ function Gallery() {
         <span className="text-sm font-medium">Back</span>
       </motion.button>
       
-      
-      {/* Loading */}
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center z-40">
-          <div className="w-8 h-8 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />
-        </div>
-      )}
-      
-      {/* Gallery Wall - Scroll container is flat, content has 3D visual effect */}
-      <div 
-        ref={scrollContainerRef}
-        className={cn(
-          "min-h-screen flex items-center overflow-x-auto overflow-y-hidden scrollbar-hide",
-          isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-        )}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
-        {/* 3D perspective wrapper - visual only, doesn't affect scroll */}
-        <div 
-          className="min-w-max"
-          style={{ 
-            perspective: '1200px',
-            perspectiveOrigin: '20% 50%',
-          }}
-        >
-          <div
-            className="py-20 px-32"
-            style={{
-              transform: 'rotateY(-25deg) translateX(15%)',
-              transformStyle: 'preserve-3d',
-              transformOrigin: 'left center',
-            }}
-          >
-            {/* Wall content - Two rows of framed videos */}
-            <div className="flex flex-col gap-16">
-              {/* Top row */}
-              <div className="flex items-end gap-8 pl-12">
-                {row1.map((video, index) => (
-                  <FramedVideo
-                    key={video.id}
-                    video={video}
-                    index={index}
-                    rowIndex={0}
-                    onClick={() => setSelectedVideo(video)}
-                  />
-                ))}
-              </div>
-              
-              {/* Bottom row - offset for gallery wall feel */}
-              <div className="flex items-start gap-8 pl-24">
-                {row2.map((video, index) => (
-                  <FramedVideo
-                    key={video.id}
-                    video={video}
-                    index={index + row1.length}
-                    rowIndex={1}
-                    onClick={() => setSelectedVideo(video)}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       {/* Gallery title */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
@@ -991,109 +748,111 @@ function Gallery() {
         <h1 className="text-slate-400/50 text-sm tracking-[0.3em] uppercase font-light">Gallery</h1>
       </motion.div>
       
-      {/* Sign Up circular button - positioned on the left with landing page colors */}
-      <motion.button
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.8, type: "spring", stiffness: 120, damping: 20 }}
-        onClick={() => navigate('/auth')}
-        className="fixed left-8 top-1/2 -translate-y-1/2 z-50 group"
-      >
-        {/* Outer blue glow - breathing */}
-        <motion.div
-          className="absolute -inset-6 rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(96,165,250,0.1) 40%, transparent 70%)',
-            filter: 'blur(8px)',
-          }}
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.6, 1, 0.6],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        
-        {/* Secondary silver glow ring */}
-        <motion.div
-          className="absolute -inset-3 rounded-full"
-          style={{
-            background: 'radial-gradient(circle, rgba(148,163,184,0.2) 0%, transparent 60%)',
-          }}
-          animate={{
-            scale: [1.1, 1.4, 1.1],
-            opacity: [0.4, 0.8, 0.4],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-        />
-        
-        {/* Rotating conic gradient */}
-        <motion.div
-          className="absolute -inset-1 rounded-full opacity-60"
-          style={{
-            background: 'conic-gradient(from 0deg, transparent, rgba(59,130,246,0.3), transparent, rgba(148,163,184,0.2), transparent)',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-        />
-        
-        {/* Main button - silver/blue gradient */}
-        <div 
-          className="relative w-[76px] h-[76px] rounded-full flex items-center justify-center transition-all duration-500 group-hover:scale-110"
-          style={{
-            background: 'linear-gradient(135deg, rgba(30,58,95,0.9) 0%, rgba(15,23,42,0.95) 50%, rgba(30,41,59,0.9) 100%)',
-            border: '1px solid rgba(148,163,184,0.3)',
-            boxShadow: `
-              0 0 25px rgba(59,130,246,0.4),
-              0 0 50px rgba(59,130,246,0.2),
-              0 0 80px rgba(96,165,250,0.1),
-              inset 0 1px 2px rgba(148,163,184,0.3),
-              inset 0 -1px 2px rgba(0,0,0,0.3)
-            `,
-          }}
-        >
-          {/* Inner silver highlight arc */}
-          <div 
-            className="absolute inset-[2px] rounded-full pointer-events-none overflow-hidden"
-          >
-            <div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(180deg, rgba(148,163,184,0.15) 0%, transparent 40%)',
-              }}
-            />
+      {/* Loading */}
+      {isLoading && (
+        <div className="fixed inset-0 flex items-center justify-center z-40">
+          <div className="w-10 h-10 border-2 border-slate-500/30 border-t-blue-400 rounded-full animate-spin" />
+        </div>
+      )}
+      
+      {/* Immersive video showcase */}
+      {!isLoading && videos.length > 0 && (
+        <div className="fixed inset-0 flex items-center justify-center">
+          {/* Video cards carousel */}
+          <div className="relative flex items-center justify-center gap-4 md:gap-8">
+            {videos.map((video, index) => {
+              const distance = index - currentIndex;
+              const isVisible = Math.abs(distance) <= 2;
+              
+              if (!isVisible) return null;
+              
+              return (
+                <motion.div
+                  key={video.id}
+                  className="absolute"
+                  animate={{
+                    x: distance * 320,
+                    z: distance === 0 ? 0 : -100,
+                    opacity: distance === 0 ? 1 : 0.4,
+                  }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+                >
+                  <TiltVideoCard
+                    video={video}
+                    isActive={distance === 0}
+                    onClick={() => setSelectedVideo(video)}
+                  />
+                </motion.div>
+              );
+            })}
           </div>
           
-          {/* Text with silver/blue glow */}
-          <span 
-            className="relative text-[10px] font-semibold tracking-[0.2em] uppercase"
-            style={{
-              background: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 50%, #64748b 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 20px rgba(96,165,250,0.5)',
-              filter: 'drop-shadow(0 0 4px rgba(148,163,184,0.5))',
-            }}
-          >
-            Sign Up
-          </span>
+          {/* Navigation arrows */}
+          <AnimatePresence>
+            {currentIndex > 0 && (
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                onClick={goPrev}
+                className="fixed left-8 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+          
+          <AnimatePresence>
+            {currentIndex < videos.length - 1 && (
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onClick={goNext}
+                className="fixed right-8 top-1/2 -translate-y-1/2 z-50 w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+          
+          {/* Progress indicator */}
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
+            {videos.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  playTransition();
+                }}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  idx === currentIndex 
+                    ? "bg-blue-400 w-8" 
+                    : "bg-white/20 hover:bg-white/40 w-1.5"
+                )}
+              />
+            ))}
+          </div>
+          
+          {/* Video counter */}
+          <div className="fixed bottom-8 right-8 z-40">
+            <span className="text-white/30 text-sm font-mono">
+              {String(currentIndex + 1).padStart(2, '0')} / {String(videos.length).padStart(2, '0')}
+            </span>
+          </div>
         </div>
-        
-        {/* Hover glow intensifier - blue accent */}
-        <motion.div 
-          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-          style={{
-            boxShadow: '0 0 40px rgba(59,130,246,0.5), 0 0 80px rgba(96,165,250,0.3), 0 0 120px rgba(59,130,246,0.15)',
-          }}
-        />
+      )}
+      
+      {/* Sign Up button */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.8 }}
+        onClick={() => navigate('/auth')}
+        className="fixed bottom-8 left-8 z-50 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 text-white/70 hover:text-white text-sm font-medium transition-all"
+      >
+        Sign Up Free
       </motion.button>
       
       {/* Fullscreen player */}
@@ -1105,17 +864,10 @@ function Gallery() {
           />
         )}
       </AnimatePresence>
-      
-      {/* Hide scrollbar */}
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }
 
-// Export with ErrorBoundary wrapper for crash protection
 export default function GalleryWithErrorBoundary() {
   return (
     <ErrorBoundary>

@@ -667,31 +667,34 @@ export default function Gallery() {
         </div>
       )}
       
-      {/* 3D Gallery Wall - Angled perspective */}
+      {/* Gallery Wall - Scroll container is flat, content has 3D visual effect */}
       <div 
-        className="min-h-screen flex items-center"
-        style={{ 
-          perspective: '1200px',
-          perspectiveOrigin: '20% 50%',
-        }}
+        ref={scrollContainerRef}
+        className={cn(
+          "min-h-screen flex items-center overflow-x-auto overflow-y-hidden scrollbar-hide",
+          isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+        )}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
-        <div
-          ref={scrollContainerRef}
-          className={cn(
-            "w-full overflow-x-auto overflow-y-hidden scrollbar-hide",
-            isDragging ? "cursor-grabbing" : "cursor-grab"
-          )}
-          style={{
-            transform: 'rotateY(-25deg) translateX(15%)',
-            transformStyle: 'preserve-3d',
-            transformOrigin: 'left center',
+        {/* 3D perspective wrapper - visual only, doesn't affect scroll */}
+        <div 
+          className="min-w-max"
+          style={{ 
+            perspective: '1200px',
+            perspectiveOrigin: '20% 50%',
           }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
         >
-          <div className="min-w-max py-20 px-32">
+          <div
+            className="py-20 px-32"
+            style={{
+              transform: 'rotateY(-25deg) translateX(15%)',
+              transformStyle: 'preserve-3d',
+              transformOrigin: 'left center',
+            }}
+          >
             {/* Wall content - Two rows of framed videos */}
             <div className="flex flex-col gap-16">
               {/* Top row */}

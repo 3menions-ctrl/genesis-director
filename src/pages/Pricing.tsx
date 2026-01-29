@@ -294,17 +294,17 @@ export default function Pricing() {
           <div className="flex items-center justify-center gap-4">
             <Button
               variant="outline"
-              onClick={() => navigate('/#faq')}
+              asChild
               className="rounded-full border-white/10 text-white hover:bg-white/5"
             >
-              View FAQ
+              <Link to="/#faq">View FAQ</Link>
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate('/contact')}
+              asChild
               className="rounded-full border-white/10 text-white hover:bg-white/5"
             >
-              Contact Sales
+              <Link to="/contact">Contact Sales</Link>
             </Button>
           </div>
         </motion.div>

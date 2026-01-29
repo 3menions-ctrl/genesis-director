@@ -98,36 +98,49 @@ export default function CinematicTransition({
             className
           )}
         >
-          {/* Deep black background with vignette */}
+          {/* Deep black background with premium gradient */}
           <motion.div 
             className="absolute inset-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
             style={{
-              background: 'radial-gradient(ellipse at center, #0a0a0a 0%, #000000 70%)',
+              background: 'radial-gradient(ellipse at center, #0a0a12 0%, #000000 70%)',
             }}
           />
 
-          {/* Ambient pulse glow during buildup */}
+          {/* Premium blue/silver ambient pulse glow */}
           <motion.div
             className="absolute inset-0"
             initial={{ opacity: 0 }}
             animate={{ 
-              opacity: phase === 'buildup' ? [0, 0.3, 0.1, 0.4, 0.2] : 
-                       phase === 'logo' ? 0.5 :
-                       phase === 'explode' ? [0.5, 1, 0] : 0,
+              opacity: phase === 'buildup' ? [0, 0.4, 0.15, 0.5, 0.25] : 
+                       phase === 'logo' ? 0.6 :
+                       phase === 'explode' ? [0.6, 1, 0] : 0,
             }}
             transition={{ 
               duration: phase === 'buildup' ? 1 : 1.5,
               ease: "easeInOut",
             }}
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 50%)',
+              background: 'radial-gradient(ellipse at center, rgba(100, 150, 255, 0.2) 0%, rgba(180, 200, 255, 0.1) 30%, transparent 60%)',
             }}
           />
 
-          {/* Floating ambient orbs */}
+          {/* Secondary silver glow layer */}
+          <motion.div
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ 
+              opacity: phase === 'logo' || phase === 'explode' ? 0.3 : 0,
+            }}
+            transition={{ duration: 1.5 }}
+            style={{
+              background: 'radial-gradient(ellipse at 30% 40%, rgba(200, 220, 255, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(140, 180, 255, 0.12) 0%, transparent 50%)',
+            }}
+          />
+
+          {/* Floating premium blue/silver orbs */}
           {(phase === 'buildup' || phase === 'logo') && orbs.map((orb) => (
             <motion.div
               key={orb.id}
@@ -135,15 +148,17 @@ export default function CinematicTransition({
               style={{
                 width: orb.size,
                 height: orb.size,
-                background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-                filter: 'blur(20px)',
+                background: orb.id % 2 === 0 
+                  ? 'radial-gradient(circle, rgba(100, 150, 255, 0.15) 0%, rgba(140, 180, 255, 0.05) 50%, transparent 70%)'
+                  : 'radial-gradient(circle, rgba(180, 200, 255, 0.12) 0%, rgba(220, 230, 255, 0.04) 50%, transparent 70%)',
+                filter: 'blur(25px)',
               }}
               initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
               animate={{ 
                 x: orb.x,
                 y: orb.y,
-                opacity: [0, 0.6, 0.3, 0.5],
-                scale: [0, 1.2, 0.9, 1],
+                opacity: [0, 0.7, 0.4, 0.6],
+                scale: [0, 1.3, 1, 1.1],
               }}
               transition={{
                 duration: 2.5,
@@ -177,7 +192,7 @@ export default function CinematicTransition({
             }}
           />
 
-          {/* Starburst rays */}
+          {/* Premium silver/blue starburst rays */}
           {(phase === 'logo' || phase === 'explode') && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {rays.map((ray) => (
@@ -188,19 +203,28 @@ export default function CinematicTransition({
                     width: ray.width,
                     height: '200vh',
                     transform: `rotate(${ray.angle}deg)`,
-                    background: `linear-gradient(to top, 
-                      transparent 0%, 
-                      rgba(255,255,255,0.05) 20%,
-                      rgba(255,255,255,${ray.width === 3 ? 0.3 : 0.15}) 45%, 
-                      rgba(255,255,255,${ray.width === 3 ? 0.5 : 0.25}) 50%, 
-                      rgba(255,255,255,${ray.width === 3 ? 0.3 : 0.15}) 55%, 
-                      rgba(255,255,255,0.05) 80%,
-                      transparent 100%)`,
+                    background: ray.id % 3 === 0 
+                      ? `linear-gradient(to top, 
+                          transparent 0%, 
+                          rgba(100, 150, 255, 0.08) 20%,
+                          rgba(140, 180, 255, ${ray.width === 3 ? 0.4 : 0.2}) 45%, 
+                          rgba(180, 210, 255, ${ray.width === 3 ? 0.6 : 0.35}) 50%, 
+                          rgba(140, 180, 255, ${ray.width === 3 ? 0.4 : 0.2}) 55%, 
+                          rgba(100, 150, 255, 0.08) 80%,
+                          transparent 100%)`
+                      : `linear-gradient(to top, 
+                          transparent 0%, 
+                          rgba(200, 215, 255, 0.06) 20%,
+                          rgba(220, 230, 255, ${ray.width === 3 ? 0.35 : 0.18}) 45%, 
+                          rgba(240, 245, 255, ${ray.width === 3 ? 0.55 : 0.3}) 50%, 
+                          rgba(220, 230, 255, ${ray.width === 3 ? 0.35 : 0.18}) 55%, 
+                          rgba(200, 215, 255, 0.06) 80%,
+                          transparent 100%)`,
                   }}
                   initial={{ scaleY: 0, opacity: 0 }}
                   animate={{ 
                     scaleY: phase === 'explode' ? [0.5, 1.5, 0] : [0, 0.5],
-                    opacity: phase === 'explode' ? [0.8, 1, 0] : [0, 0.6],
+                    opacity: phase === 'explode' ? [0.85, 1, 0] : [0, 0.7],
                   }}
                   transition={{ 
                     duration: phase === 'explode' ? 1.2 : 1.5,
@@ -227,34 +251,47 @@ export default function CinematicTransition({
               ease: [0.16, 1, 0.3, 1],
             }}
           >
-            {/* Multi-layer logo glow */}
+            {/* Multi-layer premium blue/silver logo glow */}
             <motion.div
               className="absolute inset-0 pointer-events-none"
               style={{ transform: 'scale(3)' }}
               animate={{
-                opacity: phase === 'explode' ? [0.3, 0.8, 0] : 
-                         phase === 'logo' ? [0, 0.3, 0.2, 0.4] : 0.1,
+                opacity: phase === 'explode' ? [0.4, 0.9, 0] : 
+                         phase === 'logo' ? [0, 0.4, 0.25, 0.5] : 0.15,
               }}
               transition={{ duration: 1.5 }}
             >
               <div 
                 className="w-full h-full blur-[100px]"
                 style={{
-                  background: 'radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 60%)',
+                  background: 'radial-gradient(circle, rgba(140, 180, 255, 0.5) 0%, rgba(100, 150, 255, 0.3) 30%, transparent 60%)',
                 }}
               />
             </motion.div>
 
-            {/* Secondary glow layer */}
+            {/* Secondary silver glow layer */}
             <motion.div
               className="absolute inset-0 blur-[40px] pointer-events-none"
               animate={{
-                opacity: phase === 'explode' ? [0.5, 1, 0] : 0.4,
+                opacity: phase === 'explode' ? [0.6, 1, 0] : 0.5,
                 scale: phase === 'explode' ? [1, 2.5, 4] : 1,
               }}
               transition={{ duration: 1.2 }}
               style={{
-                background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 50%)',
+                background: 'radial-gradient(circle, rgba(200, 220, 255, 0.7) 0%, rgba(160, 190, 255, 0.4) 40%, transparent 60%)',
+              }}
+            />
+
+            {/* Tertiary deep blue accent glow */}
+            <motion.div
+              className="absolute inset-0 blur-[60px] pointer-events-none"
+              animate={{
+                opacity: phase === 'explode' ? [0.3, 0.7, 0] : phase === 'logo' ? 0.3 : 0,
+                scale: phase === 'explode' ? [1, 3, 5] : 1,
+              }}
+              transition={{ duration: 1.4, delay: 0.1 }}
+              style={{
+                background: 'radial-gradient(circle, rgba(80, 120, 255, 0.5) 0%, transparent 50%)',
               }}
             />
 
@@ -281,16 +318,18 @@ export default function CinematicTransition({
                     <motion.span
                       key={i}
                       className="inline-block relative"
+                      style={{
+                        textShadow: phase === 'explode' 
+                          ? '0 0 80px rgba(140, 180, 255, 1), 0 0 160px rgba(100, 150, 255, 0.7), 0 0 240px rgba(80, 120, 255, 0.4)' 
+                          : phase === 'logo'
+                          ? '0 0 40px rgba(180, 210, 255, 0.6), 0 0 80px rgba(140, 180, 255, 0.3)'
+                          : '0 0 20px rgba(200, 220, 255, 0.25)',
+                      }}
                       initial={{ opacity: 0, y: 60, rotateY: -30 }}
                       animate={{ 
                         opacity: phase !== 'buildup' ? 1 : 0.3, 
                         y: 0,
                         rotateY: 0,
-                        textShadow: phase === 'explode' 
-                          ? '0 0 80px rgba(255,255,255,1), 0 0 160px rgba(255,255,255,0.6), 0 0 240px rgba(255,255,255,0.3)' 
-                          : phase === 'logo'
-                          ? '0 0 40px rgba(255,255,255,0.5), 0 0 80px rgba(255,255,255,0.2)'
-                          : '0 0 20px rgba(255,255,255,0.2)',
                       }}
                       transition={{
                         duration: 1,
@@ -313,7 +352,8 @@ export default function CinematicTransition({
               transition={{ duration: 0.8, delay: 2 }}
             >
               <motion.p
-                className="text-white/70 text-xl md:text-2xl tracking-[0.4em] uppercase font-light"
+                className="text-xl md:text-2xl tracking-[0.4em] uppercase font-light"
+                style={{ color: 'rgba(180, 200, 255, 0.8)' }}
                 initial={{ y: 40 }}
                 animate={{ y: phase === 'logo' || phase === 'explode' ? 0 : 40 }}
                 transition={{ duration: 1, delay: 2, ease: [0.16, 1, 0.3, 1] }}
@@ -322,9 +362,12 @@ export default function CinematicTransition({
               </motion.p>
             </motion.div>
 
-            {/* Decorative line */}
+            {/* Decorative premium gradient line */}
             <motion.div
-              className="mt-8 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent"
+              className="mt-8 h-[1px]"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(140, 180, 255, 0.6), rgba(200, 220, 255, 0.8), rgba(140, 180, 255, 0.6), transparent)',
+              }}
               initial={{ width: 0, opacity: 0 }}
               animate={{ 
                 width: phase === 'logo' || phase === 'explode' ? 200 : 0,
@@ -334,13 +377,14 @@ export default function CinematicTransition({
             />
           </motion.div>
 
-          {/* Epic particle explosion */}
+          {/* Epic premium blue/silver particle explosion */}
           {phase === 'explode' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
               {particles.map((particle) => {
                 const rad = (particle.angle * Math.PI) / 180;
                 const x = Math.cos(rad) * particle.distance;
                 const y = Math.sin(rad) * particle.distance;
+                const isBlue = particle.id % 3 !== 0;
                 
                 return (
                   <motion.div
@@ -349,15 +393,19 @@ export default function CinematicTransition({
                     style={{
                       width: particle.size,
                       height: particle.size,
-                      background: `radial-gradient(circle, rgba(255,255,255,${particle.opacity}) 0%, rgba(255,255,255,0.3) 50%, transparent 100%)`,
-                      boxShadow: `0 0 ${particle.size * 2}px rgba(255,255,255,0.8), 0 0 ${particle.size * 4}px rgba(255,255,255,0.4)`,
+                      background: isBlue
+                        ? `radial-gradient(circle, rgba(140, 180, 255, ${particle.opacity}) 0%, rgba(100, 150, 255, 0.4) 50%, transparent 100%)`
+                        : `radial-gradient(circle, rgba(220, 230, 255, ${particle.opacity}) 0%, rgba(200, 215, 255, 0.35) 50%, transparent 100%)`,
+                      boxShadow: isBlue
+                        ? `0 0 ${particle.size * 2}px rgba(100, 150, 255, 0.9), 0 0 ${particle.size * 4}px rgba(80, 120, 255, 0.5)`
+                        : `0 0 ${particle.size * 2}px rgba(200, 220, 255, 0.85), 0 0 ${particle.size * 4}px rgba(180, 200, 255, 0.45)`,
                     }}
                     initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
                     animate={{ 
                       x, 
                       y, 
-                      opacity: [1, 1, 0.5, 0],
-                      scale: [0, 1.2, 1, 0.3],
+                      opacity: [1, 1, 0.6, 0],
+                      scale: [0, 1.3, 1.1, 0.4],
                     }}
                     transition={{
                       duration: particle.duration,
@@ -370,7 +418,7 @@ export default function CinematicTransition({
             </div>
           )}
 
-          {/* Multiple ring expansions */}
+          {/* Premium blue/silver ring expansions */}
           {phase === 'explode' && (
             <>
               {[0, 0.1, 0.2, 0.35, 0.5].map((delay, i) => (
@@ -380,7 +428,10 @@ export default function CinematicTransition({
                   style={{
                     width: 8,
                     height: 8,
-                    border: `${3 - i * 0.5}px solid rgba(255,255,255,${0.8 - i * 0.15})`,
+                    border: i % 2 === 0
+                      ? `${3 - i * 0.5}px solid rgba(140, 180, 255, ${0.85 - i * 0.15})`
+                      : `${3 - i * 0.5}px solid rgba(200, 220, 255, ${0.8 - i * 0.12})`,
+                    boxShadow: `0 0 ${20 - i * 3}px rgba(100, 150, 255, ${0.4 - i * 0.06})`,
                   }}
                   initial={{ scale: 0, opacity: 1 }}
                   animate={{ scale: 100 + i * 30, opacity: 0 }}
@@ -394,16 +445,16 @@ export default function CinematicTransition({
             </>
           )}
 
-          {/* Dramatic final flash sequence */}
+          {/* Dramatic premium blue/silver final flash sequence */}
           <motion.div
             className="absolute inset-0 z-40 pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ 
-              opacity: phase === 'wipe' ? [0, 1, 0.8, 0] : 0,
+              opacity: phase === 'wipe' ? [0, 1, 0.85, 0] : 0,
             }}
             transition={{ duration: 0.6 }}
             style={{
-              background: 'radial-gradient(circle at center, rgba(255,255,255,1) 0%, rgba(255,255,255,0.8) 50%, transparent 100%)',
+              background: 'radial-gradient(circle at center, rgba(200, 220, 255, 1) 0%, rgba(140, 180, 255, 0.85) 30%, rgba(100, 150, 255, 0.6) 50%, transparent 100%)',
             }}
           />
 

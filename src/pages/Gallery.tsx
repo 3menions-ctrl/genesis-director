@@ -491,56 +491,148 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Get all clips - use all_clips array if available, otherwise single video_url
+  // Dual video refs for crossfade transitions
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
+  const [activeVideo, setActiveVideo] = useState<'A' | 'B'>('A');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerTransitionRef = useRef<() => void>(() => {});
+  
+  // Get all clips
   const clips = video.all_clips && video.all_clips.length > 0 
     ? video.all_clips 
     : video.video_url ? [video.video_url] : [];
   
-  const currentClipUrl = clips[currentClipIndex] || null;
   const totalClips = clips.length;
   
-  // Auto-play when clip changes
+  // Get video refs based on active state
+  const getActiveVideoRef = useCallback(() => {
+    return activeVideo === 'A' ? videoARef : videoBRef;
+  }, [activeVideo]);
+  
+  const getInactiveVideoRef = useCallback(() => {
+    return activeVideo === 'A' ? videoBRef : videoARef;
+  }, [activeVideo]);
+  
+  // Crossfade transition - True Overlap pattern (30ms)
+  const triggerTransition = useCallback(() => {
+    if (isTransitioning || totalClips <= 1) return;
+    
+    const nextIndex = (currentClipIndex + 1) % totalClips;
+    const inactiveVideo = getInactiveVideoRef().current;
+    const activeVideoEl = getActiveVideoRef().current;
+    
+    if (!inactiveVideo) return;
+    
+    // Preload next clip into inactive video
+    inactiveVideo.src = clips[nextIndex];
+    inactiveVideo.load();
+    
+    inactiveVideo.oncanplay = () => {
+      setIsTransitioning(true);
+      
+      // Start playing the incoming clip IMMEDIATELY (both visible at 100% for 30ms)
+      inactiveVideo.currentTime = 0;
+      inactiveVideo.muted = isMuted;
+      inactiveVideo.play().catch(() => {});
+      
+      // Use double-rAF to ensure browser has painted new frame before hiding old
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          // Now swap - after 30ms both were visible
+          setActiveVideo(prev => prev === 'A' ? 'B' : 'A');
+          setCurrentClipIndex(nextIndex);
+          
+          // Stop the old video after transition
+          if (activeVideoEl) {
+            activeVideoEl.pause();
+          }
+          
+          setIsTransitioning(false);
+        });
+      });
+      
+      inactiveVideo.oncanplay = null;
+    };
+  }, [isTransitioning, totalClips, currentClipIndex, clips, getInactiveVideoRef, getActiveVideoRef, isMuted]);
+  
+  // Keep ref updated for event handlers
   useEffect(() => {
-    const playVideo = async () => {
-      if (videoRef.current && currentClipUrl) {
+    triggerTransitionRef.current = triggerTransition;
+  }, [triggerTransition]);
+  
+  // Handle clip ending
+  const handleClipEnded = useCallback(() => {
+    triggerTransitionRef.current();
+  }, []);
+  
+  // Handle time update for early transition trigger (optional: start transition 30ms before end)
+  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (video.duration && video.currentTime >= video.duration - 0.05 && !isTransitioning) {
+      // Trigger transition slightly before actual end for seamless overlap
+      triggerTransitionRef.current();
+    }
+  }, [isTransitioning]);
+  
+  // Initial playback setup
+  useEffect(() => {
+    const startPlayback = async () => {
+      const videoA = videoARef.current;
+      if (videoA && clips.length > 0) {
+        videoA.src = clips[0];
+        videoA.load();
         try {
-          // Reset video element for new clip
-          videoRef.current.load();
-          await videoRef.current.play();
+          await videoA.play();
           setIsPlaying(true);
         } catch (err) {
           console.warn('Autoplay failed:', err);
         }
       }
     };
-    playVideo();
-  }, [currentClipUrl]);
+    startPlayback();
+    
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, [clips]);
   
-  // Handle clip end - advance to next clip
-  const handleClipEnded = () => {
-    if (currentClipIndex < totalClips - 1) {
-      // Advance to next clip
-      setCurrentClipIndex(prev => prev + 1);
-    } else {
-      // Loop back to first clip
-      setCurrentClipIndex(0);
-    }
-  };
+  // Sync muted state across both videos
+  useEffect(() => {
+    if (videoARef.current) videoARef.current.muted = isMuted;
+    if (videoBRef.current) videoBRef.current.muted = isMuted;
+  }, [isMuted]);
   
   const togglePlay = async () => {
-    if (!videoRef.current) return;
+    const activeVideoEl = getActiveVideoRef().current;
+    if (!activeVideoEl) return;
     try {
       if (isPlaying) {
-        videoRef.current.pause();
+        activeVideoEl.pause();
         setIsPlaying(false);
       } else {
-        await videoRef.current.play();
+        await activeVideoEl.play();
         setIsPlaying(true);
       }
     } catch (err) {
       setHasError(true);
+    }
+  };
+  
+  const jumpToClip = (idx: number) => {
+    if (idx === currentClipIndex) return;
+    
+    const activeVideoEl = getActiveVideoRef().current;
+    if (activeVideoEl) {
+      activeVideoEl.src = clips[idx];
+      activeVideoEl.load();
+      activeVideoEl.play().catch(() => {});
+      setCurrentClipIndex(idx);
+      setIsPlaying(true);
     }
   };
   
@@ -556,17 +648,39 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         className="absolute inset-0 flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {currentClipUrl && !hasError ? (
-          <video
-            ref={videoRef}
-            src={currentClipUrl}
-            className="w-full h-full object-contain"
-            muted={isMuted}
-            playsInline
-            onClick={togglePlay}
-            onError={() => setHasError(true)}
-            onEnded={handleClipEnded}
-          />
+        {clips.length > 0 && !hasError ? (
+          <>
+            {/* Video A */}
+            <video
+              ref={videoARef}
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
+              style={{ 
+                opacity: activeVideo === 'A' || isTransitioning ? 1 : 0,
+                zIndex: activeVideo === 'A' ? 2 : 1,
+              }}
+              muted={isMuted}
+              playsInline
+              onClick={togglePlay}
+              onError={() => setHasError(true)}
+              onEnded={handleClipEnded}
+              onTimeUpdate={handleTimeUpdate}
+            />
+            {/* Video B */}
+            <video
+              ref={videoBRef}
+              className="absolute inset-0 w-full h-full object-contain transition-opacity duration-[30ms]"
+              style={{ 
+                opacity: activeVideo === 'B' || isTransitioning ? 1 : 0,
+                zIndex: activeVideo === 'B' ? 2 : 1,
+              }}
+              muted={isMuted}
+              playsInline
+              onClick={togglePlay}
+              onError={() => setHasError(true)}
+              onEnded={handleClipEnded}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          </>
         ) : (
           <div className="text-center">
             <div className="w-24 h-24 mx-auto mb-6 rounded-full border border-slate-500/30 flex items-center justify-center bg-slate-500/10">
@@ -577,7 +691,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
           </div>
         )}
         
-        {currentClipUrl && !hasError && (
+        {clips.length > 0 && !hasError && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
             {/* Clip progress indicator */}
             {totalClips > 1 && (
@@ -585,7 +699,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
                 {clips.map((_, idx) => (
                   <button
                     key={idx}
-                    onClick={(e) => { e.stopPropagation(); setCurrentClipIndex(idx); }}
+                    onClick={(e) => { e.stopPropagation(); jumpToClip(idx); }}
                     className={cn(
                       "w-2 h-2 rounded-full transition-all",
                       idx === currentClipIndex 
@@ -607,7 +721,7 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
               </button>
               <button 
                 className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
-                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); if(videoRef.current) videoRef.current.muted = !isMuted; }}
+                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
               >
                 {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>

@@ -15,7 +15,7 @@ const PRICING_TIERS = [
     description: 'Perfect for trying out the platform',
     price: 37,
     credits: 370,
-    videosEstimate: '~6 short films',
+    videosEstimate: '~37 clips',
     icon: <Zap className="w-6 h-6" />,
     features: [
       'HD video export (1080p)',
@@ -36,7 +36,7 @@ const PRICING_TIERS = [
     description: 'For serious creators and small teams',
     price: 100,
     credits: 1000,
-    videosEstimate: '~16 short films',
+    videosEstimate: '~100 clips',
     icon: <Crown className="w-6 h-6" />,
     features: [
       '4K video export (2160p)',
@@ -57,7 +57,7 @@ const PRICING_TIERS = [
     description: 'For studios and production teams',
     price: 250,
     credits: 2500,
-    videosEstimate: '~41 short films',
+    videosEstimate: '~250 clips',
     icon: <Building2 className="w-6 h-6" />,
     features: [
       '4K HDR export',
@@ -142,7 +142,7 @@ export default function Pricing() {
             </p>
 
             <p className="text-sm text-white/30">
-              1 credit = $0.10 • ~10 credits per video clip
+              1 credit = $0.10 • ~10 credits per clip
             </p>
           </motion.div>
         </div>

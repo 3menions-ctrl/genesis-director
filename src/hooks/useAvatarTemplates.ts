@@ -1,0 +1,79 @@
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
+
+export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
+  const [templates, setTemplates] = useState<AvatarTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTemplates() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Query avatar_templates table (not yet in generated types)
+        const { data, error: fetchError } = await supabase
+          .from('avatar_templates')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        // Cast via unknown to satisfy TypeScript until types regenerate
+        setTemplates((data as unknown as AvatarTemplate[]) || []);
+      } catch (err) {
+        console.error('Failed to fetch avatar templates:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load avatars');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTemplates();
+  }, []);
+
+  // Apply client-side filtering
+  const filteredTemplates = useMemo(() => {
+    if (!filter) return templates;
+
+    return templates.filter(template => {
+      // Gender filter
+      if (filter.gender && filter.gender !== 'all') {
+        if (template.gender !== filter.gender) return false;
+      }
+
+      // Style filter
+      if (filter.style && filter.style !== 'all') {
+        if (template.style !== filter.style) return false;
+      }
+
+      // Search filter
+      if (filter.search) {
+        const searchLower = filter.search.toLowerCase();
+        const matchesName = template.name.toLowerCase().includes(searchLower);
+        const matchesDescription = template.description?.toLowerCase().includes(searchLower);
+        const matchesTags = template.tags?.some(tag => tag.toLowerCase().includes(searchLower));
+        
+        if (!matchesName && !matchesDescription && !matchesTags) return false;
+      }
+
+      return true;
+    });
+  }, [templates, filter]);
+
+  return {
+    templates: filteredTemplates,
+    allTemplates: templates,
+    isLoading,
+    error,
+    refetch: () => {
+      setTemplates([]);
+      setIsLoading(true);
+    },
+  };
+}

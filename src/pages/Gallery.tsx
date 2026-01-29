@@ -490,12 +490,24 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [currentClipIndex, setCurrentClipIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   
+  // Get all clips - use all_clips array if available, otherwise single video_url
+  const clips = video.all_clips && video.all_clips.length > 0 
+    ? video.all_clips 
+    : video.video_url ? [video.video_url] : [];
+  
+  const currentClipUrl = clips[currentClipIndex] || null;
+  const totalClips = clips.length;
+  
+  // Auto-play when clip changes
   useEffect(() => {
     const playVideo = async () => {
-      if (videoRef.current && video.video_url) {
+      if (videoRef.current && currentClipUrl) {
         try {
+          // Reset video element for new clip
+          videoRef.current.load();
           await videoRef.current.play();
           setIsPlaying(true);
         } catch (err) {
@@ -504,7 +516,18 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
       }
     };
     playVideo();
-  }, [video.video_url]);
+  }, [currentClipUrl]);
+  
+  // Handle clip end - advance to next clip
+  const handleClipEnded = () => {
+    if (currentClipIndex < totalClips - 1) {
+      // Advance to next clip
+      setCurrentClipIndex(prev => prev + 1);
+    } else {
+      // Loop back to first clip
+      setCurrentClipIndex(0);
+    }
+  };
   
   const togglePlay = async () => {
     if (!videoRef.current) return;
@@ -533,16 +556,16 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
         className="absolute inset-0 flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {video.video_url && !hasError ? (
+        {currentClipUrl && !hasError ? (
           <video
             ref={videoRef}
-            src={video.video_url}
+            src={currentClipUrl}
             className="w-full h-full object-contain"
-            loop
             muted={isMuted}
             playsInline
             onClick={togglePlay}
             onError={() => setHasError(true)}
+            onEnded={handleClipEnded}
           />
         ) : (
           <div className="text-center">
@@ -554,20 +577,48 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
           </div>
         )}
         
-        {video.video_url && !hasError && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <button 
-              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
-              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-            >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-            </button>
-            <button 
-              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
-              onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); if(videoRef.current) videoRef.current.muted = !isMuted; }}
-            >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
+        {currentClipUrl && !hasError && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+            {/* Clip progress indicator */}
+            {totalClips > 1 && (
+              <div className="flex items-center gap-1.5 mb-2">
+                {clips.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); setCurrentClipIndex(idx); }}
+                    className={cn(
+                      "w-2 h-2 rounded-full transition-all",
+                      idx === currentClipIndex 
+                        ? "bg-white w-6" 
+                        : "bg-white/30 hover:bg-white/50"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Controls */}
+            <div className="flex items-center gap-3">
+              <button 
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              </button>
+              <button 
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-xl border border-white/20"
+                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); if(videoRef.current) videoRef.current.muted = !isMuted; }}
+              >
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </button>
+            </div>
+            
+            {/* Clip counter */}
+            {totalClips > 1 && (
+              <span className="text-white/50 text-xs">
+                Clip {currentClipIndex + 1} of {totalClips}
+              </span>
+            )}
           </div>
         )}
       </div>

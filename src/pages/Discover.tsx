@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { TrailerGenerator } from '@/components/TrailerGenerator';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import type { VideoGenerationMode } from '@/types/video-modes';
 
@@ -80,7 +79,7 @@ const HeroFallback = () => <div className="pt-28 pb-12" />;
 
 export default function Discover() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
@@ -212,12 +211,6 @@ export default function Discover() {
         />
       </Suspense>
 
-      {/* Trailer Generator - Admin Only */}
-      {isAdmin && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-          <TrailerGenerator />
-        </div>
-      )}
 
       {/* Video Grid */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
@@ -262,11 +255,9 @@ export default function Discover() {
               <VideoCard
                 key={video.id}
                 video={video}
-                formatGenre={formatGenre}
                 onPlay={() => handleSelectVideo(video)}
                 isLiked={userLikes?.includes(video.id) || false}
                 onLike={(e) => handleLike(e, video.id, userLikes?.includes(video.id) || false)}
-                index={index}
               />
             ))}
           </motion.div>
@@ -321,244 +312,140 @@ export default function Discover() {
 
 interface VideoCardProps {
   video: PublicVideo;
-  formatGenre: (genre: string) => string;
   onPlay: () => void;
   isLiked: boolean;
   onLike: (e: React.MouseEvent) => void;
-  index?: number;
 }
 
-const VideoCard = memo(function VideoCard({ video, formatGenre, onPlay, isLiked, onLike, index = 0 }: VideoCardProps) {
+const VideoCard = memo(function VideoCard({ video, onPlay, isLiked, onLike }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [thumbnailReady, setThumbnailReady] = useState(false);
-  const [actualVideoUrl, setActualVideoUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout>();
 
   const ModeIcon = getModeIcon(video.mode);
   const isManifest = video.video_url?.endsWith('.json');
-  const isDirectVideo = video.video_url && !isManifest;
 
-  // Resolve actual video URL from manifest if needed
+  // Resolve video URL once on mount - stable reference
   useEffect(() => {
-    if (!video.video_url) {
-      setActualVideoUrl(null);
-      return;
-    }
+    let cancelled = false;
 
-    if (isDirectVideo) {
-      setActualVideoUrl(video.video_url);
-      return;
-    }
-
-    // Parse manifest to get first clip URL
-    if (isManifest) {
-      let cancelled = false;
-      fetch(video.video_url)
-        .then(res => res.json())
-        .then(manifest => {
-          if (cancelled) return;
-          // Manifest format: { clips: [{ url: "..." }, ...] }
-          const firstClipUrl = manifest?.clips?.[0]?.url;
-          if (firstClipUrl) {
-            setActualVideoUrl(firstClipUrl);
-          }
-        })
-        .catch(() => {
-          // Fallback - no video available
-          if (!cancelled) setThumbnailReady(true);
-        });
-      return () => { cancelled = true; };
-    }
-  }, [video.video_url, isManifest, isDirectVideo]);
-
-  // Extract thumbnail frame from video when loaded
-  useEffect(() => {
-    const videoEl = videoRef.current;
-    if (!videoEl || !actualVideoUrl) return;
-
-    let mounted = true;
-
-    const handleLoadedMetadata = () => {
-      if (mounted && videoEl.duration && videoEl.duration > 0) {
-        // Seek to 10% of video for a good thumbnail frame
-        const seekTime = Math.min(videoEl.duration * 0.1, 2);
-        videoEl.currentTime = seekTime;
+    const resolveUrl = async () => {
+      if (!video.video_url) {
+        setIsLoading(false);
+        return;
       }
-    };
 
-    const handleSeeked = () => {
-      if (mounted) {
-        setThumbnailReady(true);
+      if (!isManifest) {
+        setVideoUrl(video.video_url);
+        setIsLoading(false);
+        return;
       }
-    };
 
-    const handleCanPlay = () => {
-      // If we haven't seeked yet, try again
-      if (mounted && !thumbnailReady && videoEl.duration > 0) {
-        const seekTime = Math.min(videoEl.duration * 0.1, 2);
-        if (videoEl.currentTime === 0) {
-          videoEl.currentTime = seekTime;
+      try {
+        const res = await fetch(video.video_url);
+        const manifest = await res.json();
+        const firstClipUrl = manifest?.clips?.[0]?.url;
+        if (!cancelled && firstClipUrl) {
+          setVideoUrl(firstClipUrl);
         }
+      } catch {
+        // Silent fail
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    const handleError = () => {
-      if (mounted) setThumbnailReady(true);
-    };
+    resolveUrl();
+    return () => { cancelled = true; };
+  }, [video.video_url, isManifest]);
 
-    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
-    videoEl.addEventListener('seeked', handleSeeked);
-    videoEl.addEventListener('canplay', handleCanPlay);
-    videoEl.addEventListener('error', handleError);
-
-    // Fallback timeout to prevent indefinite loading state
-    const timeout = setTimeout(() => {
-      if (mounted && !thumbnailReady) {
-        setThumbnailReady(true);
-      }
-    }, 5000);
-
-    // If video is already loaded (e.g., from cache)
-    if (videoEl.readyState >= 1 && videoEl.duration > 0) {
-      const seekTime = Math.min(videoEl.duration * 0.1, 2);
-      videoEl.currentTime = seekTime;
-    }
-
-    // Force load to start
-    videoEl.load();
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      videoEl.removeEventListener('seeked', handleSeeked);
-      videoEl.removeEventListener('canplay', handleCanPlay);
-      videoEl.removeEventListener('error', handleError);
-    };
-  }, [actualVideoUrl, thumbnailReady]);
-
-  // Handle hover preview playback
-  useEffect(() => {
+  // Simple hover play/pause - no complex state dependencies
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
     const videoEl = videoRef.current;
-    if (!videoEl || !thumbnailReady || !actualVideoUrl) return;
-
-    if (isHovered && !isPlaying) {
-      hoverTimeoutRef.current = setTimeout(() => {
-        videoEl.currentTime = 0;
-        videoEl.play().then(() => setIsPlaying(true)).catch(() => {});
-      }, 300);
-    } else if (!isHovered && isPlaying) {
-      videoEl.pause();
-      setIsPlaying(false);
-      // Return to thumbnail frame
-      if (videoEl.duration) {
-        videoEl.currentTime = Math.min(videoEl.duration * 0.1, 2);
-      }
+    if (videoEl && videoUrl) {
+      videoEl.currentTime = 0;
+      videoEl.play().catch(() => {});
     }
+  }, [videoUrl]);
 
-    return () => {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    };
-  }, [isHovered, isPlaying, thumbnailReady, actualVideoUrl]);
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    const videoEl = videoRef.current;
+    if (videoEl) {
+      videoEl.pause();
+      videoEl.currentTime = 0;
+    }
+  }, []);
 
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 30, scale: 0.96 },
-        visible: { 
-          opacity: 1, 
-          y: 0, 
-          scale: 1,
-          transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } 
-        }
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
       }}
       className="group cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={onPlay}
-      whileHover={{ y: -6, transition: { duration: 0.25 } }}
     >
-      {/* Card Container - Fully Transparent, No Text */}
       <div className="relative">
         {/* Ambient glow on hover */}
-        <motion.div
-          className="absolute -inset-2 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 blur-xl pointer-events-none"
+        <div 
+          className="absolute -inset-2 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none"
           style={{ background: 'linear-gradient(135deg, hsl(185 100% 50% / 0.15), hsl(190 100% 45% / 0.1))' }}
         />
         
-        {/* Card Content - Video Only */}
-        <div className="relative rounded-xl overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:shadow-black/50">
-          {/* Video Frame Thumbnail */}
-          <div className="relative aspect-video overflow-hidden bg-zinc-900/50 rounded-xl">
-            {/* Loading skeleton - shown until video frame is ready */}
-            {!thumbnailReady && actualVideoUrl && (
-              <div className="absolute inset-0 z-10 bg-zinc-800/80 rounded-xl">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-pulse" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Film className="w-8 h-8 text-zinc-600" />
-                </div>
+        <div className="relative rounded-xl overflow-hidden transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-black/50">
+          <div className="relative aspect-video bg-zinc-900/50 rounded-xl overflow-hidden">
+            {/* Loading state */}
+            {isLoading && (
+              <div className="absolute inset-0 bg-zinc-800/80 flex items-center justify-center">
+                <Film className="w-8 h-8 text-zinc-600" />
               </div>
             )}
             
-            {/* Video element - paused on thumbnail frame, plays on hover */}
-            {actualVideoUrl && (
+            {/* Video element */}
+            {videoUrl && (
               <video
                 ref={videoRef}
-                src={actualVideoUrl}
+                src={videoUrl}
                 muted
                 loop
                 playsInline
                 preload="metadata"
                 className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-all duration-500 rounded-xl",
-                  thumbnailReady ? "opacity-100" : "opacity-0",
+                  "absolute inset-0 w-full h-full object-cover rounded-xl transition-transform duration-300",
                   isHovered && "scale-105"
                 )}
               />
             )}
 
-            {/* Fallback for videos without URL */}
-            {!actualVideoUrl && !isManifest && (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50 rounded-xl">
+            {/* Fallback when no video */}
+            {!videoUrl && !isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50">
                 <Film className="w-10 h-10 text-zinc-700" />
               </div>
             )}
-
-            {/* Loading state while fetching manifest */}
-            {isManifest && !actualVideoUrl && !thumbnailReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/80 rounded-xl">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-pulse" />
-                <Film className="w-8 h-8 text-zinc-600" />
-              </div>
-            )}
             
-            {/* Subtle Gradient Overlay on hover */}
+            {/* Hover overlay */}
             <div className={cn(
-              "absolute inset-0 transition-all duration-300 rounded-xl",
-              isHovered 
-                ? "bg-gradient-to-t from-black/60 via-transparent to-transparent" 
-                : "bg-transparent"
+              "absolute inset-0 transition-opacity duration-300 bg-gradient-to-t from-black/60 via-transparent to-transparent",
+              isHovered ? "opacity-100" : "opacity-0"
             )} />
 
-            {/* Play Button - only on hover */}
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              initial={false}
-              animate={{ opacity: isHovered ? 1 : 0 }}
-            >
-              <motion.div
-                initial={{ scale: 0.7, opacity: 0 }}
-                animate={{ scale: isHovered ? 1 : 0.7, opacity: isHovered ? 1 : 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20"
-              >
+            {/* Play Button on hover */}
+            <div className={cn(
+              "absolute inset-0 flex items-center justify-center transition-opacity duration-200",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}>
+              <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20">
                 <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
-            {/* Mode Badge - positioned in corner */}
+            {/* Mode Badge */}
             <Badge 
               className={cn(
                 "absolute top-3 left-3 text-[10px] font-medium backdrop-blur-xl border bg-gradient-to-r px-2.5 py-1 rounded-full",

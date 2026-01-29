@@ -360,12 +360,12 @@ interface FramedVideoProps {
   rowIndex: number;
 }
 
-// Using forwardRef to prevent React ref warning
+// FramedVideo component - displays video thumbnail
 const FramedVideo = React.forwardRef<HTMLDivElement, FramedVideoProps>(
   function FramedVideo({ video, index, onClick }, ref) {
     const [isHovered, setIsHovered] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
+    const [thumbnailReady, setThumbnailReady] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
     
     // Vary sizes for gallery wall effect
     const sizes = [
@@ -378,28 +378,66 @@ const FramedVideo = React.forwardRef<HTMLDivElement, FramedVideoProps>(
     ];
     const size = sizes[index % sizes.length];
     
-    // Determine the best thumbnail source
-    // Priority: 1) thumbnail_url from DB  2) first clip URL frame extraction  3) placeholder
-    const thumbnailSrc = video.thumbnail_url || null;
+    // Get video source - use first clip
+    const videoSrc = video.video_url || (video.all_clips && video.all_clips[0]) || null;
     
-    // Timeout fallback for image loading (2 seconds is enough)
+    // Initialize video on mount - play briefly then pause to ensure frame is shown
     useEffect(() => {
-      if (imageLoaded || imageError) return;
-      const timeout = setTimeout(() => {
-        // Force ready state after timeout - show whatever we have or placeholder
-        setImageLoaded(true);
-      }, 2000);
+      const vid = videoRef.current;
+      if (!vid || !videoSrc) return;
+      
+      let mounted = true;
+      
+      const initThumbnail = async () => {
+        try {
+          vid.src = videoSrc;
+          vid.load();
+          
+          // Wait for metadata
+          await new Promise<void>((resolve, reject) => {
+            vid.onloadedmetadata = () => resolve();
+            vid.onerror = () => reject(new Error('Load error'));
+            setTimeout(() => resolve(), 3000); // Timeout fallback
+          });
+          
+          if (!mounted) return;
+          
+          // Seek to first frame area
+          vid.currentTime = Math.min(vid.duration * 0.1, 0.5);
+          
+          // Wait for seek
+          await new Promise<void>((resolve) => {
+            vid.onseeked = () => resolve();
+            setTimeout(() => resolve(), 1000);
+          });
+          
+          if (mounted) {
+            setThumbnailReady(true);
+          }
+        } catch (e) {
+          if (mounted) {
+            setThumbnailReady(true); // Show whatever we have
+          }
+        }
+      };
+      
+      initThumbnail();
+      
+      return () => { mounted = false; };
+    }, [videoSrc]);
+    
+    // Fallback timeout
+    useEffect(() => {
+      if (thumbnailReady) return;
+      const timeout = setTimeout(() => setThumbnailReady(true), 2500);
       return () => clearTimeout(timeout);
-    }, [imageLoaded, imageError]);
+    }, [thumbnailReady]);
     
     return (
       <motion.div
         ref={ref}
         className="flex-shrink-0 cursor-pointer"
-        style={{ 
-          width: size.w,
-          height: size.h,
-        }}
+        style={{ width: size.w, height: size.h }}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: index * 0.05 }}
@@ -409,7 +447,7 @@ const FramedVideo = React.forwardRef<HTMLDivElement, FramedVideoProps>(
         onClick={onClick}
       >
         <div className="relative w-full h-full group">
-          {/* Frame shadow with blue tint on hover */}
+          {/* Frame shadow */}
           <div 
             className="absolute -inset-1 rounded-sm blur-md transition-all duration-300"
             style={{ 
@@ -418,49 +456,44 @@ const FramedVideo = React.forwardRef<HTMLDivElement, FramedVideoProps>(
             }}
           />
           
-          {/* Outer frame - dark with subtle blue accent on hover */}
-          <div 
-            className={cn(
-              "absolute -inset-3 transition-all duration-300",
-              "bg-gradient-to-br from-zinc-800 via-zinc-900 to-black",
-              "shadow-xl",
-              isHovered && "from-slate-800/60 via-zinc-900 to-black"
-            )}
-          />
+          {/* Outer frame */}
+          <div className={cn(
+            "absolute -inset-3 transition-all duration-300 shadow-xl",
+            "bg-gradient-to-br from-zinc-800 via-zinc-900 to-black",
+            isHovered && "from-slate-800/60 via-zinc-900 to-black"
+          )} />
           
           {/* Inner mat */}
           <div className="absolute -inset-1.5 bg-black" />
           
-          {/* Thumbnail area - prioritize static image for instant display */}
+          {/* Thumbnail area */}
           <div className="relative w-full h-full overflow-hidden bg-zinc-950">
-            {thumbnailSrc && !imageError ? (
+            {videoSrc ? (
               <>
-                <img 
-                  src={thumbnailSrc} 
-                  alt=""
+                <video
+                  ref={videoRef}
                   className={cn(
                     "w-full h-full object-cover transition-all duration-500 group-hover:scale-110",
-                    !imageLoaded && "opacity-0"
+                    !thumbnailReady && "opacity-0"
                   )}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => setImageError(true)}
-                  loading="eager"
+                  muted
+                  playsInline
+                  preload="metadata"
                 />
-                {/* Loading spinner while image loads */}
-                {!imageLoaded && (
+                
+                {!thumbnailReady && (
                   <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
                     <div className="w-5 h-5 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
                   </div>
                 )}
               </>
             ) : (
-              /* Fallback placeholder - elegant gradient with film icon */
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
                 <Film className="w-8 h-8 text-zinc-600" />
               </div>
             )}
             
-            {/* Hover overlay with play icon */}
+            {/* Hover overlay */}
             <motion.div 
               className="absolute inset-0 bg-black/60 flex items-center justify-center"
               initial={{ opacity: 0 }}

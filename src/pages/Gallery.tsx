@@ -26,20 +26,23 @@ interface VideoManifest {
   totalDuration: number;
 }
 
-// Fetch stitched/completed project videos from public projects (Gallery showcase)
+// Admin account ID for gallery showcase
+const ADMIN_USER_ID = 'd600868d-651a-46f6-a621-a727b240ac7c';
+
+// Fetch stitched/completed project videos from admin account (Gallery showcase)
 const useGalleryVideos = () => {
   return useQuery({
-    queryKey: ['gallery-videos-stitched'],
+    queryKey: ['gallery-videos-admin'],
     queryFn: async (): Promise<GalleryVideo[]> => {
-      // Fetch completed stitched projects that are public
+      // Fetch completed stitched projects from admin account
       const { data, error } = await supabase
         .from('movie_projects')
         .select('id, video_url, thumbnail_url')
-        .eq('is_public', true)
+        .eq('user_id', ADMIN_USER_ID)
         .eq('status', 'completed')
         .not('video_url', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(30);
       
       if (error) throw error;
       if (!data || data.length === 0) return [];

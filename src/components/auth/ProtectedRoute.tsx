@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLoader } from '@/components/ui/app-loader';
@@ -9,6 +9,12 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+/**
+ * ProtectedRoute with stability optimizations to prevent blinking:
+ * 1. Tracks if children have ever rendered to prevent loader flashing on navigation
+ * 2. Uses refs to avoid unnecessary re-renders
+ * 3. Separates initial load from ongoing auth changes
+ */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch } = useAuth();
   const navigate = useNavigate();
@@ -18,15 +24,27 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const hasRenderedChildren = useRef(false);
   // Track if this is the initial mount
   const [isInitialMount, setIsInitialMount] = useState(true);
+  // Track the initial path to detect navigation
+  const initialPathRef = useRef(location.pathname);
+
+  // Memoize session check to prevent unnecessary recalculations
+  const hasSessionInState = useMemo(() => !!session || !!user, [session, user]);
 
   // Mark initial mount complete after first render with valid session
   useEffect(() => {
-    if (isSessionVerified && (session || user)) {
+    if (isSessionVerified && hasSessionInState) {
       // Small delay to ensure smooth transition
       const timer = setTimeout(() => setIsInitialMount(false), 50);
       return () => clearTimeout(timer);
     }
-  }, [isSessionVerified, session, user]);
+  }, [isSessionVerified, hasSessionInState]);
+
+  // Detect navigation away from initial path - if we navigated, we've rendered
+  useEffect(() => {
+    if (location.pathname !== initialPathRef.current && hasSessionInState) {
+      hasRenderedChildren.current = true;
+    }
+  }, [location.pathname, hasSessionInState]);
 
   // Redirect to auth only when we're certain there's no session
   useEffect(() => {
@@ -45,9 +63,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [user, profile, loading, isSessionVerified, navigate, location.pathname]);
 
-  // CRITICAL: If we have a session, render children immediately to prevent blink
-  const hasSessionInState = !!session || !!user;
-  
   // Determine what message to show during loading
   const getLoadingMessage = () => {
     if (!hasSessionInState) return 'Authenticating...';
@@ -55,8 +70,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return 'Almost there...';
   };
 
+  // CRITICAL STABILITY FIX:
   // Only show loader during INITIAL auth check when there's no session data yet
-  // After we've rendered children once, never show loader again (prevents navigation blink)
+  // After we've rendered children once, NEVER show loader again (prevents navigation blink)
+  // Also skip loader if we've already navigated (hasRenderedChildren tracks this)
   if ((loading || !isSessionVerified) && !hasSessionInState && !hasRenderedChildren.current) {
     return <AppLoader message={getLoadingMessage()} />;
   }

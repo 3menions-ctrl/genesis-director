@@ -1,17 +1,31 @@
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
+/**
+ * Premium background for the Training Video page
+ * Uses CSS animations instead of framer-motion to prevent constant React re-renders
+ * and eliminate visual flickering/blinking
+ */
 export default function TrainingBackground() {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  // Fade in on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className={`fixed inset-0 overflow-hidden pointer-events-none transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Deep black base */}
       <div className="absolute inset-0 bg-[#030303]" />
       
-      {/* Animated flowing circles - stunning emerald/green palette */}
+      {/* Static flowing circles - stunning emerald/green palette */}
       <svg 
         className="absolute inset-0 w-full h-full" 
         viewBox="0 0 1920 1080" 
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
+        style={{ willChange: 'auto' }}
       >
         <defs>
           {/* Premium emerald/green gradients */}
@@ -73,181 +87,130 @@ export default function TrainingBackground() {
           </filter>
         </defs>
         
-        {/* Large ambient orbs - deep background */}
-        <motion.circle
+        {/* Large ambient orbs - static with CSS opacity */}
+        <circle
           cx="15%"
           cy="20%"
           r="250"
           fill="url(#circleGlowEmerald1)"
           filter="url(#heavyGlowEmerald)"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ 
-            scale: [0.8, 1.1, 0.9, 1],
-            opacity: [0.3, 0.5, 0.4, 0.3],
-            cx: ["15%", "18%", "14%", "15%"]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="animate-[pulse_15s_ease-in-out_infinite]"
+          style={{ opacity: 0.4 }}
         />
         
-        <motion.circle
+        <circle
           cx="85%"
           cy="75%"
           r="300"
           fill="url(#circleGlowEmerald2)"
           filter="url(#heavyGlowEmerald)"
-          initial={{ scale: 1, opacity: 0 }}
-          animate={{ 
-            scale: [1, 0.85, 1.1, 1],
-            opacity: [0.25, 0.4, 0.3, 0.25],
-            cy: ["75%", "70%", "78%", "75%"]
-          }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="animate-[pulse_18s_ease-in-out_infinite]"
+          style={{ opacity: 0.3, animationDelay: '2s' }}
         />
         
-        <motion.circle
+        <circle
           cx="50%"
           cy="50%"
           r="400"
           fill="url(#circleGlowEmerald1)"
           filter="url(#heavyGlowEmerald)"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ 
-            scale: [0.9, 1.05, 0.95, 0.9],
-            opacity: [0.15, 0.25, 0.2, 0.15]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          style={{ opacity: 0.2 }}
         />
         
-        {/* Flowing curved lines - premium aesthetic */}
-        <motion.path
+        {/* Static flowing curved lines */}
+        <path
           d="M-100,400 Q300,200 600,350 T1200,300 T1800,450 T2200,350"
           stroke="url(#greenLine)"
           strokeWidth="2"
           fill="none"
           filter="url(#softGlowEmerald)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 3, ease: "easeOut" }}
         />
         
-        <motion.path
+        <path
           d="M-50,600 Q400,450 800,550 T1400,480 T2000,580"
           stroke="url(#tealLine)"
           strokeWidth="1.5"
           fill="none"
           filter="url(#softGlowEmerald)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.8 }}
-          transition={{ duration: 3.5, ease: "easeOut", delay: 0.5 }}
+          style={{ opacity: 0.8 }}
         />
         
-        <motion.path
+        <path
           d="M-200,250 Q200,150 500,280 T1100,180 T1700,300 T2100,200"
           stroke="url(#greenLine)"
           strokeWidth="1"
           fill="none"
           filter="url(#softGlowEmerald)"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.6 }}
-          transition={{ duration: 4, ease: "easeOut", delay: 1 }}
+          style={{ opacity: 0.6 }}
         />
         
-        {/* Elegant floating circles */}
-        <motion.circle
+        {/* Elegant static circles */}
+        <circle
           cx="20%"
           cy="60%"
           r="80"
           stroke="url(#emeraldGlow1)"
           strokeWidth="1"
           fill="none"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: [0.4, 0.6, 0.4],
-            scale: [0.95, 1.05, 0.95],
-            cy: ["60%", "55%", "60%"]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          style={{ opacity: 0.5 }}
         />
         
-        <motion.circle
+        <circle
           cx="75%"
           cy="25%"
           r="120"
           stroke="url(#emeraldGlow2)"
           strokeWidth="1.5"
           fill="none"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: [0.3, 0.5, 0.3],
-            scale: [1, 1.08, 1],
-            cx: ["75%", "78%", "75%"]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          style={{ opacity: 0.4 }}
         />
         
-        <motion.circle
+        <circle
           cx="45%"
           cy="85%"
           r="60"
           stroke="url(#emeraldGlow3)"
           strokeWidth="1"
           fill="none"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: [0.5, 0.7, 0.5],
-            scale: [0.9, 1.1, 0.9]
-          }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          style={{ opacity: 0.6 }}
         />
         
         {/* Small accent circles */}
-        <motion.circle
+        <circle
           cx="90%"
           cy="45%"
           r="40"
           stroke="url(#greenLine)"
           strokeWidth="0.5"
           fill="none"
-          animate={{ 
-            opacity: [0.3, 0.6, 0.3],
-            scale: [1, 1.15, 1]
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          style={{ opacity: 0.5 }}
         />
         
-        <motion.circle
+        <circle
           cx="10%"
           cy="90%"
           r="50"
           stroke="url(#tealLine)"
           strokeWidth="0.5"
           fill="none"
-          animate={{ 
-            opacity: [0.4, 0.6, 0.4],
-            scale: [0.95, 1.1, 0.95]
-          }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          style={{ opacity: 0.5 }}
         />
         
-        {/* Interconnecting arc lines */}
-        <motion.path
+        {/* Static arc lines */}
+        <path
           d="M200,800 Q600,600 400,400"
           stroke="url(#emeraldGlow1)"
           strokeWidth="0.8"
           fill="none"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: [0, 1, 1, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", times: [0, 0.4, 0.6, 1] }}
+          style={{ opacity: 0.5 }}
         />
         
-        <motion.path
+        <path
           d="M1600,200 Q1400,500 1700,700"
           stroke="url(#emeraldGlow2)"
           strokeWidth="0.8"
           fill="none"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: [0, 1, 1, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2, times: [0, 0.4, 0.6, 1] }}
+          style={{ opacity: 0.4 }}
         />
       </svg>
       

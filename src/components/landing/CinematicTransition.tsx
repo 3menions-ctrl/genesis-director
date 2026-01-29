@@ -326,12 +326,12 @@ export default function CinematicTransition({
                   ease: [0.25, 0.1, 0.25, 1],
                 }}
               >
-                <h1 className="text-5xl sm:text-7xl md:text-[10rem] font-black tracking-[0.08em] sm:tracking-[0.02em] relative select-none flex justify-center overflow-visible">
+                <h1 className="text-7xl md:text-[10rem] font-black tracking-[0.15em] md:tracking-[0.02em] relative select-none flex justify-center whitespace-nowrap">
                   {'APEX'.split('').map((letter, i) => {
                     const letterDelay = 1.8 + i * 0.25;
                     
                     return (
-                      <motion.span
+                                      <motion.div
                         key={i}
                         className="inline-block relative"
                         initial={{ 
@@ -389,7 +389,7 @@ export default function CinematicTransition({
                         >
                           {letter}
                         </motion.span>
-                      </motion.span>
+                      </motion.div>
                     );
                   })}
                 </h1>
@@ -409,8 +409,8 @@ export default function CinematicTransition({
                   }}
                   transition={{ duration: 1.5, delay: 3.5, ease: 'easeOut' }}
                 >
-                                  <span 
-                                    className="text-5xl sm:text-7xl md:text-[10rem] font-black tracking-[0.08em] sm:tracking-[0.02em]"
+                  <span 
+                    className="text-7xl md:text-[10rem] font-black tracking-[0.15em] md:tracking-[0.02em]"
                     style={{
                       background: 'linear-gradient(180deg, rgba(160, 200, 255, 0.8) 0%, transparent 60%)',
                       WebkitBackgroundClip: 'text',
@@ -432,8 +432,8 @@ export default function CinematicTransition({
               animate={{ opacity: phase === 'logo' || phase === 'explode' ? 1 : 0 }}
               transition={{ duration: 0.8, delay: 2 }}
             >
-                <motion.p
-                  className="text-base sm:text-xl md:text-2xl tracking-[0.2em] sm:tracking-[0.4em] uppercase font-light"
+              <motion.p
+                className="text-lg md:text-2xl tracking-[0.25em] md:tracking-[0.4em] uppercase font-light"
                 style={{ color: 'rgba(180, 200, 255, 0.8)' }}
                 initial={{ y: 40 }}
                 animate={{ y: phase === 'logo' || phase === 'explode' ? 0 : 40 }}

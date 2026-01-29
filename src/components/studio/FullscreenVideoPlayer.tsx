@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, forwardRef } from 'react';
 import { 
   X, Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Download, ExternalLink, Edit2,
@@ -29,7 +29,7 @@ interface VideoBuffer {
   state: BufferState;
 }
 
-export function FullscreenVideoPlayer({
+export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoPlayerProps>(function FullscreenVideoPlayer({
   clips,
   title,
   musicUrl,
@@ -37,7 +37,7 @@ export function FullscreenVideoPlayer({
   onDownload,
   onEdit,
   onOpenExternal,
-}: FullscreenVideoPlayerProps) {
+}, ref) {
   // Triple buffer pool refs
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
@@ -885,4 +885,4 @@ export function FullscreenVideoPlayer({
       )}
     </div>
   );
-}
+});

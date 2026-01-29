@@ -9,7 +9,7 @@
  * - NO center play button - only bottom controls
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -50,7 +50,7 @@ function doubleRAF(callback: () => void) {
   });
 }
 
-export function ManifestVideoPlayer({ manifestUrl, musicUrl, className }: ManifestVideoPlayerProps) {
+export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlayerProps>(function ManifestVideoPlayer({ manifestUrl, musicUrl, className }, ref) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -600,4 +600,4 @@ export function ManifestVideoPlayer({ manifestUrl, musicUrl, className }: Manife
       </div>
     </div>
   );
-}
+});

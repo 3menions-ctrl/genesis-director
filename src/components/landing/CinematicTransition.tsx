@@ -340,14 +340,20 @@ export default function CinematicTransition({
                           scale: 0.7,
                         }}
                         animate={{ 
-                          opacity: phase === 'buildup' ? 0.2 : 1, 
+                          opacity: phase === 'buildup' ? 0.3 : 1, 
                           y: 0,
                           scale: phase === 'explode' ? 1.05 : 1,
+                          filter: phase === 'explode' 
+                            ? 'drop-shadow(0 0 60px rgba(140, 180, 255, 1)) drop-shadow(0 0 100px rgba(100, 150, 255, 0.7))'
+                            : phase === 'logo'
+                            ? 'drop-shadow(0 0 30px rgba(160, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(140, 180, 255, 0.4))'
+                            : 'drop-shadow(0 0 15px rgba(180, 200, 255, 0.2))',
                         }}
                         transition={{
                           opacity: { duration: 1.2, delay: letterDelay, ease: 'easeOut' },
                           y: { duration: 1.5, delay: letterDelay, ease: [0.25, 0.1, 0.25, 1] },
                           scale: { duration: 0.8, delay: letterDelay, ease: 'easeOut' },
+                          filter: { duration: 1.5, delay: letterDelay + 0.3, ease: 'easeOut' },
                         }}
                         style={{
                           background: phase === 'explode'
@@ -360,48 +366,28 @@ export default function CinematicTransition({
                           backgroundClip: 'text',
                         }}
                       >
-                        {/* Letter with synchronized glow */}
-                        <motion.span
-                          className="relative z-10"
-                          animate={{
-                            textShadow: phase === 'explode' 
-                              ? '0 0 80px rgba(140, 180, 255, 1), 0 0 120px rgba(100, 150, 255, 0.8), 0 0 160px rgba(80, 130, 255, 0.5)'
-                              : phase === 'logo'
-                              ? '0 0 40px rgba(160, 200, 255, 0.8), 0 0 80px rgba(140, 180, 255, 0.5), 0 0 120px rgba(120, 160, 255, 0.3)'
-                              : '0 0 20px rgba(180, 200, 255, 0.3)',
-                          }}
-                          transition={{ duration: 1.5, delay: letterDelay + 0.3, ease: 'easeOut' }}
-                        >
-                          {letter}
-                        </motion.span>
+                        {letter}
                         
                         {/* Shimmer sweep effect */}
                         <motion.span
-                          className="absolute inset-0 pointer-events-none overflow-hidden"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: phase === 'logo' || phase === 'explode' ? 1 : 0 }}
-                          transition={{ duration: 0.5, delay: letterDelay + 1 }}
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.5) 50%, transparent 70%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                          }}
+                          initial={{ x: '-150%' }}
+                          animate={{ 
+                            x: phase === 'logo' || phase === 'explode' ? '150%' : '-150%',
+                          }}
+                          transition={{
+                            duration: 2,
+                            delay: 4.5 + i * 0.15,
+                            ease: [0.25, 0.1, 0.25, 1],
+                          }}
                         >
-                          <motion.span
-                            className="absolute inset-0"
-                            style={{
-                              background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.6) 50%, transparent 70%)',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent',
-                              backgroundClip: 'text',
-                            }}
-                            initial={{ x: '-150%' }}
-                            animate={{ 
-                              x: phase === 'logo' || phase === 'explode' ? '150%' : '-150%',
-                            }}
-                            transition={{
-                              duration: 2,
-                              delay: 4 + i * 0.15,
-                              ease: [0.25, 0.1, 0.25, 1],
-                            }}
-                          >
-                            {letter}
-                          </motion.span>
+                          {letter}
                         </motion.span>
                       </motion.span>
                     );

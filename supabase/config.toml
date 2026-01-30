@@ -233,3 +233,6 @@ verify_jwt = false
 
 [functions.mode-router]
 verify_jwt = false
+
+[functions.generate-avatar-batch]
+verify_jwt = false

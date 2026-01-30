@@ -1,5 +1,5 @@
-import { useState, memo, forwardRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState, memo, forwardRef, useCallback } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
   Menu, X, Shield
@@ -18,6 +18,7 @@ import { SignOutDialog } from '@/components/auth/SignOutDialog';
 import { BuyCreditsModal } from '@/components/credits/BuyCreditsModal';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import { UserStatsBar } from '@/components/social/UserStatsBar';
+import { NavigationLink, useNavigationWithLoading } from '@/components/navigation';
 
 interface NavItem {
   label: string;
@@ -44,19 +45,19 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
   onCreateClick,
   className 
 }, ref) {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigationWithLoading();
   const location = useLocation();
   const { profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     if (onCreateClick) {
       onCreateClick();
     } else {
-      navigate('/create');
+      navigateTo('/create');
     }
-  };
+  }, [onCreateClick, navigateTo]);
 
   const isActive = (path: string) => {
     if (path === '/projects') {
@@ -85,10 +86,10 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
               <span className="text-lg font-bold text-white tracking-tight hidden sm:block">Apex-Studio</span>
             </Link>
 
-            {/* Center Navigation - Desktop */}
+            {/* Center Navigation - Desktop with Navigation Guards */}
             <div className="hidden md:flex items-center gap-1 bg-white/[0.03] rounded-full p-1 border border-white/[0.05]">
               {NAV_ITEMS.map((item) => (
-                <Link
+                <NavigationLink
                   key={item.path}
                   to={item.path}
                   className={cn(
@@ -99,7 +100,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                   )}
                 >
                   {item.label}
-                </Link>
+                </NavigationLink>
               ))}
             </div>
 
@@ -166,20 +167,20 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                     <p className="text-xs text-white/40 truncate">{profile?.email}</p>
                   </div>
                   <div className="py-1.5">
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
+                    <DropdownMenuItem onClick={() => navigateTo('/profile')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
                       <User className="w-4 h-4" />
                       Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/settings')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
+                    <DropdownMenuItem onClick={() => navigateTo('/settings')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
                       <Settings className="w-4 h-4" />
                       Settings
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/help')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
+                    <DropdownMenuItem onClick={() => navigateTo('/help')} className="text-sm text-white/70 hover:text-white focus:text-white focus:bg-white/[0.08] rounded-lg py-2.5 px-3 gap-2.5">
                       <HelpCircle className="w-4 h-4" />
                       Help Center
                     </DropdownMenuItem>
                     {isAdmin && (
-                      <DropdownMenuItem onClick={() => navigate('/admin')} className="text-sm text-amber-400 hover:text-amber-300 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2.5 px-3 gap-2.5">
+                      <DropdownMenuItem onClick={() => navigateTo('/admin')} className="text-sm text-amber-400 hover:text-amber-300 focus:text-amber-300 focus:bg-amber-500/10 rounded-lg py-2.5 px-3 gap-2.5">
                         <Shield className="w-4 h-4" />
                         Admin Panel
                       </DropdownMenuItem>
@@ -208,7 +209,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
         <div className="md:hidden bg-black/95 backdrop-blur-2xl border-b border-white/[0.05]">
           <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
             {NAV_ITEMS.map((item) => (
-              <Link
+              <NavigationLink
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
@@ -220,7 +221,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
                 )}
               >
                 {item.label}
-              </Link>
+              </NavigationLink>
             ))}
             
             {/* Create & Credits Row */}

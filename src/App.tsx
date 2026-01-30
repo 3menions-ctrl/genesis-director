@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLoader } from "@/components/ui/app-loader";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
+import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -64,9 +65,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AuthProvider>
-            <StudioProvider>
-              <Routes>
+          <NavigationLoadingProvider>
+            <AuthProvider>
+              <StudioProvider>
+                {/* Global Loading Overlay for smooth transitions */}
+                <GlobalLoadingOverlay />
+                <Routes>
                 {/* Public routes - each wrapped for isolation */}
                 <Route path="/" element={
                   <RouteContainer fallbackMessage="Loading...">
@@ -298,9 +302,10 @@ const App = () => (
                     <NotFound />
                   </RouteContainer>
                 } />
-              </Routes>
-            </StudioProvider>
-          </AuthProvider>
+                </Routes>
+              </StudioProvider>
+            </AuthProvider>
+          </NavigationLoadingProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

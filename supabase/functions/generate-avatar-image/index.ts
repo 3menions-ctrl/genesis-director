@@ -35,17 +35,17 @@ interface GeneratedAvatar {
   };
 }
 
-// Build detailed prompt for AI-rendered avatar generation
-// Creates stylized CGI characters that match how they'll appear in AI video clips
+// Build detailed prompt for photorealistic avatar generation
+// Creates ultra-realistic human portraits indistinguishable from real photographs
 function buildAvatarPrompt(
   config: AvatarGenerationRequest,
   view: "front" | "side" | "back"
 ): string {
   const viewInstructions = {
     front:
-      "facing directly toward the camera, centered composition, neutral confident expression, looking at viewer",
-    side: "profile view facing left, showing side of face and body clearly, same character",
-    back: "back view facing away from camera, showing hair and back of outfit, same character",
+      "facing directly toward the camera, centered composition, natural confident expression, looking at viewer",
+    side: "profile view facing left, showing side of face and body clearly, same person with identical features",
+    back: "back view facing away from camera, showing hair and back of outfit, same person",
   };
 
   const ageDescriptor = config.ageRange === "young-adult" 
@@ -56,39 +56,49 @@ function buildAvatarPrompt(
     ? "in their late 50s"
     : "in their 30s";
 
-  const clothing = config.clothing || "modern professional attire, stylish blazer or business outfit";
+  const clothing = config.clothing || "modern professional attire, tailored blazer, quality dress shoes";
   
-  return `High-quality AI-generated 3D rendered character portrait. Digital art style avatar of a ${config.gender} person named ${config.name}, ${ageDescriptor}, ${config.ethnicity} ethnicity. ${viewInstructions[view]}.
+  return `Ultra-realistic professional photograph of a ${config.gender} person named ${config.name}, ${ageDescriptor}, ${config.ethnicity} ethnicity. ${viewInstructions[view]}.
 
-RENDER STYLE:
-- Stylized 3D CGI character render, similar to modern AI video generation
-- Slightly stylized but believable human features
-- Smooth, clean skin with subtle subsurface scattering
-- Soft cinematic lighting with rim lighting accents
-- Subtle ambient occlusion for depth
-- Clean, polished digital art aesthetic
+CRITICAL - PHOTOREALISM REQUIREMENTS:
+- This MUST look like an actual photograph taken by a professional photographer
+- Real human skin with natural pores, subtle imperfections, and realistic texture
+- Natural skin tones with realistic subsurface scattering
+- Authentic human eyes with natural catchlights and slight moisture
+- Real hair with individual strands visible, natural shine and movement
+- Genuine facial expressions with micro-expressions
+- NO CGI, NO 3D render, NO digital art style - purely photographic
+
+CRITICAL - FULL BODY COMPOSITION:
+- FULL BODY shot from head to feet - entire person must be visible
+- Standing in a natural, relaxed confident pose
+- Full figure including legs and shoes clearly visible
+- Professional studio photography framing with person centered
+
+LIGHTING & PHOTOGRAPHY:
+- Professional studio lighting (three-point setup)
+- Soft key light creating natural shadows
+- Shot on high-end camera (Canon EOS R5 quality)
+- 85mm portrait lens, shallow depth of field on background
+- 8K resolution, extremely sharp focus
 
 CHARACTER DESIGN:
-- ${config.gender === "male" ? "Strong jaw, clean features" : "Refined features, elegant proportions"}
-- Expressive, friendly eyes with catch lights
+- ${config.gender === "male" ? "Strong natural jaw, authentic masculine features" : "Elegant natural features, authentic feminine beauty"}
 - ${config.personality || "Confident and approachable"} demeanor
-- Full body shot from head to mid-thigh
-- Standing in a natural, confident pose
+- Warm, genuine expression
 
 OUTFIT & STYLING:
 - ${clothing}
-- Modern, stylish appearance
-- Well-designed hair with realistic strands and volume
-- Cohesive color palette
+- Well-designed natural hair with realistic texture
+- Visible from head to toe including footwear
 
-TECHNICAL:
-- Clean gradient background (dark studio with subtle color)
-- Hyper-detailed 8K render quality
-- Unreal Engine 5 or Octane render style
-- Volumetric lighting
-- No noise or artifacts
+BACKGROUND: Clean neutral gray seamless studio backdrop with subtle gradient.
 
-CRITICAL: This is a CGI avatar for AI-generated video content. The character should look like a high-quality 3D render that would appear in modern AI video generation (like Kling, Runway, or Sora output). NOT a photograph. Stylized digital human, polished and cinematic.`;
+ABSOLUTE REQUIREMENTS:
+- Indistinguishable from a real photograph of a real person
+- Full body visible from head to toe
+- Professional photography quality
+- Must look like a genuine human being`;
 }
 
 // Generate image using Lovable AI Gateway

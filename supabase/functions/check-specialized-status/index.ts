@@ -44,7 +44,7 @@ serve(async (req) => {
     // Fetch current project state
     const { data: project, error: projectError } = await supabase
       .from('movie_projects')
-      .select('mode, pipeline_state, status')
+      .select('mode, pipeline_state, status, voice_audio_url')
       .eq('id', projectId)
       .single();
 
@@ -113,15 +113,14 @@ serve(async (req) => {
 
       case 'processing':
         // Estimate progress based on logs if available
-        const estimatedProgress = prediction.logs 
-          ? Math.min(75, 25 + (prediction.logs.length / 10))
-          : currentState.progress || 50;
+        const logLength = prediction.logs?.length || 0;
+        const estimatedProgress = Math.min(85, 30 + Math.floor(logLength / 50));
         
         newState = {
           ...currentState,
           stage: 'processing',
           progress: estimatedProgress,
-          message: 'AI is generating your video...',
+          message: getProcessingMessage(project.mode, estimatedProgress),
         };
         break;
 
@@ -129,8 +128,8 @@ serve(async (req) => {
         newState = {
           ...currentState,
           stage: 'starting',
-          progress: 10,
-          message: 'Initializing AI model...',
+          progress: 15,
+          message: 'AI model is warming up...',
         };
         break;
 
@@ -167,9 +166,12 @@ serve(async (req) => {
         status: prediction.status,
         progress: newState.progress,
         stage: newState.stage,
+        message: newState.message,
         videoUrl,
+        audioUrl: currentState.audioUrl || project.voice_audio_url,
         isComplete: prediction.status === 'succeeded',
         isFailed: prediction.status === 'failed' || prediction.status === 'canceled',
+        error: prediction.status === 'failed' ? prediction.error : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -185,3 +187,31 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Get contextual processing message based on mode and progress
+ */
+function getProcessingMessage(mode: string, progress: number): string {
+  if (mode === 'avatar') {
+    if (progress < 40) return 'Analyzing facial features and expressions...';
+    if (progress < 60) return 'Generating natural speaking motion...';
+    if (progress < 80) return 'Rendering talking head animation...';
+    return 'Finalizing avatar video...';
+  }
+  
+  if (mode === 'video-to-video') {
+    if (progress < 40) return 'Analyzing visual style patterns...';
+    if (progress < 60) return 'Applying artistic transformation...';
+    if (progress < 80) return 'Rendering stylized frames...';
+    return 'Encoding final video...';
+  }
+  
+  if (mode === 'motion-transfer') {
+    if (progress < 40) return 'Extracting motion vectors...';
+    if (progress < 60) return 'Mapping pose to target...';
+    if (progress < 80) return 'Rendering motion animation...';
+    return 'Finalizing transfer...';
+  }
+  
+  return 'AI is generating your video...';
+}

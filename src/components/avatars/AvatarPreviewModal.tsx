@@ -42,10 +42,12 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
     const hasMultipleViews = avatar.side_image_url || avatar.back_image_url;
 
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
         <DialogContent 
           ref={ref}
-          className="sm:max-w-2xl bg-black/95 border-white/[0.08] backdrop-blur-xl p-0 overflow-hidden"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="sm:max-w-2xl bg-black/95 border-white/[0.08] backdrop-blur-xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto"
         >
           {/* Top shine line */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />

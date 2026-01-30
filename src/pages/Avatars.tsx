@@ -285,7 +285,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-black overflow-x-hidden overflow-y-auto">
+    <div className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>

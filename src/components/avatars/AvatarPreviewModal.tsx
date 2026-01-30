@@ -23,6 +23,7 @@ interface AvatarPreviewModalProps {
   onSelect: (avatar: AvatarTemplate) => void;
   onPreviewVoice: (avatar: AvatarTemplate) => void;
   isPreviewingVoice: boolean;
+  isVoiceReady?: boolean;
 }
 
 export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalProps>(
@@ -32,7 +33,8 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
     onOpenChange, 
     onSelect, 
     onPreviewVoice,
-    isPreviewingVoice 
+    isPreviewingVoice,
+    isVoiceReady = false,
   }, ref) {
     if (!avatar) return null;
 
@@ -134,25 +136,48 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
               )}
 
               {/* Voice Section */}
-              <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20">
+              <div className={cn(
+                "p-4 rounded-xl border",
+                isVoiceReady 
+                  ? "bg-emerald-500/10 border-emerald-500/20" 
+                  : "bg-violet-500/10 border-violet-500/20"
+              )}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Mic className="w-4 h-4 text-violet-400" />
-                    <span className="text-xs font-medium text-violet-300 uppercase tracking-wider">Voice</span>
+                    <Mic className={cn(
+                      "w-4 h-4",
+                      isVoiceReady ? "text-emerald-400" : "text-violet-400"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-medium uppercase tracking-wider",
+                      isVoiceReady ? "text-emerald-300" : "text-violet-300"
+                    )}>
+                      {isVoiceReady ? 'Voice Ready' : 'Voice'}
+                    </span>
+                    {isVoiceReady && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Instant
+                      </span>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onPreviewVoice(avatar)}
                     disabled={isPreviewingVoice}
-                    className="h-8 px-3 text-violet-300 hover:text-violet-200 hover:bg-violet-500/20"
+                    className={cn(
+                      "h-8 px-3",
+                      isVoiceReady 
+                        ? "text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/20"
+                        : "text-violet-300 hover:text-violet-200 hover:bg-violet-500/20"
+                    )}
                   >
                     {isPreviewingVoice ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
                     ) : (
                       <Play className="w-4 h-4 mr-1.5" />
                     )}
-                    {isPreviewingVoice ? 'Playing...' : 'Preview Voice'}
+                    {isPreviewingVoice ? 'Playing...' : isVoiceReady ? 'Play' : 'Preview Voice'}
                   </Button>
                 </div>
                 <div className="flex items-center gap-3">
@@ -160,7 +185,10 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
                     <p className="text-sm font-medium text-white/80">{avatar.voice_name || 'Premium Voice'}</p>
                     <p className="text-xs text-white/40">{avatar.voice_description || 'Natural, professional tone'}</p>
                   </div>
-                  <Volume2 className="w-5 h-5 text-violet-400/50" />
+                  <Volume2 className={cn(
+                    "w-5 h-5",
+                    isVoiceReady ? "text-emerald-400/50" : "text-violet-400/50"
+                  )} />
                 </div>
               </div>
 

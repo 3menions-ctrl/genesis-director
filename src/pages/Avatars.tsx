@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
+import { useAvatarVoices } from '@/hooks/useAvatarVoices';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { PremiumAvatarGallery } from '@/components/avatars/PremiumAvatarGallery';
@@ -31,9 +32,14 @@ export default function Avatars() {
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState<AvatarTemplate | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
-  const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
 
+  // Voice management with smart caching and preloading
+  const {
+    playVoicePreview,
+    preloadVoices,
+    isVoiceReady,
+    previewingVoice,
+  } = useAvatarVoices();
   // Project configuration state
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
@@ -58,51 +64,22 @@ export default function Avatars() {
   const estimatedDuration = clipCount * clipDuration;
   const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0;
 
-  // Voice preview handler
+  // Preload voices for visible avatars when templates load
+  useEffect(() => {
+    if (templates.length > 0 && !isLoading) {
+      // Preload first 5 visible avatars' voices in background
+      const visibleAvatars = templates.slice(0, 5);
+      preloadVoices(visibleAvatars);
+    }
+  }, [templates, isLoading, preloadVoices]);
+
+  // Voice preview handler - uses smart caching
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
-    if (voicePreviewCache[avatar.id]) {
-      const audio = new Audio(voicePreviewCache[avatar.id]);
-      audio.play().catch(console.error);
-      return;
-    }
-    
-    setPreviewingVoice(avatar.id);
-    
-    try {
-      const sampleText = `Hello, I'm ${avatar.name}. ${avatar.description || "I'm ready to help you create amazing videos."}`;
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            text: sampleText,
-            voiceId: avatar.voice_id,
-          }),
-        }
-      );
-      
-      if (!response.ok) throw new Error('Voice generation failed');
-      
-      const data = await response.json();
-      
-      if (data.success && data.audioUrl) {
-        setVoicePreviewCache(prev => ({ ...prev, [avatar.id]: data.audioUrl }));
-        const audio = new Audio(data.audioUrl);
-        audio.play().catch(console.error);
-      }
-    } catch (err) {
-      console.error('Voice preview error:', err);
+    const success = await playVoicePreview(avatar);
+    if (!success) {
       toast.error('Failed to preview voice');
-    } finally {
-      setPreviewingVoice(null);
     }
-  }, [voicePreviewCache]);
+  }, [playVoicePreview]);
 
   // Handle avatar card click - open preview modal
   const handleAvatarClick = (avatar: AvatarTemplate) => {
@@ -291,6 +268,7 @@ export default function Avatars() {
               onVoicePreview={handleVoicePreview}
               previewingVoice={previewingVoice}
               isLoading={isLoading}
+              isVoiceReady={isVoiceReady}
             />
           )}
         </motion.div>
@@ -328,6 +306,7 @@ export default function Avatars() {
         onSelect={handleSelectAvatar}
         onPreviewVoice={handleVoicePreview}
         isPreviewingVoice={previewingVoice === previewAvatar?.id}
+        isVoiceReady={previewAvatar ? isVoiceReady(previewAvatar) : false}
       />
 
       {/* Loading Overlay */}

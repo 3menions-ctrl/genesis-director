@@ -15,6 +15,7 @@ interface PremiumAvatarGalleryProps {
   onVoicePreview: (avatar: AvatarTemplate) => void;
   previewingVoice: string | null;
   isLoading?: boolean;
+  isVoiceReady?: (avatar: AvatarTemplate) => boolean;
 }
 
 // Avatar card component with forwardRef for Framer Motion compatibility
@@ -27,10 +28,11 @@ const AvatarCard = forwardRef<HTMLDivElement, {
   onClick: () => void;
   onVoicePreview: () => void;
   isPreviewingVoice: boolean;
+  isVoiceReady: boolean;
   cardWidth: number;
   index: number;
   isMobile: boolean;
-}>(({ 
+}>(({
   avatar, 
   isSelected, 
   isHovered, 
@@ -39,6 +41,7 @@ const AvatarCard = forwardRef<HTMLDivElement, {
   onClick, 
   onVoicePreview,
   isPreviewingVoice,
+  isVoiceReady,
   cardWidth,
   index,
   isMobile
@@ -129,7 +132,13 @@ const AvatarCard = forwardRef<HTMLDivElement, {
               e.stopPropagation();
               onVoicePreview();
             }}
-            className="absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full bg-violet-500/90 hover:bg-violet-400 flex items-center justify-center transition-colors shadow-lg shadow-violet-500/30"
+            className={cn(
+              "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-lg",
+              isVoiceReady 
+                ? "bg-emerald-500/90 hover:bg-emerald-400 shadow-emerald-500/30" 
+                : "bg-violet-500/90 hover:bg-violet-400 shadow-violet-500/30"
+            )}
+            title={isVoiceReady ? "Voice ready - instant playback" : "Preview voice"}
           >
             {isPreviewingVoice ? (
               <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
@@ -189,7 +198,8 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
   onAvatarClick,
   onVoicePreview,
   previewingVoice,
-  isLoading
+  isLoading,
+  isVoiceReady = () => false,
 }: PremiumAvatarGalleryProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -303,6 +313,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
             onClick={() => onAvatarClick(avatar)}
             onVoicePreview={() => onVoicePreview(avatar)}
             isPreviewingVoice={previewingVoice === avatar.id}
+            isVoiceReady={isVoiceReady(avatar)}
             cardWidth={CARD_WIDTH}
             index={index}
             isMobile={isMobile}

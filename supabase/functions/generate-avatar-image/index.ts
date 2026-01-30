@@ -35,16 +35,17 @@ interface GeneratedAvatar {
   };
 }
 
-// Build detailed prompt for photorealistic avatar generation
+// Build detailed prompt for AI-rendered avatar generation
+// Creates stylized CGI characters that match how they'll appear in AI video clips
 function buildAvatarPrompt(
   config: AvatarGenerationRequest,
   view: "front" | "side" | "back"
 ): string {
   const viewInstructions = {
     front:
-      "facing directly toward the camera, centered composition, making eye contact",
-    side: "profile view facing left, showing side of face and body clearly",
-    back: "back view facing away from camera, showing hair and back of outfit",
+      "facing directly toward the camera, centered composition, neutral confident expression, looking at viewer",
+    side: "profile view facing left, showing side of face and body clearly, same character",
+    back: "back view facing away from camera, showing hair and back of outfit, same character",
   };
 
   const ageDescriptor = config.ageRange === "young-adult" 
@@ -55,32 +56,39 @@ function buildAvatarPrompt(
     ? "in their late 50s"
     : "in their 30s";
 
-  const clothing = config.clothing || "professional business attire, well-fitted suit or blazer";
+  const clothing = config.clothing || "modern professional attire, stylish blazer or business outfit";
   
-  return `Ultra high resolution professional studio photograph of a ${config.gender} person named ${config.name}, ${ageDescriptor}, ${config.ethnicity} ethnicity. ${viewInstructions[view]}.
+  return `High-quality AI-generated 3D rendered character portrait. Digital art style avatar of a ${config.gender} person named ${config.name}, ${ageDescriptor}, ${config.ethnicity} ethnicity. ${viewInstructions[view]}.
 
-PHYSICAL APPEARANCE:
-- ${config.gender === "male" ? "Clean-shaven or well-groomed facial hair" : "Natural makeup, elegant appearance"}
-- Confident, approachable expression
-- Perfect studio lighting with soft shadows
-- Sharp focus on the subject
+RENDER STYLE:
+- Stylized 3D CGI character render, similar to modern AI video generation
+- Slightly stylized but believable human features
+- Smooth, clean skin with subtle subsurface scattering
+- Soft cinematic lighting with rim lighting accents
+- Subtle ambient occlusion for depth
+- Clean, polished digital art aesthetic
+
+CHARACTER DESIGN:
+- ${config.gender === "male" ? "Strong jaw, clean features" : "Refined features, elegant proportions"}
+- Expressive, friendly eyes with catch lights
+- ${config.personality || "Confident and approachable"} demeanor
 - Full body shot from head to mid-thigh
+- Standing in a natural, confident pose
 
 OUTFIT & STYLING:
 - ${clothing}
-- Colors that complement their skin tone
-- Well-groomed hair styled professionally
+- Modern, stylish appearance
+- Well-designed hair with realistic strands and volume
+- Cohesive color palette
 
-PHOTOGRAPHY STYLE:
-- Shot on Hasselblad H6D with 100mm lens
-- Soft gradient background (neutral gray to light)
-- Professional headshot/portrait lighting setup
-- 8K resolution, extremely detailed
-- Magazine cover quality
+TECHNICAL:
+- Clean gradient background (dark studio with subtle color)
+- Hyper-detailed 8K render quality
+- Unreal Engine 5 or Octane render style
+- Volumetric lighting
+- No noise or artifacts
 
-${config.personality ? `PERSONALITY TO CONVEY: ${config.personality}` : ""}
-
-CRITICAL: This is a full-body portrait for an AI avatar system. The person must look natural, photorealistic, and suitable for professional video presentations. No artificial or CGI appearance.`;
+CRITICAL: This is a CGI avatar for AI-generated video content. The character should look like a high-quality 3D render that would appear in modern AI video generation (like Kling, Runway, or Sora output). NOT a photograph. Stylized digital human, polished and cinematic.`;
 }
 
 // Generate image using Lovable AI Gateway

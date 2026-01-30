@@ -23,7 +23,7 @@ import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 // Separated content for error boundary isolation
 const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
   const navigate = useNavigate();
-  const { user, profile, isSessionVerified, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
@@ -271,15 +271,15 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     setSelectedAvatar(null);
   }, []);
 
-  // EARLY RETURN AFTER ALL HOOKS - Auth loading state
-  if (authLoading || !isSessionVerified) {
+  // EARLY RETURN AFTER ALL HOOKS - Only block on initial auth check
+  if (authLoading) {
     return (
       <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
         <AvatarsBackground />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-            <p className="text-white/50">Loading avatars...</p>
+            <p className="text-white/50">Loading...</p>
           </div>
         </div>
       </div>

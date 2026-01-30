@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
@@ -8,16 +8,28 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
   const [templates, setTemplates] = useState<AvatarTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     // Don't fetch until session is verified
     if (!isSessionVerified) {
       return;
     }
 
     async function fetchTemplates() {
-      setIsLoading(true);
-      setError(null);
+      // Abort previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      
+      if (isMountedRef.current) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       try {
         // Create timeout promise
@@ -34,6 +46,8 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
         
         const result = await Promise.race([fetchPromise, timeoutPromise]);
 
+        if (!isMountedRef.current) return;
+
         if (result.error) {
           // Handle timeout gracefully
           if (result.error.message === 'timeout') {
@@ -46,16 +60,26 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
 
         setTemplates((result.data as unknown as AvatarTemplate[]) || []);
       } catch (err) {
+        if (!isMountedRef.current) return;
         console.error('Failed to fetch avatar templates:', err);
         setError(err instanceof Error ? err.message : 'Failed to load avatars');
         // Set empty array instead of leaving stale data
         setTemplates([]);
       } finally {
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setIsLoading(false);
+        }
       }
     }
 
     fetchTemplates();
+    
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [isSessionVerified, session?.user?.id]);
 
   // Apply client-side filtering
@@ -98,8 +122,10 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     isLoading,
     error,
     refetch: () => {
-      setTemplates([]);
-      setIsLoading(true);
+      if (isMountedRef.current) {
+        setTemplates([]);
+        setIsLoading(true);
+      }
     },
   };
 }

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { User, Sparkles } from 'lucide-react';
 
@@ -17,9 +17,9 @@ const heroLetterVariants = {
   }
 };
 
-export const AvatarsHero = memo(function AvatarsHero() {
+export const AvatarsHero = memo(forwardRef<HTMLElement, Record<string, never>>(function AvatarsHero(_, ref) {
   return (
-    <section className="relative pt-24 pb-8 md:pt-32 md:pb-12 px-4 md:px-6 text-center">
+    <section ref={ref} className="relative pt-24 pb-8 md:pt-32 md:pb-12 px-4 md:px-6 text-center">
       <div className="max-w-5xl mx-auto" style={{ perspective: '1000px' }}>
         {/* Floating badge */}
         <motion.div
@@ -128,6 +128,8 @@ export const AvatarsHero = memo(function AvatarsHero() {
       </div>
     </section>
   );
-});
+}));
+
+AvatarsHero.displayName = 'AvatarsHero';
 
 export default AvatarsHero;

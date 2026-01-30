@@ -81,7 +81,17 @@ function mapDbProject(dbProject: any): Project {
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
-  const { user, session, profile, refreshProfile, loading: authLoading } = useAuth();
+  // CRASH GUARD: Wrap useAuth in try-catch fallback
+  let authContext: ReturnType<typeof useAuth>;
+  try {
+    authContext = useAuth();
+  } catch (e) {
+    console.error('[StudioContext] Auth context not available yet:', e);
+    // Return children without studio context - will retry on next render
+    return <>{children}</>;
+  }
+  
+  const { user, profile, refreshProfile, loading: authLoading } = authContext;
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo, forwardRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CinematicTransitionProps {
@@ -19,55 +19,85 @@ interface CinematicTransitionProps {
  * - Wipe: 10-13s (cinematic transition)
  * - Navigate: 12s (during wipe, before overlay fades)
  */
-export default function CinematicTransition({ 
-  isActive, 
-  onComplete,
-  className 
-}: CinematicTransitionProps) {
-  const [phase, setPhase] = useState<'idle' | 'buildup' | 'logo' | 'explode' | 'wipe'>('idle');
-  const hasNavigated = useRef(false);
+const CinematicTransition = memo(forwardRef<HTMLDivElement, CinematicTransitionProps>(
+  function CinematicTransition({ 
+    isActive, 
+    onComplete,
+    className 
+  }, ref) {
+    const [phase, setPhase] = useState<'idle' | 'buildup' | 'logo' | 'explode' | 'wipe'>('idle');
+    const hasNavigated = useRef(false);
+    const isMountedRef = useRef(true);
+    const timersRef = useRef<NodeJS.Timeout[]>([]);
 
-  useEffect(() => {
-    if (!isActive) {
-      setPhase('idle');
-      hasNavigated.current = false;
-      return;
-    }
-
-    // Phase 0: Buildup tension (0-2.5s) - Extended for more anticipation
-    setPhase('buildup');
-
-    // Phase 1: Logo reveal (2.5-7s) - Extended for grander entrance
-    const logoTimer = setTimeout(() => {
-      setPhase('logo');
-    }, 2500);
-    
-    // Phase 2: Particle explosion (7-10s) - Extended for epic effect
-    const explodeTimer = setTimeout(() => {
-      setPhase('explode');
-    }, 7000);
-
-    // Phase 3: Wipe transition (10-13s)
-    const wipeTimer = setTimeout(() => {
-      setPhase('wipe');
-    }, 10000);
-
-    // Navigate DURING wipe (at 12s) - while overlay is still visible
-    // This prevents the flicker as navigation happens before overlay fades
-    const navigateTimer = setTimeout(() => {
-      if (!hasNavigated.current) {
-        hasNavigated.current = true;
-        onComplete();
+    // Safe setState that checks mount status
+    const safeSetPhase = useCallback((newPhase: typeof phase) => {
+      if (isMountedRef.current) {
+        setPhase(newPhase);
       }
-    }, 12000);
+    }, []);
 
-    return () => {
-      clearTimeout(logoTimer);
-      clearTimeout(explodeTimer);
-      clearTimeout(wipeTimer);
-      clearTimeout(navigateTimer);
-    };
-  }, [isActive, onComplete]);
+    // Cleanup on unmount
+    useEffect(() => {
+      isMountedRef.current = true;
+      return () => {
+        isMountedRef.current = false;
+        // Clear all pending timers
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!isActive) {
+        safeSetPhase('idle');
+        hasNavigated.current = false;
+        // Clear any existing timers when deactivated
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+        return;
+      }
+
+      // Clear previous timers
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+
+      // Phase 0: Buildup tension (0-2.5s) - Extended for more anticipation
+      safeSetPhase('buildup');
+
+      // Phase 1: Logo reveal (2.5-7s) - Extended for grander entrance
+      const logoTimer = setTimeout(() => {
+        safeSetPhase('logo');
+      }, 2500);
+      timersRef.current.push(logoTimer);
+      
+      // Phase 2: Particle explosion (7-10s) - Extended for epic effect
+      const explodeTimer = setTimeout(() => {
+        safeSetPhase('explode');
+      }, 7000);
+      timersRef.current.push(explodeTimer);
+
+      // Phase 3: Wipe transition (10-13s)
+      const wipeTimer = setTimeout(() => {
+        safeSetPhase('wipe');
+      }, 10000);
+      timersRef.current.push(wipeTimer);
+
+      // Navigate DURING wipe (at 12s) - while overlay is still visible
+      // This prevents the flicker as navigation happens before overlay fades
+      const navigateTimer = setTimeout(() => {
+        if (!hasNavigated.current && isMountedRef.current) {
+          hasNavigated.current = true;
+          onComplete();
+        }
+      }, 12000);
+      timersRef.current.push(navigateTimer);
+
+      return () => {
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+      };
+    }, [isActive, onComplete, safeSetPhase]);
 
   // Generate particle positions - more particles for epic effect
   const particles = Array.from({ length: 150 }, (_, i) => ({
@@ -619,4 +649,6 @@ export default function CinematicTransition({
       )}
     </AnimatePresence>
   );
-}
+}));
+
+export default CinematicTransition;

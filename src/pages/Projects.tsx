@@ -129,13 +129,36 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   }, []);
   
   // Fetch first clip from database for completed projects without video_clips array
+  // OR parse manifest to get first clip URL
   useEffect(() => {
     let cancelled = false;
     
-    const fetchClipFromDb = async () => {
+    const fetchClipUrl = async () => {
+      // Skip if already have a direct video or video_clips array
       if (!hasVideo || project.video_clips?.length || isDirectVideo) return;
       
       try {
+        // First, if it's a manifest, try to fetch and parse it for clip URLs
+        if (isManifest && project.video_url) {
+          try {
+            const manifestRes = await fetch(project.video_url);
+            if (manifestRes.ok) {
+              const manifest = await manifestRes.json();
+              // Get first clip URL from manifest
+              if (manifest.clips?.length > 0) {
+                const firstClipUrl = manifest.clips[0]?.videoUrl;
+                if (firstClipUrl && !cancelled && isMountedRef.current) {
+                  setFetchedClipUrl(firstClipUrl);
+                  return;
+                }
+              }
+            }
+          } catch {
+            // Manifest fetch failed, fall back to DB query
+          }
+        }
+        
+        // Fallback: fetch from video_clips table
         const { data } = await supabase
           .from('video_clips')
           .select('video_url')
@@ -153,9 +176,9 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
       }
     };
     
-    fetchClipFromDb();
+    fetchClipUrl();
     return () => { cancelled = true; };
-  }, [project.id, hasVideo, project.video_clips?.length, isDirectVideo]);
+  }, [project.id, hasVideo, project.video_clips?.length, isDirectVideo, isManifest, project.video_url]);
   
   // Determine video source - prioritize direct video_url for completed projects
   const videoSrc = useMemo(() => {

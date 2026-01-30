@@ -16,7 +16,9 @@ interface FullscreenVideoPlayerProps {
   onOpenExternal?: () => void;
 }
 
-const CROSSFADE_DURATION_SEC = 0.030; // seconds - ultra-fast overlap for seamless blending
+// TRUE OVERLAP TRANSITION SYSTEM
+const CROSSFADE_OVERLAP_MS = 30; // 30ms true overlap where both are visible
+const CROSSFADE_FADEOUT_MS = 30; // 30ms for outgoing to fade after overlap
 const CROSSFADE_START_BEFORE_END = 0.15; // seconds - start transition just before clip ends
 const PRELOAD_TRIGGER_PERCENT = 0.3; // Start preloading next clip at 30% of current
 
@@ -180,51 +182,55 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
       nextVideo.load();
     }
 
-    // RENDER-VERIFIED OVERLAP: Make incoming visible FIRST, then fade out old
+    // TRUE OVERLAP TRANSITION: Both at 100% for overlap duration, then fade outgoing
     const executeInstantSwap = () => {
-      // STEP 1: Make incoming video visible at FULL OPACITY (both now visible)
+      // PHASE 1: TRUE OVERLAP - Make incoming visible at 100% while outgoing stays at 100%
       if (isNextA) {
-        setVideoAOpacity(1); // Incoming now visible
+        setVideoAOpacity(1); // Incoming now visible at 100%
+        // videoBOpacity stays at 1 - true overlap
       } else {
-        setVideoBOpacity(1); // Incoming now visible
+        setVideoBOpacity(1); // Incoming now visible at 100%
+        // videoAOpacity stays at 1 - true overlap
       }
       
-      // STEP 2: Wait for browser to actually PAINT the incoming frame
+      // PHASE 2: Wait for browser to paint, then start overlap timer
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          // Now browser has definitely rendered the incoming video
-          // STEP 3: Fade out the outgoing video
-          if (isNextA) {
-            setVideoBOpacity(0); // Old fades out
-          } else {
-            setVideoAOpacity(0); // Old fades out
-          }
-          
-          // Swap active video state
-          setActiveVideo(isNextA ? 'A' : 'B');
-          setCurrentClipIndex(nextIndex);
-          
-          // Clean up after crossfade duration
+          // Browser has painted - now wait for overlap duration
           setTimeout(() => {
-            currentVideo.pause();
-            currentVideo.currentTime = 0;
-            
-            if (!isMuted) {
-              currentVideo.volume = 0;
-              nextVideo.volume = volume;
+            // PHASE 3: Fade out the outgoing video (incoming stays at 100%)
+            if (isNextA) {
+              setVideoBOpacity(0); // Old fades out
+            } else {
+              setVideoAOpacity(0); // Old fades out
             }
             
-            setIsTransitioning(false);
-            transitionTriggeredRef.current = false;
-            preloadTriggeredRef.current = false;
-            setPreloadedClipIndex(null);
+            // Swap active video state
+            setActiveVideo(isNextA ? 'A' : 'B');
+            setCurrentClipIndex(nextIndex);
             
-            // Start preloading the NEXT next clip
-            const upcomingIndex = (nextIndex + 1) % clips.length;
-            if (clips.length > 1) {
-              preloadNextClip(upcomingIndex);
-            }
-          }, CROSSFADE_DURATION_SEC * 1000 + 20);
+            // PHASE 4: Clean up after fadeout completes
+            setTimeout(() => {
+              currentVideo.pause();
+              currentVideo.currentTime = 0;
+              
+              if (!isMuted) {
+                currentVideo.volume = 0;
+                nextVideo.volume = volume;
+              }
+              
+              setIsTransitioning(false);
+              transitionTriggeredRef.current = false;
+              preloadTriggeredRef.current = false;
+              setPreloadedClipIndex(null);
+              
+              // Start preloading the NEXT next clip
+              const upcomingIndex = (nextIndex + 1) % clips.length;
+              if (clips.length > 1) {
+                preloadNextClip(upcomingIndex);
+              }
+            }, CROSSFADE_FADEOUT_MS + 20);
+          }, CROSSFADE_OVERLAP_MS);
         });
       });
     };
@@ -613,7 +619,7 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         style={{ 
           opacity: videoAOpacity,
           zIndex: activeVideo === 'A' ? 10 : 5,
-          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out`
+          transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
         }}
         autoPlay
         loop={clips.length === 1}
@@ -631,7 +637,7 @@ export const FullscreenVideoPlayer = forwardRef<HTMLDivElement, FullscreenVideoP
         style={{ 
           opacity: videoBOpacity,
           zIndex: activeVideo === 'B' ? 10 : 5,
-          transition: `opacity ${CROSSFADE_DURATION_SEC}s ease-in-out`
+          transition: `opacity ${CROSSFADE_FADEOUT_MS}ms ease-in-out`
         }}
         loop={clips.length === 1}
         muted={isMuted}

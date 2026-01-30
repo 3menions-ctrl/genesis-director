@@ -243,6 +243,7 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   if (viewMode === 'list') {
     return (
       <motion.div
+        ref={ref}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
@@ -358,6 +359,7 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   // Cinematic Grid view
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 30, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 

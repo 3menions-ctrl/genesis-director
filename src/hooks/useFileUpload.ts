@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -25,6 +25,22 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track mounted state and intervals for cleanup
+  const isMountedRef = useRef(true);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const validateFile = useCallback((file: File): boolean => {
     // Check size
@@ -75,9 +91,16 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
       console.log(`[useFileUpload] Uploading to ${bucket}/${filePath}`);
 
+      // Clear any existing interval before starting new one
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+
       // Simulate progress for UX (actual upload doesn't have progress events)
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
+      progressIntervalRef.current = setInterval(() => {
+        if (isMountedRef.current) {
+          setProgress(prev => Math.min(prev + 10, 90));
+        }
       }, 200);
 
       const { data, error: uploadError } = await supabase.storage
@@ -87,7 +110,11 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
           upsert: true,
         });
 
-      clearInterval(progressInterval);
+      // Clear interval after upload completes
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
 
       if (uploadError) {
         throw uploadError;
@@ -98,7 +125,9 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         .from(bucket)
         .getPublicUrl(filePath);
 
-      setProgress(100);
+      if (isMountedRef.current) {
+        setProgress(100);
+      }
       
       console.log(`[useFileUpload] Upload complete: ${urlData.publicUrl}`);
       toast.success('File uploaded successfully');
@@ -109,14 +138,24 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
       };
 
     } catch (err) {
+      // Clear interval on error
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
       const message = err instanceof Error ? err.message : 'Upload failed';
-      setError(message);
+      if (isMountedRef.current) {
+        setError(message);
+      }
       toast.error(message);
       console.error('[useFileUpload] Error:', err);
       return null;
 
     } finally {
-      setIsUploading(false);
+      if (isMountedRef.current) {
+        setIsUploading(false);
+      }
     }
   }, [user, bucket, validateFile]);
 

@@ -111,6 +111,7 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   viewMode = 'grid'
 }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isMountedRef = useRef(true);
   const [isHovered, setIsHovered] = useState(false);
   const [fetchedClipUrl, setFetchedClipUrl] = useState<string | null>(null);
   
@@ -121,27 +122,39 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   // Consider completed projects or those with manifest URLs as having video content
   const hasVideo = Boolean(project.video_clips?.length || isDirectVideo || isManifest || status === 'completed');
   
+  // Track mount state for async safety
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+  
   // Fetch first clip from database for completed projects without video_clips array
   useEffect(() => {
+    let cancelled = false;
+    
     const fetchClipFromDb = async () => {
       if (!hasVideo || project.video_clips?.length || isDirectVideo) return;
       
-      // For manifests or completed projects, fetch first clip from database
-      const { data } = await supabase
-        .from('video_clips')
-        .select('video_url')
-        .eq('project_id', project.id)
-        .eq('status', 'completed')
-        .order('shot_index', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      
-      if (data?.video_url) {
-        setFetchedClipUrl(data.video_url);
+      try {
+        const { data } = await supabase
+          .from('video_clips')
+          .select('video_url')
+          .eq('project_id', project.id)
+          .eq('status', 'completed')
+          .order('shot_index', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        
+        if (!cancelled && isMountedRef.current && data?.video_url) {
+          setFetchedClipUrl(data.video_url);
+        }
+      } catch {
+        // Silent fail - non-critical fetch
       }
     };
     
     fetchClipFromDb();
+    return () => { cancelled = true; };
   }, [project.id, hasVideo, project.video_clips?.length, isDirectVideo]);
   
   // Determine video source - prioritize direct video_url for completed projects

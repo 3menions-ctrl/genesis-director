@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { FolderOpen, Check, Activity, Film, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,27 +12,29 @@ interface ProjectsHeroProps {
   };
 }
 
-function OrbitalStat({ 
-  icon: Icon, 
-  label, 
-  value, 
-  delay = 0,
-  colorClass = 'from-orange-500 to-amber-500'
-}: { 
+interface OrbitalStatProps {
   icon: React.ElementType;
   label: string;
   value: string | number;
   delay?: number;
   colorClass?: string;
-}) {
+}
+
+const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function OrbitalStat({ 
+  icon: Icon, 
+  label, 
+  value, 
+  delay = 0,
+  colorClass = 'from-orange-500 to-amber-500'
+}, ref) {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
       className="relative group"
     >
-      {/* Glow ring on hover */}
       <motion.div 
         className={cn(
           "absolute -inset-1 rounded-2xl bg-gradient-to-br opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500",
@@ -41,7 +44,6 @@ function OrbitalStat({
       />
       
       <div className="relative flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300">
-        {/* Icon with gradient background */}
         <div className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg",
           colorClass
@@ -56,9 +58,9 @@ function OrbitalStat({
       </div>
     </motion.div>
   );
-}
+}));
 
-export function ProjectsHero({ stats }: ProjectsHeroProps) {
+export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(function ProjectsHero({ stats }, ref) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -154,4 +156,4 @@ export function ProjectsHero({ stats }: ProjectsHeroProps) {
       </div>
     </motion.div>
   );
-}
+}));

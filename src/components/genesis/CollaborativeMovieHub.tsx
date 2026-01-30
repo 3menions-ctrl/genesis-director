@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Film, Users, Play, Clock, MapPin, Star, 
@@ -15,6 +15,7 @@ import {
 } from '@/hooks/useCollaborativeMovie';
 import { CharacterCastingGallery } from './CharacterCastingGallery';
 import { SceneScriptViewer } from './SceneScriptViewer';
+import { SafeComponent } from '@/components/ui/error-boundary';
 
 function StatCard({ 
   icon: Icon, 
@@ -337,17 +338,20 @@ export function CollaborativeMovieHub() {
         </TabsContent>
         
         <TabsContent value="characters" className="mt-6">
-          <CharacterCastingGallery screenplayId={screenplay.id} />
+          <SafeComponent name="Character Gallery">
+            <CharacterCastingGallery screenplayId={screenplay.id} />
+          </SafeComponent>
         </TabsContent>
         
         <TabsContent value="script" className="mt-6">
-          <SceneScriptViewer 
-            screenplayId={screenplay.id}
-            onGenerateScene={(scene) => {
-              // TODO: Navigate to studio with scene pre-loaded
-              console.log('Generate scene:', scene);
-            }}
-          />
+          <SafeComponent name="Script Viewer">
+            <SceneScriptViewer 
+              screenplayId={screenplay.id}
+              onGenerateScene={(scene) => {
+                console.log('Generate scene:', scene);
+              }}
+            />
+          </SafeComponent>
         </TabsContent>
       </Tabs>
     </div>

@@ -488,6 +488,7 @@ interface VideoModalProps {
 const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function VideoModal({ video, formatGenre, onClose, isLiked, onLike }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
@@ -496,19 +497,24 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
   const isDirectVideo = video.video_url && !isManifest;
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
     const videoEl = videoRef.current;
     if (!videoEl || !isDirectVideo) return;
 
     const attemptPlay = async () => {
       try {
         await videoEl.play();
-        setIsVideoPlaying(true);
+        if (isMountedRef.current) setIsVideoPlaying(true);
       } catch {
         videoEl.muted = true;
-        setIsMuted(true);
+        if (isMountedRef.current) setIsMuted(true);
         try {
           await videoEl.play();
-          setIsVideoPlaying(true);
+          if (isMountedRef.current) setIsVideoPlaying(true);
         } catch {}
       }
     };

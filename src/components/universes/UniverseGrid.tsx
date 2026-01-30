@@ -1,7 +1,9 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { UniverseCard } from './UniverseCard';
 import { UniverseEmptyState } from './UniverseEmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SafeComponent } from '@/components/ui/error-boundary';
 import type { Universe } from '@/types/universe';
 
 interface UniverseGridProps {
@@ -15,7 +17,7 @@ interface UniverseGridProps {
   onCreated?: (universeId: string) => void;
 }
 
-function UniverseCardSkeleton() {
+const UniverseCardSkeleton = memo(function UniverseCardSkeleton() {
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
       <Skeleton className="h-32 w-full" />
@@ -33,9 +35,9 @@ function UniverseCardSkeleton() {
       </div>
     </div>
   );
-}
+});
 
-export function UniverseGrid({
+export const UniverseGrid = memo(forwardRef<HTMLDivElement, UniverseGridProps>(function UniverseGrid({
   universes,
   isLoading,
   currentUserId,
@@ -44,7 +46,7 @@ export function UniverseGrid({
   onDelete,
   onShare,
   onCreated,
-}: UniverseGridProps) {
+}, ref) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -61,6 +63,7 @@ export function UniverseGrid({
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -72,16 +75,18 @@ export function UniverseGrid({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
         >
-          <UniverseCard
-            universe={universe}
-            onSelect={onSelect}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onShare={onShare}
-            isOwner={universe.user_id === currentUserId}
-          />
+          <SafeComponent name="Universe Card" silent>
+            <UniverseCard
+              universe={universe}
+              onSelect={onSelect}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onShare={onShare}
+              isOwner={universe.user_id === currentUserId}
+            />
+          </SafeComponent>
         </motion.div>
       ))}
     </motion.div>
   );
-}
+}));

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -11,7 +11,7 @@ import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Loading overlay component
-const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
+const LoadingOverlay = memo(forwardRef<HTMLDivElement, { status: string }>(function LoadingOverlay({ status }, ref) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="text-center space-y-4">
@@ -21,10 +21,10 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
       </div>
     </div>
   );
-});
+}));
 
 // Main content component separated for error boundary
-const CreateContent = memo(function CreateContent() {
+const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
@@ -168,7 +168,7 @@ const CreateContent = memo(function CreateContent() {
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-});
+}));
 
 // Wrapper with error boundary for fault isolation
 export default function Create() {

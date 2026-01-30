@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, memo, Suspense, lazy } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, memo, forwardRef, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -317,7 +317,7 @@ interface VideoCardProps {
   onLike: (e: React.MouseEvent) => void;
 }
 
-const VideoCard = memo(function VideoCard({ video, onPlay, isLiked, onLike }: VideoCardProps) {
+const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function VideoCard({ video, onPlay, isLiked, onLike }, ref) {
   const [isHovered, setIsHovered] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -473,7 +473,7 @@ const VideoCard = memo(function VideoCard({ video, onPlay, isLiked, onLike }: Vi
       </div>
     </motion.div>
   );
-});
+}));
 
 // ============= VIDEO MODAL COMPONENT =============
 
@@ -485,7 +485,7 @@ interface VideoModalProps {
   onLike: (e: React.MouseEvent) => void;
 }
 
-const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLiked, onLike }: VideoModalProps) {
+const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function VideoModal({ video, formatGenre, onClose, isLiked, onLike }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -710,4 +710,4 @@ const VideoModal = memo(function VideoModal({ video, formatGenre, onClose, isLik
       </motion.div>
     </motion.div>
   );
-});
+}));

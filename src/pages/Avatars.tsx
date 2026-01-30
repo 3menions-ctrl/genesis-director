@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,7 +21,7 @@ import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 // Separated content for error boundary isolation
-const AvatarsContent = memo(function AvatarsContent() {
+const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
   const navigate = useNavigate();
   const { user, profile, isSessionVerified, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
@@ -406,7 +406,7 @@ const AvatarsContent = memo(function AvatarsContent() {
       )}
     </div>
   );
-});
+}));
 
 // Wrapper with error boundary for fault isolation
 export default function Avatars() {

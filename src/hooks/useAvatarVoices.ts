@@ -19,6 +19,7 @@ const PRELOAD_DELAY_MS = 500;
  * - Falls back to on-demand generation
  * - Caches generated samples in memory
  * - Preloads voices for visible avatars in the background
+ * - Includes mount-safe state management to prevent crashes
  */
 export function useAvatarVoices() {
   const [voiceCache, setVoiceCache] = useState<Record<string, VoiceCacheEntry>>({});
@@ -26,10 +27,13 @@ export function useAvatarVoices() {
   const [preloadingQueue, setPreloadingQueue] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preloadControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
   // Clean up on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -108,7 +112,7 @@ export function useAvatarVoices() {
     }
   }, []);
 
-  // Play voice preview
+  // Play voice preview with mount-safe state updates
   const playVoicePreview = useCallback(async (avatar: AvatarTemplate): Promise<boolean> => {
     // Stop any currently playing audio
     if (audioRef.current) {
@@ -116,6 +120,7 @@ export function useAvatarVoices() {
       audioRef.current = null;
     }
     
+    if (!isMountedRef.current) return false;
     setPreviewingVoice(avatar.id);
     
     try {
@@ -125,6 +130,8 @@ export function useAvatarVoices() {
       // If not cached, generate
       if (!audioUrl) {
         audioUrl = await generateVoiceSample(avatar);
+        
+        if (!isMountedRef.current) return false;
         
         if (audioUrl) {
           // Cache the result
@@ -142,6 +149,8 @@ export function useAvatarVoices() {
         throw new Error('Failed to get audio');
       }
       
+      if (!isMountedRef.current) return false;
+      
       // Play the audio
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
@@ -153,23 +162,32 @@ export function useAvatarVoices() {
         audio.load();
       });
       
+      if (!isMountedRef.current) {
+        audio.pause();
+        return false;
+      }
+      
       await audio.play();
       
       // Clear previewing state when done
       audio.onended = () => {
-        setPreviewingVoice(null);
+        if (isMountedRef.current) {
+          setPreviewingVoice(null);
+        }
         audioRef.current = null;
       };
       
       return true;
     } catch (err) {
       console.error('[Voice] Playback error:', err);
-      setPreviewingVoice(null);
+      if (isMountedRef.current) {
+        setPreviewingVoice(null);
+      }
       return false;
     }
   }, [getCachedAudio, generateVoiceSample]);
 
-  // Preload voices for visible avatars
+  // Preload voices for visible avatars with mount-safe updates
   const preloadVoices = useCallback(async (avatars: AvatarTemplate[]) => {
     // Cancel any existing preload operation
     if (preloadControllerRef.current) {
@@ -190,22 +208,24 @@ export function useAvatarVoices() {
       return true;
     }).slice(0, PRELOAD_BATCH_SIZE);
     
-    if (toPreload.length === 0) return;
+    if (toPreload.length === 0 || !isMountedRef.current) return;
     
-    setPreloadingQueue(prev => [...prev, ...toPreload.map(a => a.id)]);
+    if (isMountedRef.current) {
+      setPreloadingQueue(prev => [...prev, ...toPreload.map(a => a.id)]);
+    }
     
     // Stagger preloading to avoid overwhelming the API
     for (const avatar of toPreload) {
-      if (controller.signal.aborted) break;
+      if (controller.signal.aborted || !isMountedRef.current) break;
       
       // Small delay between requests
       await new Promise(resolve => setTimeout(resolve, PRELOAD_DELAY_MS));
       
-      if (controller.signal.aborted) break;
+      if (controller.signal.aborted || !isMountedRef.current) break;
       
       const audioUrl = await generateVoiceSample(avatar, controller.signal);
       
-      if (audioUrl && !controller.signal.aborted) {
+      if (audioUrl && !controller.signal.aborted && isMountedRef.current) {
         setVoiceCache(prev => ({
           ...prev,
           [avatar.id]: {
@@ -217,7 +237,9 @@ export function useAvatarVoices() {
       }
       
       // Remove from queue
-      setPreloadingQueue(prev => prev.filter(id => id !== avatar.id));
+      if (isMountedRef.current) {
+        setPreloadingQueue(prev => prev.filter(id => id !== avatar.id));
+      }
     }
   }, [voiceCache, preloadingQueue, isCacheValid, generateVoiceSample]);
 
@@ -227,13 +249,15 @@ export function useAvatarVoices() {
     return isCacheValid(voiceCache[avatar.id]);
   }, [voiceCache, isCacheValid]);
 
-  // Stop current playback
+  // Stop current playback with mount-safe updates
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
-    setPreviewingVoice(null);
+    if (isMountedRef.current) {
+      setPreviewingVoice(null);
+    }
   }, []);
 
   return {

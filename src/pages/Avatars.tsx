@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 
 // Separated content for error boundary isolation
 const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
@@ -286,101 +286,117 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
   return (
     <div className="relative min-h-screen flex flex-col bg-black overflow-x-hidden overflow-y-auto">
-      <AvatarsBackground />
-      <AppHeader />
+      <SafeComponent name="AvatarsBackground" silent>
+        <AvatarsBackground />
+      </SafeComponent>
+      <SafeComponent name="AppHeader" fallback={<div className="h-16" />}>
+        <AppHeader />
+      </SafeComponent>
       
       <div className="relative z-10 flex-1 pb-48 md:pb-56">
-        {/* Hero Section */}
-        <AvatarsHero />
+        {/* Hero Section - isolated */}
+        <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
+          <AvatarsHero />
+        </SafeComponent>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <AvatarsFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            genderFilter={genderFilter}
-            onGenderChange={setGenderFilter}
-            styleFilter={styleFilter}
-            onStyleChange={setStyleFilter}
-            hasActiveFilters={hasActiveFilters}
-            onClearFilters={handleClearFilters}
-            onBack={() => navigate('/create')}
-          />
-        </motion.div>
-
-        {/* Category Tabs */}
-        <div className="mb-8">
-          <AvatarsCategoryTabs
-            activeType={avatarTypeFilter}
-            onTypeChange={setAvatarTypeFilter}
-            totalCount={templates.length}
-          />
-        </div>
-
-        {/* Premium Horizontal Gallery */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          {error ? (
-            <div className="text-center py-12 text-red-400 max-w-7xl mx-auto px-6">
-              <p>{error}</p>
-            </div>
-          ) : (
-            <PremiumAvatarGallery
-              avatars={templates}
-              selectedAvatar={selectedAvatar}
-              onAvatarClick={handleAvatarClick}
-              onVoicePreview={handleVoicePreview}
-              previewingVoice={previewingVoice}
-              isLoading={isLoading}
-              isVoiceReady={isVoiceReady}
+        {/* Filters - isolated */}
+        <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-6"
+          >
+            <AvatarsFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              genderFilter={genderFilter}
+              onGenderChange={setGenderFilter}
+              styleFilter={styleFilter}
+              onStyleChange={setStyleFilter}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+              onBack={() => navigate('/create')}
             />
-          )}
-        </motion.div>
+          </motion.div>
+        </SafeComponent>
+
+        {/* Category Tabs - isolated */}
+        <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
+          <div className="mb-8">
+            <AvatarsCategoryTabs
+              activeType={avatarTypeFilter}
+              onTypeChange={setAvatarTypeFilter}
+              totalCount={templates.length}
+            />
+          </div>
+        </SafeComponent>
+
+        {/* Premium Horizontal Gallery - isolated with error display */}
+        <SafeComponent name="PremiumAvatarGallery">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mb-8"
+          >
+            {error ? (
+              <div className="text-center py-12 text-red-400 max-w-7xl mx-auto px-6">
+                <p>{error}</p>
+              </div>
+            ) : (
+              <PremiumAvatarGallery
+                avatars={templates}
+                selectedAvatar={selectedAvatar}
+                onAvatarClick={handleAvatarClick}
+                onVoicePreview={handleVoicePreview}
+                previewingVoice={previewingVoice}
+                isLoading={isLoading}
+                isVoiceReady={isVoiceReady}
+              />
+            )}
+          </motion.div>
+        </SafeComponent>
       </div>
 
-      {/* Sticky Configuration Panel */}
-      <AvatarsConfigPanel
-        selectedAvatar={selectedAvatar}
-        prompt={prompt}
-        onPromptChange={setPrompt}
-        aspectRatio={aspectRatio}
-        onAspectRatioChange={setAspectRatio}
-        clipDuration={clipDuration}
-        onClipDurationChange={setClipDuration}
-        clipCount={clipCount}
-        onClipCountChange={setClipCount}
-        maxClips={maxClips}
-        enableMusic={enableMusic}
-        onEnableMusicChange={setEnableMusic}
-        estimatedDuration={estimatedDuration}
-        estimatedCredits={estimatedCredits}
-        userCredits={userCredits}
-        hasInsufficientCredits={hasInsufficientCredits}
-        isCreating={isCreating}
-        isReadyToCreate={!!isReadyToCreate}
-        onClearAvatar={handleClearAvatar}
-        onCreate={handleCreate}
-      />
+      {/* Sticky Configuration Panel - isolated */}
+      <SafeComponent name="AvatarsConfigPanel" fallback={<div className="fixed bottom-0 h-32" />}>
+        <AvatarsConfigPanel
+          selectedAvatar={selectedAvatar}
+          prompt={prompt}
+          onPromptChange={setPrompt}
+          aspectRatio={aspectRatio}
+          onAspectRatioChange={setAspectRatio}
+          clipDuration={clipDuration}
+          onClipDurationChange={setClipDuration}
+          clipCount={clipCount}
+          onClipCountChange={setClipCount}
+          maxClips={maxClips}
+          enableMusic={enableMusic}
+          onEnableMusicChange={setEnableMusic}
+          estimatedDuration={estimatedDuration}
+          estimatedCredits={estimatedCredits}
+          userCredits={userCredits}
+          hasInsufficientCredits={hasInsufficientCredits}
+          isCreating={isCreating}
+          isReadyToCreate={!!isReadyToCreate}
+          onClearAvatar={handleClearAvatar}
+          onCreate={handleCreate}
+        />
+      </SafeComponent>
 
-      {/* Avatar Preview Modal with 3D Viewer */}
-      <AvatarPreviewModal
-        avatar={previewAvatar}
-        open={previewModalOpen}
-        onOpenChange={setPreviewModalOpen}
-        onSelect={handleSelectAvatar}
-        onPreviewVoice={handleVoicePreview}
-        isPreviewingVoice={previewingVoice === previewAvatar?.id}
-        isVoiceReady={previewAvatar ? isVoiceReady(previewAvatar) : false}
-      />
+      {/* Avatar Preview Modal with 3D Viewer - isolated */}
+      <SafeComponent name="AvatarPreviewModal" silent>
+        <AvatarPreviewModal
+          avatar={previewAvatar}
+          open={previewModalOpen}
+          onOpenChange={setPreviewModalOpen}
+          onSelect={handleSelectAvatar}
+          onPreviewVoice={handleVoicePreview}
+          isPreviewingVoice={previewingVoice === previewAvatar?.id}
+          isVoiceReady={previewAvatar ? isVoiceReady(previewAvatar) : false}
+        />
+      </SafeComponent>
 
       {/* Loading Overlay */}
       {isCreating && (

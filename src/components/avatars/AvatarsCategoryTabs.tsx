@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Wand2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,13 +10,14 @@ interface AvatarsCategoryTabsProps {
   totalCount: number;
 }
 
-export const AvatarsCategoryTabs = memo(function AvatarsCategoryTabs({
+export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCategoryTabsProps>(function AvatarsCategoryTabs({
   activeType,
   onTypeChange,
   totalCount
-}: AvatarsCategoryTabsProps) {
+}, ref) {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -64,6 +65,8 @@ export const AvatarsCategoryTabs = memo(function AvatarsCategoryTabs({
       </div>
     </motion.div>
   );
-});
+}));
+
+AvatarsCategoryTabs.displayName = 'AvatarsCategoryTabs';
 
 export default AvatarsCategoryTabs;

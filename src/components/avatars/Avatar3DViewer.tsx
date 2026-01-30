@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect, memo, forwardRef } from 'react';
 import { Loader2, RotateCcw, Hand, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,18 +17,25 @@ type ViewAngle = 'front' | 'side' | 'back';
 /**
  * Premium Avatar Viewer with smooth image rotation
  * Uses a carousel approach for reliable cross-browser support
+ * Includes forwardRef for animation compatibility
  */
-export function Avatar3DViewer({ 
+export const Avatar3DViewer = memo(forwardRef<HTMLDivElement, Avatar3DViewerProps>(function Avatar3DViewer({ 
   frontImage, 
   sideImage, 
   backImage, 
   name,
   className = ''
-}: Avatar3DViewerProps) {
+}, ref) {
   const [currentView, setCurrentView] = useState<ViewAngle>('front');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const isMountedRef = useRef(true);
   
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
   // Build available views array
   const views: { angle: ViewAngle; image: string; label: string }[] = [
     { angle: 'front', image: frontImage, label: 'Front' },
@@ -47,30 +54,36 @@ export function Avatar3DViewer({
   const hasMultipleViews = views.length > 1;
   
   const rotateToNext = useCallback(() => {
-    if (isTransitioning || !hasMultipleViews) return;
+    if (isTransitioning || !hasMultipleViews || !isMountedRef.current) return;
     setIsTransitioning(true);
     const nextIndex = (currentIndex + 1) % views.length;
     setCurrentView(views[nextIndex].angle);
-    setTimeout(() => setIsTransitioning(false), 400);
+    setTimeout(() => {
+      if (isMountedRef.current) setIsTransitioning(false);
+    }, 400);
   }, [currentIndex, views, isTransitioning, hasMultipleViews]);
   
   const rotateToPrev = useCallback(() => {
-    if (isTransitioning || !hasMultipleViews) return;
+    if (isTransitioning || !hasMultipleViews || !isMountedRef.current) return;
     setIsTransitioning(true);
     const prevIndex = (currentIndex - 1 + views.length) % views.length;
     setCurrentView(views[prevIndex].angle);
-    setTimeout(() => setIsTransitioning(false), 400);
+    setTimeout(() => {
+      if (isMountedRef.current) setIsTransitioning(false);
+    }, 400);
   }, [currentIndex, views, isTransitioning, hasMultipleViews]);
   
   const goToView = useCallback((angle: ViewAngle) => {
-    if (isTransitioning || currentView === angle) return;
+    if (isTransitioning || currentView === angle || !isMountedRef.current) return;
     setIsTransitioning(true);
     setCurrentView(angle);
-    setTimeout(() => setIsTransitioning(false), 400);
+    setTimeout(() => {
+      if (isMountedRef.current) setIsTransitioning(false);
+    }, 400);
   }, [currentView, isTransitioning]);
 
   return (
-    <div className={cn("relative flex flex-col items-center justify-center h-full", className)}>
+    <div ref={ref} className={cn("relative flex flex-col items-center justify-center h-full", className)}>
       {/* Main Image Display with 3D-like rotation effect */}
       <div className="relative w-full max-w-[320px] aspect-[3/4] mx-auto">
         {/* Ambient glow behind image */}
@@ -188,6 +201,8 @@ export function Avatar3DViewer({
       </div>
     </div>
   );
-}
+}));
+
+Avatar3DViewer.displayName = 'Avatar3DViewer';
 
 export default Avatar3DViewer;

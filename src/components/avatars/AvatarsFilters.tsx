@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { Search, Filter, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVATAR_STYLES, AVATAR_GENDERS } from '@/types/avatar-templates';
@@ -30,7 +30,7 @@ interface AvatarsFiltersProps {
   onBack: () => void;
 }
 
-export const AvatarsFilters = memo(function AvatarsFilters({
+export const AvatarsFilters = memo(forwardRef<HTMLDivElement, AvatarsFiltersProps>(function AvatarsFilters({
   searchQuery,
   onSearchChange,
   genderFilter,
@@ -40,9 +40,9 @@ export const AvatarsFilters = memo(function AvatarsFilters({
   hasActiveFilters,
   onClearFilters,
   onBack,
-}: AvatarsFiltersProps) {
+}, ref) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 md:px-6 max-w-7xl mx-auto">
+    <div ref={ref} className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 md:px-6 max-w-7xl mx-auto">
       {/* Back Button - Mobile only shows icon */}
       <Button
         variant="ghost"
@@ -135,6 +135,8 @@ export const AvatarsFilters = memo(function AvatarsFilters({
       </div>
     </div>
   );
-});
+}));
+
+AvatarsFilters.displayName = 'AvatarsFilters';
 
 export default AvatarsFilters;

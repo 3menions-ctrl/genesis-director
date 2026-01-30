@@ -27,6 +27,8 @@ export interface ContinuityCheckResult {
 /**
  * Attempt to acquire the generation lock for a project
  * Returns false if another clip is currently generating
+ * 
+ * GUARD RAIL: Automatically releases stale locks from completed clips
  */
 export async function acquireGenerationLock(
   supabase: SupabaseClient,
@@ -35,6 +37,35 @@ export async function acquireGenerationLock(
   lockId?: string
 ): Promise<LockResult> {
   try {
+    // GUARD RAIL: First check if the blocking clip is already completed
+    // If so, the lock was orphaned and should be released
+    const { data: project } = await supabase
+      .from('movie_projects')
+      .select('generation_lock')
+      .eq('id', projectId)
+      .maybeSingle();
+    
+    const currentLock = project?.generation_lock as { locked_by_clip?: number; locked_at?: string } | null;
+    
+    if (currentLock && typeof currentLock.locked_by_clip === 'number') {
+      const { data: blockingClip } = await supabase
+        .from('video_clips')
+        .select('status, video_url')
+        .eq('project_id', projectId)
+        .eq('shot_index', currentLock.locked_by_clip)
+        .maybeSingle();
+      
+      // If the blocking clip is completed, force release the orphaned lock
+      if (blockingClip?.status === 'completed' && blockingClip?.video_url) {
+        console.log(`[Mutex] 🔓 AUTO-RELEASING orphaned lock: clip ${currentLock.locked_by_clip} is completed but lock wasn't released`);
+        await supabase
+          .from('movie_projects')
+          .update({ generation_lock: null })
+          .eq('id', projectId);
+        // Continue to acquire the lock below
+      }
+    }
+    
     const { data, error } = await supabase.rpc('acquire_generation_lock', {
       p_project_id: projectId,
       p_clip_index: clipIndex,

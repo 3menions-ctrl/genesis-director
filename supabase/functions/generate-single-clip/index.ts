@@ -453,6 +453,7 @@ serve(async (req) => {
 
     // =========================================================
     // GUARD RAIL #1: Pre-generation validation with fallback resolution
+    // NOTE: We NEVER block generation - always use degraded mode if needed
     // =========================================================
     const preCheck = await runPreGenerationChecks(supabase, projectId, shotIndex, {
       referenceImageUrl,
@@ -465,24 +466,32 @@ serve(async (req) => {
       console.warn(`[SingleClip] ⚠️ ${warning}`);
     }
     
-    // For clip 0, ALWAYS use reference image; for others, check blockers
+    // Log blockers but DON'T fail - use degraded mode instead
     if (shotIndex > 0 && !preCheck.canProceed) {
-      console.error(`[SingleClip] ⛔ Pre-generation checks FAILED:`, preCheck.blockers);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'PRE_GENERATION_FAILED',
-          message: preCheck.blockers.join('; '),
-          blockers: preCheck.blockers,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.warn(`[SingleClip] ⚠️ Pre-generation checks have blockers (proceeding in degraded mode):`);
+      for (const blocker of preCheck.blockers) {
+        console.warn(`[SingleClip]   - ${blocker}`);
+      }
+      
+      // Store degradation flag for later notification
+      await supabase
+        .from('movie_projects')
+        .update({
+          pending_video_tasks: supabase.rpc('jsonb_set_nested', {
+            target: 'pending_video_tasks',
+            path: '{degradation,continuityCheckFailed}',
+            value: true
+          })
+        })
+        .eq('id', projectId);
     }
 
     // =========================================================
     // GUARD RAIL #2: Clip 0 ALWAYS uses reference image as start
+    // For other clips, use EXHAUSTIVE fallback chain
     // =========================================================
     let resolvedStartImage = startImageUrl;
+    
     if (shotIndex === 0 && GUARD_RAIL_CONFIG.CLIP_0_ALWAYS_USE_REFERENCE) {
       const clip0Start = getClip0StartImage(referenceImageUrl, sceneImageUrl, identityBible?.originalReferenceUrl);
       if (clip0Start.imageUrl) {
@@ -492,6 +501,24 @@ serve(async (req) => {
     } else if (preCheck.resolvedFrameUrl) {
       resolvedStartImage = preCheck.resolvedFrameUrl;
       console.log(`[SingleClip] ✓ Using resolved frame from ${preCheck.resolvedFrameSource}`);
+    } else if (shotIndex > 0) {
+      // EXHAUSTIVE FALLBACK for non-clip-0
+      const fallbackResult = getGuaranteedLastFrame(shotIndex - 1, {
+        extractedFrame: startImageUrl,
+        previousClipLastFrame: startImageUrl,
+        referenceImageUrl,
+        sceneImageUrl,
+        identityBibleImageUrl: identityBible?.originalReferenceUrl,
+        goldenFrameUrl: goldenFrameData?.goldenFrameUrl,
+        sourceImageUrl: pipelineContext?.referenceImageUrl,
+      });
+      
+      if (fallbackResult.frameUrl) {
+        resolvedStartImage = fallbackResult.frameUrl;
+        console.log(`[SingleClip] ✓ Exhaustive fallback found: ${fallbackResult.source} (${fallbackResult.confidence})`);
+      } else {
+        console.warn(`[SingleClip] ⚠️ No start image available - proceeding without (text-to-video mode)`);
+      }
     }
 
     // =========================================================

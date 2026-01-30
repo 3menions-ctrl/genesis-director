@@ -428,30 +428,144 @@ serve(async (req: Request) => {
       nextClipPrompt = `[SCENE DNA: ${context.masterSceneAnchor.masterConsistencyPrompt}]\n${nextClipPrompt}`;
     }
 
-    // Validate we have a valid start image
-    if (!previousLastFrameUrl) {
-      console.error(`[ContinueProduction] ⚠️ No last frame from clip ${completedClipIndex + 1}!`);
-      
-      // Try to get from DB
+    // =========================================================================
+    // BULLETPROOF FRAME RESOLUTION - NEVER THROW STRICT_CONTINUITY_FAILURE
+    // Uses exhaustive 7-tier fallback chain to guarantee a start image
+    // =========================================================================
+    
+    let startImageUrl = previousLastFrameUrl;
+    let frameSource = 'callback_result';
+    
+    // TIER 1: Use frame from callback result (highest priority)
+    if (startImageUrl) {
+      console.log(`[ContinueProduction] ✓ TIER 1: Using last frame from callback`);
+    }
+    
+    // TIER 2: Query database for previous clip's last_frame_url
+    if (!startImageUrl) {
+      console.log(`[ContinueProduction] TIER 2: Querying DB for clip ${completedClipIndex} last_frame_url...`);
       const { data: prevClip } = await supabase
         .from('video_clips')
-        .select('last_frame_url')
+        .select('last_frame_url, video_url')
         .eq('project_id', projectId)
         .eq('shot_index', completedClipIndex)
-        .single();
-
-      if (!prevClip?.last_frame_url) {
-        // Use scene image as fallback
-        const fallbackImage = context?.sceneImageLookup?.[nextClipIndex] || context?.sceneImageLookup?.[0];
-        if (!fallbackImage) {
-          throw new Error(`STRICT_CONTINUITY_FAILURE: No frame available for clip ${nextClipIndex + 1}`);
+        .eq('status', 'completed')
+        .maybeSingle();
+      
+      if (prevClip?.last_frame_url) {
+        startImageUrl = prevClip.last_frame_url;
+        frameSource = 'db_last_frame';
+        console.log(`[ContinueProduction] ✓ TIER 2: Found last_frame_url in DB`);
+      } else if (prevClip?.video_url && !prevClip?.last_frame_url) {
+        // TIER 2B: Trigger emergency frame extraction
+        console.log(`[ContinueProduction] TIER 2B: Clip has video but no frame - triggering extraction...`);
+        try {
+          const extractResult = await callEdgeFunction('extract-last-frame', {
+            projectId,
+            clipIndex: completedClipIndex,
+            videoUrl: prevClip.video_url,
+          });
+          if (extractResult?.success && extractResult?.lastFrameUrl) {
+            startImageUrl = extractResult.lastFrameUrl;
+            frameSource = 'emergency_extraction';
+            console.log(`[ContinueProduction] ✓ TIER 2B: Emergency frame extraction succeeded`);
+          }
+        } catch (extractErr) {
+          console.warn(`[ContinueProduction] TIER 2B extraction failed:`, extractErr);
         }
-        console.log(`[ContinueProduction] Using scene image fallback: ${fallbackImage.substring(0, 60)}...`);
       }
+    }
+    
+    // TIER 3: Query database for ANY completed clip's last_frame_url (scan backwards)
+    if (!startImageUrl) {
+      console.log(`[ContinueProduction] TIER 3: Scanning ALL completed clips for any last_frame_url...`);
+      const { data: allClips } = await supabase
+        .from('video_clips')
+        .select('shot_index, last_frame_url')
+        .eq('project_id', projectId)
+        .eq('status', 'completed')
+        .not('last_frame_url', 'is', null)
+        .order('shot_index', { ascending: false })
+        .limit(1);
+      
+      if (allClips?.[0]?.last_frame_url) {
+        startImageUrl = allClips[0].last_frame_url;
+        frameSource = `clip_${allClips[0].shot_index}_fallback`;
+        console.log(`[ContinueProduction] ✓ TIER 3: Using frame from clip ${allClips[0].shot_index}`);
+      }
+    }
+    
+    // TIER 4: Use golden frame from context
+    if (!startImageUrl && context?.goldenFrameData?.goldenFrameUrl) {
+      startImageUrl = context.goldenFrameData.goldenFrameUrl;
+      frameSource = 'golden_frame';
+      console.log(`[ContinueProduction] ✓ TIER 4: Using goldenFrameData`);
+    }
+    
+    // TIER 5: Use scene image for this or previous clip
+    if (!startImageUrl) {
+      const sceneImage = context?.sceneImageLookup?.[nextClipIndex] 
+        || context?.sceneImageLookup?.[completedClipIndex]
+        || context?.sceneImageLookup?.[0];
+      if (sceneImage) {
+        startImageUrl = sceneImage;
+        frameSource = 'scene_image';
+        console.log(`[ContinueProduction] ✓ TIER 5: Using scene image fallback`);
+      }
+    }
+    
+    // TIER 6: Use original reference image from context
+    if (!startImageUrl && context?.referenceImageUrl) {
+      startImageUrl = context.referenceImageUrl;
+      frameSource = 'reference_image';
+      console.log(`[ContinueProduction] ✓ TIER 6: Using original reference image`);
+    }
+    
+    // TIER 7: Query pro_features_data for any stored image URL
+    if (!startImageUrl) {
+      console.log(`[ContinueProduction] TIER 7: Last resort - querying pro_features_data...`);
+      const { data: proData } = await supabase
+        .from('movie_projects')
+        .select('pro_features_data, source_image_url')
+        .eq('id', projectId)
+        .maybeSingle();
+      
+      const pfd = proData?.pro_features_data || {};
+      const emergencyImage = proData?.source_image_url
+        || pfd.referenceAnalysis?.imageUrl
+        || pfd.identityBible?.originalReferenceUrl
+        || pfd.goldenFrameData?.goldenFrameUrl;
+      
+      if (emergencyImage) {
+        startImageUrl = emergencyImage;
+        frameSource = 'emergency_pro_features';
+        console.log(`[ContinueProduction] ✓ TIER 7: Emergency recovery from pro_features_data`);
+      }
+    }
+    
+    // FINAL CHECK: Log comprehensive status
+    if (startImageUrl) {
+      console.log(`[ContinueProduction] ════════════════════════════════════════════`);
+      console.log(`[ContinueProduction] ✓ FRAME RESOLVED: ${frameSource}`);
+      console.log(`[ContinueProduction]   URL: ${startImageUrl.substring(0, 80)}...`);
+      console.log(`[ContinueProduction] ════════════════════════════════════════════`);
+    } else {
+      // This should NEVER happen with 7 fallback tiers, but log extensively if it does
+      console.error(`[ContinueProduction] ════════════════════════════════════════════`);
+      console.error(`[ContinueProduction] ❌ CRITICAL: All 7 fallback tiers exhausted!`);
+      console.error(`[ContinueProduction]   previousLastFrameUrl: ${previousLastFrameUrl ? 'YES' : 'NO'}`);
+      console.error(`[ContinueProduction]   context.goldenFrameData: ${context?.goldenFrameData ? 'YES' : 'NO'}`);
+      console.error(`[ContinueProduction]   context.referenceImageUrl: ${context?.referenceImageUrl ? 'YES' : 'NO'}`);
+      console.error(`[ContinueProduction]   context.sceneImageLookup keys: ${Object.keys(context?.sceneImageLookup || {}).join(',')}`);
+      console.error(`[ContinueProduction] ════════════════════════════════════════════`);
+      
+      // GRACEFUL DEGRADATION: Continue without start image (model will generate from scratch)
+      // This is better than failing the entire pipeline
+      console.warn(`[ContinueProduction] ⚠️ Proceeding WITHOUT start image (degraded continuity mode)`);
+      frameSource = 'none_degraded';
     }
 
     // Update progress
-    const progressPercent = 75 + Math.floor((nextClipIndex / totalClips) * 15);
     await supabase
       .from('movie_projects')
       .update({
@@ -460,19 +574,6 @@ serve(async (req: Request) => {
         updated_at: new Date().toISOString(),
       })
       .eq('id', projectId);
-
-    // Get start image for next clip
-    let startImageUrl = previousLastFrameUrl;
-    if (!startImageUrl) {
-      const { data: prevClip } = await supabase
-        .from('video_clips')
-        .select('last_frame_url')
-        .eq('project_id', projectId)
-        .eq('shot_index', completedClipIndex)
-        .single();
-      
-      startImageUrl = prevClip?.last_frame_url || context?.sceneImageLookup?.[nextClipIndex];
-    }
 
     console.log(`[ContinueProduction] Calling generate-single-clip for clip ${nextClipIndex + 1}...`);
     console.log(`[ContinueProduction] ═══════════════════════════════════════════════════`);

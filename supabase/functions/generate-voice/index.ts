@@ -82,23 +82,20 @@ async function generateWithMiniMax(
   console.log(`[Voice-MiniMax] Starting: ${text.length} chars, voice: ${voiceConfig.minimaxVoice}, emotion: ${emotion}`);
   
   try {
-    // Create prediction
-    const createResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // Create prediction using model-specific endpoint
+    const createResponse = await fetch("https://api.replicate.com/v1/models/minimax/speech-2.6-turbo/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
+        "Prefer": "wait=60",
       },
       body: JSON.stringify({
-        version: "minimax/speech-2.6-turbo",
         input: {
           text: text,
           voice_id: voiceConfig.minimaxVoice,
           speed: Math.max(0.5, Math.min(2.0, speed)),
           emotion: emotion,
-          audio_format: "mp3",
-          sample_rate: 32000,
-          bitrate: 128000,
         },
       }),
     });

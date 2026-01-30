@@ -372,20 +372,10 @@ async function handleAvatarMode(params: {
     multiViewRefs: characterBible.reference_images,
   } : {};
 
-  // Update project status with character bible
+  // Update project status with character bible (single atomic update)
   await supabase.from('movie_projects').update({
     status: 'generating',
     pro_features_data: proFeaturesData,
-    pipeline_state: JSON.stringify({
-      stage: 'avatar_generation',
-      progress: 10,
-      message: 'Generating speech audio...'
-    })
-  }).eq('id', projectId);
-
-  // Update project status
-  await supabase.from('movie_projects').update({
-    status: 'generating',
     pipeline_state: JSON.stringify({
       stage: 'avatar_generation',
       progress: 10,

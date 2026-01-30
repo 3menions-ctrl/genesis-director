@@ -6,23 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Animated avatars that need full-body regeneration
+// Animated avatars that need full-body regeneration (with correct database IDs)
 const ANIMATED_AVATARS = [
+  // These 4 avatars have bust-only images and need priority regeneration
+  { id: "871a5041-f832-46ef-a63a-4d713ca4ab8e", name: "Marcus Chen", gender: "male", ethnicity: "Chinese", style: "entertainment", personality: "Charismatic and energetic creative presenter" },
+  { id: "221caf2c-2623-4215-81f4-835d4917d1df", name: "Omar Hassan", gender: "male", ethnicity: "Middle Eastern", style: "influencer", personality: "Warm and knowledgeable corporate presenter" },
+  { id: "076cc703-11a6-4963-9208-c213de712f36", name: "Michael Brooks", gender: "male", ethnicity: "African-American", style: "luxury", personality: "Confident and sophisticated business executive" },
+  { id: "a23b176d-84e6-4ccf-9878-3649c1a39431", name: "Lucas Kim", gender: "male", ethnicity: "Korean", style: "corporate", personality: "Dynamic and professional corporate strategist" },
+  // Other animated avatars (already have fullbody images, can be regenerated if needed)
   { id: "6c3d1171-0e27-4eb8-850c-0a7d991c35f9", name: "Alex Thompson", gender: "male", ethnicity: "Caucasian", style: "tech", personality: "Innovative tech entrepreneur" },
   { id: "437e0a31-919c-4e2f-b37e-481b252ae3b5", name: "Amara Johnson", gender: "female", ethnicity: "African-American", style: "corporate", personality: "Confident business strategist" },
   { id: "1bb8c2ce-534b-4aed-8bf8-b9122173def3", name: "Carlos Rivera", gender: "male", ethnicity: "Hispanic", style: "casual", personality: "Friendly community builder" },
-  { id: "172c51aa-08b0-418b-a317-7bd1d7fd9bde", name: "David Okonkwo", gender: "male", ethnicity: "Nigerian", style: "corporate", personality: "Distinguished executive" },
+  { id: "172c51aa-08b0-418b-a317-7bd1d7fd9bde", name: "David Okonkwo", gender: "male", ethnicity: "Nigerian", style: "creative", personality: "Charismatic and energetic creative presenter" },
   { id: "2495446d-2706-47be-ae19-c3bf2994f948", name: "Emily Williams", gender: "female", ethnicity: "Caucasian", style: "creative", personality: "Artistic storyteller" },
   { id: "7fd69fc9-2388-4e5f-98d7-1b4df6a00279", name: "Emma Laurent", gender: "female", ethnicity: "French", style: "fashion", personality: "Sophisticated style icon" },
   { id: "51150ea3-53a6-4e48-b225-129eb6ab05ee", name: "Fatima Al-Rashid", gender: "female", ethnicity: "Middle Eastern", style: "educational", personality: "Wise knowledge curator" },
   { id: "60ef02ce-8230-4cef-92b0-86d52024e9d3", name: "James Mitchell", gender: "male", ethnicity: "Caucasian", style: "sports", personality: "Dynamic fitness coach" },
   { id: "64f159ca-62f9-4e6c-8510-455bde14872c", name: "Jessica Park", gender: "female", ethnicity: "Korean", style: "tech", personality: "Innovative developer" },
   { id: "ac6fc357-1e32-4241-9999-ff3da5c24be5", name: "Kenji Yamamoto", gender: "male", ethnicity: "Japanese", style: "creative", personality: "Visionary artist" },
-  { id: "d0fda87e-9c96-49b4-afe9-c9f1f4a72dc1", name: "Marcus Chen", gender: "male", ethnicity: "Chinese", style: "entertainment", personality: "Charismatic host" },
-  { id: "d4f89c76-15a2-4e8b-9123-1a2b3c4d5e6f", name: "Priya Sharma", gender: "female", ethnicity: "Indian", style: "wellness", personality: "Mindful wellness guide" },
-  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "Rachel Kim", gender: "female", ethnicity: "Korean-American", style: "influencer", personality: "Trendsetting creator" },
-  { id: "b2c3d4e5-f6a7-8901-bcde-f12345678901", name: "Samuel Adeyemi", gender: "male", ethnicity: "African", style: "educational", personality: "Inspiring educator" },
-  { id: "c3d4e5f6-a7b8-9012-cdef-123456789012", name: "Victoria Chen", gender: "female", ethnicity: "Chinese", style: "luxury", personality: "Refined luxury curator" },
 ];
 
 // Build stylized 3D full-body avatar prompt

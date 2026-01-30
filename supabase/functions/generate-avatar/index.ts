@@ -49,7 +49,9 @@ serve(async (req) => {
       text,
       voiceId = "onyx",
       avatarImageUrl,
-      aspectRatio = "16:9"
+      aspectRatio = "16:9",
+      sceneDescription, // NEW: User's scene/background request
+      environmentPrompt, // Alternative field name for scene
     } = await req.json();
 
     if (!text || !avatarImageUrl) {
@@ -116,6 +118,28 @@ serve(async (req) => {
     const audioDurationSec = Math.ceil(audioDurationMs / 1000);
     const videoDuration = audioDurationSec <= 5 ? 5 : 10;
     
+    // Build the video generation prompt
+    // CRITICAL: Include user's scene/background request if provided
+    const userScene = sceneDescription || environmentPrompt;
+    let videoPrompt = "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression";
+    
+    if (userScene && userScene.trim()) {
+      // Prepend scene description for visual context
+      videoPrompt = `Scene: ${userScene.trim()}. ${videoPrompt}`;
+      console.log(`[generate-avatar] Including user scene description: "${userScene.substring(0, 100)}..."`);
+    } else {
+      // Extract scene hints from the script text itself if no explicit scene provided
+      // Look for environmental keywords that suggest a scene change
+      const sceneKeywords = text.match(/(?:go to|at the|in the|inside|outside|standing in|walking through|sitting at|at a|in a)\s+([^,.!?]+)/i);
+      if (sceneKeywords && sceneKeywords[1]) {
+        const extractedScene = sceneKeywords[1].trim();
+        videoPrompt = `Scene: ${extractedScene}. ${videoPrompt}`;
+        console.log(`[generate-avatar] Extracted scene from script: "${extractedScene}"`);
+      }
+    }
+    
+    console.log(`[generate-avatar] Final video prompt: "${videoPrompt.substring(0, 200)}..."`);
+    
     const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
       method: "POST",
       headers: {
@@ -125,7 +149,7 @@ serve(async (req) => {
       body: JSON.stringify({
         input: {
           mode: "pro",
-          prompt: "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression",
+          prompt: videoPrompt,
           duration: videoDuration,
           start_image: avatarImageUrl,
           aspect_ratio: aspectRatio,

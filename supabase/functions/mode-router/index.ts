@@ -159,6 +159,9 @@ interface ModeRouterRequest {
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
   
+  // Avatar-specific: Scene/background description (e.g., "a witches house")
+  sceneDescription?: string;
+  
   // Production controls
   aspectRatio: string;
   clipCount: number;
@@ -282,6 +285,7 @@ serve(async (req) => {
           aspectRatio,
           characterBible: request.characterBible,
           avatarTemplateId: request.avatarTemplateId,
+          sceneDescription: request.sceneDescription, // Pass scene/background to video generation
           supabase,
         });
 
@@ -354,15 +358,19 @@ async function handleAvatarMode(params: {
   aspectRatio: string;
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
+  sceneDescription?: string; // User's scene/background request
   supabase: any;
 }) {
-  const { projectId, userId, script, imageUrl, voiceId, aspectRatio, characterBible, avatarTemplateId, supabase } = params;
+  const { projectId, userId, script, imageUrl, voiceId, aspectRatio, characterBible, avatarTemplateId, sceneDescription, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   console.log(`[ModeRouter/Avatar] Starting avatar generation, script length: ${script.length} chars`);
   if (characterBible) {
     console.log(`[ModeRouter/Avatar] Character Bible loaded: ${characterBible.name || 'unnamed'}`);
+  }
+  if (sceneDescription) {
+    console.log(`[ModeRouter/Avatar] Scene description: "${sceneDescription.substring(0, 100)}..."`);
   }
 
   // Store character bible in pro_features_data for production consistency
@@ -383,7 +391,7 @@ async function handleAvatarMode(params: {
     })
   }).eq('id', projectId);
 
-  // Call generate-avatar directly with the full script
+  // Call generate-avatar directly with the full script and scene description
   const avatarResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar`, {
     method: 'POST',
     headers: {
@@ -395,6 +403,7 @@ async function handleAvatarMode(params: {
       voiceId,
       avatarImageUrl: imageUrl,
       aspectRatio,
+      sceneDescription, // Pass scene/background for video generation prompt
     }),
   });
 

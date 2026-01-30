@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode, forwardRef, memo, useCallback, useRef, useEffect, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useCallback, useRef, useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -157,20 +157,18 @@ export function ErrorBoundaryWrapper({
 /**
  * Minimal inline error boundary for nested components - prevents cascade crashes
  * Shows a subtle error UI instead of crashing the entire page
- * 
- * Uses forwardRef to properly pass refs to children wrapped in animation contexts
  */
-export const SafeComponent = memo(forwardRef<HTMLElement, { 
-  children: ReactNode; 
-  name?: string;
-  fallback?: ReactNode;
-  silent?: boolean;
-}>(function SafeComponent({ 
+export function SafeComponent({ 
   children, 
   name = 'Component',
   fallback,
   silent = false,
-}, ref) {
+}: { 
+  children: ReactNode; 
+  name?: string;
+  fallback?: ReactNode;
+  silent?: boolean;
+}) {
   return (
     <ErrorBoundary 
       fallback={fallback || (silent ? null : (
@@ -190,7 +188,7 @@ export const SafeComponent = memo(forwardRef<HTMLElement, {
       {children}
     </ErrorBoundary>
   );
-}));
+}
 
 /**
  * Invisible boundary - silently catches errors without any UI

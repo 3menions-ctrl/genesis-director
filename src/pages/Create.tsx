@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, memo } from 'react';
+import { useState, useCallback, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -25,8 +25,8 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
   );
 });
 
-// Main content component separated for error boundary
-const CreateContent = memo(function CreateContent() {
+// Main content component separated for error boundary - uses forwardRef for Dialog compatibility
+const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
@@ -163,7 +163,7 @@ const CreateContent = memo(function CreateContent() {
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-});
+}));
 
 // Wrapper with error boundary for fault isolation
 export default function Create() {

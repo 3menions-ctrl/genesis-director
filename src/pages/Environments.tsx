@@ -319,10 +319,12 @@ function EnvironmentCard({
         "border border-border/50 hover:border-border",
         "shadow-sm hover:shadow-lg"
       )}>
-        {/* Image */}
+        {/* Image - Lazy loaded for performance */}
         <img 
           src={environment.image} 
           alt={environment.name}
+          loading="lazy"
+          decoding="async"
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-transform duration-500",
             isHovered ? "scale-110" : "scale-100"

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Palette, Dices, CheckCircle2, XCircle, 
@@ -99,26 +99,48 @@ export function SpecializedModeProgress({
   const config = MODE_CONFIG[mode];
   const Icon = config.icon;
 
-  // Rotate through stage messages
+  // Refs for stable interval management - prevents flickering from state changes
+  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const elapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const stageRef = useRef(localState.stage);
+  
+  // Keep ref in sync with state for interval callbacks
+  useEffect(() => {
+    stageRef.current = localState.stage;
+  }, [localState.stage]);
+
+  // Rotate through stage messages - stable interval
   useEffect(() => {
     const stage = localState.stage || 'init';
     const messages = STAGE_MESSAGES[mode]?.[stage] || STAGE_MESSAGES[mode]?.['processing'] || [];
-    if (messages.length <= 1) return;
+    if (messages.length <= 1) {
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+      return;
+    }
 
-    const interval = setInterval(() => {
+    messageIntervalRef.current = setInterval(() => {
       setMessageIndex(prev => (prev + 1) % messages.length);
     }, 3000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
+    };
   }, [localState.stage, mode]);
 
-  // Elapsed time tracker
+  // Elapsed time tracker - uses ref to avoid restart on stage change
   useEffect(() => {
-    if (localState.stage === 'completed' || localState.stage === 'failed') return;
-    const interval = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    // Start timer immediately
+    elapsedIntervalRef.current = setInterval(() => {
+      // Check ref, not state, to avoid dependency
+      if (stageRef.current !== 'completed' && stageRef.current !== 'failed') {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }
     }, 1000);
-    return () => clearInterval(interval);
-  }, [startTime, localState.stage]);
+    
+    return () => {
+      if (elapsedIntervalRef.current) clearInterval(elapsedIntervalRef.current);
+    };
+  }, [startTime]); // Only depend on startTime
 
   // Get current display message
   const getCurrentMessage = () => {
@@ -127,9 +149,22 @@ export function SpecializedModeProgress({
     return messages[messageIndex % messages.length] || localState.message || 'Processing...';
   };
 
-  // Poll for status updates
+  // Refs for polling stability - prevents callback recreation from state changes
+  const predictionIdRef = useRef(localState.predictionId);
+  const onCompleteRef = useRef(onComplete);
+  
+  useEffect(() => {
+    predictionIdRef.current = localState.predictionId;
+  }, [localState.predictionId]);
+  
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  // Poll for status updates - stable callback using refs
   const pollStatus = useCallback(async () => {
-    if (!localState.predictionId || localState.stage === 'completed' || localState.stage === 'failed') {
+    const currentPredictionId = predictionIdRef.current;
+    if (!currentPredictionId || stageRef.current === 'completed' || stageRef.current === 'failed') {
       return;
     }
 
@@ -137,7 +172,7 @@ export function SpecializedModeProgress({
       const { data, error } = await supabase.functions.invoke('check-specialized-status', {
         body: {
           projectId,
-          predictionId: localState.predictionId,
+          predictionId: currentPredictionId,
         },
       });
 
@@ -158,14 +193,14 @@ export function SpecializedModeProgress({
 
       if (data.isComplete) {
         setIsPolling(false);
-        onComplete?.();
+        onCompleteRef.current?.();
       } else if (data.isFailed) {
         setIsPolling(false);
       }
     } catch (err) {
       console.error('Status poll error:', err);
     }
-  }, [projectId, localState.predictionId, localState.stage, onComplete]);
+  }, [projectId]); // Only projectId - refs handle the rest
 
   // Start polling when predictionId is available
   useEffect(() => {

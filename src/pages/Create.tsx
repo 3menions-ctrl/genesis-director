@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useNavigationGuard } from '@/hooks/useNavigationGuard';
+import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
 // Loading overlay component
-const LoadingOverlay = memo(forwardRef<HTMLDivElement, { status: string }>(function LoadingOverlay({ status }, ref) {
+const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="text-center space-y-4">
@@ -22,17 +23,23 @@ const LoadingOverlay = memo(forwardRef<HTMLDivElement, { status: string }>(funct
       </div>
     </div>
   );
-}));
+});
 
 // Main content component separated for error boundary
-const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
+const CreateContent = memo(function CreateContent() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
+  const { markReady } = usePageReady();
   
   // Use navigation guard for safe async operations
-  const { isMounted, getAbortController, safeSetState, abort } = useNavigationGuard();
+  const { isMounted, getAbortController, safeSetState } = useNavigationGuard();
+
+  // Signal page is ready after initial render
+  useEffect(() => {
+    markReady('create-page');
+  }, [markReady]);
 
   const handleStartCreation = useCallback(async (config: {
     mode: VideoGenerationMode;
@@ -139,7 +146,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
-    <div ref={ref} className="relative min-h-screen flex flex-col">
+    <div className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}
@@ -156,7 +163,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary for fault isolation
 export default function Create() {

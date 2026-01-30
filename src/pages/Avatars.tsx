@@ -19,6 +19,7 @@ import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
+import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
 // Separated content for error boundary isolation
 const AvatarsContent = memo(function AvatarsContent() {
@@ -27,6 +28,7 @@ const AvatarsContent = memo(function AvatarsContent() {
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+  const { markReady } = usePageReady();
 
   // Avatar selection state - ALL HOOKS MUST BE CALLED BEFORE ANY RETURNS
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,14 +97,17 @@ const AvatarsContent = memo(function AvatarsContent() {
     };
   }, [stopPlayback]);
 
-  // Preload voices for visible avatars when templates load
+  // Preload voices for visible avatars when templates load and signal page ready
   useEffect(() => {
     if (templates.length > 0 && !isLoading) {
       // Preload first 5 visible avatars' voices in background
       const visibleAvatars = templates.slice(0, 5);
       preloadVoices(visibleAvatars);
+      
+      // Signal page is ready after templates are loaded
+      markReady('avatars-page');
     }
-  }, [templates, isLoading, preloadVoices]);
+  }, [templates, isLoading, preloadVoices, markReady]);
 
   // Voice preview handler - uses smart caching
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {

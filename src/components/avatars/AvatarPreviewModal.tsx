@@ -9,6 +9,7 @@ import { AvatarTemplate } from '@/types/avatar-templates';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -51,6 +52,7 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
           
           <DialogHeader className="sr-only">
             <DialogTitle>{avatar.name} - Avatar Preview</DialogTitle>
+            <DialogDescription>Preview and select this avatar for your video</DialogDescription>
           </DialogHeader>
 
           <div className="grid md:grid-cols-2 gap-0">

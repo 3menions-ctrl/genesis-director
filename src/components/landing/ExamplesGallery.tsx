@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, forwardRef, useRef } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useRef, memo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { useMountGuard } from '@/hooks/useNavigationGuard';
 
 // Import local thumbnails for instant loading
 import sunsetDreams from '@/assets/thumbnails/sunset-dreams.jpg';
@@ -87,8 +88,9 @@ interface ExamplesGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
+const ExamplesGallery = memo(forwardRef<HTMLDivElement, ExamplesGalleryProps>(
   function ExamplesGallery({ open, onOpenChange }, ref) {
+  const { safeSetState, isMounted } = useMountGuard();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -99,16 +101,18 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
   const currentVideo = SHOWCASE_VIDEOS[currentIndex];
 
   const goToNext = useCallback(() => {
-    setIsLoaded(false);
-    setProgress(0);
-    setCurrentIndex((prev) => (prev + 1) % SHOWCASE_VIDEOS.length);
-  }, []);
+    if (!isMounted()) return;
+    safeSetState(setIsLoaded, false);
+    safeSetState(setProgress, 0);
+    safeSetState(setCurrentIndex, (prev) => (prev + 1) % SHOWCASE_VIDEOS.length);
+  }, [isMounted, safeSetState]);
 
   const goToPrev = useCallback(() => {
-    setIsLoaded(false);
-    setProgress(0);
-    setCurrentIndex((prev) => (prev - 1 + SHOWCASE_VIDEOS.length) % SHOWCASE_VIDEOS.length);
-  }, []);
+    if (!isMounted()) return;
+    safeSetState(setIsLoaded, false);
+    safeSetState(setProgress, 0);
+    safeSetState(setCurrentIndex, (prev) => (prev - 1 + SHOWCASE_VIDEOS.length) % SHOWCASE_VIDEOS.length);
+  }, [isMounted, safeSetState]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -291,6 +295,6 @@ const ExamplesGallery = forwardRef<HTMLDivElement, ExamplesGalleryProps>(
       </DialogContent>
     </Dialog>
   );
-});
+}));
 
 export default ExamplesGallery;

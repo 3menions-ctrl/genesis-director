@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, memo, forwardRef } from 'react';
+import { useState, useCallback, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -9,6 +9,7 @@ import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { useNavigationGuard } from '@/hooks/useNavigationGuard';
 
 // Loading overlay component
 const LoadingOverlay = memo(forwardRef<HTMLDivElement, { status: string }>(function LoadingOverlay({ status }, ref) {
@@ -29,19 +30,9 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const isMountedRef = useRef(true);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
+  
+  // Use navigation guard for safe async operations
+  const { isMounted, getAbortController, safeSetState, abort } = useNavigationGuard();
 
   const handleStartCreation = useCallback(async (config: {
     mode: VideoGenerationMode;
@@ -64,18 +55,15 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       return;
     }
 
-    // Abort any previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
+    // Abort any previous request using navigation guard
+    const controller = getAbortController();
 
-    setIsCreating(true);
-    setCreationStatus('Initializing pipeline...');
+    safeSetState(setIsCreating, true);
+    safeSetState(setCreationStatus, 'Initializing pipeline...');
 
     try {
-      if (!isMountedRef.current) return;
-      setCreationStatus('Creating project...');
+      if (!isMounted()) return;
+      safeSetState(setCreationStatus, 'Creating project...');
       
       // All modes use mode-router now
       const { data, error } = await supabase.functions.invoke('mode-router', {
@@ -98,7 +86,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       });
 
       // Check if component is still mounted
-      if (!isMountedRef.current) return;
+      if (!isMounted()) return;
 
       if (error) {
         // Handle specific error types
@@ -126,16 +114,16 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
         throw new Error('Failed to create project - no project ID returned from server');
       }
 
-      if (!isMountedRef.current) return;
-      setCreationStatus('Redirecting to production...');
+      if (!isMounted()) return;
+      safeSetState(setCreationStatus, 'Redirecting to production...');
       toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
       
       // Navigate to production page to monitor progress
       navigate(`/production/${data.projectId}`);
     } catch (error) {
-      // Ignore abort errors
+      // Ignore abort errors - expected during fast navigation
       if ((error as Error).name === 'AbortError') return;
-      if (!isMountedRef.current) return;
+      if (!isMounted()) return;
       
       console.error('Creation error:', error);
       handleError(error, 'Video creation', {
@@ -143,12 +131,12 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
         onRetry: () => handleStartCreation(config),
       });
     } finally {
-      if (isMountedRef.current) {
-        setIsCreating(false);
-        setCreationStatus('');
+      if (isMounted()) {
+        safeSetState(setIsCreating, false);
+        safeSetState(setCreationStatus, '');
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
     <div className="relative min-h-screen flex flex-col">

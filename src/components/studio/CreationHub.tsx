@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { CreationModeCard } from './CreationModeCard';
-import { VideoGenerationMode, VIDEO_MODES, STYLE_PRESETS, VideoStylePreset, AVATAR_VOICES } from '@/types/video-modes';
+import { VideoGenerationMode, VIDEO_MODES, STYLE_PRESETS, VideoStylePreset } from '@/types/video-modes';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -23,8 +23,6 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
-import { AvatarTemplateSelector } from './AvatarTemplateSelector';
-import { AvatarTemplate } from '@/types/avatar-templates';
 import {
   Select,
   SelectContent,
@@ -141,10 +139,6 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStylePreset>('anime');
-  const [selectedVoice, setSelectedVoice] = useState('nova');
-  const [selectedAvatarTemplate, setSelectedAvatarTemplate] = useState<AvatarTemplate | null>(null);
-  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
-  const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -211,57 +205,6 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   }, [appliedSettings, maxClips]);
 
   const currentMode = CREATION_MODES.find(m => m.id === selectedMode);
-  
-  // Voice preview handler
-  const handleVoicePreview = useCallback(async (voiceId: string, sampleText: string) => {
-    // Check cache first
-    if (voicePreviewCache[voiceId]) {
-      const audio = new Audio(voicePreviewCache[voiceId]);
-      audio.play().catch(console.error);
-      return;
-    }
-    
-    setPreviewingVoice(voiceId);
-    
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-voice`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            text: sampleText,
-            voiceId,
-          }),
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Voice generation failed');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.audioUrl) {
-        // Cache the result
-        setVoicePreviewCache(prev => ({ ...prev, [voiceId]: data.audioUrl }));
-        
-        // Play the audio
-        const audio = new Audio(data.audioUrl);
-        audio.play().catch(console.error);
-      } else {
-        throw new Error(data.error || 'No audio returned');
-      }
-    } catch (err) {
-      console.error('Voice preview error:', err);
-    } finally {
-      setPreviewingVoice(null);
-    }
-  }, [voicePreviewCache]);
   const modeConfig = VIDEO_MODES.find(m => m.id === selectedMode);
   
   // Check if mode supports advanced options
@@ -336,20 +279,11 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const handleCreate = () => {
     if (!prompt.trim() && modeConfig?.requiresText) return;
     
-    // For avatar mode with template, use the template's face and voice
-    const avatarImageUrl = selectedMode === 'avatar' && selectedAvatarTemplate 
-      ? selectedAvatarTemplate.face_image_url 
-      : uploadedImage;
-    const avatarVoiceId = selectedMode === 'avatar' && selectedAvatarTemplate
-      ? selectedAvatarTemplate.voice_id
-      : selectedVoice;
-    
     onStartCreation({
       mode: selectedMode,
       prompt,
       style: selectedMode === 'video-to-video' ? selectedStyle : undefined,
-      voiceId: selectedMode === 'avatar' ? avatarVoiceId : undefined,
-      imageUrl: avatarImageUrl || undefined,
+      imageUrl: uploadedImage || undefined,
       videoUrl: uploadedVideo || undefined,
       aspectRatio,
       clipCount,
@@ -364,12 +298,7 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
   const isReadyToCreate = () => {
     if (hasInsufficientCredits) return false;
     if (modeConfig?.requiresText && !prompt.trim()) return false;
-    // For avatar mode, either need template OR uploaded image
-    if (selectedMode === 'avatar') {
-      if (!selectedAvatarTemplate && !uploadedImage) return false;
-    } else if (modeConfig?.requiresImage && !uploadedImage) {
-      return false;
-    }
+    if (modeConfig?.requiresImage && !uploadedImage) return false;
     if (modeConfig?.requiresVideo && !uploadedVideo) return false;
     return true;
   };
@@ -920,14 +849,6 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                   </div>
-                )}
-
-                {/* Avatar Template Selection */}
-                {selectedMode === 'avatar' && (
-                  <AvatarTemplateSelector
-                    selectedAvatar={selectedAvatarTemplate}
-                    onSelect={setSelectedAvatarTemplate}
-                  />
                 )}
               </div>
 

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Type, 
@@ -264,78 +264,80 @@ const AdditionalFeature = memo(function AdditionalFeature({
   );
 });
 
-function FeaturesShowcase() {
-  return (
-    <section className="relative z-10 py-24 md:py-40 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInVariants}
-          className="text-center mb-16 md:mb-24"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-8">
-            <Sparkles className="w-3.5 h-3.5 text-white/50" />
-            <span className="text-xs text-white/50 tracking-widest uppercase">Professional Tools</span>
-          </div>
-          
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6">
-            Built for creators
-          </h2>
-          <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto leading-relaxed">
-            Everything you need to produce cinema-quality content. 
-            A complete production studio in your browser.
-          </p>
-        </motion.div>
+const FeaturesShowcase = memo(forwardRef<HTMLElement, Record<string, never>>(
+  function FeaturesShowcase(_, ref) {
+    return (
+      <section ref={ref} className="relative z-10 py-24 md:py-40 px-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInVariants}
+            className="text-center mb-16 md:mb-24"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl mb-8">
+              <Sparkles className="w-3.5 h-3.5 text-white/50" />
+              <span className="text-xs text-white/50 tracking-widest uppercase">Professional Tools</span>
+            </div>
+            
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-white mb-6">
+              Built for creators
+            </h2>
+            <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto leading-relaxed">
+              Everything you need to produce cinema-quality content. 
+              A complete production studio in your browser.
+            </p>
+          </motion.div>
 
-        {/* Premium Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-          {FEATURES.map((feature, index) => (
-            <FeatureCard key={feature.title} feature={feature} index={index} />
-          ))}
-        </div>
-
-        {/* Additional Features */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInVariants}
-          className="mt-12 md:mt-16"
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {ADDITIONAL_FEATURES.map((feature, i) => (
-              <AdditionalFeature key={feature.title} feature={feature} index={i} />
+          {/* Premium Bento Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {FEATURES.map((feature, index) => (
+              <FeatureCard key={feature.title} feature={feature} index={index} />
             ))}
           </div>
-        </motion.div>
 
-        {/* CTA */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInVariants}
-          className="mt-16 md:mt-24 text-center"
-        >
-          <a 
-            href="/auth?mode=signup"
-            className="group relative inline-flex items-center gap-3 px-10 py-4 rounded-full text-sm font-semibold transition-all duration-300 overflow-hidden"
+          {/* Additional Features */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInVariants}
+            className="mt-12 md:mt-16"
           >
-            <div className="absolute -inset-1 rounded-full bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute inset-0 rounded-full bg-white shadow-[0_0_60px_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_80px_rgba(255,255,255,0.25)] transition-shadow duration-300" />
-            <span className="relative text-black">Start Creating</span>
-            <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
-          </a>
-          <p className="mt-5 text-sm text-white/30">
-            Free credits included • No credit card required
-          </p>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {ADDITIONAL_FEATURES.map((feature, i) => (
+                <AdditionalFeature key={feature.title} feature={feature} index={i} />
+              ))}
+            </div>
+          </motion.div>
 
-export default memo(FeaturesShowcase);
+          {/* CTA */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInVariants}
+            className="mt-16 md:mt-24 text-center"
+          >
+            <a 
+              href="/auth?mode=signup"
+              className="group relative inline-flex items-center gap-3 px-10 py-4 rounded-full text-sm font-semibold transition-all duration-300 overflow-hidden"
+            >
+              <div className="absolute -inset-1 rounded-full bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 rounded-full bg-white shadow-[0_0_60px_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_80px_rgba(255,255,255,0.25)] transition-shadow duration-300" />
+              <span className="relative text-black">Start Creating</span>
+              <ArrowRight className="relative w-4 h-4 text-black transition-transform group-hover:translate-x-1" />
+            </a>
+            <p className="mt-5 text-sm text-white/30">
+              Free credits included • No credit card required
+            </p>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+));
+
+export default FeaturesShowcase;

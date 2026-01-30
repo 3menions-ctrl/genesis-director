@@ -1,3 +1,4 @@
+import { forwardRef, memo } from 'react';
 import {
   Accordion,
   AccordionContent,
@@ -29,44 +30,48 @@ const FAQS = [
   },
 ];
 
-export default function FAQSection() {
-  return (
-    <section id="faq" className="relative z-10 py-32 px-6">
-      <div className="max-w-2xl mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-            FAQ
-          </h2>
-        </motion.div>
+const FAQSection = memo(forwardRef<HTMLElement, Record<string, never>>(
+  function FAQSection(_, ref) {
+    return (
+      <section ref={ref} id="faq" className="relative z-10 py-32 px-6">
+        <div className="max-w-2xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
+              FAQ
+            </h2>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <Accordion type="single" collapsible className="space-y-2">
-            {FAQS.map((faq, i) => (
-              <AccordionItem 
-                key={i} 
-                value={`item-${i}`}
-                className="border-0 bg-white/[0.02] rounded-2xl px-6 data-[state=open]:bg-white/[0.04]"
-              >
-                <AccordionTrigger className="py-5 text-left text-white hover:no-underline text-base font-medium">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-white/50 pb-5 leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <Accordion type="single" collapsible className="space-y-2">
+              {FAQS.map((faq, i) => (
+                <AccordionItem 
+                  key={i} 
+                  value={`item-${i}`}
+                  className="border-0 bg-white/[0.02] rounded-2xl px-6 data-[state=open]:bg-white/[0.04]"
+                >
+                  <AccordionTrigger className="py-5 text-left text-white hover:no-underline text-base font-medium">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-white/50 pb-5 leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+));
+
+export default FAQSection;

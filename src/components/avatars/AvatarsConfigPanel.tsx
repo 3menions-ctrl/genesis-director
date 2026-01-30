@@ -89,14 +89,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
       className="fixed bottom-0 left-0 right-0 z-40 p-4 md:p-6"
     >
       <div className="max-w-5xl mx-auto">
-        <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-zinc-900/90 border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
+        <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-zinc-900 border border-white/[0.12] backdrop-blur-2xl shadow-2xl shadow-black/50">
           {/* Mobile Layout */}
           <div className="flex flex-col gap-4 lg:hidden">
             {/* Story/Script Input - Mobile (Primary) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground/70 flex items-center gap-2 text-sm">
-                  <Play className="w-3.5 h-3.5" />
+                <Label className="text-white flex items-center gap-2 text-sm font-medium">
+                  <Play className="w-3.5 h-3.5 text-violet-400" />
                   Story Concept
                 </Label>
                 {selectedAvatar && (
@@ -123,22 +123,22 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[80px] bg-background/30 border-border text-foreground placeholder:text-muted-foreground resize-none text-sm"
+                className="min-h-[80px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-sm"
                 disabled={!selectedAvatar}
               />
             </div>
 
             {/* Scene/Environment Input - Mobile */}
             <div className="space-y-1.5">
-              <Label className="text-muted-foreground flex items-center gap-2 text-xs">
-                <MapPin className="w-3 h-3" />
+              <Label className="text-zinc-300 flex items-center gap-2 text-xs font-medium">
+                <MapPin className="w-3 h-3 text-violet-400" />
                 Environment (optional)
               </Label>
               <Input
                 placeholder="e.g., a witch's house in the woods, a futuristic city..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                className="h-8 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"
+                className="h-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
                 disabled={!selectedAvatar}
               />
             </div>
@@ -168,12 +168,12 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
               {/* Duration */}
               <Select value={String(clipDuration)} onValueChange={(v) => onClipDurationChange(Number(v))}>
-                <SelectTrigger className="w-20 h-8 bg-white/[0.03] border-white/[0.08] text-white text-xs shrink-0">
+                <SelectTrigger className="w-20 h-8 bg-zinc-800 border-zinc-700 text-white text-xs shrink-0">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-white/10">
+                <SelectContent className="bg-zinc-800 border-zinc-700">
                   {CLIP_DURATIONS.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)} className="text-white text-sm">
+                    <SelectItem key={d.id} value={String(d.id)} className="text-white text-sm focus:bg-zinc-700 focus:text-white">
                       {d.name}
                     </SelectItem>
                   ))}
@@ -182,7 +182,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
               {/* Clips Slider */}
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-white/40">Clips: {clipCount}</span>
+                <span className="text-xs text-zinc-300">Clips: {clipCount}</span>
                 <Slider
                   value={[clipCount]}
                   onValueChange={([v]) => onClipCountChange(v)}
@@ -202,9 +202,9 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
             {/* Create Button */}
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-xs text-white/40">
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
                 <span>{estimatedDuration}s</span>
-                <span>•</span>
+                <span className="text-zinc-600">•</span>
                 <span className={cn("flex items-center gap-1", hasInsufficientCredits ? "text-red-400" : "text-amber-400")}>
                   <Zap className="w-3 h-3" />
                   {estimatedCredits}
@@ -238,8 +238,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Story Concept Input - Desktop */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground/70 flex items-center gap-2">
-                  <Play className="w-4 h-4" />
+                <Label className="text-white flex items-center gap-2 font-medium">
+                  <Play className="w-4 h-4 text-violet-400" />
                   Story Concept
                 </Label>
                 {selectedAvatar && (
@@ -268,21 +268,21 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[70px] bg-background/30 border-border text-foreground placeholder:text-muted-foreground resize-none"
+                className="min-h-[70px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 resize-none"
                 disabled={!selectedAvatar}
               />
               
               {/* Environment/Setting Input - Desktop */}
               <div className="flex items-center gap-3">
-                <Label className="text-muted-foreground flex items-center gap-1.5 text-xs whitespace-nowrap">
-                  <MapPin className="w-3.5 h-3.5" />
+                <Label className="text-zinc-300 flex items-center gap-1.5 text-xs whitespace-nowrap font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-violet-400" />
                   Environment
                 </Label>
                 <Input
                   placeholder="e.g., a witch's house in the woods, a futuristic city... (optional)"
                   value={sceneDescription}
                   onChange={(e) => onSceneDescriptionChange(e.target.value)}
-                  className="h-8 flex-1 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"
+                  className="h-9 flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
                   disabled={!selectedAvatar}
                 />
               </div>
@@ -292,7 +292,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             <div className="flex items-center gap-4">
               {/* Aspect Ratio */}
               <div className="space-y-2">
-                <Label className="text-xs text-white/50">Format</Label>
+                <Label className="text-xs text-zinc-400 font-medium">Format</Label>
                 <div className="flex gap-1">
                   {ASPECT_RATIOS.map((ratio) => (
                     <button
@@ -314,14 +314,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
               {/* Duration */}
               <div className="space-y-2">
-                <Label className="text-xs text-white/50">Duration</Label>
+                <Label className="text-xs text-zinc-400 font-medium">Duration</Label>
                 <Select value={String(clipDuration)} onValueChange={(v) => onClipDurationChange(Number(v))}>
-                  <SelectTrigger className="w-24 h-9 bg-white/[0.03] border-white/[0.08] text-white text-sm">
+                  <SelectTrigger className="w-24 h-9 bg-zinc-800 border-zinc-700 text-white text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-white/10">
+                  <SelectContent className="bg-zinc-800 border-zinc-700">
                     {CLIP_DURATIONS.map((d) => (
-                      <SelectItem key={d.id} value={String(d.id)} className="text-white focus:bg-white/10 focus:text-white">
+                      <SelectItem key={d.id} value={String(d.id)} className="text-white focus:bg-zinc-700 focus:text-white">
                         {d.name}
                       </SelectItem>
                     ))}
@@ -331,7 +331,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
               {/* Clips */}
               <div className="space-y-2">
-                <Label className="text-xs text-white/50">Clips: {clipCount}</Label>
+                <Label className="text-xs text-zinc-400 font-medium">Clips: {clipCount}</Label>
                 <Slider
                   value={[clipCount]}
                   onValueChange={([v]) => onClipCountChange(v)}
@@ -375,14 +375,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </Button>
               
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-white/40">{estimatedDuration}s</span>
-                <span className="text-white/20">•</span>
+                <span className="text-zinc-400">{estimatedDuration}s</span>
+                <span className="text-zinc-600">•</span>
                 <span className={cn("flex items-center gap-1", hasInsufficientCredits ? "text-red-400" : "text-amber-400")}>
                   <Zap className="w-3 h-3" />
                   {estimatedCredits} credits
                 </span>
-                <span className="text-white/20">•</span>
-                <span className="text-white/40">Balance: {userCredits}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-400">Balance: {userCredits}</span>
               </div>
             </div>
           </div>

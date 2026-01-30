@@ -690,7 +690,7 @@ const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, neve
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+    <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
       <TrainingBackground />
       <AppHeader showCreate={false} />
       

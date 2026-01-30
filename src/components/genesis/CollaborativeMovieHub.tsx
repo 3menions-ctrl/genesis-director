@@ -166,7 +166,7 @@ export const CollaborativeMovieHub = memo(forwardRef<HTMLDivElement, Record<stri
   }
   
   return (
-    <div className="space-y-8">
+    <div ref={ref} className="space-y-8">
       {/* Header */}
       <ScreenplayHeader screenplay={screenplay} />
       

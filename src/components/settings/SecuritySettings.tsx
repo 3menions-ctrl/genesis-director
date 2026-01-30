@@ -164,7 +164,7 @@ export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, n
     : 'Unknown';
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       {/* Section Header */}
       <div>
         <h2 className="text-xl font-semibold text-white">Security</h2>

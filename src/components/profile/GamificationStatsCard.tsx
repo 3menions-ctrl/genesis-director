@@ -46,7 +46,7 @@ export const GamificationStatsCard = memo(forwardRef<HTMLDivElement, Record<stri
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div ref={ref} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {statItems.map((stat, index) => (
         <motion.div 
           key={index}

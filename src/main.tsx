@@ -3,23 +3,34 @@ import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
+import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
 
-// Global error handler - catches unhandled errors and shows toast
+// Global error handler with stability monitoring
 window.addEventListener("error", (event) => {
-  console.error("[Global Error]", event.error);
-  toast.error("Something went wrong", {
-    description: event.error?.message || "An unexpected error occurred",
-    duration: 5000,
+  if (shouldSuppressError(event.error)) return;
+  
+  const stabilityEvent = stabilityMonitor.handle(event.error, 'Global Error', {
+    showToast: true,
   });
+  
+  // Log for debugging
+  if (stabilityEvent) {
+    console.error("[Global Error]", stabilityEvent.category, event.error);
+  }
 });
 
-// Global promise rejection handler
+// Global promise rejection handler with stability monitoring
 window.addEventListener("unhandledrejection", (event) => {
-  console.error("[Unhandled Promise Rejection]", event.reason);
-  toast.error("Operation failed", {
-    description: event.reason?.message || "An async operation failed",
-    duration: 5000,
+  if (shouldSuppressError(event.reason)) return;
+  
+  const stabilityEvent = stabilityMonitor.handle(event.reason, 'Async Error', {
+    showToast: true,
   });
+  
+  // Log for debugging
+  if (stabilityEvent) {
+    console.error("[Unhandled Rejection]", stabilityEvent.category, event.reason);
+  }
 });
 
 // Register service worker for PWA

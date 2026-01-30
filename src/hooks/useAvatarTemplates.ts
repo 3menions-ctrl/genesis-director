@@ -63,6 +63,11 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     if (!filter) return templates;
 
     return templates.filter(template => {
+      // Avatar type filter
+      if (filter.avatarType && filter.avatarType !== 'all') {
+        if (template.avatar_type !== filter.avatarType) return false;
+      }
+
       // Gender filter
       if (filter.gender && filter.gender !== 'all') {
         if (template.gender !== filter.gender) return false;

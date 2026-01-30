@@ -12,6 +12,8 @@ export interface CharacterBible {
   negative_prompts?: string[];
 }
 
+export type AvatarType = 'realistic' | 'animated';
+
 export interface AvatarTemplate {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ export interface AvatarTemplate {
   age_range: string | null;
   ethnicity: string | null;
   style: string | null;
+  avatar_type: AvatarType;
   face_image_url: string;
   thumbnail_url: string | null;
   // Multi-angle support
@@ -48,7 +51,15 @@ export interface AvatarTemplateFilter {
   gender?: string;
   style?: string;
   search?: string;
+  avatarType?: AvatarType | 'all';
 }
+
+// Avatar type categories
+export const AVATAR_TYPES = [
+  { id: 'all', name: 'All Avatars', description: 'Show all avatar styles' },
+  { id: 'realistic', name: 'Realistic', description: 'Photorealistic human avatars' },
+  { id: 'animated', name: 'Animated', description: 'Stylized CGI avatars' },
+] as const;
 
 // Style categories for filtering
 export const AVATAR_STYLES = [

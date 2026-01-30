@@ -104,8 +104,12 @@ const AvatarsContent = memo(function AvatarsContent() {
       const visibleAvatars = templates.slice(0, 5);
       preloadVoices(visibleAvatars);
       
-      // Signal page is ready after templates are loaded
-      markReady('avatars-page');
+      // Signal page is ready after templates are loaded (wrapped in try-catch for safety)
+      try {
+        markReady('avatars-page');
+      } catch (e) {
+        console.warn('[Avatars] Failed to signal page ready:', e);
+      }
     }
   }, [templates, isLoading, preloadVoices, markReady]);
 

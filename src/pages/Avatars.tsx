@@ -23,12 +23,12 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 // Separated content for error boundary isolation
 const AvatarsContent = memo(function AvatarsContent() {
   const navigate = useNavigate();
-  const { user, profile, isSessionVerified } = useAuth();
+  const { user, profile, isSessionVerified, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
 
-  // Avatar selection state
+  // Avatar selection state - ALL HOOKS MUST BE CALLED BEFORE ANY RETURNS
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
   const [styleFilter, setStyleFilter] = useState('all');
@@ -57,18 +57,6 @@ const AvatarsContent = memo(function AvatarsContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState('');
 
-  // Cleanup on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      stopPlayback();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [stopPlayback]);
-
   // Memoize filter config to prevent unnecessary re-renders
   const filterConfig = useMemo(() => ({
     gender: genderFilter,
@@ -89,6 +77,23 @@ const AvatarsContent = memo(function AvatarsContent() {
     [genderFilter, styleFilter, searchQuery]
   );
 
+  const isReadyToCreate = useMemo(() => 
+    selectedAvatar && prompt.trim() && !hasInsufficientCredits,
+    [selectedAvatar, prompt, hasInsufficientCredits]
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      stopPlayback();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [stopPlayback]);
+
   // Preload voices for visible avatars when templates load
   useEffect(() => {
     if (templates.length > 0 && !isLoading) {
@@ -107,20 +112,20 @@ const AvatarsContent = memo(function AvatarsContent() {
   }, [playVoicePreview]);
 
   // Handle avatar card click - open preview modal
-  const handleAvatarClick = (avatar: AvatarTemplate) => {
+  const handleAvatarClick = useCallback((avatar: AvatarTemplate) => {
     setPreviewAvatar(avatar);
     setPreviewModalOpen(true);
-  };
+  }, []);
 
   // Handle avatar selection from modal
-  const handleSelectAvatar = (avatar: AvatarTemplate) => {
+  const handleSelectAvatar = useCallback((avatar: AvatarTemplate) => {
     setSelectedAvatar(avatar);
     toast.success(`Selected ${avatar.name}`);
-  };
+  }, []);
 
   // Build character bible for production consistency
-  const buildCharacterBible = (avatar: AvatarTemplate) => {
-    const bible = avatar.character_bible || {};
+  const buildCharacterBible = useCallback((avatar: AvatarTemplate) => {
+    const bible = (avatar.character_bible || {}) as Record<string, unknown>;
     
     return {
       name: avatar.name,
@@ -148,7 +153,7 @@ const AvatarsContent = memo(function AvatarsContent() {
         'inconsistent appearance'
       ],
     };
-  };
+  }, []);
 
   // Handle project creation with abort support
   const handleCreate = useCallback(async () => {
@@ -242,7 +247,7 @@ const AvatarsContent = memo(function AvatarsContent() {
         setCreationStatus('');
       }
     }
-  }, [user, selectedAvatar, prompt, aspectRatio, clipCount, clipDuration, enableMusic, navigate]);
+  }, [user, selectedAvatar, prompt, aspectRatio, clipCount, clipDuration, enableMusic, navigate, buildCharacterBible]);
 
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
@@ -264,10 +269,20 @@ const AvatarsContent = memo(function AvatarsContent() {
     setSelectedAvatar(null);
   }, []);
 
-  const isReadyToCreate = useMemo(() => 
-    selectedAvatar && prompt.trim() && !hasInsufficientCredits,
-    [selectedAvatar, prompt, hasInsufficientCredits]
-  );
+  // EARLY RETURN AFTER ALL HOOKS - Auth loading state
+  if (authLoading || !isSessionVerified) {
+    return (
+      <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+        <AvatarsBackground />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+            <p className="text-white/50">Loading avatars...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
@@ -352,7 +367,7 @@ const AvatarsContent = memo(function AvatarsContent() {
         hasInsufficientCredits={hasInsufficientCredits}
         isCreating={isCreating}
         isReadyToCreate={!!isReadyToCreate}
-        onClearAvatar={() => setSelectedAvatar(null)}
+        onClearAvatar={handleClearAvatar}
         onCreate={handleCreate}
       />
 

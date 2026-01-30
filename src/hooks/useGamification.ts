@@ -57,23 +57,62 @@ export function useGamification() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch user's gamification stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  // Fetch user's gamification stats with timeout and fallback
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['gamification', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserGamification | null> => {
       if (!user) return null;
       
-      const { data, error } = await supabase
-        .from('user_gamification')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as UserGamification | null;
+      try {
+        // Add timeout to prevent indefinite hanging
+        const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+          setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 8000);
+        });
+        
+        const fetchPromise = supabase
+          .from('user_gamification')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        const result = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (result.error) {
+          // Log but don't throw - return fallback data
+          console.warn('[useGamification] Stats fetch error:', result.error.message);
+          return createFallbackStats(user.id);
+        }
+        
+        return result.data as UserGamification | null;
+      } catch (err) {
+        console.warn('[useGamification] Unexpected error:', err);
+        return createFallbackStats(user.id);
+      }
     },
     enabled: !!user,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+  
+  // Fallback stats creator to prevent null crashes
+  function createFallbackStats(userId: string): UserGamification {
+    return {
+      id: 'fallback',
+      user_id: userId,
+      xp_total: 0,
+      level: 1,
+      current_streak: 0,
+      longest_streak: 0,
+      last_activity_date: null,
+      videos_created: 0,
+      videos_completed: 0,
+      total_views: 0,
+      total_likes_received: 0,
+      characters_created: 0,
+      characters_lent: 0,
+      universes_joined: 0,
+    };
+  }
 
   // Fetch all achievements
   const { data: achievements } = useQuery({

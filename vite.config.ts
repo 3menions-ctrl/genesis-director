@@ -67,8 +67,17 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Prevent duplicate React instances
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+    // Prevent duplicate React instances - include ALL React-related packages
+    dedupe: [
+      "react", 
+      "react-dom", 
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "framer-motion",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-tooltip",
+    ],
   },
   build: {
     // Optimize chunk splitting

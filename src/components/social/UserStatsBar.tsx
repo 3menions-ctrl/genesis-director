@@ -11,9 +11,16 @@ import {
 } from '@/components/ui/tooltip';
 
 export function UserStatsBar() {
-  const { stats, xpProgress, unlockedAchievements } = useGamification();
+  const { stats, xpProgress, unlockedAchievements, statsLoading } = useGamification();
 
-  if (!stats) return null;
+  // Don't render until stats are loaded to prevent null access crashes
+  if (statsLoading || !stats) return null;
+
+  // Extra safety check for required properties
+  if (typeof stats.level !== 'number' || typeof stats.xp_total !== 'number') {
+    console.warn('[UserStatsBar] Invalid stats structure:', stats);
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-4 px-4 py-2 bg-muted/30 rounded-lg border">

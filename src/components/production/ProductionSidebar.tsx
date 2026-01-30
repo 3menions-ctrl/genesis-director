@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -33,12 +34,12 @@ interface ProductionSidebarProps {
   onToggle: () => void;
 }
 
-export function ProductionSidebar({ 
+export const ProductionSidebar = memo(forwardRef<HTMLDivElement, ProductionSidebarProps>(function ProductionSidebar({ 
   projects, 
   activeProjectId, 
   isCollapsed,
   onToggle
-}: ProductionSidebarProps) {
+}, ref) {
   const navigate = useNavigate();
   
   const handleSelectProject = (id: string) => {
@@ -238,4 +239,4 @@ export function ProductionSidebar({
       </AnimatePresence>
     </TooltipProvider>
   );
-}
+}));

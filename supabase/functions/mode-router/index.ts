@@ -12,12 +12,16 @@ const corsHeaders = {
  * Routes creation requests to the optimal pipeline based on mode:
  * - text-to-video / b-roll → Hollywood Pipeline (multi-clip with script)
  * - image-to-video → Hollywood Pipeline with image anchor
- * - avatar → Direct ElevenLabs TTS + SadTalker (NO script breakdown - text IS the script)
+ * - avatar → Hollywood Pipeline with Avatar Identity Bible injection
+ *           (UNIFIED PIPELINE: Avatars are actors placed into full cinematic scenes)
  * - video-to-video → Direct style transfer pipeline (single pass)
  * - motion-transfer → Direct pose estimation + animation (single pass)
  * 
- * Key insight: Avatar/Motion/Style modes don't need script generation - 
- * the user input IS the final content.
+ * Key Architecture (v2.0 - Avatar as Actor):
+ * Avatar mode now uses the full Hollywood Pipeline. The avatar's Character Bible
+ * becomes the Identity Bible, ensuring the avatar appears consistently across
+ * all generated scenes. Multi-avatar casting is supported by mapping multiple
+ * avatars to different characters in the script.
  */
 
 /**
@@ -139,12 +143,21 @@ interface CharacterBible {
   negative_prompts?: string[];
 }
 
+// Multi-Avatar Casting: Map avatars to character roles
+interface AvatarCastMember {
+  avatarTemplateId: string;
+  characterName: string;
+  characterBible: CharacterBible;
+  voiceId: string;
+  isPrimary?: boolean; // Main protagonist
+}
+
 interface ModeRouterRequest {
   mode: 'text-to-video' | 'image-to-video' | 'avatar' | 'video-to-video' | 'motion-transfer' | 'b-roll';
   userId: string;
   projectId?: string;
   
-  // Text content (script for avatar, prompt for others)
+  // Text content (story concept for avatar, prompt for others)
   prompt: string;
   
   // Media inputs
@@ -155,9 +168,12 @@ interface ModeRouterRequest {
   stylePreset?: string;
   voiceId?: string;
   
-  // Avatar-specific: Character Bible for production consistency
+  // Avatar-specific: Single avatar (legacy support)
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
+  
+  // Avatar-specific: Multi-avatar casting (new)
+  avatarCast?: AvatarCastMember[];
   
   // Avatar-specific: Scene/background description (e.g., "a witches house")
   sceneDescription?: string;
@@ -273,19 +289,23 @@ serve(async (req) => {
     // Route based on mode
     switch (mode) {
       case 'avatar':
-        // AVATAR: Direct path - no script generation needed
-        // The prompt IS the script, just needs TTS + lip sync
-        // Character Bible provides multi-view consistency for production
-        return await handleAvatarMode({
+        // AVATAR v2.0: Full Hollywood Pipeline with Avatar Identity Injection
+        // The avatar(s) become the character reference(s) for multi-shot generation
+        return await handleAvatarCinematicMode({
           projectId: projectId!,
           userId,
-          script: prompt, // Direct use - this is what the avatar says
-          imageUrl: imageUrl!,
-          voiceId: voiceId || 'onwK4e9ZLuTAKqWW03F9',
+          concept: prompt, // User's story/scene concept
+          sceneDescription: request.sceneDescription,
+          avatarImageUrl: imageUrl,
+          voiceId: voiceId || 'onyx',
           aspectRatio,
+          clipCount,
+          clipDuration,
+          enableNarration: request.enableNarration,
+          enableMusic: request.enableMusic,
           characterBible: request.characterBible,
           avatarTemplateId: request.avatarTemplateId,
-          sceneDescription: request.sceneDescription, // Pass scene/background to video generation
+          avatarCast: request.avatarCast,
           supabase,
         });
 
@@ -346,95 +366,228 @@ serve(async (req) => {
 });
 
 /**
- * AVATAR MODE - Direct TTS + Lip Sync
- * No script breakdown - the input text is spoken verbatim
+ * AVATAR CINEMATIC MODE v2.0 - Full Hollywood Pipeline with Avatar Identity
+ * 
+ * Routes avatar requests through the full cinematic pipeline:
+ * 1. Avatar's Character Bible becomes the Identity Bible for all shots
+ * 2. Full script generation based on user's concept + scene description
+ * 3. Multi-shot video generation with avatar appearing consistently in all scenes
+ * 4. Optional narration (avatar's voice) and music
+ * 
+ * This allows avatars to be full "actors" - walking, running, interacting with
+ * environments, not just talking heads.
  */
-async function handleAvatarMode(params: {
+async function handleAvatarCinematicMode(params: {
   projectId: string;
   userId: string;
-  script: string;
-  imageUrl: string;
+  concept: string;
+  sceneDescription?: string;
+  avatarImageUrl?: string;
   voiceId: string;
   aspectRatio: string;
+  clipCount: number;
+  clipDuration: number;
+  enableNarration: boolean;
+  enableMusic: boolean;
   characterBible?: CharacterBible;
   avatarTemplateId?: string;
-  sceneDescription?: string; // User's scene/background request
+  avatarCast?: AvatarCastMember[];
   supabase: any;
 }) {
-  const { projectId, userId, script, imageUrl, voiceId, aspectRatio, characterBible, avatarTemplateId, sceneDescription, supabase } = params;
+  const { 
+    projectId, userId, concept, sceneDescription, avatarImageUrl, voiceId, 
+    aspectRatio, clipCount, clipDuration, enableNarration, enableMusic,
+    characterBible, avatarTemplateId, avatarCast, supabase 
+  } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  console.log(`[ModeRouter/Avatar] Starting avatar generation, script length: ${script.length} chars`);
+  console.log(`[ModeRouter/AvatarCinematic] Starting full cinematic pipeline for avatar`);
+  console.log(`[ModeRouter/AvatarCinematic] Concept: "${concept.substring(0, 100)}..."`);
+  console.log(`[ModeRouter/AvatarCinematic] Scene: "${sceneDescription?.substring(0, 100) || 'Not specified'}"`);
+  console.log(`[ModeRouter/AvatarCinematic] Config: ${clipCount} clips × ${clipDuration}s`);
+
+  // Build the combined concept with scene context
+  let fullConcept = concept;
+  if (sceneDescription && sceneDescription.trim()) {
+    // Merge scene description into the concept
+    fullConcept = `Setting: ${sceneDescription.trim()}. Story: ${concept}`;
+    console.log(`[ModeRouter/AvatarCinematic] Merged concept: "${fullConcept.substring(0, 150)}..."`);
+  }
+
+  // Build Identity Bible from Avatar Character Bible
+  // This ensures the avatar appears consistently across all shots
+  let identityBible: any = null;
+  let referenceImageUrl = avatarImageUrl;
+  
   if (characterBible) {
-    console.log(`[ModeRouter/Avatar] Character Bible loaded: ${characterBible.name || 'unnamed'}`);
-  }
-  if (sceneDescription) {
-    console.log(`[ModeRouter/Avatar] Scene description: "${sceneDescription.substring(0, 100)}..."`);
+    console.log(`[ModeRouter/AvatarCinematic] Building Identity Bible from avatar: ${characterBible.name || 'unnamed'}`);
+    
+    // Convert Character Bible to Identity Bible format for Hollywood pipeline
+    identityBible = {
+      characterIdentity: {
+        description: characterBible.description || characterBible.front_view || '',
+        facialFeatures: characterBible.front_view || '',
+        clothing: characterBible.clothing_description || '',
+        bodyType: characterBible.body_type || '',
+        distinctiveMarkers: characterBible.distinguishing_features || [],
+      },
+      consistencyPrompt: [
+        characterBible.front_view,
+        characterBible.side_view,
+        characterBible.back_view,
+      ].filter(Boolean).join(' '),
+      originalReferenceUrl: characterBible.reference_images?.front || avatarImageUrl,
+      consistencyAnchors: characterBible.distinguishing_features || [],
+      nonFacialAnchors: {
+        bodyType: characterBible.body_type,
+        clothingSignature: characterBible.clothing_description,
+        hairFromBehind: characterBible.hair_description,
+        silhouetteDescription: characterBible.silhouette,
+      },
+      occlusionNegatives: characterBible.negative_prompts || [],
+      // Use avatar's multi-view reference images
+      multiViewRefs: characterBible.reference_images,
+    };
+    
+    // Use front view as primary reference if available
+    if (characterBible.reference_images?.front) {
+      referenceImageUrl = characterBible.reference_images.front;
+    }
   }
 
-  // Store character bible in pro_features_data for production consistency
-  const proFeaturesData = characterBible ? {
-    identityBible: characterBible,
+  // Build avatar cast for multi-character support
+  let extractedCharacters: any[] = [];
+  let characterVoiceMap: Record<string, string> = {};
+  
+  if (avatarCast && avatarCast.length > 0) {
+    console.log(`[ModeRouter/AvatarCinematic] Multi-avatar cast: ${avatarCast.length} characters`);
+    
+    extractedCharacters = avatarCast.map((member, index) => ({
+      id: `avatar_${index}`,
+      name: member.characterName,
+      appearance: member.characterBible.front_view || member.characterBible.description || '',
+      clothing: member.characterBible.clothing_description,
+      distinguishingFeatures: member.characterBible.distinguishing_features?.join(', '),
+      referenceImageUrl: member.characterBible.reference_images?.front,
+      isPrimary: member.isPrimary || index === 0,
+    }));
+    
+    // Map character names to voice IDs
+    avatarCast.forEach(member => {
+      characterVoiceMap[member.characterName] = member.voiceId;
+    });
+    
+    // Use primary avatar's reference as main identity
+    const primaryAvatar = avatarCast.find(m => m.isPrimary) || avatarCast[0];
+    if (primaryAvatar.characterBible.reference_images?.front) {
+      referenceImageUrl = primaryAvatar.characterBible.reference_images.front;
+    }
+    
+    // Build identity bible from primary avatar
+    if (!identityBible && primaryAvatar.characterBible) {
+      const cb = primaryAvatar.characterBible;
+      identityBible = {
+        characterIdentity: {
+          description: cb.description || cb.front_view || '',
+          clothing: cb.clothing_description || '',
+          bodyType: cb.body_type || '',
+        },
+        consistencyPrompt: cb.front_view || '',
+        originalReferenceUrl: cb.reference_images?.front,
+        multiViewRefs: cb.reference_images,
+      };
+    }
+  } else if (characterBible) {
+    // Single avatar - add to extracted characters
+    extractedCharacters = [{
+      id: 'avatar_0',
+      name: characterBible.name || 'The Character',
+      appearance: characterBible.front_view || characterBible.description || '',
+      clothing: characterBible.clothing_description,
+      distinguishingFeatures: characterBible.distinguishing_features?.join(', '),
+      referenceImageUrl: characterBible.reference_images?.front || avatarImageUrl,
+      isPrimary: true,
+    }];
+    
+    characterVoiceMap[characterBible.name || 'The Character'] = voiceId;
+  }
+
+  // Store avatar-specific data in pro_features_data
+  const proFeaturesData = {
+    identityBible,
     avatarTemplateId,
-    multiViewRefs: characterBible.reference_images,
-  } : {};
+    extractedCharacters,
+    characterVoiceMap,
+    avatarCast: avatarCast || (characterBible ? [{ 
+      avatarTemplateId,
+      characterName: characterBible.name || 'The Character',
+      characterBible,
+      voiceId,
+      isPrimary: true,
+    }] : []),
+    isAvatarMode: true, // Flag for pipeline to handle avatar-specific logic
+  };
 
-  // Update project status with character bible (single atomic update)
+  // Update project with avatar identity data
   await supabase.from('movie_projects').update({
     status: 'generating',
     pro_features_data: proFeaturesData,
     pipeline_state: JSON.stringify({
-      stage: 'avatar_generation',
-      progress: 10,
-      message: 'Generating speech audio...'
-    })
+      stage: 'avatar_pipeline_init',
+      progress: 5,
+      message: 'Initializing avatar cinematic pipeline...',
+      avatarName: characterBible?.name || 'Avatar',
+      clipCount,
+    }),
   }).eq('id', projectId);
 
-  // Call generate-avatar directly with the full script and scene description
-  const avatarResponse = await fetch(`${supabaseUrl}/functions/v1/generate-avatar`, {
+  // Route to Hollywood Pipeline with avatar identity injection
+  console.log(`[ModeRouter/AvatarCinematic] Routing to Hollywood Pipeline...`);
+  
+  const pipelineResponse = await fetch(`${supabaseUrl}/functions/v1/hollywood-pipeline`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${supabaseKey}`,
     },
     body: JSON.stringify({
-      text: script,
-      voiceId,
-      avatarImageUrl: imageUrl,
+      userId,
+      projectId,
+      concept: fullConcept,
+      referenceImageUrl,
       aspectRatio,
-      sceneDescription, // Pass scene/background for video generation prompt
+      clipCount,
+      clipDuration,
+      includeVoice: enableNarration,
+      includeMusic: enableMusic,
+      voiceId, // Default voice for narration
+      qualityTier: 'professional',
+      // Avatar-specific injections
+      identityBible,
+      extractedCharacters,
+      environmentPrompt: sceneDescription, // Scene DNA for visual consistency
+      isAvatarMode: true, // Flag for avatar-specific handling
+      characterVoiceMap, // Map character names to voice IDs
     }),
   });
 
-  if (!avatarResponse.ok) {
-    const error = await avatarResponse.text();
-    throw new Error(`Avatar generation failed: ${error}`);
+  if (!pipelineResponse.ok) {
+    const error = await pipelineResponse.text();
+    throw new Error(`Avatar pipeline failed: ${error}`);
   }
 
-  const result = await avatarResponse.json();
-
-  // Update project with prediction ID and audio URL for polling
-  await supabase.from('movie_projects').update({
-    voice_audio_url: result.audioUrl, // Store audio URL in dedicated column
-    pipeline_state: JSON.stringify({
-      stage: 'avatar_rendering',
-      progress: 30,
-      predictionId: result.predictionId,
-      audioUrl: result.audioUrl,
-      audioDurationMs: result.audioDurationMs,
-      message: 'Generating speaking animation...'
-    })
-  }).eq('id', projectId);
+  const result = await pipelineResponse.json();
 
   return new Response(
     JSON.stringify({
       success: true,
       projectId,
       mode: 'avatar',
-      predictionId: result.predictionId,
       status: 'processing',
-      message: 'Avatar video is being generated. The script will be spoken exactly as written.',
+      message: `Creating ${clipCount}-clip cinematic video with your avatar. The character will appear in full scenes, not just as a talking head.`,
+      avatarName: characterBible?.name || 'Avatar',
+      ...result,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );

@@ -324,8 +324,10 @@ export async function checkPipelineHealth(
 // =====================================================
 
 /**
- * Get a valid last frame URL with fallback chain
+ * Get a valid last frame URL with EXHAUSTIVE fallback chain
  * NEVER returns null if ANY fallback source is available
+ * 
+ * CRITICAL: This is the core function that prevents STRICT_CONTINUITY_FAILURE
  */
 export function getGuaranteedLastFrame(
   shotIndex: number,
@@ -335,30 +337,47 @@ export function getGuaranteedLastFrame(
     sceneImageUrl?: string;
     previousClipLastFrame?: string;
     identityBibleImageUrl?: string;
+    goldenFrameUrl?: string;
+    sourceImageUrl?: string;
   }
 ): { frameUrl: string | null; source: string; confidence: 'high' | 'medium' | 'low' } {
-  // CLIP 0 SPECIAL CASE: Always use reference image
+  // CLIP 0 SPECIAL CASE: Prioritize extracted frame, then reference
   if (shotIndex === 0) {
     return getClip0LastFrame(sources.referenceImageUrl, sources.extractedFrame);
   }
   
-  // CLIP 1+ FALLBACK CHAIN
+  // CLIP 1+ EXHAUSTIVE FALLBACK CHAIN (7 tiers)
   const chain = [
+    // HIGH CONFIDENCE: Actual extracted frames
     { url: sources.extractedFrame, source: 'extracted_frame', confidence: 'high' as const },
     { url: sources.previousClipLastFrame, source: 'previous_clip_frame', confidence: 'high' as const },
+    { url: sources.goldenFrameUrl, source: 'golden_frame', confidence: 'high' as const },
+    // MEDIUM CONFIDENCE: Related images
     { url: sources.sceneImageUrl, source: 'scene_image', confidence: 'medium' as const },
     { url: sources.referenceImageUrl, source: 'reference_image', confidence: 'medium' as const },
+    { url: sources.sourceImageUrl, source: 'source_image', confidence: 'medium' as const },
+    // LOW CONFIDENCE: Any available identity data
     { url: sources.identityBibleImageUrl, source: 'identity_bible', confidence: 'low' as const },
   ];
   
   for (const { url, source, confidence } of chain) {
     if (url && isValidImageUrl(url)) {
-      console.log(`[GuardRails] Last frame for clip ${shotIndex}: ${source} (${confidence})`);
+      console.log(`[GuardRails] ✓ Last frame for clip ${shotIndex}: ${source} (${confidence})`);
       return { frameUrl: url, source, confidence };
     }
   }
   
-  console.error(`[GuardRails] ❌ No valid last frame for clip ${shotIndex}!`);
+  // DEGRADED MODE: Return null but log extensively for debugging
+  console.error(`[GuardRails] ════════════════════════════════════════════`);
+  console.error(`[GuardRails] ❌ All fallback tiers exhausted for clip ${shotIndex}!`);
+  console.error(`[GuardRails]   extractedFrame: ${sources.extractedFrame ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails]   previousClipLastFrame: ${sources.previousClipLastFrame ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails]   goldenFrameUrl: ${sources.goldenFrameUrl ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails]   sceneImageUrl: ${sources.sceneImageUrl ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails]   referenceImageUrl: ${sources.referenceImageUrl ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails]   identityBibleImageUrl: ${sources.identityBibleImageUrl ? 'PROVIDED' : 'MISSING'}`);
+  console.error(`[GuardRails] ════════════════════════════════════════════`);
+  
   return { frameUrl: null, source: 'none', confidence: 'low' };
 }
 

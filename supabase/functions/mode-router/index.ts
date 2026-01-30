@@ -119,6 +119,26 @@ function createFallbackTitle(prompt: string, mode: string): string {
   return `${modeLabel} Creation`;
 }
 
+interface CharacterBible {
+  name?: string;
+  description?: string;
+  personality?: string;
+  front_view?: string;
+  side_view?: string;
+  back_view?: string;
+  silhouette?: string;
+  hair_description?: string;
+  clothing_description?: string;
+  body_type?: string;
+  distinguishing_features?: string[];
+  reference_images?: {
+    front?: string;
+    side?: string | null;
+    back?: string | null;
+  };
+  negative_prompts?: string[];
+}
+
 interface ModeRouterRequest {
   mode: 'text-to-video' | 'image-to-video' | 'avatar' | 'video-to-video' | 'motion-transfer' | 'b-roll';
   userId: string;
@@ -134,6 +154,10 @@ interface ModeRouterRequest {
   // Style configuration
   stylePreset?: string;
   voiceId?: string;
+  
+  // Avatar-specific: Character Bible for production consistency
+  characterBible?: CharacterBible;
+  avatarTemplateId?: string;
   
   // Production controls
   aspectRatio: string;
@@ -248,6 +272,7 @@ serve(async (req) => {
       case 'avatar':
         // AVATAR: Direct path - no script generation needed
         // The prompt IS the script, just needs TTS + lip sync
+        // Character Bible provides multi-view consistency for production
         return await handleAvatarMode({
           projectId: projectId!,
           userId,
@@ -255,6 +280,8 @@ serve(async (req) => {
           imageUrl: imageUrl!,
           voiceId: voiceId || 'onwK4e9ZLuTAKqWW03F9',
           aspectRatio,
+          characterBible: request.characterBible,
+          avatarTemplateId: request.avatarTemplateId,
           supabase,
         });
 
@@ -325,13 +352,36 @@ async function handleAvatarMode(params: {
   imageUrl: string;
   voiceId: string;
   aspectRatio: string;
+  characterBible?: CharacterBible;
+  avatarTemplateId?: string;
   supabase: any;
 }) {
-  const { projectId, userId, script, imageUrl, voiceId, aspectRatio, supabase } = params;
+  const { projectId, userId, script, imageUrl, voiceId, aspectRatio, characterBible, avatarTemplateId, supabase } = params;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   console.log(`[ModeRouter/Avatar] Starting avatar generation, script length: ${script.length} chars`);
+  if (characterBible) {
+    console.log(`[ModeRouter/Avatar] Character Bible loaded: ${characterBible.name || 'unnamed'}`);
+  }
+
+  // Store character bible in pro_features_data for production consistency
+  const proFeaturesData = characterBible ? {
+    identityBible: characterBible,
+    avatarTemplateId,
+    multiViewRefs: characterBible.reference_images,
+  } : {};
+
+  // Update project status with character bible
+  await supabase.from('movie_projects').update({
+    status: 'generating',
+    pro_features_data: proFeaturesData,
+    pipeline_state: JSON.stringify({
+      stage: 'avatar_generation',
+      progress: 10,
+      message: 'Generating speech audio...'
+    })
+  }).eq('id', projectId);
 
   // Update project status
   await supabase.from('movie_projects').update({

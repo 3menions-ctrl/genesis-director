@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Film, Clock, Zap, CheckCircle2, AlertTriangle, Play, 
@@ -246,7 +246,7 @@ function ClipThumbnail({
   );
 }
 
-export function ProductionDashboard({
+export const ProductionDashboard = memo(forwardRef<HTMLDivElement, ProductionDashboardProps>(function ProductionDashboard({
   projectTitle,
   progress,
   elapsedTime,
@@ -265,7 +265,7 @@ export function ProductionDashboard({
   isResuming,
   finalVideoUrl,
   clipDuration = 5,
-}: ProductionDashboardProps) {
+}, ref) {
   const failedClips = clips.filter(c => c.status === 'failed').length;
   const generatingClips = clips.filter(c => c.status === 'generating').length;
   const hasTransitions = transitions && transitions.length > 0;
@@ -575,4 +575,4 @@ export function ProductionDashboard({
       )}
     </motion.div>
   );
-}
+}));

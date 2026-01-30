@@ -267,21 +267,33 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
 export function useNavigationLoading() {
   const context = useContext(NavigationLoadingContext);
   if (!context) {
-    throw new Error('useNavigationLoading must be used within NavigationLoadingProvider');
+    // Return a safe fallback instead of throwing - prevents crashes during SSR or provider issues
+    console.warn('[NavigationLoading] Context not available, using fallback');
+    return {
+      state: { isLoading: false, targetRoute: null, currentMessage: '', progress: 0 },
+      startNavigation: () => {},
+      completeNavigation: () => {},
+      reportReady: () => {},
+      isHeavyRoute: () => false,
+    };
   }
   return context;
 }
 
-// Hook for pages to signal they're ready
+// Hook for pages to signal they're ready - safe version that won't crash
 export function usePageReady() {
-  const { completeNavigation, reportReady } = useNavigationLoading();
+  const context = useContext(NavigationLoadingContext);
   
   const markReady = useCallback((systemName?: string) => {
-    if (systemName) {
-      reportReady(systemName);
+    if (!context) {
+      // Silently ignore if context not available
+      return;
     }
-    completeNavigation();
-  }, [completeNavigation, reportReady]);
+    if (systemName) {
+      context.reportReady(systemName);
+    }
+    context.completeNavigation();
+  }, [context]);
 
   return { markReady };
 }

@@ -1,31 +1,31 @@
-import React, { Component, ErrorInfo, ReactNode, useCallback, useRef, useEffect } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useCallback, useRef, useEffect, forwardRef } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
 }
 
 /**
- * Error Boundary Component
+ * Error Boundary Component (Internal Class)
  * Catches JavaScript errors anywhere in the child component tree,
  * logs them, and displays a fallback UI instead of crashing the whole app.
  */
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
+class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
     hasError: false,
     error: null,
     errorInfo: null,
   };
 
-  public static getDerivedStateFromError(error: Error): Partial<State> {
+  public static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
@@ -123,6 +123,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+// Export the class as ErrorBoundary for backwards compatibility
+export const ErrorBoundary = ErrorBoundaryClass;
+
 /**
  * HOC to wrap any component with error boundary
  */
@@ -132,9 +135,9 @@ export function withErrorBoundary<P extends object>(
 ) {
   const WithErrorBoundaryWrapper = (props: P) => {
     return (
-      <ErrorBoundary fallback={fallback}>
+      <ErrorBoundaryClass fallback={fallback}>
         <WrappedComponent {...props} />
-      </ErrorBoundary>
+      </ErrorBoundaryClass>
     );
   };
   WithErrorBoundaryWrapper.displayName = `WithErrorBoundary(${(WrappedComponent as React.FC).displayName || WrappedComponent.name || 'Component'})`;

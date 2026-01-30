@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AppLoader } from '@/components/ui/app-loader';
 
 interface PremiumAvatarGalleryProps {
   avatars: AvatarTemplate[];
@@ -210,11 +211,7 @@ export function PremiumAvatarGallery({
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
-      </div>
-    );
+    return <AppLoader message="Loading avatars..." />;
   }
 
   if (avatars.length === 0) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ interface TemplatePreviewPanelProps {
   onClear: () => void;
 }
 
-export function TemplatePreviewPanel({
+export const TemplatePreviewPanel = memo(forwardRef<HTMLDivElement, TemplatePreviewPanelProps>(function TemplatePreviewPanel({
   templateName,
   shotSequence,
   styleAnchor,
@@ -46,7 +46,7 @@ export function TemplatePreviewPanel({
   environmentLock,
   pacingStyle,
   onClear,
-}: TemplatePreviewPanelProps) {
+}, ref) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeShotIndex, setActiveShotIndex] = useState<number | null>(null);
 
@@ -332,4 +332,4 @@ export function TemplatePreviewPanel({
       </Collapsible>
     </Card>
   );
-}
+}));

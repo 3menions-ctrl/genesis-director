@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
 import { 
   Upload, Image, Check, Loader2, AlertCircle, 
   Camera, Sparkles, Eye, Palette, Sun, User, Trash2
@@ -21,13 +21,13 @@ interface ReferenceImageUploadProps {
   className?: string;
 }
 
-export function ReferenceImageUpload({ 
+export const ReferenceImageUpload = memo(forwardRef<HTMLDivElement, ReferenceImageUploadProps>(function ReferenceImageUpload({ 
   onAnalysisComplete, 
   onClear,
   existingAnalysis,
   targetAspectRatio = '16:9',
   className 
-}: ReferenceImageUploadProps) {
+}, ref) {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingAnalysis?.imageUrl || null);
@@ -329,4 +329,4 @@ export function ReferenceImageUpload({
       />
     </Card>
   );
-}
+}));

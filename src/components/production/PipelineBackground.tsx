@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import pipelineAbstractBg from '@/assets/pipeline-abstract-bg.jpg';
 
@@ -9,7 +10,7 @@ interface PipelineBackgroundProps {
  * Premium background for the Production/Pipeline page
  * Features elegant green flowing lines on pure black - cinematic & premium
  */
-export default function PipelineBackground({ className }: PipelineBackgroundProps) {
+const PipelineBackground = memo(forwardRef<HTMLDivElement, PipelineBackgroundProps>(function PipelineBackground({ className }, ref) {
   return (
     <div className={cn("fixed inset-0 -z-10", className)}>
       {/* Premium abstract background image - emerald green flowing lines */}
@@ -64,4 +65,6 @@ export default function PipelineBackground({ className }: PipelineBackgroundProp
       />
     </div>
   );
-}
+}));
+
+export default PipelineBackground;

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, forwardRef } from 'react';
 
 /**
  * Premium background for the Projects page
  * Uses CSS animations instead of framer-motion to prevent constant React re-renders
  * and eliminate visual flickering/blinking
  */
-export default function ProjectsBackground() {
+const ProjectsBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsBackground(_, ref) {
   const [isVisible, setIsVisible] = useState(false);
   
   // Fade in on mount

@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, X, Clock, TrendingUp, Sparkles, Film, Palette, User, Image, Wand2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,7 @@ interface DiscoverHeroProps {
   modeCounts: Record<string, number>;
 }
 
-export function DiscoverHero({
+export const DiscoverHero = memo(forwardRef<HTMLDivElement, DiscoverHeroProps>(function DiscoverHero({
   searchQuery,
   setSearchQuery,
   sortBy,
@@ -47,7 +48,7 @@ export function DiscoverHero({
   modeFilter,
   setModeFilter,
   modeCounts,
-}: DiscoverHeroProps) {
+}, ref) {
   return (
     <div className="relative overflow-hidden pt-28 pb-12">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

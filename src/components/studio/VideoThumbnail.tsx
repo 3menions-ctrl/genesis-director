@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, memo } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
 import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +15,7 @@ interface VideoThumbnailProps {
   thumbnailUrl?: string | null;
 }
 
-export const VideoThumbnail = memo(function VideoThumbnail({
+export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProps>(function VideoThumbnail({
   src,
   title,
   className,
@@ -25,7 +25,7 @@ export const VideoThumbnail = memo(function VideoThumbnail({
   overlay,
   duration,
   thumbnailUrl,
-}: VideoThumbnailProps) {
+}, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -204,4 +204,4 @@ export const VideoThumbnail = memo(function VideoThumbnail({
       {overlay}
     </div>
   );
-});
+}));

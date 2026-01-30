@@ -81,17 +81,10 @@ function mapDbProject(dbProject: any): Project {
 }
 
 export function StudioProvider({ children }: { children: ReactNode }) {
-  // CRASH GUARD: Wrap useAuth in try-catch fallback
-  let authContext: ReturnType<typeof useAuth>;
-  try {
-    authContext = useAuth();
-  } catch (e) {
-    console.error('[StudioContext] Auth context not available yet:', e);
-    // Return children without studio context - will retry on next render
-    return <>{children}</>;
-  }
-  
-  const { user, profile, refreshProfile, loading: authLoading } = authContext;
+  // Use auth context directly - AuthProvider is guaranteed to be above StudioProvider in App.tsx
+  // The try-catch pattern was problematic as it would render children without StudioContext,
+  // causing useStudio() to throw in any component that calls it.
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);

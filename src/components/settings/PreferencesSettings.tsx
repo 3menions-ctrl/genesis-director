@@ -136,7 +136,7 @@ export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>

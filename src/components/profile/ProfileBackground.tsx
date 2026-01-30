@@ -12,7 +12,7 @@ interface ProfileBackgroundProps {
  */
 const ProfileBackground = memo(forwardRef<HTMLDivElement, ProfileBackgroundProps>(function ProfileBackground({ className }, ref) {
   return (
-    <div className={cn("fixed inset-0 -z-10", className)}>
+    <div ref={ref} className={cn("fixed inset-0 -z-10", className)}>
       {/* Premium abstract background image - emerald green flowing lines */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"

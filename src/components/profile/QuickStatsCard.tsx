@@ -35,7 +35,7 @@ export const QuickStatsCard = memo(forwardRef<HTMLDivElement, Record<string, nev
   ];
 
   return (
-    <div className="rounded-2xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden">
+    <div ref={ref} className="rounded-2xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-white/[0.06]">
         <h3 className="font-semibold text-white">Your Stats</h3>

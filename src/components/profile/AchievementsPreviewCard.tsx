@@ -29,7 +29,7 @@ export const AchievementsPreviewCard = memo(forwardRef<HTMLDivElement, Record<st
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden">
+    <div ref={ref} className="rounded-2xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden">
       {/* Header */}
       <div className="p-5 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">

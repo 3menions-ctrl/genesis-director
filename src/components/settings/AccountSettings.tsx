@@ -202,7 +202,7 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
   const tierInfo = getTierInfo((profile as any)?.account_tier);
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div>

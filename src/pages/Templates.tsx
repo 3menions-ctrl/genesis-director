@@ -509,7 +509,7 @@ const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+    <div ref={ref} className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
       <TemplatesBackground />
       <AppHeader showCreate={false} />
       

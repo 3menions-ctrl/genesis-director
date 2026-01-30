@@ -139,7 +139,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div ref={ref} className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}

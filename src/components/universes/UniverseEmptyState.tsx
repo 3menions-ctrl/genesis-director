@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { Globe, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CreateUniverseDialog } from './CreateUniverseDialog';
@@ -6,9 +7,10 @@ interface UniverseEmptyStateProps {
   onCreated?: (universeId: string) => void;
 }
 
-export function UniverseEmptyState({ onCreated }: UniverseEmptyStateProps) {
+export const UniverseEmptyState = memo(forwardRef<HTMLDivElement, UniverseEmptyStateProps>(function UniverseEmptyState({ onCreated }, ref) {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center py-16 px-4 text-center"
@@ -37,4 +39,4 @@ export function UniverseEmptyState({ onCreated }: UniverseEmptyStateProps) {
       <CreateUniverseDialog onCreated={onCreated} />
     </motion.div>
   );
-}
+}));

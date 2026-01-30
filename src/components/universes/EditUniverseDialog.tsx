@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Globe, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -25,6 +25,7 @@ interface EditUniverseDialogProps {
 
 export function EditUniverseDialog({ universe, open, onOpenChange }: EditUniverseDialogProps) {
   const { updateUniverse } = useUniverses();
+  const isMountedRef = useRef(true);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -36,6 +37,11 @@ export function EditUniverseDialog({ universe, open, onOpenChange }: EditUnivers
     tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (universe) {
@@ -51,16 +57,22 @@ export function EditUniverseDialog({ universe, open, onOpenChange }: EditUnivers
     }
   }, [universe]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!universe) return;
     
-    await updateUniverse.mutateAsync({
-      id: universe.id,
-      ...formData,
-    });
-    onOpenChange(false);
-  };
+    try {
+      await updateUniverse.mutateAsync({
+        id: universe.id,
+        ...formData,
+      });
+      if (isMountedRef.current) {
+        onOpenChange(false);
+      }
+    } catch {
+      // Error handled by mutation
+    }
+  }, [universe, formData, updateUniverse, onOpenChange]);
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {

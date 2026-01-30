@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, forwardRef, memo, useCallback, useRef, useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -34,11 +34,6 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
     
     this.setState({ errorInfo });
-    
-    // TODO: Send to error tracking service (Sentry, etc.)
-    // if (typeof window !== 'undefined' && window.Sentry) {
-    //   window.Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
-    // }
   }
 
   private handleReset = () => {
@@ -62,12 +57,10 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center space-y-6">
-            {/* Error Icon */}
             <div className="mx-auto w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
 
-            {/* Error Message */}
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-foreground">
                 Something went wrong
@@ -77,7 +70,6 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
 
-            {/* Error Details (collapsible in dev) */}
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="text-left bg-muted/50 rounded-lg p-4 text-sm">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-2">
@@ -97,7 +89,6 @@ export class ErrorBoundary extends Component<Props, State> {
               </details>
             )}
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 onClick={this.handleReset}
@@ -117,7 +108,6 @@ export class ErrorBoundary extends Component<Props, State> {
               </Button>
             </div>
 
-            {/* Support Link */}
             <p className="text-xs text-muted-foreground">
               If this keeps happening, please{' '}
               <a href="/contact" className="text-primary hover:underline">
@@ -172,14 +162,16 @@ export function SafeComponent({
   children, 
   name = 'Component',
   fallback,
+  silent = false,
 }: { 
   children: ReactNode; 
   name?: string;
   fallback?: ReactNode;
+  silent?: boolean;
 }) {
   return (
     <ErrorBoundary 
-      fallback={fallback || (
+      fallback={fallback || (silent ? null : (
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
           <p className="text-sm text-destructive">
             {name} failed to load
@@ -191,9 +183,60 @@ export function SafeComponent({
             Reload page
           </button>
         </div>
-      )}
+      ))}
     >
       {children}
     </ErrorBoundary>
   );
+}
+
+/**
+ * Invisible boundary - silently catches errors without any UI
+ * Use for non-critical components that shouldn't show errors
+ */
+export function SilentBoundary({ children }: { children: ReactNode }) {
+  return <SafeComponent silent fallback={null}>{children}</SafeComponent>;
+}
+
+/**
+ * Async-safe hook for components that fetch data
+ * Prevents setState on unmounted components
+ */
+export function useAsyncSafe() {
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+  
+  const safeSetState = useCallback(<T,>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    value: React.SetStateAction<T>
+  ) => {
+    if (isMountedRef.current) {
+      setter(value);
+    }
+  }, []);
+  
+  const runAsync = useCallback(<T,>(
+    asyncFn: () => Promise<T>,
+    onSuccess?: (result: T) => void,
+    onError?: (error: Error) => void
+  ) => {
+    asyncFn()
+      .then((result) => {
+        if (isMountedRef.current && onSuccess) {
+          onSuccess(result);
+        }
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return;
+        if (isMountedRef.current && onError) {
+          onError(error);
+        }
+      });
+  }, []);
+  
+  return { isMountedRef, safeSetState, runAsync };
 }

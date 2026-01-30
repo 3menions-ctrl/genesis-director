@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Film, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { CollaborativeMovieHub } from '@/components/genesis/CollaborativeMovieHub';
 import { UniverseEmptyState } from '@/components/universes/UniverseEmptyState';
 import { useUniverses } from '@/hooks/useUniverses';
 import UniversesBackground from '@/components/universes/UniversesBackground';
 import { motion } from 'framer-motion';
+import { SafeComponent, SilentBoundary } from '@/components/ui/error-boundary';
 
 export default function Universes() {
   const navigate = useNavigate();
@@ -16,7 +16,9 @@ export default function Universes() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
-      <UniversesBackground />
+      <SilentBoundary>
+        <UniversesBackground />
+      </SilentBoundary>
       <AppHeader />
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -37,17 +39,19 @@ export default function Universes() {
           </p>
         </motion.div>
 
-        {/* Main Content */}
+        {/* Main Content - wrapped in SafeComponent */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          {!isLoading && !hasUniverses ? (
-            <UniverseEmptyState onCreated={(id) => navigate(`/universes/${id}`)} />
-          ) : (
-            <CollaborativeMovieHub />
-          )}
+          <SafeComponent name="Universes Content">
+            {!isLoading && !hasUniverses ? (
+              <UniverseEmptyState onCreated={(id) => navigate(`/universes/${id}`)} />
+            ) : (
+              <CollaborativeMovieHub />
+            )}
+          </SafeComponent>
         </motion.div>
       </main>
     </div>

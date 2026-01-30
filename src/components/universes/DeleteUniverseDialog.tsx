@@ -1,3 +1,4 @@
+import { useRef, useEffect, useCallback } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
@@ -26,14 +27,26 @@ export function DeleteUniverseDialog({
   onDeleted,
 }: DeleteUniverseDialogProps) {
   const { deleteUniverse } = useUniverses();
+  const isMountedRef = useRef(true);
 
-  const handleDelete = async () => {
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const handleDelete = useCallback(async () => {
     if (!universe) return;
     
-    await deleteUniverse.mutateAsync(universe.id);
-    onOpenChange(false);
-    onDeleted?.();
-  };
+    try {
+      await deleteUniverse.mutateAsync(universe.id);
+      if (isMountedRef.current) {
+        onOpenChange(false);
+        onDeleted?.();
+      }
+    } catch {
+      // Error handled by mutation
+    }
+  }, [universe, deleteUniverse, onOpenChange, onDeleted]);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

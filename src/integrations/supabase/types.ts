@@ -166,6 +166,7 @@ export type Database = {
       avatar_templates: {
         Row: {
           age_range: string | null
+          avatar_type: string | null
           back_image_url: string | null
           character_bible: Json | null
           created_at: string
@@ -194,6 +195,7 @@ export type Database = {
         }
         Insert: {
           age_range?: string | null
+          avatar_type?: string | null
           back_image_url?: string | null
           character_bible?: Json | null
           created_at?: string
@@ -222,6 +224,7 @@ export type Database = {
         }
         Update: {
           age_range?: string | null
+          avatar_type?: string | null
           back_image_url?: string | null
           character_bible?: Json | null
           created_at?: string

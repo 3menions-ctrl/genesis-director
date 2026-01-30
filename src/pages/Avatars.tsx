@@ -6,11 +6,11 @@ import {
   User, Search, ArrowLeft, Sparkles, Check,
   Loader2, RectangleHorizontal,
   RectangleVertical, Square, Clock, Music, Mic,
-  Play, Zap, Filter
+  Play, Zap, Filter, Camera, Wand2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
-import { AvatarTemplate, AVATAR_STYLES, AVATAR_GENDERS } from '@/types/avatar-templates';
+import { AvatarTemplate, AvatarType, AVATAR_STYLES, AVATAR_GENDERS, AVATAR_TYPES } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { PremiumAvatarGallery } from '@/components/avatars/PremiumAvatarGallery';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -58,6 +58,7 @@ export default function Avatars() {
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
   const [styleFilter, setStyleFilter] = useState('all');
+  const [avatarTypeFilter, setAvatarTypeFilter] = useState<AvatarType | 'all'>('all');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState<AvatarTemplate | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -79,13 +80,14 @@ export default function Avatars() {
     gender: genderFilter,
     style: styleFilter,
     search: searchQuery,
+    avatarType: avatarTypeFilter,
   });
 
   const userCredits = profile?.credits_balance ?? 0;
   const estimatedCredits = clipCount * 10;
   const hasInsufficientCredits = userCredits < estimatedCredits;
   const estimatedDuration = clipCount * clipDuration;
-  const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0;
+  const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0 || avatarTypeFilter !== 'all';
 
   // Voice preview handler
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
@@ -366,6 +368,7 @@ export default function Avatars() {
                         setGenderFilter('all');
                         setStyleFilter('all');
                         setSearchQuery('');
+                        setAvatarTypeFilter('all');
                       }}
                       className="w-full text-white/50 hover:text-white"
                     >
@@ -374,6 +377,43 @@ export default function Avatars() {
                   )}
                 </PopoverContent>
               </Popover>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Category Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="max-w-7xl mx-auto px-6 mb-6"
+        >
+          <div className="flex items-center gap-2">
+            {AVATAR_TYPES.map((type) => {
+              const isActive = avatarTypeFilter === type.id;
+              const Icon = type.id === 'realistic' ? Camera : type.id === 'animated' ? Wand2 : Sparkles;
+              
+              return (
+                <Button
+                  key={type.id}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAvatarTypeFilter(type.id as AvatarType | 'all')}
+                  className={cn(
+                    "px-4 py-2 rounded-full transition-all duration-200",
+                    isActive
+                      ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
+                      : "bg-white/[0.03] text-white/60 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4 mr-2" />
+                  {type.name}
+                </Button>
+              );
+            })}
+            
+            <div className="ml-4 text-sm text-white/40">
+              {templates.length} avatar{templates.length !== 1 ? 's' : ''}
             </div>
           </div>
         </motion.div>

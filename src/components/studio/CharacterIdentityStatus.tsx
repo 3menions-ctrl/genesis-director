@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { User, UserCheck, Users, AlertTriangle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,7 +29,7 @@ const DEMO_CHARACTERS: CharacterProfile[] = [
 
 const DEMO_ANCHORS = ['Red jacket', 'Silver watch', 'Messenger bag'];
 
-export function CharacterIdentityStatus({ 
+export const CharacterIdentityStatus = memo(forwardRef<HTMLDivElement, CharacterIdentityStatusProps>(function CharacterIdentityStatus({
   characters = [], 
   identityBibleActive = false,
   nonFacialAnchors = [],
@@ -163,4 +164,4 @@ export function CharacterIdentityStatus({
       )}
     </motion.div>
   );
-}
+}));

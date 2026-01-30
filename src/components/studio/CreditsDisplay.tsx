@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { Coins, Zap, Sparkles, Check, AlertTriangle, LogIn, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserCredits } from '@/types/studio';
@@ -13,7 +13,7 @@ interface CreditsDisplayProps {
   selectedShotCount?: number;
 }
 
-export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayProps) {
+export const CreditsDisplay = memo(forwardRef<HTMLDivElement, CreditsDisplayProps>(function CreditsDisplay({ credits, selectedShotCount }, ref) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -149,7 +149,7 @@ export function CreditsDisplay({ credits, selectedShotCount }: CreditsDisplayPro
       />
     </div>
   );
-}
+}));
 
 // Export for backward compatibility
 export const DURATION_CREDIT_OPTIONS = [

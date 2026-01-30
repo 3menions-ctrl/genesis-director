@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo, forwardRef, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Search, Volume2, Play, Check, 
@@ -25,7 +25,7 @@ interface AvatarTemplateSelectorProps {
   className?: string;
 }
 
-export function AvatarTemplateSelector({ 
+export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemplateSelectorProps>(function AvatarTemplateSelector({
   selectedAvatar, 
   onSelect,
   className 
@@ -334,4 +334,4 @@ export function AvatarTemplateSelector({
       )}
     </div>
   );
-}
+}));

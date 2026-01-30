@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Palette, Eye, Focus, Layers, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -28,7 +29,7 @@ const DEMO_ANCHOR: SceneAnchor = {
   styleSignature: 'Neo-noir aesthetic'
 };
 
-export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }: SceneDNAPanelProps) {
+export const SceneDNAPanel = memo(forwardRef<HTMLDivElement, SceneDNAPanelProps>(function SceneDNAPanel({ masterAnchor, isEstablished = false, className }, ref) {
   // Use demo data if no real data is available
   const activeAnchor = masterAnchor || DEMO_ANCHOR;
   const isDemo = !masterAnchor;
@@ -157,4 +158,4 @@ export function SceneDNAPanel({ masterAnchor, isEstablished = false, className }
       )}
     </motion.div>
   );
-}
+}));

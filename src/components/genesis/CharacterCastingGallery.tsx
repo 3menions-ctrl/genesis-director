@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Star, Film, Upload, Check, Clock, X, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ interface CharacterCastingGalleryProps {
   screenplayId: string;
 }
 
+// Role type to color/icon mapping
 const roleColors: Record<string, string> = {
   protagonist: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   antagonist: 'bg-red-500/20 text-red-300 border-red-500/30',
@@ -335,7 +336,7 @@ function CastingDialog({
   );
 }
 
-export function CharacterCastingGallery({ screenplayId }: CharacterCastingGalleryProps) {
+export const CharacterCastingGallery = memo(forwardRef<HTMLDivElement, CharacterCastingGalleryProps>(function CharacterCastingGallery({ screenplayId }, ref) {
   const { user } = useAuth();
   const { data: characters, isLoading } = useGenesisPresetCharacters(screenplayId);
   const [selectedCharacter, setSelectedCharacter] = useState<GenesisPresetCharacter | null>(null);
@@ -490,4 +491,4 @@ export function CharacterCastingGallery({ screenplayId }: CharacterCastingGaller
       />
     </div>
   );
-}
+}));

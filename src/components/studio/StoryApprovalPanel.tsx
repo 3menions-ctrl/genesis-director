@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -29,7 +29,7 @@ interface StoryApprovalPanelProps {
   isBreakingDown?: boolean;
 }
 
-export function StoryApprovalPanel({
+export const StoryApprovalPanel = memo(forwardRef<HTMLDivElement, StoryApprovalPanelProps>(function StoryApprovalPanel({
   story: initialStory,
   title,
   estimatedScenes,
@@ -38,7 +38,7 @@ export function StoryApprovalPanel({
   onCancel,
   isLoading = false,
   isBreakingDown = false,
-}: StoryApprovalPanelProps) {
+}, ref) {
   const [story, setStory] = useState(initialStory);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(initialStory);
@@ -236,4 +236,4 @@ export function StoryApprovalPanel({
       </div>
     </motion.div>
   );
-}
+}));

@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Sparkles, Users, Film, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ interface GenesisHeroProps {
   onContribute: () => void;
 }
 
-export function GenesisHero({ onExplore, onContribute }: GenesisHeroProps) {
+export const GenesisHero = memo(forwardRef<HTMLDivElement, GenesisHeroProps>(function GenesisHero({ onExplore, onContribute }, ref) {
   const { data: stats } = useGenesisStats();
 
   return (
@@ -127,4 +128,4 @@ export function GenesisHero({ onExplore, onContribute }: GenesisHeroProps) {
       </div>
     </div>
   );
-}
+}));

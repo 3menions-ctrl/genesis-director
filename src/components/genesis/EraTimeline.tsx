@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, ChevronRight, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +13,7 @@ interface EraTimelineProps {
   onSelectEra: (era: GenesisEra | null) => void;
 }
 
-export function EraTimeline({ selectedEraId, onSelectEra }: EraTimelineProps) {
+export const EraTimeline = memo(forwardRef<HTMLDivElement, EraTimelineProps>(function EraTimeline({ selectedEraId, onSelectEra }, ref) {
   const { data: eras, isLoading } = useGenesisEras();
 
   if (isLoading) {
@@ -112,4 +113,4 @@ export function EraTimeline({ selectedEraId, onSelectEra }: EraTimelineProps) {
       </ScrollArea>
     </div>
   );
-}
+}));

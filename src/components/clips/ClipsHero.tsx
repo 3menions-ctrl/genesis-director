@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Film, CheckCircle2, Loader2, Timer, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,23 +14,26 @@ interface ClipsHeroProps {
   subtitle?: string;
 }
 
-function OrbitalStat({ 
-  icon: Icon, 
-  label, 
-  value, 
-  delay = 0,
-  colorClass = 'from-violet-500 to-purple-500',
-  isAnimating = false
-}: { 
+interface OrbitalStatProps {
   icon: React.ElementType;
   label: string;
   value: string | number;
   delay?: number;
   colorClass?: string;
   isAnimating?: boolean;
-}) {
+}
+
+const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function OrbitalStat({ 
+  icon: Icon, 
+  label, 
+  value, 
+  delay = 0,
+  colorClass = 'from-violet-500 to-purple-500',
+  isAnimating = false
+}, ref) {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
@@ -60,9 +64,9 @@ function OrbitalStat({
       </div>
     </motion.div>
   );
-}
+}));
 
-export function ClipsHero({ stats, title = "Clip Library", subtitle }: ClipsHeroProps) {
+export const ClipsHero = memo(forwardRef<HTMLDivElement, ClipsHeroProps>(function ClipsHero({ stats, title = "Clip Library", subtitle }, ref) {
   return (
     <motion.div
       initial={{ opacity: 0 }}

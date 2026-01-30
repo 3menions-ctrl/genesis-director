@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Download, Play, Sparkles, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ interface ProductionFinalVideoProps {
   videoUrl: string;
 }
 
-export function ProductionFinalVideo({ videoUrl }: ProductionFinalVideoProps) {
+export const ProductionFinalVideo = memo(forwardRef<HTMLDivElement, ProductionFinalVideoProps>(function ProductionFinalVideo({ videoUrl }, ref) {
   const isManifest = videoUrl.endsWith('.json');
 
   return (
@@ -102,4 +103,4 @@ export function ProductionFinalVideo({ videoUrl }: ProductionFinalVideoProps) {
       </div>
     </motion.div>
   );
-}
+}));

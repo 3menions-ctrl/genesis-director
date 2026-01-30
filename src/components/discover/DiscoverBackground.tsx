@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, forwardRef } from 'react';
 
 /**
  * Premium background for the Discover/Library page
@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
  * 
  * Color palette: Cyan/Teal tones - distinct from purple (Clips) and orange (Projects)
  */
-export default function DiscoverBackground() {
+const DiscoverBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(function DiscoverBackground(_, ref) {
   const [isVisible, setIsVisible] = useState(false);
   
   // Fade in on mount

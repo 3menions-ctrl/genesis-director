@@ -271,9 +271,20 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     setSelectedAvatar(null);
   }, []);
 
-  // NOTE: ProtectedRoute already handles auth loading state, so we don't need
-  // to block here. Just proceed with rendering - profile may still be loading
-  // but that's okay since we use fallbacks for profile data.
+  // EARLY RETURN AFTER ALL HOOKS - Auth loading state
+  if (authLoading || !isSessionVerified) {
+    return (
+      <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+        <AvatarsBackground />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+            <p className="text-white/50">Loading avatars...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>

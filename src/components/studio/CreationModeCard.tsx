@@ -29,6 +29,7 @@ export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeC
 }, ref) {
   return (
     <motion.button
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}

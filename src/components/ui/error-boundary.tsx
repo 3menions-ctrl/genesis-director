@@ -157,18 +157,20 @@ export function ErrorBoundaryWrapper({
 /**
  * Minimal inline error boundary for nested components - prevents cascade crashes
  * Shows a subtle error UI instead of crashing the entire page
+ * 
+ * Uses forwardRef to properly pass refs to children wrapped in animation contexts
  */
-export function SafeComponent({ 
-  children, 
-  name = 'Component',
-  fallback,
-  silent = false,
-}: { 
+export const SafeComponent = memo(forwardRef<HTMLElement, { 
   children: ReactNode; 
   name?: string;
   fallback?: ReactNode;
   silent?: boolean;
-}) {
+}>(function SafeComponent({ 
+  children, 
+  name = 'Component',
+  fallback,
+  silent = false,
+}, ref) {
   return (
     <ErrorBoundary 
       fallback={fallback || (silent ? null : (
@@ -188,7 +190,7 @@ export function SafeComponent({
       {children}
     </ErrorBoundary>
   );
-}
+}));
 
 /**
  * Invisible boundary - silently catches errors without any UI

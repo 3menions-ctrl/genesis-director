@@ -73,20 +73,20 @@ const AvatarCard = forwardRef<HTMLDivElement, {
       )} />
       
       {/* Full-Body Avatar Image */}
-      <div className="relative aspect-[3/4] overflow-hidden">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-b from-black/20 to-black/60">
         <motion.img
           src={avatar.front_image_url || avatar.face_image_url}
           alt={avatar.name}
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-contain object-center"
           loading="lazy"
           animate={{
-            scale: isHovered ? 1.05 : 1,
+            scale: isHovered ? 1.03 : 1,
           }}
           transition={{ duration: 0.4 }}
         />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
         
         {/* Selection indicator */}
         {isSelected && (

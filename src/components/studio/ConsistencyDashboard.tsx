@@ -1,3 +1,4 @@
+import { memo, forwardRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SceneDNAPanel } from './SceneDNAPanel';
@@ -6,7 +7,6 @@ import { ConsistencyScoreCard } from './ConsistencyScoreCard';
 import { DegradationBanner } from './DegradationBanner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Dna } from 'lucide-react';
-import { useState } from 'react';
 
 interface SceneAnchor {
   dominantColors?: string[];
@@ -52,7 +52,7 @@ interface ConsistencyDashboardProps {
   className?: string;
 }
 
-export function ConsistencyDashboard({
+export const ConsistencyDashboard = memo(forwardRef<HTMLDivElement, ConsistencyDashboardProps>(function ConsistencyDashboard({
   masterAnchor,
   characters = [],
   identityBibleActive = false,
@@ -133,4 +133,4 @@ export function ConsistencyDashboard({
       </Collapsible>
     </motion.div>
   );
-}
+}));

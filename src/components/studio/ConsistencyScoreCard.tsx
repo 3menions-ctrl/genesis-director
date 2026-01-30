@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Target, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ const DEMO_METRICS: Partial<ConsistencyMetrics> = {
 
 const DEMO_SCORE = 0.86;
 
-export function ConsistencyScoreCard({ 
+export const ConsistencyScoreCard = memo(forwardRef<HTMLDivElement, ConsistencyScoreCardProps>(function ConsistencyScoreCard({
   score, 
   metrics,
   trend = 'stable',
@@ -151,4 +152,4 @@ export function ConsistencyScoreCard({
       </div>
     </motion.div>
   );
-}
+}));

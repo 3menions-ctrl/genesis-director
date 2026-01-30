@@ -1,6 +1,6 @@
+import { memo, forwardRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, TrendingDown, RefreshCw, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -44,7 +44,7 @@ const SEVERITY_STYLES = {
   high: 'border-red-500/40 bg-red-500/15 text-red-400',
 };
 
-export function DegradationBanner({ 
+export const DegradationBanner = memo(forwardRef<HTMLDivElement, DegradationBannerProps>(function DegradationBanner({
   issues = [], 
   onRetry, 
   onDismiss,
@@ -180,4 +180,4 @@ export function DegradationBanner({
       </motion.div>
     </AnimatePresence>
   );
-}
+}));

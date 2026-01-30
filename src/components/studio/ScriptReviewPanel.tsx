@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, 
@@ -74,7 +74,7 @@ const TRANSITION_LABELS: Record<string, string> = {
   'parallel-action': 'Parallel Action',
 };
 
-export function ScriptReviewPanel({
+export const ScriptReviewPanel = memo(forwardRef<HTMLDivElement, ScriptReviewPanelProps>(function ScriptReviewPanel({
   shots: initialShots,
   onApprove,
   onRegenerate,
@@ -393,4 +393,4 @@ export function ScriptReviewPanel({
       </div>
     </motion.div>
   );
-}
+}));

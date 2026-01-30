@@ -9,14 +9,35 @@ const corsHeaders = {
 /**
  * AVATAR GENERATION - Direct Script-to-Talking-Head Pipeline
  * 
- * Uses OpenAI TTS for audio + Sync Labs Lipsync-2 for lip-sync.
+ * Uses MiniMax TTS for audio + Kling for talking head animation.
  * 
  * Pipeline:
- * 1. OpenAI TTS - Convert text to high-quality speech audio
- * 2. Upload audio to Supabase storage
- * 3. Create temp video from avatar image (for Lipsync-2 which requires video input)
- * 4. Lipsync-2 - Sync the audio to the avatar video
+ * 1. MiniMax TTS - Convert text to high-quality speech audio (via generate-voice)
+ * 2. Kling v2.6 - Generate talking head video with speech motion
+ * 
+ * Note: We use Kling's image-to-video with a speaking prompt rather than lipsync,
+ * as this provides more natural results and avoids the multi-stage complexity.
  */
+
+// Voice mapping for MiniMax (must match generate-voice)
+const VOICE_MAP: Record<string, string> = {
+  // ElevenLabs IDs mapped to MiniMax voices
+  'onwK4e9ZLuTAKqWW03F9': 'onyx',    // Daniel -> onyx (deep male)
+  'JBFqnCBsd6RMkjVDRZzb': 'echo',    // George -> echo (warm male)
+  'EXAVITQu4vr4xnSDxMaL': 'nova',    // Sarah -> nova (female)
+  'pFZP5JQG7iQjIQuC4Bku': 'shimmer', // Lily -> shimmer (female)
+  'cjVigY5qzO86Huf0OWal': 'alloy',   // Eric -> alloy (neutral)
+  
+  // Direct MiniMax voice names
+  'onyx': 'onyx',
+  'echo': 'echo',
+  'fable': 'fable',
+  'nova': 'nova',
+  'shimmer': 'shimmer',
+  'alloy': 'alloy',
+  'bella': 'bella',
+  'adam': 'adam',
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -26,7 +47,7 @@ serve(async (req) => {
   try {
     const { 
       text,
-      voiceId = "onyx", // OpenAI voice: alloy, echo, fable, onyx, nova, shimmer
+      voiceId = "onyx",
       avatarImageUrl,
       aspectRatio = "16:9"
     } = await req.json();
@@ -35,14 +56,10 @@ serve(async (req) => {
       throw new Error("Both 'text' (script) and 'avatarImageUrl' are required");
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
@@ -50,89 +67,69 @@ serve(async (req) => {
       throw new Error("Supabase configuration missing");
     }
 
-    // Initialize Supabase client with service role for storage access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log("[generate-avatar] Creating talking head video with OpenAI TTS");
+    console.log("[generate-avatar] Creating talking head video");
     console.log(`[generate-avatar] Script length: ${text.length} chars`);
     console.log(`[generate-avatar] Script preview: "${text.substring(0, 100)}..."`);
 
-    // Map ElevenLabs voice IDs to OpenAI voices
-    const openaiVoice = mapToOpenAIVoice(voiceId);
+    // Map voice ID to MiniMax voice
+    const minimaxVoice = VOICE_MAP[voiceId] || 'onyx';
 
-    // Step 1: Generate high-quality speech with OpenAI TTS
-    console.log(`[generate-avatar] Step 1: Generating speech with OpenAI TTS (voice: ${openaiVoice})...`);
-    const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
+    // Step 1: Generate high-quality speech with MiniMax TTS via generate-voice
+    console.log(`[generate-avatar] Step 1: Generating speech with MiniMax TTS (voice: ${minimaxVoice})...`);
+    
+    const voiceResponse = await fetch(`${SUPABASE_URL}/functions/v1/generate-voice`, {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({
-        model: "tts-1-hd",
-        voice: openaiVoice,
-        input: text,
-        response_format: "mp3",
+        text: text,
+        voiceId: minimaxVoice,
         speed: 1.0,
       }),
     });
 
-    if (!ttsResponse.ok) {
-      const errorText = await ttsResponse.text();
-      console.error("[generate-avatar] OpenAI TTS failed:", errorText);
-      throw new Error(`TTS generation failed: ${ttsResponse.status} - ${errorText}`);
+    if (!voiceResponse.ok) {
+      const errorText = await voiceResponse.text();
+      console.error("[generate-avatar] Voice generation failed:", errorText);
+      throw new Error(`TTS generation failed: ${voiceResponse.status} - ${errorText}`);
     }
 
-    const audioArrayBuffer = await ttsResponse.arrayBuffer();
-    const audioBuffer = new Uint8Array(audioArrayBuffer);
-    console.log("[generate-avatar] Audio generated, size:", audioBuffer.length, "bytes");
-
-    // Step 2: Upload audio to Supabase storage using SDK
-    const audioFileName = `avatar-audio-${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
-    console.log("[generate-avatar] Step 2: Uploading audio to storage...");
+    const voiceResult = await voiceResponse.json();
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('voice-tracks')
-      .upload(audioFileName, audioBuffer, {
-        contentType: 'audio/mpeg',
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("[generate-avatar] Audio upload failed:", uploadError);
-      throw new Error(`Failed to upload audio: ${uploadError.message}`);
+    if (!voiceResult.success || !voiceResult.audioUrl) {
+      throw new Error("Voice generation failed - no audio URL returned");
     }
 
-    // Get public URL for the uploaded audio
-    const { data: publicUrlData } = supabase.storage
-      .from('voice-tracks')
-      .getPublicUrl(audioFileName);
+    const audioUrl = voiceResult.audioUrl;
+    const audioDurationMs = voiceResult.durationMs || estimateDuration(text);
+    console.log("[generate-avatar] Audio generated:", audioUrl);
 
-    const audioUrl = publicUrlData.publicUrl;
-    console.log("[generate-avatar] Audio uploaded successfully:", audioUrl);
-
-    // Step 3: Create a talking head video using image-to-video with a speaking prompt
-    // Then apply lip sync to the generated video
-    console.log("[generate-avatar] Step 3: Generating base talking video from image...");
+    // Step 2: Generate talking head video using Kling v2.6
+    // We use image-to-video with a speaking prompt for natural motion
+    console.log("[generate-avatar] Step 2: Generating talking head video with Kling v2.6...");
     
-    // Use Kling to animate the avatar with speaking motion
-    // Use official model identifier for Replicate API
-    const klingResponse = await fetch("https://api.replicate.com/v1/predictions", {
+    // Calculate video duration - round up to nearest 5s increment (Kling supports 5s or 10s)
+    const audioDurationSec = Math.ceil(audioDurationMs / 1000);
+    const videoDuration = audioDurationSec <= 5 ? 5 : 10;
+    
+    const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "kwaivgi/kling-v2.6", // Official model identifier
         input: {
           mode: "pro",
-          prompt: "The person in the image is speaking naturally, direct eye contact with camera, subtle head movements, professional presentation style, clear articulate speech",
-          duration: 5,
+          prompt: "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression",
+          duration: videoDuration,
           start_image: avatarImageUrl,
           aspect_ratio: aspectRatio,
-          negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth",
+          negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth, frozen face, robotic, stiff",
         },
       }),
     });
@@ -140,78 +137,26 @@ serve(async (req) => {
     if (!klingResponse.ok) {
       const errorText = await klingResponse.text();
       console.error("[generate-avatar] Kling video generation failed:", errorText);
-      
-      // Fallback: Use Sync Labs Lipsync-2 directly with the image
-      // This may have limitations but provides a fallback
-      console.log("[generate-avatar] Trying direct lipsync with Sync Labs...");
-      
-      // Use Sync Labs Lipsync-2 - official model identifier
-      const lipsyncResponse = await fetch("https://api.replicate.com/v1/predictions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${REPLICATE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          version: "sync/lipsync-2", // Official model identifier
-          input: {
-            audio: audioUrl,
-            video: avatarImageUrl, // Will be processed as single frame
-            sync_mode: "loop",
-            temperature: 0.5,
-            active_speaker: false,
-          },
-        }),
-      });
-
-      if (!lipsyncResponse.ok) {
-        const lipError = await lipsyncResponse.text();
-        console.error("[generate-avatar] Lipsync-2 also failed:", lipError);
-        throw new Error(`Avatar generation failed: Replicate API error - ${lipError}`);
-      }
-
-      const lipPrediction = await lipsyncResponse.json();
-      console.log("[generate-avatar] Lipsync-2 prediction created:", lipPrediction.id);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          predictionId: lipPrediction.id,
-          audioUrl,
-          status: "processing",
-          message: "Avatar video is being generated with OpenAI TTS and Sync Labs.",
-          scriptLength: text.length,
-          estimatedDuration: Math.ceil(text.length / 15),
-          pipeline: "direct-lipsync",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error(`Video generation failed: ${klingResponse.status} - ${errorText}`);
     }
 
     const klingPrediction = await klingResponse.json();
     console.log("[generate-avatar] Kling prediction created:", klingPrediction.id);
 
-    // Store the audio URL and pipeline state for the status checker to continue
-    // The status checker will:
-    // 1. Poll Kling until video is ready
-    // 2. Then call Lipsync-2 with the video + audio
-    // 3. Poll Lipsync-2 until final video is ready
-
+    // Return the prediction info for status polling
+    // The check-specialized-status function will poll until completion
     return new Response(
       JSON.stringify({
         success: true,
         predictionId: klingPrediction.id,
         audioUrl,
+        audioDurationMs,
+        videoDuration,
         status: "processing",
-        message: "Avatar video is being generated. First creating base video, then applying lip sync.",
+        message: "Avatar video is being generated. Creating natural speaking animation...",
         scriptLength: text.length,
-        estimatedDuration: Math.ceil(text.length / 15),
-        pipeline: "kling-then-lipsync",
-        nextStep: {
-          action: "lipsync",
-          model: "sync/lipsync-2",
-          audioUrl,
-        },
+        estimatedDuration: videoDuration,
+        pipeline: "kling-avatar",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -229,26 +174,10 @@ serve(async (req) => {
 });
 
 /**
- * Map ElevenLabs voice IDs or names to OpenAI voices
+ * Estimate audio duration based on text length (~150 WPM)
  */
-function mapToOpenAIVoice(voiceId: string): string {
-  // OpenAI voices: alloy, echo, fable, onyx, nova, shimmer
-  const voiceMap: Record<string, string> = {
-    // ElevenLabs IDs -> OpenAI
-    'onwK4e9ZLuTAKqWW03F9': 'onyx',    // Daniel -> onyx (deep male)
-    'JBFqnCBsd6RMkjVDRZzb': 'echo',    // George -> echo (warm male)
-    'EXAVITQu4vr4xnSDxMaL': 'nova',    // Sarah -> nova (female)
-    'pFZP5JQG7iQjIQuC4Bku': 'shimmer', // Lily -> shimmer (female)
-    'cjVigY5qzO86Huf0OWal': 'alloy',   // Eric -> alloy (neutral)
-    
-    // Direct OpenAI voice names
-    'alloy': 'alloy',
-    'echo': 'echo',
-    'fable': 'fable',
-    'onyx': 'onyx',
-    'nova': 'nova',
-    'shimmer': 'shimmer',
-  };
-
-  return voiceMap[voiceId] || 'onyx'; // Default to onyx
+function estimateDuration(text: string): number {
+  const words = text.length / 5;
+  const minutes = words / 150;
+  return Math.round(minutes * 60 * 1000);
 }

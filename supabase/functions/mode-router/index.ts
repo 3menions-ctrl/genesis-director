@@ -415,14 +415,16 @@ async function handleAvatarMode(params: {
 
   const result = await avatarResponse.json();
 
-  // Update project with prediction ID for polling
+  // Update project with prediction ID and audio URL for polling
   await supabase.from('movie_projects').update({
+    voice_audio_url: result.audioUrl, // Store audio URL in dedicated column
     pipeline_state: JSON.stringify({
       stage: 'avatar_rendering',
-      progress: 50,
+      progress: 30,
       predictionId: result.predictionId,
       audioUrl: result.audioUrl,
-      message: 'Rendering talking head video...'
+      audioDurationMs: result.audioDurationMs,
+      message: 'Generating speaking animation...'
     })
   }).eq('id', projectId);
 

@@ -119,7 +119,7 @@ function ScreenplayHeader({ screenplay }: { screenplay: any }) {
   );
 }
 
-export function CollaborativeMovieHub() {
+export const CollaborativeMovieHub = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CollaborativeMovieHub(_, ref) {
   const { data: screenplay, isLoading: screenplayLoading } = useGenesisScreenplay();
   const { data: stats } = useCollaborativeMovieStats(screenplay?.id);
   const [activeTab, setActiveTab] = useState('overview');
@@ -356,4 +356,4 @@ export function CollaborativeMovieHub() {
       </Tabs>
     </div>
   );
-}
+}));

@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { Target, Star, Heart, MessageCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -11,7 +12,7 @@ const DAILY_CHALLENGES = [
   { id: '3', type: 'comment', description: 'Leave a comment', xp: 20, progress: 0, target: 1, icon: MessageCircle },
 ];
 
-export function DailyChallengesCard() {
+export const DailyChallengesCard = memo(forwardRef<HTMLDivElement, Record<string, never>>(function DailyChallengesCard(_, ref) {
   const completedCount = DAILY_CHALLENGES.filter(c => c.progress >= c.target).length;
   
   return (
@@ -107,4 +108,4 @@ export function DailyChallengesCard() {
       </div>
     </div>
   );
-}
+}));

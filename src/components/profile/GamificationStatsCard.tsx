@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { Zap, TrendingUp, Flame, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useGamification } from '@/hooks/useGamification';
@@ -5,7 +6,7 @@ import { useSocial } from '@/hooks/useSocial';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-export function GamificationStatsCard() {
+export const GamificationStatsCard = memo(forwardRef<HTMLDivElement, Record<string, never>>(function GamificationStatsCard(_, ref) {
   const { stats, xpProgress } = useGamification();
   const { followersCount, followingCount } = useSocial();
 
@@ -91,4 +92,4 @@ export function GamificationStatsCard() {
       ))}
     </div>
   );
-}
+}));

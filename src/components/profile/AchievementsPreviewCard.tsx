@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { Trophy, Award, Lock, ChevronRight, Sparkles } from 'lucide-react';
 import { useGamification } from '@/hooks/useGamification';
 import { cn } from '@/lib/utils';
@@ -5,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 
-export function AchievementsPreviewCard() {
+export const AchievementsPreviewCard = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AchievementsPreviewCard(_, ref) {
   const { unlockedAchievements, achievements, statsLoading: isLoading } = useGamification();
 
   const totalAchievements = achievements?.length || 0;
@@ -123,4 +124,4 @@ export function AchievementsPreviewCard() {
       </div>
     </div>
   );
-}
+}));

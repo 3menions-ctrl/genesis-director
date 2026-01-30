@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function SecuritySettings() {
+export const SecuritySettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function SecuritySettings(_, ref) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -529,4 +529,4 @@ export function SecuritySettings() {
       </Dialog>
     </div>
   );
-}
+}));

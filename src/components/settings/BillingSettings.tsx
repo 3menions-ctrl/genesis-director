@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ interface UsageStats {
   avgPerDay: number;
 }
 
-export function BillingSettings() {
+export const BillingSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function BillingSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
@@ -451,4 +451,4 @@ export function BillingSettings() {
       />
     </div>
   );
-}
+}));

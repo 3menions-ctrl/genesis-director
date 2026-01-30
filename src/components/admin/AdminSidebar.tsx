@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import { 
   BarChart3, 
@@ -49,12 +50,13 @@ const groups = [
   { id: 'system', label: 'System' },
 ];
 
-export function AdminSidebar({ activeTab, onTabChange, messageCount = 0 }: AdminSidebarProps) {
+export const AdminSidebar = memo(forwardRef<HTMLElement, AdminSidebarProps>(function AdminSidebar({ activeTab, onTabChange, messageCount = 0 }, ref) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <TooltipProvider delayDuration={0}>
       <aside 
+        ref={ref}
         className={cn(
           "fixed left-0 top-16 bottom-0 z-40 flex flex-col border-r border-border/50 bg-background/95 backdrop-blur-sm transition-all duration-300",
           expanded ? "w-48" : "w-16"
@@ -141,4 +143,4 @@ export function AdminSidebar({ activeTab, onTabChange, messageCount = 0 }: Admin
       </aside>
     </TooltipProvider>
   );
-}
+}));

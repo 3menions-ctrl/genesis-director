@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -25,13 +25,13 @@ interface SignOutDialogProps {
   buttonText?: string;
 }
 
-export function SignOutDialog({ 
+export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>(function SignOutDialog({ 
   children, 
   variant = 'ghost', 
   className,
   showIcon = true,
   buttonText = 'Sign Out'
-}: SignOutDialogProps) {
+}, ref) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -96,4 +96,4 @@ export function SignOutDialog({
       </AlertDialogContent>
     </AlertDialog>
   );
-}
+}));

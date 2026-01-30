@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, forwardRef } from 'react';
 
 /**
  * Premium background for the Universes page
  * Uses CSS animations instead of framer-motion to prevent constant React re-renders
  * and eliminate visual flickering/blinking
  */
-export default function UniversesBackground() {
+const UniversesBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(function UniversesBackground(_, ref) {
   const [isVisible, setIsVisible] = useState(false);
   
   // Fade in on mount
@@ -231,4 +231,6 @@ export default function UniversesBackground() {
       />
     </div>
   );
-}
+}));
+
+export default UniversesBackground;

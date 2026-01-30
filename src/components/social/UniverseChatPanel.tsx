@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo, forwardRef } from 'react';
 import { Send, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +57,7 @@ interface UniverseChatPanelProps {
   className?: string;
 }
 
-export function UniverseChatPanel({ universeId, universeName, className }: UniverseChatPanelProps) {
+export const UniverseChatPanel = memo(forwardRef<HTMLDivElement, UniverseChatPanelProps>(function UniverseChatPanel({ universeId, universeName, className }, ref) {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage } = useUniverseChat(universeId);
   const [newMessage, setNewMessage] = useState('');
@@ -147,4 +147,4 @@ export function UniverseChatPanel({ universeId, universeName, className }: Unive
       </div>
     </Card>
   );
-}
+}));

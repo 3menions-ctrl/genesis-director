@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, forwardRef } from 'react';
+import { useState, useEffect, memo, forwardRef, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, Clock, Film, ArrowRight, X } from 'lucide-react';
@@ -30,10 +30,24 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
   const [activeProject, setActiveProject] = useState<ActiveProject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
+  
+  // Navigation guard for safe async operations
+  const isMountedRef = useRef(true);
+  
+  // Safe state setters
+  const safeSetActiveProject = useCallback((value: ActiveProject | null) => {
+    if (isMountedRef.current) setActiveProject(value);
+  }, []);
+  
+  const safeSetIsLoading = useCallback((value: boolean) => {
+    if (isMountedRef.current) setIsLoading(value);
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
     if (!user) {
-      setIsLoading(false);
+      safeSetIsLoading(false);
       return;
     }
 
@@ -49,16 +63,19 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
           .limit(1)
           .maybeSingle();
 
+        if (!isMountedRef.current) return;
+
         if (error) {
           console.error('Error fetching active project:', error);
           return;
         }
 
-        setActiveProject(data);
+        safeSetActiveProject(data);
       } catch (err) {
+        if (!isMountedRef.current) return;
         console.error('Failed to fetch active project:', err);
       } finally {
-        setIsLoading(false);
+        safeSetIsLoading(false);
       }
     };
 
@@ -75,17 +92,20 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
           table: 'movie_projects',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          // Refetch when project status changes
-          fetchActiveProject();
+        () => {
+          // Only refetch if still mounted
+          if (isMountedRef.current) {
+            fetchActiveProject();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      isMountedRef.current = false;
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, safeSetActiveProject, safeSetIsLoading]);
 
   const handleResume = () => {
     if (activeProject) {
@@ -219,10 +239,13 @@ const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBa
 }));
 
 // Exported component wrapped in SafeComponent for crash isolation
-export function ActiveProjectBanner({ className }: ActiveProjectBannerProps) {
-  return (
-    <SafeComponent name="ActiveProjectBanner" fallback={null}>
-      <ActiveProjectBannerInner className={className} />
-    </SafeComponent>
-  );
-}
+// Uses forwardRef to prevent "Function components cannot be given refs" warnings
+export const ActiveProjectBanner = memo(forwardRef<HTMLDivElement, ActiveProjectBannerProps>(
+  function ActiveProjectBanner({ className }, ref) {
+    return (
+      <SafeComponent name="ActiveProjectBanner" fallback={null}>
+        <ActiveProjectBannerInner ref={ref} className={className} />
+      </SafeComponent>
+    );
+  }
+));

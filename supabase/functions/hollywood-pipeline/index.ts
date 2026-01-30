@@ -4507,10 +4507,21 @@ async function runProduction(
     
     console.log(`[Hollywood] Clip ${i + 1} completed: ${result.videoUrl.substring(0, 50)}...`);
     console.log(`[Hollywood] Continuity chain: ${accumulatedAnchors.length} anchors, ${previousMotionVectors ? 'motion vectors' : 'no motion'}, ${previousContinuityManifest ? 'manifest ready' : 'no manifest'}${goldenFrameData ? ', golden frame set' : ''}`);
+    
+    // =====================================================
+    // CRITICAL FIX: Exit loop after first clip when using callback chaining
+    // The generate-single-clip function was called with triggerNextClip=true,
+    // which means it will call continue-production when complete.
+    // If we continue the loop, we'll hit GENERATION_LOCKED errors because
+    // the previous clip is still being processed by Replicate.
+    // Let the callback chain handle clips 2+ sequentially.
+    // =====================================================
+    console.log(`[Hollywood] ✓ Exiting production loop - callback chain will handle clips ${i + 2}+`);
+    break;
   }
   
-  const completedClips = state.production.clipResults.filter(c => c.status === 'completed');
-  const failedClips = state.production.clipResults.filter(c => c.status === 'failed');
+  const completedClips = state.production?.clipResults?.filter(c => c.status === 'completed') || [];
+  const failedClips = state.production?.clipResults?.filter(c => c.status === 'failed') || [];
   console.log(`[Hollywood] Production complete: ${completedClips.length}/${clips.length} clips (${failedClips.length} failed)`);
   
   // =====================================================

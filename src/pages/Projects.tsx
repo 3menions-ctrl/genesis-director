@@ -92,7 +92,7 @@ interface ProjectCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function ProjectCard({ 
+const ProjectCard = memo(function ProjectCard({ 
   project,
   index,
   onPlay,
@@ -108,12 +108,15 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   isRetrying = false,
   isBrowserStitching = false,
   isPinned = false,
-  viewMode = 'grid'
-}, ref) {
+  viewMode = 'grid',
+  // Pre-resolved clip URL passed from parent to avoid N+1 queries
+  preResolvedClipUrl,
+}: ProjectCardProps & { preResolvedClipUrl?: string | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMountedRef = useRef(true);
   const [isHovered, setIsHovered] = useState(false);
-  const [fetchedClipUrl, setFetchedClipUrl] = useState<string | null>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   
   const status = project.status as string;
   // For direct stitched MP4s, use video_url; for manifests/clips, use video_clips array or fetch from DB
@@ -128,84 +131,40 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
     return () => { isMountedRef.current = false; };
   }, []);
   
-  // Fetch first clip from database for completed projects without video_clips array
-  // OR parse manifest to get first clip URL
-  useEffect(() => {
-    let cancelled = false;
-    
-    const fetchClipUrl = async () => {
-      // Skip if already have a direct video or video_clips array
-      if (!hasVideo || project.video_clips?.length || isDirectVideo) return;
-      
-      try {
-        // First, if it's a manifest, try to fetch and parse it for clip URLs
-        if (isManifest && project.video_url) {
-          try {
-            const manifestRes = await fetch(project.video_url);
-            if (manifestRes.ok) {
-              const manifest = await manifestRes.json();
-              // Get first clip URL from manifest
-              if (manifest.clips?.length > 0) {
-                const firstClipUrl = manifest.clips[0]?.videoUrl;
-                if (firstClipUrl && !cancelled && isMountedRef.current) {
-                  setFetchedClipUrl(firstClipUrl);
-                  return;
-                }
-              }
-            }
-          } catch {
-            // Manifest fetch failed, fall back to DB query
-          }
-        }
-        
-        // Fallback: fetch from video_clips table
-        const { data } = await supabase
-          .from('video_clips')
-          .select('video_url')
-          .eq('project_id', project.id)
-          .eq('status', 'completed')
-          .order('shot_index', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        
-        if (!cancelled && isMountedRef.current && data?.video_url) {
-          setFetchedClipUrl(data.video_url);
-        }
-      } catch {
-        // Silent fail - non-critical fetch
-      }
-    };
-    
-    fetchClipUrl();
-    return () => { cancelled = true; };
-  }, [project.id, hasVideo, project.video_clips?.length, isDirectVideo, isManifest, project.video_url]);
-  
-  // Determine video source - prioritize direct video_url for completed projects
+  // Determine video source - use pre-resolved URL or fallback to project data
   const videoSrc = useMemo(() => {
+    // Priority 1: Pre-resolved clip URL from parent (batch-loaded)
+    if (preResolvedClipUrl) {
+      return preResolvedClipUrl;
+    }
+    // Priority 2: Direct video URL
     if (isDirectVideo && project.video_url) {
       return project.video_url;
     }
+    // Priority 3: Video clips array
     if (project.video_clips?.length) {
-      // Use second clip if available (more representative), else first
       return project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0];
     }
-    // Use fetched clip from database
-    if (fetchedClipUrl) {
-      return fetchedClipUrl;
-    }
     return null;
-  }, [project.video_url, project.video_clips, isDirectVideo, fetchedClipUrl]);
+  }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl]);
 
-  // Force video to show a frame when loaded - browsers need this to display video thumbnail
-  const handleVideoLoaded = useCallback(() => {
+  // Force video to show a thumbnail frame when metadata is loaded
+  // Use onLoadedMetadata for reliable duration access (not onLoadedData which may fire too early)
+  const handleVideoMetadataLoaded = useCallback(() => {
     const video = videoRef.current;
-    if (video && video.duration > 0 && isFinite(video.duration)) {
-      try {
-        // Seek to 10% of video to get a good thumbnail frame (skip potential black intro)
-        video.currentTime = Math.min(video.duration * 0.1, 1);
-      } catch {
-        // Ignore seek errors
-      }
+    if (!video || !isMountedRef.current) return;
+    
+    // Wait until we have valid duration
+    if (!video.duration || !isFinite(video.duration) || video.duration <= 0) return;
+    
+    try {
+      // Seek to 10% of video to get a good thumbnail frame (skip potential black intro)
+      const targetTime = Math.min(video.duration * 0.1, 1);
+      video.currentTime = targetTime;
+      setVideoLoaded(true);
+    } catch {
+      // Ignore seek errors
+      setVideoError(true);
     }
   }, []);
 
@@ -285,7 +244,6 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   if (viewMode === 'list') {
     return (
       <motion.div
-        ref={ref}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
@@ -401,7 +359,6 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   // Cinematic Grid view
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y: 30, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
@@ -443,10 +400,9 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
               muted
               playsInline
               preload="metadata"
-              onLoadedData={handleVideoLoaded}
-              onError={(e) => {
-                // Silently handle video errors to prevent crashes
-                console.warn('Video load error:', e);
+              onLoadedMetadata={handleVideoMetadataLoaded}
+              onError={() => {
+                setVideoError(true);
               }}
             />
             
@@ -676,7 +632,7 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
 // ============= MAIN COMPONENT =============
 
 // Content component wrapped for error boundary
-const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
+const ProjectsContent = memo(function ProjectsContent() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -715,6 +671,9 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const [pinnedProjects, setPinnedProjects] = useState<Set<string>>(new Set());
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
   
+  // Batch-resolved clip URLs to avoid N+1 queries in ProjectCard
+  const [resolvedClipUrls, setResolvedClipUrls] = useState<Map<string, string>>(new Map());
+  
   // Training videos state
   interface TrainingVideo {
     id: string;
@@ -731,6 +690,51 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const [isLoadingTrainingVideos, setIsLoadingTrainingVideos] = useState(true);
   const [selectedTrainingVideo, setSelectedTrainingVideo] = useState<TrainingVideo | null>(null);
   const [trainingVideoModalOpen, setTrainingVideoModalOpen] = useState(false);
+  
+  // BATCH RESOLVE: Fetch all clip URLs for projects that need them in ONE query
+  useEffect(() => {
+    if (!hasLoadedOnce || projects.length === 0) return;
+    
+    const resolveClipUrls = async () => {
+      // Find projects that need clip URL resolution (have manifest or are completed without clips array)
+      const projectsNeedingResolution = projects.filter(p => {
+        const hasDirectVideo = p.video_url && !isManifestUrl(p.video_url);
+        const hasClipsArray = p.video_clips && p.video_clips.length > 0;
+        const isCompleted = p.status === 'completed';
+        // Need resolution if: manifest URL or completed without direct video/clips array
+        return (isManifestUrl(p.video_url) || (isCompleted && !hasDirectVideo && !hasClipsArray));
+      });
+      
+      if (projectsNeedingResolution.length === 0) return;
+      
+      // Batch query: get first clip for all projects at once
+      const projectIds = projectsNeedingResolution.map(p => p.id);
+      
+      try {
+        const { data: clips } = await supabase
+          .from('video_clips')
+          .select('project_id, video_url, shot_index')
+          .in('project_id', projectIds)
+          .eq('status', 'completed')
+          .order('shot_index', { ascending: true });
+        
+        if (clips && clips.length > 0) {
+          // Group by project_id and take first clip for each
+          const clipsByProject = new Map<string, string>();
+          for (const clip of clips) {
+            if (!clipsByProject.has(clip.project_id) && clip.video_url) {
+              clipsByProject.set(clip.project_id, clip.video_url);
+            }
+          }
+          setResolvedClipUrls(clipsByProject);
+        }
+      } catch (err) {
+        console.debug('[Projects] Batch clip resolution failed:', err);
+      }
+    };
+    
+    resolveClipUrls();
+  }, [hasLoadedOnce, projects]);
   
   // Auto-generate missing thumbnails when projects load
   useEffect(() => {
@@ -1602,6 +1606,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
                               project={project}
                               index={index}
                               viewMode="list"
+                              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
                               onPlay={() => handlePlayVideo(project)}
                               onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
                               onRename={() => handleRenameProject(project)}
@@ -1626,6 +1631,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
                               project={project}
                               index={index}
                               viewMode="grid"
+                              preResolvedClipUrl={resolvedClipUrls.get(project.id)}
                               onPlay={() => handlePlayVideo(project)}
                               onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
                               onRename={() => handleRenameProject(project)}
@@ -1676,6 +1682,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
                                 project={project}
                                 index={index}
                                 viewMode="list"
+                                preResolvedClipUrl={resolvedClipUrls.get(project.id)}
                                 onPlay={() => handlePlayVideo(project)}
                                 onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
                                 onRename={() => handleRenameProject(project)}
@@ -1698,6 +1705,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
                                 project={project}
                                 index={index}
                                 viewMode="grid"
+                                preResolvedClipUrl={resolvedClipUrls.get(project.id)}
                                 onPlay={() => handlePlayVideo(project)}
                                 onEdit={() => { setActiveProjectId(project.id); navigate('/create'); }}
                                 onRename={() => handleRenameProject(project)}
@@ -1937,7 +1945,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
       </Dialog>
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary for fault isolation
 export default function Projects() {

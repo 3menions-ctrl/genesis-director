@@ -73,14 +73,14 @@ const AvatarCard = forwardRef<HTMLDivElement, {
       )} />
       
       {/* Full-Body Avatar Image */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-b from-black/20 to-black/60">
+      <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
         <motion.img
           src={avatar.front_image_url || avatar.face_image_url}
           alt={avatar.name}
-          className="w-full h-full object-contain object-center"
+          className="w-full h-full object-cover object-top"
           loading="lazy"
           animate={{
-            scale: isHovered ? 1.03 : 1,
+            scale: isHovered ? 1.05 : 1,
           }}
           transition={{ duration: 0.4 }}
         />
@@ -110,7 +110,7 @@ const AvatarCard = forwardRef<HTMLDivElement, {
         {/* Avatar type badge */}
         {avatar.avatar_type && (
           <div className={cn(
-            "absolute bottom-14 md:bottom-20 left-3 md:left-4 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium",
+            "absolute bottom-16 md:bottom-20 left-3 md:left-4 px-2 py-1 rounded-full text-[10px] md:text-xs font-medium",
             avatar.avatar_type === 'realistic' 
               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
               : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
@@ -129,7 +129,7 @@ const AvatarCard = forwardRef<HTMLDivElement, {
               e.stopPropagation();
               onVoicePreview();
             }}
-            className="absolute bottom-16 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full bg-violet-500/90 hover:bg-violet-400 flex items-center justify-center transition-colors shadow-lg shadow-violet-500/30"
+            className="absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full bg-violet-500/90 hover:bg-violet-400 flex items-center justify-center transition-colors shadow-lg shadow-violet-500/30"
           >
             {isPreviewingVoice ? (
               <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />

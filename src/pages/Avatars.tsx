@@ -48,6 +48,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
   // Project configuration state
   const [prompt, setPrompt] = useState('');
+  const [sceneDescription, setSceneDescription] = useState(''); // NEW: Scene/background description
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipCount, setClipCount] = useState(3);
   const [clipDuration, setClipDuration] = useState(5);
@@ -202,6 +203,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           enableMusic,
           characterBible,
           avatarTemplateId: selectedAvatar.id,
+          sceneDescription: sceneDescription.trim() || undefined, // Pass scene description to backend
         },
       });
 
@@ -247,7 +249,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
         setCreationStatus('');
       }
     }
-  }, [user, selectedAvatar, prompt, aspectRatio, clipCount, clipDuration, enableMusic, navigate, buildCharacterBible]);
+  }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, navigate, buildCharacterBible]);
 
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
@@ -365,6 +367,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
           selectedAvatar={selectedAvatar}
           prompt={prompt}
           onPromptChange={setPrompt}
+          sceneDescription={sceneDescription}
+          onSceneDescriptionChange={setSceneDescription}
           aspectRatio={aspectRatio}
           onAspectRatioChange={setAspectRatio}
           clipDuration={clipDuration}

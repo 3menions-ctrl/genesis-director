@@ -1,13 +1,14 @@
 import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Mic, Play, Zap, Loader2, Music,
+  Mic, Play, Zap, Loader2, Music, MapPin,
   RectangleHorizontal, RectangleVertical, Square
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -34,6 +35,8 @@ interface AvatarsConfigPanelProps {
   selectedAvatar: AvatarTemplate | null;
   prompt: string;
   onPromptChange: (prompt: string) => void;
+  sceneDescription: string;
+  onSceneDescriptionChange: (scene: string) => void;
   aspectRatio: string;
   onAspectRatioChange: (ratio: string) => void;
   clipDuration: number;
@@ -57,6 +60,8 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   selectedAvatar,
   prompt,
   onPromptChange,
+  sceneDescription,
+  onSceneDescriptionChange,
   aspectRatio,
   onAspectRatioChange,
   clipDuration,
@@ -90,7 +95,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
             {/* Script Input */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-white/70 flex items-center gap-2 text-sm">
+                <Label className="text-foreground/70 flex items-center gap-2 text-sm">
                   <Mic className="w-3.5 h-3.5" />
                   Script
                 </Label>
@@ -99,12 +104,12 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                     <img 
                       src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
                       alt={selectedAvatar.name}
-                      className="w-5 h-5 rounded-full object-cover border border-white/20"
+                      className="w-5 h-5 rounded-full object-cover border border-border"
                     />
-                    <span className="text-xs text-white/60">{selectedAvatar.name}</span>
+                    <span className="text-xs text-muted-foreground">{selectedAvatar.name}</span>
                     <button
                       onClick={onClearAvatar}
-                      className="text-xs text-white/40 hover:text-white underline"
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
                     >
                       Change
                     </button>
@@ -118,7 +123,22 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[60px] bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 resize-none text-sm"
+                className="min-h-[60px] bg-background/30 border-border text-foreground placeholder:text-muted-foreground resize-none text-sm"
+                disabled={!selectedAvatar}
+              />
+            </div>
+
+            {/* Scene/Background Input - Mobile */}
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground flex items-center gap-2 text-xs">
+                <MapPin className="w-3 h-3" />
+                Scene/Background (optional)
+              </Label>
+              <Input
+                placeholder="e.g., a witches house, coffee shop, forest..."
+                value={sceneDescription}
+                onChange={(e) => onSceneDescriptionChange(e.target.value)}
+                className="h-8 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"
                 disabled={!selectedAvatar}
               />
             </div>
@@ -215,10 +235,10 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
           {/* Desktop Layout */}
           <div className="hidden lg:grid lg:grid-cols-[1fr,auto,auto] gap-6 items-end">
-            {/* Script Input */}
-            <div className="space-y-2">
+            {/* Script Input with Scene */}
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-white/70 flex items-center gap-2">
+                <Label className="text-foreground/70 flex items-center gap-2">
                   <Mic className="w-4 h-4" />
                   Script
                 </Label>
@@ -227,14 +247,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                     <img 
                       src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
                       alt={selectedAvatar.name}
-                      className="w-6 h-6 rounded-full object-cover border border-white/20"
+                      className="w-6 h-6 rounded-full object-cover border border-border"
                     />
-                    <span className="text-white/70">{selectedAvatar.name}</span>
+                    <span className="text-foreground/70">{selectedAvatar.name}</span>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={onClearAvatar}
-                      className="h-6 px-2 text-xs text-white/40 hover:text-white"
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
                       Change
                     </Button>
@@ -248,9 +268,24 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 }
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                className="min-h-[80px] bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 resize-none"
+                className="min-h-[60px] bg-background/30 border-border text-foreground placeholder:text-muted-foreground resize-none"
                 disabled={!selectedAvatar}
               />
+              
+              {/* Scene/Background Input - Desktop */}
+              <div className="flex items-center gap-3">
+                <Label className="text-muted-foreground flex items-center gap-1.5 text-xs whitespace-nowrap">
+                  <MapPin className="w-3.5 h-3.5" />
+                  Scene
+                </Label>
+                <Input
+                  placeholder="e.g., a witches house, coffee shop, forest, beach at sunset..."
+                  value={sceneDescription}
+                  onChange={(e) => onSceneDescriptionChange(e.target.value)}
+                  className="h-8 flex-1 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"
+                  disabled={!selectedAvatar}
+                />
+              </div>
             </div>
 
             {/* Quick Settings */}

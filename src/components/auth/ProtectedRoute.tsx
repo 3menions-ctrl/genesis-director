@@ -14,6 +14,7 @@ interface ProtectedRouteProps {
  * 1. Tracks if children have ever rendered to prevent loader flashing on navigation
  * 2. Uses refs to avoid unnecessary re-renders
  * 3. Separates initial load from ongoing auth changes
+ * 4. Shows loader during redirects instead of null to prevent flash
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch } = useAuth();
@@ -32,12 +33,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Mark initial mount complete after first render with valid session
   useEffect(() => {
-    if (isSessionVerified && hasSessionInState) {
+    if (isSessionVerified && hasSessionInState && profile) {
       // Small delay to ensure smooth transition
       const timer = setTimeout(() => setIsInitialMount(false), 50);
       return () => clearTimeout(timer);
     }
-  }, [isSessionVerified, hasSessionInState]);
+  }, [isSessionVerified, hasSessionInState, profile]);
 
   // Detect navigation away from initial path - if we navigated, we've rendered
   useEffect(() => {
@@ -70,21 +71,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return 'Almost there...';
   };
 
-  // CRITICAL STABILITY FIX:
-  // Only show loader during INITIAL auth check when there's no session data yet
-  // After we've rendered children once, NEVER show loader again (prevents navigation blink)
-  // Also skip loader if we've already navigated (hasRenderedChildren tracks this)
-  if ((loading || !isSessionVerified) && !hasSessionInState && !hasRenderedChildren.current) {
-    return <AppLoader message={getLoadingMessage()} />;
-  }
-
-  // No user after loading = will redirect (show nothing to prevent flash)
-  if (!user && !session) {
-    return null;
-  }
-
   // Profile fetch error - show retry option
-  if (user && profileError) {
+  if (user && profileError && !loading) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary/20">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
@@ -108,14 +96,26 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // CRITICAL STABILITY FIX:
+  // Show loader during loading state OR when waiting for session verification
+  // But skip if we've already rendered children (prevents navigation blink)
+  if ((loading || !isSessionVerified) && !hasRenderedChildren.current) {
+    return <AppLoader message={getLoadingMessage()} />;
+  }
+
+  // No user after loading = show loader while redirecting (instead of null)
+  if (!user && !session && !loading && isSessionVerified) {
+    return <AppLoader message="Redirecting to login..." />;
+  }
+
   // Wait for profile on INITIAL mount only - never block navigation between routes
-  if (user && !profile && isInitialMount && !hasRenderedChildren.current) {
+  if (user && !profile && isInitialMount && !hasRenderedChildren.current && !loading) {
     return <AppLoader message="Loading your workspace..." />;
   }
 
-  // If onboarding not completed, don't render (will redirect)
+  // If onboarding not completed, show loader while redirecting (instead of null)
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
-    return null;
+    return <AppLoader message="Setting up your account..." />;
   }
 
   // Mark that we've successfully rendered children

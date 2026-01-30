@@ -135,13 +135,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let refreshInterval: NodeJS.Timeout | null = null;
+    let isInitializing = true;
     
     // Critical: Set loading to true at start
     setLoading(true);
+
+    // Helper to complete auth initialization with profile/admin data
+    const completeAuthInit = async (userId: string) => {
+      try {
+        const [profileData, adminStatus] = await Promise.all([
+          fetchProfile(userId),
+          checkAdminRole(userId)
+        ]);
+        if (mounted) {
+          setProfile(profileData);
+          setIsAdmin(adminStatus);
+        }
+      } catch (err) {
+        console.error('[AuthContext] Failed to complete auth init:', err);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         if (!mounted) return;
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
@@ -150,54 +171,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setIsSessionVerified(true);
-        // Critical: Set loading to false on auth state changes to prevent route blink
-        setLoading(false);
 
-        // Defer profile fetch with setTimeout to avoid deadlock
+        // Skip if this is during initialization - initSession will handle it
+        if (isInitializing) return;
+
+        // Handle auth state changes AFTER initialization
         if (newSession?.user) {
-          setTimeout(() => {
-            if (mounted) {
-              fetchProfile(newSession.user.id).then((p) => {
-                if (mounted) setProfile(p);
-              });
-              // Check admin role
-              checkAdminRole(newSession.user.id).then((admin) => {
-                if (mounted) setIsAdmin(admin);
-              });
-            }
-          }, 0);
+          // Fetch profile and admin status before setting loading to false
+          await completeAuthInit(newSession.user.id);
         } else {
           setProfile(null);
           setProfileError(null);
           setIsAdmin(false);
+          setLoading(false);
         }
       }
     );
 
     // THEN check for existing session
     const initSession = async () => {
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      
-      if (!mounted) return;
-      
-      console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
-      
-      sessionRef.current = existingSession;
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      setIsSessionVerified(true);
-      
-      if (existingSession?.user) {
-        const profileData = await fetchProfile(existingSession.user.id);
-        const adminStatus = await checkAdminRole(existingSession.user.id);
-        if (mounted) {
-          setProfile(profileData);
-          setIsAdmin(adminStatus);
+      try {
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        console.log('[AuthContext] Initial session check:', existingSession ? 'has session' : 'no session');
+        
+        sessionRef.current = existingSession;
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        setIsSessionVerified(true);
+        
+        if (existingSession?.user) {
+          await completeAuthInit(existingSession.user.id);
+        } else {
+          setIsAdmin(false);
           setLoading(false);
         }
-      } else {
-        setIsAdmin(false);
-        setLoading(false);
+      } finally {
+        isInitializing = false;
       }
     };
     

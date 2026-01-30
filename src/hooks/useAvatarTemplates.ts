@@ -1,19 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
 
 export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
+  const { isSessionVerified, session } = useAuth();
   const [templates, setTemplates] = useState<AvatarTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Don't fetch until session is verified
+    if (!isSessionVerified) {
+      return;
+    }
+
     async function fetchTemplates() {
       setIsLoading(true);
       setError(null);
 
       try {
-        // Query avatar_templates table (not yet in generated types)
+        // Query avatar_templates table
         const { data, error: fetchError } = await supabase
           .from('avatar_templates')
           .select('*')
@@ -24,7 +31,6 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
           throw fetchError;
         }
 
-        // Cast via unknown to satisfy TypeScript until types regenerate
         setTemplates((data as unknown as AvatarTemplate[]) || []);
       } catch (err) {
         console.error('Failed to fetch avatar templates:', err);
@@ -35,7 +41,7 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     }
 
     fetchTemplates();
-  }, []);
+  }, [isSessionVerified, session?.user?.id]);
 
   // Apply client-side filtering
   const filteredTemplates = useMemo(() => {

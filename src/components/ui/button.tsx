@@ -1,11 +1,31 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Button variants with GPU-accelerated transitions for instant feedback (<100ms).
+ * Uses transform and opacity only - no layout-triggering properties.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-250 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
+  [
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium",
+    // GPU-accelerated transitions for instant feedback
+    "transition-[transform,opacity,background-color,box-shadow] duration-150 ease-out",
+    "transform-gpu backface-hidden",
+    // Focus states
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:ring-offset-2",
+    // Disabled state
+    "disabled:pointer-events-none disabled:opacity-50",
+    // Icon sizing
+    "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    // Instant active feedback (under 100ms)
+    "active:scale-[0.97] active:opacity-90",
+    // Touch optimization
+    "touch-manipulation select-none",
+  ].join(" "),
   {
     variants: {
       variant: {
@@ -17,8 +37,8 @@ const buttonVariants = cva(
           "hover:-translate-y-0.5",
         ].join(" "),
         destructive: [
-          "bg-foreground/80 text-background",
-          "hover:bg-foreground/70",
+          "bg-destructive text-destructive-foreground",
+          "hover:bg-destructive/90",
           "shadow-md",
         ].join(" "),
         outline: [
@@ -89,12 +109,44 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Shows loading spinner and disables interaction */
+  isLoading?: boolean;
+  /** Text to show while loading (defaults to hiding children) */
+  loadingText?: string;
 }
 
+/**
+ * Button component with instant feedback and loading states.
+ * Optimized for <100ms interaction response.
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, isLoading, loadingText, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    
+    // Show immediate visual feedback for loading state
+    const isDisabled = disabled || isLoading;
+    
+    return (
+      <Comp 
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          isLoading && "cursor-wait"
+        )} 
+        ref={ref} 
+        disabled={isDisabled}
+        aria-busy={isLoading}
+        {...props}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            {loadingText ? <span>{loadingText}</span> : <span className="opacity-0">{children}</span>}
+          </>
+        ) : (
+          children
+        )}
+      </Comp>
+    );
   },
 );
 Button.displayName = "Button";

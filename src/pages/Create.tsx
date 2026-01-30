@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -8,13 +8,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
-export default function Create() {
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+
+// Loading overlay component
+const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+        <p className="text-white/70 text-lg">{status || 'Starting creation...'}</p>
+        <p className="text-white/40 text-sm">This may take a moment</p>
+      </div>
+    </div>
+  );
+});
+
+// Main content component separated for error boundary
+const CreateContent = memo(function CreateContent() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  const handleStartCreation = async (config: {
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const handleStartCreation = useCallback(async (config: {
     mode: VideoGenerationMode;
     prompt: string;
     style?: VideoStylePreset;
@@ -35,10 +64,17 @@ export default function Create() {
       return;
     }
 
+    // Abort any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsCreating(true);
     setCreationStatus('Initializing pipeline...');
 
     try {
+      if (!isMountedRef.current) return;
       setCreationStatus('Creating project...');
       
       // All modes use mode-router now
@@ -46,7 +82,7 @@ export default function Create() {
         body: {
           mode: config.mode,
           userId: user.id,
-          prompt: config.prompt,
+          prompt: config.prompt?.trim(),
           imageUrl: config.imageUrl,
           videoUrl: config.videoUrl,
           stylePreset: config.style,
@@ -60,6 +96,9 @@ export default function Create() {
           mood: config.mood,
         },
       });
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) return;
 
       if (error) {
         // Handle specific error types
@@ -87,22 +126,29 @@ export default function Create() {
         throw new Error('Failed to create project - no project ID returned from server');
       }
 
+      if (!isMountedRef.current) return;
       setCreationStatus('Redirecting to production...');
       toast.success(`${config.mode.replace(/-/g, ' ')} creation started!`);
       
       // Navigate to production page to monitor progress
       navigate(`/production/${data.projectId}`);
     } catch (error) {
+      // Ignore abort errors
+      if ((error as Error).name === 'AbortError') return;
+      if (!isMountedRef.current) return;
+      
       console.error('Creation error:', error);
       handleError(error, 'Video creation', {
         showToast: true,
         onRetry: () => handleStartCreation(config),
       });
     } finally {
-      setIsCreating(false);
-      setCreationStatus('');
+      if (isMountedRef.current) {
+        setIsCreating(false);
+        setCreationStatus('');
+      }
     }
-  };
+  }, [user, navigate]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -119,15 +165,16 @@ export default function Create() {
       </div>
       
       {/* Loading overlay with status updates */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-            <p className="text-white/70 text-lg">{creationStatus || 'Starting creation...'}</p>
-            <p className="text-white/40 text-sm">This may take a moment</p>
-          </div>
-        </div>
-      )}
+      {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
+  );
+});
+
+// Wrapper with error boundary for fault isolation
+export default function Create() {
+  return (
+    <ErrorBoundary>
+      <CreateContent />
+    </ErrorBoundary>
   );
 }

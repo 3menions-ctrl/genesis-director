@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -18,11 +18,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-export default function Avatars() {
+// Separated content for error boundary isolation
+const AvatarsContent = memo(function AvatarsContent() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, isSessionVerified } = useAuth();
   const { maxClips } = useTierLimits();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
   // Avatar selection state
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +43,9 @@ export default function Avatars() {
     preloadVoices,
     isVoiceReady,
     previewingVoice,
+    stopPlayback,
   } = useAvatarVoices();
+
   // Project configuration state
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
@@ -51,18 +57,37 @@ export default function Avatars() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState('');
 
-  const { templates, isLoading, error } = useAvatarTemplates({
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      stopPlayback();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [stopPlayback]);
+
+  // Memoize filter config to prevent unnecessary re-renders
+  const filterConfig = useMemo(() => ({
     gender: genderFilter,
     style: styleFilter,
     search: searchQuery,
     avatarType: avatarTypeFilter,
-  });
+  }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
 
-  const userCredits = profile?.credits_balance ?? 0;
-  const estimatedCredits = clipCount * 10;
-  const hasInsufficientCredits = userCredits < estimatedCredits;
-  const estimatedDuration = clipCount * clipDuration;
-  const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0;
+  const { templates, isLoading, error } = useAvatarTemplates(filterConfig);
+
+  // Memoize computed values
+  const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
+  const estimatedCredits = useMemo(() => clipCount * 10, [clipCount]);
+  const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
+  const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
+  const hasActiveFilters = useMemo(() => 
+    genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0,
+    [genderFilter, styleFilter, searchQuery]
+  );
 
   // Preload voices for visible avatars when templates load
   useEffect(() => {
@@ -125,8 +150,8 @@ export default function Avatars() {
     };
   };
 
-  // Handle project creation
-  const handleCreate = async () => {
+  // Handle project creation with abort support
+  const handleCreate = useCallback(async () => {
     if (!user) {
       toast.error('Please sign in to create videos');
       navigate('/auth');
@@ -143,19 +168,26 @@ export default function Avatars() {
       return;
     }
 
+    // Abort any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsCreating(true);
     setCreationStatus('Building character identity...');
 
     try {
       const characterBible = buildCharacterBible(selectedAvatar);
       
+      if (!isMountedRef.current) return;
       setCreationStatus('Initializing avatar pipeline...');
 
       const { data, error } = await supabase.functions.invoke('mode-router', {
         body: {
           mode: 'avatar',
           userId: user.id,
-          prompt: prompt,
+          prompt: prompt.trim(),
           imageUrl: selectedAvatar.front_image_url || selectedAvatar.face_image_url,
           voiceId: selectedAvatar.voice_id,
           aspectRatio,
@@ -167,6 +199,9 @@ export default function Avatars() {
           avatarTemplateId: selectedAvatar.id,
         },
       });
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) return;
 
       if (error) {
         if (error.message?.includes('402') || error.message?.includes('credits')) {
@@ -195,13 +230,19 @@ export default function Avatars() {
       toast.success('Avatar video creation started!');
       navigate(`/production/${data.projectId}`);
     } catch (error) {
+      // Ignore abort errors
+      if ((error as Error).name === 'AbortError') return;
+      if (!isMountedRef.current) return;
+      
       console.error('Creation error:', error);
       handleError(error, 'Avatar video creation', { showToast: true });
     } finally {
-      setIsCreating(false);
-      setCreationStatus('');
+      if (isMountedRef.current) {
+        setIsCreating(false);
+        setCreationStatus('');
+      }
     }
-  };
+  }, [user, selectedAvatar, prompt, aspectRatio, clipCount, clipDuration, enableMusic, navigate]);
 
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
@@ -209,7 +250,24 @@ export default function Avatars() {
     setSearchQuery('');
   }, []);
 
-  const isReadyToCreate = selectedAvatar && prompt.trim() && !hasInsufficientCredits;
+  // Memoize modal handlers
+  const handleClosePreviewModal = useCallback(() => {
+    setPreviewModalOpen(false);
+  }, []);
+
+  const handleOpenPreviewModal = useCallback((avatar: AvatarTemplate) => {
+    setPreviewAvatar(avatar);
+    setPreviewModalOpen(true);
+  }, []);
+
+  const handleClearAvatar = useCallback(() => {
+    setSelectedAvatar(null);
+  }, []);
+
+  const isReadyToCreate = useMemo(() => 
+    selectedAvatar && prompt.trim() && !hasInsufficientCredits,
+    [selectedAvatar, prompt, hasInsufficientCredits]
+  );
 
   return (
     <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
@@ -332,5 +390,14 @@ export default function Avatars() {
         </div>
       )}
     </div>
+  );
+});
+
+// Wrapper with error boundary for fault isolation
+export default function Avatars() {
+  return (
+    <ErrorBoundary>
+      <AvatarsContent />
+    </ErrorBoundary>
   );
 }

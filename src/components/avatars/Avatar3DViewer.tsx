@@ -1,9 +1,8 @@
-import React, { useRef, useState, Suspense, useEffect } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Html } from '@react-three/drei';
-import { Loader2, RotateCcw, Hand } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Loader2, RotateCcw, Hand, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import * as THREE from 'three';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Avatar3DViewerProps {
   frontImage: string;
@@ -13,186 +12,12 @@ interface Avatar3DViewerProps {
   className?: string;
 }
 
-// Cylindrical avatar mesh that displays images on different sides
-function AvatarCylinder({ 
-  frontImage, 
-  sideImage, 
-  backImage 
-}: { 
-  frontImage: string; 
-  sideImage?: string | null; 
-  backImage?: string | null;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [textureLoaded, setTextureLoaded] = useState(false);
-  
-  // Load texture using THREE.TextureLoader
-  const frontTexture = useLoader(THREE.TextureLoader, frontImage);
-  const sideTexture = useLoader(THREE.TextureLoader, sideImage || frontImage);
-  const backTexture = useLoader(THREE.TextureLoader, backImage || frontImage);
-  
-  useEffect(() => {
-    if (frontTexture) {
-      frontTexture.colorSpace = THREE.SRGBColorSpace;
-      frontTexture.minFilter = THREE.LinearFilter;
-      frontTexture.magFilter = THREE.LinearFilter;
-      setTextureLoaded(true);
-    }
-  }, [frontTexture]);
+type ViewAngle = 'front' | 'side' | 'back';
 
-  // Auto-rotation effect
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.5;
-    }
-  });
-
-  if (!textureLoaded) {
-    return null;
-  }
-
-  return (
-    <group>
-      {/* Main avatar display - using a curved plane */}
-      <mesh ref={meshRef}>
-        <cylinderGeometry args={[1.5, 1.5, 2.8, 64, 1, true]} />
-        <meshStandardMaterial 
-          map={frontTexture}
-          side={THREE.DoubleSide}
-          transparent
-          opacity={1}
-        />
-      </mesh>
-      
-      {/* Pedestal base */}
-      <mesh position={[0, -1.6, 0]}>
-        <cylinderGeometry args={[0.8, 1, 0.15, 32]} />
-        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.3} />
-      </mesh>
-    </group>
-  );
-}
-
-// Simple image rotation when 3D isn't available
-function ImageRotator({ 
-  frontImage, 
-  sideImage, 
-  backImage,
-  name
-}: { 
-  frontImage: string; 
-  sideImage?: string | null; 
-  backImage?: string | null;
-  name: string;
-}) {
-  const [currentView, setCurrentView] = useState<'front' | 'side' | 'back'>('front');
-  const [isRotating, setIsRotating] = useState(false);
-  
-  const images = {
-    front: frontImage,
-    side: sideImage || frontImage,
-    back: backImage || frontImage,
-  };
-  
-  const rotate = () => {
-    setIsRotating(true);
-    setTimeout(() => {
-      setCurrentView(prev => {
-        if (prev === 'front') return 'side';
-        if (prev === 'side') return 'back';
-        return 'front';
-      });
-      setIsRotating(false);
-    }, 300);
-  };
-  
-  const hasMultipleViews = sideImage || backImage;
-
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
-      <div className="relative w-full aspect-[3/4] max-w-[280px] mx-auto">
-        <div
-          className={`w-full h-full rounded-2xl overflow-hidden transition-all duration-300 ${
-            isRotating ? 'scale-95 opacity-50 rotate-y-12' : 'scale-100 opacity-100'
-          }`}
-          style={{ 
-            perspective: '1000px',
-            transformStyle: 'preserve-3d'
-          }}
-        >
-          <img
-            src={images[currentView]}
-            alt={`${name} - ${currentView} view`}
-            className="w-full h-full object-cover rounded-2xl shadow-2xl"
-          />
-        </div>
-        
-        {/* View indicator dots */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
-          {(['front', 'side', 'back'] as const).map((view) => (
-            <button
-              key={view}
-              onClick={() => setCurrentView(view)}
-              className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                currentView === view 
-                  ? 'bg-violet-500 scale-125 shadow-lg shadow-violet-500/50' 
-                  : 'bg-white/30 hover:bg-white/50'
-              }`}
-              title={`${view.charAt(0).toUpperCase() + view.slice(1)} view`}
-            />
-          ))}
-        </div>
-      </div>
-      
-      {hasMultipleViews ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={rotate}
-          className="mt-12 text-white/50 hover:text-white"
-        >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Rotate View
-        </Button>
-      ) : (
-        <p className="mt-12 text-xs text-white/30 flex items-center gap-1">
-          <Hand className="w-3 h-3" />
-          Single view available
-        </p>
-      )}
-    </div>
-  );
-}
-
-// Loading fallback
-function LoadingFallback() {
-  return (
-    <Html center>
-      <div className="flex flex-col items-center gap-2">
-        <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
-        <p className="text-xs text-white/50">Loading 3D view...</p>
-      </div>
-    </Html>
-  );
-}
-
-// Error boundary for 3D canvas
-function ErrorFallback({ 
-  frontImage, 
-  sideImage, 
-  backImage, 
-  name 
-}: Avatar3DViewerProps) {
-  return (
-    <ImageRotator
-      frontImage={frontImage}
-      sideImage={sideImage}
-      backImage={backImage}
-      name={name}
-    />
-  );
-}
-
+/**
+ * Premium Avatar Viewer with smooth image rotation
+ * Uses a carousel approach for reliable cross-browser support
+ */
 export function Avatar3DViewer({ 
   frontImage, 
   sideImage, 
@@ -200,82 +25,167 @@ export function Avatar3DViewer({
   name,
   className = ''
 }: Avatar3DViewerProps) {
-  const [use3D, setUse3D] = useState(true);
-  const [hasError, setHasError] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewAngle>('front');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Fallback to image rotation if 3D fails or isn't supported
-  if (!use3D || hasError) {
-    return (
-      <div className={`relative ${className}`}>
-        <ImageRotator
-          frontImage={frontImage}
-          sideImage={sideImage}
-          backImage={backImage}
-          name={name}
-        />
-      </div>
-    );
+  // Build available views array
+  const views: { angle: ViewAngle; image: string; label: string }[] = [
+    { angle: 'front', image: frontImage, label: 'Front' },
+  ];
+  
+  if (sideImage) {
+    views.push({ angle: 'side', image: sideImage, label: 'Side' });
   }
+  
+  if (backImage) {
+    views.push({ angle: 'back', image: backImage, label: 'Back' });
+  }
+  
+  const currentIndex = views.findIndex(v => v.angle === currentView);
+  const currentImage = views[currentIndex]?.image || frontImage;
+  const hasMultipleViews = views.length > 1;
+  
+  const rotateToNext = useCallback(() => {
+    if (isTransitioning || !hasMultipleViews) return;
+    setIsTransitioning(true);
+    const nextIndex = (currentIndex + 1) % views.length;
+    setCurrentView(views[nextIndex].angle);
+    setTimeout(() => setIsTransitioning(false), 400);
+  }, [currentIndex, views, isTransitioning, hasMultipleViews]);
+  
+  const rotateToPrev = useCallback(() => {
+    if (isTransitioning || !hasMultipleViews) return;
+    setIsTransitioning(true);
+    const prevIndex = (currentIndex - 1 + views.length) % views.length;
+    setCurrentView(views[prevIndex].angle);
+    setTimeout(() => setIsTransitioning(false), 400);
+  }, [currentIndex, views, isTransitioning, hasMultipleViews]);
+  
+  const goToView = useCallback((angle: ViewAngle) => {
+    if (isTransitioning || currentView === angle) return;
+    setIsTransitioning(true);
+    setCurrentView(angle);
+    setTimeout(() => setIsTransitioning(false), 400);
+  }, [currentView, isTransitioning]);
 
   return (
-    <div className={`relative ${className}`}>
-      <Canvas
-        dpr={[1, 2]}
-        gl={{ 
-          antialias: true, 
-          alpha: true,
-          failIfMajorPerformanceCaveat: false 
-        }}
-        onError={() => setHasError(true)}
-        className="!bg-transparent"
-        style={{ background: 'transparent' }}
-      >
-        <Suspense fallback={<LoadingFallback />}>
-          <PerspectiveCamera makeDefault position={[0, 0, 4.5]} />
-          <ambientLight intensity={0.7} />
-          <spotLight
-            position={[5, 5, 5]}
-            angle={0.3}
-            penumbra={0.5}
-            intensity={1.2}
-            castShadow
-          />
-          <spotLight
-            position={[-5, 3, 5]}
-            angle={0.3}
-            penumbra={0.5}
-            intensity={0.6}
-          />
-          
-          <AvatarCylinder
-            frontImage={frontImage}
-            sideImage={sideImage}
-            backImage={backImage}
-          />
-          
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            minPolarAngle={Math.PI / 3}
-            maxPolarAngle={Math.PI / 1.8}
-            autoRotate={false}
-          />
-        </Suspense>
-      </Canvas>
-      
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/40 flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-        <Hand className="w-3 h-3" />
-        Drag to rotate
+    <div className={cn("relative flex flex-col items-center justify-center h-full", className)}>
+      {/* Main Image Display with 3D-like rotation effect */}
+      <div className="relative w-full max-w-[320px] aspect-[3/4] mx-auto">
+        {/* Ambient glow behind image */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-transparent blur-3xl opacity-50 pointer-events-none" />
+        
+        {/* Image container with perspective */}
+        <div 
+          className="relative w-full h-full rounded-2xl overflow-hidden"
+          style={{ perspective: '1000px' }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentView}
+              initial={{ rotateY: 90, opacity: 0 }}
+              animate={{ rotateY: 0, opacity: 1 }}
+              exit={{ rotateY: -90, opacity: 0 }}
+              transition={{ 
+                duration: 0.4, 
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              className="w-full h-full"
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              {/* Loading state */}
+              {!imageLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-2xl">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+              )}
+              
+              {/* Avatar image */}
+              <img
+                src={currentImage}
+                alt={`${name} - ${currentView} view`}
+                className={cn(
+                  "w-full h-full object-cover rounded-2xl shadow-2xl transition-opacity duration-300",
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                )}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageLoaded(true)}
+              />
+              
+              {/* Subtle gradient overlay for depth */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none rounded-2xl" />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        
+        {/* Navigation arrows */}
+        {hasMultipleViews && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={rotateToPrev}
+              disabled={isTransitioning}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-sm"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={rotateToNext}
+              disabled={isTransitioning}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-sm"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </>
+        )}
       </div>
       
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setUse3D(false)}
-        className="absolute top-2 right-2 text-white/30 hover:text-white/60 text-xs h-7 px-2"
-      >
-        Switch to 2D
-      </Button>
+      {/* View indicator dots */}
+      {hasMultipleViews && (
+        <div className="flex items-center gap-3 mt-6">
+          {views.map((view) => (
+            <button
+              key={view.angle}
+              onClick={() => goToView(view.angle)}
+              disabled={isTransitioning}
+              className={cn(
+                "relative w-3 h-3 rounded-full transition-all duration-300",
+                currentView === view.angle 
+                  ? "bg-primary scale-125 shadow-lg shadow-primary/50" 
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+              )}
+              title={`${view.label} view`}
+            >
+              {currentView === view.angle && (
+                <motion.div
+                  layoutId="activeViewIndicator"
+                  className="absolute inset-0 rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* Rotate hint */}
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+        {hasMultipleViews ? (
+          <>
+            <RotateCcw className="w-3 h-3" />
+            <span>Click arrows or dots to rotate</span>
+          </>
+        ) : (
+          <>
+            <Hand className="w-3 h-3" />
+            <span>Single view available</span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

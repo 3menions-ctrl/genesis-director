@@ -140,13 +140,15 @@ export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   fallback?: ReactNode
 ) {
-  return function WithErrorBoundaryWrapper(props: P) {
+  const WithErrorBoundaryWrapper = (props: P) => {
     return (
       <ErrorBoundary fallback={fallback}>
         <WrappedComponent {...props} />
       </ErrorBoundary>
     );
   };
+  WithErrorBoundaryWrapper.displayName = `WithErrorBoundary(${(WrappedComponent as React.FC).displayName || WrappedComponent.name || 'Component'})`;
+  return WithErrorBoundaryWrapper;
 }
 
 /**
@@ -160,4 +162,38 @@ export function ErrorBoundaryWrapper({
   fallback?: ReactNode 
 }) {
   return <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>;
+}
+
+/**
+ * Minimal inline error boundary for nested components - prevents cascade crashes
+ * Shows a subtle error UI instead of crashing the entire page
+ */
+export function SafeComponent({ 
+  children, 
+  name = 'Component',
+  fallback,
+}: { 
+  children: ReactNode; 
+  name?: string;
+  fallback?: ReactNode;
+}) {
+  return (
+    <ErrorBoundary 
+      fallback={fallback || (
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+          <p className="text-sm text-destructive">
+            {name} failed to load
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-2 text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Reload page
+          </button>
+        </div>
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  );
 }

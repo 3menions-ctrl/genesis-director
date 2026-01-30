@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Loader2, Clock, Film, ArrowRight, X } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { SafeComponent } from '@/components/ui/error-boundary';
 
 interface ActiveProject {
   id: string;
@@ -21,7 +22,9 @@ interface ActiveProjectBannerProps {
   className?: string;
 }
 
-export function ActiveProjectBanner({ className }: ActiveProjectBannerProps) {
+// Inner component with all the logic
+const ActiveProjectBannerInner = memo(forwardRef<HTMLDivElement, ActiveProjectBannerProps>(
+  function ActiveProjectBannerInner({ className }, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeProject, setActiveProject] = useState<ActiveProject | null>(null);
@@ -212,5 +215,14 @@ export function ActiveProjectBanner({ className }: ActiveProjectBannerProps) {
         </div>
       </motion.div>
     </AnimatePresence>
+  );
+}));
+
+// Exported component wrapped in SafeComponent for crash isolation
+export function ActiveProjectBanner({ className }: ActiveProjectBannerProps) {
+  return (
+    <SafeComponent name="ActiveProjectBanner" fallback={null}>
+      <ActiveProjectBannerInner className={className} />
+    </SafeComponent>
   );
 }

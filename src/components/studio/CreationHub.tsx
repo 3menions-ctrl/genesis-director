@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -23,6 +23,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTemplateEnvironment } from '@/hooks/useTemplateEnvironment';
 import { useTierLimits } from '@/hooks/useTierLimits';
+import { SafeComponent } from '@/components/ui/error-boundary';
 import {
   Select,
   SelectContent,
@@ -133,7 +134,8 @@ interface CreationHubProps {
   className?: string;
 }
 
-export function CreationHub({ onStartCreation, className }: CreationHubProps) {
+// CreationHub wrapped with forwardRef for animation contexts
+export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(function CreationHub({ onStartCreation, className }, ref) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
@@ -949,8 +951,9 @@ export function CreationHub({ onStartCreation, className }: CreationHubProps) {
       </div>
     </div>
   );
-}
+}));
 
+// Helper function outside the component
 function getStyleGradient(style: VideoStylePreset): string {
   const gradients: Record<VideoStylePreset, string> = {
     'anime': 'bg-gradient-to-br from-pink-400 via-purple-400 to-blue-400',

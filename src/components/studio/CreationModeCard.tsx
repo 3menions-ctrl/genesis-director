@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon, Check, Sparkles, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,8 @@ interface CreationModeCardProps {
   delay?: number;
 }
 
-export function CreationModeCard({
+// Wrapped with forwardRef for Framer Motion layoutId compatibility
+export const CreationModeCard = memo(forwardRef<HTMLButtonElement, CreationModeCardProps>(function CreationModeCard({
   id,
   name,
   description,
@@ -24,7 +26,7 @@ export function CreationModeCard({
   isNew,
   onClick,
   delay = 0,
-}: CreationModeCardProps) {
+}, ref) {
   return (
     <motion.button
       initial={{ opacity: 0, y: 20 }}
@@ -91,4 +93,4 @@ export function CreationModeCard({
       )} />
     </motion.button>
   );
-}
+}));

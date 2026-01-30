@@ -92,12 +92,12 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
         <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-zinc-900/90 border border-white/[0.08] backdrop-blur-2xl shadow-2xl">
           {/* Mobile Layout */}
           <div className="flex flex-col gap-4 lg:hidden">
-            {/* Scene/Setting Input - Mobile (Now Primary) */}
+            {/* Story/Script Input - Mobile (Primary) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground/70 flex items-center gap-2 text-sm">
-                  <MapPin className="w-3.5 h-3.5" />
-                  Scene & Story
+                  <Play className="w-3.5 h-3.5" />
+                  Story Concept
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `Describe what ${selectedAvatar.name} should do and where. Example: "${selectedAvatar.name} enters a witch's house, explores the mysterious potions, then discovers a hidden spell book..."`
+                  ? `What should ${selectedAvatar.name} do? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
                   : "Select an avatar above..."
                 }
                 value={prompt}
@@ -128,14 +128,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               />
             </div>
 
-            {/* Optional Dialogue Input - Mobile */}
+            {/* Scene/Environment Input - Mobile */}
             <div className="space-y-1.5">
               <Label className="text-muted-foreground flex items-center gap-2 text-xs">
-                <Mic className="w-3 h-3" />
-                Dialogue (optional)
+                <MapPin className="w-3 h-3" />
+                Environment (optional)
               </Label>
               <Input
-                placeholder={`What should ${selectedAvatar?.name || 'the avatar'} say?`}
+                placeholder="e.g., a witch's house in the woods, a futuristic city..."
                 value={sceneDescription}
                 onChange={(e) => onSceneDescriptionChange(e.target.value)}
                 className="h-8 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"
@@ -235,12 +235,12 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
           {/* Desktop Layout */}
           <div className="hidden lg:grid lg:grid-cols-[1fr,auto,auto] gap-6 items-end">
-            {/* Scene & Story Input */}
+            {/* Story Concept Input - Desktop */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-foreground/70 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Scene & Story
+                  <Play className="w-4 h-4" />
+                  Story Concept
                 </Label>
                 {selectedAvatar && (
                   <div className="flex items-center gap-2 text-sm">
@@ -263,7 +263,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `Describe what ${selectedAvatar.name} should do and where. Example: "${selectedAvatar.name} enters a witch's house, explores the mysterious potions, then discovers a hidden spell book..."`
+                  ? `What should ${selectedAvatar.name} do? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
                   : "First, select an avatar above..."
                 }
                 value={prompt}
@@ -272,14 +272,14 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 disabled={!selectedAvatar}
               />
               
-              {/* Optional Dialogue Input - Desktop */}
+              {/* Environment/Setting Input - Desktop */}
               <div className="flex items-center gap-3">
                 <Label className="text-muted-foreground flex items-center gap-1.5 text-xs whitespace-nowrap">
-                  <Mic className="w-3.5 h-3.5" />
-                  Dialogue
+                  <MapPin className="w-3.5 h-3.5" />
+                  Environment
                 </Label>
                 <Input
-                  placeholder={`What should ${selectedAvatar?.name || 'the avatar'} say? (optional)`}
+                  placeholder="e.g., a witch's house in the woods, a futuristic city... (optional)"
                   value={sceneDescription}
                   onChange={(e) => onSceneDescriptionChange(e.target.value)}
                   className="h-8 flex-1 bg-background/30 border-border text-foreground placeholder:text-muted-foreground text-sm"

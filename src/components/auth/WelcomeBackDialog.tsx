@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, memo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, Zap } from 'lucide-react';
 
@@ -102,7 +102,7 @@ const LightRay = ({ angle, delay }: { angle: number; delay: number }) => (
   />
 );
 
-export function WelcomeBackDialog({ isOpen, onComplete, userName }: WelcomeBackDialogProps) {
+export const WelcomeBackDialog = memo(forwardRef<HTMLDivElement, WelcomeBackDialogProps>(function WelcomeBackDialog({ isOpen, onComplete, userName }, ref) {
   const [phase, setPhase] = useState<'entrance' | 'celebrate' | 'exit'>('entrance');
   const [showContent, setShowContent] = useState(false);
 
@@ -346,4 +346,4 @@ export function WelcomeBackDialog({ isOpen, onComplete, userName }: WelcomeBackD
       )}
     </AnimatePresence>
   );
-}
+}));

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ const GENRES = [
   { value: 'vlog', label: 'Vlog' },
 ];
 
-export function PreferencesSettings() {
+export const PreferencesSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function PreferencesSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -385,7 +385,7 @@ export function PreferencesSettings() {
             </div>
           </div>
         </div>
-      </motion.div>
+        </motion.div>
     </div>
   );
-}
+}));

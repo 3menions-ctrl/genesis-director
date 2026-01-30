@@ -1,9 +1,10 @@
+import { memo, forwardRef } from 'react';
 import { Video, FolderOpen, Heart, Sparkles } from 'lucide-react';
 import { useGamification } from '@/hooks/useGamification';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-export function QuickStatsCard() {
+export const QuickStatsCard = memo(forwardRef<HTMLDivElement, Record<string, never>>(function QuickStatsCard(_, ref) {
   const { stats } = useGamification();
 
   const statItems = [
@@ -72,4 +73,4 @@ export function QuickStatsCard() {
       </div>
     </div>
   );
-}
+}));

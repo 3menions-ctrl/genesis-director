@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationPreferences = {
   marketing: false,
 };
 
-export function NotificationSettings() {
+export const NotificationSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function NotificationSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -367,4 +367,4 @@ export function NotificationSettings() {
       </motion.div>
     </div>
   );
-}
+}));

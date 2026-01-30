@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo, forwardRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address').max(255);
 
-export function AccountSettings() {
+export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AccountSettings(_, ref) {
   const { user, profile, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -531,4 +531,4 @@ export function AccountSettings() {
       </Dialog>
     </div>
   );
-}
+}));

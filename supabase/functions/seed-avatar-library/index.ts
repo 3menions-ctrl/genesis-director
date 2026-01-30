@@ -7,31 +7,56 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Diverse avatar presets for a balanced library
+// Diverse avatar presets - from corporate to casual, artists to athletes
 const AVATAR_PRESETS = [
-  // Professional Males
-  { name: "Marcus Chen", gender: "male", ageRange: "young-adult", ethnicity: "East Asian", style: "corporate", personality: "confident and articulate", clothing: "Navy blue tailored suit with a crisp white shirt" },
-  { name: "James Mitchell", gender: "male", ageRange: "middle-aged", ethnicity: "Caucasian", style: "corporate", personality: "authoritative yet approachable", clothing: "Charcoal grey three-piece suit" },
-  { name: "David Okonkwo", gender: "male", ageRange: "young-adult", ethnicity: "African", style: "creative", personality: "charismatic and energetic", clothing: "Burgundy blazer over black turtleneck" },
-  { name: "Raj Patel", gender: "male", ageRange: "middle-aged", ethnicity: "South Asian", style: "corporate", personality: "warm and knowledgeable", clothing: "Light grey suit with subtle pattern" },
-  { name: "Carlos Rivera", gender: "male", ageRange: "young-adult", ethnicity: "Hispanic", style: "casual", personality: "friendly and relatable", clothing: "Smart casual olive blazer with white shirt" },
-  { name: "Alex Thompson", gender: "male", ageRange: "mature", ethnicity: "Caucasian", style: "educational", personality: "wise and trustworthy", clothing: "Brown tweed jacket with elbow patches" },
-  { name: "Kenji Yamamoto", gender: "male", ageRange: "young-adult", ethnicity: "Japanese", style: "influencer", personality: "trendy and engaging", clothing: "Modern streetwear with designer jacket" },
-  { name: "Omar Hassan", gender: "male", ageRange: "middle-aged", ethnicity: "Middle Eastern", style: "luxury", personality: "sophisticated and refined", clothing: "Bespoke black suit with gold accents" },
-  { name: "Michael Brooks", gender: "male", ageRange: "young-adult", ethnicity: "African American", style: "corporate", personality: "dynamic and professional", clothing: "Classic navy pinstripe suit" },
-  { name: "Lucas Kim", gender: "male", ageRange: "young-adult", ethnicity: "Korean", style: "creative", personality: "innovative and cool", clothing: "Minimalist black jacket, modern cut" },
-
-  // Professional Females
-  { name: "Sarah Chen", gender: "female", ageRange: "young-adult", ethnicity: "East Asian", style: "corporate", personality: "poised and intelligent", clothing: "Elegant white blouse with tailored black blazer" },
-  { name: "Emily Williams", gender: "female", ageRange: "middle-aged", ethnicity: "Caucasian", style: "corporate", personality: "confident and inspiring", clothing: "Power red blazer with black dress" },
-  { name: "Amara Johnson", gender: "female", ageRange: "young-adult", ethnicity: "African American", style: "creative", personality: "vibrant and authentic", clothing: "Earth-toned wrap dress with gold jewelry" },
-  { name: "Priya Sharma", gender: "female", ageRange: "young-adult", ethnicity: "South Asian", style: "corporate", personality: "graceful and articulate", clothing: "Deep purple silk blouse with fitted blazer" },
-  { name: "Sofia Garcia", gender: "female", ageRange: "middle-aged", ethnicity: "Hispanic", style: "educational", personality: "nurturing and knowledgeable", clothing: "Soft teal cardigan over cream blouse" },
-  { name: "Emma Laurent", gender: "female", ageRange: "young-adult", ethnicity: "French Caucasian", style: "luxury", personality: "chic and sophisticated", clothing: "Classic Parisian black dress with pearl accents" },
-  { name: "Yuki Tanaka", gender: "female", ageRange: "young-adult", ethnicity: "Japanese", style: "influencer", personality: "fresh and relatable", clothing: "Trendy pastel blazer, minimalist style" },
-  { name: "Fatima Al-Rashid", gender: "female", ageRange: "middle-aged", ethnicity: "Middle Eastern", style: "corporate", personality: "elegant and commanding", clothing: "Structured emerald blazer with gold details" },
-  { name: "Jessica Park", gender: "female", ageRange: "young-adult", ethnicity: "Korean", style: "casual", personality: "approachable and friendly", clothing: "Soft pink blouse with modern grey cardigan" },
-  { name: "Victoria Sterling", gender: "female", ageRange: "mature", ethnicity: "Caucasian", style: "luxury", personality: "distinguished and authoritative", clothing: "Ivory power suit with statement jewelry" },
+  // === CREATIVE & ARTISTIC ===
+  { name: "Luna Ramirez", gender: "female", ageRange: "young-adult", ethnicity: "Hispanic", style: "creative", personality: "dreamy and artistic", clothing: "Paint-splattered denim overalls over a vintage band tee" },
+  { name: "Jasper Stone", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "creative", personality: "brooding and introspective", clothing: "Black leather jacket, silver rings, messy hair" },
+  { name: "Zara Obi", gender: "female", ageRange: "young-adult", ethnicity: "Nigerian", style: "creative", personality: "bold and expressive", clothing: "Colorful African print wrap dress with bold earrings" },
+  
+  // === CASUAL & EVERYDAY ===
+  { name: "Tyler Brooks", gender: "male", ageRange: "young-adult", ethnicity: "African American", style: "casual", personality: "chill and laid-back", clothing: "Oversized hoodie and baseball cap worn backwards" },
+  { name: "Mei Lin", gender: "female", ageRange: "young-adult", ethnicity: "Chinese", style: "casual", personality: "cheerful and bubbly", clothing: "Cozy oversized sweater with cute pins and patches" },
+  { name: "Jake Morrison", gender: "male", ageRange: "young-adult", ethnicity: "Caucasian", style: "casual", personality: "goofy and relatable", clothing: "Flannel shirt, jeans, well-worn sneakers" },
+  { name: "Aisha Patel", gender: "female", ageRange: "young-adult", ethnicity: "South Asian", style: "casual", personality: "warm and down-to-earth", clothing: "Simple kurta top with modern jeans" },
+  
+  // === GAMERS & TECH ===
+  { name: "Kai Nakamura", gender: "male", ageRange: "young-adult", ethnicity: "Japanese", style: "influencer", personality: "energetic and competitive", clothing: "Gaming headset around neck, esports team jersey" },
+  { name: "Nova Chen", gender: "female", ageRange: "young-adult", ethnicity: "Taiwanese", style: "influencer", personality: "witty and quick", clothing: "Neon-accented cyberpunk jacket, RGB lighting vibes" },
+  { name: "Marcus 'Glitch' Webb", gender: "male", ageRange: "young-adult", ethnicity: "Mixed", style: "creative", personality: "nerdy and enthusiastic", clothing: "Retro gaming t-shirt, glasses, colorful LED accessories" },
+  
+  // === ATHLETES & FITNESS ===
+  { name: "Destiny Williams", gender: "female", ageRange: "young-adult", ethnicity: "African American", style: "casual", personality: "fierce and motivating", clothing: "Sleek athletic wear, high ponytail, confident stance" },
+  { name: "Mateo Santos", gender: "male", ageRange: "young-adult", ethnicity: "Brazilian", style: "casual", personality: "passionate and energetic", clothing: "Soccer jersey, athletic build, warm smile" },
+  { name: "Sven Eriksson", gender: "male", ageRange: "middle-aged", ethnicity: "Scandinavian", style: "casual", personality: "calm and disciplined", clothing: "Simple athletic wear, rugged outdoor look" },
+  
+  // === STUDENTS & YOUNG PEOPLE ===
+  { name: "Chloe Park", gender: "female", ageRange: "young-adult", ethnicity: "Korean American", style: "casual", personality: "studious but fun", clothing: "Cute cardigan, round glasses, messenger bag" },
+  { name: "Darius Jackson", gender: "male", ageRange: "young-adult", ethnicity: "African American", style: "casual", personality: "ambitious and thoughtful", clothing: "College hoodie, backpack, casual confidence" },
+  { name: "Freya Andersen", gender: "female", ageRange: "young-adult", ethnicity: "Danish", style: "casual", personality: "curious and adventurous", clothing: "Vintage thrift store finds, eclectic style" },
+  
+  // === MUSICIANS & PERFORMERS ===
+  { name: "River Hayes", gender: "male", ageRange: "young-adult", ethnicity: "Mixed Indigenous", style: "creative", personality: "soulful and poetic", clothing: "Worn acoustic guitar strap visible, bohemian layers" },
+  { name: "Jade Phoenix", gender: "female", ageRange: "young-adult", ethnicity: "Vietnamese American", style: "influencer", personality: "fierce and glamorous", clothing: "Glittery stage-ready outfit, bold makeup" },
+  { name: "Marcus Cole", gender: "male", ageRange: "young-adult", ethnicity: "Caribbean", style: "creative", personality: "smooth and charismatic", clothing: "Stylish hat, gold chain, relaxed island vibes" },
+  
+  // === UNCONVENTIONAL & UNIQUE ===
+  { name: "Sage Moonwhisper", gender: "female", ageRange: "young-adult", ethnicity: "Caucasian", style: "creative", personality: "mystical and serene", clothing: "Flowing bohemian dress, crystals and natural jewelry" },
+  { name: "Axel Storm", gender: "male", ageRange: "young-adult", ethnicity: "German", style: "creative", personality: "intense and rebellious", clothing: "Punk rock aesthetic, mohawk, tattoo visible on neck" },
+  { name: "Zen Master Kim", gender: "male", ageRange: "mature", ethnicity: "Korean", style: "educational", personality: "wise and peaceful", clothing: "Simple traditional hanbok-inspired modern wear" },
+  
+  // === PROFESSIONALS (DIVERSE FIELDS) ===
+  { name: "Dr. Amelia Foster", gender: "female", ageRange: "middle-aged", ethnicity: "Caucasian", style: "educational", personality: "brilliant and warm", clothing: "Lab coat over casual clothes, glasses on head" },
+  { name: "Chef Antoine Dubois", gender: "male", ageRange: "middle-aged", ethnicity: "French African", style: "creative", personality: "passionate and perfectionist", clothing: "Chef whites with a hint of flour, warm smile" },
+  { name: "Officer Maya Rodriguez", gender: "female", ageRange: "young-adult", ethnicity: "Latina", style: "corporate", personality: "brave and compassionate", clothing: "Off-duty casual but still commanding presence" },
+  
+  // === SENIORS & WISDOM ===
+  { name: "Grandpa Joe", gender: "male", ageRange: "mature", ethnicity: "African American", style: "casual", personality: "storytelling and warm", clothing: "Comfortable cardigan, reading glasses, gentle smile" },
+  { name: "Nana Beatrice", gender: "female", ageRange: "mature", ethnicity: "Caribbean", style: "casual", personality: "nurturing and funny", clothing: "Colorful headwrap, warm maternal presence" },
+  
+  // === CORPORATE (JUST A FEW) ===
+  { name: "Victoria Chen", gender: "female", ageRange: "middle-aged", ethnicity: "Chinese American", style: "corporate", personality: "sharp and inspiring", clothing: "Power suit, minimal jewelry, commanding presence" },
+  { name: "James Wright", gender: "male", ageRange: "middle-aged", ethnicity: "Caucasian", style: "corporate", personality: "trustworthy and steady", clothing: "Classic navy suit, silver watch" },
 ];
 
 serve(async (req) => {

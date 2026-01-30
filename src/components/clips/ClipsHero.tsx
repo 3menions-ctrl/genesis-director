@@ -163,4 +163,6 @@ export const ClipsHero = memo(forwardRef<HTMLDivElement, ClipsHeroProps>(functio
       </div>
     </motion.div>
   );
-}
+}));
+
+export default ClipsHero;

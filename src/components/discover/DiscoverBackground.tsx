@@ -233,4 +233,6 @@ const DiscoverBackground = memo(forwardRef<HTMLDivElement, Record<string, never>
       />
     </div>
   );
-}
+}));
+
+export default DiscoverBackground;

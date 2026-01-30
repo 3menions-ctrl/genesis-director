@@ -204,4 +204,6 @@ export const DiscoverHero = memo(forwardRef<HTMLDivElement, DiscoverHeroProps>(f
       </div>
     </div>
   );
-}
+}));
+
+export default DiscoverHero;

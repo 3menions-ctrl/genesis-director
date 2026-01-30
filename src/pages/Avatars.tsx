@@ -2,52 +2,21 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { 
-  User, Search, ArrowLeft, Sparkles, Check,
-  Loader2, RectangleHorizontal,
-  RectangleVertical, Square, Clock, Music, Mic,
-  Play, Zap, Filter, Camera, Wand2
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
-import { AvatarTemplate, AvatarType, AVATAR_STYLES, AVATAR_GENDERS, AVATAR_TYPES } from '@/types/avatar-templates';
+import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { PremiumAvatarGallery } from '@/components/avatars/PremiumAvatarGallery';
+import { AvatarsBackground } from '@/components/avatars/AvatarsBackground';
+import { AvatarsHero } from '@/components/avatars/AvatarsHero';
+import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
+import { AvatarsFilters } from '@/components/avatars/AvatarsFilters';
+import { AvatarsConfigPanel } from '@/components/avatars/AvatarsConfigPanel';
 import { AppHeader } from '@/components/layout/AppHeader';
-import PipelineBackground from '@/components/production/PipelineBackground';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useAuth } from '@/contexts/AuthContext';
 import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
-
-const ASPECT_RATIOS = [
-  { id: '16:9', name: 'Landscape', icon: RectangleHorizontal, description: 'YouTube, TV' },
-  { id: '9:16', name: 'Portrait', icon: RectangleVertical, description: 'TikTok, Reels' },
-  { id: '1:1', name: 'Square', icon: Square, description: 'Instagram' },
-];
-
-const CLIP_DURATIONS = [
-  { id: 5, name: '5 sec', description: 'Quick clip' },
-  { id: 10, name: '10 sec', description: 'Standard' },
-];
 
 export default function Avatars() {
   const navigate = useNavigate();
@@ -87,7 +56,7 @@ export default function Avatars() {
   const estimatedCredits = clipCount * 10;
   const hasInsufficientCredits = userCredits < estimatedCredits;
   const estimatedDuration = clipCount * clipDuration;
-  const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0 || avatarTypeFilter !== 'all';
+  const hasActiveFilters = genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0;
 
   // Voice preview handler
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
@@ -155,23 +124,19 @@ export default function Avatars() {
       name: avatar.name,
       description: avatar.description,
       personality: avatar.personality,
-      // Multi-view identity descriptions
       front_view: bible.front_view || `${avatar.name}, professional presenter, facing camera directly, neutral confident expression`,
       side_view: bible.side_view || `${avatar.name}, professional presenter, side profile view, same outfit and styling`,
       back_view: bible.back_view || `${avatar.name}, professional presenter, back view showing hair and outfit from behind`,
       silhouette: bible.silhouette || `${avatar.name}, distinctive silhouette shape, recognizable posture`,
-      // Non-facial identity anchors
       hair_description: bible.hair_description || 'consistent hairstyle throughout',
       clothing_description: bible.clothing_description || 'professional attire, consistent outfit',
       body_type: bible.body_type || 'average build',
       distinguishing_features: bible.distinguishing_features || [],
-      // Reference images for multi-angle consistency
       reference_images: {
         front: avatar.front_image_url || avatar.face_image_url,
         side: avatar.side_image_url,
         back: avatar.back_image_url,
       },
-      // Negative prompts to prevent morphing
       negative_prompts: bible.negative_prompts || [
         'different person',
         'face change',
@@ -205,7 +170,6 @@ export default function Avatars() {
     setCreationStatus('Building character identity...');
 
     try {
-      // Build comprehensive character bible for consistency
       const characterBible = buildCharacterBible(selectedAvatar);
       
       setCreationStatus('Initializing avatar pipeline...');
@@ -222,7 +186,6 @@ export default function Avatars() {
           clipDuration,
           enableNarration: true,
           enableMusic,
-          // Pass character bible for production consistency
           characterBible,
           avatarTemplateId: selectedAvatar.id,
         },
@@ -263,166 +226,57 @@ export default function Avatars() {
     }
   };
 
+  const handleClearFilters = useCallback(() => {
+    setGenderFilter('all');
+    setStyleFilter('all');
+    setSearchQuery('');
+  }, []);
+
   const isReadyToCreate = selectedAvatar && prompt.trim() && !hasInsufficientCredits;
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-black">
-      <PipelineBackground />
+    <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+      <AvatarsBackground />
       <AppHeader />
       
-      <div className="relative z-10 flex-1 pt-6 pb-24">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-7xl mx-auto px-6 mb-6"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/create')}
-            className="mb-4 text-white/50 hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Create
-          </Button>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center border border-violet-500/30">
-                <User className="w-7 h-7 text-violet-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-display font-bold text-white">Choose Your Avatar</h1>
-                <p className="text-white/50">Select a presenter for your video</p>
-              </div>
-            </div>
+      <div className="relative z-10 flex-1 pb-48 md:pb-56">
+        {/* Hero Section */}
+        <AvatarsHero />
 
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <Input
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-48 bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30"
-                />
-              </div>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className={cn(
-                      "border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.05]",
-                      hasActiveFilters && "border-violet-500/50 text-violet-400"
-                    )}
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filters
-                    {hasActiveFilters && (
-                      <span className="ml-2 w-2 h-2 rounded-full bg-violet-500" />
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 bg-zinc-900 border-white/10 p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-white/50">Gender</Label>
-                    <Select value={genderFilter} onValueChange={setGenderFilter}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-white">
-                        <SelectValue placeholder="Gender" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/10">
-                        {AVATAR_GENDERS.map((g) => (
-                          <SelectItem key={g.id} value={g.id} className="text-white focus:bg-white/10 focus:text-white">
-                            {g.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-xs text-white/50">Style</Label>
-                    <Select value={styleFilter} onValueChange={setStyleFilter}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.08] text-white">
-                        <SelectValue placeholder="Style" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-white/10">
-                        {AVATAR_STYLES.map((s) => (
-                          <SelectItem key={s.id} value={s.id} className="text-white focus:bg-white/10 focus:text-white">
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setGenderFilter('all');
-                        setStyleFilter('all');
-                        setSearchQuery('');
-                        setAvatarTypeFilter('all');
-                      }}
-                      className="w-full text-white/50 hover:text-white"
-                    >
-                      Clear Filters
-                    </Button>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Category Tabs */}
+        {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="max-w-7xl mx-auto px-6 mb-6"
+          transition={{ delay: 0.2 }}
+          className="mb-6"
         >
-          <div className="flex items-center gap-2">
-            {AVATAR_TYPES.map((type) => {
-              const isActive = avatarTypeFilter === type.id;
-              const Icon = type.id === 'realistic' ? Camera : type.id === 'animated' ? Wand2 : Sparkles;
-              
-              return (
-                <Button
-                  key={type.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAvatarTypeFilter(type.id as AvatarType | 'all')}
-                  className={cn(
-                    "px-4 py-2 rounded-full transition-all duration-200",
-                    isActive
-                      ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
-                      : "bg-white/[0.03] text-white/60 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white"
-                  )}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {type.name}
-                </Button>
-              );
-            })}
-            
-            <div className="ml-4 text-sm text-white/40">
-              {templates.length} avatar{templates.length !== 1 ? 's' : ''}
-            </div>
-          </div>
+          <AvatarsFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            genderFilter={genderFilter}
+            onGenderChange={setGenderFilter}
+            styleFilter={styleFilter}
+            onStyleChange={setStyleFilter}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearFilters}
+            onBack={() => navigate('/create')}
+          />
         </motion.div>
+
+        {/* Category Tabs */}
+        <div className="mb-8">
+          <AvatarsCategoryTabs
+            activeType={avatarTypeFilter}
+            onTypeChange={setAvatarTypeFilter}
+            totalCount={templates.length}
+          />
+        </div>
 
         {/* Premium Horizontal Gallery */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.4 }}
           className="mb-8"
         >
           {error ? (
@@ -440,155 +294,31 @@ export default function Avatars() {
             />
           )}
         </motion.div>
-
-        {/* Configuration Panel - Sticky Bottom */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="max-w-5xl mx-auto px-6"
-        >
-          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-white/[0.08] backdrop-blur-xl">
-            <div className="grid md:grid-cols-[1fr,auto,auto] gap-6 items-end">
-              {/* Script Input */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-white/70 flex items-center gap-2">
-                    <Mic className="w-4 h-4" />
-                    Script
-                  </Label>
-                  {selectedAvatar && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <img 
-                        src={selectedAvatar.front_image_url || selectedAvatar.face_image_url} 
-                        alt={selectedAvatar.name}
-                        className="w-6 h-6 rounded-full object-cover border border-white/20"
-                      />
-                      <span className="text-white/70">{selectedAvatar.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedAvatar(null)}
-                        className="h-6 px-2 text-xs text-white/40 hover:text-white"
-                      >
-                        Change
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <Textarea
-                  placeholder={selectedAvatar 
-                    ? `What should ${selectedAvatar.name} say? Enter your script here...`
-                    : "First, select an avatar above..."
-                  }
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="min-h-[80px] bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 resize-none"
-                  disabled={!selectedAvatar}
-                />
-              </div>
-
-              {/* Quick Settings */}
-              <div className="flex items-center gap-4">
-                {/* Aspect Ratio */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-white/50">Format</Label>
-                  <div className="flex gap-1">
-                    {ASPECT_RATIOS.map((ratio) => (
-                      <button
-                        key={ratio.id}
-                        onClick={() => setAspectRatio(ratio.id)}
-                        className={cn(
-                          "p-2 rounded-lg border transition-all",
-                          aspectRatio === ratio.id
-                            ? "border-violet-500 bg-violet-500/10 text-violet-300"
-                            : "border-white/[0.08] text-white/40 hover:border-white/20 hover:text-white/60"
-                        )}
-                        title={ratio.description}
-                      >
-                        <ratio.icon className="w-4 h-4" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Duration */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-white/50">Duration</Label>
-                  <Select value={String(clipDuration)} onValueChange={(v) => setClipDuration(Number(v))}>
-                    <SelectTrigger className="w-24 h-9 bg-white/[0.03] border-white/[0.08] text-white text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-white/10">
-                      {CLIP_DURATIONS.map((d) => (
-                        <SelectItem key={d.id} value={String(d.id)} className="text-white focus:bg-white/10 focus:text-white">
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Clips */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-white/50">Clips: {clipCount}</Label>
-                  <Slider
-                    value={[clipCount]}
-                    onValueChange={([v]) => setClipCount(v)}
-                    min={1}
-                    max={maxClips}
-                    step={1}
-                    className="w-24"
-                  />
-                </div>
-
-                {/* Music Toggle */}
-                <div className="flex items-center gap-2">
-                  <Music className={cn("w-4 h-4", enableMusic ? "text-violet-400" : "text-white/30")} />
-                  <Switch checked={enableMusic} onCheckedChange={setEnableMusic} />
-                </div>
-              </div>
-
-              {/* Create Button & Cost */}
-              <div className="flex flex-col items-end gap-2">
-                <Button
-                  onClick={handleCreate}
-                  disabled={!isReadyToCreate || isCreating}
-                  className={cn(
-                    "h-12 px-8 text-base font-medium transition-all",
-                    isReadyToCreate
-                      ? "bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white"
-                      : "bg-white/[0.05] text-white/30 cursor-not-allowed"
-                  )}
-                >
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 mr-2" />
-                      Create Video
-                    </>
-                  )}
-                </Button>
-                
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-white/40">{estimatedDuration}s</span>
-                  <span className="text-white/20">•</span>
-                  <span className={cn("flex items-center gap-1", hasInsufficientCredits ? "text-red-400" : "text-amber-400")}>
-                    <Zap className="w-3 h-3" />
-                    {estimatedCredits} credits
-                  </span>
-                  <span className="text-white/20">•</span>
-                  <span className="text-white/40">Balance: {userCredits}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
+
+      {/* Sticky Configuration Panel */}
+      <AvatarsConfigPanel
+        selectedAvatar={selectedAvatar}
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        aspectRatio={aspectRatio}
+        onAspectRatioChange={setAspectRatio}
+        clipDuration={clipDuration}
+        onClipDurationChange={setClipDuration}
+        clipCount={clipCount}
+        onClipCountChange={setClipCount}
+        maxClips={maxClips}
+        enableMusic={enableMusic}
+        onEnableMusicChange={setEnableMusic}
+        estimatedDuration={estimatedDuration}
+        estimatedCredits={estimatedCredits}
+        userCredits={userCredits}
+        hasInsufficientCredits={hasInsufficientCredits}
+        isCreating={isCreating}
+        isReadyToCreate={!!isReadyToCreate}
+        onClearAvatar={() => setSelectedAvatar(null)}
+        onCreate={handleCreate}
+      />
 
       {/* Avatar Preview Modal with 3D Viewer */}
       <AvatarPreviewModal
@@ -602,12 +332,24 @@ export default function Avatars() {
 
       {/* Loading Overlay */}
       {isCreating && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-            <p className="text-white/70 text-lg">{creationStatus || 'Starting creation...'}</p>
-            <p className="text-white/40 text-sm">Building character consistency profile...</p>
-          </div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-6"
+          >
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 animate-ping" />
+              <div className="absolute inset-2 rounded-full border-2 border-violet-500/50 animate-pulse" />
+              <div className="absolute inset-4 rounded-full bg-violet-500/20 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            </div>
+            <div>
+              <p className="text-white text-lg font-medium">{creationStatus || 'Starting creation...'}</p>
+              <p className="text-white/40 text-sm mt-2">Building character consistency profile...</p>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

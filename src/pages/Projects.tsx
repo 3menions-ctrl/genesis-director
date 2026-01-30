@@ -634,8 +634,8 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
 // ============= MAIN COMPONENT =============
 
-// Content component wrapped for error boundary
-const ProjectsContent = memo(function ProjectsContent() {
+// Content component wrapped for error boundary - uses forwardRef to handle Dialog refs properly
+const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -1948,7 +1948,7 @@ const ProjectsContent = memo(function ProjectsContent() {
       </Dialog>
     </div>
   );
-});
+}));
 
 // Wrapper with error boundary for fault isolation
 export default function Projects() {

@@ -7,7 +7,7 @@ import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
 import { PremiumAvatarGallery } from '@/components/avatars/PremiumAvatarGallery';
-import { AvatarsBackground } from '@/components/avatars/AvatarsBackground';
+import AvatarsBackground from '@/components/avatars/AvatarsBackground';
 import { AvatarsHero } from '@/components/avatars/AvatarsHero';
 import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
 import { AvatarsFilters } from '@/components/avatars/AvatarsFilters';

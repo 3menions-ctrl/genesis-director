@@ -1,3 +1,5 @@
+import { PendingVideoTasks, parsePendingVideoTasks } from './pending-video-tasks';
+
 export type ProjectStatus = 'idle' | 'generating' | 'rendering' | 'completed' | 'stitching' | 'stitching_failed';
 
 export interface Studio {
@@ -9,13 +11,17 @@ export interface Studio {
   owner_id: string;
 }
 
-// Pending task structure stored in database
+// Re-export for backward compatibility - prefer PendingVideoTasks object
+export type { PendingVideoTasks };
+export { parsePendingVideoTasks };
+
+// Legacy array format - deprecated, use PendingVideoTasks object instead
 export interface PendingVideoTask {
   taskId: string;
   clipIndex: number;
   prompt: string;
   startedAt: number;
-  [key: string]: string | number; // Index signature for Json compatibility
+  [key: string]: string | number;
 }
 
 export interface Project {
@@ -37,6 +43,9 @@ export interface Project {
   include_narration?: boolean;
   target_duration_minutes?: number;
   thumbnail_url?: string;
+  // Pipeline metadata object (preferred) - contains clipDuration, clipCount, stage, etc.
+  pending_video_tasks_obj?: PendingVideoTasks | null;
+  // Legacy array format - deprecated
   pending_video_tasks?: PendingVideoTask[];
   is_public?: boolean;
   genre?: string;

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus } from '@/types/studio';
+import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, parsePendingVideoTasks } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +55,14 @@ function mapDbStatus(dbStatus: string): ProjectStatus {
 
 // Map database project to app Project type
 function mapDbProject(dbProject: any): Project {
+  // Parse pending_video_tasks as object (backend format) with safe fallback
+  const parsedTasks = parsePendingVideoTasks(dbProject.pending_video_tasks);
+  
+  // Legacy array format fallback for backward compatibility
+  const legacyTasks = Array.isArray(dbProject.pending_video_tasks) 
+    ? dbProject.pending_video_tasks 
+    : [];
+
   return {
     id: dbProject.id,
     studio_id: 'studio-1',
@@ -71,10 +79,13 @@ function mapDbProject(dbProject: any): Project {
     voice_audio_url: dbProject.voice_audio_url,
     video_url: dbProject.video_url,
     video_clips: dbProject.video_clips || [],
-    include_narration: dbProject.include_narration ?? false, // Default to NO narration unless explicitly enabled
+    include_narration: dbProject.include_narration ?? false,
     target_duration_minutes: dbProject.target_duration_minutes,
     thumbnail_url: dbProject.thumbnail_url,
-    pending_video_tasks: dbProject.pending_video_tasks || [],
+    // Properly typed pipeline metadata object (contains clipDuration, clipCount, stage, etc.)
+    pending_video_tasks_obj: parsedTasks,
+    // Legacy array format for backward compatibility
+    pending_video_tasks: legacyTasks,
     is_public: dbProject.is_public ?? false,
     genre: dbProject.genre || 'cinematic',
   };

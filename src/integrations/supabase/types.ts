@@ -166,10 +166,13 @@ export type Database = {
       avatar_templates: {
         Row: {
           age_range: string | null
+          back_image_url: string | null
+          character_bible: Json | null
           created_at: string
           description: string | null
           ethnicity: string | null
           face_image_url: string
+          front_image_url: string | null
           gender: string
           id: string
           is_active: boolean | null
@@ -177,6 +180,7 @@ export type Database = {
           name: string
           personality: string | null
           sample_audio_url: string | null
+          side_image_url: string | null
           sort_order: number | null
           style: string | null
           tags: string[] | null
@@ -190,10 +194,13 @@ export type Database = {
         }
         Insert: {
           age_range?: string | null
+          back_image_url?: string | null
+          character_bible?: Json | null
           created_at?: string
           description?: string | null
           ethnicity?: string | null
           face_image_url: string
+          front_image_url?: string | null
           gender?: string
           id?: string
           is_active?: boolean | null
@@ -201,6 +208,7 @@ export type Database = {
           name: string
           personality?: string | null
           sample_audio_url?: string | null
+          side_image_url?: string | null
           sort_order?: number | null
           style?: string | null
           tags?: string[] | null
@@ -214,10 +222,13 @@ export type Database = {
         }
         Update: {
           age_range?: string | null
+          back_image_url?: string | null
+          character_bible?: Json | null
           created_at?: string
           description?: string | null
           ethnicity?: string | null
           face_image_url?: string
+          front_image_url?: string | null
           gender?: string
           id?: string
           is_active?: boolean | null
@@ -225,6 +236,7 @@ export type Database = {
           name?: string
           personality?: string | null
           sample_audio_url?: string | null
+          side_image_url?: string | null
           sort_order?: number | null
           style?: string | null
           tags?: string[] | null

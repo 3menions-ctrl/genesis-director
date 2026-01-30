@@ -1,5 +1,17 @@
 // Avatar template types for premade avatar selection
 
+export interface CharacterBible {
+  front_view?: string;
+  side_view?: string;
+  back_view?: string;
+  silhouette?: string;
+  hair_description?: string;
+  clothing_description?: string;
+  body_type?: string;
+  distinguishing_features?: string[];
+  negative_prompts?: string[];
+}
+
 export interface AvatarTemplate {
   id: string;
   name: string;
@@ -11,6 +23,13 @@ export interface AvatarTemplate {
   style: string | null;
   face_image_url: string;
   thumbnail_url: string | null;
+  // Multi-angle support
+  front_image_url: string | null;
+  side_image_url: string | null;
+  back_image_url: string | null;
+  // Character bible for production consistency
+  character_bible: CharacterBible | null;
+  // Voice configuration
   voice_id: string;
   voice_provider: string;
   voice_name: string | null;

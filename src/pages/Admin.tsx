@@ -55,6 +55,7 @@ import { AdminTierLimitsEditor } from '@/components/admin/AdminTierLimitsEditor'
 import { AdminContentModeration } from '@/components/admin/AdminContentModeration';
 import { AdminSystemConfig } from '@/components/admin/AdminSystemConfig';
 import { AdminMessageCenter } from '@/components/admin/AdminMessageCenter';
+import { AdminAvatarSeeder } from '@/components/admin/AdminAvatarSeeder';
 
 interface ProfitData {
   date: string;
@@ -1042,6 +1043,9 @@ export default function AdminDashboard() {
 
       case 'config':
         return <AdminSystemConfig />;
+
+      case 'avatars':
+        return <AdminAvatarSeeder />;
 
       default:
         return null;

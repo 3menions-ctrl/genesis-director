@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -37,6 +38,7 @@ const navItems = [
   { id: 'audit', label: 'Audit Log', icon: History, group: 'system' },
   { id: 'packages', label: 'Packages', icon: Coins, group: 'system' },
   { id: 'moderation', label: 'Moderation', icon: Shield, group: 'system' },
+  { id: 'avatars', label: 'Avatar Gen', icon: Sparkles, group: 'system' },
   { id: 'config', label: 'Config', icon: Settings, group: 'system' },
 ];
 

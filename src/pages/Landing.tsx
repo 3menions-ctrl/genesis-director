@@ -24,9 +24,16 @@ const SectionLoader = memo(function SectionLoader() {
   );
 });
 
-// Minimal fallback for critical failures
+// Minimal fallback for critical failures - now visible for debugging
 const MinimalFallback = memo(function MinimalFallback() {
-  return <div className="py-24" />;
+  return (
+    <div className="py-24 flex items-center justify-center">
+      <div className="text-center text-white/30">
+        <div className="w-8 h-8 mx-auto mb-2 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+        <p className="text-sm">Loading section...</p>
+      </div>
+    </div>
+  );
 });
 
 // Background fallback
@@ -65,9 +72,25 @@ const heroLetterVariants = {
   }
 };
 
+// Optimized animation variants - static objects with safer defaults
+// Use animate instead of whileInView for critical content to ensure visibility
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0 }
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.6 }
+  }
+};
+
+// Immediate visibility variant - doesn't wait for viewport intersection
+const fadeInUpImmediate = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, delay: 0.1 }
+  }
 };
 
 // Memoized Hero Title - completely isolated from parent re-renders
@@ -160,15 +183,13 @@ const HeroTitle = memo(function HeroTitle() {
   );
 });
 
-// Memoized Step Card - prevents re-render when parent state changes
+// Memoized Step Card - uses animate for reliable visibility
 const StepCard = memo(function StepCard({ item, index }: { item: typeof STEPS[number]; index: number }) {
   return (
     <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      variants={fadeInUp}
-      transition={{ delay: index * 0.1 }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.3 + index * 0.15 }}
       className="relative p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]"
     >
       <span className="text-6xl font-bold text-white/[0.06] absolute top-6 right-6">
@@ -245,10 +266,9 @@ const PricingSection = memo(function PricingSection({ onNavigate }: { onNavigate
   return (
     <section id="pricing" className="relative z-10 py-24 px-6">
       <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={fadeInUp}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
         className="max-w-4xl mx-auto"
       >
         <div className="relative group">
@@ -308,10 +328,9 @@ const FinalCTASection = memo(function FinalCTASection({ onNavigate }: { onNaviga
     <section className="relative z-10 py-32 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
             Ready to create?
@@ -466,10 +485,9 @@ export default function Landing() {
       <section id="features" className="relative z-10 py-32 px-6">
         <div className="max-w-5xl mx-auto">
           <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
             className="text-center mb-20"
           >
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">

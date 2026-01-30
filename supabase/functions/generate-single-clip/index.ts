@@ -137,9 +137,13 @@ async function createReplicatePrediction(
   return { predictionId: prediction.id };
 }
 
-// Poll Replicate prediction for completion
+// Poll Replicate prediction for completion with progress updates
 async function pollReplicatePrediction(
   predictionId: string,
+  supabase: any,
+  projectId: string,
+  shotIndex: number,
+  totalShots: number,
   maxAttempts = 90,      // 90 attempts x 4 seconds = 6 minutes max
   pollInterval = 4000    // 4 second intervals
 ): Promise<{ videoUrl: string }> {
@@ -149,6 +153,28 @@ async function pollReplicatePrediction(
   }
 
   const statusUrl = `${REPLICATE_PREDICTIONS_URL}/${predictionId}`;
+  
+  // Progress update helper - updates pipeline_state for UI
+  const updateProgress = async (stage: string, progress: number, message: string) => {
+    try {
+      await supabase
+        .from('movie_projects')
+        .update({
+          pipeline_state: {
+            stage,
+            progress,
+            message,
+            currentClip: shotIndex + 1,
+            totalClips: totalShots,
+            predictionId,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+    } catch (e) {
+      console.log(`[SingleClip] Progress update failed (non-critical):`, e);
+    }
+  };
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -168,6 +194,33 @@ async function pollReplicatePrediction(
     
     console.log(`[SingleClip] Poll attempt ${attempt + 1}: status=${prediction.status}`);
     
+    // Calculate progress: each clip is a portion of total, within clip we estimate based on poll attempts
+    // Assume 25 polls average to completion (~100 seconds)
+    const clipProgress = Math.min(95, Math.round((attempt / 25) * 100));
+    const baseProgress = Math.round((shotIndex / totalShots) * 100);
+    const clipContribution = Math.round((1 / totalShots) * clipProgress);
+    const overallProgress = Math.min(95, baseProgress + clipContribution);
+    
+    // Update progress every 3 polls to avoid excessive DB writes
+    if (attempt % 3 === 0) {
+      const messages = [
+        'Initializing neural render engine...',
+        'Mapping character consistency anchors...',
+        'Generating motion vectors...',
+        'Rendering cinematic frames...',
+        'Applying lighting algorithms...',
+        'Synthesizing temporal coherence...',
+        'Finalizing HD video output...',
+      ];
+      const messageIndex = Math.min(Math.floor(attempt / 4), messages.length - 1);
+      
+      await updateProgress(
+        'rendering',
+        overallProgress,
+        `Clip ${shotIndex + 1}/${totalShots}: ${messages[messageIndex]}`
+      );
+    }
+    
     switch (prediction.status) {
       case "succeeded":
         // Extract video URL from output
@@ -184,14 +237,23 @@ async function pollReplicatePrediction(
           throw new Error("No video URL in completed Replicate response");
         }
         
+        // Update progress to show clip completed
+        await updateProgress(
+          'rendering',
+          Math.round(((shotIndex + 1) / totalShots) * 100),
+          `Clip ${shotIndex + 1}/${totalShots} complete! ${shotIndex + 1 < totalShots ? 'Starting next clip...' : 'Finalizing video...'}`
+        );
+        
         console.log(`[SingleClip] ✓ Kling clip completed: ${videoUrl.substring(0, 80)}...`);
         return { videoUrl };
         
       case "failed":
         const errorMsg = prediction.error || "Replicate generation failed";
+        await updateProgress('error', overallProgress, `Clip ${shotIndex + 1} failed: ${errorMsg.substring(0, 100)}`);
         throw new Error(`Kling generation failed: ${errorMsg}`);
         
       case "canceled":
+        await updateProgress('canceled', overallProgress, 'Generation was canceled');
         throw new Error("Kling generation was canceled");
         
       case "starting":
@@ -686,8 +748,14 @@ serve(async (req) => {
       );
     }
 
-    // Poll for completion
-    const { videoUrl } = await pollReplicatePrediction(predictionId);
+    // Poll for completion with real-time progress updates
+    const { videoUrl } = await pollReplicatePrediction(
+      predictionId,
+      supabase,
+      projectId,
+      shotIndex,
+      totalClips || 1
+    );
 
     // Store video in Supabase storage
     const storedVideoUrl = await storeVideoFromUrl(supabase, videoUrl, projectId, shotIndex);

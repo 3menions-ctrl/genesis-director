@@ -92,26 +92,27 @@ interface ProjectCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-const ProjectCard = memo(function ProjectCard({ 
-  project,
-  index,
-  onPlay,
-  onEdit,
-  onRename,
-  onDelete,
-  onDownload,
-  onRetryStitch,
-  onBrowserStitch,
-  onTogglePin,
-  onTogglePublic,
-  isActive,
-  isRetrying = false,
-  isBrowserStitching = false,
-  isPinned = false,
-  viewMode = 'grid',
-  // Pre-resolved clip URL passed from parent to avoid N+1 queries
-  preResolvedClipUrl,
-}: ProjectCardProps & { preResolvedClipUrl?: string | null }) {
+const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preResolvedClipUrl?: string | null }>(
+  function ProjectCard({ 
+    project,
+    index,
+    onPlay,
+    onEdit,
+    onRename,
+    onDelete,
+    onDownload,
+    onRetryStitch,
+    onBrowserStitch,
+    onTogglePin,
+    onTogglePublic,
+    isActive,
+    isRetrying = false,
+    isBrowserStitching = false,
+    isPinned = false,
+    viewMode = 'grid',
+    // Pre-resolved clip URL passed from parent to avoid N+1 queries
+    preResolvedClipUrl,
+  }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMountedRef = useRef(true);
   const [isHovered, setIsHovered] = useState(false);
@@ -244,6 +245,7 @@ const ProjectCard = memo(function ProjectCard({
   if (viewMode === 'list') {
     return (
       <motion.div
+        ref={ref}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
@@ -359,6 +361,7 @@ const ProjectCard = memo(function ProjectCard({
   // Cinematic Grid view
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 30, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
@@ -627,7 +630,7 @@ const ProjectCard = memo(function ProjectCard({
       </div>
     </motion.div>
   );
-});
+}));
 
 // ============= MAIN COMPONENT =============
 

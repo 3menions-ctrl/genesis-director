@@ -76,12 +76,16 @@ export default function Auth() {
   }, []);
 
   // Redirect authenticated users - only once to prevent blinking
+  // CRITICAL: Skip redirect while welcome dialog is showing to prevent flash
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) return;
     
     // Only redirect once
     if (hasRedirected) return;
+    
+    // Don't redirect while welcome dialog is showing - it will handle navigation
+    if (showWelcomeDialog) return;
     
     if (user && profile) {
       setHasRedirected(true);
@@ -91,7 +95,7 @@ export default function Auth() {
         navigate('/projects', { replace: true });
       }
     }
-  }, [user, profile, authLoading, hasRedirected, navigate]);
+  }, [user, profile, authLoading, hasRedirected, navigate, showWelcomeDialog]);
 
   const validateForm = (): boolean => {
     // Use stricter validation for signup
@@ -170,7 +174,14 @@ export default function Auth() {
 
   const handleWelcomeComplete = () => {
     setShowWelcomeDialog(false);
-    // Navigation will happen via the useEffect that watches user/profile
+    // Explicitly navigate after welcome dialog - don't rely on useEffect
+    // This ensures smooth transition without flash
+    setHasRedirected(true);
+    if (profile && !profile.onboarding_completed) {
+      navigate('/onboarding', { replace: true });
+    } else {
+      navigate('/projects', { replace: true });
+    }
   };
 
   return (

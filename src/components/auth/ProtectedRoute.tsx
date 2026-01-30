@@ -47,12 +47,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [location.pathname, hasSessionInState]);
 
-  // Redirect to auth only when we're certain there's no session
+  // Redirect to auth only when we're CERTAIN there's no session
+  // Add extra stability check to prevent flash during login transitions
   useEffect(() => {
+    // Still loading or verifying - wait
     if (loading || !isSessionVerified) return;
-    if (!session && !user) {
-      navigate('/auth', { replace: true });
-    }
+    
+    // Give a small buffer for state synchronization after login
+    const timeoutId = setTimeout(() => {
+      if (!session && !user) {
+        navigate('/auth', { replace: true });
+      }
+    }, 50);
+    
+    return () => clearTimeout(timeoutId);
   }, [loading, isSessionVerified, session, user, navigate]);
 
   // Handle onboarding redirect

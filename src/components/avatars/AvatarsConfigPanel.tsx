@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Mic, Play, Zap, Loader2, Music,
@@ -53,7 +53,7 @@ interface AvatarsConfigPanelProps {
   onCreate: () => void;
 }
 
-export const AvatarsConfigPanel = memo(function AvatarsConfigPanel({
+export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigPanelProps>(function AvatarsConfigPanel({
   selectedAvatar,
   prompt,
   onPromptChange,
@@ -74,9 +74,10 @@ export const AvatarsConfigPanel = memo(function AvatarsConfigPanel({
   isReadyToCreate,
   onClearAvatar,
   onCreate,
-}: AvatarsConfigPanelProps) {
+}, ref) {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
@@ -354,6 +355,8 @@ export const AvatarsConfigPanel = memo(function AvatarsConfigPanel({
       </div>
     </motion.div>
   );
-});
+}));
+
+AvatarsConfigPanel.displayName = 'AvatarsConfigPanel';
 
 export default AvatarsConfigPanel;

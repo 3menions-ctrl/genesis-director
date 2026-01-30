@@ -1,22 +1,20 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
 
 export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
-  const { isSessionVerified } = useAuth();
   const [templates, setTemplates] = useState<AvatarTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
-  const hasFetchedRef = useRef(false);
+  const fetchAttemptedRef = useRef(false);
 
   const fetchTemplates = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
-    
-    console.log('[useAvatarTemplates] Starting fetch...');
+    // Only log once per mount to reduce noise
+    if (!fetchAttemptedRef.current) {
+      console.log('[useAvatarTemplates] Starting fetch...');
+    }
+    fetchAttemptedRef.current = true;
     
     if (isMountedRef.current) {
       setIsLoading(true);
@@ -24,38 +22,38 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     }
 
     try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
-        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 10000);
-      });
+      // Simple timeout wrapper - avatar_templates has public RLS so no auth needed
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Query avatar_templates table
-      const fetchPromise = supabase
+      const { data, error: fetchError } = await supabase
         .from('avatar_templates')
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
-      
-      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
+      clearTimeout(timeoutId);
 
       if (!isMountedRef.current) return;
 
-      if (result.error) {
-        // Handle timeout gracefully
-        if (result.error.message === 'timeout') {
-          console.warn('[useAvatarTemplates] Request timed out');
-          setTemplates([]);
-          return;
-        }
-        throw result.error;
+      if (fetchError) {
+        console.error('[useAvatarTemplates] Fetch error:', fetchError.message);
+        throw fetchError;
       }
 
-      console.log('[useAvatarTemplates] Fetched', result.data?.length || 0, 'templates');
-      setTemplates((result.data as unknown as AvatarTemplate[]) || []);
+      console.log('[useAvatarTemplates] Fetched', data?.length || 0, 'templates');
+      setTemplates((data as unknown as AvatarTemplate[]) || []);
+      setError(null);
     } catch (err) {
       if (!isMountedRef.current) return;
-      console.error('[useAvatarTemplates] Failed to fetch:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load avatars');
+      
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load avatars';
+      console.error('[useAvatarTemplates] Failed to fetch:', errorMessage);
+      
+      // Only set error if not aborted
+      if (errorMessage !== 'AbortError') {
+        setError(errorMessage);
+      }
       setTemplates([]);
     } finally {
       if (isMountedRef.current) {
@@ -64,30 +62,18 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     }
   }, []);
 
+  // Fetch immediately on mount - avatar_templates is public readable
   useEffect(() => {
     isMountedRef.current = true;
-    hasFetchedRef.current = false;
+    fetchAttemptedRef.current = false;
     
-    console.log('[useAvatarTemplates] Effect running, isSessionVerified:', isSessionVerified);
-    
-    // Fetch when session is verified
-    if (isSessionVerified) {
-      fetchTemplates();
-    } else {
-      // Set a timeout to fetch anyway if session takes too long
-      const timeout = setTimeout(() => {
-        if (isMountedRef.current && !hasFetchedRef.current) {
-          console.warn('[useAvatarTemplates] Session verification timeout, fetching anyway');
-          fetchTemplates();
-        }
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
+    // Fetch immediately - no session required for public table
+    fetchTemplates();
     
     return () => {
       isMountedRef.current = false;
     };
-  }, [isSessionVerified, fetchTemplates]);
+  }, [fetchTemplates]);
 
   // Apply client-side filtering
   const filteredTemplates = useMemo(() => {
@@ -130,7 +116,7 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     error,
     refetch: () => {
       if (isMountedRef.current) {
-        hasFetchedRef.current = false;
+        fetchAttemptedRef.current = false;
         setTemplates([]);
         setIsLoading(true);
         fetchTemplates();

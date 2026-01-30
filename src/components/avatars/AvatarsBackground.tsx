@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo, forwardRef } from 'react';
 
 /**
  * Premium background for the Avatars page
  * Uses CSS animations with violet/magenta palette for a modern, advanced aesthetic
  */
-export default function AvatarsBackground() {
+const AvatarsBackground = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsBackground(_, ref) {
   const [isVisible, setIsVisible] = useState(false);
   
   // Fade in on mount
@@ -308,4 +308,6 @@ export default function AvatarsBackground() {
       />
     </div>
   );
-}
+}));
+
+export default AvatarsBackground;

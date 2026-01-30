@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import pipelineAbstractBg from '@/assets/pipeline-abstract-bg.jpg';
 
@@ -9,7 +10,7 @@ interface ProfileBackgroundProps {
  * Premium background for the Profile page
  * Features elegant green flowing lines on pure black - matching Create page
  */
-export default function ProfileBackground({ className }: ProfileBackgroundProps) {
+const ProfileBackground = memo(forwardRef<HTMLDivElement, ProfileBackgroundProps>(function ProfileBackground({ className }, ref) {
   return (
     <div className={cn("fixed inset-0 -z-10", className)}>
       {/* Premium abstract background image - emerald green flowing lines */}
@@ -64,4 +65,6 @@ export default function ProfileBackground({ className }: ProfileBackgroundProps)
       />
     </div>
   );
-}
+}));
+
+export default ProfileBackground;

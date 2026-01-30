@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStudio } from '@/contexts/StudioContext';
@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { CreditsDisplay } from '@/components/studio/CreditsDisplay';
 import TrainingBackground from '@/components/training/TrainingBackground';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { handleError } from '@/lib/errorHandler';
 
 // Import environment presets - Diverse variety for training videos
 import corporateBoardroomImg from '@/assets/environments/corporate-boardroom.jpg';
@@ -144,7 +146,8 @@ const WIZARD_STEPS = [
   { id: 'scene', label: 'Scene', icon: Image },
 ];
 
-export default function TrainingVideo() {
+// Main content component with forwardRef for ref compatibility
+const TrainingVideoContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TrainingVideoContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { credits } = useStudio();
@@ -1035,5 +1038,14 @@ export default function TrainingVideo() {
         </div>
       </main>
     </div>
+  );
+}));
+
+// Wrapper with error boundary for fault isolation
+export default function TrainingVideo() {
+  return (
+    <ErrorBoundary>
+      <TrainingVideoContent />
+    </ErrorBoundary>
   );
 }

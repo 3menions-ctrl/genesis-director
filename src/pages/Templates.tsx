@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import TemplatesBackground from '@/components/templates/TemplatesBackground';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface Template {
   id: string;
@@ -319,15 +320,16 @@ const BUILT_IN_TEMPLATES = [
 
 type TemplateItem = typeof BUILT_IN_TEMPLATES[0];
 
-function TemplateCard({ 
-  template,
-  onUse,
-  index = 0,
-}: { 
+// Wrap TemplateCard with forwardRef for Framer Motion compatibility
+const TemplateCard = forwardRef<HTMLDivElement, { 
   template: TemplateItem;
   onUse: () => void;
   index?: number;
-}) {
+}>(function TemplateCard({ 
+  template,
+  onUse,
+  index = 0,
+}, ref) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -433,9 +435,12 @@ function TemplateCard({
       </div>
     </motion.div>
   );
-}
+});
 
-export default function Templates() {
+TemplateCard.displayName = 'TemplateCard';
+
+// Main content component separated for error boundary
+const TemplatesContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function TemplatesContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -589,5 +594,14 @@ export default function Templates() {
         )}
       </main>
     </div>
+  );
+}));
+
+// Wrapper with error boundary for fault isolation
+export default function Templates() {
+  return (
+    <ErrorBoundary>
+      <TemplatesContent />
+    </ErrorBoundary>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo, forwardRef, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
-import { ErrorBoundaryWrapper } from '@/components/ui/error-boundary';
+import { ErrorBoundaryWrapper, ErrorBoundary } from '@/components/ui/error-boundary';
 
 // CRITICAL: Import background directly - prevents flash on page load
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -119,7 +119,8 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 
 // ============= MAIN COMPONENT =============
 
-export default function Production() {
+// Content component wrapped for error boundary
+const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProductionContent(_, ref) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -1288,5 +1289,14 @@ export default function Production() {
         )}
       </AnimatePresence>
     </div>
+  );
+}));
+
+// Wrapper with error boundary for fault isolation
+export default function Production() {
+  return (
+    <ErrorBoundary>
+      <ProductionContent />
+    </ErrorBoundary>
   );
 }

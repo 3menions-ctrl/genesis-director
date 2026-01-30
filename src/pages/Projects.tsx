@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useMemo, useCallback, forwardRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, forwardRef, memo } from 'react';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { 
   Plus, MoreVertical, Trash2, Edit2, Film, Play, 
   Download, Loader2, Clock, Zap, Eye, Star, Heart, TrendingUp,
@@ -614,7 +615,8 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
 
 // ============= MAIN COMPONENT =============
 
-export default function Projects() {
+// Content component wrapped for error boundary
+const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -1874,5 +1876,14 @@ export default function Projects() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}));
+
+// Wrapper with error boundary for fault isolation
+export default function Projects() {
+  return (
+    <ErrorBoundary>
+      <ProjectsContent />
+    </ErrorBoundary>
   );
 }

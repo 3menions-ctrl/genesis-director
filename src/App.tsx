@@ -66,7 +66,6 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <StudioProvider>
-              <Suspense fallback={<AppLoader message="Starting Apex Studio..." />}>
               <Routes>
                 {/* Public routes - each wrapped for isolation */}
                 <Route path="/" element={
@@ -300,7 +299,6 @@ const App = () => (
                   </RouteContainer>
                 } />
               </Routes>
-              </Suspense>
             </StudioProvider>
           </AuthProvider>
         </BrowserRouter>

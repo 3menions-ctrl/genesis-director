@@ -132,19 +132,27 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
     return () => { isMountedRef.current = false; };
   }, []);
   
-  // Determine video source - use pre-resolved URL or fallback to project data
+  // Determine video source - ALWAYS prefer pre-resolved URLs to avoid expired Replicate URLs
   const videoSrc = useMemo(() => {
-    // Priority 1: Pre-resolved clip URL from parent (batch-loaded)
+    // Priority 1: Pre-resolved clip URL from parent (batch-loaded, guaranteed permanent)
     if (preResolvedClipUrl) {
       return preResolvedClipUrl;
     }
-    // Priority 2: Direct video URL
-    if (isDirectVideo && project.video_url) {
-      return project.video_url;
-    }
-    // Priority 3: Video clips array
+    // Priority 2: Video clips array (permanent Supabase storage URLs)
     if (project.video_clips?.length) {
+      // Filter to only Supabase storage URLs
+      const permanentClips = project.video_clips.filter(url => 
+        url && (url.includes('supabase.co/storage') || url.includes('.supabase.co'))
+      );
+      if (permanentClips.length > 0) {
+        return permanentClips.length > 1 ? permanentClips[1] : permanentClips[0];
+      }
+      // Fallback to first available clip
       return project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0];
+    }
+    // Priority 3: Direct video URL (only if NOT a Replicate delivery URL - those expire!)
+    if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
+      return project.video_url;
     }
     return null;
   }, [project.video_url, project.video_clips, isDirectVideo, preResolvedClipUrl]);
@@ -699,13 +707,16 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
     if (!hasLoadedOnce || projects.length === 0) return;
     
     const resolveClipUrls = async () => {
-      // Find projects that need clip URL resolution (have manifest or are completed without clips array)
+      // ALWAYS check video_clips for ALL completed projects to avoid expired Replicate URLs
+      // Replicate delivery URLs are temporary - we must use permanent Supabase storage URLs
       const projectsNeedingResolution = projects.filter(p => {
-        const hasDirectVideo = p.video_url && !isManifestUrl(p.video_url);
-        const hasClipsArray = p.video_clips && p.video_clips.length > 0;
         const isCompleted = p.status === 'completed';
-        // Need resolution if: manifest URL or completed without direct video/clips array
-        return (isManifestUrl(p.video_url) || (isCompleted && !hasDirectVideo && !hasClipsArray));
+        const hasClipsArray = p.video_clips && p.video_clips.length > 0;
+        // Also resolve for projects with Replicate URLs (they expire!)
+        const hasReplicateUrl = p.video_url?.includes('replicate.delivery');
+        const hasManifest = isManifestUrl(p.video_url);
+        // Need resolution if: completed, has manifest, has Replicate URL, or missing clips array
+        return isCompleted || hasManifest || hasReplicateUrl || !hasClipsArray;
       });
       
       if (projectsNeedingResolution.length === 0) return;
@@ -725,7 +736,11 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
           // Group by project_id and take first clip for each
           const clipsByProject = new Map<string, string>();
           for (const clip of clips) {
-            if (!clipsByProject.has(clip.project_id) && clip.video_url) {
+            // Only use permanent Supabase storage URLs (not Replicate delivery URLs)
+            const isPermanentUrl = clip.video_url && 
+              (clip.video_url.includes('supabase.co/storage') || 
+               clip.video_url.includes('.supabase.co'));
+            if (!clipsByProject.has(clip.project_id) && clip.video_url && isPermanentUrl) {
               clipsByProject.set(clip.project_id, clip.video_url);
             }
           }

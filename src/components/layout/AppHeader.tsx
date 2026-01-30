@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Plus, Coins, User, Settings, HelpCircle, 
@@ -38,12 +38,12 @@ interface AppHeaderProps {
   className?: string;
 }
 
-export function AppHeader({ 
+export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function AppHeader({ 
   showCreate = true, 
   showCredits = true,
   onCreateClick,
   className 
-}: AppHeaderProps) {
+}, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, isAdmin } = useAuth();
@@ -310,4 +310,4 @@ export function AppHeader({
       />
     </nav>
   );
-}
+}));

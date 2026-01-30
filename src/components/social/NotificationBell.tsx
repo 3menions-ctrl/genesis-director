@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { Bell, Check, Trophy, Heart, MessageCircle, UserPlus, Zap, Gift, Video, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +42,7 @@ const notificationColors: Record<NotificationType, string> = {
   mention: 'text-blue-500',
 };
 
-export function NotificationBell() {
+export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string, never>>(function NotificationBell(_, ref) {
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
@@ -127,4 +127,4 @@ export function NotificationBell() {
       </PopoverContent>
     </Popover>
   );
-}
+}));

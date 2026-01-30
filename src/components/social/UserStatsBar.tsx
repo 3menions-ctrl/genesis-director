@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { Flame, Zap, Trophy, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export function UserStatsBar() {
+export const UserStatsBar = memo(forwardRef<HTMLDivElement, Record<string, never>>(function UserStatsBar(_, ref) {
   const { stats, xpProgress, unlockedAchievements, statsLoading } = useGamification();
 
   // Don't render until stats are loaded to prevent null access crashes
@@ -98,4 +99,4 @@ export function UserStatsBar() {
       </TooltipProvider>
     </div>
   );
-}
+}));

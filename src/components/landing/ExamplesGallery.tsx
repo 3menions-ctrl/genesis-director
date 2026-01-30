@@ -152,7 +152,7 @@ const ExamplesGallery = memo(forwardRef<HTMLDivElement, ExamplesGalleryProps>(
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-none w-screen h-screen p-0 border-0 bg-black overflow-hidden rounded-none left-0 top-0 translate-x-0 translate-y-0 [&>button]:hidden">
         {/* Fullscreen Video - No boundaries */}
-        <div className="absolute inset-0">
+        <div ref={ref} className="absolute inset-0">
           {/* Loading state */}
           {!isLoaded && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-10">

@@ -199,30 +199,49 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
   // Force video to show a frame when loaded - browsers need this to display video thumbnail
   const handleVideoLoaded = useCallback(() => {
     const video = videoRef.current;
-    if (video && video.duration > 0) {
-      // Seek to 10% of video to get a good thumbnail frame (skip potential black intro)
-      video.currentTime = Math.min(video.duration * 0.1, 1);
+    if (video && video.duration > 0 && isFinite(video.duration)) {
+      try {
+        // Seek to 10% of video to get a good thumbnail frame (skip potential black intro)
+        video.currentTime = Math.min(video.duration * 0.1, 1);
+      } catch {
+        // Ignore seek errors
+      }
     }
   }, []);
 
-  // Handle hover play/pause
+  // Handle hover play/pause with error handling
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
     const video = videoRef.current;
-    if (video && hasVideo) {
-      video.currentTime = 0;
-      video.play().catch(() => {});
+    if (video && hasVideo && videoSrc) {
+      try {
+        video.currentTime = 0;
+        // Always muted for reliable autoplay
+        video.muted = true;
+        video.play().catch((err) => {
+          // Silent fail - browser may block autoplay
+          if (err?.name !== 'AbortError') {
+            console.debug('Video play prevented:', err?.message);
+          }
+        });
+      } catch {
+        // Ignore any synchronous errors
+      }
     }
-  }, [hasVideo]);
+  }, [hasVideo, videoSrc]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
     const video = videoRef.current;
     if (video) {
-      video.pause();
-      // Seek back to thumbnail frame
-      if (video.duration && video.duration > 0) {
-        video.currentTime = Math.min(video.duration * 0.1, 1);
+      try {
+        video.pause();
+        // Seek back to thumbnail frame
+        if (video.duration && video.duration > 0 && isFinite(video.duration)) {
+          video.currentTime = Math.min(video.duration * 0.1, 1);
+        }
+      } catch {
+        // Ignore any errors during cleanup
       }
     }
   }, []);
@@ -423,9 +442,12 @@ const ProjectCard = forwardRef<HTMLDivElement, ProjectCardProps>(function Projec
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               onLoadedData={handleVideoLoaded}
-              crossOrigin="anonymous"
+              onError={(e) => {
+                // Silently handle video errors to prevent crashes
+                console.warn('Video load error:', e);
+              }}
             />
             
             {/* Cinematic bars on hover */}

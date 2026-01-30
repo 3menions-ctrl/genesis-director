@@ -20,21 +20,36 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       setError(null);
 
       try {
+        // Create timeout promise
+        const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+          setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 10000);
+        });
+        
         // Query avatar_templates table
-        const { data, error: fetchError } = await supabase
+        const fetchPromise = supabase
           .from('avatar_templates')
           .select('*')
           .eq('is_active', true)
           .order('sort_order', { ascending: true });
+        
+        const result = await Promise.race([fetchPromise, timeoutPromise]);
 
-        if (fetchError) {
-          throw fetchError;
+        if (result.error) {
+          // Handle timeout gracefully
+          if (result.error.message === 'timeout') {
+            console.warn('[useAvatarTemplates] Request timed out');
+            setTemplates([]);
+            return;
+          }
+          throw result.error;
         }
 
-        setTemplates((data as unknown as AvatarTemplate[]) || []);
+        setTemplates((result.data as unknown as AvatarTemplate[]) || []);
       } catch (err) {
         console.error('Failed to fetch avatar templates:', err);
         setError(err instanceof Error ? err.message : 'Failed to load avatars');
+        // Set empty array instead of leaving stale data
+        setTemplates([]);
       } finally {
         setIsLoading(false);
       }

@@ -63,35 +63,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('[AuthContext] fetchProfile: No valid session');
       return null;
     }
-    
-    // Create a timeout promise
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Profile fetch timeout')), PROFILE_FETCH_TIMEOUT);
+
+    // Create a minimal fallback profile for timeout scenarios
+    const createFallbackProfile = (): UserProfile => ({
+      id: userId,
+      email: currentSession.user.email || null,
+      display_name: currentSession.user.email?.split('@')[0] || 'User',
+      full_name: null,
+      avatar_url: null,
+      credits_balance: 60,
+      total_credits_purchased: 0,
+      total_credits_used: 0,
+      role: null,
+      use_case: null,
+      company: null,
+      onboarding_completed: true, // Assume completed to prevent redirect loops
+      created_at: new Date().toISOString(),
+      preferences: null,
+      notification_settings: null,
+      auto_recharge_enabled: false,
     });
-    
-    // Create the fetch promise
-    const fetchPromise = supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
 
     try {
-      // Race between fetch and timeout
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      // Create a timeout promise
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), PROFILE_FETCH_TIMEOUT);
+      });
+      
+      // Create the fetch promise
+      const fetchPromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      // Race between fetch and timeout
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (result.error) {
+        if (result.error.message === 'timeout') {
+          console.warn('[AuthContext] Profile fetch timed out, using fallback');
+          setProfileError(null); // Don't show error for timeout - we have fallback
+          return createFallbackProfile();
+        }
+        console.error('Error fetching profile:', result.error);
         setProfileError('Failed to load profile');
         return null;
       }
       
       setProfileError(null);
-      return data as UserProfile;
+      return result.data as UserProfile;
     } catch (err) {
       console.error('Profile fetch failed:', err);
-      setProfileError(err instanceof Error ? err.message : 'Failed to load profile');
-      return null;
+      // Return fallback instead of null to prevent UI blocking
+      return createFallbackProfile();
     }
   };
 

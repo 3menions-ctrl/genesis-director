@@ -27,63 +27,73 @@ const AVATARS_TO_REGENERATE = [
   { id: "a11ee724-d1f4-49a1-8a51-11322f278120", name: "Isabella Santos", gender: "female", ethnicity: "Brazilian", style: "entertainment", personality: "Vibrant performer" },
 ];
 
-// Build CGI full-body avatar prompt
+// Build photorealistic full-body avatar prompt
 function buildFullBodyPrompt(avatar: typeof AVATARS_TO_REGENERATE[0]): string {
   const genderDesc = avatar.gender === "male" 
-    ? "handsome man with strong features" 
-    : "beautiful woman with refined features";
+    ? "handsome man with strong, natural features" 
+    : "beautiful woman with elegant, natural features";
   
-  return `High-quality AI-generated 3D rendered FULL BODY character portrait for video production. Digital art style avatar.
+  return `Ultra-realistic professional photograph of a ${genderDesc}, ${avatar.ethnicity} ethnicity, named ${avatar.name}.
 
-CHARACTER: ${avatar.name}, a ${genderDesc}, ${avatar.ethnicity} ethnicity.
-PERSONALITY: ${avatar.personality}
+CRITICAL - PHOTOREALISM REQUIREMENTS:
+- This MUST look like an actual photograph taken by a professional photographer
+- Real human skin with natural pores, subtle imperfections, and realistic texture
+- Natural skin tones with realistic subsurface scattering
+- Authentic human eyes with natural catchlights and slight moisture
+- Real hair with individual strands visible, natural shine and movement
+- Genuine facial expressions with micro-expressions
+- NO CGI, NO 3D render, NO digital art style - purely photographic
 
 CRITICAL - FULL BODY COMPOSITION:
-- Show the COMPLETE body from head to feet
-- Standing in a natural, confident pose with weight balanced
-- Full figure visible including legs and feet
-- Camera positioned to capture entire body in frame
-- Character centered with some breathing room around edges
+- FULL BODY shot from head to feet - entire person must be visible
+- Standing in a natural, relaxed confident pose
+- Full figure including legs and shoes clearly visible
+- Professional studio photography framing with person centered
+- Leave space above head and below feet
 
-RENDER STYLE (CGI/3D - NOT PHOTOGRAPHY):
-- Stylized 3D CGI character like Pixar or modern AI video generation
-- Smooth, clean digital skin with subtle subsurface scattering
-- Soft cinematic lighting with rim light accents
-- Clean, polished Unreal Engine 5 or Octane render aesthetic
-- NOT a photograph - clearly digital art style
+LIGHTING & PHOTOGRAPHY:
+- Professional studio lighting setup (three-point lighting)
+- Soft key light creating natural shadows
+- Subtle fill light to reduce harsh contrast
+- Rim light for depth and separation from background
+- Shot on high-end camera (Canon EOS R5 or Sony A7R IV quality)
+- 85mm portrait lens characteristics, shallow depth of field on background
+- 8K resolution, extremely sharp focus on subject
 
-CHARACTER DESIGN:
-- ${avatar.gender === "male" ? "Strong jaw, clean-shaven or light stubble" : "Elegant features, refined proportions"}
-- Expressive, friendly eyes with catch lights
-- ${avatar.personality} expression and body language
-- Natural standing pose, slightly angled for dynamism
+CHARACTER - ${avatar.name}:
+- ${avatar.personality}
+- Natural, genuine expression - warm and approachable
+- Confident body language, professional demeanor
+- Age: appears to be in their 30s
 
 OUTFIT (${avatar.style.toUpperCase()} STYLE):
-- ${avatar.style === "corporate" ? "Professional blazer, dress shirt, tailored pants, dress shoes" : ""}
-- ${avatar.style === "casual" ? "Stylish casual wear - fitted jeans, modern sneakers, quality t-shirt or henley" : ""}
-- ${avatar.style === "luxury" ? "High-end designer outfit, elegant accessories, premium fabrics" : ""}
-- ${avatar.style === "creative" ? "Artistic trendy clothing, unique accessories, creative flair" : ""}
-- ${avatar.style === "wellness" ? "Comfortable athleisure, yoga-inspired outfit, natural fabrics" : ""}
-- ${avatar.style === "educational" ? "Smart casual with glasses optional, approachable professor look" : ""}
-- ${avatar.style === "influencer" ? "Trendy streetwear, bold colors, statement pieces" : ""}
-- ${avatar.style === "tech" ? "Modern minimalist tech-inspired outfit, sleek accessories" : ""}
-- ${avatar.style === "fashion" ? "High fashion editorial look, bold styling choices" : ""}
-- ${avatar.style === "sports" ? "Athletic wear, sporty accessories, dynamic pose" : ""}
-- ${avatar.style === "entertainment" ? "Showbiz glamour, stage-ready outfit" : ""}
-- ${avatar.style === "lifestyle" ? "Approachable everyday stylish outfit" : ""}
+${avatar.style === "corporate" ? "- Tailored business suit, crisp dress shirt, polished leather oxford shoes" : ""}
+${avatar.style === "casual" ? "- Premium casual wear - quality denim, designer sneakers, fitted cotton shirt" : ""}
+${avatar.style === "luxury" ? "- High-end designer outfit, luxury accessories, elegant shoes" : ""}
+${avatar.style === "creative" ? "- Artistic contemporary fashion, unique accessories, stylish footwear" : ""}
+${avatar.style === "wellness" ? "- Premium athleisure, comfortable yet stylish, quality athletic shoes" : ""}
+${avatar.style === "educational" ? "- Smart casual professorial look, quality loafers, optional glasses" : ""}
+${avatar.style === "influencer" ? "- Trendy streetwear, statement pieces, fashionable sneakers" : ""}
+${avatar.style === "tech" ? "- Modern minimalist style, clean lines, contemporary sneakers" : ""}
+${avatar.style === "fashion" ? "- High fashion editorial outfit, runway-ready styling" : ""}
+${avatar.style === "sports" ? "- Premium athletic wear, performance sneakers, sporty accessories" : ""}
+${avatar.style === "entertainment" ? "- Red carpet ready outfit, glamorous styling, designer shoes" : ""}
+${avatar.style === "lifestyle" ? "- Polished everyday style, quality basics, versatile footwear" : ""}
 
-BACKGROUND: Clean gradient studio background, dark with subtle color accent. Professional portrait setting.
+BACKGROUND: Clean, neutral gray seamless studio backdrop with subtle gradient.
 
-TECHNICAL: Hyper-detailed 8K render, volumetric lighting, no noise or artifacts. Full body from head to toe visible.
-
-CRITICAL: This is a CGI avatar for AI video content. Must look like high-quality 3D render (Kling, Runway, Sora style output). NOT a photograph. Stylized digital human.`;
+ABSOLUTE REQUIREMENTS:
+- Indistinguishable from a real photograph
+- Full body visible from head to toe
+- Professional photography quality
+- Real human, not AI-generated looking`;
 }
 
 async function generateImage(prompt: string): Promise<string | null> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  console.log("[Regen] Generating with prompt length:", prompt.length);
+  console.log("[Regen] Generating photorealistic avatar...");
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",

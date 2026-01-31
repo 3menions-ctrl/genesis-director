@@ -245,6 +245,18 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
   const [thumbnailReady, setThumbnailReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
+  // CRITICAL: Synchronous ref merger - merges internal cardRef with forwarded ref
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    cardRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    }
+  }, [ref]);
+  
   // Motion values for 3D tilt
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -332,7 +344,7 @@ const TiltVideoCard = forwardRef<HTMLDivElement, TiltVideoCardProps>(function Ti
   
   return (
     <motion.div
-      ref={cardRef}
+      ref={mergedRef}
       className="relative cursor-pointer"
       style={{
         perspective: 1000,

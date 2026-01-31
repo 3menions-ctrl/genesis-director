@@ -318,10 +318,23 @@ interface VideoCardProps {
 }
 
 const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function VideoCard({ video, onPlay, isLiked, onLike }, ref) {
+  const internalRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // CRITICAL: Synchronous ref merger to prevent AnimatePresence crashes
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    internalRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    }
+  }, [ref]);
 
   const ModeIcon = getModeIcon(video.mode);
   const isManifest = video.video_url?.endsWith('.json');
@@ -381,6 +394,7 @@ const VideoCard = memo(forwardRef<HTMLDivElement, VideoCardProps>(function Video
 
   return (
     <motion.div
+      ref={mergedRef}
       variants={{
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }

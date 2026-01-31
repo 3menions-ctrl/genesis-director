@@ -280,7 +280,7 @@ export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
     itemHeight: CARD_WIDTH, // Using width since it's horizontal
     itemWidth: ITEM_WIDTH,
     direction: 'horizontal',
-    overscan: 3, // Render 3 extra items on each side
+    overscan: 5, // FIXED: Increased from 3 to 5 to prevent blank cards during fast scroll
     gap: CARD_GAP,
   });
   

@@ -1,5 +1,4 @@
 import { forwardRef } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Play, Loader2, Volume2, Sparkles, 
   User, Mic, Crown, Heart, RotateCcw
@@ -27,6 +26,7 @@ interface AvatarPreviewModalProps {
   isVoiceReady?: boolean;
 }
 
+// STABILITY: Removed framer-motion - Dialogs handle their own animations
 export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalProps>(
   function AvatarPreviewModal({ 
     avatar, 
@@ -99,7 +99,7 @@ export const AvatarPreviewModal = forwardRef<HTMLDivElement, AvatarPreviewModalP
             </div>
 
             {/* Right: Info Panel */}
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 animate-fade-in">
               {/* Name & Quick Info */}
               <div>
                 <div className="flex items-center gap-2 mb-2">

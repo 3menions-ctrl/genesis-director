@@ -124,9 +124,10 @@ describe('forwardRef Compliance for Navigation Routes', () => {
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
         
-        // If using forwardRef, must attach to DOM
+        // If using forwardRef, must attach to DOM via mergedRef or containerRef pattern
         if (content.includes('forwardRef<')) {
           expect(
+            content.includes('ref={mergedRef}') || 
             content.includes('ref={containerRef}') || 
             content.includes('ref={ref}')
           ).toBe(true);

@@ -24,7 +24,8 @@ interface DebugOverlayProps {
   position?: 'top-right' | 'bottom-right' | 'bottom-left' | 'top-left';
 }
 
-export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
+// CRITICAL: forwardRef wrapper to prevent App-level ref injection errors
+export const DebugOverlay = memo(forwardRef<HTMLDivElement, DebugOverlayProps>(function DebugOverlay({ position = 'bottom-right' }, ref) {
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -251,7 +252,8 @@ export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
       )}
     </div>
   );
-}
+}));
+DebugOverlay.displayName = 'DebugOverlay';
 
 // DiagnosticEntryRow - forwardRef for AnimatePresence compatibility
 const DiagnosticEntryRow = memo(forwardRef<HTMLDivElement, { entry: DiagnosticEntry }>(

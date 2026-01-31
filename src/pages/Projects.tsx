@@ -813,13 +813,25 @@ const ProjectsContent = memo(function ProjectsContent() {
     }
   }, []);
 
-  // Load pinned projects from localStorage
+  // Load pinned projects from localStorage with defensive parsing
   useEffect(() => {
-    const saved = localStorage.getItem('pinnedProjects');
-    if (saved) {
-      try {
-        setPinnedProjects(new Set(JSON.parse(saved)));
-      } catch {}
+    try {
+      const saved = localStorage.getItem('pinnedProjects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // GUARD: Ensure parsed value is an array before creating Set
+        if (Array.isArray(parsed)) {
+          setPinnedProjects(new Set(parsed));
+        } else {
+          // Corrupted data - clear it
+          console.warn('[Projects] Corrupted pinnedProjects data, clearing');
+          localStorage.removeItem('pinnedProjects');
+        }
+      }
+    } catch (error) {
+      // JSON.parse failed - clear corrupted data
+      console.warn('[Projects] Failed to parse pinnedProjects:', error);
+      localStorage.removeItem('pinnedProjects');
     }
   }, []);
 

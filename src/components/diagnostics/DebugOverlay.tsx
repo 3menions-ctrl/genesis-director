@@ -1,26 +1,31 @@
 /**
  * DebugOverlay - Development-only diagnostic overlay
  * 
- * Displays real-time console errors, state snapshots,
+ * ADMIN ONLY: Displays real-time console errors, state snapshots,
  * and critical failures before the preview reloads.
+ * 
+ * In development: visible to all developers
+ * In production: restricted to admin users only
  * 
  * Toggle with Ctrl+Shift+D (Cmd+Shift+D on Mac)
  */
 
 import React, { useState, useEffect, useCallback, useRef, memo, forwardRef } from 'react';
-import { X, AlertTriangle, AlertCircle, Info, Bug, Trash2, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, AlertTriangle, AlertCircle, Info, Bug, Trash2, Download, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react';
 import { 
   DiagnosticEntry, 
   subscribeToDiagnostics, 
   clearDiagnostics,
   getDiagnosticEntries,
 } from '@/lib/diagnostics/DiagnosticsLogger';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface DebugOverlayProps {
   position?: 'top-right' | 'bottom-right' | 'bottom-left' | 'top-left';
 }
 
 export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [entries, setEntries] = useState<DiagnosticEntry[]>([]);
@@ -29,9 +34,12 @@ export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
   
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // Keyboard shortcut to toggle
+  // In production, only admins can access; in development, everyone can
+  const hasAccess = isDevelopment || isAdmin;
+  
+  // Keyboard shortcut to toggle (only if user has access)
   useEffect(() => {
-    if (!isDevelopment) return;
+    if (!hasAccess && !adminLoading) return;
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
@@ -42,15 +50,15 @@ export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDevelopment]);
+  }, [hasAccess, adminLoading]);
   
-  // Subscribe to diagnostics
+  // Subscribe to diagnostics (only if user has access)
   useEffect(() => {
-    if (!isDevelopment) return;
+    if (!hasAccess && !adminLoading) return;
     
     const unsubscribe = subscribeToDiagnostics(setEntries);
     return unsubscribe;
-  }, [isDevelopment]);
+  }, [hasAccess, adminLoading]);
   
   // Auto-scroll to bottom on new entries
   useEffect(() => {
@@ -85,8 +93,13 @@ export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
     URL.revokeObjectURL(url);
   }, []);
   
-  // Return null for production (after all hooks)
-  if (!isDevelopment) {
+  // Return null if user doesn't have access (after all hooks)
+  // In development: always show; in production: only for admins
+  if (adminLoading) {
+    return null; // Don't render while checking admin status
+  }
+  
+  if (!hasAccess) {
     return null;
   }
   

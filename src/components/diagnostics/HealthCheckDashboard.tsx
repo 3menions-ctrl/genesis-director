@@ -1,8 +1,10 @@
 /**
  * HealthCheckDashboard - Cloud Run and Pipeline Health Monitor
  * 
- * Displays high-severity errors, edge function logs,
+ * ADMIN ONLY: Displays high-severity errors, edge function logs,
  * and system health status for immediate analysis.
+ * 
+ * This component should only be rendered within admin-protected contexts.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -19,6 +21,8 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  ShieldAlert,
+  Loader2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
 import { analyzeStateTransitions } from '@/lib/diagnostics/StateSnapshotMonitor';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface HealthStatus {
   database: 'healthy' | 'degraded' | 'error' | 'checking';
@@ -45,6 +50,7 @@ interface SystemLog {
 }
 
 export function HealthCheckDashboard() {
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [healthStatus, setHealthStatus] = useState<HealthStatus>({
     database: 'checking',
     auth: 'checking',
@@ -190,6 +196,34 @@ export function HealthCheckDashboard() {
   
   const healthScore = stabilityMonitor.getHealth();
   
+  // Show loading state while checking admin status
+  if (adminLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Block access for non-admins
+  if (!isAdmin) {
+    return (
+      <Card className="border-amber-500/30">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <CardTitle>Admin Access Required</CardTitle>
+          </div>
+          <CardDescription>
+            System health monitoring is restricted to administrators.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Overview Card */}

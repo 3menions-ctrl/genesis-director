@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -15,31 +15,40 @@ const Footer = lazy(() => import('@/components/landing/Footer'));
 const FeaturesShowcase = lazy(() => import('@/components/landing/FeaturesShowcase'));
 const CinematicTransition = lazy(() => import('@/components/landing/CinematicTransition'));
 
-// Optimized section loader with minimal footprint
-const SectionLoader = memo(function SectionLoader() {
-  return (
-    <div className="py-24 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-    </div>
-  );
-});
+// Optimized section loader with minimal footprint - forwardRef for AnimatePresence compatibility
+const SectionLoader = memo(forwardRef<HTMLDivElement, Record<string, never>>(
+  function SectionLoader(_, ref) {
+    return (
+      <div ref={ref} className="py-24 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+));
+SectionLoader.displayName = 'SectionLoader';
 
 // Minimal fallback for critical failures - now visible for debugging
-const MinimalFallback = memo(function MinimalFallback() {
-  return (
-    <div className="py-24 flex items-center justify-center">
-      <div className="text-center text-white/30">
-        <div className="w-8 h-8 mx-auto mb-2 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-        <p className="text-sm">Loading section...</p>
+const MinimalFallback = memo(forwardRef<HTMLDivElement, Record<string, never>>(
+  function MinimalFallback(_, ref) {
+    return (
+      <div ref={ref} className="py-24 flex items-center justify-center">
+        <div className="text-center text-white/30">
+          <div className="w-8 h-8 mx-auto mb-2 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          <p className="text-sm">Loading section...</p>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+));
+MinimalFallback.displayName = 'MinimalFallback';
 
 // Background fallback
-const BackgroundFallback = memo(function BackgroundFallback() {
-  return <div className="fixed inset-0 bg-black" />;
-});
+const BackgroundFallback = memo(forwardRef<HTMLDivElement, Record<string, never>>(
+  function BackgroundFallback(_, ref) {
+    return <div ref={ref} className="fixed inset-0 bg-black" />;
+  }
+));
+BackgroundFallback.displayName = 'BackgroundFallback';
 
 // Static data - immutable outside component to prevent recreation
 const NAV_ITEMS = ['Features', 'Pricing', 'FAQ'] as const;
@@ -93,172 +102,182 @@ const fadeInUpImmediate = {
   }
 };
 
-// Memoized Hero Title - completely isolated from parent re-renders
-const HeroTitle = memo(function HeroTitle() {
-  return (
-    <div className="relative mb-8">
-      {/* Optimized glow - static gradient, no animation for stability */}
-      <div 
-        className="absolute inset-0 blur-[80px] pointer-events-none opacity-60"
-        style={{
-          background: 'radial-gradient(ellipse 80% 50% at center, rgba(255,255,255,0.2) 0%, rgba(100,100,255,0.08) 40%, transparent 70%)',
-        }}
-      />
-      
+// Memoized Hero Title - forwardRef for AnimatePresence compatibility
+const HeroTitle = memo(forwardRef<HTMLDivElement, Record<string, never>>(
+  function HeroTitle(_, ref) {
+    return (
+      <div ref={ref} className="relative mb-8">
+        {/* Optimized glow - static gradient, no animation for stability */}
+        <div 
+          className="absolute inset-0 blur-[80px] pointer-events-none opacity-60"
+          style={{
+            background: 'radial-gradient(ellipse 80% 50% at center, rgba(255,255,255,0.2) 0%, rgba(100,100,255,0.08) 40%, transparent 70%)',
+          }}
+        />
+        
+        <motion.div
+          initial={{ rotateX: 25, rotateY: -5, scale: 0.9 }}
+          animate={{ rotateX: 0, rotateY: 0, scale: 1 }}
+          transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+          style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+        >
+          <h1 className="relative text-[clamp(3rem,15vw,12rem)] font-black leading-[0.85] tracking-[-0.04em]">
+            <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
+              {'APEX'.split('').map((letter, i) => (
+                <motion.span
+                  key={`apex-${i}`}
+                  className="inline-block text-white"
+                  custom={true}
+                  variants={heroLetterVariants}
+                  initial="hidden"
+                  animate="visible"
+                  transition={{ duration: 1.2, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ 
+                    transformOrigin: 'bottom center',
+                    transformStyle: 'preserve-3d',
+                    textShadow: '0 4px 30px rgba(0,0,0,0.5), 0 0 60px rgba(255,255,255,0.1)',
+                    willChange: 'transform, opacity'
+                  }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </span>
+            
+            <motion.span
+              className="inline-block mx-2 md:mx-6 text-white/20"
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              –
+            </motion.span>
+            
+            <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
+              {'STUDIO'.split('').map((letter, i) => (
+                <motion.span
+                  key={`studio-${i}`}
+                  className="inline-block text-white/30"
+                  custom={false}
+                  variants={heroLetterVariants}
+                  initial="hidden"
+                  animate="visible"
+                  transition={{ duration: 1.2, delay: 0.6 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ 
+                    transformOrigin: 'bottom center',
+                    transformStyle: 'preserve-3d',
+                    textShadow: '0 4px 30px rgba(0,0,0,0.3)',
+                    willChange: 'transform, opacity'
+                  }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </span>
+          </h1>
+        </motion.div>
+
+        {/* Underline */}
+        <motion.div
+          className="absolute -bottom-6 left-1/2 h-[2px]"
+          initial={{ width: 0, x: '-50%', opacity: 0 }}
+          animate={{ width: '70%', opacity: 1 }}
+          transition={{ duration: 1.5, delay: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
+            boxShadow: '0 0 20px rgba(255,255,255,0.3)',
+          }}
+        />
+      </div>
+    );
+  }
+));
+HeroTitle.displayName = 'HeroTitle';
+
+// Memoized Step Card - forwardRef for AnimatePresence compatibility
+const StepCard = memo(forwardRef<HTMLDivElement, { item: typeof STEPS[number]; index: number }>(
+  function StepCard({ item, index }, ref) {
+    return (
       <motion.div
-        initial={{ rotateX: 25, rotateY: -5, scale: 0.9 }}
-        animate={{ rotateX: 0, rotateY: 0, scale: 1 }}
-        transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+        ref={ref}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 + index * 0.15 }}
+        className="relative p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]"
       >
-        <h1 className="relative text-[clamp(3rem,15vw,12rem)] font-black leading-[0.85] tracking-[-0.04em]">
-          <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
-            {'APEX'.split('').map((letter, i) => (
-              <motion.span
-                key={`apex-${i}`}
-                className="inline-block text-white"
-                custom={true}
-                variants={heroLetterVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ duration: 1.2, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                style={{ 
-                  transformOrigin: 'bottom center',
-                  transformStyle: 'preserve-3d',
-                  textShadow: '0 4px 30px rgba(0,0,0,0.5), 0 0 60px rgba(255,255,255,0.1)',
-                  willChange: 'transform, opacity'
-                }}
-              >
-                {letter}
-              </motion.span>
-            ))}
-          </span>
-          
-          <motion.span
-            className="inline-block mx-2 md:mx-6 text-white/20"
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            –
-          </motion.span>
-          
-          <span className="inline-block" style={{ transformStyle: 'preserve-3d' }}>
-            {'STUDIO'.split('').map((letter, i) => (
-              <motion.span
-                key={`studio-${i}`}
-                className="inline-block text-white/30"
-                custom={false}
-                variants={heroLetterVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ duration: 1.2, delay: 0.6 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                style={{ 
-                  transformOrigin: 'bottom center',
-                  transformStyle: 'preserve-3d',
-                  textShadow: '0 4px 30px rgba(0,0,0,0.3)',
-                  willChange: 'transform, opacity'
-                }}
-              >
-                {letter}
-              </motion.span>
-            ))}
-          </span>
-        </h1>
+        <span className="text-6xl font-bold text-white/[0.06] absolute top-6 right-6">
+          {item.step}
+        </span>
+        <h3 className="text-xl font-semibold text-white mb-3">{item.title}</h3>
+        <p className="text-white/40 leading-relaxed">{item.desc}</p>
       </motion.div>
+    );
+  }
+));
+StepCard.displayName = 'StepCard';
 
-      {/* Underline */}
-      <motion.div
-        className="absolute -bottom-6 left-1/2 h-[2px]"
-        initial={{ width: 0, x: '-50%', opacity: 0 }}
-        animate={{ width: '70%', opacity: 1 }}
-        transition={{ duration: 1.5, delay: 1.4, ease: [0.16, 1, 0.3, 1] }}
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
-          boxShadow: '0 0 20px rgba(255,255,255,0.3)',
-        }}
-      />
-    </div>
-  );
-});
+// Memoized Pricing Stat - forwardRef for AnimatePresence compatibility
+const PricingStat = memo(forwardRef<HTMLDivElement, { stat: typeof PRICING_STATS[number] }>(
+  function PricingStat({ stat }, ref) {
+    return (
+      <div ref={ref} className="text-center">
+        <div className="text-2xl md:text-3xl font-semibold text-white">{stat.value}</div>
+        <div className="text-xs text-white/30 mt-1">{stat.label}</div>
+      </div>
+    );
+  }
+));
+PricingStat.displayName = 'PricingStat';
 
-// Memoized Step Card - uses animate for reliable visibility
-const StepCard = memo(function StepCard({ item, index }: { item: typeof STEPS[number]; index: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.3 + index * 0.15 }}
-      className="relative p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]"
-    >
-      <span className="text-6xl font-bold text-white/[0.06] absolute top-6 right-6">
-        {item.step}
-      </span>
-      <h3 className="text-xl font-semibold text-white mb-3">{item.title}</h3>
-      <p className="text-white/40 leading-relaxed">{item.desc}</p>
-    </motion.div>
-  );
-});
-
-// Memoized Pricing Stat
-const PricingStat = memo(function PricingStat({ stat }: { stat: typeof PRICING_STATS[number] }) {
-  return (
-    <div className="text-center">
-      <div className="text-2xl md:text-3xl font-semibold text-white">{stat.value}</div>
-      <div className="text-xs text-white/30 mt-1">{stat.label}</div>
-    </div>
-  );
-});
-
-// Memoized Navigation
-const Navigation = memo(function Navigation({ 
-  onScrollToSection, 
-  onNavigate 
-}: { 
+// Memoized Navigation - forwardRef for AnimatePresence compatibility
+const Navigation = memo(forwardRef<HTMLElement, { 
   onScrollToSection: (target: string) => void;
   onNavigate: (path: string) => void;
-}) {
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-            <span className="text-sm font-bold text-black">A-S</span>
+}>(
+  function Navigation({ onScrollToSection, onNavigate }, ref) {
+    return (
+      <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 px-6 lg:px-12 py-5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+              <span className="text-sm font-bold text-black">A-S</span>
+            </div>
+            <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
           </div>
-          <span className="text-base font-semibold text-white tracking-tight">Apex-Studio</span>
-        </div>
 
-        <div className="hidden md:flex items-center gap-8">
-          {NAV_ITEMS.map((item) => (
-            <button 
-              key={item}
-              onClick={() => onScrollToSection(item.toLowerCase())}
-              className="text-sm text-white/50 hover:text-white transition-colors"
+          <div className="hidden md:flex items-center gap-8">
+            {NAV_ITEMS.map((item) => (
+              <button 
+                key={item}
+                onClick={() => onScrollToSection(item.toLowerCase())}
+                className="text-sm text-white/50 hover:text-white transition-colors"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => onNavigate('/auth')}
+              className="h-9 px-4 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-full"
             >
-              {item}
-            </button>
-          ))}
+              Sign in
+            </Button>
+            <Button
+              onClick={() => onNavigate('/auth?mode=signup')}
+              className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90"
+            >
+              Start Free
+            </Button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            onClick={() => onNavigate('/auth')}
-            className="h-9 px-4 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-full"
-          >
-            Sign in
-          </Button>
-          <Button
-            onClick={() => onNavigate('/auth?mode=signup')}
-            className="h-9 px-5 text-sm font-medium rounded-full bg-white text-black hover:bg-white/90"
-          >
-            Start Free
-          </Button>
-        </div>
-      </div>
-    </nav>
-  );
-});
+      </nav>
+    );
+  }
+));
+Navigation.displayName = 'Navigation';
 
 // Memoized Pricing Section
 const PricingSection = memo(function PricingSection({ onNavigate }: { onNavigate: (path: string) => void }) {

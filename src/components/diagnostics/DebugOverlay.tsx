@@ -7,7 +7,7 @@
  * Toggle with Ctrl+Shift+D (Cmd+Shift+D on Mac)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, forwardRef } from 'react';
 import { X, AlertTriangle, AlertCircle, Info, Bug, Trash2, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   DiagnosticEntry, 
@@ -240,95 +240,100 @@ export function DebugOverlay({ position = 'bottom-right' }: DebugOverlayProps) {
   );
 }
 
-function DiagnosticEntryRow({ entry }: { entry: DiagnosticEntry }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  const time = new Date(entry.timestamp).toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-  
-  const getSeverityIcon = (severity: DiagnosticEntry['severity']) => {
-    switch (severity) {
-      case 'error':
-        return <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />;
-      case 'warning':
-        return <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />;
-      default:
-        return <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />;
-    }
-  };
-  
-  const getSeverityClass = (severity: DiagnosticEntry['severity']) => {
-    switch (severity) {
-      case 'error':
-        return 'border-l-red-500';
-      case 'warning':
-        return 'border-l-amber-500';
-      default:
-        return 'border-l-blue-500';
-    }
-  };
-  
-  return (
-    <div 
-      className={`border-l-2 ${getSeverityClass(entry.severity)} bg-zinc-800/50 rounded-r text-xs overflow-hidden`}
-    >
-      <button
-        onClick={() => setIsExpanded(prev => !prev)}
-        className="w-full flex items-start gap-2 p-2 text-left hover:bg-zinc-800/80 transition-colors"
+// DiagnosticEntryRow - forwardRef for AnimatePresence compatibility
+const DiagnosticEntryRow = memo(forwardRef<HTMLDivElement, { entry: DiagnosticEntry }>(
+  function DiagnosticEntryRow({ entry }, ref) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    const time = new Date(entry.timestamp).toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    
+    const getSeverityIcon = (severity: DiagnosticEntry['severity']) => {
+      switch (severity) {
+        case 'error':
+          return <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />;
+        case 'warning':
+          return <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />;
+        default:
+          return <Info className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />;
+      }
+    };
+    
+    const getSeverityClass = (severity: DiagnosticEntry['severity']) => {
+      switch (severity) {
+        case 'error':
+          return 'border-l-red-500';
+        case 'warning':
+          return 'border-l-amber-500';
+        default:
+          return 'border-l-blue-500';
+      }
+    };
+    
+    return (
+      <div 
+        ref={ref}
+        className={`border-l-2 ${getSeverityClass(entry.severity)} bg-zinc-800/50 rounded-r text-xs overflow-hidden`}
       >
-        {getSeverityIcon(entry.severity)}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-zinc-500 font-mono">{time}</span>
-            <span className="px-1.5 py-0.5 bg-zinc-700 rounded text-zinc-400">
-              {entry.source}
-            </span>
+        <button
+          onClick={() => setIsExpanded(prev => !prev)}
+          className="w-full flex items-start gap-2 p-2 text-left hover:bg-zinc-800/80 transition-colors"
+        >
+          {getSeverityIcon(entry.severity)}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500 font-mono">{time}</span>
+              <span className="px-1.5 py-0.5 bg-zinc-700 rounded text-zinc-400">
+                {entry.source}
+              </span>
+            </div>
+            <p className="text-zinc-200 mt-1 break-words line-clamp-2">
+              {entry.message}
+            </p>
           </div>
-          <p className="text-zinc-200 mt-1 break-words line-clamp-2">
-            {entry.message}
-          </p>
-        </div>
-        <ChevronDown 
-          className={`h-4 w-4 text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-        />
-      </button>
-      
-      {isExpanded && (
-        <div className="px-2 pb-2 pt-0 space-y-2">
-          {entry.stateSnapshot && (
-            <div className="bg-zinc-900 rounded p-2">
-              <span className="text-zinc-500 font-medium">State Snapshot:</span>
-              <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto">
-                {JSON.stringify(entry.stateSnapshot, null, 2)}
-              </pre>
-            </div>
-          )}
-          
-          {entry.stack && (
-            <div className="bg-zinc-900 rounded p-2">
-              <span className="text-zinc-500 font-medium">Stack Trace:</span>
-              <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto whitespace-pre-wrap break-all">
-                {entry.stack.split('\n').slice(0, 5).join('\n')}
-              </pre>
-            </div>
-          )}
-          
-          {entry.metadata && (
-            <div className="bg-zinc-900 rounded p-2">
-              <span className="text-zinc-500 font-medium">Metadata:</span>
-              <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto">
-                {JSON.stringify(entry.metadata, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+          <ChevronDown 
+            className={`h-4 w-4 text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+        
+        {isExpanded && (
+          <div className="px-2 pb-2 pt-0 space-y-2">
+            {entry.stateSnapshot && (
+              <div className="bg-zinc-900 rounded p-2">
+                <span className="text-zinc-500 font-medium">State Snapshot:</span>
+                <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto">
+                  {JSON.stringify(entry.stateSnapshot, null, 2)}
+                </pre>
+              </div>
+            )}
+            
+            {entry.stack && (
+              <div className="bg-zinc-900 rounded p-2">
+                <span className="text-zinc-500 font-medium">Stack Trace:</span>
+                <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto whitespace-pre-wrap break-all">
+                  {entry.stack.split('\n').slice(0, 5).join('\n')}
+                </pre>
+              </div>
+            )}
+            
+            {entry.metadata && (
+              <div className="bg-zinc-900 rounded p-2">
+                <span className="text-zinc-500 font-medium">Metadata:</span>
+                <pre className="text-zinc-400 mt-1 text-[10px] overflow-x-auto">
+                  {JSON.stringify(entry.metadata, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+));
+DiagnosticEntryRow.displayName = 'DiagnosticEntryRow';
 
 export default DebugOverlay;

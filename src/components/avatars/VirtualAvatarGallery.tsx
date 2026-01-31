@@ -5,7 +5,7 @@
  * from high-resolution textures. Only renders visible avatars.
  */
 
-import React, { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,20 +30,8 @@ interface VirtualAvatarGalleryProps {
 }
 
 // Avatar card with strict onLoad-based opacity
-const VirtualAvatarCard = memo(function VirtualAvatarCard({
-  avatar,
-  isSelected,
-  isHovered,
-  onHoverStart,
-  onHoverEnd,
-  onClick,
-  onVoicePreview,
-  isPreviewingVoice,
-  isVoiceReady,
-  cardWidth,
-  isMobile,
-  onImageLoad,
-}: {
+// VirtualAvatarCard - forwardRef for AnimatePresence compatibility
+interface VirtualAvatarCardProps {
   avatar: AvatarTemplate;
   isSelected: boolean;
   isHovered: boolean;
@@ -56,47 +44,64 @@ const VirtualAvatarCard = memo(function VirtualAvatarCard({
   cardWidth: number;
   isMobile: boolean;
   onImageLoad?: () => void;
-}) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+}
 
-  // Handle image load - CRITICAL: opacity tied to this event
-  const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    onImageLoad?.();
-  }, [onImageLoad]);
+const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps>(
+  function VirtualAvatarCard({
+    avatar,
+    isSelected,
+    isHovered,
+    onHoverStart,
+    onHoverEnd,
+    onClick,
+    onVoicePreview,
+    isPreviewingVoice,
+    isVoiceReady,
+    cardWidth,
+    isMobile,
+    onImageLoad,
+  }, ref) {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const imgRef = useRef<HTMLImageElement>(null);
 
-  const handleImageError = useCallback(() => {
-    setImageError(true);
-    setImageLoaded(true); // Treat as "loaded" to show fallback
-    onImageLoad?.();
-  }, [onImageLoad]);
+    // Handle image load - CRITICAL: opacity tied to this event
+    const handleImageLoad = useCallback(() => {
+      setImageLoaded(true);
+      onImageLoad?.();
+    }, [onImageLoad]);
 
-  const imageSrc = avatar.front_image_url || avatar.face_image_url;
+    const handleImageError = useCallback(() => {
+      setImageError(true);
+      setImageLoaded(true); // Treat as "loaded" to show fallback
+      onImageLoad?.();
+    }, [onImageLoad]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ 
-        opacity: imageLoaded ? 1 : 0.3, // Faint until image loads
-        scale: imageLoaded ? 1 : 0.98 
-      }}
-      transition={{ duration: 0.3 }}
-      onHoverStart={onHoverStart}
-      onHoverEnd={onHoverEnd}
-      onClick={onClick}
-      className={cn(
-        "relative flex-shrink-0 cursor-pointer transition-all duration-300",
-        "rounded-2xl md:rounded-3xl overflow-hidden",
-        isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black"
-      )}
-      style={{
-        width: cardWidth,
-        scrollSnapAlign: 'center',
-        transform: isHovered && !isSelected ? 'scale(1.02)' : 'scale(1)',
-      }}
-    >
+    const imageSrc = avatar.front_image_url || avatar.face_image_url;
+
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ 
+          opacity: imageLoaded ? 1 : 0.3, // Faint until image loads
+          scale: imageLoaded ? 1 : 0.98 
+        }}
+        transition={{ duration: 0.3 }}
+        onHoverStart={onHoverStart}
+        onHoverEnd={onHoverEnd}
+        onClick={onClick}
+        className={cn(
+          "relative flex-shrink-0 cursor-pointer transition-all duration-300",
+          "rounded-2xl md:rounded-3xl overflow-hidden",
+          isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black"
+        )}
+        style={{
+          width: cardWidth,
+          scrollSnapAlign: 'center',
+          transform: isHovered && !isSelected ? 'scale(1.02)' : 'scale(1)',
+        }}
+      >
       {/* Card Background */}
       <div className={cn(
         "absolute inset-0 transition-all duration-300",
@@ -236,19 +241,21 @@ const VirtualAvatarCard = memo(function VirtualAvatarCard({
         )}
       </div>
       
-      {/* Hover shine effect */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        animate={{
-          background: isHovered
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
-            : 'transparent'
-        }}
-        transition={{ duration: 0.3 }}
-      />
-    </motion.div>
-  );
-});
+        {/* Hover shine effect */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          animate={{
+            background: isHovered
+              ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
+              : 'transparent'
+          }}
+          transition={{ duration: 0.3 }}
+        />
+      </motion.div>
+    );
+  }
+));
+VirtualAvatarCard.displayName = 'VirtualAvatarCard';
 
 export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   avatars,

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, memo, forwardRef, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -136,10 +136,11 @@ interface CreationHubProps {
   className?: string;
 }
 
-// CreationHub wrapped with forwardRef for animation contexts
-export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(function CreationHub({ onStartCreation, onReady, className }, ref) {
+// CreationHub - no forwardRef needed, prevents React ref warnings
+export const CreationHub = memo(function CreationHub({ onStartCreation, onReady, className }: CreationHubProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [selectedMode, setSelectedMode] = useState<VideoGenerationMode>('text-to-video');
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStylePreset>('anime');
@@ -328,8 +329,12 @@ export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(fun
     return true;
   };
 
+  // Show nothing during initial data load to prevent content flash
+  // The GlobalLoadingOverlay handles the loading state visually
+  const isInitializing = templateLoading || tierLoading;
+
   return (
-    <div className={cn("min-h-screen pt-8 pb-24", className)}>
+    <div ref={containerRef} className={cn("min-h-screen pt-8 pb-24", isInitializing && "opacity-0", className)}>
       <div className="max-w-6xl mx-auto px-6">
         {/* Active Project Banner - Shows when user has an ongoing project */}
         <ActiveProjectBanner className="mb-8" />
@@ -974,7 +979,7 @@ export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(fun
       </div>
     </div>
   );
-}));
+});
 
 // Helper function outside the component
 function getStyleGradient(style: VideoStylePreset): string {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
+import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
@@ -82,7 +82,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
     avatarType: avatarTypeFilter,
   }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
 
-  const { templates, isLoading, error } = useAvatarTemplates(filterConfig);
+  const { templates, isLoading, error } = useAvatarTemplatesQuery(filterConfig);
 
   // Memoize computed values
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);

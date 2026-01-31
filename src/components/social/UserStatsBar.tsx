@@ -23,16 +23,19 @@ const StatItem = forwardRef<HTMLDivElement, {
   );
 });
 
-export const UserStatsBar = memo(forwardRef<HTMLDivElement, Record<string, never>>(function UserStatsBar(_, ref) {
+export const UserStatsBar = memo(forwardRef<HTMLDivElement, Record<string, never>>(function UserStatsBar(_props, ref) {
   const { stats, xpProgress, unlockedAchievements, statsLoading } = useGamification();
 
-  // Don't render until stats are loaded to prevent null access crashes
-  if (statsLoading || !stats) return null;
+  // When stats aren't loaded, render an empty placeholder that still forwards ref
+  // This prevents "Function components cannot be given refs" crashes
+  if (statsLoading || !stats) {
+    return <div ref={ref} className="hidden" aria-hidden="true" />;
+  }
 
   // Extra safety check for required properties
   if (typeof stats.level !== 'number' || typeof stats.xp_total !== 'number') {
     console.warn('[UserStatsBar] Invalid stats structure:', stats);
-    return null;
+    return <div ref={ref} className="hidden" aria-hidden="true" />;
   }
 
   return (

@@ -193,10 +193,11 @@ serve(async (req) => {
  */
 function getProcessingMessage(mode: string, progress: number): string {
   if (mode === 'avatar') {
-    if (progress < 40) return 'Analyzing facial features and expressions...';
-    if (progress < 60) return 'Generating natural speaking motion...';
-    if (progress < 80) return 'Rendering talking head animation...';
-    return 'Finalizing avatar video...';
+    if (progress < 30) return 'Analyzing facial features...';
+    if (progress < 50) return 'Synchronizing lip movements to audio...';
+    if (progress < 70) return 'Rendering lip-synced frames...';
+    if (progress < 85) return 'Matching mouth to speech...';
+    return 'Finalizing lip-synced avatar...';
   }
   
   if (mode === 'video-to-video') {

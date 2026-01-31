@@ -8,6 +8,9 @@
  * 4. Zero-Gap Audio Sync: Web Audio API aligned with video clock
  * 5. HD Export: Chunked Blob strategy for memory-efficient 1080p+ rendering
  * 6. Resource Cleanup: Strict garbage collection for long sessions
+ * 7. Atomic Frame Switch: Sub-microsecond V-Sync aligned transitions
+ * 8. GPU Compositing: WebGL2 accelerated texture blending
+ * 9. Web Worker: Off-thread processing for heavy computation
  */
 
 // Core rendering engine components
@@ -34,3 +37,29 @@ export {
   getExportPipeline,
   resetExportPipeline,
 } from './HDExportPipeline';
+
+// Atomic Frame Switch Engine (Zero-Latency Transitions)
+export {
+  ATOMIC_CONSTANTS,
+  type AtomicBuffer,
+  type ClockState,
+  type TransitionState,
+  type AtomicSwitchResult,
+  MasterClock,
+  LookAheadBufferManager,
+  AtomicToggleController,
+  AtomicFrameSwitchEngine,
+  getAtomicEngine,
+  resetAtomicEngine,
+} from './AtomicFrameSwitch';
+
+// GPU Compositor (WebGL Accelerated Rendering)
+export {
+  GPU_CONSTANTS,
+  type BlendMode,
+  type GPUTexture,
+  type CompositorState,
+  GPUCompositor,
+  getGPUCompositor,
+  resetGPUCompositor,
+} from './GPUCompositor';

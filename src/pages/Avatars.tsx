@@ -84,7 +84,8 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
   // Memoize computed values
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
-  const estimatedCredits = useMemo(() => clipCount * 10, [clipCount]);
+  // Avatar clips are 10s = extended pricing (15 credits each)
+  const estimatedCredits = useMemo(() => clipCount * 15, [clipCount]);
   const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
   const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
   const hasActiveFilters = useMemo(() => 

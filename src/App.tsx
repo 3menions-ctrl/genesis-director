@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { GlobalStabilityBoundary } from "@/components/stability/GlobalStabilityBoundary";
 import { RouteContainer } from "@/components/layout/RouteContainer";
 import { NavigationLoadingProvider, GlobalLoadingOverlay } from "@/components/navigation";
+import { DebugOverlay } from "@/components/diagnostics/DebugOverlay";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -305,6 +306,8 @@ const App = () => (
                   </RouteContainer>
                 } />
                 </Routes>
+                {/* Debug Overlay - Development only */}
+                <DebugOverlay />
               </StudioProvider>
             </AuthProvider>
           </NavigationLoadingProvider>

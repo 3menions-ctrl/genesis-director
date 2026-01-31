@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { stabilityMonitor } from '@/lib/stabilityMonitor';
+import { updateAuthState } from '@/lib/diagnostics/StateSnapshotMonitor';
 
 interface UserProfile {
   id: string;
@@ -254,6 +255,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(existingSession);
         setUser(existingSession?.user ?? null);
         
+        // Update diagnostics state snapshot
+        updateAuthState({
+          user: !!existingSession?.user,
+          session: !!existingSession,
+          isSessionVerified: false,
+          loading: true,
+          isAdmin: false,
+          profileLoaded: false,
+        }, 'initSession');
+        
         if (existingSession?.user) {
           await completeAuthInit(existingSession.user.id);
         } else {
@@ -264,6 +275,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // CRITICAL: Mark session as verified AFTER all initialization is complete
         // This ensures ProtectedRoute won't redirect prematurely
         setIsSessionVerified(true);
+        
+        // Update diagnostics with final state
+        updateAuthState({
+          user: !!existingSession?.user,
+          session: !!existingSession,
+          isSessionVerified: true,
+          loading: false,
+          isAdmin,
+          profileLoaded: !!profile,
+        }, 'sessionVerified');
       } catch (err) {
         console.error('[AuthContext] Session init error:', err);
         // Still mark as verified even on error to unblock UI

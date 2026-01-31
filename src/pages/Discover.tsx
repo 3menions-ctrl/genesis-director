@@ -323,14 +323,10 @@ const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   );
 }));
 
-// Wrapper with forwardRef for AnimatePresence compatibility
-const Discover = memo(forwardRef<HTMLDivElement, object>(function Discover(_, ref) {
-  return (
-    <DiscoverContent />
-  );
-}));
-
-export default Discover;
+// Wrapper for route compatibility
+export default function Discover() {
+  return <DiscoverContent />;
+}
 
 // ============= VIDEO CARD COMPONENT =============
 

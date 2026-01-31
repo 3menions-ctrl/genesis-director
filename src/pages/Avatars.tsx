@@ -522,17 +522,11 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
 
 AvatarsContent.displayName = 'AvatarsContent';
 
-// STABILITY: Default export wrapped in forwardRef for AnimatePresence compatibility
-const Avatars = forwardRef<HTMLDivElement, Record<string, never>>(function Avatars(_, ref) {
+// Wrapper with error boundary
+export default function Avatars() {
   return (
-    <div ref={ref}>
-      <ErrorBoundary>
-        <AvatarsContent />
-      </ErrorBoundary>
-    </div>
+    <ErrorBoundary>
+      <AvatarsContent />
+    </ErrorBoundary>
   );
-});
-
-Avatars.displayName = 'Avatars';
-
-export default Avatars;
+}

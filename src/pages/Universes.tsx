@@ -74,13 +74,11 @@ const UniversesContent = memo(function UniversesContent() {
   );
 });
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Universes = memo(forwardRef<HTMLDivElement, object>(function Universes(_, ref) {
+// Wrapper with error boundary
+export default function Universes() {
   return (
     <ErrorBoundary>
       <UniversesContent />
     </ErrorBoundary>
   );
-}));
-
-export default Universes;
+}

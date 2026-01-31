@@ -213,13 +213,11 @@ const SettingsContent = memo(function SettingsContent() {
   );
 });
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Settings = memo(forwardRef<HTMLDivElement, object>(function Settings(_, ref) {
+// Wrapper with error boundary
+export default function Settings() {
   return (
     <ErrorBoundary>
       <SettingsContent />
     </ErrorBoundary>
   );
-}));
-
-export default Settings;
+}

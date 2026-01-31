@@ -1371,13 +1371,11 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
   );
 }));
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Production = memo(forwardRef<HTMLDivElement, object>(function Production(_, ref) {
+// Wrapper with error boundary
+export default function Production() {
   return (
     <ErrorBoundary>
       <ProductionContent />
     </ErrorBoundary>
   );
-}));
-
-export default Production;
+}

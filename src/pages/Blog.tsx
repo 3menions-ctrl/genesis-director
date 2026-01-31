@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, User, Tag, ChevronRight, Share2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { lazy, Suspense } from 'react';
+import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
 
 // Import blog images
 import aiVideoEvolution from '@/assets/blog/ai-video-evolution.jpg';
@@ -301,23 +301,12 @@ export default function Blog() {
                 {selectedArticle.title}
               </h1>
 
-              {/* Content */}
+              {/* Content - Safe Markdown Rendering */}
               <div className="prose prose-invert prose-lg max-w-none">
-                <div 
-                  className="text-white/70 leading-relaxed space-y-6"
-                  dangerouslySetInnerHTML={{ 
-                    __html: selectedArticle.content
-                      .replace(/## /g, '<h2 class="text-2xl font-semibold text-white mt-12 mb-4">')
-                      .replace(/### /g, '<h3 class="text-xl font-medium text-white mt-8 mb-3">')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                      .replace(/- \*\*/g, '<li class="mb-2"><strong class="text-white">')
-                      .replace(/\*\*:/g, '</strong>:')
-                      .replace(/\n\n/g, '</p><p class="mb-4">')
-                      .replace(/^(.+)$/gm, (match) => {
-                        if (match.startsWith('<')) return match;
-                        return `<p class="mb-4">${match}</p>`;
-                      })
-                  }} 
+                <SafeMarkdownRenderer 
+                  content={selectedArticle.content}
+                  variant="blog"
+                  className="text-white/70 leading-relaxed"
                 />
               </div>
 

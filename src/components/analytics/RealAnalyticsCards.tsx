@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Film, Zap, Clock, TrendingUp, Heart, Eye, 
@@ -134,7 +135,10 @@ function ActivityChart({ data }: { data: { date: string; clips: number; credits:
   );
 }
 
-function ModeDistributionChart({ data }: { data: { mode: string; count: number }[] }) {
+const ModeDistributionChart = React.forwardRef<
+  HTMLDivElement,
+  { data: { mode: string; count: number }[] }
+>(function ModeDistributionChart({ data }, ref) {
   const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'];
   const modeLabels: Record<string, string> = {
     'text-to-video': 'Cinematic',
@@ -148,6 +152,7 @@ function ModeDistributionChart({ data }: { data: { mode: string; count: number }
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.35 }}
@@ -195,7 +200,8 @@ function ModeDistributionChart({ data }: { data: { mode: string; count: number }
       </div>
     </motion.div>
   );
-}
+});
+ModeDistributionChart.displayName = 'ModeDistributionChart';
 
 export function RealAnalyticsCards({ analytics, loading }: RealAnalyticsCardsProps) {
   if (loading) {

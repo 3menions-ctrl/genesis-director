@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { lazy, Suspense } from 'react';
+import { SafeMarkdownRenderer } from '@/components/content/SafeMarkdownRenderer';
 
 const AbstractBackground = lazy(() => import('@/components/landing/AbstractBackground'));
 
@@ -564,23 +564,9 @@ function ArticleContent({ article, onBack }: { article: typeof ALL_ARTICLES[0]; 
           {article.title}
         </h1>
         
-        <div 
-          className="prose prose-invert max-w-none text-white/60"
-          dangerouslySetInnerHTML={{ 
-            __html: article.content
-              .replace(/## /g, '<h2 class="text-xl font-semibold text-white mt-8 mb-4">')
-              .replace(/### /g, '<h3 class="text-lg font-medium text-white mt-6 mb-3">')
-              .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-              .replace(/`([^`]+)`/g, '<code class="bg-white/10 px-2 py-0.5 rounded text-white/80">$1</code>')
-              .replace(/```[\s\S]*?```/g, (match) => {
-                const code = match.replace(/```\w*\n?/g, '').trim();
-                return `<pre class="bg-white/5 border border-white/10 rounded-xl p-4 overflow-x-auto my-4"><code class="text-white/70 text-sm">${code}</code></pre>`;
-              })
-              .replace(/> (.*)/g, '<blockquote class="border-l-2 border-white/20 pl-4 italic text-white/50 my-4">$1</blockquote>')
-              .replace(/- (.*)/g, '<li class="ml-4 mb-1">$1</li>')
-              .replace(/\d+\. (.*)/g, '<li class="ml-4 mb-1">$1</li>')
-              .replace(/\n\n/g, '</p><p class="mb-4">')
-          }}
+        <SafeMarkdownRenderer 
+          content={article.content}
+          className="prose prose-invert max-w-none"
         />
       </div>
     </motion.div>

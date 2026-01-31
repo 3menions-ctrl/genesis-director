@@ -270,6 +270,47 @@
 .animate-ripple { animation: ripple 2s ease-out infinite; }
 .animate-morph { animation: morph 8s ease-in-out infinite; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CINEMA LOADER ANIMATIONS - Unified loading state
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes cinema-ray {
+  0%, 100% { opacity: 0.3; transform: translateY(0) rotate(var(--ray-rotate, 0deg)); }
+  50% { opacity: 0.7; transform: translateY(-20px) rotate(var(--ray-rotate, 0deg)); }
+}
+
+@keyframes cinema-ring-outer {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.15; }
+}
+
+@keyframes cinema-ring-middle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes cinema-ring-inner {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes cinema-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cinema-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-cinema-ray { animation: cinema-ray 4s ease-in-out infinite; }
+.animate-cinema-ring-outer { animation: cinema-ring-outer 3s ease-in-out infinite; }
+.animate-cinema-ring-middle { animation: cinema-ring-middle 8s linear infinite; }
+.animate-cinema-ring-inner { animation: cinema-ring-inner 2s ease-in-out infinite; }
+.animate-cinema-orbit { animation: cinema-orbit 6s linear infinite; }
+.animate-cinema-shimmer { animation: cinema-shimmer 2s linear infinite; }
+
 /* Staggered delays */
 .delay-0 { animation-delay: 0ms; }
 .delay-1 { animation-delay: 75ms; }

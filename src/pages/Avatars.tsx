@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,28 +21,17 @@ import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
-// Separated content for error boundary isolation - uses forwardRef for Dialog compatibility
-const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_props, ref) {
+// Separated content for error boundary isolation
+// CRITICAL FIX: Removed forwardRef - not needed here and was causing crash during navigation
+// The RouteContainer already provides StabilityBoundary isolation, no need for ref forwarding
+const AvatarsContent = memo(function AvatarsContent() {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
-  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { markReady } = usePageReady();
-
-  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
-  // This fixes the "Function components cannot be given refs" crash
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    internalRef.current = node;
-    if (ref) {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }
-    }
-  }, [ref]);
 
   // Avatar selection state - ALL HOOKS MUST BE CALLED BEFORE ANY RETURNS
   const [searchQuery, setSearchQuery] = useState('');
@@ -310,7 +299,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   // CRITICAL: Must still attach mergedRef to prevent forwardRef crashes
   if (authLoading) {
     return (
-      <div ref={mergedRef} className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+      <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-hidden">
         <AvatarsBackground />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
@@ -323,7 +312,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
 
   return (
-    <div ref={mergedRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>
@@ -462,7 +451,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
       )}
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary for fault isolation
 export default function Avatars() {

@@ -1,5 +1,4 @@
 import { memo, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 import { Camera, Wand2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarType, AVATAR_TYPES } from '@/types/avatar-templates';
@@ -10,18 +9,17 @@ interface AvatarsCategoryTabsProps {
   totalCount: number;
 }
 
+// STABILITY: Removed framer-motion to prevent ref-injection crashes
 export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCategoryTabsProps>(function AvatarsCategoryTabs({
   activeType,
   onTypeChange,
   totalCount
 }, ref) {
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4"
+      className="flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4 animate-fade-in"
+      style={{ animationDelay: '0.3s' }}
     >
       {AVATAR_TYPES.map((type) => {
         const isActive = activeType === type.id;
@@ -46,12 +44,9 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
             )} />
             <span>{type.name}</span>
             
-            {/* Active indicator dot */}
+            {/* Active indicator dot - CSS transition instead of layoutId */}
             {isActive && (
-              <motion.span
-                layoutId="activeTab"
-                className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400"
-              />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400 animate-scale-in" />
             )}
           </button>
         );
@@ -63,7 +58,7 @@ export const AvatarsCategoryTabs = memo(forwardRef<HTMLDivElement, AvatarsCatego
           {totalCount} avatar{totalCount !== 1 ? 's' : ''}
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 }));
 

@@ -17,16 +17,17 @@ const corsHeaders = {
  * true audio-driven lip synchronization for accurate mouth movements.
  */
 
-// Voice mapping for MiniMax (must match generate-voice)
+// Voice mapping for MiniMax - ALIGNED with generate-voice function
+// Maps legacy ElevenLabs IDs and simple names to MiniMax system voice IDs
 const VOICE_MAP: Record<string, string> = {
-  // ElevenLabs IDs mapped to MiniMax voices
+  // Legacy ElevenLabs IDs -> MiniMax voices
   'onwK4e9ZLuTAKqWW03F9': 'onyx',    // Daniel -> onyx (deep male)
   'JBFqnCBsd6RMkjVDRZzb': 'echo',    // George -> echo (warm male)
   'EXAVITQu4vr4xnSDxMaL': 'nova',    // Sarah -> nova (female)
   'pFZP5JQG7iQjIQuC4Bku': 'shimmer', // Lily -> shimmer (female)
   'cjVigY5qzO86Huf0OWal': 'alloy',   // Eric -> alloy (neutral)
   
-  // Direct MiniMax voice names
+  // Direct MiniMax voice names (passthrough)
   'onyx': 'onyx',
   'echo': 'echo',
   'fable': 'fable',
@@ -35,6 +36,14 @@ const VOICE_MAP: Record<string, string> = {
   'alloy': 'alloy',
   'bella': 'bella',
   'adam': 'adam',
+  'michael': 'michael',
+  'george': 'george',
+  'sarah': 'sarah',
+  'jessica': 'jessica',
+  'lily': 'lily',
+  'emma': 'emma',
+  'narrator': 'narrator',
+  'default': 'bella',
 };
 
 serve(async (req) => {

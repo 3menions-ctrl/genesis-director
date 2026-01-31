@@ -1,5 +1,4 @@
-import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { memo, forwardRef } from 'react';
 import { FolderOpen, Check, Activity, Film, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,26 +19,25 @@ interface OrbitalStatProps {
   colorClass?: string;
 }
 
-const OrbitalStat = memo(function OrbitalStat({ 
+// forwardRef for AnimatePresence/motion wrapper compatibility
+const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function OrbitalStat({ 
   icon: Icon, 
   label, 
   value, 
   delay = 0,
   colorClass = 'from-orange-500 to-amber-500'
-}: OrbitalStatProps) {
+}, ref) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="relative group"
+    <div
+      ref={ref}
+      className="relative group animate-fade-in"
+      style={{ animationDelay: `${delay}s` }}
     >
-      <motion.div 
+      <div 
         className={cn(
-          "absolute -inset-1 rounded-2xl bg-gradient-to-br opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500",
+          "absolute -inset-1 rounded-2xl bg-gradient-to-br opacity-0 group-hover:opacity-[0.15] blur-xl transition-opacity duration-500",
           colorClass
         )} 
-        style={{ opacity: 0.15 }}
       />
       
       <div className="relative flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300">
@@ -55,17 +53,16 @@ const OrbitalStat = memo(function OrbitalStat({
           <span className="text-[10px] text-white/40 uppercase tracking-widest font-medium">{label}</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
-});
+}));
 
-export const ProjectsHero = memo(function ProjectsHero({ stats }: ProjectsHeroProps) {
+// forwardRef for compatibility with parent wrappers
+export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(function ProjectsHero({ stats }, ref) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      className="relative mb-8"
+    <div
+      ref={ref}
+      className="relative mb-8 animate-fade-in"
     >
       {/* Hero container with premium glass effect */}
       <div className="relative px-6 py-8 sm:px-8 sm:py-10 rounded-3xl overflow-hidden">
@@ -80,13 +77,9 @@ export const ProjectsHero = memo(function ProjectsHero({ stats }: ProjectsHeroPr
         <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-amber-500/5 blur-3xl" />
         
         <div className="relative flex flex-col gap-8">
-          {/* Title section with animated underline */}
+          {/* Title section */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            >
+            <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
                   <Sparkles className="w-5 h-5 text-black" />
@@ -100,27 +93,22 @@ export const ProjectsHero = memo(function ProjectsHero({ stats }: ProjectsHeroPr
                 </span>
               </h1>
               
-              {/* Animated underline */}
-              <motion.div 
-                className="h-0.5 bg-gradient-to-r from-orange-500 via-amber-500 to-transparent rounded-full mt-3"
-                initial={{ width: 0 }}
-                animate={{ width: '100%' }}
-                transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              {/* Animated underline - using CSS animation instead of motion */}
+              <div 
+                className="h-0.5 bg-gradient-to-r from-orange-500 via-amber-500 to-transparent rounded-full mt-3 animate-scale-in origin-left"
                 style={{ maxWidth: 200 }}
               />
               
               <p className="text-white/40 text-sm mt-3 max-w-md">
                 Manage, view, and download all your AI-generated cinematic videos
               </p>
-            </motion.div>
+            </div>
           </div>
           
           {/* Stats row - premium orbital cards */}
-          <motion.div 
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+          <div 
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in"
+            style={{ animationDelay: '0.3s' }}
           >
             <OrbitalStat 
               icon={FolderOpen} 
@@ -150,9 +138,9 @@ export const ProjectsHero = memo(function ProjectsHero({ stats }: ProjectsHeroPr
               delay={0.6}
               colorClass="from-sky-500 to-cyan-500"
             />
-          </motion.div>
+          </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
-});
+}));

@@ -11,9 +11,9 @@
  * - onLoad-based opacity for image rendering
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+// STABILITY: Removed framer-motion to eliminate ref-injection crashes
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
@@ -351,23 +351,13 @@ const AvatarsContent = memo(function AvatarsContent() {
         <AppHeader />
       </SafeComponent>
       
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 flex-1 pb-48 md:pb-56"
-      >
+      <div className="relative z-10 flex-1 pb-48 md:pb-56 animate-fade-in">
         <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
           <AvatarsHero />
         </SafeComponent>
         
         <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-6"
-          >
+          <div className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <AvatarsFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -379,7 +369,7 @@ const AvatarsContent = memo(function AvatarsContent() {
               onClearFilters={handleClearFilters}
               onBack={() => navigate('/create')}
             />
-          </motion.div>
+          </div>
         </SafeComponent>
         
         <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
@@ -393,14 +383,9 @@ const AvatarsContent = memo(function AvatarsContent() {
         </SafeComponent>
         
         <SafeComponent name="VirtualAvatarGallery">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mb-8"
-          >
+          <div className="mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             {error ? (
-              <div className="text-center py-12 text-red-400 max-w-7xl mx-auto px-6">
+              <div className="text-center py-12 text-destructive max-w-7xl mx-auto px-6">
                 <p>{error}</p>
               </div>
             ) : (
@@ -414,9 +399,9 @@ const AvatarsContent = memo(function AvatarsContent() {
                 isVoiceReady={isVoiceReady}
               />
             )}
-          </motion.div>
+          </div>
         </SafeComponent>
-      </motion.div>
+      </div>
       
       <SafeComponent name="AvatarsConfigPanel" fallback={<div className="fixed bottom-0 h-32" />}>
         <AvatarsConfigPanel
@@ -457,24 +442,17 @@ const AvatarsContent = memo(function AvatarsContent() {
         />
       </SafeComponent>
       
-      {/* Creation Overlay */}
-      <AnimatePresence>
-        {isCreating && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/95 backdrop-blur-md z-50"
-          >
-            <CinemaLoader
-              isVisible={true}
-              message={creationStatus || 'Starting creation...'}
-              showProgress={false}
-              variant="fullscreen"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Creation Overlay - CSS-based for stability */}
+      {isCreating && (
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 animate-fade-in">
+          <CinemaLoader
+            isVisible={true}
+            message={creationStatus || 'Starting creation...'}
+            showProgress={false}
+            variant="fullscreen"
+          />
+        </div>
+      )}
     </div>
   );
 });

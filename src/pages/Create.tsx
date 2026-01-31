@@ -212,13 +212,11 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   );
 }));
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Create = memo(forwardRef<HTMLDivElement, object>(function Create(_, ref) {
+// Wrapper with error boundary
+export default function Create() {
   return (
     <ErrorBoundary>
       <CreateContent />
     </ErrorBoundary>
   );
-}));
-
-export default Create;
+}

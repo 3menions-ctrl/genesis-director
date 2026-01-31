@@ -1002,13 +1002,11 @@ const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   );
 }));
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Profile = memo(forwardRef<HTMLDivElement, object>(function Profile(_, ref) {
+// Wrapper with error boundary
+export default function Profile() {
   return (
     <ErrorBoundary>
       <ProfileContent />
     </ErrorBoundary>
   );
-}));
-
-export default Profile;
+}

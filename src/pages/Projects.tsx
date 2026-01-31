@@ -2011,13 +2011,11 @@ const ProjectsContent = memo(function ProjectsContent() {
   );
 });
 
-// Wrapper with error boundary and forwardRef for AnimatePresence compatibility
-const Projects = memo(forwardRef<HTMLDivElement, object>(function Projects(_, ref) {
+// Wrapper with error boundary
+export default function Projects() {
   return (
     <ErrorBoundary>
       <ProjectsContent />
     </ErrorBoundary>
   );
-}));
-
-export default Projects;
+}

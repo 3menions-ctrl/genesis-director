@@ -927,13 +927,11 @@ const GalleryContent = memo(function GalleryContent() {
   );
 });
 
-// Wrapper with error boundary and forwardRef for AnimatePresence
-const Gallery = memo(forwardRef<HTMLDivElement, object>(function Gallery(_, ref) {
+// Wrapper with error boundary
+export default function Gallery() {
   return (
     <ErrorBoundary>
       <GalleryContent />
     </ErrorBoundary>
   );
-}));
-
-export default Gallery;
+}

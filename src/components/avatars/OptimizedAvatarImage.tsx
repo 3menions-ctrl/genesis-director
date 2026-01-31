@@ -209,7 +209,7 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
         />
       )}
 
-      {/* Actual image - with blur-up progressive loading */}
+      {/* Actual image - CRITICAL: opacity strictly tied to onLoad event */}
       {loadState !== 'error' && isInView && (
         <img
           src={src}
@@ -218,14 +218,16 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
+          style={{
+            // CRITICAL: Use inline style for immediate opacity control
+            // This prevents any flash of content before image is fully loaded
+            opacity: loadState === 'loaded' ? 1 : 0,
+            transform: loadState === 'loaded' ? 'scale(1)' : 'scale(1.05)',
+            filter: loadState === 'loaded' ? 'blur(0)' : 'blur(8px)',
+          }}
           className={cn(
             "w-full h-full object-cover object-top will-change-transform",
-            // Blur-up effect: start blurred, then clear
-            loadState === 'loading' && "blur-md scale-105",
-            loadState === 'loaded' && "blur-0 scale-100",
-            // Smooth transition
-            "transition-all duration-500 ease-out",
-            loadState === 'loaded' ? 'opacity-100' : 'opacity-0'
+            "transition-all duration-500 ease-out"
           )}
         />
       )}

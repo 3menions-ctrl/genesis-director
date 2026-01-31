@@ -1,13 +1,27 @@
+/**
+ * Avatars Page - Gatekeeper Loading Strategy
+ * 
+ * Stays on loading screen until:
+ * 1. useAvatarTemplates returns success
+ * 2. Critical avatar images are pre-fetched and cached
+ * 
+ * Implements:
+ * - Virtual scrolling for memory optimization
+ * - Strict AbortController cleanup
+ * - onLoad-based opacity for image rendering
+ */
+
 import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { useAvatarVoices } from '@/hooks/useAvatarVoices';
+import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { AvatarTemplate, AvatarType } from '@/types/avatar-templates';
 import { AvatarPreviewModal } from '@/components/avatars/AvatarPreviewModal';
-import { PremiumAvatarGallery } from '@/components/avatars/PremiumAvatarGallery';
+import { VirtualAvatarGallery } from '@/components/avatars/VirtualAvatarGallery';
 import AvatarsBackground from '@/components/avatars/AvatarsBackground';
 import { AvatarsHero } from '@/components/avatars/AvatarsHero';
 import { AvatarsCategoryTabs } from '@/components/avatars/AvatarsCategoryTabs';
@@ -20,21 +34,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
-import { UnifiedLoadingPage, BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
-// Separated content for error boundary isolation
-// CRITICAL FIX: Removed forwardRef - not needed here and was causing crash during navigation
-// The RouteContainer already provides StabilityBoundary isolation, no need for ref forwarding
+// GATEKEEPER: Extract critical image URLs from templates
+function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] {
+  return templates
+    .slice(0, limit)
+    .map(t => t.front_image_url || t.face_image_url)
+    .filter((url): url is string => Boolean(url));
+}
+
 const AvatarsContent = memo(function AvatarsContent() {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
+  const { markReady, disableAutoComplete } = usePageReady();
+  
+  // ========== AbortController Lifecycle ==========
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { markReady } = usePageReady();
-
-  // Avatar selection state - ALL HOOKS MUST BE CALLED BEFORE ANY RETURNS
+  const gatekeeperCompleteRef = useRef(false);
+  
+  // ========== Avatar Selection State ==========
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
   const [styleFilter, setStyleFilter] = useState('all');
@@ -42,8 +64,8 @@ const AvatarsContent = memo(function AvatarsContent() {
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarTemplate | null>(null);
   const [previewAvatar, setPreviewAvatar] = useState<AvatarTemplate | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-
-  // Voice management with smart caching and preloading
+  
+  // ========== Voice Management ==========
   const {
     playVoicePreview,
     preloadVoices,
@@ -51,32 +73,51 @@ const AvatarsContent = memo(function AvatarsContent() {
     previewingVoice,
     stopPlayback,
   } = useAvatarVoices();
-
-  // Project configuration state
+  
+  // ========== Project Configuration ==========
   const [prompt, setPrompt] = useState('');
-  const [sceneDescription, setSceneDescription] = useState(''); // NEW: Scene/background description
+  const [sceneDescription, setSceneDescription] = useState('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipCount, setClipCount] = useState(3);
-  const [clipDuration, setClipDuration] = useState(10); // Avatar clips default to 10s for natural speech
+  const [clipDuration, setClipDuration] = useState(10);
   const [enableMusic, setEnableMusic] = useState(true);
-
-  // Generation state
+  
+  // ========== Generation State ==========
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState('');
-
-  // Memoize filter config to prevent unnecessary re-renders
+  
+  // ========== Data Fetching with Gatekeeper ==========
   const filterConfig = useMemo(() => ({
     gender: genderFilter,
     style: styleFilter,
     search: searchQuery,
     avatarType: avatarTypeFilter,
   }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
-
-  const { templates, isLoading, error } = useAvatarTemplatesQuery(filterConfig);
-
-  // Memoize computed values
+  
+  const { templates, isLoading: templatesLoading, error } = useAvatarTemplatesQuery(filterConfig);
+  
+  // ========== GATEKEEPER: Image Preloading ==========
+  const criticalImageUrls = useMemo(() => getCriticalImageUrls(templates, 8), [templates]);
+  
+  const {
+    isReady: imagesReady,
+    progress: imageProgress,
+  } = useImagePreloader({
+    images: criticalImageUrls,
+    enabled: templates.length > 0 && !templatesLoading,
+    minRequired: Math.min(5, criticalImageUrls.length),
+    timeout: 8000,
+    concurrency: 4,
+  });
+  
+  // Gatekeeper state: show loading until BOTH templates AND images are ready
+  const isGatekeeperLoading = authLoading || templatesLoading || (templates.length > 0 && !imagesReady);
+  const gatekeeperProgress = templatesLoading 
+    ? 30 
+    : Math.min(30 + (imageProgress * 0.7), 100);
+  
+  // ========== Computed Values ==========
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
-  // Avatar clips are 10s = extended pricing (15 credits each)
   const estimatedCredits = useMemo(() => clipCount * 15, [clipCount]);
   const hasInsufficientCredits = useMemo(() => userCredits < estimatedCredits, [userCredits, estimatedCredits]);
   const estimatedDuration = useMemo(() => clipCount * clipDuration, [clipCount, clipDuration]);
@@ -84,64 +125,68 @@ const AvatarsContent = memo(function AvatarsContent() {
     genderFilter !== 'all' || styleFilter !== 'all' || searchQuery.trim().length > 0,
     [genderFilter, styleFilter, searchQuery]
   );
-
   const isReadyToCreate = useMemo(() => 
     selectedAvatar && prompt.trim() && !hasInsufficientCredits,
     [selectedAvatar, prompt, hasInsufficientCredits]
   );
-
-  // Cleanup on unmount - rely on global unhandledrejection handler in main.tsx
-  // Adding local handlers can cause conflicts and double-handling
+  
+  // ========== LIFECYCLE: Strict Cleanup ==========
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Disable auto-complete - we manage our own readiness
+    disableAutoComplete();
     
     return () => {
       isMountedRef.current = false;
       stopPlayback();
+      
+      // Abort any pending requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, [stopPlayback]);
-
-  // Preload voices for visible avatars when templates load and signal page ready
+  }, [stopPlayback, disableAutoComplete]);
+  
+  // ========== GATEKEEPER: Signal Ready When All Assets Loaded ==========
   useEffect(() => {
-    if (templates.length > 0 && !isLoading) {
-      // Preload first 5 visible avatars' voices in background
-      const visibleAvatars = templates.slice(0, 5);
-      preloadVoices(visibleAvatars);
+    if (!isGatekeeperLoading && !gatekeeperCompleteRef.current && isMountedRef.current) {
+      gatekeeperCompleteRef.current = true;
       
-      // Signal page is ready after templates are loaded (wrapped in try-catch for safety)
+      // Preload voices in background AFTER page is visible
+      if (templates.length > 0) {
+        const visibleAvatars = templates.slice(0, 5);
+        preloadVoices(visibleAvatars);
+      }
+      
+      // Signal page ready to navigation system
       try {
         markReady('avatars-page');
       } catch (e) {
         console.warn('[Avatars] Failed to signal page ready:', e);
       }
     }
-  }, [templates, isLoading, preloadVoices, markReady]);
-
-  // Voice preview handler - uses smart caching
+  }, [isGatekeeperLoading, templates, preloadVoices, markReady]);
+  
+  // ========== Handlers ==========
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
     const success = await playVoicePreview(avatar);
     if (!success) {
       toast.error('Failed to preview voice');
     }
   }, [playVoicePreview]);
-
-  // Handle avatar card click - open preview modal
+  
   const handleAvatarClick = useCallback((avatar: AvatarTemplate) => {
     setPreviewAvatar(avatar);
     setPreviewModalOpen(true);
   }, []);
-
-  // Handle avatar selection from modal
+  
   const handleSelectAvatar = useCallback((avatar: AvatarTemplate) => {
     setSelectedAvatar(avatar);
     toast.success(`Selected ${avatar.name}`);
   }, []);
-
-  // Build character bible for production consistency
+  
   const buildCharacterBible = useCallback((avatar: AvatarTemplate) => {
     const bible = (avatar.character_bible || {}) as Record<string, unknown>;
     
@@ -172,40 +217,39 @@ const AvatarsContent = memo(function AvatarsContent() {
       ],
     };
   }, []);
-
-  // Handle project creation with abort support
+  
   const handleCreate = useCallback(async () => {
     if (!user) {
       toast.error('Please sign in to create videos');
       navigate('/auth');
       return;
     }
-
+    
     if (!selectedAvatar) {
       toast.error('Please select an avatar first');
       return;
     }
-
+    
     if (!prompt.trim()) {
       toast.error('Please enter what you want the avatar to say');
       return;
     }
-
-    // Abort any previous request
+    
+    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
-
+    
     setIsCreating(true);
     setCreationStatus('Building character identity...');
-
+    
     try {
       const characterBible = buildCharacterBible(selectedAvatar);
       
       if (!isMountedRef.current) return;
       setCreationStatus('Initializing avatar pipeline...');
-
+      
       const { data, error } = await supabase.functions.invoke('mode-router', {
         body: {
           mode: 'avatar',
@@ -220,13 +264,12 @@ const AvatarsContent = memo(function AvatarsContent() {
           enableMusic,
           characterBible,
           avatarTemplateId: selectedAvatar.id,
-          sceneDescription: sceneDescription.trim() || undefined, // Pass scene description to backend
+          sceneDescription: sceneDescription.trim() || undefined,
         },
       });
-
-      // Check if component is still mounted
+      
       if (!isMountedRef.current) return;
-
+      
       if (error) {
         if (error.message?.includes('402') || error.message?.includes('credits')) {
           toast.error('Insufficient credits. Please purchase more credits.');
@@ -235,7 +278,7 @@ const AvatarsContent = memo(function AvatarsContent() {
         }
         throw error;
       }
-
+      
       if (data?.error === 'active_project_exists') {
         toast.error(data.message, {
           duration: 8000,
@@ -246,15 +289,15 @@ const AvatarsContent = memo(function AvatarsContent() {
         });
         return;
       }
-
+      
       if (!data?.projectId) {
         throw new Error('Failed to create project');
       }
-
+      
       toast.success('Avatar video creation started!');
       navigate(`/production/${data.projectId}`);
     } catch (error) {
-      // Ignore abort errors
+      // Ignore abort errors - expected during navigation
       if ((error as Error).name === 'AbortError') return;
       if (!isMountedRef.current) return;
       
@@ -267,43 +310,38 @@ const AvatarsContent = memo(function AvatarsContent() {
       }
     }
   }, [user, selectedAvatar, prompt, sceneDescription, aspectRatio, clipCount, clipDuration, enableMusic, navigate, buildCharacterBible]);
-
+  
   const handleClearFilters = useCallback(() => {
     setGenderFilter('all');
     setStyleFilter('all');
     setSearchQuery('');
   }, []);
-
-  // Memoize modal handlers
+  
   const handleClosePreviewModal = useCallback(() => {
     setPreviewModalOpen(false);
   }, []);
-
-  const handleOpenPreviewModal = useCallback((avatar: AvatarTemplate) => {
-    setPreviewAvatar(avatar);
-    setPreviewModalOpen(true);
-  }, []);
-
+  
   const handleClearAvatar = useCallback(() => {
     setSelectedAvatar(null);
   }, []);
-
-  // EARLY RETURN AFTER ALL HOOKS - Only block on initial auth check
-  // Use unified loading component for consistent visual language
-  if (authLoading) {
+  
+  // ========== GATEKEEPER LOADING STATE ==========
+  if (isGatekeeperLoading) {
     return (
       <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
         <AvatarsBackground />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-6">
-            <BrandLoadingSpinner size="md" />
-            <p className="text-muted-foreground text-sm">Loading avatars...</p>
-          </div>
-        </div>
+        <CinemaLoader
+          isVisible={true}
+          message={templatesLoading ? 'Loading avatar library...' : 'Preparing avatar images...'}
+          progress={gatekeeperProgress}
+          showProgress={true}
+          variant="fullscreen"
+        />
       </div>
     );
   }
-
+  
+  // ========== MAIN CONTENT ==========
   return (
     <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
@@ -313,13 +351,16 @@ const AvatarsContent = memo(function AvatarsContent() {
         <AppHeader />
       </SafeComponent>
       
-      <div className="relative z-10 flex-1 pb-48 md:pb-56">
-        {/* Hero Section - isolated */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-10 flex-1 pb-48 md:pb-56"
+      >
         <SafeComponent name="AvatarsHero" fallback={<div className="pt-24 pb-8" />}>
           <AvatarsHero />
         </SafeComponent>
-
-        {/* Filters - isolated */}
+        
         <SafeComponent name="AvatarsFilters" fallback={<div className="mb-6 h-12" />}>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -340,8 +381,7 @@ const AvatarsContent = memo(function AvatarsContent() {
             />
           </motion.div>
         </SafeComponent>
-
-        {/* Category Tabs - isolated */}
+        
         <SafeComponent name="AvatarsCategoryTabs" fallback={<div className="mb-8 h-12" />}>
           <div className="mb-8">
             <AvatarsCategoryTabs
@@ -351,9 +391,8 @@ const AvatarsContent = memo(function AvatarsContent() {
             />
           </div>
         </SafeComponent>
-
-        {/* Premium Horizontal Gallery - isolated with error display */}
-        <SafeComponent name="PremiumAvatarGallery">
+        
+        <SafeComponent name="VirtualAvatarGallery">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -365,21 +404,20 @@ const AvatarsContent = memo(function AvatarsContent() {
                 <p>{error}</p>
               </div>
             ) : (
-              <PremiumAvatarGallery
+              <VirtualAvatarGallery
                 avatars={templates}
                 selectedAvatar={selectedAvatar}
                 onAvatarClick={handleAvatarClick}
                 onVoicePreview={handleVoicePreview}
                 previewingVoice={previewingVoice}
-                isLoading={isLoading}
+                isLoading={false}
                 isVoiceReady={isVoiceReady}
               />
             )}
           </motion.div>
         </SafeComponent>
-      </div>
-
-      {/* Sticky Configuration Panel - isolated */}
+      </motion.div>
+      
       <SafeComponent name="AvatarsConfigPanel" fallback={<div className="fixed bottom-0 h-32" />}>
         <AvatarsConfigPanel
           selectedAvatar={selectedAvatar}
@@ -406,8 +444,7 @@ const AvatarsContent = memo(function AvatarsContent() {
           onCreate={handleCreate}
         />
       </SafeComponent>
-
-      {/* Avatar Preview Modal with 3D Viewer - isolated */}
+      
       <SafeComponent name="AvatarPreviewModal" silent>
         <AvatarPreviewModal
           avatar={previewAvatar}
@@ -419,28 +456,29 @@ const AvatarsContent = memo(function AvatarsContent() {
           isVoiceReady={previewAvatar ? isVoiceReady(previewAvatar) : false}
         />
       </SafeComponent>
-
-      {/* Loading Overlay - unified brand animation */}
-      {isCreating && (
-        <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-50 flex items-center justify-center">
+      
+      {/* Creation Overlay */}
+      <AnimatePresence>
+        {isCreating && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-background/95 backdrop-blur-md z-50"
           >
-            <BrandLoadingSpinner size="lg" />
-            <div>
-              <p className="text-foreground text-lg font-medium">{creationStatus || 'Starting creation...'}</p>
-              <p className="text-muted-foreground text-sm mt-2">Building character consistency profile...</p>
-            </div>
+            <CinemaLoader
+              isVisible={true}
+              message={creationStatus || 'Starting creation...'}
+              showProgress={false}
+              variant="fullscreen"
+            />
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 });
 
-// Wrapper with error boundary for fault isolation
 export default function Avatars() {
   return (
     <ErrorBoundary>

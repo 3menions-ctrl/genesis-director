@@ -89,26 +89,18 @@ const AvatarsContent = memo(function AvatarsContent() {
     [selectedAvatar, prompt, hasInsufficientCredits]
   );
 
-  // Cleanup on unmount and add unhandled rejection guard
+  // Cleanup on unmount - rely on global unhandledrejection handler in main.tsx
+  // Adding local handlers can cause conflicts and double-handling
   useEffect(() => {
     isMountedRef.current = true;
-    
-    // CRITICAL: Add unhandled rejection handler to prevent silent crashes
-    // This catches any async errors that might not be properly caught
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('[Avatars] Unhandled rejection caught:', event.reason);
-      event.preventDefault(); // Prevent the default crash behavior
-    };
-    
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
     
     return () => {
       isMountedRef.current = false;
       stopPlayback();
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, [stopPlayback]);
 

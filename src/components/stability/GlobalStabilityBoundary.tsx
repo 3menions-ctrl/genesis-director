@@ -14,29 +14,50 @@ interface GlobalStabilityBoundaryState {
   lastErrorTime: number;
 }
 
-// Error patterns that should NOT crash the app
+// Error patterns that should NOT crash the app - COMPREHENSIVE LIST
+// These are common errors that don't indicate actual application problems
 const SUPPRESSED_ERROR_PATTERNS = [
+  // Browser API quirks
   'ResizeObserver loop',
   'ResizeObserver loop completed with undelivered notifications',
   'Non-Error promise rejection captured',
+  
+  // Code splitting / lazy loading
   'ChunkLoadError',
   'Loading chunk',
+  'Failed to fetch dynamically imported module',
+  
+  // DOM cleanup race conditions
   'Cannot read properties of null',
   'removeChild',
   'insertBefore',
+  'removeAttribute',
+  'setAttribute',
+  
   // AbortController errors - expected during fast navigation
   'AbortError',
   'The operation was aborted',
   'signal is aborted',
   'DOMException: The user aborted a request',
+  'aborted',
+  
   // React ref warnings - non-fatal console warnings
   'Function components cannot be given refs',
   'forwardRef render functions accept',
-  // Radix UI cleanup race conditions
-  'removeAttribute',
-  'setAttribute',
+  'Warning: Function components cannot be given refs',
+  
   // React Query background errors
   'QueryCancelled',
+  
+  // Video playback (autoplay restrictions, etc.)
+  'play() request was interrupted',
+  'The play() request was interrupted',
+  'NotAllowedError',
+  
+  // Network errors (should show toast, not crash)
+  'NetworkError',
+  'Failed to fetch',
+  'Network request failed',
 ];
 
 /**

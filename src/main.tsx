@@ -14,6 +14,7 @@ const ERROR_RESET_INTERVAL = 30000; // 30 seconds
 let errorResetInterval: ReturnType<typeof setInterval> | null = null;
 
 // Error patterns that should NOT crash the app or show toasts
+// COMPREHENSIVE list - includes all variations of common non-fatal errors
 const SUPPRESSED_ERROR_PATTERNS = [
   'ResizeObserver loop',
   'ResizeObserver loop completed',
@@ -25,17 +26,26 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Failed to fetch dynamically imported module',
   'Network Error',
   'cancelled',
-  // AbortController errors - expected during navigation
+  // AbortController errors - expected during navigation (all variants)
   'AbortError',
   'The operation was aborted',
   'signal is aborted',
   'DOMException: The user aborted a request',
+  'aborted',
   // React ref warnings - non-fatal
   'Function components cannot be given refs',
   'forwardRef render functions accept',
+  'Warning: Function components cannot be given refs',
   // Radix/Dialog cleanup race conditions
   'removeAttribute',
   'setAttribute',
+  'removeChild',
+  'insertBefore',
+  // Video playback errors - common and harmless
+  'play() request was interrupted',
+  'The play() request was interrupted by a call to pause()',
+  // HMR/Vite development errors
+  'Vite HMR',
 ];
 
 // Check if error should be suppressed

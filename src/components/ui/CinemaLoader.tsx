@@ -10,7 +10,7 @@
  * - GPU-accelerated CSS animations
  */
 
-import { memo, useEffect, useRef, useCallback } from 'react';
+import { memo, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -63,17 +63,21 @@ interface CinemaLoaderProps {
   variant?: 'fullscreen' | 'inline' | 'overlay';
 }
 
-export const CinemaLoader = memo(function CinemaLoader({
-  message = 'Loading...',
-  progress = 0,
-  showProgress = true,
-  isVisible = true,
-  onExitComplete,
-  className,
-  variant = 'fullscreen',
-}: CinemaLoaderProps) {
-  const animationFrameRef = useRef<number>();
-  const containerRef = useRef<HTMLDivElement>(null);
+export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
+  function CinemaLoader({
+    message = 'Loading...',
+    progress = 0,
+    showProgress = true,
+    isVisible = true,
+    onExitComplete,
+    className,
+    variant = 'fullscreen',
+  }, ref) {
+    const animationFrameRef = useRef<number>();
+    const internalContainerRef = useRef<HTMLDivElement>(null);
+    
+    // Merge refs: support both internal and forwarded ref
+    const containerRef = (ref as React.RefObject<HTMLDivElement>) || internalContainerRef;
   
   // Cleanup animation frames on unmount
   useEffect(() => {
@@ -239,6 +243,8 @@ export const CinemaLoader = memo(function CinemaLoader({
       )}
     </AnimatePresence>
   );
-});
+}));
+
+CinemaLoader.displayName = 'CinemaLoader';
 
 export default CinemaLoader;

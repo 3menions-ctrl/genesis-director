@@ -5,13 +5,14 @@
  * Features smooth 0.3s fade transitions and memory cleanup.
  */
 
-import { memo, useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback, forwardRef } from 'react';
 import { useNavigationLoading } from '@/contexts/NavigationLoadingContext';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
-export const GlobalLoadingOverlay = memo(function GlobalLoadingOverlay() {
-  const { state } = useNavigationLoading();
-  const [isVisible, setIsVisible] = useState(false);
+export const GlobalLoadingOverlay = memo(forwardRef<HTMLDivElement, Record<string, never>>(
+  function GlobalLoadingOverlay(_, ref) {
+    const { state } = useNavigationLoading();
+    const [isVisible, setIsVisible] = useState(false);
   
   // Manage visibility with delay to prevent flash on fast navigations
   useEffect(() => {
@@ -30,21 +31,25 @@ export const GlobalLoadingOverlay = memo(function GlobalLoadingOverlay() {
     setIsVisible(false);
   }, []);
 
-  // Only render when visible or transitioning out
-  if (!isVisible && !state.isLoading) {
-    return null;
-  }
+    // Only render when visible or transitioning out
+    if (!isVisible && !state.isLoading) {
+      return null;
+    }
 
-  return (
-    <CinemaLoader
-      isVisible={isVisible}
-      message={state.currentMessage || 'Loading...'}
-      progress={state.progress}
-      showProgress={true}
-      onExitComplete={handleExitComplete}
-      variant="fullscreen"
-    />
-  );
-});
+    return (
+      <CinemaLoader
+        ref={ref}
+        isVisible={isVisible}
+        message={state.currentMessage || 'Loading...'}
+        progress={state.progress}
+        showProgress={true}
+        onExitComplete={handleExitComplete}
+        variant="fullscreen"
+      />
+    );
+  }
+));
+
+GlobalLoadingOverlay.displayName = 'GlobalLoadingOverlay';
 
 export default GlobalLoadingOverlay;

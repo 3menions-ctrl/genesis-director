@@ -1,4 +1,4 @@
-import { ReactNode, Suspense } from 'react';
+import { ReactNode, Suspense, forwardRef, memo } from 'react';
 import { AppLoader } from '@/components/ui/app-loader';
 import { StabilityBoundary } from '@/components/stability/StabilityBoundary';
 
@@ -18,21 +18,27 @@ interface RouteContainerProps {
  * - Error classification and targeted recovery
  * - Automatic retry for transient errors
  * - Structured error logging
+ * 
+ * forwardRef is implemented for AnimatePresence compatibility
  */
-export function RouteContainer({ 
-  children, 
-  fallbackMessage = 'Loading...', 
-  routeName 
-}: RouteContainerProps) {
-  return (
-    <StabilityBoundary 
-      name={routeName || 'Page'} 
-      autoRetry={true}
-      maxRetries={1}
-    >
-      <Suspense fallback={<AppLoader message={fallbackMessage} />}>
-        {children}
-      </Suspense>
-    </StabilityBoundary>
-  );
-}
+export const RouteContainer = memo(forwardRef<HTMLDivElement, RouteContainerProps>(
+  function RouteContainer({ children, fallbackMessage = 'Loading...', routeName }, ref) {
+    return (
+      <div ref={ref}>
+        <StabilityBoundary 
+          name={routeName || 'Page'} 
+          autoRetry={true}
+          maxRetries={1}
+        >
+          <Suspense fallback={<AppLoader message={fallbackMessage} />}>
+            {children}
+          </Suspense>
+        </StabilityBoundary>
+      </div>
+    );
+  }
+));
+
+RouteContainer.displayName = 'RouteContainer';
+
+export default RouteContainer;

@@ -94,7 +94,7 @@ const AvatarsContent = memo(function AvatarsContent() {
     avatarType: avatarTypeFilter,
   }), [genderFilter, styleFilter, searchQuery, avatarTypeFilter]);
   
-  const { templates, isLoading: templatesLoading, isFetching, error } = useAvatarTemplatesQuery(filterConfig);
+  const { templates, isLoading: templatesLoading, isFetching, isSuccess, error } = useAvatarTemplatesQuery(filterConfig);
   
   // ========== GATEKEEPER: Image Preloading ==========
   const criticalImageUrls = useMemo(() => getCriticalImageUrls(templates, 8), [templates]);
@@ -111,10 +111,10 @@ const AvatarsContent = memo(function AvatarsContent() {
   });
   
   // Gatekeeper state: show loading until BOTH templates AND images are ready
-  // CRITICAL FIX: Also wait if isFetching is true (background refetch in progress)
-  // This prevents showing 0 avatars during the initial fetch race condition
-  const isGatekeeperLoading = authLoading || templatesLoading || isFetching || (templates.length > 0 && !imagesReady);
-  const gatekeeperProgress = templatesLoading || isFetching
+  // CRITICAL FIX: Wait for isSuccess to be true before showing content
+  // This prevents the 0-avatar flash during initial fetch race condition
+  const isGatekeeperLoading = authLoading || templatesLoading || isFetching || !isSuccess || (templates.length > 0 && !imagesReady);
+  const gatekeeperProgress = templatesLoading || isFetching || !isSuccess
     ? 30 
     : Math.min(30 + (imageProgress * 0.7), 100);
   

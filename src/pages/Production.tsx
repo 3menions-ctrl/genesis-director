@@ -371,7 +371,22 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         setPipelineState(state);
       }
       
-      if (project.video_url) setFinalVideoUrl(project.video_url);
+      // PRIORITY: Use manifest URL from pending_video_tasks if available (permanent storage)
+      // Fallback to video_url only if no manifest exists
+      const pendingTasksForVideo = parsePendingVideoTasks(project.pending_video_tasks);
+      const manifestUrl = pendingTasksForVideo?.manifestUrl;
+      const isManifestMode = pendingTasksForVideo?.mode === 'manifest_playback';
+      
+      if (manifestUrl) {
+        // Manifest URL is preferred - always points to permanent Supabase storage
+        setFinalVideoUrl(manifestUrl);
+      } else if (project.video_url && !project.video_url.includes('replicate.delivery')) {
+        // Only use video_url if it's NOT a temporary Replicate URL
+        setFinalVideoUrl(project.video_url);
+      } else if (project.video_url?.endsWith('.json')) {
+        // It's already a manifest URL
+        setFinalVideoUrl(project.video_url);
+      }
       
       // Load last error for display
       if (project.last_error) {
@@ -574,7 +589,17 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         if (!project) return;
 
         setProjectStatus(project.status as string);
-        if (project.video_url) setFinalVideoUrl(project.video_url as string);
+        // PRIORITY: Check for manifest URL in pending_video_tasks first (realtime update)
+        const realtimeTasks = parsePendingVideoTasks(project.pending_video_tasks);
+        const realtimeManifestUrl = realtimeTasks?.manifestUrl;
+        
+        if (realtimeManifestUrl) {
+          setFinalVideoUrl(realtimeManifestUrl);
+        } else if (project.video_url && !(project.video_url as string).includes('replicate.delivery')) {
+          setFinalVideoUrl(project.video_url as string);
+        } else if ((project.video_url as string)?.endsWith('.json')) {
+          setFinalVideoUrl(project.video_url as string);
+        }
         
         // Update error state from realtime
         if (project.last_error) {

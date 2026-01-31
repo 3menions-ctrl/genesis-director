@@ -85,6 +85,8 @@ export interface PendingVideoTasks {
 
   // Final output
   finalVideoUrl?: string;
+  manifestUrl?: string;
+  mode?: string; // 'manifest_playback', 'text-to-video', etc.
 
   // Detailed stage info
   stages?: PendingVideoTasksStages;

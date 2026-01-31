@@ -162,46 +162,52 @@ ErrorBoundaryWrapper.displayName = 'ErrorBoundaryWrapper';
 /**
  * Minimal inline error boundary for nested components - prevents cascade crashes
  * Shows a subtle error UI instead of crashing the entire page
+ * Uses forwardRef for AnimatePresence compatibility
  */
-export function SafeComponent({ 
-  children, 
-  name = 'Component',
-  fallback,
-  silent = false,
-}: { 
+interface SafeComponentProps { 
   children: ReactNode; 
   name?: string;
   fallback?: ReactNode;
   silent?: boolean;
-}) {
-  return (
-    <ErrorBoundary 
-      fallback={fallback || (silent ? null : (
-        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
-          <p className="text-sm text-destructive">
-            {name} failed to load
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-2 text-xs text-muted-foreground hover:text-foreground underline"
-          >
-            Reload page
-          </button>
-        </div>
-      ))}
-    >
-      {children}
-    </ErrorBoundary>
-  );
 }
+
+export const SafeComponent = forwardRef<HTMLDivElement, SafeComponentProps>(
+  function SafeComponent({ children, name = 'Component', fallback, silent = false }, ref) {
+    return (
+      <div ref={ref} className="contents">
+        <ErrorBoundary 
+          fallback={fallback || (silent ? null : (
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+              <p className="text-sm text-destructive">
+                {name} failed to load
+              </p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-2 text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Reload page
+              </button>
+            </div>
+          ))}
+        >
+          {children}
+        </ErrorBoundary>
+      </div>
+    );
+  }
+);
+SafeComponent.displayName = 'SafeComponent';
 
 /**
  * Invisible boundary - silently catches errors without any UI
  * Use for non-critical components that shouldn't show errors
  */
-export function SilentBoundary({ children }: { children: ReactNode }) {
-  return <SafeComponent silent fallback={null}>{children}</SafeComponent>;
-}
+export const SilentBoundary = forwardRef<HTMLDivElement, { children: ReactNode }>(
+  function SilentBoundary({ children }, ref) {
+    return <SafeComponent ref={ref} silent fallback={null}>{children}</SafeComponent>;
+  }
+);
+SilentBoundary.displayName = 'SilentBoundary';
 
 /**
  * Async-safe hook for components that fetch data

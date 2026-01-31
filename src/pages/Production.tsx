@@ -100,14 +100,28 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 
 // ============= MAIN COMPONENT =============
 
-// Content component wrapped for error boundary
+// Content component wrapped for error boundary with hook resilience
 const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProductionContent(_, ref) {
-  const navigate = useNavigate();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
   const [searchParams] = useSearchParams();
   const params = useParams();
   // Support both /production/:projectId and /production?projectId=xxx
   const projectId = params.projectId || searchParams.get('projectId');
-  const { user } = useAuth();
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
   
   // Proactive clip recovery - checks for stuck clips on page load
   const { isRecovering: isRecoveringClips } = useClipRecovery(projectId || null, user?.id || null);
@@ -1357,11 +1371,13 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
   );
 }));
 
-// Wrapper with error boundary for fault isolation
-export default function Production() {
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Production = memo(forwardRef<HTMLDivElement, object>(function Production(_, ref) {
   return (
     <ErrorBoundary>
       <ProductionContent />
     </ErrorBoundary>
   );
-}
+}));
+
+export default Production;

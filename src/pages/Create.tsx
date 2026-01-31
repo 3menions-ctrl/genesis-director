@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, memo } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -10,8 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useStabilityGuard, isAbortError } from '@/hooks/useStabilityGuard';
-import { usePageReady } from '@/contexts/NavigationLoadingContext';
 import { BrandLoadingSpinner } from '@/components/ui/UnifiedLoadingPage';
+import { CinemaLoader } from '@/components/ui/CinemaLoader';
+
+// Gatekeeper timeout - prevents infinite loading
+const GATEKEEPER_TIMEOUT_MS = 5000;
 
 // Loading overlay component for creation in progress - uses unified brand animation
 const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string }) {
@@ -26,33 +29,43 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
   );
 });
 
-// Main content component separated for error boundary
-// REMOVED forwardRef - not needed and was causing potential crash in Dialog contexts
-const CreateContent = memo(function CreateContent() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+// Main content component with forwardRef for AnimatePresence compatibility
+const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
+  const [gatekeeperTimeout, setGatekeeperTimeout] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { markReady, disableAutoComplete } = usePageReady();
-  
-  // Disable auto-complete since CreationHub manages readiness via onReady callback
-  // This prevents race condition where overlay dismisses before data is loaded
-  useEffect(() => {
-    disableAutoComplete();
-  }, [disableAutoComplete]);
   
   // Use comprehensive stability guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
-
-  // Signal page is ready ONLY after CreationHub data dependencies are loaded
-  // This prevents the GlobalLoadingOverlay from dismissing prematurely
+  
+  // Gatekeeper timeout - force visibility after 5s to prevent infinite loading
   useEffect(() => {
-    if (isHubReady) {
-      markReady('create-page');
-    }
-  }, [isHubReady, markReady]);
+    const timer = setTimeout(() => {
+      if (!isHubReady) {
+        console.warn('[Create] Gatekeeper timeout - forcing visibility');
+        setGatekeeperTimeout(true);
+      }
+    }, GATEKEEPER_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isHubReady]);
   
   // Callback from CreationHub when its data is ready
   const handleHubReady = useCallback(() => {
@@ -163,15 +176,30 @@ const CreateContent = memo(function CreateContent() {
     }
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
+  // Show loading screen until hub is ready OR gatekeeper times out
+  const showLoader = !isHubReady && !gatekeeperTimeout;
+
   return (
-    <div ref={containerRef} className="relative min-h-screen flex flex-col">
+    <div ref={ref} className="relative min-h-screen flex flex-col">
       <PipelineBackground />
+      
+      {/* Gatekeeper loading screen */}
+      {showLoader && (
+        <CinemaLoader
+          isVisible={true}
+          message="Preparing studio..."
+          variant="fullscreen"
+        />
+      )}
       
       {/* Top Menu Bar */}
       <AppHeader />
       
-      {/* Main Content */}
-      <div className="relative z-10 flex-1">
+      {/* Main Content - only render when ready or forced */}
+      <div 
+        className="relative z-10 flex-1"
+        style={{ opacity: showLoader ? 0 : 1, transition: 'opacity 0.3s ease-out' }}
+      >
         <CreationHub 
           onStartCreation={handleStartCreation}
           onReady={handleHubReady}
@@ -182,13 +210,15 @@ const CreateContent = memo(function CreateContent() {
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-});
+}));
 
-// Wrapper with error boundary for fault isolation
-export default function Create() {
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Create = memo(forwardRef<HTMLDivElement, object>(function Create(_, ref) {
   return (
     <ErrorBoundary>
       <CreateContent />
     </ErrorBoundary>
   );
-}
+}));
+
+export default Create;

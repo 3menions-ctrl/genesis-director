@@ -77,9 +77,24 @@ const getModeColor = (mode?: VideoGenerationMode) => {
 const BackgroundFallback = () => <div className="fixed inset-0 bg-[#030303]" />;
 const HeroFallback = () => <div className="pt-28 pb-12" />;
 
-export default function Discover() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+// Main content component with hook resilience
+const DiscoverContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function DiscoverContent(_, ref) {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
@@ -306,7 +321,16 @@ export default function Discover() {
       </AnimatePresence>
     </div>
   );
-}
+}));
+
+// Wrapper with forwardRef for AnimatePresence compatibility
+const Discover = memo(forwardRef<HTMLDivElement, object>(function Discover(_, ref) {
+  return (
+    <DiscoverContent />
+  );
+}));
+
+export default Discover;
 
 // ============= VIDEO CARD COMPONENT =============
 

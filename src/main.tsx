@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
 import { stabilityMonitor, shouldSuppressError } from "./lib/stabilityMonitor";
+import { initializeDiagnostics, setStateSnapshotProvider, getCurrentSnapshot } from "./lib/diagnostics";
 
 // Track error count to prevent infinite crash loops
 let errorCount = 0;
@@ -149,6 +150,22 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Service worker registration failed - app still works
     });
+  });
+}
+
+// Initialize diagnostics in development mode
+let cleanupDiagnostics: (() => void) | null = null;
+if (process.env.NODE_ENV === 'development') {
+  cleanupDiagnostics = initializeDiagnostics();
+  setStateSnapshotProvider(getCurrentSnapshot);
+}
+
+// Clean up diagnostics on HMR
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (cleanupDiagnostics) {
+      cleanupDiagnostics();
+    }
   });
 }
 

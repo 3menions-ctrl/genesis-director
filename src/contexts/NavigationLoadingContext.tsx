@@ -18,6 +18,7 @@ import React, {
   ReactNode 
 } from 'react';
 import { useLocation } from 'react-router-dom';
+import { updateNavigationState } from '@/lib/diagnostics/StateSnapshotMonitor';
 
 // Define which routes require heavy loading
 const HEAVY_ROUTES: Record<string, {
@@ -187,6 +188,13 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
       currentMessage: config.messages[0] || 'Loading...',
       progress: 0,
     });
+    
+    // Update diagnostics state
+    updateNavigationState({
+      currentRoute: location.pathname,
+      isLoading: true,
+      targetRoute,
+    }, 'startNavigation');
 
     // Cycle through messages
     const totalMessages = config.messages.length;
@@ -229,6 +237,13 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
           currentMessage: '',
           progress: 0,
         });
+        
+        // Update diagnostics state
+        updateNavigationState({
+          currentRoute: location.pathname,
+          isLoading: false,
+          targetRoute: null,
+        }, 'completeNavigation');
       }, 150);
     }, remaining);
   }, []);

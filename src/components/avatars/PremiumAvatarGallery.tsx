@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
@@ -19,7 +18,7 @@ interface PremiumAvatarGalleryProps {
   isVoiceReady?: (avatar: AvatarTemplate) => boolean;
 }
 
-// Avatar card component with forwardRef for Framer Motion compatibility
+// Avatar card component with forwardRef for stability
 const AvatarCard = forwardRef<HTMLDivElement, {
   avatar: AvatarTemplate;
   isSelected: boolean;
@@ -48,23 +47,21 @@ const AvatarCard = forwardRef<HTMLDivElement, {
   isMobile
 }, ref) => {
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.03, duration: 0.3 }}
-      onHoverStart={onHoverStart}
-      onHoverEnd={onHoverEnd}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
       onClick={onClick}
       className={cn(
-        "relative flex-shrink-0 cursor-pointer transition-all duration-300",
+        "relative flex-shrink-0 cursor-pointer transition-all duration-300 animate-fade-in",
         "rounded-2xl md:rounded-3xl overflow-hidden",
-        isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black"
+        isSelected && "ring-2 ring-violet-500 ring-offset-2 ring-offset-black",
+        isHovered && !isSelected && "scale-[1.02]"
       )}
       style={{
         width: cardWidth,
         scrollSnapAlign: 'center',
-        transform: isHovered && !isSelected ? 'scale(1.02)' : 'scale(1)',
+        animationDelay: `${index * 30}ms`,
       }}
     >
       {/* Card Background with Glassmorphism */}
@@ -78,12 +75,11 @@ const AvatarCard = forwardRef<HTMLDivElement, {
       
       {/* Full-Body Avatar Image with Optimized Loading */}
       <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
-        <motion.div
-          className="w-full h-full"
-          animate={{
-            scale: isHovered ? 1.05 : 1,
-          }}
-          transition={{ duration: 0.4 }}
+        <div
+          className={cn(
+            "w-full h-full transition-transform duration-400",
+            isHovered && "scale-105"
+          )}
         >
           <OptimizedAvatarImage
             src={avatar.front_image_url || avatar.face_image_url}
@@ -91,22 +87,18 @@ const AvatarCard = forwardRef<HTMLDivElement, {
             fallbackText={avatar.name}
             className="w-full h-full"
             aspectRatio="portrait"
-            priority={index < 5} // Prioritize first 5 visible avatars
+            priority={index < 5}
           />
-        </motion.div>
+        </div>
         
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
         
         {/* Selection indicator */}
         {isSelected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/50"
-          >
+          <div className="absolute top-3 md:top-4 right-3 md:right-4 w-7 h-7 md:w-8 md:h-8 rounded-full bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/50 animate-scale-in">
             <Check className="w-4 h-4 md:w-5 md:h-5 text-white" />
-          </motion.div>
+          </div>
         )}
         
         {/* Premium badge */}
@@ -131,16 +123,13 @@ const AvatarCard = forwardRef<HTMLDivElement, {
         
         {/* Voice preview button - always visible on mobile, hover on desktop */}
         {(isMobile || isHovered) && (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onVoicePreview();
             }}
             className={cn(
-              "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-lg",
+              "absolute bottom-20 md:bottom-24 right-3 md:right-4 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors shadow-lg animate-fade-in",
               isVoiceReady 
                 ? "bg-emerald-500/90 hover:bg-emerald-400 shadow-emerald-500/30" 
                 : "bg-violet-500/90 hover:bg-violet-400 shadow-violet-500/30"
@@ -152,7 +141,7 @@ const AvatarCard = forwardRef<HTMLDivElement, {
             ) : (
               <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
             )}
-          </motion.button>
+          </button>
         )}
       </div>
       
@@ -184,16 +173,16 @@ const AvatarCard = forwardRef<HTMLDivElement, {
       </div>
       
       {/* Shine effect on hover */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        animate={{
-          background: isHovered
-            ? 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
-            : 'transparent'
+      <div
+        className={cn(
+          "absolute inset-0 pointer-events-none transition-opacity duration-300",
+          isHovered ? "opacity-100" : "opacity-0"
+        )}
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, transparent 100%)'
         }}
-        transition={{ duration: 0.3 }}
       />
-    </motion.div>
+    </div>
   );
 });
 
@@ -263,14 +252,14 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
         {Array.from({ length: isMobile ? 2 : 4 }).map((_, i) => (
           <div 
             key={`skeleton-${i}`}
-            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-900/50 border border-white/5"
+            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden bg-muted/20 border border-white/5"
             style={{ width: CARD_WIDTH }}
           >
             <ShimmerSkeleton aspectRatio="portrait" />
             <div className="p-3 md:p-5 space-y-2">
-              <div className="h-5 bg-zinc-800/50 rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-zinc-800/30 rounded animate-pulse w-full" />
-              <div className="h-3 bg-zinc-800/20 rounded animate-pulse w-1/2" />
+              <div className="h-5 bg-muted/30 rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-muted/20 rounded animate-pulse w-full" />
+              <div className="h-3 bg-muted/10 rounded animate-pulse w-1/2" />
             </div>
           </div>
         ))}

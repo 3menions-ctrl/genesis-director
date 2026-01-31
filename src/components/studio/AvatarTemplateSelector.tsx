@@ -1,8 +1,7 @@
 import { useState, useCallback, memo, forwardRef, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Search, Volume2, Play, Check, 
-  Loader2, Filter, X, Sparkles, Crown
+  Loader2, X, Sparkles, Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
@@ -29,12 +28,18 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
   selectedAvatar, 
   onSelect,
   className 
-}: AvatarTemplateSelectorProps) {
+}: AvatarTemplateSelectorProps, ref) {
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
   const [styleFilter, setStyleFilter] = useState('all');
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const { templates, isLoading, error } = useAvatarTemplatesQuery({
     gender: genderFilter,
@@ -81,7 +86,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
       
       const data = await response.json();
       
-      if (data.success && data.audioUrl) {
+      if (data.success && data.audioUrl && mountedRef.current) {
         // Cache the result
         setVoicePreviewCache(prev => ({ ...prev, [avatar.id]: data.audioUrl }));
         
@@ -92,7 +97,9 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
     } catch (err) {
       console.error('Voice preview error:', err);
     } finally {
-      setPreviewingVoice(null);
+      if (mountedRef.current) {
+        setPreviewingVoice(null);
+      }
     }
   }, [voicePreviewCache]);
 
@@ -105,7 +112,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
   const hasActiveFilters = searchQuery || genderFilter !== 'all' || styleFilter !== 'all';
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div ref={ref} className={cn("space-y-4", className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -146,12 +153,12 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
           <SelectTrigger className="w-[130px] bg-white/[0.03] border-white/[0.08] text-white">
             <SelectValue placeholder="Gender" />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-900 border-white/10">
+          <SelectContent className="bg-background border-border">
             {AVATAR_GENDERS.map((g) => (
               <SelectItem 
                 key={g.id} 
                 value={g.id}
-                className="text-white focus:bg-white/10 focus:text-white"
+                className="text-foreground focus:bg-accent focus:text-accent-foreground"
               >
                 {g.name}
               </SelectItem>
@@ -163,12 +170,12 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
           <SelectTrigger className="w-[150px] bg-white/[0.03] border-white/[0.08] text-white">
             <SelectValue placeholder="Style" />
           </SelectTrigger>
-          <SelectContent className="bg-zinc-900 border-white/10">
+          <SelectContent className="bg-background border-border">
             {AVATAR_STYLES.map((s) => (
               <SelectItem 
                 key={s.id} 
                 value={s.id}
-                className="text-white focus:bg-white/10 focus:text-white"
+                className="text-foreground focus:bg-accent focus:text-accent-foreground"
               >
                 {s.name}
               </SelectItem>
@@ -186,102 +193,97 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
 
       {/* Error State */}
       {error && (
-        <div className="text-center py-8 text-red-400">
+        <div className="text-center py-8 text-destructive">
           <p>{error}</p>
         </div>
       )}
 
-      {/* Avatar Grid */}
+      {/* Avatar Grid - CSS animations instead of framer-motion */}
       {!isLoading && !error && (
         <ScrollArea className="h-[400px] pr-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            <AnimatePresence mode="popLayout">
-              {templates.map((avatar, index) => (
-                <motion.div
-                  key={avatar.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: index * 0.03 }}
-                  className={cn(
-                    "group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200",
-                    "border",
-                    selectedAvatar?.id === avatar.id
-                      ? "border-violet-500 ring-2 ring-violet-500/30 bg-violet-500/10"
-                      : "border-white/[0.08] hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]"
-                  )}
-                  onClick={() => onSelect(avatar)}
-                >
-                  {/* Avatar Image */}
-                  <div className="aspect-square relative overflow-hidden">
-                    <img
-                      src={avatar.face_image_url}
-                      alt={avatar.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    
-                    {/* Overlay gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    
-                    {/* Selected indicator */}
-                    {selectedAvatar?.id === avatar.id && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-
-                    {/* Premium badge */}
-                    {avatar.is_premium && (
-                      <div className="absolute top-2 left-2">
-                        <Badge className="bg-amber-500/90 text-black text-[10px] px-1.5 py-0.5">
-                          <Crown className="w-3 h-3 mr-0.5" />
-                          PRO
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Voice preview button */}
-                    <button
-                      onClick={(e) => handleVoicePreview(avatar, e)}
-                      className={cn(
-                        "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                        "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
-                        selectedAvatar?.id === avatar.id && "hidden"
-                      )}
-                    >
-                      {previewingVoice === avatar.id ? (
-                        <Loader2 className="w-4 h-4 text-white animate-spin" />
-                      ) : (
-                        <Volume2 className="w-4 h-4 text-white" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-white text-sm truncate">{avatar.name}</h4>
+            {templates.map((avatar, index) => (
+              <div
+                key={avatar.id}
+                className={cn(
+                  "group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 animate-fade-in",
+                  "border",
+                  selectedAvatar?.id === avatar.id
+                    ? "border-violet-500 ring-2 ring-violet-500/30 bg-violet-500/10"
+                    : "border-white/[0.08] hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]"
+                )}
+                style={{ animationDelay: `${index * 30}ms` }}
+                onClick={() => onSelect(avatar)}
+              >
+                {/* Avatar Image */}
+                <div className="aspect-square relative overflow-hidden">
+                  <img
+                    src={avatar.face_image_url}
+                    alt={avatar.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  
+                  {/* Selected indicator */}
+                  {selectedAvatar?.id === avatar.id && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center animate-scale-in">
+                      <Check className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-xs text-white/40 line-clamp-1">
-                      {avatar.voice_description || avatar.style}
-                    </p>
-                    {avatar.tags && avatar.tags.length > 0 && (
-                      <div className="flex gap-1 flex-wrap mt-1.5">
-                        {avatar.tags.slice(0, 2).map((tag) => (
-                          <span 
-                            key={tag} 
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-white/40"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                  )}
+
+                  {/* Premium badge */}
+                  {avatar.is_premium && (
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-amber-500/90 text-black text-[10px] px-1.5 py-0.5">
+                        <Crown className="w-3 h-3 mr-0.5" />
+                        PRO
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Voice preview button */}
+                  <button
+                    onClick={(e) => handleVoicePreview(avatar, e)}
+                    className={cn(
+                      "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                      "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
+                      selectedAvatar?.id === avatar.id && "hidden"
                     )}
+                  >
+                    {previewingVoice === avatar.id ? (
+                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Info */}
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-white text-sm truncate">{avatar.name}</h4>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  <p className="text-xs text-white/40 line-clamp-1">
+                    {avatar.voice_description || avatar.style}
+                  </p>
+                  {avatar.tags && avatar.tags.length > 0 && (
+                    <div className="flex gap-1 flex-wrap mt-1.5">
+                      {avatar.tags.slice(0, 2).map((tag) => (
+                        <span 
+                          key={tag} 
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.05] text-white/40"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Empty state */}
@@ -297,11 +299,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
 
       {/* Selected Avatar Preview */}
       {selectedAvatar && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center gap-4"
-        >
+        <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center gap-4 animate-fade-in">
           <img
             src={selectedAvatar.face_image_url}
             alt={selectedAvatar.name}
@@ -330,8 +328,10 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
             )}
             <span className="text-sm text-violet-300">Preview</span>
           </button>
-        </motion.div>
+        </div>
       )}
     </div>
   );
 }));
+
+export default AvatarTemplateSelector;

@@ -18,7 +18,13 @@ describe('Forward Ref Pattern Compliance', () => {
     const pagesDir = path.join(process.cwd(), 'src/pages');
     
     it('should verify forwardRef components attach ref to DOM element', () => {
-      // Known page components that use forwardRef pattern
+    // Known components that use forwardRef pattern - all must attach ref to DOM
+    const forwardRefComponents = [
+      { path: 'src/pages/Projects.tsx', name: 'Projects' },
+      { path: 'src/pages/Avatars.tsx', name: 'Avatars' },
+      { path: 'src/pages/Create.tsx', name: 'Create' },
+      { path: 'src/components/social/UserStatsBar.tsx', name: 'UserStatsBar' },
+    ];
       const forwardRefPages = [
         'Projects.tsx',
         'Avatars.tsx',

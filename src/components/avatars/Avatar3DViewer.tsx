@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef, useEffect, memo, forwardRef } fro
 import { Loader2, RotateCcw, Hand, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface Avatar3DViewerProps {
   frontImage: string;
@@ -16,7 +15,7 @@ type ViewAngle = 'front' | 'side' | 'back';
 
 /**
  * Premium Avatar Viewer with smooth image rotation
- * Uses a carousel approach for reliable cross-browser support
+ * Uses CSS animations for stability (no framer-motion)
  * Includes forwardRef for animation compatibility
  */
 export const Avatar3DViewer = memo(forwardRef<HTMLDivElement, Avatar3DViewerProps>(function Avatar3DViewer({ 
@@ -36,6 +35,7 @@ export const Avatar3DViewer = memo(forwardRef<HTMLDivElement, Avatar3DViewerProp
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
   }, []);
+  
   // Build available views array
   const views: { angle: ViewAngle; image: string; label: string }[] = [
     { angle: 'front', image: frontImage, label: 'Front' },
@@ -94,42 +94,36 @@ export const Avatar3DViewer = memo(forwardRef<HTMLDivElement, Avatar3DViewerProp
           className="relative w-full h-full rounded-2xl overflow-hidden"
           style={{ perspective: '1000px' }}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentView}
-              initial={{ rotateY: 90, opacity: 0 }}
-              animate={{ rotateY: 0, opacity: 1 }}
-              exit={{ rotateY: -90, opacity: 0 }}
-              transition={{ 
-                duration: 0.4, 
-                ease: [0.25, 0.46, 0.45, 0.94]
-              }}
-              className="w-full h-full"
-              style={{ transformStyle: 'preserve-3d' }}
-            >
-              {/* Loading state */}
-              {!imageLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-2xl">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                </div>
+          {/* Loading state */}
+          {!imageLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-2xl z-10">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          )}
+          
+          {/* Avatar image with CSS transition */}
+          <div
+            key={currentView}
+            className={cn(
+              "w-full h-full transition-all duration-400 ease-out",
+              isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"
+            )}
+            style={{ transformStyle: 'preserve-3d' }}
+          >
+            <img
+              src={currentImage}
+              alt={`${name} - ${currentView} view`}
+              className={cn(
+                "w-full h-full object-cover rounded-2xl shadow-2xl transition-opacity duration-300",
+                imageLoaded ? "opacity-100" : "opacity-0"
               )}
-              
-              {/* Avatar image */}
-              <img
-                src={currentImage}
-                alt={`${name} - ${currentView} view`}
-                className={cn(
-                  "w-full h-full object-cover rounded-2xl shadow-2xl transition-opacity duration-300",
-                  imageLoaded ? "opacity-100" : "opacity-0"
-                )}
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageLoaded(true)}
-              />
-              
-              {/* Subtle gradient overlay for depth */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none rounded-2xl" />
-            </motion.div>
-          </AnimatePresence>
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageLoaded(true)}
+            />
+            
+            {/* Subtle gradient overlay for depth */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none rounded-2xl" />
+          </div>
         </div>
         
         {/* Navigation arrows */}
@@ -172,15 +166,7 @@ export const Avatar3DViewer = memo(forwardRef<HTMLDivElement, Avatar3DViewerProp
                   : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
               )}
               title={`${view.label} view`}
-            >
-              {currentView === view.angle && (
-                <motion.div
-                  layoutId="activeViewIndicator"
-                  className="absolute inset-0 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-            </button>
+            />
           ))}
         </div>
       )}

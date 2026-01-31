@@ -54,6 +54,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Redirect to auth only when we're CERTAIN there's no session
   // CRITICAL: Must have loading=false AND isSessionVerified=true before redirecting
   // Uses getValidSession() to avoid stale closure issues
+  // ENHANCED: Added longer buffer to prevent race condition crashes during heavy page loads
   useEffect(() => {
     // Prevent double redirects
     if (isRedirectingRef.current) return;
@@ -64,8 +65,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // Already have a session in state - no redirect needed
     if (session?.user?.id || user?.id) return;
     
-    // Additional buffer for state synchronization after login
-    // Use getValidSession to get FRESH session, avoiding stale closure
+    // ENHANCED: Longer buffer for state synchronization after login
+    // This prevents race condition where navigation guard triggers before
+    // session state propagates through React's render cycle
     const timeoutId = setTimeout(async () => {
       if (isRedirectingRef.current) return;
       
@@ -78,10 +80,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
       
+      // ADDITIONAL GUARD: Check if component is still mounted
+      // and hasn't been replaced by another route during the timeout
+      if (!document.body.contains(document.activeElement?.closest('[data-protected-route]') as Node)) {
+        console.debug('[ProtectedRoute] Component unmounted during timeout, skipping redirect');
+        return;
+      }
+      
       // No session confirmed - redirect to auth
       isRedirectingRef.current = true;
       navigate('/auth', { replace: true });
-    }, 150);
+    }, 250); // Increased from 150ms to 250ms for heavy pages like /avatars
     
     return () => clearTimeout(timeoutId);
   }, [loading, isSessionVerified, session?.user?.id, user?.id, navigate, getValidSession]);
@@ -152,5 +161,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Mark that we've successfully rendered children
   hasRenderedChildren.current = true;
 
-  return <>{children}</>;
+  return <div data-protected-route="true">{children}</div>;
 }

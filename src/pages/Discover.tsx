@@ -506,6 +506,18 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
+  // CRITICAL: Merge forwarded ref with internal container ref for fullscreen support
+  const mergedContainerRef = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    }
+  }, [ref]);
+
   const ModeIcon = getModeIcon(video.mode);
   const isManifest = video.video_url?.endsWith('.json');
   const isDirectVideo = video.video_url && !isManifest;
@@ -555,9 +567,13 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
   }, [isVideoPlaying]);
 
   const toggleFullscreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    // DEFENSIVE: Null-check containerRef before accessing
+    if (!containerRef.current) {
+      console.warn('toggleFullscreen: containerRef not ready');
+      return;
+    }
     
+    const container = containerRef.current;
     const elem = container as HTMLElement & {
       webkitRequestFullscreen?: () => Promise<void>;
     };
@@ -608,7 +624,7 @@ const VideoModal = memo(forwardRef<HTMLDivElement, VideoModalProps>(function Vid
         </button>
 
         {/* Video Player */}
-        <div ref={containerRef} className="relative aspect-video bg-black">
+        <div ref={mergedContainerRef} className="relative aspect-video bg-black">
           {isDirectVideo ? (
             <>
               <video

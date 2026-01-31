@@ -186,7 +186,14 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     }
   };
 
-  const handleWelcomeComplete = () => {
+  // CRITICAL: Ref-based guard to prevent handleWelcomeComplete from double-firing
+  const hasNavigatedRef = useRef(false);
+  
+  const handleWelcomeComplete = useCallback(() => {
+    // Guard against double-fire from timer + click
+    if (hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    
     setShowWelcomeDialog(false);
     // Explicitly navigate after welcome dialog - don't rely on useEffect
     // This ensures smooth transition without flash
@@ -196,7 +203,7 @@ const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_pr
     } else {
       navigate('/projects', { replace: true });
     }
-  };
+  }, [profile, navigate]);
 
   return (
     <>

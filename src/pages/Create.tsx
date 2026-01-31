@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import PipelineBackground from '@/components/production/PipelineBackground';
+import ClipsBackground from '@/components/clips/ClipsBackground';
 import { CreationHub } from '@/components/studio/CreationHub';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
@@ -181,7 +181,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
 
   return (
     <div ref={ref} className="relative min-h-screen flex flex-col">
-      <PipelineBackground />
+      <ClipsBackground />
       
       {/* Gatekeeper loading screen */}
       {showLoader && (

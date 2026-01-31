@@ -142,11 +142,11 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
         <div 
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(ellipse at 50% 30%, rgba(20, 10, 8, 0.4) 0%, transparent 60%), linear-gradient(180deg, #030303 0%, #050505 50%, #030303 100%)',
+            background: 'radial-gradient(ellipse at 50% 30%, rgba(20, 8, 30, 0.4) 0%, transparent 60%), linear-gradient(180deg, #030303 0%, #050505 50%, #030303 100%)',
           }}
         />
         
-        {/* Animated light rays */}
+        {/* Animated light rays - purple themed */}
         <div className="absolute inset-0 overflow-hidden">
           {LIGHT_RAYS.map((ray, i) => (
             <div
@@ -156,18 +156,18 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
                 left: ray.left,
                 top: '-50%',
                 transform: `rotate(${ray.rotate}deg)`,
-                background: `linear-gradient(180deg, transparent 0%, rgba(255, 120, 80, ${ray.opacity}) 30%, rgba(255, 180, 140, ${ray.opacity * 1.5}) 50%, rgba(255, 120, 80, ${ray.opacity}) 70%, transparent 100%)`,
+                background: `linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, ${ray.opacity}) 30%, rgba(192, 132, 252, ${ray.opacity * 1.5}) 50%, rgba(168, 85, 247, ${ray.opacity}) 70%, transparent 100%)`,
                 animationDelay: `${i * 0.3}s`,
               }}
             />
           ))}
         </div>
         
-        {/* Subtle ambient glow */}
+        {/* Subtle ambient glow - purple */}
         <div 
           className="absolute w-[600px] h-[600px] rounded-full pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(200, 100, 60, 0.08) 0%, transparent 60%)',
+            background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 60%)',
             filter: 'blur(60px)',
           }}
         />
@@ -190,12 +190,12 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
             {/* Inner glow ring */}
             <div className="absolute inset-[-4px] rounded-full border border-white/[0.12] animate-cinema-ring-inner" />
             
-            {/* Main icon container */}
+            {/* Main icon container - purple themed */}
             <div 
               className="relative w-20 h-20 rounded-full flex items-center justify-center"
               style={{
-                background: 'linear-gradient(145deg, rgba(200, 80, 50, 0.9) 0%, rgba(160, 60, 40, 0.95) 50%, rgba(120, 50, 35, 0.9) 100%)',
-                boxShadow: '0 8px 32px rgba(180, 70, 40, 0.3), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2)',
+                background: 'linear-gradient(145deg, rgba(168, 85, 247, 0.9) 0%, rgba(139, 92, 246, 0.95) 50%, rgba(124, 58, 237, 0.9) 100%)',
+                boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2)',
               }}
             >
               <CameraIcon />
@@ -219,14 +219,14 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
               {message}
             </p>
             
-            {/* Progress bar - CSS-based */}
+            {/* Progress bar - CSS-based, purple themed */}
             {showProgress && (
               <div className="relative w-56 h-1 rounded-full overflow-hidden bg-white/[0.08]">
                 <div
                   className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out"
                   style={{
                     width: `${Math.max(progress, 5)}%`,
-                    background: 'linear-gradient(90deg, rgba(200, 80, 50, 0.9) 0%, rgba(220, 120, 80, 1) 50%, rgba(200, 80, 50, 0.9) 100%)',
+                    background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.9) 0%, rgba(168, 85, 247, 1) 50%, rgba(139, 92, 246, 0.9) 100%)',
                   }}
                 />
                 {/* Shimmer overlay */}

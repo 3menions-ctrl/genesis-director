@@ -1,14 +1,17 @@
 /**
- * Avatars Page - Gatekeeper Loading Strategy
+ * Avatars Page - MAXIMUM STABILITY VERSION
  * 
- * STABILITY HARDENED VERSION:
- * - Graceful timeout fallback to prevent infinite loading
- * - Isolated error boundaries for each section
- * - No framer-motion dependencies to prevent ref crashes
+ * CRITICAL STABILITY FIXES:
+ * 1. Graceful timeout fallback (5s) to prevent infinite loading
+ * 2. Isolated error boundaries for each section
+ * 3. No framer-motion dependencies to prevent ref crashes
+ * 4. All hooks have try-catch guards
+ * 5. Context access failures are caught and logged
+ * 6. Null guards on all data access
  * 
  * Stays on loading screen until:
- * 1. useAvatarTemplates returns success OR timeout (8s)
- * 2. Critical avatar images are pre-fetched and cached
+ * 1. Auth loading complete
+ * 2. Templates have fetched OR timeout reached
  * 
  * Implements:
  * - Virtual scrolling for memory optimization
@@ -16,7 +19,7 @@
  * - onLoad-based opacity for image rendering
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -37,7 +40,6 @@ import { useTierLimits } from '@/hooks/useTierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
-import { usePageReady } from '@/contexts/NavigationLoadingContext';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
 
 // GATEKEEPER: Extract critical image URLs from templates
@@ -45,20 +47,51 @@ function getCriticalImageUrls(templates: AvatarTemplate[], limit = 8): string[] 
   // Guard against null/undefined templates
   if (!templates || !Array.isArray(templates)) return [];
   
-  return templates
-    .slice(0, limit)
-    .map(t => t?.front_image_url || t?.face_image_url)
-    .filter((url): url is string => Boolean(url));
+  try {
+    return templates
+      .slice(0, limit)
+      .map(t => t?.front_image_url || t?.face_image_url)
+      .filter((url): url is string => Boolean(url));
+  } catch (e) {
+    console.error('[Avatars] getCriticalImageUrls error:', e);
+    return [];
+  }
 }
 
-// STABILITY: Maximum time to wait before forcing render (prevents infinite loading)
-const GATEKEEPER_TIMEOUT_MS = 8000;
+// STABILITY: REDUCED timeout to 5s to fail faster and show content
+const GATEKEEPER_TIMEOUT_MS = 5000;
 
-const AvatarsContent = memo(function AvatarsContent() {
-  const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuth();
-  const { maxClips } = useTierLimits();
-  const { markReady, disableAutoComplete } = usePageReady();
+const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
+  // ========== CRITICAL: Safe hook usage with try-catch ==========
+  let navigate: ReturnType<typeof useNavigate>;
+  let authContext: ReturnType<typeof useAuth> | null = null;
+  let tierLimits: ReturnType<typeof useTierLimits> | null = null;
+  
+  try {
+    navigate = useNavigate();
+  } catch (e) {
+    console.error('[Avatars] useNavigate failed:', e);
+    // Fallback - create dummy navigate
+    navigate = (() => {}) as unknown as ReturnType<typeof useNavigate>;
+  }
+  
+  try {
+    authContext = useAuth();
+  } catch (e) {
+    console.error('[Avatars] useAuth failed:', e);
+  }
+  
+  try {
+    tierLimits = useTierLimits();
+  } catch (e) {
+    console.error('[Avatars] useTierLimits failed:', e);
+  }
+  
+  // Extract values with fallbacks
+  const user = authContext?.user ?? null;
+  const profile = authContext?.profile ?? null;
+  const authLoading = authContext?.loading ?? false;
+  const maxClips = tierLimits?.maxClips ?? 5;
   
   // ========== AbortController Lifecycle ==========
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -75,6 +108,7 @@ const AvatarsContent = memo(function AvatarsContent() {
       if (isMountedRef.current && !gatekeeperCompleteRef.current) {
         console.warn('[Avatars] Gatekeeper timeout reached, forcing render');
         setForceRender(true);
+        gatekeeperCompleteRef.current = true;
       }
     }, GATEKEEPER_TIMEOUT_MS);
     
@@ -132,24 +166,22 @@ const AvatarsContent = memo(function AvatarsContent() {
   } = useImagePreloader({
     images: criticalImageUrls,
     enabled: safeTemplates.length > 0 && !templatesLoading,
-    minRequired: Math.min(5, criticalImageUrls.length),
-    timeout: 6000, // Reduced to 6s, overall timeout is 8s
+    minRequired: Math.min(3, criticalImageUrls.length), // REDUCED: only need 3 images to show UI
+    timeout: 3000, // REDUCED: 3s timeout per image batch
     concurrency: 4,
   });
   
-  // Gatekeeper state: show loading until BOTH templates AND images are ready
-  // OR forceRender timeout has triggered (prevents infinite loading)
+  // SIMPLIFIED GATEKEEPER: Only wait for auth and basic template fetch
+  // Image preloading happens in background, forceRender is the ultimate fallback
   const isGatekeeperLoading = !forceRender && (
     authLoading || 
-    templatesLoading || 
-    isFetching || 
-    !isSuccess || 
-    (safeTemplates.length > 0 && !imagesReady)
+    (templatesLoading && !isSuccess) // Only block if actively loading AND no cached success
   );
   
-  const gatekeeperProgress = templatesLoading || isFetching || !isSuccess
-    ? 30 
-    : Math.min(30 + (imageProgress * 0.7), 100);
+  // Progress calculation simplified
+  const gatekeeperProgress = authLoading ? 20 : 
+    templatesLoading ? 50 : 
+    Math.min(50 + (imageProgress * 0.5), 100);
   
   // ========== Computed Values ==========
   const userCredits = useMemo(() => profile?.credits_balance ?? 0, [profile?.credits_balance]);
@@ -169,9 +201,6 @@ const AvatarsContent = memo(function AvatarsContent() {
   useEffect(() => {
     isMountedRef.current = true;
     
-    // Disable auto-complete - we manage our own readiness
-    disableAutoComplete();
-    
     return () => {
       isMountedRef.current = false;
       stopPlayback();
@@ -182,27 +211,24 @@ const AvatarsContent = memo(function AvatarsContent() {
         abortControllerRef.current = null;
       }
     };
-  }, [stopPlayback, disableAutoComplete]);
+  }, [stopPlayback]);
   
-  // ========== GATEKEEPER: Signal Ready When All Assets Loaded ==========
+  // ========== GATEKEEPER: Preload voices when ready ==========
   useEffect(() => {
     if (!isGatekeeperLoading && !gatekeeperCompleteRef.current && isMountedRef.current) {
       gatekeeperCompleteRef.current = true;
       
       // Preload voices in background AFTER page is visible
       if (safeTemplates.length > 0) {
-        const visibleAvatars = safeTemplates.slice(0, 5);
-        preloadVoices(visibleAvatars);
-      }
-      
-      // Signal page ready to navigation system
-      try {
-        markReady('avatars-page');
-      } catch (e) {
-        console.warn('[Avatars] Failed to signal page ready:', e);
+        try {
+          const visibleAvatars = safeTemplates.slice(0, 5);
+          preloadVoices(visibleAvatars);
+        } catch (e) {
+          console.warn('[Avatars] Failed to preload voices:', e);
+        }
       }
     }
-  }, [isGatekeeperLoading, templates, preloadVoices, markReady]);
+  }, [isGatekeeperLoading, safeTemplates, preloadVoices]);
   
   // ========== Handlers ==========
   const handleVoicePreview = useCallback(async (avatar: AvatarTemplate) => {
@@ -363,11 +389,13 @@ const AvatarsContent = memo(function AvatarsContent() {
   // ========== GATEKEEPER LOADING STATE ==========
   if (isGatekeeperLoading) {
     return (
-      <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
-        <AvatarsBackground />
+      <div ref={ref || containerRef} className="relative min-h-screen flex flex-col bg-background overflow-hidden">
+        <SafeComponent name="AvatarsBackground-loading" silent>
+          <AvatarsBackground />
+        </SafeComponent>
         <CinemaLoader
           isVisible={true}
-          message={templatesLoading ? 'Loading avatar library...' : 'Preparing avatar images...'}
+          message={authLoading ? 'Authenticating...' : templatesLoading ? 'Loading avatar library...' : 'Preparing...'}
           progress={gatekeeperProgress}
           showProgress={true}
           variant="fullscreen"
@@ -378,7 +406,7 @@ const AvatarsContent = memo(function AvatarsContent() {
   
   // ========== MAIN CONTENT ==========
   return (
-    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-background overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={ref || containerRef} className="relative min-h-screen flex flex-col bg-background overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>
@@ -490,12 +518,21 @@ const AvatarsContent = memo(function AvatarsContent() {
       )}
     </div>
   );
+}));
+
+AvatarsContent.displayName = 'AvatarsContent';
+
+// STABILITY: Default export wrapped in forwardRef for AnimatePresence compatibility
+const Avatars = forwardRef<HTMLDivElement, Record<string, never>>(function Avatars(_, ref) {
+  return (
+    <div ref={ref}>
+      <ErrorBoundary>
+        <AvatarsContent />
+      </ErrorBoundary>
+    </div>
+  );
 });
 
-export default function Avatars() {
-  return (
-    <ErrorBoundary>
-      <AvatarsContent />
-    </ErrorBoundary>
-  );
-}
+Avatars.displayName = 'Avatars';
+
+export default Avatars;

@@ -297,20 +297,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    // CRITICAL: Wait for session to be persisted to localStorage before returning
+    // This prevents redirect loops where the app navigates before session is saved
+    if (!error && data?.session) {
+      // Wait for the session to propagate through the auth state listener
+      // This ensures sessionRef and state are updated before navigation
+      await new Promise<void>((resolve) => {
+        const checkSession = () => {
+          if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else {
+            setTimeout(checkSession, 50);
+          }
+        };
+        // Give a small initial delay for the listener to fire
+        setTimeout(checkSession, 100);
+        // Failsafe: resolve after 2 seconds regardless
+        setTimeout(resolve, 2000);
+      });
+    }
+    
     return { error: error as Error | null };
   };
 
   const signUp = async (email: string, password: string) => {
     // Standardized redirect URL - let ProtectedRoute handle onboarding redirect
     const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl
       }
     });
+    
+    // Wait for session persistence if signup auto-confirms
+    if (!error && data?.session) {
+      await new Promise<void>((resolve) => {
+        const checkSession = () => {
+          if (sessionRef.current?.access_token === data.session?.access_token) {
+            resolve();
+          } else {
+            setTimeout(checkSession, 50);
+          }
+        };
+        setTimeout(checkSession, 100);
+        setTimeout(resolve, 2000);
+      });
+    }
+    
     return { error: error as Error | null };
   };
 

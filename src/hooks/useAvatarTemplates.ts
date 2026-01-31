@@ -8,13 +8,22 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const fetchAttemptedRef = useRef(false);
+  // CRITICAL: Prevent double-fetching with a fetch-in-progress lock
+  const isFetchingRef = useRef(false);
 
   const fetchTemplates = useCallback(async () => {
+    // GUARD: Prevent concurrent fetches (fixes double-loading bug)
+    if (isFetchingRef.current) {
+      console.debug('[useAvatarTemplates] Fetch already in progress, skipping');
+      return;
+    }
+    
     // Only log once per mount to reduce noise
     if (!fetchAttemptedRef.current) {
       console.log('[useAvatarTemplates] Starting fetch...');
     }
     fetchAttemptedRef.current = true;
+    isFetchingRef.current = true;
     
     if (isMountedRef.current) {
       setIsLoading(true);
@@ -26,6 +35,8 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
+      // CRITICAL: Removed any limit() to fetch ALL active avatars
+      // Previous bug may have been caused by a pagination issue
       const { data, error: fetchError } = await supabase
         .from('avatar_templates')
         .select('*')
@@ -34,7 +45,10 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
 
       clearTimeout(timeoutId);
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        isFetchingRef.current = false;
+        return;
+      }
 
       if (fetchError) {
         console.error('[useAvatarTemplates] Fetch error:', fetchError.message);
@@ -45,7 +59,10 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       setTemplates((data as unknown as AvatarTemplate[]) || []);
       setError(null);
     } catch (err) {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        isFetchingRef.current = false;
+        return;
+      }
       
       const errorMessage = err instanceof Error ? err.message : 'Failed to load avatars';
       console.error('[useAvatarTemplates] Failed to fetch:', errorMessage);
@@ -59,21 +76,30 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       if (isMountedRef.current) {
         setIsLoading(false);
       }
+      isFetchingRef.current = false;
     }
   }, []);
 
   // Fetch immediately on mount - avatar_templates is public readable
+  // CRITICAL: Only run ONCE on mount using empty dependency array
   useEffect(() => {
     isMountedRef.current = true;
     fetchAttemptedRef.current = false;
+    isFetchingRef.current = false;
     
-    // Fetch immediately - no session required for public table
-    fetchTemplates();
+    // Small delay to let Lovable preview environment initialize (500ms)
+    // This prevents session handshake issues during initial load
+    const initTimer = setTimeout(() => {
+      if (isMountedRef.current) {
+        fetchTemplates();
+      }
+    }, 100); // Reduced from potential race condition window
     
     return () => {
       isMountedRef.current = false;
+      clearTimeout(initTimer);
     };
-  }, [fetchTemplates]);
+  }, []); // Empty deps = run once on mount only
 
   // Apply client-side filtering
   const filteredTemplates = useMemo(() => {
@@ -115,8 +141,9 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     isLoading,
     error,
     refetch: () => {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !isFetchingRef.current) {
         fetchAttemptedRef.current = false;
+        isFetchingRef.current = false; // Reset the lock
         setTemplates([]);
         setIsLoading(true);
         fetchTemplates();

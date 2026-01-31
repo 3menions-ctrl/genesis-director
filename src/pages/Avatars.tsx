@@ -22,13 +22,25 @@ import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
 // Separated content for error boundary isolation - uses forwardRef for Dialog compatibility
-const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_, ref) {
+const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function AvatarsContent(_props, ref) {
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { markReady } = usePageReady();
+
+  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
+  useEffect(() => {
+    if (ref && containerRef.current) {
+      if (typeof ref === 'function') {
+        ref(containerRef.current);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
+      }
+    }
+  }, [ref]);
 
   // Avatar selection state - ALL HOOKS MUST BE CALLED BEFORE ANY RETURNS
   const [searchQuery, setSearchQuery] = useState('');
@@ -296,7 +308,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>

@@ -63,3 +63,19 @@ export {
   getGPUCompositor,
   resetGPUCompositor,
 } from './GPUCompositor';
+
+// Hydrated Boot Sequence (Reliable Loading)
+export {
+  type BootState,
+  type BufferStatus,
+  type HydratedBootConfig,
+  type DiagnosticData,
+  waitForCanPlayThrough,
+  getBufferStatus,
+  hydrateVideoBuffer,
+  gracefulTransitionFallback,
+  validateTransitionReadiness,
+  checkHighResolutionTimers,
+  createDiagnosticOverlay,
+  updateDiagnosticOverlay,
+} from './HydratedBootSequence';

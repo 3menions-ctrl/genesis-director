@@ -5,7 +5,7 @@
  * from high-resolution textures. Only renders visible avatars.
  */
 
-import React, { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,9 +46,8 @@ interface VirtualAvatarCardProps {
   onImageLoad?: () => void;
 }
 
-// Note: Not using forwardRef here - motion.div handles refs internally
-// and AnimatePresence popLayout mode clones children which causes ref prop warnings
-const VirtualAvatarCard = memo(function VirtualAvatarCard({
+// forwardRef required for AnimatePresence to pass refs during exit animations
+const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps>(function VirtualAvatarCard({
   avatar,
   isSelected,
   isHovered,
@@ -61,7 +60,7 @@ const VirtualAvatarCard = memo(function VirtualAvatarCard({
   cardWidth,
   isMobile,
   onImageLoad,
-}: VirtualAvatarCardProps) {
+}, ref) {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
@@ -82,6 +81,7 @@ const VirtualAvatarCard = memo(function VirtualAvatarCard({
 
     return (
       <motion.div
+        ref={ref}
         layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ 
@@ -254,7 +254,7 @@ const VirtualAvatarCard = memo(function VirtualAvatarCard({
         />
       </motion.div>
     );
-});
+}));
 
 export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   avatars,

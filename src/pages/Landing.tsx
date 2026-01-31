@@ -97,12 +97,11 @@ const fadeInUpImmediate = {
 const HeroTitle = memo(function HeroTitle() {
   return (
     <div className="relative mb-8">
-      {/* Optimized glow - CSS animation only */}
+      {/* Optimized glow - static gradient, no animation for stability */}
       <div 
-        className="absolute inset-0 blur-[120px] pointer-events-none animate-pulse"
+        className="absolute inset-0 blur-[80px] pointer-events-none opacity-60"
         style={{
-          background: 'radial-gradient(ellipse 80% 50% at center, rgba(255,255,255,0.25) 0%, rgba(100,100,255,0.1) 40%, transparent 70%)',
-          animationDuration: '5s'
+          background: 'radial-gradient(ellipse 80% 50% at center, rgba(255,255,255,0.2) 0%, rgba(100,100,255,0.08) 40%, transparent 70%)',
         }}
       />
       

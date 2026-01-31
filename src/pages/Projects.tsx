@@ -138,17 +138,17 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
     if (preResolvedClipUrl) {
       return preResolvedClipUrl;
     }
-    // Priority 2: Video clips array (permanent Supabase storage URLs)
+    // Priority 2: Video clips array - prefer Supabase URLs but accept any if none match
     if (project.video_clips?.length) {
-      // Filter to only Supabase storage URLs
-      const permanentClips = project.video_clips.filter(url => 
-        url && (url.includes('supabase.co/storage') || url.includes('.supabase.co'))
+      // Find first non-Replicate URL
+      const permanentClip = project.video_clips.find(url => 
+        url && !url.includes('replicate.delivery')
       );
-      if (permanentClips.length > 0) {
-        return permanentClips.length > 1 ? permanentClips[1] : permanentClips[0];
+      if (permanentClip) {
+        return permanentClip;
       }
-      // Fallback to first available clip
-      return project.video_clips.length > 1 ? project.video_clips[1] : project.video_clips[0];
+      // Fallback to first available clip even if it might be Replicate
+      return project.video_clips[0];
     }
     // Priority 3: Direct video URL (only if NOT a Replicate delivery URL - those expire!)
     if (isDirectVideo && project.video_url && !project.video_url.includes('replicate.delivery')) {
@@ -730,18 +730,20 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
           .select('project_id, video_url, shot_index')
           .in('project_id', projectIds)
           .eq('status', 'completed')
+          .not('video_url', 'is', null)
           .order('shot_index', { ascending: true });
         
         if (clips && clips.length > 0) {
+          console.log('[Projects] Batch resolved clips:', clips.length, 'clips for', projectIds.length, 'projects');
+          
           // Group by project_id and take first clip for each
           const clipsByProject = new Map<string, string>();
           for (const clip of clips) {
-            // Only use permanent Supabase storage URLs (not Replicate delivery URLs)
-            const isPermanentUrl = clip.video_url && 
-              (clip.video_url.includes('supabase.co/storage') || 
-               clip.video_url.includes('.supabase.co'));
-            if (!clipsByProject.has(clip.project_id) && clip.video_url && isPermanentUrl) {
+            // Skip Replicate delivery URLs (they expire) - use Supabase storage URLs
+            const isReplicateUrl = clip.video_url?.includes('replicate.delivery');
+            if (!clipsByProject.has(clip.project_id) && clip.video_url && !isReplicateUrl) {
               clipsByProject.set(clip.project_id, clip.video_url);
+              console.log('[Projects] Resolved clip for project:', clip.project_id.substring(0, 8), '→', clip.video_url.substring(0, 60));
             }
           }
           setResolvedClipUrls(clipsByProject);

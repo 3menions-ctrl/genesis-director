@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, forwardRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +39,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRealAnalytics } from '@/hooks/useRealAnalytics';
 import { RealAnalyticsCards } from '@/components/analytics/RealAnalyticsCards';
 import ProfileBackground from '@/components/profile/ProfileBackground';
+import { ErrorBoundary, SafeComponent } from '@/components/ui/error-boundary';
 
 interface Transaction {
   id: string;
@@ -89,11 +90,48 @@ const glassCardHover = "hover:bg-white/[0.06] hover:border-white/[0.12] hover:-t
 const darkCard = "relative bg-white/[0.02] border border-white/[0.06] backdrop-blur-xl";
 const darkCardHover = "hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all duration-300";
 
-export default function Profile() {
-  const { user, profile, loading, refreshProfile } = useAuth();
-  const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading, unlockedAchievements } = useGamification();
-  const { followersCount, followingCount } = useSocial();
-  const { analytics, loading: analyticsLoading } = useRealAnalytics();
+// Main content component with hook resilience
+const ProfileContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProfileContent(_, ref) {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any; profile: any; loading: boolean; refreshProfile: () => void };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null, profile: null, loading: false, refreshProfile: () => {} };
+  }
+  const { user, profile, loading, refreshProfile } = authData;
+  
+  // Wrap optional hooks in try-catch
+  let gamificationData: any = { stats: null, xpProgress: 0, leaderboard: [], leaderboardLoading: false, unlockedAchievements: [] };
+  try {
+    gamificationData = useGamification();
+  } catch {
+    console.warn('[Profile] useGamification failed, using fallback');
+  }
+  const { stats: gamificationStats, xpProgress, leaderboard, leaderboardLoading, unlockedAchievements } = gamificationData;
+  
+  let socialData: any = { followersCount: 0, followingCount: 0 };
+  try {
+    socialData = useSocial();
+  } catch {
+    console.warn('[Profile] useSocial failed, using fallback');
+  }
+  const { followersCount, followingCount } = socialData;
+  
+  let analyticsData: any = { analytics: null, loading: false };
+  try {
+    analyticsData = useRealAnalytics();
+  } catch {
+    console.warn('[Profile] useRealAnalytics failed, using fallback');
+  }
+  const { analytics, loading: analyticsLoading } = analyticsData;
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
@@ -116,7 +154,6 @@ export default function Profile() {
     videosThisWeek: 0,
   });
   
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -963,4 +1000,15 @@ export default function Profile() {
       <BuyCreditsModal open={showBuyModal} onOpenChange={setShowBuyModal} />
     </div>
   );
-}
+}));
+
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Profile = memo(forwardRef<HTMLDivElement, object>(function Profile(_, ref) {
+  return (
+    <ErrorBoundary>
+      <ProfileContent />
+    </ErrorBoundary>
+  );
+}));
+
+export default Profile;

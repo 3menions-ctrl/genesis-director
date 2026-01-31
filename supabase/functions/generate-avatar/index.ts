@@ -7,16 +7,14 @@ const corsHeaders = {
 };
 
 /**
- * AVATAR GENERATION - Direct Script-to-Talking-Head Pipeline
- * 
- * Uses MiniMax TTS for audio + Kling for talking head animation.
+ * AVATAR GENERATION - True Lip-Sync Pipeline
  * 
  * Pipeline:
  * 1. MiniMax TTS - Convert text to high-quality speech audio (via generate-voice)
- * 2. Kling v2.6 - Generate talking head video with speech motion
+ * 2. Wav2Lip - Audio-driven lip-sync using the generated audio + avatar face
  * 
- * Note: We use Kling's image-to-video with a speaking prompt rather than lipsync,
- * as this provides more natural results and avoids the multi-stage complexity.
+ * This replaces the previous Kling-based "speaking animation" approach with
+ * true audio-driven lip synchronization for accurate mouth movements.
  */
 
 // Voice mapping for MiniMax (must match generate-voice)
@@ -50,8 +48,8 @@ serve(async (req) => {
       voiceId = "onyx",
       avatarImageUrl,
       aspectRatio = "16:9",
-      sceneDescription, // NEW: User's scene/background request
-      environmentPrompt, // Alternative field name for scene
+      sceneDescription,
+      environmentPrompt,
     } = await req.json();
 
     if (!text || !avatarImageUrl) {
@@ -71,15 +69,16 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log("[generate-avatar] Creating talking head video");
-    console.log(`[generate-avatar] Script length: ${text.length} chars`);
-    console.log(`[generate-avatar] Script preview: "${text.substring(0, 100)}..."`);
+    console.log("[generate-avatar] Creating lip-synced talking head video");
+    console.log(`[generate-avatar] Script: "${text.substring(0, 100)}..."`);
 
     // Map voice ID to MiniMax voice
     const minimaxVoice = VOICE_MAP[voiceId] || 'onyx';
 
-    // Step 1: Generate high-quality speech with MiniMax TTS via generate-voice
-    console.log(`[generate-avatar] Step 1: Generating speech with MiniMax TTS (voice: ${minimaxVoice})...`);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 1: Generate high-quality speech with MiniMax TTS
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log(`[generate-avatar] Step 1: Generating speech (voice: ${minimaxVoice})...`);
     
     const voiceResponse = await fetch(`${SUPABASE_URL}/functions/v1/generate-voice`, {
       method: 'POST',
@@ -109,79 +108,90 @@ serve(async (req) => {
     const audioUrl = voiceResult.audioUrl;
     const audioDurationMs = voiceResult.durationMs || estimateDuration(text);
     console.log("[generate-avatar] Audio generated:", audioUrl);
+    console.log(`[generate-avatar] Audio duration: ${Math.round(audioDurationMs / 1000)}s`);
 
-    // Step 2: Generate talking head video using Kling v2.6
-    // We use image-to-video with a speaking prompt for natural motion
-    console.log("[generate-avatar] Step 2: Generating talking head video with Kling v2.6...");
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 2: Generate lip-synced video using Wav2Lip
+    // This provides TRUE audio-driven lip synchronization
+    // ═══════════════════════════════════════════════════════════════════════════
+    console.log("[generate-avatar] Step 2: Generating lip-synced video with Wav2Lip...");
     
-    // Avatar clips default to 10s for natural speech delivery
-    // Only use 5s if audio is very short (under 4 seconds)
-    const audioDurationSec = Math.ceil(audioDurationMs / 1000);
-    const videoDuration = audioDurationSec < 4 ? 5 : 10;
-    
-    // Build the video generation prompt
-    // CRITICAL: Include user's scene/background request if provided
-    const userScene = sceneDescription || environmentPrompt;
-    let videoPrompt = "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression";
-    
-    if (userScene && userScene.trim()) {
-      // Prepend scene description for visual context
-      videoPrompt = `Scene: ${userScene.trim()}. ${videoPrompt}`;
-      console.log(`[generate-avatar] Including user scene description: "${userScene.substring(0, 100)}..."`);
-    } else {
-      // Extract scene hints from the script text itself if no explicit scene provided
-      // Look for environmental keywords that suggest a scene change
-      const sceneKeywords = text.match(/(?:go to|at the|in the|inside|outside|standing in|walking through|sitting at|at a|in a)\s+([^,.!?]+)/i);
-      if (sceneKeywords && sceneKeywords[1]) {
-        const extractedScene = sceneKeywords[1].trim();
-        videoPrompt = `Scene: ${extractedScene}. ${videoPrompt}`;
-        console.log(`[generate-avatar] Extracted scene from script: "${extractedScene}"`);
-      }
-    }
-    
-    console.log(`[generate-avatar] Final video prompt: "${videoPrompt.substring(0, 200)}..."`);
-    
-    const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+    // Wav2Lip takes the face image + audio and generates a lip-synced video
+    // where the mouth movements precisely match the spoken words
+    const wav2lipResponse = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${REPLICATE_API_KEY}`,
         "Content-Type": "application/json",
+        "Prefer": "wait=120", // Wait up to 2 minutes for completion
       },
       body: JSON.stringify({
+        version: "8d65e3f4f4298520e079198b493c25adfc43c058ffec924f2aefc8010ed25eef",
         input: {
-          mode: "pro",
-          prompt: videoPrompt,
-          duration: videoDuration,
-          start_image: avatarImageUrl,
-          aspect_ratio: aspectRatio,
-          negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth, frozen face, robotic, stiff",
+          face: avatarImageUrl,
+          audio: audioUrl,
+          fps: 25,
+          pads: "0 10 0 0", // Padding: top bottom left right (include chin)
+          smooth: true,
+          resize_factor: 1,
         },
       }),
     });
 
-    if (!klingResponse.ok) {
-      const errorText = await klingResponse.text();
-      console.error("[generate-avatar] Kling video generation failed:", errorText);
-      throw new Error(`Video generation failed: ${klingResponse.status} - ${errorText}`);
+    if (!wav2lipResponse.ok) {
+      const errorText = await wav2lipResponse.text();
+      console.error("[generate-avatar] Wav2Lip generation failed:", errorText);
+      
+      // Fallback to Kling if Wav2Lip fails
+      console.log("[generate-avatar] Falling back to Kling speaking animation...");
+      return await fallbackToKling({
+        text,
+        avatarImageUrl,
+        audioUrl,
+        audioDurationMs,
+        aspectRatio,
+        sceneDescription,
+        environmentPrompt,
+        REPLICATE_API_KEY,
+      });
     }
 
-    const klingPrediction = await klingResponse.json();
-    console.log("[generate-avatar] Kling prediction created:", klingPrediction.id);
+    const wav2lipPrediction = await wav2lipResponse.json();
+    console.log("[generate-avatar] Wav2Lip prediction:", wav2lipPrediction.id, "status:", wav2lipPrediction.status);
 
-    // Return the prediction info for status polling
-    // The check-specialized-status function will poll until completion
+    // If completed synchronously (due to Prefer: wait), return the video
+    if (wav2lipPrediction.status === "succeeded" && wav2lipPrediction.output) {
+      console.log("[generate-avatar] Lip-sync video completed:", wav2lipPrediction.output);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          predictionId: wav2lipPrediction.id,
+          videoUrl: wav2lipPrediction.output,
+          audioUrl,
+          audioDurationMs,
+          videoDuration: Math.ceil(audioDurationMs / 1000),
+          status: "completed",
+          message: "Lip-synced avatar video generated successfully!",
+          scriptLength: text.length,
+          pipeline: "wav2lip-lipsync",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // If still processing, return prediction ID for polling
     return new Response(
       JSON.stringify({
         success: true,
-        predictionId: klingPrediction.id,
+        predictionId: wav2lipPrediction.id,
         audioUrl,
         audioDurationMs,
-        videoDuration,
+        videoDuration: Math.ceil(audioDurationMs / 1000),
         status: "processing",
-        message: "Avatar video is being generated. Creating natural speaking animation...",
+        message: "Creating lip-synced avatar video. Mouth movements will match your script exactly...",
         scriptLength: text.length,
-        estimatedDuration: videoDuration,
-        pipeline: "kling-avatar",
+        estimatedDuration: Math.ceil(audioDurationMs / 1000),
+        pipeline: "wav2lip-lipsync",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -197,6 +207,83 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Fallback to Kling speaking animation if Wav2Lip fails
+ */
+async function fallbackToKling(params: {
+  text: string;
+  avatarImageUrl: string;
+  audioUrl: string;
+  audioDurationMs: number;
+  aspectRatio: string;
+  sceneDescription?: string;
+  environmentPrompt?: string;
+  REPLICATE_API_KEY: string;
+}): Promise<Response> {
+  const {
+    text,
+    avatarImageUrl,
+    audioUrl,
+    audioDurationMs,
+    aspectRatio,
+    sceneDescription,
+    environmentPrompt,
+    REPLICATE_API_KEY,
+  } = params;
+
+  const audioDurationSec = Math.ceil(audioDurationMs / 1000);
+  const videoDuration = audioDurationSec < 4 ? 5 : 10;
+  
+  const userScene = sceneDescription || environmentPrompt;
+  let videoPrompt = "The person in the image is speaking naturally and expressively, direct eye contact with camera, subtle natural head movements, professional presentation style, clear and articulate speech with natural lip movements, engaged expression";
+  
+  if (userScene && userScene.trim()) {
+    videoPrompt = `Scene: ${userScene.trim()}. ${videoPrompt}`;
+  }
+  
+  const klingResponse = await fetch("https://api.replicate.com/v1/models/kwaivgi/kling-v2.6/predictions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${REPLICATE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      input: {
+        mode: "pro",
+        prompt: videoPrompt,
+        duration: videoDuration,
+        start_image: avatarImageUrl,
+        aspect_ratio: aspectRatio,
+        negative_prompt: "blurry, distorted, glitchy, unnatural movements, closed mouth, frozen face, robotic, stiff",
+      },
+    }),
+  });
+
+  if (!klingResponse.ok) {
+    const errorText = await klingResponse.text();
+    throw new Error(`Fallback video generation failed: ${klingResponse.status} - ${errorText}`);
+  }
+
+  const klingPrediction = await klingResponse.json();
+  console.log("[generate-avatar] Kling fallback prediction:", klingPrediction.id);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      predictionId: klingPrediction.id,
+      audioUrl,
+      audioDurationMs,
+      videoDuration,
+      status: "processing",
+      message: "Avatar video is being generated (fallback mode)...",
+      scriptLength: text.length,
+      estimatedDuration: videoDuration,
+      pipeline: "kling-avatar-fallback",
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
 
 /**
  * Estimate audio duration based on text length (~150 WPM)

@@ -27,6 +27,11 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Loading chunk',
   'Failed to fetch dynamically imported module',
   
+  // Component loading errors - prevent cascade on lazy load issues
+  'Component is not a function',
+  'instance of Object',
+  'is not a function',
+  
   // DOM cleanup race conditions (common with Radix UI)
   'Cannot read properties of null',
   'Cannot read properties of undefined',

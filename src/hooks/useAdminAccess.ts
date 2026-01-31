@@ -77,7 +77,7 @@ export function useAdminAccess(): UseAdminAccessResult {
       // This query is protected by RLS - users can only read their own roles
       const { data, error: rpcError } = await supabase
         .from('user_roles')
-        .select('role, created_at')
+        .select('role, granted_at')
         .eq('user_id', user.id)
         .eq('role', 'admin')
         .maybeSingle();

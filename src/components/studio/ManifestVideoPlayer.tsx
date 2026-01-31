@@ -1,18 +1,26 @@
 /**
- * ManifestVideoPlayer v3 - INSTANTANEOUS Gapless Playback
+ * ManifestVideoPlayer v4 - HYDRATED BOOT SEQUENCE
  * 
  * Features:
  * - Dual video element switching for ZERO gap transitions
+ * - HYDRATED BOOT: Waits for canplaythrough before any transition
+ * - Graceful 16ms fallback if atomic switch fails
+ * - Buffer status tracking for diagnostics
  * - Preloads next clip while current plays
- * - 50ms crossfade for INSTANT transitions
  * - Triggers transition 0.15s BEFORE clip ends for zero gaps
- * - NO center play button - only bottom controls
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Maximize2, Download, Loader2, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { 
+  waitForCanPlayThrough, 
+  validateTransitionReadiness,
+  checkHighResolutionTimers,
+  type BufferStatus,
+  type BootState 
+} from '@/lib/videoEngine/HydratedBootSequence';
 
 interface ManifestClip {
   index: number;
@@ -36,14 +44,15 @@ interface ManifestVideoPlayerProps {
   manifestUrl: string;
   musicUrl?: string;
   className?: string;
+  showDiagnostics?: boolean;
 }
 
-// TRUE OVERLAP TRANSITION SYSTEM
-// Both videos at 100% opacity for overlap duration, then outgoing fades
+// TRUE OVERLAP TRANSITION SYSTEM with HYDRATED BOOT
 const CROSSFADE_OVERLAP_MS = 30; // 30ms true overlap where both are visible
 const CROSSFADE_FADEOUT_MS = 30; // 30ms for outgoing to fade after overlap
-// Trigger transition this many seconds before clip ends for ZERO gap
-const TRANSITION_THRESHOLD = 0.15;
+const FALLBACK_TRANSITION_MS = 16; // One frame at 60fps for graceful fallback
+const TRANSITION_THRESHOLD = 0.15; // Trigger 150ms before clip ends
+const LOAD_TIMEOUT_MS = 8000; // 8 second timeout for canplaythrough
 
 // Double-RAF helper to ensure browser has painted before continuing
 function doubleRAF(callback: () => void) {
@@ -52,7 +61,7 @@ function doubleRAF(callback: () => void) {
   });
 }
 
-export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlayerProps>(function ManifestVideoPlayer({ manifestUrl, musicUrl, className }, ref) {
+export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlayerProps>(function ManifestVideoPlayer({ manifestUrl, musicUrl, className, showDiagnostics = false }, ref) {
   const [manifest, setManifest] = useState<VideoManifest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +76,13 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
   const [videoAOpacity, setVideoAOpacity] = useState(1);
   const [videoBOpacity, setVideoBOpacity] = useState(0);
   
+  // HYDRATED BOOT: Buffer status tracking
+  const [videoAStatus, setVideoAStatus] = useState<BootState>('idle');
+  const [videoBStatus, setVideoBStatus] = useState<BootState>('idle');
+  const [bufferPercent, setBufferPercent] = useState(0);
+  const [diagnosticMessage, setDiagnosticMessage] = useState('');
+  const [useFallbackTransition, setUseFallbackTransition] = useState(false);
+  
   // Refs
   const videoARef = useRef<HTMLVideoElement>(null);
   const videoBRef = useRef<HTMLVideoElement>(null);
@@ -75,6 +91,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
   const isTransitioningRef = useRef(false);
   const triggerTransitionRef = useRef<(() => void) | null>(null);
   const initialSetupDoneRef = useRef(false);
+  const highResTimersRef = useRef<boolean>(true);
 
   // Get active and standby video refs
   const getActiveVideo = useCallback(() => {
@@ -90,19 +107,31 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     return manifest?.totalDuration || manifest?.clips.reduce((sum, c) => sum + c.duration, 0) || 0;
   }, [manifest]);
 
+  // Check high-resolution timer availability on mount
+  useEffect(() => {
+    highResTimersRef.current = checkHighResolutionTimers();
+    if (!highResTimersRef.current) {
+      console.warn('[ManifestPlayer] High-resolution timers reduced - using fallback transitions');
+      setUseFallbackTransition(true);
+    }
+  }, []);
+
   // Load manifest
   useEffect(() => {
     const loadManifest = async () => {
       try {
         setIsLoading(true);
         initialSetupDoneRef.current = false;
+        setDiagnosticMessage('Loading manifest...');
         const response = await fetch(manifestUrl);
         if (!response.ok) throw new Error('Failed to load manifest');
         const data = await response.json();
         setManifest(data);
         setError(null);
+        setDiagnosticMessage('Manifest loaded');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load video manifest');
+        setDiagnosticMessage('Manifest load failed');
       } finally {
         setIsLoading(false);
       }
@@ -110,29 +139,57 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     loadManifest();
   }, [manifestUrl]);
 
-  // Setup first clip and preload second when manifest is loaded
+  // HYDRATED BOOT: Setup first clip with canplaythrough validation
   useEffect(() => {
     if (!manifest || manifest.clips.length === 0 || initialSetupDoneRef.current) return;
 
     const videoA = videoARef.current;
     const videoB = videoBRef.current;
     
-    // Load first clip into video A (active)
-    if (videoA && manifest.clips[0]) {
+    const hydrateFirstClip = async () => {
+      if (!videoA || !manifest.clips[0]) return;
+      
+      setVideoAStatus('loading');
+      setDiagnosticMessage('Hydrating first clip...');
+      
+      // Set source
       videoA.src = manifest.clips[0].videoUrl;
       videoA.load();
-    }
-
-    // Preload second clip into video B (standby)
-    if (videoB && manifest.clips[1]) {
-      videoB.src = manifest.clips[1].videoUrl;
-      videoB.load();
-    }
-
+      
+      try {
+        // Wait for canplaythrough with timeout
+        const status = await waitForCanPlayThrough(videoA, LOAD_TIMEOUT_MS);
+        setVideoAStatus(status.canPlayThrough ? 'ready' : 'buffering');
+        setBufferPercent(status.bufferedPercent);
+        setDiagnosticMessage(`Clip 1 ready: ${status.bufferedPercent.toFixed(0)}% buffered`);
+        console.log('[ManifestPlayer] First clip hydrated:', status);
+      } catch (err) {
+        console.warn('[ManifestPlayer] First clip hydration warning:', err);
+        // Don't fail - the video might still be playable
+        setVideoAStatus('ready');
+        setDiagnosticMessage('Clip 1 loaded (partial)');
+      }
+      
+      // Preload second clip into video B (standby)
+      if (videoB && manifest.clips[1]) {
+        setVideoBStatus('loading');
+        videoB.src = manifest.clips[1].videoUrl;
+        videoB.load();
+        
+        try {
+          const statusB = await waitForCanPlayThrough(videoB, LOAD_TIMEOUT_MS);
+          setVideoBStatus(statusB.canPlayThrough ? 'ready' : 'buffering');
+          console.log('[ManifestPlayer] Second clip preloaded:', statusB);
+        } catch {
+          setVideoBStatus('ready'); // Proceed anyway
+        }
+      }
+    };
+    
+    hydrateFirstClip();
     initialSetupDoneRef.current = true;
   }, [manifest]);
 
-  // Preload next clip into standby video when clip changes
   // Preload next clip into standby video when clip changes
   // NOTE: This is for manual skip navigation only - crossfade handles its own preloading
   useEffect(() => {
@@ -142,21 +199,30 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     
     // Use refs directly to get correct video without dependency issues
     const standbyVideo = activeVideoIndex === 0 ? videoBRef.current : videoARef.current;
+    const setStandbyStatus = activeVideoIndex === 0 ? setVideoBStatus : setVideoAStatus;
     const nextClipIndex = currentClipIndex + 1;
     
     if (standbyVideo && nextClipIndex < manifest.clips.length && manifest.clips[nextClipIndex]) {
       const nextClipUrl = manifest.clips[nextClipIndex].videoUrl;
       if (standbyVideo.src !== nextClipUrl) {
+        setStandbyStatus('loading');
         standbyVideo.src = nextClipUrl;
         standbyVideo.load();
+        
+        // Async hydration for standby
+        waitForCanPlayThrough(standbyVideo, LOAD_TIMEOUT_MS)
+          .then((status) => {
+            setStandbyStatus(status.canPlayThrough ? 'ready' : 'buffering');
+          })
+          .catch(() => {
+            setStandbyStatus('ready'); // Proceed anyway
+          });
       }
     }
   }, [currentClipIndex, manifest, activeVideoIndex, isCrossfading]);
 
-  // TRUE OVERLAP CROSSFADE TRANSITION SYSTEM
-  // Phase 1: Both videos at 100% opacity (true overlap - 30ms)
-  // Phase 2: Outgoing fades to 0% while incoming stays at 100% (30ms)
-  // Total transition: 60ms of seamless blending
+  // HYDRATED BOOT CROSSFADE TRANSITION SYSTEM
+  // Validates buffer readiness before transition, with graceful fallback
   const triggerCrossfadeTransition = useCallback(() => {
     if (!manifest) return;
     if (isTransitioningRef.current || isCrossfading) return;
@@ -164,6 +230,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     
     isTransitioningRef.current = true;
     setIsCrossfading(true);
+    setDiagnosticMessage('Preparing transition...');
     
     const nextIndex = currentClipIndex + 1;
     const activeVideo = getActiveVideo();
@@ -172,56 +239,108 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
     // Capture which video is currently active BEFORE state update
     const currentActiveIndex = activeVideoIndex;
     
-    if (standbyVideo && standbyVideo.readyState >= 2 && manifest.clips[nextIndex]) {
+    // HYDRATED BOOT: Validate standby readiness
+    const readiness = standbyVideo ? validateTransitionReadiness(standbyVideo) : { isReady: false, reason: 'No standby video' };
+    
+    // Determine transition mode: atomic (sub-ms) or graceful fallback (16ms)
+    const useGracefulFallback = useFallbackTransition || !readiness.isReady || !highResTimersRef.current;
+    const transitionDuration = useGracefulFallback ? FALLBACK_TRANSITION_MS : CROSSFADE_OVERLAP_MS;
+    
+    console.log('[ManifestPlayer] Transition mode:', {
+      mode: useGracefulFallback ? 'GRACEFUL_FALLBACK' : 'ATOMIC',
+      readiness,
+      transitionDuration: `${transitionDuration}ms`,
+    });
+    
+    if (standbyVideo && (standbyVideo.readyState >= 2 || useGracefulFallback) && manifest.clips[nextIndex]) {
       standbyVideo.currentTime = 0;
       standbyVideo.muted = isMuted;
       
       // Start playing standby while still invisible (preroll)
       standbyVideo.play().catch(() => {});
       
-      // PHASE 1: TRUE OVERLAP - Both videos at 100% opacity simultaneously
-      if (currentActiveIndex === 0) {
-        setVideoBOpacity(1); // Incoming now visible at 100%
-      } else {
-        setVideoAOpacity(1); // Incoming now visible at 100%
-      }
-      
-      // PHASE 2: After overlap duration, wait for browser paint then fade outgoing
-      doubleRAF(() => {
+      if (useGracefulFallback) {
+        // GRACEFUL FALLBACK: Standard 16ms (one-frame) transition
+        setDiagnosticMessage(`Graceful fallback (${transitionDuration}ms)`);
+        
+        // Immediate opacity swap
+        if (currentActiveIndex === 0) {
+          setVideoBOpacity(1);
+        } else {
+          setVideoAOpacity(1);
+        }
+        
+        // Single-frame delay before hiding outgoing
         setTimeout(() => {
-          // Now fade out the outgoing video (incoming stays at 100%)
           if (currentActiveIndex === 0) {
-            setVideoAOpacity(0); // Outgoing fades out
+            setVideoAOpacity(0);
           } else {
-            setVideoBOpacity(0); // Outgoing fades out
+            setVideoBOpacity(0);
           }
           
-          // Swap active/standby state
           setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
           setCurrentClipIndex(nextIndex);
           setIsPlaying(true);
           
-          // PHASE 3: After fadeout completes, clean up
+          if (activeVideo) activeVideo.pause();
+          
+          // Preload next clip
+          const futureClipIndex = nextIndex + 1;
+          if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
+            activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
+            activeVideo.load();
+          }
+          
+          setIsCrossfading(false);
+          isTransitioningRef.current = false;
+          setDiagnosticMessage('Transition complete');
+        }, transitionDuration);
+        
+      } else {
+        // ATOMIC TRANSITION: True overlap with sub-ms timing
+        setDiagnosticMessage('Atomic transition');
+        
+        // PHASE 1: TRUE OVERLAP - Both videos at 100% opacity simultaneously
+        if (currentActiveIndex === 0) {
+          setVideoBOpacity(1);
+        } else {
+          setVideoAOpacity(1);
+        }
+        
+        // PHASE 2: After overlap duration, wait for browser paint then fade outgoing
+        doubleRAF(() => {
           setTimeout(() => {
-            if (activeVideo) {
-              activeVideo.pause();
+            if (currentActiveIndex === 0) {
+              setVideoAOpacity(0);
+            } else {
+              setVideoBOpacity(0);
             }
             
-            setIsCrossfading(false);
+            setActiveVideoIndex(currentActiveIndex === 0 ? 1 : 0);
+            setCurrentClipIndex(nextIndex);
+            setIsPlaying(true);
             
-            // Preload the NEXT clip into the old active (now standby)
-            const futureClipIndex = nextIndex + 1;
-            if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
-              activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
-              activeVideo.load();
-            }
-            isTransitioningRef.current = false;
-          }, CROSSFADE_FADEOUT_MS + 20);
-        }, CROSSFADE_OVERLAP_MS);
-      });
+            // PHASE 3: After fadeout completes, clean up
+            setTimeout(() => {
+              if (activeVideo) activeVideo.pause();
+              
+              setIsCrossfading(false);
+              
+              const futureClipIndex = nextIndex + 1;
+              if (activeVideo && futureClipIndex < manifest.clips.length && manifest.clips[futureClipIndex]) {
+                activeVideo.src = manifest.clips[futureClipIndex].videoUrl;
+                activeVideo.load();
+              }
+              isTransitioningRef.current = false;
+              setDiagnosticMessage('Transition complete');
+            }, CROSSFADE_FADEOUT_MS + 20);
+          }, CROSSFADE_OVERLAP_MS);
+        });
+      }
     } else {
-      // FALLBACK: Force load and retry instead of skipping
+      // FALLBACK: Force load and retry
       console.warn('[ManifestPlayer] Standby video not ready, force loading...');
+      setDiagnosticMessage('Force loading standby...');
       if (standbyVideo && manifest.clips[nextIndex]) {
         standbyVideo.src = manifest.clips[nextIndex].videoUrl;
         standbyVideo.load();
@@ -235,7 +354,7 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
         setCurrentClipIndex(prev => prev + 1);
       }
     }
-  }, [currentClipIndex, manifest, isCrossfading, isMuted, activeVideoIndex, getActiveVideo, getStandbyVideo]);
+  }, [currentClipIndex, manifest, isCrossfading, isMuted, activeVideoIndex, getActiveVideo, getStandbyVideo, useFallbackTransition]);
 
   // Keep the ref updated with the latest trigger function
   useEffect(() => {
@@ -612,6 +731,42 @@ export const ManifestVideoPlayer = forwardRef<HTMLDivElement, ManifestVideoPlaye
       <div className="absolute top-3 left-3 px-2 py-1 rounded bg-black/60 text-xs text-white/80 z-10">
         Clip {currentClipIndex + 1} of {manifest.clips.length}
       </div>
+
+      {/* HYDRATED BOOT: Buffer Status Indicator */}
+      {(videoAStatus === 'loading' || videoBStatus === 'loading' || isCrossfading) && (
+        <div className="absolute top-3 right-3 px-2 py-1 rounded bg-black/60 text-xs text-white/80 z-10 flex items-center gap-2">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          <span>
+            {isCrossfading ? 'Transitioning...' : 'Buffering...'}
+          </span>
+        </div>
+      )}
+
+      {/* Diagnostic Overlay (optional - enabled via prop) */}
+      {showDiagnostics && (
+        <div className="absolute top-12 right-3 px-3 py-2 rounded bg-black/85 text-[10px] font-mono text-green-400 z-20 space-y-1 min-w-[180px]">
+          <div className="text-green-300 font-bold">🎬 Hydrated Boot</div>
+          <div className="border-t border-green-400/30 my-1" />
+          <div>Active: Clip {currentClipIndex + 1}</div>
+          <div>Mode: {useFallbackTransition ? '⚠️ Fallback' : '✅ Atomic'}</div>
+          <div>Hi-Res Timers: {highResTimersRef.current ? '✅' : '⚠️'}</div>
+          <div className="border-t border-green-400/30 my-1" />
+          <div className="flex items-center gap-2">
+            <span className={videoAStatus === 'ready' ? 'text-green-400' : videoAStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
+              {videoAStatus === 'ready' ? '✅' : videoAStatus === 'loading' ? '⏳' : '❌'}
+            </span>
+            <span>Video A: {videoAStatus}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={videoBStatus === 'ready' ? 'text-green-400' : videoBStatus === 'loading' ? 'text-yellow-400' : 'text-red-400'}>
+              {videoBStatus === 'ready' ? '✅' : videoBStatus === 'loading' ? '⏳' : '❌'}
+            </span>
+            <span>Video B: {videoBStatus}</span>
+          </div>
+          <div className="border-t border-green-400/30 my-1" />
+          <div className="text-[9px] text-green-300/70">{diagnosticMessage}</div>
+        </div>
+      )}
     </div>
   );
 });

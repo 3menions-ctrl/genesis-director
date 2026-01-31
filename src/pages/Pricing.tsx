@@ -81,7 +81,13 @@ const TRUST_POINTS = [
 ];
 
 export default function Pricing() {
-  const navigate = useNavigate();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
 
   return (
     <div className="min-h-screen bg-[#000] overflow-hidden relative">

@@ -372,8 +372,22 @@ const FinalCTASection = memo(function FinalCTASection({ onNavigate }: { onNaviga
 
 // Main Landing Component
 export default function Landing() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  // Hook resilience - wrap in try-catch with fallbacks
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
   const [showExamples, setShowExamples] = useState(false);
   const [showCinematicTransition, setShowCinematicTransition] = useState(false);
 

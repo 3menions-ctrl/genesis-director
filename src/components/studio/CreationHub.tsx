@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -230,7 +230,16 @@ export const CreationHub = memo(forwardRef<HTMLDivElement, CreationHubProps>(fun
   const estimatedDuration = clipCount * clipDuration;
   const estimatedMinutes = Math.floor(estimatedDuration / 60);
   const estimatedSeconds = estimatedDuration % 60;
-  const estimatedCredits = clipCount * 10;
+  // Use proper tiered pricing: 10 credits for ≤6s clips 1-6, 15 for >6s or clips 7+
+  const estimatedCredits = useMemo(() => {
+    let total = 0;
+    for (let i = 0; i < clipCount; i++) {
+      // Extended pricing if clip index >= 6 OR duration > 6 seconds
+      const isExtended = i >= 6 || clipDuration > 6;
+      total += isExtended ? 15 : 10;
+    }
+    return total;
+  }, [clipCount, clipDuration]);
   
   // User credits
   const userCredits = profile?.credits_balance ?? 0;

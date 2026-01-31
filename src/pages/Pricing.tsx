@@ -142,7 +142,7 @@ export default function Pricing() {
             </p>
 
             <p className="text-sm text-white/30">
-              1 credit = $0.10 • ~10 credits per clip
+              1 credit = $0.10 • 10-15 credits per clip
             </p>
           </motion.div>
         </div>

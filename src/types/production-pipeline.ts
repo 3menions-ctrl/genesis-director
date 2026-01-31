@@ -177,7 +177,19 @@ export interface ClipConfiguration {
   clipCount: number;      // User-selected clip count (1-20)
   clipDuration: number;   // User-selected duration (5 or 10 seconds)
   totalDuration: number;  // Calculated: clipCount * clipDuration
-  creditsRequired: number; // Calculated: clipCount * 10
+  creditsRequired: number; // Tiered: 10 for base clips, 15 for extended
+}
+
+// Calculate credits with tiered pricing
+// Base (10): clips 1-6 at ≤6 seconds
+// Extended (15): clips 7+ OR duration >6 seconds
+function calculateTieredCredits(clipCount: number, clipDuration: number): number {
+  let total = 0;
+  for (let i = 0; i < clipCount; i++) {
+    const isExtended = i >= 6 || clipDuration > 6;
+    total += isExtended ? 15 : 10;
+  }
+  return total;
 }
 
 // Validate and normalize clip configuration
@@ -192,7 +204,7 @@ export function validateClipConfiguration(
     clipCount: normalizedCount,
     clipDuration: normalizedDuration,
     totalDuration: normalizedCount * normalizedDuration,
-    creditsRequired: normalizedCount * 10,
+    creditsRequired: calculateTieredCredits(normalizedCount, normalizedDuration),
   };
 }
 

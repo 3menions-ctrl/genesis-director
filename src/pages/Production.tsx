@@ -703,6 +703,37 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
     };
   }, [projectId, user, stages, updateStageStatus, addLog, loadVideoClips]);
 
+  // CRITICAL: Auto-clear errors when all clips complete successfully
+  // This prevents stale CONTINUITY_FAILURE errors from showing after recovery
+  useEffect(() => {
+    const allComplete = completedClips >= expectedClipCount && expectedClipCount > 0;
+    const hasNoFailedClips = !clipResults.some(c => c.status === 'failed');
+    
+    // If all clips are done and none failed, clear any lingering transient errors
+    if (allComplete && hasNoFailedClips && lastError) {
+      // Clear transient errors that auto-recovered
+      const transientPatterns = [
+        'continuity', 'frame', 'production incomplete', 'mutex', 'locked'
+      ];
+      const isTransient = transientPatterns.some(p => 
+        lastError.toLowerCase().includes(p)
+      );
+      
+      if (isTransient) {
+        setLastError(null);
+        setDegradationFlags([]);
+        // Also persist the clear to database
+        if (projectId) {
+          supabase
+            .from('movie_projects')
+            .update({ last_error: null })
+            .eq('id', projectId);
+        }
+        addLog('All clips completed - cleared transient error', 'success');
+      }
+    }
+  }, [completedClips, expectedClipCount, clipResults, lastError, projectId, addLog]);
+  
   // Auto-stitch
   useEffect(() => {
     const allComplete = completedClips >= expectedClipCount && expectedClipCount > 0;
@@ -713,11 +744,25 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
     if (shouldTrigger) {
       const timer = setTimeout(async () => {
         setAutoStitchAttempted(true);
+        
+        // CRITICAL: Clear any lingering errors before stitching
+        // All clips are done, so any previous errors were transient
+        setLastError(null);
+        setDegradationFlags([]);
+        
         addLog('Stitching...', 'info');
         updateStageStatus(5, 'active');
         setProgress(85);
 
         try {
+          // Clear error in database before stitch
+          if (projectId) {
+            await supabase
+              .from('movie_projects')
+              .update({ last_error: null, status: 'stitching' })
+              .eq('id', projectId);
+          }
+          
           const { data, error } = await supabase.functions.invoke('auto-stitch-trigger', {
             body: { projectId, userId: user?.id, forceStitch: false },
           });
@@ -801,6 +846,11 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
     if (!projectId || !user || isResuming) return;
     setIsResuming(true);
     
+    // CRITICAL: Clear error state BEFORE resuming to reset UI
+    // This prevents stale error banners from persisting during recovery
+    setLastError(null);
+    setDegradationFlags([]);
+    
     try {
       // Determine best resume stage based on current state
       let resumeFrom: 'qualitygate' | 'assets' | 'production' | 'postproduction' = 'production';
@@ -816,6 +866,12 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       }
       
       addLog(`Resuming pipeline from ${resumeFrom}...`, 'info');
+      
+      // Clear error in database before resuming
+      await supabase
+        .from('movie_projects')
+        .update({ last_error: null })
+        .eq('id', projectId);
       
       const { data, error } = await supabase.functions.invoke('resume-pipeline', {
         body: { 
@@ -844,6 +900,8 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       const errorMsg = err.message || 'Resume failed';
       toast.error(errorMsg);
       addLog(`Resume failed: ${errorMsg}`, 'error');
+      // Restore error state on failure
+      setLastError(errorMsg);
     } finally {
       setIsResuming(false);
     }

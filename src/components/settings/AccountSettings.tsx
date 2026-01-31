@@ -171,9 +171,9 @@ export const AccountSettings = memo(forwardRef<HTMLDivElement, Record<string, ne
       toast.success('Confirmation email sent to your new address');
       setShowEmailDialog(false);
       setNewEmail('');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error changing email:', error);
-      toast.error(error.message || 'Failed to change email');
+      toast.error(error instanceof Error ? error.message : 'Failed to change email');
     } finally {
       setIsChangingEmail(false);
     }

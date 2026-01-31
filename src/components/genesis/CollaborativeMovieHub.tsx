@@ -13,6 +13,7 @@ import {
   useGenesisScreenplay, 
   useCollaborativeMovieStats
 } from '@/hooks/useCollaborativeMovie';
+import type { GenesisScreenplay } from '@/types/collaborative-movie';
 import { CharacterCastingGallery } from './CharacterCastingGallery';
 import { SceneScriptViewer } from './SceneScriptViewer';
 import { SafeComponent } from '@/components/ui/error-boundary';
@@ -56,7 +57,7 @@ function StatCard({
   );
 }
 
-function ScreenplayHeader({ screenplay }: { screenplay: any }) {
+function ScreenplayHeader({ screenplay }: { screenplay: GenesisScreenplay }) {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-background to-background border border-primary/20 p-8">
       {/* Background Pattern */}

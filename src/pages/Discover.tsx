@@ -138,7 +138,7 @@ export default function Discover() {
       queryClient.invalidateQueries({ queryKey: ['public-videos'] });
       queryClient.invalidateQueries({ queryKey: ['user-likes'] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to update like');
     },
   });

@@ -329,9 +329,18 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
     return true;
   };
 
-  // Show nothing during initial data load to prevent content flash
-  // The GlobalLoadingOverlay handles the loading state visually
-  const isInitializing = templateLoading || tierLoading;
+  // Track if initialization has completed to prevent permanent invisible state
+  // Use a fallback timeout to ensure content shows even if hooks stall
+  const [forceVisible, setForceVisible] = useState(false);
+  
+  useEffect(() => {
+    // Force visibility after 2s as a failsafe
+    const timeout = setTimeout(() => setForceVisible(true), 2000);
+    return () => clearTimeout(timeout);
+  }, []);
+  
+  // Show content once data loads OR after failsafe timeout
+  const isInitializing = (templateLoading || tierLoading) && !forceVisible;
 
   return (
     <div ref={containerRef} className={cn("min-h-screen pt-8 pb-24", isInitializing && "opacity-0", className)}>

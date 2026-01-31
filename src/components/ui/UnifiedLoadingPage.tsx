@@ -1,17 +1,17 @@
 /**
  * UnifiedLoadingPage - Standardized full-page loading component
  * 
- * A consistent branded loading experience across all route transitions.
- * Features:
- * - Unified shimmer/pulse animation
- * - Brand-aligned violet color scheme
- * - Progressive skeleton placeholders
- * - GPU-accelerated animations
+ * Uses the CinemaLoader as the single source of truth for loading states.
+ * Also exports skeleton components for progressive loading patterns.
  */
 
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { CinemaLoader } from './CinemaLoader';
+
+// Re-export CinemaLoader as the primary loading component
+export { CinemaLoader } from './CinemaLoader';
 
 // Shimmer animation - reusable across components
 export const Shimmer = memo(function Shimmer({ className }: { className?: string }) {
@@ -46,7 +46,7 @@ export const SkeletonBox = memo(function SkeletonBox({
   return (
     <div 
       className={cn(
-        "relative overflow-hidden rounded-xl bg-zinc-800/40",
+        "relative overflow-hidden rounded-xl bg-white/5",
         aspectClasses[aspectRatio],
         className
       )}
@@ -86,10 +86,10 @@ export const GridSkeleton = memo(function GridSkeleton({
         >
           <SkeletonBox aspectRatio={aspectRatio} />
           <div className="space-y-2 px-1">
-            <div className="h-4 bg-zinc-800/40 rounded w-3/4 relative overflow-hidden">
+            <div className="h-4 bg-white/5 rounded w-3/4 relative overflow-hidden">
               <Shimmer />
             </div>
-            <div className="h-3 bg-zinc-800/30 rounded w-1/2 relative overflow-hidden">
+            <div className="h-3 bg-white/[0.03] rounded w-1/2 relative overflow-hidden">
               <Shimmer />
             </div>
           </div>
@@ -99,7 +99,7 @@ export const GridSkeleton = memo(function GridSkeleton({
   );
 });
 
-// Brand spinner - unified across all loading states
+// Brand spinner - kept for backwards compatibility, now uses cinema theme
 export const BrandLoadingSpinner = memo(function BrandLoadingSpinner({ 
   size = 'md',
 }: { 
@@ -115,21 +115,21 @@ export const BrandLoadingSpinner = memo(function BrandLoadingSpinner({
     <div className={cn("relative", sizeClasses[size])}>
       {/* Outer ring */}
       <motion.div
-        className="absolute inset-0 rounded-full border-2 border-violet-500/30"
+        className="absolute inset-0 rounded-full border-2 border-primary/30"
         animate={{ rotate: 360 }}
         transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
       />
       
       {/* Middle ring */}
       <motion.div
-        className="absolute inset-2 rounded-full border-2 border-fuchsia-500/40"
+        className="absolute inset-2 rounded-full border-2 border-primary/40"
         animate={{ rotate: -360 }}
         transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
       />
       
       {/* Inner glow */}
       <motion.div
-        className="absolute inset-4 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20"
+        className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20"
         animate={{ 
           scale: [1, 1.1, 1],
           opacity: [0.5, 0.8, 0.5],
@@ -140,7 +140,7 @@ export const BrandLoadingSpinner = memo(function BrandLoadingSpinner({
       {/* Center dot */}
       <motion.div className="absolute inset-0 flex items-center justify-center">
         <motion.div
-          className="w-3 h-3 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400"
+          className="w-3 h-3 rounded-full bg-gradient-to-br from-primary to-secondary"
           animate={{ 
             scale: [1, 1.3, 1],
           }}
@@ -151,7 +151,7 @@ export const BrandLoadingSpinner = memo(function BrandLoadingSpinner({
   );
 });
 
-// Full-page loading with consistent branding
+// Full-page loading with consistent branding - NOW USES CINEMA LOADER
 interface UnifiedLoadingPageProps {
   message?: string;
   showProgress?: boolean;
@@ -171,16 +171,17 @@ export const UnifiedLoadingPage = memo(function UnifiedLoadingPage({
   variant = 'minimal',
   gridConfig,
 }: UnifiedLoadingPageProps) {
+  // Skeleton grid variant - uses dark themed skeleton
   if (variant === 'skeleton-grid') {
     return (
-      <div className="min-h-screen bg-background pt-20 px-4 md:px-8">
+      <div className="min-h-screen pt-20 px-4 md:px-8 bg-background">
         <div className="max-w-7xl mx-auto">
           {/* Header skeleton */}
           <div className="text-center mb-10 space-y-4">
-            <div className="h-10 bg-zinc-800/40 rounded-lg w-48 mx-auto relative overflow-hidden">
+            <div className="h-10 bg-muted/40 rounded-lg w-48 mx-auto relative overflow-hidden">
               <Shimmer />
             </div>
-            <div className="h-5 bg-zinc-800/30 rounded w-64 mx-auto relative overflow-hidden">
+            <div className="h-5 bg-muted/30 rounded w-64 mx-auto relative overflow-hidden">
               <Shimmer />
             </div>
           </div>
@@ -192,64 +193,14 @@ export const UnifiedLoadingPage = memo(function UnifiedLoadingPage({
     );
   }
 
+  // Use CinemaLoader for all other variants
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background"
-    >
-      {/* Subtle background pattern */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.08) 0%, transparent 50%)`,
-        }}
-      />
-      
-      {/* Ambient glow */}
-      <motion.div
-        className="absolute w-96 h-96 rounded-full blur-3xl pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%)',
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      
-      {/* Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="relative z-10 flex flex-col items-center gap-8"
-      >
-        <BrandLoadingSpinner size={variant === 'full' ? 'lg' : 'md'} />
-        
-        {/* Progress bar */}
-        {showProgress && (
-          <div className="relative w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-            />
-            <Shimmer />
-          </div>
-        )}
-        
-        {/* Message */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-muted-foreground text-sm font-medium tracking-wide"
-        >
-          {message}
-        </motion.p>
-      </motion.div>
-    </div>
+    <CinemaLoader
+      message={message}
+      progress={progress}
+      showProgress={showProgress}
+      variant="fullscreen"
+    />
   );
 });
 

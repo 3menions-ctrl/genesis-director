@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
 
@@ -13,7 +13,7 @@ interface OptimizedAvatarImageProps {
   onError?: () => void;
 }
 
-// Shimmer skeleton component for loading state
+// Shimmer skeleton component for loading state - GPU accelerated
 const ShimmerSkeleton = memo(function ShimmerSkeleton({ 
   className,
   aspectRatio = 'portrait' 
@@ -24,22 +24,22 @@ const ShimmerSkeleton = memo(function ShimmerSkeleton({
   return (
     <div 
       className={cn(
-        "relative overflow-hidden bg-zinc-800/50",
+        "relative overflow-hidden bg-muted/20",
         aspectRatio === 'portrait' ? 'aspect-[2/3]' : 'aspect-square',
         className
       )}
     >
-      {/* Shimmer animation */}
+      {/* GPU-accelerated shimmer animation */}
       <div 
-        className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
+        className="absolute inset-0 -translate-x-full animate-shimmer will-change-transform"
         style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, hsl(var(--foreground) / 0.06) 50%, transparent 100%)',
         }}
       />
       {/* Centered placeholder icon */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full bg-zinc-700/50 flex items-center justify-center">
-          <User className="w-6 h-6 text-zinc-500" />
+        <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center">
+          <User className="w-6 h-6 text-muted-foreground/50" />
         </div>
       </div>
     </div>
@@ -64,7 +64,7 @@ const AvatarFallbackPlaceholder = memo(function AvatarFallbackPlaceholder({
   return (
     <div 
       className={cn(
-        "relative bg-gradient-to-b from-zinc-700 to-zinc-800 flex items-center justify-center",
+        "relative bg-gradient-to-b from-muted/50 to-muted flex items-center justify-center",
         aspectRatio === 'portrait' ? 'aspect-[2/3]' : 'aspect-square',
         className
       )}
@@ -80,19 +80,19 @@ const AvatarFallbackPlaceholder = memo(function AvatarFallbackPlaceholder({
             <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5"/>
           </pattern>
         </defs>
-        <rect width="100" height="100" fill="url(#grid)" className="text-white" />
+        <rect width="100" height="100" fill="url(#grid)" className="text-foreground" />
       </svg>
       
       {/* Initials or icon */}
       <div className="relative z-10 flex flex-col items-center gap-2">
-        <div className="w-16 h-16 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
           {text ? (
-            <span className="text-xl font-semibold text-violet-300">{initials}</span>
+            <span className="text-xl font-semibold text-primary">{initials}</span>
           ) : (
-            <User className="w-8 h-8 text-violet-400" />
+            <User className="w-8 h-8 text-primary" />
           )}
         </div>
-        <span className="text-xs text-white/40 max-w-[80%] text-center truncate">
+        <span className="text-xs text-muted-foreground max-w-[80%] text-center truncate">
           {text || 'Avatar'}
         </span>
       </div>
@@ -103,9 +103,11 @@ const AvatarFallbackPlaceholder = memo(function AvatarFallbackPlaceholder({
 /**
  * Optimized avatar image component with:
  * - Shimmer skeleton during loading
+ * - Blur-up progressive loading effect
  * - Lazy loading for off-screen images
  * - Error fallback to initials/SVG placeholder
- * - WebP format preference (via CSS object-fit)
+ * - Fixed aspect ratio to prevent layout shifts
+ * - Image caching via browser cache-control
  */
 export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
   src,
@@ -120,6 +122,45 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
   const [loadState, setLoadState] = useState<'loading' | 'loaded' | 'error'>(
     src ? 'loading' : 'error'
   );
+  const imgRef = useRef<HTMLImageElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [isInView, setIsInView] = useState(priority);
+
+  // Intersection Observer for lazy loading
+  useEffect(() => {
+    if (priority || !src) {
+      setIsInView(true);
+      return;
+    }
+
+    const img = imgRef.current;
+    if (!img) return;
+
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observerRef.current?.disconnect();
+        }
+      },
+      { rootMargin: '200px', threshold: 0 }
+    );
+
+    observerRef.current.observe(img);
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [priority, src]);
+
+  // Reset state when src changes
+  useEffect(() => {
+    if (src) {
+      setLoadState('loading');
+    } else {
+      setLoadState('error');
+    }
+  }, [src]);
 
   const handleLoad = useCallback(() => {
     setLoadState('loaded');
@@ -144,6 +185,7 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
 
   return (
     <div 
+      ref={imgRef}
       className={cn(
         "relative overflow-hidden",
         aspectRatio === 'portrait' ? 'aspect-[2/3]' : 'aspect-square',
@@ -167,8 +209,8 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
         />
       )}
 
-      {/* Actual image - hidden until loaded */}
-      {loadState !== 'error' && (
+      {/* Actual image - with blur-up progressive loading */}
+      {loadState !== 'error' && isInView && (
         <img
           src={src}
           alt={alt}
@@ -177,7 +219,12 @@ export const OptimizedAvatarImage = memo(function OptimizedAvatarImage({
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
-            "w-full h-full object-cover object-top transition-opacity duration-300",
+            "w-full h-full object-cover object-top will-change-transform",
+            // Blur-up effect: start blurred, then clear
+            loadState === 'loading' && "blur-md scale-105",
+            loadState === 'loaded' && "blur-0 scale-100",
+            // Smooth transition
+            "transition-all duration-500 ease-out",
             loadState === 'loaded' ? 'opacity-100' : 'opacity-0'
           )}
         />

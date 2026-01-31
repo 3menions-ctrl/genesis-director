@@ -65,7 +65,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const [sceneDescription, setSceneDescription] = useState(''); // NEW: Scene/background description
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [clipCount, setClipCount] = useState(3);
-  const [clipDuration, setClipDuration] = useState(5);
+  const [clipDuration, setClipDuration] = useState(10); // Avatar clips default to 10s for natural speech
   const [enableMusic, setEnableMusic] = useState(true);
 
   // Generation state

@@ -65,6 +65,7 @@ export const VIDEO_MODE_CONFIG: Record<VideoGenerationMode, {
   requiresSourceVideo: boolean;
   requiresSourceImage: boolean;
   estimatedTime: string;
+  defaultDuration?: number; // Optional mode-specific default duration
 }> = {
   'text-to-video': {
     name: 'Cinematic Film',
@@ -82,7 +83,8 @@ export const VIDEO_MODE_CONFIG: Record<VideoGenerationMode, {
     requiresScript: true,
     requiresSourceVideo: false,
     requiresSourceImage: true,
-    estimatedTime: '1-3 min',
+    estimatedTime: '2-5 min',
+    defaultDuration: 10, // Avatars default to 10s for natural speech
   },
   'motion-transfer': {
     name: 'Motion Transfer',

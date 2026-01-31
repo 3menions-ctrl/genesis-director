@@ -114,9 +114,10 @@ serve(async (req) => {
     // We use image-to-video with a speaking prompt for natural motion
     console.log("[generate-avatar] Step 2: Generating talking head video with Kling v2.6...");
     
-    // Calculate video duration - round up to nearest 5s increment (Kling supports 5s or 10s)
+    // Avatar clips default to 10s for natural speech delivery
+    // Only use 5s if audio is very short (under 4 seconds)
     const audioDurationSec = Math.ceil(audioDurationMs / 1000);
-    const videoDuration = audioDurationSec <= 5 ? 5 : 10;
+    const videoDuration = audioDurationSec < 4 ? 5 : 10;
     
     // Build the video generation prompt
     // CRITICAL: Include user's scene/background request if provided

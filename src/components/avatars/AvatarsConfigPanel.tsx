@@ -26,9 +26,10 @@ const ASPECT_RATIOS = [
   { id: '1:1', name: 'Square', icon: Square, description: 'Instagram' },
 ];
 
+// Avatar clips default to 10s for natural speech delivery
 const CLIP_DURATIONS = [
+  { id: 10, name: '10 sec', description: 'Recommended' },
   { id: 5, name: '5 sec', description: 'Quick clip' },
-  { id: 10, name: '10 sec', description: 'Standard' },
 ];
 
 interface AvatarsConfigPanelProps {

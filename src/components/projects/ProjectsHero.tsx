@@ -1,4 +1,4 @@
-import { memo, forwardRef } from 'react';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FolderOpen, Check, Activity, Film, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,16 +20,15 @@ interface OrbitalStatProps {
   colorClass?: string;
 }
 
-const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function OrbitalStat({ 
+const OrbitalStat = memo(function OrbitalStat({ 
   icon: Icon, 
   label, 
   value, 
   delay = 0,
   colorClass = 'from-orange-500 to-amber-500'
-}, ref) {
+}: OrbitalStatProps) {
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
@@ -58,9 +57,9 @@ const OrbitalStat = memo(forwardRef<HTMLDivElement, OrbitalStatProps>(function O
       </div>
     </motion.div>
   );
-}));
+});
 
-export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(function ProjectsHero({ stats }, ref) {
+export const ProjectsHero = memo(function ProjectsHero({ stats }: ProjectsHeroProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -156,4 +155,4 @@ export const ProjectsHero = memo(forwardRef<HTMLDivElement, ProjectsHeroProps>(f
       </div>
     </motion.div>
   );
-}));
+});

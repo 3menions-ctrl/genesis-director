@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useMemo, useCallback, forwardRef, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { 
   Plus, MoreVertical, Trash2, Edit2, Film, Play, 
@@ -92,8 +92,7 @@ interface ProjectCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preResolvedClipUrl?: string | null }>(
-  function ProjectCard({ 
+const ProjectCard = memo(function ProjectCard({ 
     project,
     index,
     onPlay,
@@ -112,7 +111,7 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
     viewMode = 'grid',
     // Pre-resolved clip URL passed from parent to avoid N+1 queries
     preResolvedClipUrl,
-  }, ref) {
+  }: ProjectCardProps & { preResolvedClipUrl?: string | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isMountedRef = useRef(true);
   const [isHovered, setIsHovered] = useState(false);
@@ -253,7 +252,6 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
   if (viewMode === 'list') {
     return (
       <motion.div
-        ref={ref}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
@@ -369,7 +367,6 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
   // Cinematic Grid view
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y: 30, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
@@ -638,7 +635,7 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
       </div>
     </motion.div>
   );
-}));
+});
 
 // ============= MAIN COMPONENT =============
 

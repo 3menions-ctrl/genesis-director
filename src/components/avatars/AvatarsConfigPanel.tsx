@@ -26,11 +26,8 @@ const ASPECT_RATIOS = [
   { id: '1:1', name: 'Square', icon: Square, description: 'Instagram' },
 ];
 
-// Avatar clips default to 10s for natural speech delivery
-const CLIP_DURATIONS = [
-  { id: 10, name: '10 sec', description: 'Recommended' },
-  { id: 5, name: '5 sec', description: 'Quick clip' },
-];
+// Avatar clips are fixed at 10s for natural speech delivery
+const AVATAR_CLIP_DURATION = 10;
 
 interface AvatarsConfigPanelProps {
   selectedAvatar: AvatarTemplate | null;
@@ -119,7 +116,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `What should ${selectedAvatar.name} do? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
+                  ? `What should ${selectedAvatar.name} do in this 10-second clip? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
                   : "Select an avatar above..."
                 }
                 value={prompt}
@@ -167,19 +164,10 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
 
               <div className="w-px h-6 bg-white/10 shrink-0" />
 
-              {/* Duration */}
-              <Select value={String(clipDuration)} onValueChange={(v) => onClipDurationChange(Number(v))}>
-                <SelectTrigger className="w-20 h-8 bg-zinc-800 border-zinc-700 text-white text-xs shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {CLIP_DURATIONS.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)} className="text-white text-sm focus:bg-zinc-700 focus:text-white">
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Duration - Fixed at 10s */}
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-800 border border-zinc-700 shrink-0">
+                <span className="text-xs text-white font-medium">10 sec</span>
+              </div>
 
               {/* Clips Slider */}
               <div className="flex items-center gap-2 shrink-0">
@@ -264,7 +252,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
               </div>
               <Textarea
                 placeholder={selectedAvatar 
-                  ? `What should ${selectedAvatar.name} do? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
+                  ? `What should ${selectedAvatar.name} do in this 10-second clip? Example: "Explores a witch's house, discovers ancient spell books, and finds a hidden potion..."`
                   : "First, select an avatar above..."
                 }
                 value={prompt}
@@ -313,21 +301,12 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
                 </div>
               </div>
 
-              {/* Duration */}
+              {/* Duration - Fixed at 10s */}
               <div className="space-y-2">
                 <Label className="text-xs text-zinc-400 font-medium">Duration</Label>
-                <Select value={String(clipDuration)} onValueChange={(v) => onClipDurationChange(Number(v))}>
-                  <SelectTrigger className="w-24 h-9 bg-zinc-800 border-zinc-700 text-white text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    {CLIP_DURATIONS.map((d) => (
-                      <SelectItem key={d.id} value={String(d.id)} className="text-white focus:bg-zinc-700 focus:text-white">
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-center w-24 h-9 rounded-md bg-zinc-800 border border-zinc-700">
+                  <span className="text-sm text-white font-medium">10 sec</span>
+                </div>
               </div>
 
               {/* Clips */}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -26,15 +26,27 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
 });
 
 // Main content component separated for error boundary - uses forwardRef for Dialog compatibility
-const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_, ref) {
+const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_props, ref) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
+  const containerRef = useRef<HTMLDivElement>(null);
   const { markReady } = usePageReady();
   
   // Use navigation guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useNavigationGuard();
+
+  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
+  useEffect(() => {
+    if (ref && containerRef.current) {
+      if (typeof ref === 'function') {
+        ref(containerRef.current);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
+      }
+    }
+  }, [ref]);
 
   // Signal page is ready after initial render
   useEffect(() => {
@@ -146,7 +158,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div ref={containerRef} className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}

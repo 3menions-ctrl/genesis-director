@@ -642,8 +642,21 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
 // ============= MAIN COMPONENT =============
 
-// Content component wrapped for error boundary - uses forwardRef to handle Dialog refs properly
-const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_, ref) {
+// Content component wrapped for error boundary - uses forwardRef for AnimatePresence compatibility
+const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_props, ref) {
+  // Merge forwarded ref with internal ref for DOM access
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
+  useEffect(() => {
+    if (ref && containerRef.current) {
+      if (typeof ref === 'function') {
+        ref(containerRef.current);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
+      }
+    }
+  }, [ref]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -1166,7 +1179,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 

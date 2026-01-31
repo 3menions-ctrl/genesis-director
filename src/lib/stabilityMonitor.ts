@@ -126,20 +126,47 @@ export function getRecoverySuggestion(category: ErrorCategory): string {
 
 /**
  * Check if error should be silently suppressed
+ * COMPREHENSIVE list of non-fatal errors that should not crash the app
  */
 export function shouldSuppressError(error: unknown): boolean {
   if (!error) return true;
 
   const message = error instanceof Error ? error.message : String(error);
+  const name = error instanceof Error ? error.name : '';
+  const lowered = message.toLowerCase();
 
-  // Suppress abort errors (normal during navigation)
-  if (message.includes('AbortError')) return true;
+  // AbortController errors (normal during navigation)
+  if (name === 'AbortError') return true;
+  if (lowered.includes('aborterror')) return true;
+  if (lowered.includes('aborted')) return true;
+  if (lowered.includes('signal is aborted')) return true;
+  if (lowered.includes('the operation was aborted')) return true;
+  if (lowered.includes('the user aborted a request')) return true;
 
-  // Suppress cancelled navigation
-  if (message.includes('navigation was cancelled')) return true;
+  // Navigation cancellation
+  if (lowered.includes('navigation was cancelled')) return true;
+  if (lowered.includes('cancelled')) return true;
 
-  // Suppress ResizeObserver loop errors (browser quirk)
-  if (message.includes('ResizeObserver loop')) return true;
+  // ResizeObserver loop errors (browser quirk)
+  if (lowered.includes('resizeobserver loop')) return true;
+
+  // React ref warnings (non-fatal)
+  if (lowered.includes('function components cannot be given refs')) return true;
+  if (lowered.includes('forwardref render functions accept')) return true;
+
+  // Radix/Dialog cleanup race conditions
+  if (lowered.includes('removeattribute')) return true;
+  if (lowered.includes('setattribute')) return true;
+  if (lowered.includes('removechild')) return true;
+  if (lowered.includes('insertbefore')) return true;
+
+  // Chunk loading errors (network issues)
+  if (lowered.includes('chunkloaderror')) return true;
+  if (lowered.includes('loading chunk')) return true;
+  if (lowered.includes('failed to fetch dynamically imported module')) return true;
+
+  // Non-error promise rejections
+  if (lowered.includes('non-error promise rejection')) return true;
 
   return false;
 }

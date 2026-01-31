@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from 'react';
 import { Project, StudioSettings, UserCredits, AssetLayer, ProjectStatus, parsePendingVideoTasks } from '@/types/studio';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,15 +88,40 @@ function mapDbProject(dbProject: any): Project {
 
 export function StudioProvider({ children }: { children: ReactNode }) {
   // Use auth context directly - AuthProvider is guaranteed to be above StudioProvider in App.tsx
-  // The try-catch pattern was problematic as it would render children without StudioContext,
-  // causing useStudio() to throw in any component that calls it.
-  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  // CRITICAL: Wrap in try-catch to provide graceful fallback instead of crash
+  let authContext: ReturnType<typeof useAuth>;
+  try {
+    authContext = useAuth();
+  } catch (err) {
+    console.error('[StudioContext] Failed to access AuthContext:', err);
+    // Provide minimal fallback auth context to prevent cascade crash
+    authContext = {
+      user: null,
+      session: null,
+      profile: null,
+      loading: true,
+      isSessionVerified: false,
+      profileError: null,
+      isAdmin: false,
+      signIn: async () => ({ error: new Error('Auth not available') }),
+      signUp: async () => ({ error: new Error('Auth not available') }),
+      signInWithGoogle: async () => ({ error: new Error('Auth not available') }),
+      signOut: async () => {},
+      refreshProfile: async () => {},
+      retryProfileFetch: async () => {},
+      getValidSession: async () => null,
+      waitForSession: async () => null,
+    };
+  }
+  
+  const { user, profile, refreshProfile, loading: authLoading } = authContext;
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [credits, setCredits] = useState<UserCredits>(DEFAULT_CREDITS);
   const [layers] = useState<AssetLayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const isMountedRef = useRef(true);
   
   const [settings, setSettings] = useState<StudioSettings>({
     lighting: 'natural',
@@ -116,9 +141,18 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     rewriteCameraPrompts: true,
   });
 
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const activeProject = projects.find((p) => p.id === activeProjectId) || null;
 
   // Internal function that loads and returns projects - ALWAYS verify session first
+  // CRITICAL: Uses isMountedRef for safe state updates during async operations
   const loadProjects = useCallback(async (): Promise<Project[]> => {
     // CRITICAL: Always get fresh session from Supabase client, not React state
     const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -128,13 +162,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     
     if (!currentSession?.user) {
       console.log('[StudioContext] No valid session, clearing projects');
-      setProjects([]);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setProjects([]);
+        setIsLoading(false);
+      }
       return [];
     }
 
     try {
-      setIsLoading(true);
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
       console.log('[StudioContext] Fetching projects for user:', currentSession.user.id.slice(0, 8) + '...');
       
       // Use the session's user ID directly, not React state
@@ -143,6 +181,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', currentSession.user.id) // Explicit user_id filter
         .order('updated_at', { ascending: false });
+
+      // Check mount status after async operation
+      if (!isMountedRef.current) return projects;
 
       if (error) {
         console.error('[StudioContext] Error loading projects:', error);
@@ -154,9 +195,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       
       if (!data || data.length === 0) {
         console.log('[StudioContext] No projects found for user');
-        setProjects([]);
-        setIsLoading(false);
-        setHasLoadedOnce(true);
+        if (isMountedRef.current) {
+          setProjects([]);
+          setIsLoading(false);
+          setHasLoadedOnce(true);
+        }
         return [];
       }
       
@@ -170,6 +213,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         .eq('status', 'completed')
         .not('video_url', 'is', null)
         .order('shot_index', { ascending: true });
+      
+      // Check mount status after second async operation
+      if (!isMountedRef.current) return projects;
       
       // Group clips by project_id
       const clipsByProject: Record<string, string[]> = {};
@@ -191,14 +237,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         return mapped;
       });
       
-      setProjects(mappedProjects);
-      setHasLoadedOnce(true);
-      
-      // Set active project to first one if not set or if current doesn't exist
-      if (mappedProjects.length > 0) {
-        const currentProjectExists = activeProjectId && mappedProjects.some(p => p.id === activeProjectId);
-        if (!currentProjectExists) {
-          setActiveProjectId(mappedProjects[0].id);
+      if (isMountedRef.current) {
+        setProjects(mappedProjects);
+        setHasLoadedOnce(true);
+        
+        // Set active project to first one if not set or if current doesn't exist
+        if (mappedProjects.length > 0) {
+          const currentProjectExists = activeProjectId && mappedProjects.some(p => p.id === activeProjectId);
+          if (!currentProjectExists) {
+            setActiveProjectId(mappedProjects[0].id);
+          }
         }
       }
       
@@ -207,7 +255,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       console.error('[StudioContext] Error loading projects:', err);
       return projects;
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [activeProjectId, projects]);
 

@@ -104,6 +104,7 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
   }, [safeSetState]);
 
   // Fetch immediately on mount with proper cleanup
+  // CRITICAL: No delay - fetch immediately to prevent race conditions
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -118,16 +119,14 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       setTemplates([]);
     }
     
-    // Small delay to let environment initialize
-    const initTimer = setTimeout(() => {
-      if (isMountedRef.current) {
-        fetchTemplates();
-      }
-    }, 100);
+    // IMMEDIATE fetch - no delay needed as avatar_templates has public RLS
+    // Removing delay eliminates a race condition window during fast navigation
+    if (isMountedRef.current) {
+      fetchTemplates();
+    }
     
     return () => {
       isMountedRef.current = false;
-      clearTimeout(initTimer);
       
       // CRITICAL: Abort any in-flight requests on unmount
       if (abortControllerRef.current) {

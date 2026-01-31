@@ -5,7 +5,7 @@ import {
   Loader2, Filter, X, Sparkles, Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAvatarTemplates } from '@/hooks/useAvatarTemplates';
+import { useAvatarTemplatesQuery } from '@/hooks/useAvatarTemplatesQuery';
 import { AvatarTemplate, AVATAR_STYLES, AVATAR_GENDERS } from '@/types/avatar-templates';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -36,7 +36,7 @@ export const AvatarTemplateSelector = memo(forwardRef<HTMLDivElement, AvatarTemp
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [voicePreviewCache, setVoicePreviewCache] = useState<Record<string, string>>({});
 
-  const { templates, isLoading, error } = useAvatarTemplates({
+  const { templates, isLoading, error } = useAvatarTemplatesQuery({
     gender: genderFilter,
     style: styleFilter,
     search: searchQuery,

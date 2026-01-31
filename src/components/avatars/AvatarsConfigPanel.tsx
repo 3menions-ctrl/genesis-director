@@ -1,5 +1,4 @@
 import { memo, forwardRef } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Mic, Play, Zap, Loader2, Music, MapPin,
   RectangleHorizontal, RectangleVertical, Square
@@ -12,13 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const ASPECT_RATIOS = [
   { id: '16:9', name: 'Landscape', icon: RectangleHorizontal, description: 'YouTube, TV' },
@@ -79,12 +71,11 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
   onCreate,
 }, ref) {
   return (
-    <motion.div
+    // STABILITY: Replaced motion.div with CSS animations to prevent ref-injection crashes
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="fixed bottom-0 left-0 right-0 z-40 p-4 md:p-6"
+      className="fixed bottom-0 left-0 right-0 z-40 p-4 md:p-6 animate-fade-in"
+      style={{ animationDelay: '0.4s' }}
     >
       <div className="max-w-5xl mx-auto">
         <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-zinc-900 border border-white/[0.12] backdrop-blur-2xl shadow-2xl shadow-black/50">
@@ -393,7 +384,7 @@ export const AvatarsConfigPanel = memo(forwardRef<HTMLDivElement, AvatarsConfigP
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }));
 

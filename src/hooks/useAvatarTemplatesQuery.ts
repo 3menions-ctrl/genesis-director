@@ -137,6 +137,7 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
     allTemplates: templates,
     isLoading: isLoading && !isFetching, // Only true on initial load
     isFetching, // True during background refetch
+    isSuccess, // True when data has been fetched successfully
     error: error ? (error as Error).message : null,
     refetch,
     prefetchTemplates,

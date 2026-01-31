@@ -52,7 +52,7 @@ const STEPS = [
 
 const PRICING_STATS = [
   { value: '$0.10', label: 'per credit' },
-  { value: '~10', label: 'credits/clip' },
+  { value: '10-15', label: 'credits/clip' },
   { value: '∞', label: 'no expiry' },
 ] as const;
 

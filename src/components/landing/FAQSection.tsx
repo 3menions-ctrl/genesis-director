@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     question: 'What are credits?',
-    answer: 'Credits are used to generate video clips. Each clip costs approximately 10 credits. You start with 60 free credits (about 6 clips) to try the platform.',
+    answer: 'Credits are used to generate video clips. Short clips (≤6 seconds) cost 10 credits each, while longer clips (10 seconds) cost 15 credits. You start with 60 free credits to try the platform.',
   },
   {
     question: 'Can I use videos commercially?',

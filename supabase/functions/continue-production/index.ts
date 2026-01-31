@@ -116,11 +116,11 @@ serve(async (req: Request) => {
     if (completedClipIndex + 1 >= totalClips) {
       console.log(`[ContinueProduction] All ${totalClips} clips completed! Triggering post-production...`);
       
-      // Update project status
+      // Update project status - use 'stitching' which is a valid pipeline_stage value
       await supabase
         .from('movie_projects')
         .update({
-          pipeline_stage: 'postproduction',
+          pipeline_stage: 'stitching',
           status: 'generating',
           updated_at: new Date().toISOString(),
         })
@@ -565,11 +565,11 @@ serve(async (req: Request) => {
       frameSource = 'none_degraded';
     }
 
-    // Update progress
+    // Update progress - use 'clips_generating' which is a valid pipeline_stage value
     await supabase
       .from('movie_projects')
       .update({
-        pipeline_stage: 'production',
+        pipeline_stage: 'clips_generating',
         status: 'generating',
         updated_at: new Date().toISOString(),
       })

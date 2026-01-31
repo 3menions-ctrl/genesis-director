@@ -72,35 +72,45 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
     onExitComplete,
     className,
     variant = 'fullscreen',
-  }, ref) {
+  }, forwardedRef) {
     const animationFrameRef = useRef<number>();
     const internalContainerRef = useRef<HTMLDivElement>(null);
     
-    // Merge refs: support both internal and forwarded ref
-    const containerRef = (ref as React.RefObject<HTMLDivElement>) || internalContainerRef;
-  
-  // Cleanup animation frames on unmount
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+    // Proper ref merge callback - works with both function refs and object refs
+    const setRefs = useCallback((node: HTMLDivElement | null) => {
+      // Update internal ref
+      (internalContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      
+      // Forward to external ref
+      if (typeof forwardedRef === 'function') {
+        forwardedRef(node);
+      } else if (forwardedRef) {
+        (forwardedRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
       }
-    };
-  }, []);
+    }, [forwardedRef]);
+  
+    // Cleanup animation frames on unmount
+    useEffect(() => {
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    }, []);
 
-  // Force GPU layer creation for smooth animations
-  const handleAnimationStart = useCallback(() => {
-    if (containerRef.current) {
-      containerRef.current.style.willChange = 'opacity, transform';
-    }
-  }, []);
+    // Force GPU layer creation for smooth animations
+    const handleAnimationStart = useCallback(() => {
+      if (internalContainerRef.current) {
+        internalContainerRef.current.style.willChange = 'opacity, transform';
+      }
+    }, []);
 
-  // Clean up GPU hints after animation completes
-  const handleAnimationComplete = useCallback(() => {
-    if (containerRef.current) {
-      containerRef.current.style.willChange = 'auto';
-    }
-  }, []);
+    // Clean up GPU hints after animation completes
+    const handleAnimationComplete = useCallback(() => {
+      if (internalContainerRef.current) {
+        internalContainerRef.current.style.willChange = 'auto';
+      }
+    }, []);
 
   const containerClasses = cn(
     "flex items-center justify-center overflow-hidden",
@@ -110,12 +120,12 @@ export const CinemaLoader = memo(forwardRef<HTMLDivElement, CinemaLoaderProps>(
     className
   );
 
-  return (
-    <AnimatePresence mode="wait" onExitComplete={onExitComplete}>
-      {isVisible && (
-        <motion.div
-          ref={containerRef}
-          key="cinema-loader"
+    return (
+      <AnimatePresence mode="wait" onExitComplete={onExitComplete}>
+        {isVisible && (
+          <motion.div
+            ref={setRefs}
+            key="cinema-loader"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

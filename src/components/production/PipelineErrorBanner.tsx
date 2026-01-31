@@ -204,7 +204,16 @@ export function PipelineErrorBanner({
   const hasError = parsedError !== null || projectStatus === 'failed';
   const hasDegradation = degradationFlags.length > 0;
   
-  if (isDismissed || (!hasError && !hasDegradation)) return null;
+  // CRITICAL FIX: Auto-hide when all clips complete successfully
+  // This handles the case where 100% completion (3/3 clips) should clear PIPELINE_FAILED state
+  const allClipsComplete = totalClipCount > 0 && failedClipCount === 0 && 
+    (projectStatus === 'completed' || projectStatus === 'stitching');
+  
+  // Also detect when error is stale (all clips done but error still showing)
+  const isStaleError = parsedError && totalClipCount > 0 && failedClipCount === 0 &&
+    ['CONTINUITY_ERROR', 'PRODUCTION_INCOMPLETE', 'TIMEOUT'].includes(parsedError.code);
+  
+  if (isDismissed || (!hasError && !hasDegradation) || allClipsComplete || isStaleError) return null;
   
   const errorStyle = parsedError ? getErrorStyle(parsedError.code) : getErrorStyle('UNKNOWN');
   const Icon = errorStyle.icon;

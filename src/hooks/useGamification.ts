@@ -64,37 +64,34 @@ export function useGamification() {
       if (!user) return null;
       
       try {
-        // Use Promise.race with timeout for resilient fetching
-        const timeoutPromise = new Promise<null>((_, reject) => {
-          setTimeout(() => reject(new Error('timeout')), 6000);
+        // Add timeout to prevent indefinite hanging
+        const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+          setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 8000);
         });
         
         const fetchPromise = supabase
           .from('user_gamification')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle()
-          .then(({ data, error }) => {
-            if (error) throw error;
-            return data as UserGamification | null;
-          });
+          .maybeSingle();
         
         const result = await Promise.race([fetchPromise, timeoutPromise]);
-        return result ?? createFallbackStats(user.id);
-      } catch (err) {
-        // Handle timeout and other errors gracefully
-        if (err instanceof Error && err.message === 'timeout') {
-          console.warn('[useGamification] Stats fetch timeout - using fallback');
-        } else {
-          console.warn('[useGamification] Stats fetch error:', err);
+        
+        if (result.error) {
+          // Log but don't throw - return fallback data
+          console.warn('[useGamification] Stats fetch error:', result.error.message);
+          return createFallbackStats(user.id);
         }
+        
+        return result.data as UserGamification | null;
+      } catch (err) {
+        console.warn('[useGamification] Unexpected error:', err);
         return createFallbackStats(user.id);
       }
     },
     enabled: !!user,
     retry: 1,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
   });
   
   // Fallback stats creator to prevent null crashes

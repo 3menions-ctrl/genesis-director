@@ -350,17 +350,10 @@ const BuyCreditsModalInner = memo(forwardRef<HTMLDivElement, BuyCreditsModalProp
 ));
 
 // Exported wrapper with SafeComponent for crash isolation
-// Uses forwardRef for compatibility with parent ref requirements
-export const BuyCreditsModal = memo(forwardRef<HTMLDivElement, BuyCreditsModalProps>(
-  function BuyCreditsModal(props, ref) {
-    return (
-      <div ref={ref} style={{ display: 'contents' }}>
-        <SafeComponent name="BuyCreditsModal" fallback={null}>
-          <BuyCreditsModalInner {...props} />
-        </SafeComponent>
-      </div>
-    );
-  }
-));
-
-BuyCreditsModal.displayName = 'BuyCreditsModal';
+export function BuyCreditsModal(props: BuyCreditsModalProps) {
+  return (
+    <SafeComponent name="BuyCreditsModal" fallback={null}>
+      <BuyCreditsModalInner {...props} />
+    </SafeComponent>
+  );
+}

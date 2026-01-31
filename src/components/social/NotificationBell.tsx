@@ -42,26 +42,6 @@ const notificationColors: Record<NotificationType, string> = {
   mention: 'text-blue-500',
 };
 
-// Bell button with proper ref forwarding for Popover
-const BellButton = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
-  function BellButton({ unreadCount, ...props }, ref) {
-    return (
-      <Button ref={ref} variant="ghost" size="icon" className="relative" {...props}>
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-          >
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </Badge>
-        )}
-      </Button>
-    );
-  }
-);
-BellButton.displayName = 'BellButton';
-
 export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string, never>>(function NotificationBell(_, ref) {
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -69,7 +49,17 @@ export const NotificationBell = memo(forwardRef<HTMLButtonElement, Record<string
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <BellButton ref={ref} unreadCount={unreadCount} />
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </Badge>
+          )}
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">

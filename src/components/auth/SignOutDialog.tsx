@@ -31,9 +31,7 @@ export const SignOutDialog = memo(forwardRef<HTMLDivElement, SignOutDialogProps>
   className,
   showIcon = true,
   buttonText = 'Sign Out'
-}, _ref) {
-  // Note: ref is intentionally not used here as AlertDialog manages its own portal
-  // This prevents ref conflicts with Radix UI's internal cloning mechanism
+}, ref) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);

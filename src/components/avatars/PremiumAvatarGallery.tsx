@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, memo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AvatarTemplate } from '@/types/avatar-templates';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AppLoader } from '@/components/ui/app-loader';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { OptimizedAvatarImage, ShimmerSkeleton } from './OptimizedAvatarImage';
 interface PremiumAvatarGalleryProps {
   avatars: AvatarTemplate[];
   selectedAvatar: AvatarTemplate | null;
@@ -75,18 +74,24 @@ const AvatarCard = forwardRef<HTMLDivElement, {
         "backdrop-blur-sm"
       )} />
       
-      {/* Full-Body Avatar Image */}
+      {/* Full-Body Avatar Image with Optimized Loading */}
       <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-black/30 to-black/80">
-        <motion.img
-          src={avatar.front_image_url || avatar.face_image_url}
-          alt={avatar.name}
-          className="w-full h-full object-cover object-top"
-          loading="lazy"
+        <motion.div
+          className="w-full h-full"
           animate={{
             scale: isHovered ? 1.05 : 1,
           }}
           transition={{ duration: 0.4 }}
-        />
+        >
+          <OptimizedAvatarImage
+            src={avatar.front_image_url || avatar.face_image_url}
+            alt={avatar.name}
+            fallbackText={avatar.name}
+            className="w-full h-full"
+            aspectRatio="portrait"
+            priority={index < 5} // Prioritize first 5 visible avatars
+          />
+        </motion.div>
         
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-80" />
@@ -238,8 +243,22 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
 
   if (isLoading) {
     return (
-      <div className="py-16">
-        <AppLoader message="Loading avatars..." />
+      <div className="flex gap-4 md:gap-6 px-4 md:px-12 py-4 md:py-8 overflow-hidden">
+        {/* Skeleton placeholders matching card dimensions */}
+        {Array.from({ length: isMobile ? 2 : 4 }).map((_, i) => (
+          <div 
+            key={`skeleton-${i}`}
+            className="flex-shrink-0 rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-900/50 border border-white/5"
+            style={{ width: CARD_WIDTH }}
+          >
+            <ShimmerSkeleton aspectRatio="portrait" />
+            <div className="p-3 md:p-5 space-y-2">
+              <div className="h-5 bg-zinc-800/50 rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-zinc-800/30 rounded animate-pulse w-full" />
+              <div className="h-3 bg-zinc-800/20 rounded animate-pulse w-1/2" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

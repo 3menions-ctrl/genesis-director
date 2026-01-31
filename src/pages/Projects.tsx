@@ -44,20 +44,32 @@ import { AppHeader } from '@/components/layout/AppHeader';
 // import { motion, AnimatePresence } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
 
-// Shim: motion elements → regular HTML elements with className passthrough
+// Shim: motion elements → forwardRef-compatible HTML elements
+const MotionDiv = forwardRef<HTMLDivElement, any>(({ children, className, style, onClick, onMouseEnter, onMouseLeave, ...rest }, ref) => (
+  <div ref={ref} className={className} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</div>
+));
+MotionDiv.displayName = 'MotionDiv';
+
+const MotionSection = forwardRef<HTMLElement, any>(({ children, className, style, ...rest }, ref) => (
+  <section ref={ref} className={className} style={style}>{children}</section>
+));
+MotionSection.displayName = 'MotionSection';
+
+const MotionH2 = forwardRef<HTMLHeadingElement, any>(({ children, className, style, ...rest }, ref) => (
+  <h2 ref={ref} className={className} style={style}>{children}</h2>
+));
+MotionH2.displayName = 'MotionH2';
+
+const MotionP = forwardRef<HTMLParagraphElement, any>(({ children, className, style, ...rest }, ref) => (
+  <p ref={ref} className={className} style={style}>{children}</p>
+));
+MotionP.displayName = 'MotionP';
+
 const motion = {
-  div: ({ children, className, style, onClick, onMouseEnter, onMouseLeave, ref, ...rest }: any) => (
-    <div ref={ref} className={className} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</div>
-  ),
-  section: ({ children, className, style, ...rest }: any) => (
-    <section className={className} style={style}>{children}</section>
-  ),
-  h2: ({ children, className, style, ...rest }: any) => (
-    <h2 className={className} style={style}>{children}</h2>
-  ),
-  p: ({ children, className, style, ...rest }: any) => (
-    <p className={className} style={style}>{children}</p>
-  ),
+  div: MotionDiv,
+  section: MotionSection,
+  h2: MotionH2,
+  p: MotionP,
 };
 
 // Shim: AnimatePresence → passthrough

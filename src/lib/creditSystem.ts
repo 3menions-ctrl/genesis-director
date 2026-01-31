@@ -52,6 +52,7 @@ export const CREDIT_SYSTEM = {
   // Clip duration options (Kling 2.6)
   CLIP_DURATIONS: [5, 10] as const,
   DEFAULT_CLIP_DURATION: 5,
+  DEFAULT_AVATAR_CLIP_DURATION: 10, // Avatars default to 10s for natural speech
   
   // Clip count limits
   MIN_CLIPS: 1,

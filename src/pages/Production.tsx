@@ -269,6 +269,9 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
   }, [startTime, projectStatus]);
 
   useEffect(() => {
+    // Abort controller for cleanup on unmount or projectId change
+    const abortController = new AbortController();
+    
     // OPTIMIZED: Batch all state resets into a single update cycle using functional updates
     // This prevents multiple re-renders from cascading setState calls
     const resetState = () => {
@@ -291,30 +294,52 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
     resetState();
     
     const loadProject = async () => {
+      // Check if request was aborted before starting
+      if (abortController.signal.aborted) return;
+      
       const { data: { session } } = await supabase.auth.getSession();
+      if (abortController.signal.aborted) return;
+      
       if (!session?.user) {
         navigate('/auth');
         return;
       }
 
+      // No projectId provided - find most recent active project
       if (!projectId) {
-        const { data: recentProject } = await supabase
-          .from('movie_projects')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed', 'awaiting_approval'])
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        try {
+          const { data: recentProject, error: recentError } = await supabase
+            .from('movie_projects')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .in('status', ['generating', 'producing', 'rendering', 'stitching', 'stitching_failed', 'failed', 'completed', 'awaiting_approval'])
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (recentProject) {
-          navigate(`/production/${recentProject.id}`, { replace: true });
+          if (abortController.signal.aborted) return;
+
+          if (recentProject) {
+            navigate(`/production/${recentProject.id}`, { replace: true });
+            return;
+          }
+          
+          if (recentError) {
+            console.warn('[Production] Error fetching recent project:', recentError);
+          }
+          
+          // Load all projects to show in sidebar
+          await loadAllProductionProjects();
+          if (abortController.signal.aborted) return;
+          
+          setIsLoading(false);
+          return;
+        } catch (err) {
+          if (abortController.signal.aborted) return;
+          console.error('[Production] Failed to load recent project:', err);
+          setIsLoading(false);
           return;
         }
-        
-        await loadAllProductionProjects();
-        setIsLoading(false);
-        return;
       }
 
       // Retry logic for newly created projects that may not be immediately available
@@ -323,12 +348,17 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       const maxRetries = 3;
       
       for (let attempt = 0; attempt < maxRetries; attempt++) {
+        // Check abort before each attempt
+        if (abortController.signal.aborted) return;
+        
         const { data, error } = await supabase
           .from('movie_projects')
           .select('*')
           .eq('id', projectId)
           .eq('user_id', session.user.id)
           .maybeSingle();
+        
+        if (abortController.signal.aborted) return;
         
         if (data) {
           project = data;
@@ -343,11 +373,13 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         // Wait before retrying (project might still be creating)
         if (attempt < maxRetries - 1) {
           await new Promise(resolve => setTimeout(resolve, 1000));
+          if (abortController.signal.aborted) return;
           addLog(`Waiting for project to initialize... (attempt ${attempt + 2}/${maxRetries})`, 'info');
         }
       }
 
       if (!project) {
+        if (abortController.signal.aborted) return;
         console.error('[Production] Project not found after retries:', projectId, projectError);
         toast.error('Project not found or still initializing. Redirecting to projects...');
         navigate('/projects');
@@ -559,13 +591,21 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         }
       }
 
+      if (abortController.signal.aborted) return;
       await loadVideoClips();
+      if (abortController.signal.aborted) return;
       await loadAllProductionProjects();
+      if (abortController.signal.aborted) return;
       addLog('Connected to pipeline', 'info');
       setIsLoading(false);
     };
 
     loadProject();
+    
+    // Cleanup: abort pending operations on unmount or projectId change
+    return () => {
+      abortController.abort();
+    };
   }, [projectId, navigate, updateStageStatus, loadVideoClips, loadAllProductionProjects, addLog]);
 
   // Realtime subscriptions

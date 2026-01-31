@@ -5,7 +5,7 @@
  * from high-resolution textures. Only renders visible avatars.
  */
 
-import React, { useState, useRef, useEffect, useCallback, memo, useMemo, forwardRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,21 +46,22 @@ interface VirtualAvatarCardProps {
   onImageLoad?: () => void;
 }
 
-const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps>(
-  function VirtualAvatarCard({
-    avatar,
-    isSelected,
-    isHovered,
-    onHoverStart,
-    onHoverEnd,
-    onClick,
-    onVoicePreview,
-    isPreviewingVoice,
-    isVoiceReady,
-    cardWidth,
-    isMobile,
-    onImageLoad,
-  }, ref) {
+// Note: Not using forwardRef here - motion.div handles refs internally
+// and AnimatePresence popLayout mode clones children which causes ref prop warnings
+const VirtualAvatarCard = memo(function VirtualAvatarCard({
+  avatar,
+  isSelected,
+  isHovered,
+  onHoverStart,
+  onHoverEnd,
+  onClick,
+  onVoicePreview,
+  isPreviewingVoice,
+  isVoiceReady,
+  cardWidth,
+  isMobile,
+  onImageLoad,
+}: VirtualAvatarCardProps) {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
@@ -81,7 +82,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
 
     return (
       <motion.div
-        ref={ref}
+        layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ 
           opacity: imageLoaded ? 1 : 0.3, // Faint until image loads
@@ -253,9 +254,7 @@ const VirtualAvatarCard = memo(forwardRef<HTMLDivElement, VirtualAvatarCardProps
         />
       </motion.div>
     );
-  }
-));
-VirtualAvatarCard.displayName = 'VirtualAvatarCard';
+});
 
 export const VirtualAvatarGallery = memo(function VirtualAvatarGallery({
   avatars,

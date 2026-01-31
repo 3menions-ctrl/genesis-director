@@ -37,7 +37,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-// Extended mode data with visuals
+// Extended mode data with visuals - core creation modes only
 const CREATION_MODES = [
   {
     id: 'text-to-video' as VideoGenerationMode,
@@ -61,25 +61,25 @@ const CREATION_MODES = [
     popular: true,
     isNew: true,
   },
+];
+
+// Quick access navigation cards - Templates & Training Videos
+const QUICK_ACCESS_CARDS = [
   {
-    id: 'video-to-video' as VideoGenerationMode,
-    name: 'Style Transfer',
-    description: 'Transform videos into any style',
-    icon: Palette,
-    isNew: true,
+    id: 'templates',
+    name: 'Templates',
+    description: 'Start from curated presets',
+    icon: Layers,
+    href: '/templates',
+    color: 'violet',
   },
   {
-    id: 'motion-transfer' as VideoGenerationMode,
-    name: 'Motion Transfer',
-    description: 'Apply dance moves to any character',
-    icon: Dices,
-    isNew: true,
-  },
-  {
-    id: 'b-roll' as VideoGenerationMode,
-    name: 'B-Roll',
-    description: 'Quick background footage from prompts',
-    icon: Film,
+    id: 'training',
+    name: 'Training Video',
+    description: 'Professional presenter videos',
+    icon: Video,
+    href: '/training-video',
+    color: 'emerald',
   },
 ];
 
@@ -405,7 +405,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {CREATION_MODES.map((mode, index) => (
               <CreationModeCard
                 key={mode.id}
@@ -430,7 +430,7 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           </div>
         </motion.div>
 
-        {/* Quick Access - Templates, Universes, Training */}
+        {/* Quick Access Cards - Templates & Training Videos */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -438,28 +438,56 @@ export const CreationHub = memo(function CreationHub({ onStartCreation, onReady,
           className="mb-10"
         >
           <p className="text-center text-xs text-white/40 uppercase tracking-wider mb-4">Or explore</p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="/templates"
-              className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 hover:border-violet-500/40 transition-all group"
-            >
-              <Layers className="w-4 h-4 text-violet-400" />
-              <span className="text-sm font-medium text-violet-300">Templates</span>
-            </a>
-            <a
-              href="/universes"
-              className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40 transition-all group"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-300">Universes</span>
-            </a>
-            <a
-              href="/training-video"
-              className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all group"
-            >
-              <Video className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-medium text-emerald-300">Training Video</span>
-            </a>
+          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+            {QUICK_ACCESS_CARDS.map((card, index) => {
+              const Icon = card.icon;
+              const colorClasses = card.color === 'violet' 
+                ? 'bg-violet-500/10 border-violet-500/20 hover:bg-violet-500/15 hover:border-violet-500/30'
+                : 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/30';
+              const iconColor = card.color === 'violet' ? 'text-violet-400' : 'text-emerald-400';
+              const textColor = card.color === 'violet' ? 'text-violet-300' : 'text-emerald-300';
+              const descColor = card.color === 'violet' ? 'text-violet-400/60' : 'text-emerald-400/60';
+              
+              return (
+                <motion.a
+                  key={card.id}
+                  href={card.href}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + index * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className={cn(
+                    "group relative flex flex-col items-start p-5 rounded-2xl border text-left transition-all duration-300",
+                    "backdrop-blur-xl",
+                    colorClasses
+                  )}
+                >
+                  {/* Icon */}
+                  <div className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
+                    card.color === 'violet' 
+                      ? "bg-violet-500/20 group-hover:bg-violet-500/30" 
+                      : "bg-emerald-500/20 group-hover:bg-emerald-500/30"
+                  )}>
+                    <Icon className={cn("w-6 h-6", iconColor)} />
+                  </div>
+
+                  {/* Text */}
+                  <h3 className={cn("text-base font-semibold mb-1", textColor)}>
+                    {card.name}
+                  </h3>
+                  <p className={cn("text-sm line-clamp-2", descColor)}>
+                    {card.description}
+                  </p>
+
+                  {/* Subtle hover glow */}
+                  <div className={cn(
+                    "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none",
+                    "bg-gradient-to-br from-white/[0.02] to-transparent",
+                    "group-hover:opacity-100"
+                  )} />
+                </motion.a>
+              );
+            })}
           </div>
         </motion.div>
 

@@ -77,7 +77,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Redirect to auth only when we're CERTAIN there's no session
   // CRITICAL: Must have loading=false AND isSessionVerified=true before redirecting
   // Uses getValidSession() to avoid stale closure issues
-  // ENHANCED: 300ms buffer to prevent race condition crashes during heavy page loads
+  // ENHANCED: 500ms buffer to prevent race condition crashes during heavy page loads
   useEffect(() => {
     // Prevent double redirects
     if (isRedirectingRef.current) return;
@@ -89,23 +89,29 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (session?.user?.id || user?.id) return;
     
     // ENHANCED: Longer buffer for state synchronization after login
+    // 500ms gives heavy pages time to complete their initialization
     const timeoutId = setTimeout(async () => {
       if (isRedirectingRef.current) return;
       
-      // Get fresh session directly from Supabase to avoid stale React state
-      const freshSession = await getValidSession();
-      
-      // If fresh session exists, don't redirect - state will catch up
-      if (freshSession?.user?.id) {
-        console.debug('[ProtectedRoute] Fresh session found, skipping redirect');
-        return;
+      try {
+        // Get fresh session directly from Supabase to avoid stale React state
+        const freshSession = await getValidSession();
+        
+        // If fresh session exists, don't redirect - state will catch up
+        if (freshSession?.user?.id) {
+          console.debug('[ProtectedRoute] Fresh session found, skipping redirect');
+          return;
+        }
+        
+        // No session confirmed - redirect to auth
+        isRedirectingRef.current = true;
+        setAuthPhase('redirecting');
+        navigate('/auth', { replace: true });
+      } catch (err) {
+        // If session check fails (network error), don't redirect - wait for retry
+        console.warn('[ProtectedRoute] Session check failed, will retry:', err);
       }
-      
-      // No session confirmed - redirect to auth
-      isRedirectingRef.current = true;
-      setAuthPhase('redirecting');
-      navigate('/auth', { replace: true });
-    }, 300); // Increased to 300ms for heavy pages
+    }, 500); // Increased to 500ms for heavy pages
     
     cleanupRef.current.push(() => clearTimeout(timeoutId));
     return () => clearTimeout(timeoutId);

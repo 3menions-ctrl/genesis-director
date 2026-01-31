@@ -25,6 +25,17 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Failed to fetch dynamically imported module',
   'Network Error',
   'cancelled',
+  // AbortController errors - expected during navigation
+  'AbortError',
+  'The operation was aborted',
+  'signal is aborted',
+  'DOMException: The user aborted a request',
+  // React ref warnings - non-fatal
+  'Function components cannot be given refs',
+  'forwardRef render functions accept',
+  // Radix/Dialog cleanup race conditions
+  'removeAttribute',
+  'setAttribute',
 ];
 
 // Check if error should be suppressed

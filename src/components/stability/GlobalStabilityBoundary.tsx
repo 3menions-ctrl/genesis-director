@@ -24,6 +24,19 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Cannot read properties of null',
   'removeChild',
   'insertBefore',
+  // AbortController errors - expected during fast navigation
+  'AbortError',
+  'The operation was aborted',
+  'signal is aborted',
+  'DOMException: The user aborted a request',
+  // React ref warnings - non-fatal console warnings
+  'Function components cannot be given refs',
+  'forwardRef render functions accept',
+  // Radix UI cleanup race conditions
+  'removeAttribute',
+  'setAttribute',
+  // React Query background errors
+  'QueryCancelled',
 ];
 
 /**

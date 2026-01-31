@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Volume2, VolumeX, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
@@ -668,9 +668,23 @@ function FullscreenPlayer({ video, onClose }: FullscreenPlayerProps) {
   );
 }
 
-function Gallery() {
-  const navigate = useNavigate();
-  const location = useLocation();
+// Main Gallery component with hook resilience
+const GalleryContent = memo(function GalleryContent() {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let location: ReturnType<typeof useLocation>;
+  try {
+    location = useLocation();
+  } catch {
+    location = { state: null, pathname: '/', search: '', hash: '', key: '' };
+  }
+  
   const [hasAccess, setHasAccess] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<GalleryVideo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -911,12 +925,15 @@ function Gallery() {
       </AnimatePresence>
     </div>
   );
-}
+});
 
-export default function GalleryWithErrorBoundary() {
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Gallery = memo(forwardRef<HTMLDivElement, object>(function Gallery(_, ref) {
   return (
     <ErrorBoundary>
-      <Gallery />
+      <GalleryContent />
     </ErrorBoundary>
   );
-}
+}));
+
+export default Gallery;

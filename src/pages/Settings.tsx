@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, forwardRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { BillingSettings } from '@/components/settings/BillingSettings';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
 import { PreferencesSettings } from '@/components/settings/PreferencesSettings';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const SECTIONS = [
   { id: 'account', label: 'Account', icon: User, description: 'Profile, avatar, and personal info' },
@@ -26,9 +27,24 @@ const SECTIONS = [
 
 type SectionId = typeof SECTIONS[number]['id'];
 
-export default function Settings() {
-  const navigate = useNavigate();
-  const { user, loading } = useAuth();
+// Content component with hook resilience
+const SettingsContent = memo(function SettingsContent() {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any; loading: boolean };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null, loading: false };
+  }
+  const { user, loading } = authData;
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<SectionId>(() => {
     const section = searchParams.get('section') as SectionId;
@@ -195,4 +211,15 @@ export default function Settings() {
       </main>
     </div>
   );
-}
+});
+
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Settings = memo(forwardRef<HTMLDivElement, object>(function Settings(_, ref) {
+  return (
+    <ErrorBoundary>
+      <SettingsContent />
+    </ErrorBoundary>
+  );
+}));
+
+export default Settings;

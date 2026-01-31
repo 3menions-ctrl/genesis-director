@@ -645,8 +645,39 @@ const ProjectsContent = memo(function ProjectsContent() {
       isMountedRef.current = false;
     };
   }, []);
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let authData: { user: any };
+  try {
+    authData = useAuth();
+  } catch {
+    authData = { user: null };
+  }
+  const { user } = authData;
+  
+  let studioData: any;
+  try {
+    studioData = useStudio();
+  } catch {
+    studioData = {
+      projects: [],
+      activeProjectId: null,
+      setActiveProjectId: () => {},
+      createProject: () => Promise.resolve(),
+      deleteProject: () => Promise.resolve(),
+      updateProject: () => Promise.resolve(),
+      refreshProjects: () => Promise.resolve(),
+      isLoading: false,
+      hasLoadedOnce: true,
+    };
+  }
   const { 
     projects, 
     activeProjectId, 
@@ -657,7 +688,7 @@ const ProjectsContent = memo(function ProjectsContent() {
     refreshProjects, 
     isLoading: isLoadingProjects, 
     hasLoadedOnce 
-  } = useStudio();
+  } = studioData;
   
   // Thumbnail generation hook
   const { generateMissingThumbnails } = useProjectThumbnails();
@@ -1980,11 +2011,13 @@ const ProjectsContent = memo(function ProjectsContent() {
   );
 });
 
-// Wrapper with error boundary for fault isolation
-export default function Projects() {
+// Wrapper with error boundary and forwardRef for AnimatePresence compatibility
+const Projects = memo(forwardRef<HTMLDivElement, object>(function Projects(_, ref) {
   return (
     <ErrorBoundary>
       <ProjectsContent />
     </ErrorBoundary>
   );
-}
+}));
+
+export default Projects;

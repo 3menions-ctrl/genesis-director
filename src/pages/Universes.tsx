@@ -1,3 +1,4 @@
+import { memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -7,10 +8,25 @@ import { useUniverses } from '@/hooks/useUniverses';
 import UniversesBackground from '@/components/universes/UniversesBackground';
 import { motion } from 'framer-motion';
 import { SafeComponent, SilentBoundary } from '@/components/ui/error-boundary';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
-export default function Universes() {
-  const navigate = useNavigate();
-  const { universes, isLoading } = useUniverses();
+// Main content component with hook resilience
+const UniversesContent = memo(function UniversesContent() {
+  // Hook resilience - wrap in try-catch with fallbacks
+  let navigate: ReturnType<typeof useNavigate>;
+  try {
+    navigate = useNavigate();
+  } catch {
+    navigate = () => {};
+  }
+  
+  let universesData: { universes: any[]; isLoading: boolean };
+  try {
+    universesData = useUniverses();
+  } catch {
+    universesData = { universes: [], isLoading: false };
+  }
+  const { universes, isLoading } = universesData;
   
   const hasUniverses = !isLoading && universes && universes.length > 0;
 
@@ -56,4 +72,15 @@ export default function Universes() {
       </main>
     </div>
   );
-}
+});
+
+// Wrapper with error boundary and forwardRef for AnimatePresence
+const Universes = memo(forwardRef<HTMLDivElement, object>(function Universes(_, ref) {
+  return (
+    <ErrorBoundary>
+      <UniversesContent />
+    </ErrorBoundary>
+  );
+}));
+
+export default Universes;

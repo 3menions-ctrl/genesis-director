@@ -642,27 +642,22 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
 // ============= MAIN COMPONENT =============
 
-// Content component wrapped for error boundary - uses forwardRef for AnimatePresence compatibility
-const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_props, ref) {
+// Content component - REMOVED forwardRef as it's not needed here and was causing
+// "Function components cannot be given refs" crashes in Radix Dialog contexts.
+// The ErrorBoundary wrapper doesn't pass refs, so forwardRef was causing false warnings.
+const ProjectsContent = memo(function ProjectsContent() {
   // Internal ref for component's own DOM access
-  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Mount tracking for async safety
+  const isMountedRef = useRef(true);
   
-  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
-  // This fixes the "Function components cannot be given refs" crash by ensuring ref is attached
-  // before React tries to access it (useEffect runs too late)
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    // Update internal ref
-    internalRef.current = node;
-    
-    // Forward to parent ref
-    if (ref) {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }
-    }
-  }, [ref]);
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { 
@@ -1185,7 +1180,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div ref={mergedRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 
@@ -1984,7 +1979,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
       </Dialog>
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary for fault isolation
 export default function Projects() {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, memo, forwardRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -9,7 +9,7 @@ import { VideoGenerationMode, VideoStylePreset } from '@/types/video-modes';
 import { supabase } from '@/integrations/supabase/client';
 import { handleError } from '@/lib/errorHandler';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { useNavigationGuard } from '@/hooks/useNavigationGuard';
+import { useStabilityGuard, isAbortError } from '@/hooks/useStabilityGuard';
 import { usePageReady } from '@/contexts/NavigationLoadingContext';
 
 // Loading overlay component for creation in progress
@@ -25,28 +25,16 @@ const LoadingOverlay = memo(function LoadingOverlay({ status }: { status: string
   );
 });
 
-// Main content component separated for error boundary - uses forwardRef for Dialog compatibility
-const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function CreateContent(_props, ref) {
+// Main content component separated for error boundary
+// REMOVED forwardRef - not needed and was causing potential crash in Dialog contexts
+const CreateContent = memo(function CreateContent() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
-  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { markReady, disableAutoComplete } = usePageReady();
-  
-  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
-  // This fixes the "Function components cannot be given refs" crash
-  const mergedRef = useCallback((node: HTMLDivElement | null) => {
-    internalRef.current = node;
-    if (ref) {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }
-    }
-  }, [ref]);
   
   // Disable auto-complete since CreationHub manages readiness via onReady callback
   // This prevents race condition where overlay dismisses before data is loaded
@@ -54,8 +42,8 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
     disableAutoComplete();
   }, [disableAutoComplete]);
   
-  // Use navigation guard for safe async operations
-  const { isMounted, getAbortController, safeSetState } = useNavigationGuard();
+  // Use comprehensive stability guard for safe async operations
+  const { isMounted, getAbortController, safeSetState } = useStabilityGuard();
 
   // Signal page is ready ONLY after CreationHub data dependencies are loaded
   // This prevents the GlobalLoadingOverlay from dismissing prematurely
@@ -158,7 +146,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       navigate(`/production/${data.projectId}`);
     } catch (error) {
       // Ignore abort errors - expected during fast navigation
-      if ((error as Error).name === 'AbortError') return;
+      if (isAbortError(error)) return;
       if (!isMounted()) return;
       
       console.error('Creation error:', error);
@@ -175,7 +163,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
-    <div ref={mergedRef} className="relative min-h-screen flex flex-col">
+    <div ref={containerRef} className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}
@@ -193,7 +181,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
       {isCreating && <LoadingOverlay status={creationStatus} />}
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary for fault isolation
 export default function Create() {

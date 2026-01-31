@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,21 @@ const signupFormSchema = z.object({
   password: signupPasswordSchema,
 });
 
-export default function Auth() {
+// CRITICAL: forwardRef wrapper to prevent "Function components cannot be given refs" crash
+const Auth = forwardRef<HTMLDivElement, Record<string, never>>(function Auth(_props, ref) {
+  const internalRef = useRef<HTMLDivElement>(null);
+  
+  // Synchronous ref merger - runs during render, not in useEffect
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    internalRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    }
+  }, [ref]);
   const navigate = useNavigate();
   const { user, profile, loading: authLoading, signIn, signUp } = useAuth();
   
@@ -457,4 +471,6 @@ export default function Auth() {
       </div>
     </>
   );
-}
+});
+
+export default Auth;

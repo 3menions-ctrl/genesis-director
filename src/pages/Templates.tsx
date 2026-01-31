@@ -17,6 +17,29 @@ import { toast } from 'sonner';
 import TemplatesBackground from '@/components/templates/TemplatesBackground';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
+// Import AI-generated template thumbnails
+import viralHookImg from '@/assets/templates/viral-hook.jpg';
+import aestheticVlogImg from '@/assets/templates/aesthetic-vlog.jpg';
+import transformationImg from '@/assets/templates/transformation.jpg';
+import asmrSatisfyingImg from '@/assets/templates/asmr-satisfying.jpg';
+import storytimeImg from '@/assets/templates/storytime.jpg';
+import documentaryImg from '@/assets/templates/documentary.jpg';
+import neoNoirImg from '@/assets/templates/neo-noir.jpg';
+import actionMontageImg from '@/assets/templates/action-montage.jpg';
+import animeStyleImg from '@/assets/templates/anime-style.jpg';
+import productRevealImg from '@/assets/templates/product-reveal.jpg';
+import foodLifestyleImg from '@/assets/templates/food-lifestyle.jpg';
+import techShowcaseImg from '@/assets/templates/tech-showcase.jpg';
+import ugcTestimonialImg from '@/assets/templates/ugc-testimonial.jpg';
+import educationalImg from '@/assets/templates/educational.jpg';
+import tutorialImg from '@/assets/templates/tutorial.jpg';
+import viralSocialImg from '@/assets/templates/viral-social.jpg';
+import travelVlogImg from '@/assets/templates/travel-vlog.jpg';
+import musicVideoImg from '@/assets/templates/music-video.jpg';
+import podcastClipsImg from '@/assets/templates/podcast-clips.jpg';
+import brandStoryImg from '@/assets/templates/brand-story.jpg';
+import teamIntroImg from '@/assets/templates/team-intro.jpg';
+
 interface Template {
   id: string;
   name: string;
@@ -51,7 +74,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Viral Hook Opener',
     description: 'Stop-the-scroll hooks that capture attention in 0.5 seconds',
     category: 'trending',
-    thumbnail_url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=600&h=900&fit=crop',
+    thumbnail_url: viralHookImg,
     use_count: 24500,
     target_duration_minutes: 1,
     clip_count: 4,
@@ -65,7 +88,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Aesthetic Day-in-Life',
     description: 'Dreamy, soft-lit vlogs with that perfect cozy aesthetic',
     category: 'trending',
-    thumbnail_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=600&h=900&fit=crop',
+    thumbnail_url: aestheticVlogImg,
     use_count: 18900,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -79,7 +102,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Glow-Up Transformation',
     description: 'Dramatic before/after reveals with cinematic transitions',
     category: 'trending',
-    thumbnail_url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=900&fit=crop',
+    thumbnail_url: transformationImg,
     use_count: 15200,
     target_duration_minutes: 1,
     clip_count: 5,
@@ -93,7 +116,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Satisfying ASMR',
     description: 'Oddly satisfying visuals with calming, hypnotic sequences',
     category: 'trending',
-    thumbnail_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=900&fit=crop',
+    thumbnail_url: asmrSatisfyingImg,
     use_count: 21300,
     target_duration_minutes: 1,
     clip_count: 6,
@@ -106,7 +129,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Storytime Drama',
     description: 'Captivating personal stories with dramatic pauses and reveals',
     category: 'trending',
-    thumbnail_url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=900&fit=crop',
+    thumbnail_url: storytimeImg,
     use_count: 12800,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -120,7 +143,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Documentary Story',
     description: 'Authentic storytelling with intimate interviews and cinematic B-roll',
     category: 'cinematic',
-    thumbnail_url: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=600&h=900&fit=crop',
+    thumbnail_url: documentaryImg,
     use_count: 8200,
     target_duration_minutes: 5,
     clip_count: 12,
@@ -133,7 +156,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Neo-Noir Thriller',
     description: 'Moody atmospherics with neon-lit shadows and tension',
     category: 'cinematic',
-    thumbnail_url: 'https://images.unsplash.com/photo-1514539079130-25950c84af65?w=600&h=900&fit=crop',
+    thumbnail_url: neoNoirImg,
     use_count: 6400,
     target_duration_minutes: 3,
     clip_count: 8,
@@ -145,7 +168,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Action Montage',
     description: 'High-octane sequences with adrenaline-pumping cuts',
     category: 'cinematic',
-    thumbnail_url: 'https://images.unsplash.com/photo-1547153760-18fc86324498?w=600&h=900&fit=crop',
+    thumbnail_url: actionMontageImg,
     use_count: 7800,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -157,7 +180,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Anime-Inspired',
     description: 'Dynamic anime-style cuts with bold visuals and energy',
     category: 'cinematic',
-    thumbnail_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&h=900&fit=crop',
+    thumbnail_url: animeStyleImg,
     use_count: 11200,
     target_duration_minutes: 2,
     clip_count: 8,
@@ -171,7 +194,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Product Reveal',
     description: 'Stunning product showcase with dramatic lighting',
     category: 'commercial',
-    thumbnail_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=900&fit=crop',
+    thumbnail_url: productRevealImg,
     use_count: 9500,
     target_duration_minutes: 2,
     clip_count: 8,
@@ -184,7 +207,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Food & Lifestyle',
     description: 'Mouthwatering food cinematography',
     category: 'commercial',
-    thumbnail_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=900&fit=crop',
+    thumbnail_url: foodLifestyleImg,
     use_count: 8900,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -196,7 +219,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Tech Showcase',
     description: 'Sleek product demos with futuristic visuals',
     category: 'commercial',
-    thumbnail_url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&h=900&fit=crop',
+    thumbnail_url: techShowcaseImg,
     use_count: 7200,
     target_duration_minutes: 2,
     clip_count: 6,
@@ -208,7 +231,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'UGC Testimonial',
     description: 'Authentic user-generated style testimonials',
     category: 'commercial',
-    thumbnail_url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=900&fit=crop',
+    thumbnail_url: ugcTestimonialImg,
     use_count: 13400,
     target_duration_minutes: 1,
     clip_count: 4,
@@ -222,7 +245,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Educational Breakdown',
     description: 'Visual explainers that make complex topics simple',
     category: 'educational',
-    thumbnail_url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=900&fit=crop',
+    thumbnail_url: educationalImg,
     use_count: 5600,
     target_duration_minutes: 3,
     clip_count: 8,
@@ -234,7 +257,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Step-by-Step Tutorial',
     description: 'Clear, engaging how-to guides with visual steps',
     category: 'educational',
-    thumbnail_url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=900&fit=crop',
+    thumbnail_url: tutorialImg,
     use_count: 8100,
     target_duration_minutes: 3,
     clip_count: 6,
@@ -247,7 +270,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Viral Social Content',
     description: 'Hook-driven content for TikTok & Reels',
     category: 'entertainment',
-    thumbnail_url: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=900&fit=crop',
+    thumbnail_url: viralSocialImg,
     use_count: 16800,
     target_duration_minutes: 1,
     clip_count: 5,
@@ -260,7 +283,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Travel Vlog',
     description: 'Wanderlust-inducing journeys with stunning landscapes',
     category: 'entertainment',
-    thumbnail_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=900&fit=crop',
+    thumbnail_url: travelVlogImg,
     use_count: 11200,
     target_duration_minutes: 3,
     clip_count: 8,
@@ -272,7 +295,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Music Video',
     description: 'Rhythm-synced visuals with artistic flair',
     category: 'entertainment',
-    thumbnail_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=900&fit=crop',
+    thumbnail_url: musicVideoImg,
     use_count: 9400,
     target_duration_minutes: 4,
     clip_count: 10,
@@ -284,7 +307,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Podcast Clips',
     description: 'Engaging podcast highlights with captions',
     category: 'entertainment',
-    thumbnail_url: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=600&h=900&fit=crop',
+    thumbnail_url: podcastClipsImg,
     use_count: 7600,
     target_duration_minutes: 1,
     clip_count: 3,
@@ -297,7 +320,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Brand Story',
     description: 'Premium corporate narratives that humanize brands',
     category: 'corporate',
-    thumbnail_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=900&fit=crop',
+    thumbnail_url: brandStoryImg,
     use_count: 6800,
     target_duration_minutes: 3,
     clip_count: 8,
@@ -309,7 +332,7 @@ const BUILT_IN_TEMPLATES = [
     name: 'Team Introduction',
     description: 'Professional team showcases with personality',
     category: 'corporate',
-    thumbnail_url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=900&fit=crop',
+    thumbnail_url: teamIntroImg,
     use_count: 4200,
     target_duration_minutes: 2,
     clip_count: 6,

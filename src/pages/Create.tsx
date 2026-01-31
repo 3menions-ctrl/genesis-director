@@ -33,7 +33,13 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { markReady } = usePageReady();
+  const { markReady, disableAutoComplete } = usePageReady();
+  
+  // Disable auto-complete since CreationHub manages readiness via onReady callback
+  // This prevents race condition where overlay dismisses before data is loaded
+  useEffect(() => {
+    disableAutoComplete();
+  }, [disableAutoComplete]);
   
   // Use navigation guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useNavigationGuard();

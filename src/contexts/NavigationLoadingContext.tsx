@@ -107,6 +107,8 @@ interface NavigationLoadingContextType {
   completeNavigation: () => void;
   reportReady: (systemName: string) => void;
   isHeavyRoute: (route: string) => boolean;
+  /** Disable auto-complete for pages that manage their own readiness */
+  disableAutoComplete: () => void;
 }
 
 const NavigationLoadingContext = createContext<NavigationLoadingContextType | null>(null);
@@ -124,6 +126,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
   const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const readySystemsRef = useRef<Set<string>>(new Set());
+  const autoCompleteDisabledRef = useRef(false);
   const minDurationRef = useRef<number>(800);
 
   // Check if a route is considered "heavy"
@@ -152,6 +155,11 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
     return null;
   }, []);
 
+  // Disable auto-complete for pages that manage their own readiness
+  const disableAutoComplete = useCallback(() => {
+    autoCompleteDisabledRef.current = true;
+  }, []);
+
   // Start navigation loading
   const startNavigation = useCallback((targetRoute: string) => {
     const config = getRouteConfig(targetRoute);
@@ -166,8 +174,9 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
       clearInterval(messageIntervalRef.current);
     }
 
-    // Reset state
+    // Reset state - including auto-complete flag for new navigation
     readySystemsRef.current.clear();
+    autoCompleteDisabledRef.current = false;
     messageIndexRef.current = 0;
     startTimeRef.current = performance.now();
     minDurationRef.current = config.minDuration;
@@ -229,10 +238,17 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
     readySystemsRef.current.add(systemName);
   }, []);
 
-  // Auto-complete when route changes (fallback)
+  // Auto-complete when route changes (fallback) - ONLY if auto-complete not disabled
+  // Pages that manage their own readiness via onReady callbacks should call disableAutoComplete()
   useEffect(() => {
     if (state.isLoading && state.targetRoute === location.pathname) {
+      // Skip auto-complete if page manages its own readiness
+      if (autoCompleteDisabledRef.current) {
+        return;
+      }
+      
       // Route has changed to target, auto-complete after a brief delay
+      // This is a fallback for pages that don't explicitly call markReady()
       const timer = setTimeout(() => {
         completeNavigation();
       }, 100);
@@ -257,6 +273,7 @@ export function NavigationLoadingProvider({ children }: { children: ReactNode })
         completeNavigation, 
         reportReady,
         isHeavyRoute,
+        disableAutoComplete,
       }}
     >
       {children}
@@ -275,6 +292,7 @@ export function useNavigationLoading() {
       completeNavigation: () => {},
       reportReady: () => {},
       isHeavyRoute: () => false,
+      disableAutoComplete: () => {},
     };
   }
   return context;
@@ -294,6 +312,14 @@ export function usePageReady() {
     }
     context.completeNavigation();
   }, [context]);
+  
+  // Disable auto-complete for pages that manage their own readiness via callbacks
+  // Call this when the page uses onReady callbacks from child components
+  const disableAutoComplete = useCallback(() => {
+    if (context) {
+      context.disableAutoComplete();
+    }
+  }, [context]);
 
-  return { markReady };
+  return { markReady, disableAutoComplete };
 }

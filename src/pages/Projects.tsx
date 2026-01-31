@@ -92,8 +92,8 @@ interface ProjectCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preResolvedClipUrl?: string | null }>(
-  function ProjectCard({ 
+const ProjectCardInner = forwardRef<HTMLDivElement, ProjectCardProps & { preResolvedClipUrl?: string | null }>(
+  function ProjectCardInner({ 
     project,
     index,
     onPlay,
@@ -638,7 +638,14 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
       </div>
     </motion.div>
   );
-}));
+});
+
+// Add displayName for forwardRef component
+ProjectCardInner.displayName = 'ProjectCardInner';
+
+// Apply memo wrapper after forwardRef to prevent ref warning
+const ProjectCard = memo(ProjectCardInner);
+ProjectCard.displayName = 'ProjectCard';
 
 // ============= MAIN COMPONENT =============
 

@@ -40,6 +40,10 @@ const SUPPRESSED_ERROR_PATTERNS = [
   'Warning: Function components cannot be given refs',
   'ref',
   'Ref',
+  // Component loading errors - prevent cascade on lazy load issues
+  'Component is not a function',
+  'instance of Object',
+  'is not a function',
   // Radix/Dialog cleanup race conditions
   'removeAttribute',
   'setAttribute',

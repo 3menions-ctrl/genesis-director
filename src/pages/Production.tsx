@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, memo, forwardRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense, lazy } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,7 +101,8 @@ const STAGE_CONFIG: Array<{ name: string; shortName: string; icon: React.Element
 // ============= MAIN COMPONENT =============
 
 // Content component wrapped for error boundary with hook resilience
-const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProductionContent(_, ref) {
+// CRITICAL: Use standard memo() without forwardRef to prevent "Component is not a function" crash
+const ProductionContent = memo(function ProductionContent() {
   // Hook resilience - wrap in try-catch with fallbacks
   let navigate: ReturnType<typeof useNavigate>;
   try {
@@ -1409,7 +1410,7 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       </AnimatePresence>
     </div>
   );
-}));
+});
 
 // Wrapper with error boundary
 export default function Production() {

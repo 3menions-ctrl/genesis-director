@@ -3606,6 +3606,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_credits: {
+        Args: { amount_param: number; user_id_param: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_universe_member: {
         Args: { p_universe_id: string; p_user_id: string }

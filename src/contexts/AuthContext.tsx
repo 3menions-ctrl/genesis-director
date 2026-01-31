@@ -210,34 +210,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     
     // Set up auth state listener FIRST
+    // CRITICAL FIX: Ongoing auth changes should NOT control loading state or isSessionVerified
+    // Only the initial load controls these - prevents race condition crashes on navigation
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         if (!mounted) return;
         
         console.log('[AuthContext] Auth state change:', event, newSession ? 'has session' : 'no session');
         
+        // Update session state synchronously
         sessionRef.current = newSession;
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        
-        // CRITICAL: Only mark session as verified after we've processed the change
-        // This prevents race conditions where components check session before it's ready
-        if (!isInitializing) {
-          setIsSessionVerified(true);
-        }
 
         // Skip if this is during initialization - initSession will handle it
         if (isInitializing) return;
 
-        // Handle auth state changes AFTER initialization
+        // CRITICAL: For ongoing auth changes (login/logout AFTER initial load),
+        // fire-and-forget the profile/admin fetch - DO NOT await, DO NOT control loading
+        // The isSessionVerified stays true (set during initial load), preventing redirects
         if (newSession?.user) {
-          // Fetch profile and admin status before setting loading to false
-          await completeAuthInit(newSession.user.id);
+          // Fire and forget - update profile/admin in background
+          fetchProfile(newSession.user.id).then(profileData => {
+            if (mounted) setProfile(profileData);
+          }).catch(console.error);
+          
+          checkAdminRole(newSession.user.id).then(isAdminResult => {
+            if (mounted) setIsAdmin(isAdminResult);
+          }).catch(console.error);
         } else {
+          // Logged out
           setProfile(null);
           setProfileError(null);
           setIsAdmin(false);
-          setLoading(false);
         }
       }
     );

@@ -73,6 +73,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Glass overlay semantic colors
+        glass: {
+          DEFAULT: "hsl(var(--glass-bg))",
+          hover: "hsl(var(--glass-bg-hover))",
+          active: "hsl(var(--glass-bg-active))",
+          border: "hsl(var(--glass-border))",
+          "border-hover": "hsl(var(--glass-border-hover))",
+          text: "hsl(var(--glass-text))",
+          "text-muted": "hsl(var(--glass-text-muted))",
+          "text-subtle": "hsl(var(--glass-text-subtle))",
+        },
       },
       fontFamily: {
         sans: ['Instrument Sans', 'system-ui', '-apple-system', 'sans-serif'],

@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -529,49 +529,52 @@ const ALL_ARTICLES = HELP_CATEGORIES.flatMap(cat =>
   }))
 );
 
-// Article content component
-function ArticleContent({ article, onBack }: { article: typeof ALL_ARTICLES[0]; onBack: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="max-w-3xl mx-auto"
-    >
-      <Button
-        variant="ghost"
-        onClick={onBack}
-        className="mb-6 text-white/40 hover:text-white hover:bg-white/5"
+// Article content component - wrapped with forwardRef for AnimatePresence compatibility
+const ArticleContent = forwardRef<HTMLDivElement, { article: typeof ALL_ARTICLES[0]; onBack: () => void }>(
+  function ArticleContent({ article, onBack }, ref) {
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="max-w-3xl mx-auto"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Help Center
-      </Button>
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="mb-6 text-muted-foreground hover:text-foreground hover:bg-muted/10"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Help Center
+        </Button>
 
-      <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
-        <div className="flex items-center gap-3 mb-4">
-          <Badge 
-            className="bg-white/10 text-white/60 border-0"
-          >
-            {article.category}
-          </Badge>
-          <span className="text-white/30 text-sm flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {article.readTime}
-          </span>
+        <div className="p-8 rounded-3xl bg-card/50 border border-border/50">
+          <div className="flex items-center gap-3 mb-4">
+            <Badge 
+              className="bg-muted text-muted-foreground border-0"
+            >
+              {article.category}
+            </Badge>
+            <span className="text-muted-foreground/60 text-sm flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {article.readTime}
+            </span>
+          </div>
+          
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
+            {article.title}
+          </h1>
+          
+          <SafeMarkdownRenderer 
+            content={article.content}
+            className="prose prose-invert max-w-none"
+          />
         </div>
-        
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">
-          {article.title}
-        </h1>
-        
-        <SafeMarkdownRenderer 
-          content={article.content}
-          className="prose prose-invert max-w-none"
-        />
-      </div>
-    </motion.div>
-  );
-}
+      </motion.div>
+    );
+  }
+);
 
 export default function HelpCenter() {
   const [searchQuery, setSearchQuery] = useState('');

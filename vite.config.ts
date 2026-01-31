@@ -81,30 +81,15 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
-    // Optimize chunk splitting for better code splitting
+    // Optimize chunk splitting
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // React core - always needed
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'vendor-react';
-          }
-          // React Router - needed for navigation
-          if (id.includes('node_modules/react-router')) {
-            return 'vendor-router';
-          }
-          // Radix UI - split by component for better tree-shaking
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'vendor-ui';
-          }
-          // TanStack Query
-          if (id.includes('node_modules/@tanstack/react-query')) {
-            return 'vendor-query';
-          }
-          // Framer Motion - load separately so it can be deferred
-          if (id.includes('node_modules/framer-motion')) {
-            return 'vendor-motion';
-          }
+        manualChunks: {
+          // Vendor chunks for better caching
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-motion": ["framer-motion"],
         },
       },
     },

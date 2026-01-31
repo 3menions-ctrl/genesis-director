@@ -163,7 +163,7 @@ const FailedClipsPanelInner = memo(forwardRef<HTMLDivElement, FailedClipsPanelPr
         } else {
           throw new Error('No rephrased prompt returned');
         }
-      } catch (err: any) {
+      } catch (err) {
         if (!isMountedRef.current) return;
         console.error('AI rephrase failed:', err);
         toast.error('AI rephrase failed. Try editing manually.');

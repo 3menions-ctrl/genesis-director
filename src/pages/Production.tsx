@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { parsePendingVideoTasks } from '@/types/pending-video-tasks';
 import { useClipRecovery } from '@/hooks/useClipRecovery';
 import { ErrorBoundaryWrapper, ErrorBoundary } from '@/components/ui/error-boundary';
+import type { ProFeaturesState, PipelineState, DegradationFlag } from '@/types/pro-features';
+import { getErrorMessage } from '@/types/error-handling';
 
 // CRITICAL: Import background directly - prevents flash on page load
 import PipelineBackground from '@/components/production/PipelineBackground';
@@ -83,28 +85,7 @@ interface ProductionProject {
   updatedAt: string;
 }
 
-interface ProFeaturesState {
-  masterSceneAnchor?: any;
-  characters?: any[];
-  identityBible?: any;
-  consistencyScore?: number;
-  qualityTier?: string;
-  continuityAnalysis?: {
-    score?: number;
-    transitions?: Array<{
-      fromIndex: number;
-      toIndex: number;
-      overallScore: number;
-      motionScore: number;
-      colorScore: number;
-      semanticScore: number;
-      needsBridge: boolean;
-      bridgePrompt?: string;
-    }>;
-    clipsToRetry?: number[];
-    bridgeClipsNeeded?: number;
-  };
-}
+// ProFeaturesState is now imported from @/types/pro-features
 
 // ============= CONSTANTS =============
 
@@ -164,9 +145,9 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
   const [isCancelling, setIsCancelling] = useState(false);
   const [proFeatures, setProFeatures] = useState<ProFeaturesState | null>(null);
   const [projectMode, setProjectMode] = useState<string>('text-to-video');
-  const [pipelineState, setPipelineState] = useState<any>(null);
+  const [pipelineState, setPipelineState] = useState<PipelineState | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [degradationFlags, setDegradationFlags] = useState<Array<{type: string; message: string; severity: 'info' | 'warning' | 'error'}>>([]);
+  const [degradationFlags, setDegradationFlags] = useState<DegradationFlag[]>([]);
 
   // REMOVED: useSpring - causes continuous re-renders during progress updates
   // Progress animation is now handled in CSS for GPU acceleration
@@ -523,7 +504,7 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         try {
           const scriptData = JSON.parse(project.generated_script);
           if (scriptData?.shots && Array.isArray(scriptData.shots)) {
-            const shots: ScriptShot[] = scriptData.shots.map((shot: any, idx: number) => ({
+            const shots: ScriptShot[] = scriptData.shots.map((shot: Record<string, unknown>, idx: number) => ({
               id: shot.id || `shot-${idx}`,
               index: idx,
               title: shot.title || shot.name || `Shot ${idx + 1}`,
@@ -801,8 +782,8 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
             addLog('Done!', 'success');
             toast.success('Video ready!');
           }
-        } catch (err: any) {
-          addLog(`Stitch failed: ${err.message}`, 'error');
+        } catch (err) {
+          addLog(`Stitch failed: ${getErrorMessage(err)}`, 'error');
         }
       }, 1000);
       return () => clearTimeout(timer);
@@ -921,8 +902,8 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       } else if (data?.error) {
         throw new Error(data.error);
       }
-    } catch (err: any) {
-      const errorMsg = err.message || 'Resume failed';
+    } catch (err) {
+      const errorMsg = getErrorMessage(err, 'Resume failed');
       toast.error(errorMsg);
       addLog(`Resume failed: ${errorMsg}`, 'error');
       // Restore error state on failure
@@ -967,8 +948,8 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       
       // Navigate after a brief delay to show the success message
       setTimeout(() => navigate('/projects'), 500);
-    } catch (err: any) {
-      const errorMsg = err.message || 'Failed to cancel';
+    } catch (err) {
+      const errorMsg = getErrorMessage(err, 'Failed to cancel');
       toast.error(errorMsg);
       addLog(`Cancel failed: ${errorMsg}`, 'error');
     } finally {
@@ -1018,9 +999,10 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
       } else if (data?.error) {
         throw new Error(data.error);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to approve script');
-      addLog(`Script approval failed: ${err.message}`, 'error');
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Failed to approve script');
+      toast.error(msg);
+      addLog(`Script approval failed: ${msg}`, 'error');
     } finally {
       setIsApprovingScript(false);
     }
@@ -1042,8 +1024,8 @@ const ProductionContent = memo(forwardRef<HTMLDivElement, Record<string, never>>
         setScriptShots(null);
         toast.success('Script regeneration started');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to regenerate script');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to regenerate script'));
     }
   };
 

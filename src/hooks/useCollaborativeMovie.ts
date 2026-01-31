@@ -56,7 +56,7 @@ export function useGenesisPresetCharacters(screenplayId?: string) {
       // Transform to include only approved or user's own casting
       return (data || []).map(char => ({
         ...char,
-        casting: char.casting?.find((c: any) => c.status === 'approved') || char.casting?.[0] || null
+        casting: char.casting?.find((c: { status: string }) => c.status === 'approved') || char.casting?.[0] || null
       })) as GenesisPresetCharacter[];
     },
     enabled: !!screenplayId

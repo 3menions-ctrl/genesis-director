@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode, useEffect, useRef, useCallback } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode, useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { AlertTriangle, RefreshCw, Home, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface GlobalStabilityBoundaryProps {
@@ -11,7 +11,20 @@ interface GlobalStabilityBoundaryState {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   errorCount: number;
+  lastErrorTime: number;
 }
+
+// Error patterns that should NOT crash the app
+const SUPPRESSED_ERROR_PATTERNS = [
+  'ResizeObserver loop',
+  'ResizeObserver loop completed with undelivered notifications',
+  'Non-Error promise rejection captured',
+  'ChunkLoadError',
+  'Loading chunk',
+  'Cannot read properties of null',
+  'removeChild',
+  'insertBefore',
+];
 
 /**
  * Global Stability Boundary - Root-level error boundary with:
@@ -20,22 +33,51 @@ interface GlobalStabilityBoundaryState {
  * - Tracks error frequency to detect crash loops
  * - Provides graceful recovery options
  * - Logs errors for debugging
+ * - Suppresses non-critical errors that shouldn't crash the app
  */
 class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProps, GlobalStabilityBoundaryState> {
   private errorResetTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly ERROR_RESET_MS = 30000;
+  private readonly CRASH_LOOP_THRESHOLD = 3;
   
   public state: GlobalStabilityBoundaryState = {
     hasError: false,
     error: null,
     errorInfo: null,
     errorCount: 0,
+    lastErrorTime: 0,
   };
 
-  public static getDerivedStateFromError(error: Error): Partial<GlobalStabilityBoundaryState> {
-    return { hasError: true, error };
+  public static getDerivedStateFromError(error: Error): Partial<GlobalStabilityBoundaryState> | null {
+    // Check if this is a suppressed error that shouldn't show the error UI
+    const errorMessage = error?.message || '';
+    const shouldSuppress = SUPPRESSED_ERROR_PATTERNS.some(pattern => 
+      errorMessage.includes(pattern)
+    );
+    
+    if (shouldSuppress) {
+      console.warn('[GlobalStabilityBoundary] Suppressed non-critical error:', errorMessage);
+      return null; // Don't update state for suppressed errors
+    }
+    
+    return { 
+      hasError: true, 
+      error,
+      lastErrorTime: Date.now(),
+    };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Check if this is a suppressed error
+    const errorMessage = error?.message || '';
+    const shouldSuppress = SUPPRESSED_ERROR_PATTERNS.some(pattern => 
+      errorMessage.includes(pattern)
+    );
+    
+    if (shouldSuppress) {
+      return; // Don't process suppressed errors
+    }
+
     // Increment error count for crash loop detection
     this.setState(prev => ({ 
       errorInfo, 
@@ -52,7 +94,7 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     }
     this.errorResetTimer = setTimeout(() => {
       this.setState({ errorCount: 0 });
-    }, 30000);
+    }, this.ERROR_RESET_MS);
   }
 
   public componentWillUnmount() {
@@ -79,6 +121,8 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
     try {
       localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
       sessionStorage.clear();
+      // Clear any cached auth state
+      localStorage.removeItem('supabase.auth.token');
     } catch (e) {
       // Ignore storage errors
     }
@@ -88,7 +132,7 @@ class GlobalStabilityBoundaryClass extends Component<GlobalStabilityBoundaryProp
   public render() {
     if (this.state.hasError) {
       // If too many errors in a row, suggest harder reset
-      const isCrashLoop = this.state.errorCount >= 3;
+      const isCrashLoop = this.state.errorCount >= this.CRASH_LOOP_THRESHOLD;
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center p-4">
@@ -189,7 +233,21 @@ export function useSafeData<T>(
   data: T | null | undefined,
   fallback: T
 ): T {
-  return data ?? fallback;
+  return useMemo(() => data ?? fallback, [data, fallback]);
+}
+
+/**
+ * Hook for safe array data with empty array fallback
+ */
+export function useSafeArray<T>(data: T[] | null | undefined): T[] {
+  return useMemo(() => data ?? [], [data]);
+}
+
+/**
+ * Hook for safe object data with empty object fallback
+ */
+export function useSafeObject<T extends object>(data: T | null | undefined): Partial<T> {
+  return useMemo(() => data ?? {}, [data]);
 }
 
 /**
@@ -231,6 +289,53 @@ export function DataGuard<T>({
   return <>{children(data)}</>;
 }
 
+/**
+ * Array data guard - specifically for array data with count display
+ */
+export function ArrayDataGuard<T>({
+  data,
+  isLoading,
+  error,
+  emptyMessage = 'No items found',
+  loadingCount = 3,
+  children,
+}: {
+  data: T[] | null | undefined;
+  isLoading?: boolean;
+  error?: Error | string | null;
+  emptyMessage?: string;
+  loadingCount?: number;
+  children: (data: T[]) => ReactNode;
+}): JSX.Element {
+  // Loading state with skeleton items
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: loadingCount }).map((_, i) => (
+          <DataGuardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return <DataGuardError error={error} />;
+  }
+
+  // Empty or null array
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-12 text-zinc-500">
+        <p className="text-sm">{emptyMessage}</p>
+      </div>
+    );
+  }
+
+  // Valid data
+  return <>{children(data)}</>;
+}
+
 // Default skeleton for loading state
 function DataGuardSkeleton() {
   return (
@@ -255,6 +360,7 @@ function DataGuardError({ error }: { error: Error | string | null }) {
   const message = typeof error === 'string' ? error : error?.message || 'An error occurred';
   return (
     <div className="text-center py-8 text-red-400/70">
+      <WifiOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -315,6 +421,52 @@ export function useSafeTimeout(
   }, [delay, reset, clear]);
 
   return { reset, clear };
+}
+
+/**
+ * Hook that tracks whether component is mounted - for async safety
+ */
+export function useIsMounted(): () => boolean {
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
+  return useCallback(() => isMountedRef.current, []);
+}
+
+/**
+ * Hook for safe state updates that checks mount status
+ */
+export function useSafeState<T>(initialValue: T): [T, (value: T | ((prev: T) => T)) => void] {
+  const [state, setState] = useState<T>(initialValue);
+  const isMounted = useIsMounted();
+  
+  const safeSetState = useCallback((value: T | ((prev: T) => T)) => {
+    if (isMounted()) {
+      setState(value);
+    }
+  }, [isMounted]);
+  
+  return [state, safeSetState];
+}
+
+/**
+ * Hook for debounced values with cleanup
+ */
+export function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  
+  return debouncedValue;
 }
 
 export default GlobalStabilityBoundary;

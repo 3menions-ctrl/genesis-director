@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, forwardRef, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, forwardRef, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Volume2, Loader2, Check, Sparkles, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { OptimizedAvatarImage, ShimmerSkeleton } from './OptimizedAvatarImage';
+import { useSafeArray } from '@/components/stability/GlobalStabilityBoundary';
+
 interface PremiumAvatarGalleryProps {
   avatars: AvatarTemplate[];
   selectedAvatar: AvatarTemplate | null;
@@ -206,18 +208,31 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
   isLoading,
   isVoiceReady = () => false,
 }: PremiumAvatarGalleryProps) {
+  // CRITICAL: Data guardrail - ensure avatars is always an array
+  const safeAvatars = useSafeArray(avatars);
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const mountedRef = useRef(true);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   
   // Responsive card dimensions
   const CARD_WIDTH = isMobile ? 200 : 280;
   const CARD_GAP = isMobile ? 16 : 24;
   
-  // Check scroll state
+  // Check scroll state - memoized and mount-safe
   const checkScrollState = useCallback(() => {
+    if (!mountedRef.current) return;
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
@@ -229,7 +244,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
     checkScrollState();
     window.addEventListener('resize', checkScrollState);
     return () => window.removeEventListener('resize', checkScrollState);
-  }, [checkScrollState, avatars]);
+  }, [checkScrollState, safeAvatars]);
   
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -263,7 +278,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
     );
   }
 
-  if (avatars.length === 0) {
+  if (safeAvatars.length === 0) {
     return (
       <div className="text-center py-16 px-4">
         <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-4 border border-white/[0.06]">
@@ -321,7 +336,7 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {avatars.map((avatar, index) => (
+        {safeAvatars.map((avatar, index) => (
           <AvatarCard
             key={avatar.id}
             avatar={avatar}
@@ -341,9 +356,9 @@ export const PremiumAvatarGallery = memo(function PremiumAvatarGallery({
       </div>
       
       {/* Scroll indicator - Mobile only */}
-      {isMobile && avatars.length > 2 && (
+      {isMobile && safeAvatars.length > 2 && (
         <div className="flex justify-center gap-1.5 mt-4">
-          {Array.from({ length: Math.min(5, Math.ceil(avatars.length / 2)) }).map((_, i) => (
+          {Array.from({ length: Math.min(5, Math.ceil(safeAvatars.length / 2)) }).map((_, i) => (
             <div
               key={`indicator-${i}`}
               className="w-6 h-1 rounded-full bg-white/10"

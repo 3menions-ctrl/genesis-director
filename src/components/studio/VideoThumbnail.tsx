@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback, useEffect, memo, forwardRef } from 'react';
+import { useState, useRef, useCallback, useEffect, memo, forwardRef, useMemo } from 'react';
 import { Play, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface VideoThumbnailProps {
-  src: string | null;
+  src: string | null | undefined;
   title?: string;
   className?: string;
   aspectRatio?: 'video' | 'square';
@@ -14,6 +14,20 @@ interface VideoThumbnailProps {
   duration?: number;
   thumbnailUrl?: string | null;
 }
+
+// Placeholder component for null/undefined video sources
+const VideoPlaceholder = memo(function VideoPlaceholder({ aspectRatio }: { aspectRatio: 'video' | 'square' }) {
+  return (
+    <div className={cn(
+      "relative overflow-hidden rounded-xl bg-zinc-800/50",
+      aspectRatio === 'video' ? 'aspect-video' : 'aspect-square'
+    )}>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Film className="w-8 h-8 text-white/20" />
+      </div>
+    </div>
+  );
+});
 
 export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProps>(function VideoThumbnail({
   src,
@@ -30,20 +44,38 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const mountedRef = useRef(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Memoize whether we have a valid source
+  const hasValidSrc = useMemo(() => Boolean(src && typeof src === 'string' && src.trim().length > 0), [src]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Robust video loading with multiple event handlers and timeout fallback
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
-
-    let mounted = true;
+    if (!video || !hasValidSrc) return;
 
     const markLoaded = () => {
-      if (mounted && !isLoaded) {
+      if (mountedRef.current && !isLoaded) {
         setIsLoaded(true);
-        // Seek to 25% for thumbnail frame
-        if (video.duration) {
-          video.currentTime = Math.min(video.duration * 0.25, 2);
+        // Seek to 25% for thumbnail frame - wrapped in try/catch
+        try {
+          if (video.duration && isFinite(video.duration)) {
+            video.currentTime = Math.min(video.duration * 0.25, 2);
+          }
+        } catch (e) {
+          // Ignore seek errors
         }
       }
     };
@@ -52,7 +84,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     const handleLoadedData = () => markLoaded();
     const handleCanPlay = () => markLoaded();
     const handleError = () => {
-      if (mounted) {
+      if (mountedRef.current) {
         setHasError(true);
         setIsLoaded(true);
       }
@@ -63,9 +95,9 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
 
-    // Fallback timeout
-    const timeout = setTimeout(() => {
-      if (mounted && !isLoaded) {
+    // Fallback timeout - cleaned up properly
+    timeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && !isLoaded) {
         setIsLoaded(true);
       }
     }, 3000);
@@ -76,21 +108,27 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     }
 
     return () => {
-      mounted = false;
-      clearTimeout(timeout);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
     };
-  }, [src, isLoaded]);
+  }, [hasValidSrc, isLoaded]);
 
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
     const video = videoRef.current;
     if (video && !hasError && isLoaded) {
-      video.currentTime = 0;
-      video.play().catch(() => {});
+      try {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      } catch (e) {
+        // Ignore playback errors
+      }
     }
   }, [hasError, isLoaded]);
 
@@ -98,15 +136,25 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     setIsHovered(false);
     const video = videoRef.current;
     if (video) {
-      video.pause();
-      if (video.duration) {
-        video.currentTime = Math.min(video.duration * 0.25, 2);
+      try {
+        video.pause();
+        if (video.duration && isFinite(video.duration)) {
+          video.currentTime = Math.min(video.duration * 0.25, 2);
+        }
+      } catch (e) {
+        // Ignore pause/seek errors
       }
     }
   }, []);
 
+  // CRITICAL: Data guardrail - return placeholder for null/undefined sources
+  if (!hasValidSrc) {
+    return <VideoPlaceholder aspectRatio={aspectRatio} />;
+  }
+
   return (
     <div
+      ref={ref}
       className={cn(
         "relative overflow-hidden cursor-pointer group rounded-xl",
         aspectRatio === 'video' ? 'aspect-video' : 'aspect-square',
@@ -118,7 +166,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
     >
       {/* Loading skeleton - YouTube style gray placeholder */}
       <AnimatePresence>
-        {!isLoaded && src && (
+        {!isLoaded && (
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -131,10 +179,10 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
       </AnimatePresence>
 
       {/* Video element - shows the video directly */}
-      {src && !hasError ? (
+      {!hasError ? (
         <video
           ref={videoRef}
-          src={src}
+          src={src || undefined}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-all duration-300",
             isLoaded ? "opacity-100" : "opacity-0",
@@ -143,7 +191,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
@@ -161,7 +209,7 @@ export const VideoThumbnail = memo(forwardRef<HTMLDivElement, VideoThumbnailProp
 
       {/* Play button on hover */}
       <AnimatePresence>
-        {isHovered && src && !hasError && (
+        {isHovered && !hasError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

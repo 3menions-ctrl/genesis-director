@@ -13,6 +13,35 @@ const ERROR_RESET_INTERVAL = 30000; // 30 seconds
 // Store interval ID for cleanup during HMR
 let errorResetInterval: ReturnType<typeof setInterval> | null = null;
 
+// Error patterns that should NOT crash the app or show toasts
+const SUPPRESSED_ERROR_PATTERNS = [
+  'ResizeObserver loop',
+  'ResizeObserver loop completed',
+  'Non-Error promise rejection captured',
+  'ChunkLoadError',
+  'Loading chunk',
+  'Cannot read properties of null (reading \'removeChild\')',
+  'Cannot read properties of null (reading \'insertBefore\')',
+  'Failed to fetch dynamically imported module',
+  'Network Error',
+  'cancelled',
+];
+
+// Check if error should be suppressed
+const shouldSuppressGlobalError = (error: unknown): boolean => {
+  if (!error) return true;
+  
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : typeof error === 'string' 
+      ? error 
+      : String(error);
+  
+  return SUPPRESSED_ERROR_PATTERNS.some(pattern => 
+    errorMessage.toLowerCase().includes(pattern.toLowerCase())
+  );
+};
+
 // Clear existing interval before creating new one (prevents HMR stacking)
 if (errorResetInterval) {
   clearInterval(errorResetInterval);
@@ -35,6 +64,12 @@ if (import.meta.hot) {
 
 // Global error handler with stability monitoring
 window.addEventListener("error", (event) => {
+  // Check if error should be suppressed first
+  if (shouldSuppressGlobalError(event.error) || shouldSuppressError(event.error)) {
+    event.preventDefault();
+    return;
+  }
+
   // Prevent infinite crash loops
   errorCount++;
   if (errorCount > ERROR_THRESHOLD) {
@@ -42,8 +77,6 @@ window.addEventListener("error", (event) => {
     event.preventDefault();
     return;
   }
-
-  if (shouldSuppressError(event.error)) return;
   
   const stabilityEvent = stabilityMonitor.handle(event.error, 'Global Error', {
     showToast: true,
@@ -62,6 +95,12 @@ window.addEventListener("error", (event) => {
 
 // Global promise rejection handler with stability monitoring
 window.addEventListener("unhandledrejection", (event) => {
+  // Check if error should be suppressed first
+  if (shouldSuppressGlobalError(event.reason) || shouldSuppressError(event.reason)) {
+    event.preventDefault();
+    return;
+  }
+
   // Prevent infinite crash loops
   errorCount++;
   if (errorCount > ERROR_THRESHOLD) {
@@ -69,8 +108,6 @@ window.addEventListener("unhandledrejection", (event) => {
     event.preventDefault();
     return;
   }
-
-  if (shouldSuppressError(event.reason)) return;
   
   const stabilityEvent = stabilityMonitor.handle(event.reason, 'Async Error', {
     showToast: true,
@@ -81,7 +118,7 @@ window.addEventListener("unhandledrejection", (event) => {
     console.error("[Unhandled Rejection]", stabilityEvent.category, event.reason);
   }
   
-  // Prevent crash from async errors
+  // Prevent crash from async errors - CRITICAL for navigation stability
   event.preventDefault();
 });
 

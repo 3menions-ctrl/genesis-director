@@ -2,14 +2,33 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
 
+/**
+ * Optimized hook for fetching avatar templates with:
+ * - Proper cleanup of all async operations
+ * - Prevention of double-fetching with mutex lock
+ * - Safe state updates using mount tracking
+ * - Memoized filter results
+ */
 export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
   const [templates, setTemplates] = useState<AvatarTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // CRITICAL: All refs for cleanup and preventing race conditions
   const isMountedRef = useRef(true);
   const fetchAttemptedRef = useRef(false);
-  // CRITICAL: Prevent double-fetching with a fetch-in-progress lock
   const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Safe state setter that checks mount status
+  const safeSetState = useCallback(<T,>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    value: T
+  ) => {
+    if (isMountedRef.current) {
+      setter(value);
+    }
+  }, []);
 
   const fetchTemplates = useCallback(async () => {
     // GUARD: Prevent concurrent fetches (fixes double-loading bug)
@@ -25,18 +44,22 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     fetchAttemptedRef.current = true;
     isFetchingRef.current = true;
     
-    if (isMountedRef.current) {
-      setIsLoading(true);
-      setError(null);
+    // Abort any previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
+    abortControllerRef.current = new AbortController();
+    
+    safeSetState(setIsLoading, true);
+    safeSetState(setError, null);
 
     try {
       // Simple timeout wrapper - avatar_templates has public RLS so no auth needed
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, 10000);
       
-      // CRITICAL: Removed any limit() to fetch ALL active avatars
-      // Previous bug may have been caused by a pagination issue
+      // CRITICAL: Fetch ALL active avatars without limit
       const { data, error: fetchError } = await supabase
         .from('avatar_templates')
         .select('*')
@@ -56,8 +79,8 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       }
 
       console.log('[useAvatarTemplates] Fetched', data?.length || 0, 'templates');
-      setTemplates((data as unknown as AvatarTemplate[]) || []);
-      setError(null);
+      safeSetState(setTemplates, (data as unknown as AvatarTemplate[]) || []);
+      safeSetState(setError, null);
     } catch (err) {
       if (!isMountedRef.current) {
         isFetchingRef.current = false;
@@ -65,43 +88,37 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
       }
       
       const errorMessage = err instanceof Error ? err.message : 'Failed to load avatars';
-      console.error('[useAvatarTemplates] Failed to fetch:', errorMessage);
       
       // Only set error if not aborted
-      if (errorMessage !== 'AbortError') {
-        setError(errorMessage);
+      if (errorMessage !== 'AbortError' && (err as Error)?.name !== 'AbortError') {
+        console.error('[useAvatarTemplates] Failed to fetch:', errorMessage);
+        safeSetState(setError, errorMessage);
       }
-      setTemplates([]);
+      safeSetState(setTemplates, []);
     } finally {
       if (isMountedRef.current) {
-        setIsLoading(false);
+        safeSetState(setIsLoading, false);
       }
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [safeSetState]);
 
-  // Fetch immediately on mount - avatar_templates is public readable
-  // CRITICAL: Detect remount after crash and force fresh fetch
-  // Uses a module-level counter to detect if this is a fresh mount after crash/HMR
+  // Fetch immediately on mount with proper cleanup
   useEffect(() => {
     isMountedRef.current = true;
     
-    // If we have stale templates from a previous crashed mount, clear them
-    // This fixes the "only 2 avatars" bug caused by partial data from aborted fetches
-    const hadPreviousAttempt = fetchAttemptedRef.current;
-    
     // Reset all flags on mount
+    const hadPreviousAttempt = fetchAttemptedRef.current;
     fetchAttemptedRef.current = false;
     isFetchingRef.current = false;
     
-    // If this is a remount (e.g., after crash), clear any partial data
+    // If this is a remount with partial data, clear it
     if (hadPreviousAttempt && templates.length > 0 && templates.length < 10) {
       console.log('[useAvatarTemplates] Detected remount with partial data, clearing...');
       setTemplates([]);
     }
     
-    // Small delay to let Lovable preview environment initialize
-    // This prevents session handshake issues during initial load
+    // Small delay to let environment initialize
     const initTimer = setTimeout(() => {
       if (isMountedRef.current) {
         fetchTemplates();
@@ -111,10 +128,16 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     return () => {
       isMountedRef.current = false;
       clearTimeout(initTimer);
+      
+      // CRITICAL: Abort any in-flight requests on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     };
   }, []); // Empty deps = run once on mount only
 
-  // Apply client-side filtering
+  // Apply client-side filtering - memoized for performance
   const filteredTemplates = useMemo(() => {
     if (!filter) return templates;
 
@@ -148,19 +171,21 @@ export function useAvatarTemplates(filter?: AvatarTemplateFilter) {
     });
   }, [templates, filter]);
 
+  // Memoized refetch function
+  const refetch = useCallback(() => {
+    if (isMountedRef.current && !isFetchingRef.current) {
+      fetchAttemptedRef.current = false;
+      setTemplates([]);
+      setIsLoading(true);
+      fetchTemplates();
+    }
+  }, [fetchTemplates]);
+
   return {
     templates: filteredTemplates,
     allTemplates: templates,
     isLoading,
     error,
-    refetch: () => {
-      if (isMountedRef.current && !isFetchingRef.current) {
-        fetchAttemptedRef.current = false;
-        isFetchingRef.current = false; // Reset the lock
-        setTemplates([]);
-        setIsLoading(true);
-        fetchTemplates();
-      }
-    },
+    refetch,
   };
 }

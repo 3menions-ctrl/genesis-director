@@ -60,10 +60,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// DEBUG ISOLATION MODE: Error boundaries DISABLED to expose raw React errors
+// Error boundaries RE-ENABLED for production stability
 const App = () => (
-  // <GlobalStabilityBoundary>
-    // <ErrorBoundary>
+  <GlobalStabilityBoundary>
+    <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -315,8 +315,8 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  // </ErrorBoundary>
-  // </GlobalStabilityBoundary>
+    </ErrorBoundary>
+  </GlobalStabilityBoundary>
 );
 
 export default App;

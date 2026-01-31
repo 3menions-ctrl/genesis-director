@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AvatarTemplate, AvatarTemplateFilter } from '@/types/avatar-templates';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 // Cache key for avatar templates
 const AVATAR_TEMPLATES_KEY = ['avatar-templates'] as const;
@@ -50,15 +50,30 @@ export function useAvatarTemplatesQuery(filter?: AvatarTemplateFilter) {
     error,
     refetch,
     isFetching,
+    isSuccess,
+    isError,
   } = useQuery({
     queryKey: AVATAR_TEMPLATES_KEY,
     queryFn: fetchAvatarTemplates,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     refetchOnWindowFocus: false, // Don't refetch on tab focus (avatars are static)
+    refetchOnMount: 'always', // Always check cache on mount to ensure data is fresh
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
+  
+  // Debug logging for navigation issues
+  useEffect(() => {
+    console.log('[useAvatarTemplatesQuery] State update:', { 
+      count: templates.length, 
+      isLoading, 
+      isFetching,
+      isSuccess,
+      isError,
+      error: error?.message || null
+    });
+  }, [templates.length, isLoading, isFetching, isSuccess, isError, error]);
 
   // Apply client-side filtering (memoized for performance)
   const filteredTemplates = useMemo(() => {

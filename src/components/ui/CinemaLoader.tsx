@@ -25,9 +25,10 @@ const LIGHT_RAYS = [
 ];
 
 // Camera icon SVG component
-const CameraIcon = memo(function CameraIcon() {
+const CameraIcon = memo(forwardRef<SVGSVGElement>(function CameraIcon(_, ref) {
   return (
     <svg 
+      ref={ref}
       viewBox="0 0 48 48" 
       className="w-10 h-10 text-white/90"
       fill="none"
@@ -51,7 +52,8 @@ const CameraIcon = memo(function CameraIcon() {
       <line x1="15" y1="13" x2="21" y2="13" />
     </svg>
   );
-});
+}));
+CameraIcon.displayName = 'CameraIcon';
 
 interface CinemaLoaderProps {
   message?: string;

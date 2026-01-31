@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { ReactNode, useEffect, useRef, useState, useMemo, useCallback, forwardRef, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CinemaLoader } from '@/components/ui/CinemaLoader';
@@ -21,7 +21,8 @@ type AuthLoadingState = 'initializing' | 'verifying' | 'ready' | 'redirecting';
  * 5. Tracks hasRenderedChildren to prevent loader flash on navigation between protected routes
  * 6. 300ms buffer before redirect to handle async state propagation
  */
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export const ProtectedRoute = memo(forwardRef<HTMLDivElement, ProtectedRouteProps>(
+  function ProtectedRoute({ children }, ref) {
   const { user, profile, loading, session, isSessionVerified, profileError, retryProfileFetch, getValidSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -224,5 +225,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Mark that we've successfully rendered children
   hasRenderedChildren.current = true;
 
-  return <>{children}</>;
-}
+  return <div ref={ref} className="contents">{children}</div>;
+}));
+ProtectedRoute.displayName = 'ProtectedRoute';

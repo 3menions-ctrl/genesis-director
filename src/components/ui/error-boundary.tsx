@@ -147,15 +147,17 @@ export function withErrorBoundary<P extends object>(
 /**
  * Hook-friendly error boundary wrapper for function components
  */
-export function ErrorBoundaryWrapper({ 
-  children, 
-  fallback 
-}: { 
+export const ErrorBoundaryWrapper = forwardRef<HTMLDivElement, { 
   children: ReactNode; 
   fallback?: ReactNode 
-}) {
-  return <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>;
-}
+}>(function ErrorBoundaryWrapper({ children, fallback }, ref) {
+  return (
+    <div ref={ref} className="contents">
+      <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>
+    </div>
+  );
+});
+ErrorBoundaryWrapper.displayName = 'ErrorBoundaryWrapper';
 
 /**
  * Minimal inline error boundary for nested components - prevents cascade crashes

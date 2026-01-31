@@ -67,7 +67,7 @@ export const AppHeader = memo(forwardRef<HTMLElement, AppHeaderProps>(function A
   };
 
   return (
-    <nav className={cn("sticky top-0 z-50", className)}>
+    <nav ref={ref} className={cn("sticky top-0 z-50", className)}>
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="bg-black/60 backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

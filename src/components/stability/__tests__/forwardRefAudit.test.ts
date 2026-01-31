@@ -54,12 +54,18 @@ describe('Forward Ref Pattern Compliance', () => {
       });
     });
     
-    it('should use containerRef pattern for ref merging', () => {
-      // Pattern: When using forwardRef, create a containerRef and merge
+    it('should use callback ref pattern for synchronous ref merging', () => {
+      // CORRECT Pattern: Callback ref runs synchronously during render
+      // This prevents crashes from refs not being attached in time
       const correctPattern = [
-        'const containerRef = useRef',
-        "typeof ref === 'function'",
-        'ref(containerRef.current)',
+        'const mergedRef = useCallback((node: HTMLDivElement | null) => {',
+        'internalRef.current = node',
+        'if (typeof ref === \'function\') { ref(node) }',
+      ];
+      
+      // INCORRECT Pattern: useEffect runs AFTER render - ref not ready when React needs it
+      const incorrectPattern = [
+        'useEffect(() => { if (ref && containerRef.current) ... }, [ref])',
       ];
       
       correctPattern.forEach(pattern => {
@@ -113,18 +119,19 @@ describe('Forward Ref Pattern Compliance', () => {
 
 describe('Known Crash Prevention Patterns', () => {
   it('should document the ProjectsContent crash pattern', () => {
-    // Root cause: ProjectsContent used forwardRef but never attached ref to DOM
+    // Root cause: forwardRef components used useEffect to attach refs
     // Symptom: "Function components cannot be given refs" warning followed by crash
-    // Fix: Create containerRef, merge forwarded ref, attach to root div
+    // Why it fails: useEffect runs AFTER render, but React needs the ref DURING render
+    // Fix: Use callback ref pattern that runs synchronously
     
     const crashPattern = {
       symptom: 'Function components cannot be given refs',
-      cause: 'forwardRef declared but ref not attached to DOM element',
+      cause: 'useEffect-based ref attachment runs too late - ref not ready when React needs it',
       location: 'Check the render method of ForwardRef(ComponentName)',
       fix: [
-        '1. Create containerRef = useRef<HTMLDivElement>(null)',
-        '2. In useEffect, merge forwarded ref with containerRef',
-        '3. Attach ref={containerRef} to root DOM element',
+        '1. Create mergedRef = useCallback((node) => { internalRef.current = node; forwardRef(node); }, [ref])',
+        '2. Use ref={mergedRef} on the root DOM element',
+        '3. Ensure ALL render paths (including early returns) attach the ref',
       ],
     };
     

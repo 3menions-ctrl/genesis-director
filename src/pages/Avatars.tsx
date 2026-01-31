@@ -28,16 +28,18 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   const { maxClips } = useTierLimits();
   const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
   const { markReady } = usePageReady();
 
-  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
-  useEffect(() => {
-    if (ref && containerRef.current) {
+  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
+  // This fixes the "Function components cannot be given refs" crash
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    internalRef.current = node;
+    if (ref) {
       if (typeof ref === 'function') {
-        ref(containerRef.current);
+        ref(node);
       } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
       }
     }
   }, [ref]);
@@ -294,9 +296,10 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }, []);
 
   // EARLY RETURN AFTER ALL HOOKS - Only block on initial auth check
+  // CRITICAL: Must still attach mergedRef to prevent forwardRef crashes
   if (authLoading) {
     return (
-      <div className="relative min-h-screen flex flex-col bg-black overflow-hidden">
+      <div ref={mergedRef} className="relative min-h-screen flex flex-col bg-black overflow-hidden">
         <AvatarsBackground />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
@@ -309,7 +312,7 @@ const AvatarsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fu
   }
 
   return (
-    <div ref={containerRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div ref={mergedRef} className="relative min-h-screen flex flex-col bg-black overflow-x-hidden" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <SafeComponent name="AvatarsBackground" silent>
         <AvatarsBackground />
       </SafeComponent>

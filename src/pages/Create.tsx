@@ -32,8 +32,21 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   const [isCreating, setIsCreating] = useState(false);
   const [creationStatus, setCreationStatus] = useState<string>('');
   const [isHubReady, setIsHubReady] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
   const { markReady, disableAutoComplete } = usePageReady();
+  
+  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
+  // This fixes the "Function components cannot be given refs" crash
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    internalRef.current = node;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }
+    }
+  }, [ref]);
   
   // Disable auto-complete since CreationHub manages readiness via onReady callback
   // This prevents race condition where overlay dismisses before data is loaded
@@ -43,17 +56,6 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   
   // Use navigation guard for safe async operations
   const { isMounted, getAbortController, safeSetState } = useNavigationGuard();
-
-  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
-  useEffect(() => {
-    if (ref && containerRef.current) {
-      if (typeof ref === 'function') {
-        ref(containerRef.current);
-      } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
-      }
-    }
-  }, [ref]);
 
   // Signal page is ready ONLY after CreationHub data dependencies are loaded
   // This prevents the GlobalLoadingOverlay from dismissing prematurely
@@ -173,7 +175,7 @@ const CreateContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(fun
   }, [user, navigate, isMounted, getAbortController, safeSetState]);
 
   return (
-    <div ref={containerRef} className="relative min-h-screen flex flex-col">
+    <div ref={mergedRef} className="relative min-h-screen flex flex-col">
       <PipelineBackground />
       
       {/* Top Menu Bar */}

@@ -644,16 +644,22 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
 // Content component wrapped for error boundary - uses forwardRef for AnimatePresence compatibility
 const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(function ProjectsContent(_props, ref) {
-  // Merge forwarded ref with internal ref for DOM access
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Internal ref for component's own DOM access
+  const internalRef = useRef<HTMLDivElement>(null);
   
-  // Attach forwarded ref to container - CRITICAL for AnimatePresence and Radix primitives
-  useEffect(() => {
-    if (ref && containerRef.current) {
+  // Callback ref that merges forwarded ref with internal ref - runs SYNCHRONOUSLY during render
+  // This fixes the "Function components cannot be given refs" crash by ensuring ref is attached
+  // before React tries to access it (useEffect runs too late)
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    // Update internal ref
+    internalRef.current = node;
+    
+    // Forward to parent ref
+    if (ref) {
       if (typeof ref === 'function') {
-        ref(containerRef.current);
+        ref(node);
       } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = containerRef.current;
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
       }
     }
   }, [ref]);
@@ -1179,7 +1185,7 @@ const ProjectsContent = memo(forwardRef<HTMLDivElement, Record<string, never>>(f
   const stitchingProjects = projects.filter(p => status(p) === 'stitching');
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
+    <div ref={mergedRef} className="min-h-screen bg-[#030303] relative overflow-x-hidden">
       {/* Premium Orange-Themed Animated Background */}
       <ProjectsBackground />
 

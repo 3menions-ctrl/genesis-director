@@ -303,16 +303,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 10 * 60 * 1000); // Check every 10 minutes
 
-    // Also refresh on window focus (user returns to tab)
+    // Also refresh on window focus (user returns to tab) - with debounce
+    let visibilityDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastVisibilityCheck = 0;
+    const VISIBILITY_DEBOUNCE_MS = 2000; // Minimum 2 seconds between checks
+    
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && mounted) {
+      if (document.visibilityState !== 'visible' || !mounted) return;
+      
+      const now = Date.now();
+      // Skip if we checked recently (prevents rapid tab switching thrash)
+      if (now - lastVisibilityCheck < VISIBILITY_DEBOUNCE_MS) {
+        return;
+      }
+      
+      // Debounce the actual check
+      if (visibilityDebounceTimer) {
+        clearTimeout(visibilityDebounceTimer);
+      }
+      
+      visibilityDebounceTimer = setTimeout(async () => {
+        if (!mounted) return;
+        lastVisibilityCheck = Date.now();
+        
         console.log('[AuthContext] Tab became visible, checking session...');
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         if (currentSession) {
           const expiresAt = currentSession.expires_at;
-          const now = Math.floor(Date.now() / 1000);
-          const timeUntilExpiry = expiresAt ? expiresAt - now : 0;
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = expiresAt ? expiresAt - nowSeconds : 0;
           
           // If less than 30 minutes until expiry, refresh
           if (timeUntilExpiry < 30 * 60) {
@@ -320,7 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await supabase.auth.refreshSession();
           }
         }
-      }
+      }, 500); // 500ms debounce delay
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -329,6 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
       if (refreshInterval) clearInterval(refreshInterval);
+      if (visibilityDebounceTimer) clearTimeout(visibilityDebounceTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

@@ -10,10 +10,28 @@ let errorCount = 0;
 const ERROR_THRESHOLD = 10;
 const ERROR_RESET_INTERVAL = 30000; // 30 seconds
 
+// Store interval ID for cleanup during HMR
+let errorResetInterval: ReturnType<typeof setInterval> | null = null;
+
+// Clear existing interval before creating new one (prevents HMR stacking)
+if (errorResetInterval) {
+  clearInterval(errorResetInterval);
+}
+
 // Reset error count periodically
-setInterval(() => {
+errorResetInterval = setInterval(() => {
   errorCount = 0;
 }, ERROR_RESET_INTERVAL);
+
+// Clean up on HMR module replacement
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (errorResetInterval) {
+      clearInterval(errorResetInterval);
+      errorResetInterval = null;
+    }
+  });
+}
 
 // Global error handler with stability monitoring
 window.addEventListener("error", (event) => {

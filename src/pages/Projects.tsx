@@ -40,8 +40,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { FullscreenVideoPlayer } from '@/components/studio/FullscreenVideoPlayer';
 import { ManifestVideoPlayer } from '@/components/studio/ManifestVideoPlayer';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { motion, AnimatePresence } from 'framer-motion';
+// STABILITY DEBUG: motion/AnimatePresence disabled - replaced with CSS-only shims
+// import { motion, AnimatePresence } from 'framer-motion';
 import { useProjectThumbnails } from '@/hooks/useProjectThumbnails';
+
+// Shim: motion elements → regular HTML elements with className passthrough
+const motion = {
+  div: ({ children, className, style, onClick, onMouseEnter, onMouseLeave, ref, ...rest }: any) => (
+    <div ref={ref} className={className} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>{children}</div>
+  ),
+  section: ({ children, className, style, ...rest }: any) => (
+    <section className={className} style={style}>{children}</section>
+  ),
+  h2: ({ children, className, style, ...rest }: any) => (
+    <h2 className={className} style={style}>{children}</h2>
+  ),
+  p: ({ children, className, style, ...rest }: any) => (
+    <p className={className} style={style}>{children}</p>
+  ),
+};
+
+// Shim: AnimatePresence → passthrough
+const AnimatePresence = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
 import { SmartStitcherPlayer } from '@/components/studio/SmartStitcherPlayer';
 import ProjectsBackground from '@/components/projects/ProjectsBackground';
 import { ProjectsHero } from '@/components/projects/ProjectsHero';
@@ -251,17 +272,15 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
 
   if (viewMode === 'list') {
     return (
-      <motion.div
+      <div
         ref={ref}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.03, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer",
+          "group flex items-center gap-4 p-3 rounded-xl transition-all duration-300 cursor-pointer animate-fade-in",
           "bg-zinc-900/60 border border-white/[0.06]",
           "hover:bg-zinc-800/60 hover:border-white/[0.1]",
           isActive && "ring-1 ring-white/20"
         )}
+        style={{ animationDelay: `${index * 0.03}s` }}
         onClick={onPlay}
       >
         {/* Thumbnail */}
@@ -361,29 +380,22 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
-  // Cinematic Grid view
+  // Cinematic Grid view - STABILITY: Using CSS animations instead of framer-motion
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 30, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
-        duration: 0.6, 
-        delay: index * 0.06,
-        ease: [0.16, 1, 0.3, 1]
-      }}
-      whileHover={{ y: -8 }}
-      className="group relative cursor-pointer"
+      className="group relative cursor-pointer animate-fade-in hover:-translate-y-2 transition-transform duration-300"
+      style={{ animationDelay: `${index * 0.06}s` }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={onPlay}
     >
-      {/* Dramatic glow effect on hover */}
-      <motion.div
+      {/* Dramatic glow effect on hover - CSS only */}
+      <div
         className="absolute -inset-2 rounded-3xl bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700 pointer-events-none"
       />
       
@@ -416,18 +428,14 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
               }}
             />
             
-            {/* Cinematic bars on hover */}
-            <motion.div 
-              className="absolute inset-x-0 top-0 bg-black pointer-events-none"
-              initial={{ height: 0 }}
-              animate={{ height: isHovered ? '6%' : 0 }}
-              transition={{ duration: 0.4 }}
+            {/* Cinematic bars on hover - CSS transition */}
+            <div 
+              className="absolute inset-x-0 top-0 bg-black pointer-events-none transition-all duration-400"
+              style={{ height: isHovered ? '6%' : 0 }}
             />
-            <motion.div 
-              className="absolute inset-x-0 bottom-0 bg-black pointer-events-none"
-              initial={{ height: 0 }}
-              animate={{ height: isHovered ? '6%' : 0 }}
-              transition={{ duration: 0.4 }}
+            <div 
+              className="absolute inset-x-0 bottom-0 bg-black pointer-events-none transition-all duration-400"
+              style={{ height: isHovered ? '6%' : 0 }}
             />
           </>
         ) : (
@@ -449,41 +457,17 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
           isHovered ? "opacity-90" : "opacity-70"
         )} />
         
-        {/* Cinematic Play button */}
-        <AnimatePresence>
-          {hasVideo && isHovered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute inset-0 flex items-center justify-center z-10"
-            >
-              <div className="relative">
-                {/* Multiple expanding rings */}
-                <motion.div 
-                  className="absolute inset-[-8px] rounded-full border border-white/10"
-                  animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-                <motion.div 
-                  className="absolute inset-[-4px] rounded-full border border-white/20"
-                  animate={{ scale: [1, 1.2], opacity: [0.6, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
-                />
-                
-                {/* Main play button with glow */}
-                <motion.div 
-                  className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
-                </motion.div>
+        {/* Cinematic Play button - CSS animations */}
+        {hasVideo && isHovered && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 animate-scale-in">
+            <div className="relative">
+              {/* Main play button with glow */}
+              <div className="relative w-16 h-16 rounded-full bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-lg hover:scale-110 active:scale-95 transition-transform">
+                <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        )}
 
         {/* Pin indicator */}
         {isPinned && (
@@ -494,39 +478,31 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
           </div>
         )}
 
-        {/* Content overlay - hidden until hover for premium feel */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.25 }}
-              className="absolute bottom-0 left-0 right-0 p-4 z-20"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {getStatusBadge()}
-              </div>
+        {/* Content overlay - hidden until hover for premium feel - CSS animations */}
+        {isHovered && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-20 animate-fade-in">
+            <div className="flex items-center gap-2 mb-2">
+              {getStatusBadge()}
+            </div>
 
-              <h3 className="font-bold text-white tracking-tight line-clamp-1 text-base drop-shadow-lg">
-                {project.name}
-              </h3>
+            <h3 className="font-bold text-white tracking-tight line-clamp-1 text-base drop-shadow-lg">
+              {project.name}
+            </h3>
 
-              <div className="flex items-center gap-3 mt-1.5 text-white/70 text-xs">
+            <div className="flex items-center gap-3 mt-1.5 text-white/70 text-xs">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatTimeAgo(project.updated_at)}
+              </span>
+              {(project.video_clips?.length ?? 0) > 0 && (
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTimeAgo(project.updated_at)}
+                  <Film className="w-3 h-3" />
+                  {project.video_clips?.length} clips
                 </span>
-                {(project.video_clips?.length ?? 0) > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Film className="w-3 h-3" />
-                    {project.video_clips?.length} clips
-                  </span>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Quick actions - top right */}
         <div className={cn(
@@ -635,7 +611,7 @@ const ProjectCard = memo(forwardRef<HTMLDivElement, ProjectCardProps & { preReso
           </DropdownMenu>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }));
 
